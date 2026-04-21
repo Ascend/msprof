@@ -4,7 +4,7 @@
 
 ## 前提条件
 
-- 请确保安装CANN Toolkit开发套件包和ops算子包，具体请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler)》。
+- 请确保安装CANN Toolkit开发套件包和ops算子包，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 - 已完成应用程序功能调试，准备对应的可执行二进制文件或可执行脚本。
 
 下文根据昇腾AI处理器的PCIe工作模式区分为Ascend EP和Ascend RC两种操作步骤，Ascend EP和Ascend RC详细介绍请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。

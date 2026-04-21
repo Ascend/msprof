@@ -1283,7 +1283,7 @@ msproftx采集的是用户和上层框架程序输出性能数据，数据保存
 |--|--|
 |msprof_*.json|timeline汇总数据。详情请参见[msproftx timeline汇总数据](#zh-cn_topic_0000001798418925_section5704032072)。|
 |msprof_tx_*.json|msproftx timeline数据。为msprof_*.json的子集。详情请参见[msproftx timeline数据。](#zh-cn_topic_0000001798418925_section12121185651210)|
-|msprof_tx_*.csv|msproftx summary数据。对采集到的Host msproftx summary数据按线程进行拼接，并进行数据关联性展示。详情请[参见msprof_tx summary数据](#zh-cn_topic_0000001798418925_section15813213018)。|
+|msprof_tx_*.csv|msproftx summary数据。对采集到的Host msproftx summary数据按线程进行拼接，并进行数据关联性展示。详情请参见[msprof_tx summary数据](#zh-cn_topic_0000001798418925_section15813213018)。|
 
 **msproftx timeline汇总数据<a name="zh-cn_topic_0000001798418925_section5704032072"></a>**
 
