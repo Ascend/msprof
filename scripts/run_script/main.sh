@@ -4,6 +4,7 @@ install_args_num=0
 install_path_num=0
 
 uninstall_flag=0
+check_flag=0
 install_for_all_flag=0
 
 function parse_script_args() {
@@ -40,6 +41,11 @@ function parse_script_args() {
             shift
             continue
             ;;
+        --check)
+            check_flag=1
+ 	          shift
+ 	          continue
+ 	          ;;
         *)
             print "ERROR" "Input option is invalid. Please try --help."
             exit 1
@@ -49,6 +55,9 @@ function parse_script_args() {
 }
 
 function check_args() {
+    if [ ${check_flag} -eq 1 ]; then
+        return 0
+    fi
     if [ ${install_args_num} -ne 0 ] && [ ${uninstall_flag} -eq 1 ]; then
         print "ERROR" "Input option is invalid. Please try --help."
         exit 1
