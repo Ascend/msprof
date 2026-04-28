@@ -34,6 +34,7 @@
    ```
    
     > [!NOTE] 说明
+    > - 上述train.py脚本依赖torch和torch_npu，建议安装Python3.9及以上版本，并配套安装torch2.7.1及以上版本。
     > - --output：收集到的性能数据的存放路径；
     > - --application：待采集性能数据的用户程序；
     > - 以上为最基本的采集命令，如有其他采集需求，请参见[性能数据采集和自动解析](https://www.hiascend.com/document/detail/zh/mindstudio/830/T&ITools/Profiling/atlasprofiling_16_0007.html#ZH-CN_TOPIC_0000002536038281)。
@@ -126,14 +127,18 @@ from torchvision.models import ResNet50_Weights
 
 class ResNet50:
     def __init__(self, num_classes=1000, device=None):
-        # Automatically choose the device: NPU > CUDA > CPU
         if device is None:
             if hasattr(torch, 'npu') and torch.npu.is_available():
                 self.device = torch.device("npu:0")
             else:
-                self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                raise RuntimeError(
+                    "Current environment does not support NPU data collection. "
+                    "Please check the versions of torch and torch_npu. "
+                    "Recommended: torch >= 2.7.1, torch_npu >= 2.7.1, Python >= 3.7.5"
+                )
         else:
             self.device = torch.device(device)
+        torch.npu.set_device(self.device)
         print(f"[INFO] Using device: {self.device}")
 
         # Load ResNet50 (with pretrained weights)
