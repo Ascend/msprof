@@ -532,6 +532,22 @@ TEST_F(ContextUTest, TestGetProfTimeRecordInfoShouldReturnRightValueWhenSuccess)
     EXPECT_EQ(res.endTimeNs, expectEndTime);
 }
 
+TEST_F(ContextUTest, TestGetProfTimeRecordInfoShouldUseDefaultEndTimeWhenNoEndInfo)
+{
+    // 无end_info时, endTime = startTime + DEFAULT_DURATION_TIME_NS
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, END_INFO})));
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, DEVICE_PREFIX + "0", END_INFO})));
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    ProfTimeRecord res;
+    EXPECT_TRUE(Context::GetInstance().GetProfTimeRecordInfo(res, {File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    uint64_t expectBaseTime = 8719641548578;
+    uint64_t expectStartTime = 1700902984041176000;
+    uint64_t expectEndTime = expectStartTime + DEFAULT_DURATION_TIME_NS;
+    EXPECT_EQ(res.baseTimeNs, expectBaseTime);
+    EXPECT_EQ(res.startTimeNs, expectStartTime);
+    EXPECT_EQ(res.endTimeNs, expectEndTime);
+}
+
 TEST_F(ContextUTest, TestGetSyscntConversionParamsShouldReturnFreq1000WhenFreqIsEmpty)
 {
     EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));

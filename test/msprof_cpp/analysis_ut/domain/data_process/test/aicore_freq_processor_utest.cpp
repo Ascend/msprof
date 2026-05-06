@@ -112,6 +112,34 @@ TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenRunSuccess)
     EXPECT_EQ(expectNum, res->size());
 }
 
+TEST_F(AicoreFreqProcessorUTest, TestRunShouldNotAddEndTimeRecordWhenEndTimeIsDefault)
+{
+    // endTimeNs == startTimeNs + DEFAULT_DURATION_TIME_NS时不追加结束时间记录
+    if (!File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"}))) {
+        EXPECT_TRUE(CreateFreqDB(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE})));
+    }
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1715760307197379"},
+        {"startClockMonotonicRaw", "9691377159398230"},
+        {"hostMonotonic", "9691377161797070"},
+        {"platform_version", "5"},
+        {"CPU", {{{"Frequency", "100.000000"}}}},
+        {"DeviceInfo", {{{"hwts_frequency", "50"}, {"aic_frequency", "1650"}}}},
+        {"devCntvct", "484576969200418"},
+        {"hostCntvctDiff", "0"},
+    };
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+
+    auto processor = AicoreFreqProcessor(PROF);
+    auto dataInventory = DataInventory();
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
+
+    // 无结束时间记录，仅: 过滤后的数据 + 开始时间记录
+    uint16_t expectNum = FREQ_DATA.size() + 1;
+    auto res = dataInventory.GetPtr<std::vector<AicoreFreqData>>();
+    EXPECT_EQ(expectNum, res->size());
+}
+
 TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 {
     if (File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"}))) {

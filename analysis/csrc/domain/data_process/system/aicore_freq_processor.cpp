@@ -145,7 +145,7 @@ bool AicoreFreqProcessor::FormatData(const uint16_t& deviceId, const ProfTimeRec
         }
         processedData.push_back(aicoreFreqData);
     }
-    if (timeRecord.endTimeNs != DEFAULT_END_TIME_NS) {
+    if (timeRecord.endTimeNs != timeRecord.startTimeNs + DEFAULT_DURATION_TIME_NS) {
         aicoreFreqData.timestamp = timeRecord.endTimeNs;
         // 结束时间的freq为最后一条记录的freq
         processedData.push_back(aicoreFreqData);

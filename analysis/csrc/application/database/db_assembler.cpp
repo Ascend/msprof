@@ -680,10 +680,6 @@ bool SaveSessionTimeInfoData(DataInventory& dataInventory, DBInfo& msprofDB, con
         ERROR("GetProfTimeRecordInfo failed, profPath is %.", profPath);
         return false;
     }
-    if (tempRecord.endTimeNs == UINT64_MAX) {
-        ERROR("No end_info.json, can't get session time info.");
-        return false;
-    }
     TimeDataFormat timeInfoData = {std::make_tuple(tempRecord.startTimeNs, tempRecord.endTimeNs)};
     return SaveData(timeInfoData, TABLE_NAME_SESSION_TIME_INFO, msprofDB);
 }

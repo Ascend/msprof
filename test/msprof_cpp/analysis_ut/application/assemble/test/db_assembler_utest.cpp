@@ -1478,6 +1478,7 @@ TEST_F(DBAssemblerUTest, TestRunAssemblerShouldReturnFalseWhenProfPathIsEmpty)
     EXPECT_FALSE(assembler.Run(dataInventory));
 }
 
+ 	 
 TEST_F(DBAssemblerUTest, TestSaveMetaDataShouldReturnFalseWhenReserveFailed)
 {
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);

@@ -31,7 +31,7 @@ using namespace Viewer::Database;
 
 namespace {
 const uint32_t ALL_EXPORT_VERSION = 0x072211;  // 2023年10月30号之后支持全导的驱动版本号 0x072211 = 467473
-const uint64_t DEFAULT_END_TIME_US = DEFAULT_END_TIME_NS / MILLI_SECOND;
+const uint64_t DEFAULT_DURATION_TIME_US = DEFAULT_DURATION_TIME_NS / MILLI_SECOND;
 const std::string DEFAULT_HOST_UID = "0";
 // 需要用到的json 和 log的文件名（前缀）
 const std::string INFO_JSON = "info.json";
@@ -275,8 +275,8 @@ bool Context::GetProfTimeRecordInfo(Utils::ProfTimeRecord &record, const std::st
         ERROR("StartTime to uint64_t failed. Prof path is %, device id is %.", profPath, deviceId);
         return false;
     }
-    uint64_t endTimeUs = 0;
-    if (StrToU64(endTimeUs, info.value("endCollectionTimeEnd", std::to_string(DEFAULT_END_TIME_US))) != ANALYSIS_OK) {
+    uint64_t endTimeUs = DEFAULT_DURATION_TIME_US + startTimeUs;
+    if (StrToU64(endTimeUs, info.value("endCollectionTimeEnd", std::to_string(endTimeUs))) != ANALYSIS_OK) {
         ERROR("EndTime to uint64_t failed. Prof path is %, device id is %.", profPath, deviceId);
         return false;
     }
