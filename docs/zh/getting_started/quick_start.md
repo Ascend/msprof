@@ -33,7 +33,7 @@
    msprof --application="python train.py" --output=/home/prof_output
    ```
    
-    > [!NOTE] 说明
+    > [!NOTE]
     > - 上述train.py脚本依赖torch和torch_npu，建议安装Python3.9及以上版本，并配套安装torch2.7.1及以上版本。
     > - --output：收集到的性能数据的存放路径；
     > - --application：待采集性能数据的用户程序；
