@@ -1,7 +1,7 @@
-
 <h1 align="center">MindStudio Profiler</h1>
+
 <div align="center">
-  <p>🚀 <b>昇腾性能采集工具</b></p>
+  <p><b>昇腾性能采集工具</b></p>
 
  [![Ask DeepWiki](https://badgen.net/badge/Ask/DeepWiki/blue)](https://deepwiki.com/kali20gakki/msprof )
  [![Ask ZRead](https://badgen.net/badge/Ask/ZRead/orange)](https://zread.ai/kali20gakki/msprof)
@@ -29,22 +29,9 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 | **性能数据采集** | 通过 `msProf` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/devaids/Profiling/atlasprofiling_16_0010.html) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
 | **性能数据解析** | 使用 `msProf` 工具对采集到的性能数据进行解析，生成可读的分析结果。 |                                       [性能数据解析](docs/zh/user_guide/msprof_parsing_instruct.md)                              | [analysis](https://gitcode.com/Ascend/msprof/tree/master/analysis) |
 
-### 🛠️ 工具安装
+## 🛠️ 安装指南
 
-msProf 工具内置在 CANN Toolkit 开发套件中，推荐直接下载 CANN 包进行安装，具体请参见《[CANN软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=netconda&OS=openEuler)》。
-
-CANN 包安装成功后，执行以下命令设置环境变量：  
-
-```bash
-# ${install_path} 为 CANN 软件的安装目录，例如：/usr/local/Ascend/ascend-toolkit。
-source ${install_path}/set_env.sh
-```
-
-运行以下命令验证安装是否成功:  
-
-```bash
-msprof --help
-```
+msProf 工具内置在 CANN Toolkit 开发套件中，推荐直接下载 CANN 包进行安装，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
 
 如需通过源码编译方式安装，请参见 《[msProf 工具安装指南](docs/zh/getting_started/msprof_install_guide.md)》。
 
@@ -104,6 +91,10 @@ msprof --output=./output --application="./run_standalone_train.sh"
 ## 💬 建议与交流
 
 欢迎大家为社区做贡献。如果有任何疑问或建议，请提交 [Issues](https://gitcode.com/Ascend/msprof/issues)，我们会尽快回复。感谢您的支持。
+
+|                   📱 关注 MindStudio 公众号                   | 💬 更多交流与支持                                             |
+| :----------------------------------------------------------: | :----------------------------------------------------------- |
+| <img src="https://raw.gitcode.com/Ascend/msot/files/master/docs/zh/figures/readme/officialAccount.png" width="120"><br><sub>*扫码关注获取最新动态*</sub> | 💡 **加入微信交流群**：<br>关注公众号，回复“交流群”即可获取入群二维码。<br><br>🛠️ **其他渠道**：<br>👉 昇腾助手：[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://gitcode.com/Ascend/msot/blob/master/docs/zh/figures/readme/xiaozhushou.png)<br>👉 昇腾论坛：[![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
 
 ## 🤝 致谢
 
