@@ -324,6 +324,8 @@ const std::unordered_map<std::string, uint16_t> HCCL_LINK_TYPE_TABLE = {
     {"SIO", 4},
     {"HCCS_SW", 5},
     {"STANDARD_ROCE", 6},
+    {"UB", 7},
+    {"UBoE", 8},
     {"RESERVED", 255},
     {NA, UINT16_MAX - 1},
     {"INVALID_TYPE", UINT16_MAX},

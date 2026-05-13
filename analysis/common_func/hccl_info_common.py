@@ -75,6 +75,8 @@ class LinkType(Enum):
     SIO = 4
     HCCS_SW = 5
     STANDARD_ROCE = 6
+    UB = 7
+    UBoE = 8
     RESERVED = 255
     INVALID_TYPE = 4294967295
 
