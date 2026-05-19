@@ -57,11 +57,11 @@ using HcclTaskSingleDeviceFormat = std::vector<std::tuple<uint32_t, int32_t, std
     std::string, double, int32_t, double, double, double,
     std::string, std::string, uint64_t, int32_t, uint64_t, uint32_t,
     double, uint32_t, uint32_t, std::string, uint64_t, std::string,
-    std::string, double, uint32_t, uint64_t, uint32_t, std::string>>;
+    std::string, double, uint32_t, uint64_t, uint32_t, std::string, uint32_t>>;
 
 using HcclOpSingleDeviceFormat = std::vector<std::tuple<uint32_t, std::string, std::string, std::string,
     double, int32_t, int32_t, std::string, std::string,
-    uint64_t, std::string, uint32_t>>;
+    uint64_t, std::string, uint32_t, uint32_t>>;
 
 using KfcTaskFormat = std::vector<std::tuple<uint32_t, int32_t, std::string, uint64_t, uint32_t, std::string,
     std::string, uint32_t, uint64_t, double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string,
@@ -75,34 +75,34 @@ const HcclTaskSingleDeviceFormat DATA_A{
     {4294967295, -1, "hcom_allReduce__360_0_1", 0, "Memcpy",   "10652832407468360",
         78180470736653, 0, 781687236999151, 2994.875, 1, "HCCL", "hcom_allReduce_", 125,
         1, 11, 1, 14.1825906735751, 0, 0, "SDMA", 262144, "INVALID_TYPE",
-        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE"},
+        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE", 4},
     {4294967295, -1, "hcom_allReduce__360_0_1", 0, "Reduce23", "10652832407468360",
         78180470736653, 0, 781687236999152, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
         1, 11, 2, 14.1825906735751, 0, 0, "SDMA", 262144, "FP16",
-        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE"},
+        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE", 4},
     // 用于测试无主流通信算子的场景
     {4294967295, -1, "hcom_allReduce__360_888_1", 0, "Reduce23", "10652832407468360",
         2000026362976, 0, 2000026362976, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
         0, 11, 2, 14.1825906735751, 0, 0, "SDMA", 262144, "FP16",
-        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE"}
+        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE", 4}
 };
 const HcclOpSingleDeviceFormat DATA_OP_A{
     {4294967295, "hcom_allReduce_", "HCCL", "hcom_allReduce_",
-        821026362976, 0, 1, "INT16", "HD-NB", 3021, "10652832407468360", 125},
+        821026362976, 0, 1, "INT16", "HD-NB", 3021, "10652832407468360", 125, 4},
 };
 const HcclTaskSingleDeviceFormat DATA_B{
     {4294967295, -1, "hcom_allReduce__233_0_2", 0, "Memcpy23", "10653832407468233",
         78180470736653, 0, 781687236999153, 2994.875, 3, "HCCL", "hcom_allReduce_", 125,
         1, 11, 3, 14.1825906735751, 1, 4, "SDMA", 262144, "INVALID_TYPE",
-        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE"},
+        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE", 4},
     {4294967295, -1, "hcom_allReduce__832_0_1", 0, "Memcpy",   "10652853832407468832",
         78180470736653, 0, 781687236999154, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
         1, 21, 4, 14.1825906735751, 4, 2, "SDMA", 262144, "FP32",
-        "HCCS",    87.530865228098, 4294967295, 8,          2, "INVALID_TYPE"}
+        "HCCS",    87.530865228098, 4294967295, 8,          2, "INVALID_TYPE", 4}
 };
 const HcclOpSingleDeviceFormat DATA_OP_B{
     {4294967295, "hcom_allReduce_", "HCCL", "hcom_allReduce_",
-        821026362976, 1, 1, "INT32", "HD-NHR", 4921, "10652853832407468832", 126}
+        821026362976, 1, 1, "INT32", "HD-NHR", 4921, "10652853832407468832", 126, 4}
 };
 
 const KfcTaskFormat DATA_KFC_A{

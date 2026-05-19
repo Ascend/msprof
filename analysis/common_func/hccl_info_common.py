@@ -38,6 +38,7 @@ class DataType(Enum):
     """
     Data type enum
     """
+
     INT8 = 0
     INT16 = 1
     INT32 = 2
@@ -122,6 +123,7 @@ class ReduceOpType(Enum):
     """
     DataType enum for reduce op
     """
+
     SUM = 0
     PROD = 1
     MAX = 2

@@ -817,9 +817,9 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
     EXPECT_EQ(expectName, opName);
 
     // 大算子数据
-    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId
+    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId, rank_size
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
+        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t, uint32_t>>;
     CommunicationOpDataFormat opResult;
     sql = "SELECT * FROM " + TABLE_NAME_COMMUNICATION_OP;
     msprofDBRunner->QueryData(sql, opResult);

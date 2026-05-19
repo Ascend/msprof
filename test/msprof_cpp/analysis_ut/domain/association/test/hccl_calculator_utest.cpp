@@ -25,91 +25,91 @@ using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 
 // deviceId, modelId, indexId, threadId, opName, taskType, opType, timestamp, duration, isDynamic, connectionId,
-// relay, retry, dataType, algType, count, groupName
+// relay, retry, dataType, algType, count, groupName, int32_t
 using HcclOpDataFormat = std::vector<std::tuple<uint16_t, uint64_t, int32_t, uint32_t, std::string, std::string,
         std::string, uint64_t, uint64_t, std::string, int64_t, int32_t, int32_t, std::string, std::string,
-        int32_t, std::string>>;
+        int32_t, std::string, uint32_t>>;
 const HcclOpDataFormat HCCL_OP_DATA = {
     {1, 4294967295, -1, 2037145, "hcom_broadcast_", "HCCL", "hcom_broadcast_", 8864918572019, 63965, "1",
-        17, 0, 0, "INT64", "MESH-RING", 5, "559228325453745108"},
+        17, 0, 0, "INT64", "MESH-RING", 5, "559228325453745108", 64},
     {1, 4294967295, -1, 2037145, "hcom_scatter_AicpuKernel", "HCCL", "hcom_scatter_AicpuKernel", 8864977572019,
-        30000, "1", 11111, 0, 0, "FP32", "RING-HD", 1, "456135115796354833"},
+        30000, "1", 11111, 0, 0, "FP32", "RING-HD", 1, "456135115796354833", 64},
     {1, 4294967295, -1, 2037145, "hcom_allReduce_", "HCCL", "hcom_allReduce_", 8865013596227, 31531, "1",
-        9537, 0, 0, "FP32", "RING-HD", 1, "18121985196749930015"},
+        9537, 0, 0, "FP32", "RING-HD", 1, "18121985196749930015", 64},
     {1, 4294967295, -1, 2037145, "hcom_allGather_AicpuKernel", "HCCL", "hcom_allGather_AicpuKernel", 8865013684561,
-        68888, "1", 11111, 0, 0, "FP32", "RING-HD", 1, "18121985196749930015"},
+        68888, "1", 11111, 0, 0, "FP32", "RING-HD", 1, "18121985196749930015", 64},
     {1, 4294967295, -1, 2037145, "hcom_alltoall_AicpuKernel", "HCCL", "hcom_alltoall_AicpuKernel", 8865013802241,
-        30000, "1", 15000, 0, 0, "INT32", "RING-HD", 1, "456135115796354833"},
+        30000, "1", 15000, 0, 0, "INT32", "RING-HD", 1, "456135115796354833", 64},
     {1, 4294967295, -1, 2037145, "hcom_alltoallv_AicpuKernel", "HCCL", "hcom_alltoallv_AicpuKernel", 8865013874784,
-        20000, "1", 16885, 0, 0, "FP16", "RING-HD", 1, "456135115796354833"},
+        20000, "1", 16885, 0, 0, "FP16", "RING-HD", 1, "456135115796354833", 64},
 };
 
 // modelId, indexId, name, groupName, planeId, timestamp, duration, streamId, taskId, contextId, batchId,
-// deviceId, isMaster, localRank, remoteRank, transportType, size, dataType, linkType, notifyId, rdmaType
+// deviceId, isMaster, localRank, remoteRank, transportType, size, dataType, linkType, notifyId, rdmaType, rankSize
 using HcclTaskDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t,
         double, uint32_t, uint16_t, uint32_t, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, std::string,
-        double, std::string, std::string, std::string, std::string, uint32_t>>;
+        double, std::string, std::string, std::string, std::string, uint32_t, uint32_t>>;
 const HcclTaskDataFormat HCCL_TASK_DATA = {
     {4294967295, -1, "Notify_Record", "559228325453745108", 0, 8864918631924, 1, 5, 5450, 0, 0, 1, 0, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "559228325453745108", 0, 8864918631924, 1, 5, 5450, 0, 0, 1, 1, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "559228325453745108", 0, 8864918631924, 0.02, 5, 5450, 1, 0, 1, 1, 1, 0,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967748", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967748", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Memcpy", "559228325453745108", 0, 8864918631924, 0.6, 5, 5450, 2, 0, 1, 1, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "HCCS", "18446744073709551615", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "HCCS", "18446744073709551615", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "559228325453745108", 0, 8864918631924, 1, 5, 5450, 3, 0, 1, 1, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "559228325453745108", 0, 8864918631924, 0.02, 5, 5450, 4, 0, 1, 1, 1, 0,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967756", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967756", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "559228325453745108", 0, 8864918631924, 1, 5, 5450, 5, 0, 1, 1, 1, 7,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "30064771576", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "30064771576", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "559228325453745108", 0, 8864918631924, 0.02, 5, 5450, 6, 0, 1, 1, 1, 7,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967800", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967800", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "559228325453745108", 0, 8864918631924, 1, 5, 5450, 7, 0, 1, 1, 1, 6,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "25769804280", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "25769804280", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "559228325453745108", 0, 8864918631924, 0.02, 5, 5450, 8, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967784", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294967784", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "456135115796354833", 0, 8864977577019, 1, 7, 980, 0, 0, 1, 0, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "456135115796354833", 0, 8864977597019, 0.02, 7, 990, 0, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Memcpy", "18121985196749930015", 0, 8865013624852, 0.60020725388601, 6, 34, 0, 0, 1, 1, 1, 1,
-        "SDMA", 4, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145},
+        "SDMA", 4, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Memcpy", "18121985196749930015", 0, 8865013624852, 0.6, 6, 34, 1, 0, 1, 1, 1, 1,
-        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Memcpy", "18121985196749930015", 0, 8865013624852, 0.6, 6, 34, 2, 0, 1, 1, 1, 1,
-        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "RDMASend", "18121985196749930015", 0, 8865013624852, 7.00033333333333, 6, 34, 3, 0, 1, 1, 1, 0,
-        "RDMA", 4, "INVALID_TYPE", "ROCE", "1432", "RDMA_SEND_NOTIFY", 2037145},
+        "RDMA", 4, "INVALID_TYPE", "ROCE", "1432", "RDMA_SEND_NOTIFY", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "18121985196749930015", 0, 8865013624852, 0.02, 6, 34, 4, 0, 1, 1, 1, 0,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "RDMASend", "18121985196749930015", 0, 8865013624852, 7.00033333333333, 6, 34, 5, 0, 1, 1, 1, 0,
-        "RDMA", 4, "INVALID_TYPE", "ROCE", "4294967295", "RDMA_SEND_PAYLOAD", 2037145},
+        "RDMA", 4, "INVALID_TYPE", "ROCE", "4294967295", "RDMA_SEND_PAYLOAD", 2037145, 8},
     {4294967295, -1, "RDMASend", "18121985196749930015", 0, 8865013624852, 7.00033333333333, 6, 34, 6, 0, 1, 1, 1, 0,
-        "RDMA", 4, "INVALID_TYPE", "ROCE", "1428", "RDMA_SEND_NOTIFY", 2037145},
+        "RDMA", 4, "INVALID_TYPE", "ROCE", "1428", "RDMA_SEND_NOTIFY", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "18121985196749930015", 0, 8865013624852, 0.02, 6, 34, 7, 0, 1, 1, 1, 1,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968708", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968708", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Memcpy", "18121985196749930015", 0, 8865013624852, 0.6, 6, 34, 8, 0, 1, 1, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "ON_CHIP", "18446744073709551615", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "RDMASend", "18121985196749930015", 0, 8865013624852, 7.00033333333333, 6, 34, 9, 0, 1, 1, 1, 0,
-        "RDMA", 4, "INVALID_TYPE", "ROCE", "1432", "RDMA_SEND_NOTIFY", 2037145},
+        "RDMA", 4, "INVALID_TYPE", "ROCE", "1432", "RDMA_SEND_NOTIFY", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "18121985196749930015", 0, 8865013624852, 0.02, 6, 34, 10, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "RDMASend", "18121985196749930015", 0, 8865013624852, 7, 6, 34, 11, 0, 1, 1, 1, 0,
-     "RDMA", 300, "INVALID_TYPE", "ROCE", "4294968712", "RDMA_SEND_PAYLOAD", 2037145},
+     "RDMA", 300, "INVALID_TYPE", "ROCE", "4294968712", "RDMA_SEND_PAYLOAD", 2037145, 8},
     {4294967295, -1, "Notify_Record", "18121985196749930015", 0, 8865013687777, 1, 7, 1000, 0, 0, 1, 0, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "18121985196749930015", 0, 8865013745514, 0.02, 7, 1010, 0, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "456135115796354833", 0, 8865013806666, 1, 7, 1020, 0, 0, 1, 0, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "456135115796354833", 0, 8865013831941, 0.02, 7, 1030, 0, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Record", "456135115796354833", 0, 8865013879999, 1, 7, 1040, 0, 0, 1, 0, 1, 0,
-        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145},
+        "SDMA", 0, "INVALID_TYPE", "INVALID_TYPE", "504", "INVALID_TYPE", 2037145, 8},
     {4294967295, -1, "Notify_Wait", "456135115796354833", 0, 8865013894184, 0.02, 7, 1050, 0, 0, 1, 1, 1, 6,
-        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145},
+        "LOCAL", 0, "INVALID_TYPE", "INVALID_TYPE", "4294968712", "INVALID_TYPE", 2037145, 8},
 };
 
 // modelId, indexId, streamId, taskId, contextId, batchId, startTime, duration,
@@ -190,7 +190,7 @@ protected:
             HcclOp op;
             std::tie(op.deviceId, op.modelId, op.indexId, op.threadId, op.opName, op.taskType, op.opType, op.timestamp,
                      op.duration, op.isDynamic, op.connectionId, op.relay, op.retry, op.dataType, op.algType, op.count,
-                     op.groupName) = data;
+                     op.groupName, op.rankSize) = data;
             opData.emplace_back(op);
         }
         return opData;
@@ -205,7 +205,7 @@ protected:
             std::tie(task.modelId, task.indexId, task.name, task.groupName, task.planeId, task.timestamp, task.duration,
                      task.streamId, task.taskId, task.contextId, task.batchId, task.deviceId, task.isMaster,
                      task.localRank, task.remoteRank, task.transportType, task.size, task.dataType, task.linkType,
-                     task.notifyId, task.rdmaType, task.threadId) = data;
+                     task.notifyId, task.rdmaType, task.threadId, task.rankSize) = data;
             taskData.emplace_back(task);
         }
         return taskData;

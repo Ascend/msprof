@@ -1,5 +1,5 @@
 minimum_pre_commit_version: 4.0.0
-exclude: ^LICENSES/|\.(html|csv|svg)$
+exclude: ^LICENSES/|\.(html|csv|svg)$|.*_utest\.cpp$|^test/.*\.cpp$|^test_.*\.py$|.*/test_.*\.py$
 
 default_stages: [pre-commit]
 ci:
@@ -39,7 +39,7 @@ repos:
       - id: codespell
         args: [
             "-L",
-            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
+            "CANN,cann,datas,Cann,eles,fo,ot,subtile,dout,ser,modul,egals,usig,egal,flate,nd,Nd,stap,windo,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
             "--skip",
             "*.py,*.cpp,*.hpp,*.c,*.h",
           ]

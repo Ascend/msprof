@@ -186,7 +186,7 @@ TEST_F(CannDBDumperUtest,
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, uint32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -234,7 +234,7 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -289,7 +289,7 @@ TEST_F(CannDBDumperUtest,
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "N/A");

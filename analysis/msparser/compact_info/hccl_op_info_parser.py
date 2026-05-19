@@ -13,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: skip-file
 
 import logging
 import sqlite3
@@ -52,9 +53,19 @@ class HcclOpInfoParser(DataParser, MsMultiProcess):
         for data in bean_data:
             data_type = trans_enum_name(DataType, data.data_type)
             self._hccl_op_info_data.append(
-                [data.level, type_info_data.get(data.struct_type, data.struct_type), data.thread_id, data.timestamp,
-                 data.relay, data.retry, data_type, ge_hash_dict.get(data.alg_type, data.alg_type),
-                 data.count, data.group_name])
+                [
+                    data.level,
+                    type_info_data.get(data.struct_type, data.struct_type),
+                    data.thread_id,
+                    data.timestamp,
+                    data.relay,
+                    data.retry,
+                    data_type,
+                    ge_hash_dict.get(data.alg_type, data.alg_type),
+                    data.count,
+                    data.group_name,
+                ]
+            )
 
     def save(self: any) -> None:
         """

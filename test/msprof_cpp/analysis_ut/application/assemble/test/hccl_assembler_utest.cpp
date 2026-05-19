@@ -74,6 +74,7 @@ static std::vector<CommunicationOpData> GenerateOpData()
     data.opType = "hcom_broadcast_";
     data.modelId = 4294967295; // modelId 4294967295
     data.deviceId = 0; // device 0
+    data.rankSize = 8;
     res.push_back(data);
     return res;
 }
@@ -164,7 +165,7 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "dst rank\":1,\"transport type\":\"LOCAL\",\"size(Byte)\":3200,\"data type\":\""
                             "INVALID_TYPE\",\"link type\":\"INVALID_TYPE\",\"bandwidth(GB/s)\":0.0,\"model id\":"
                             "4294967295}},{\"name\":\"hcom_broadcast__674_0_1\",\"pid\":10327552,\"tid\":0,\"ts\":\""
-                            "1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\",\"args\":{\"connection_id\":2762,\""
+                            "1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\",\"args\":{\"rank_size\":8,\"connection_id\":2762,\""
                             "model id\":4294967295,\"data_type\":\"INT16\",\"alg_type\":\"MESH-RING\",\"count\":5,"
                             "\"relay\":\"no\",\"retry\":\"no\"}},{"
                             "\"name\":\"HostToDevice11862699671552\",\"pid\":10327552,\"tid\":0,\"ph\":\"f\",\"cat\":"

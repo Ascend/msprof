@@ -88,15 +88,15 @@ class TestHCCLModel(TestDirCRBaseModel):
 
     def test_get_hccl_task_data_should_return_diff_result_when_query_diff_deviceid(self):
         # model_id, index_id, name, group_name, plane_id, timestamp, duration,
-        # stream_id, task_id, context_id, batch_id, device_id, args
+        # stream_id, task_id, context_id, batch_id, device_id, args, rank_szie
         hccl_task_data = [
-            (1, -1, "Memcpy", "1", 1, 1, 1, 100, 200, 300, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "RDMA_SEND", 123),
-            (1, -1, "Notify_Wait", "1", 1, 1, 1, 102, 202, 302, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 124),
+            (1, -1, "Memcpy", "1", 1, 1, 1, 100, 200, 300, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "RDMA_SEND", 123, 8),
+            (1, -1, "Notify_Wait", "1", 1, 1, 1, 102, 202, 302, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 124, 8),
             (1, -1, "Notify_Record", "1", 1, 1, 1, 103, 203, 303, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2",
-             "INVALID", 123),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 204, 304, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 125),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 105, 205, 305, 0, 1, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 123),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 206, 306, 0, 2, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 132),
+             "INVALID", 123, 8),
+            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 204, 304, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 125, 8),
+            (1, -1, "Memcpy", "1", 1, 1, 1, 105, 205, 305, 0, 1, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 123, 8),
+            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 206, 306, 0, 2, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 132, 8),
         ]
 
         # model_id, index_id, stream_id, task_id, context_id, batch_id, start_time,

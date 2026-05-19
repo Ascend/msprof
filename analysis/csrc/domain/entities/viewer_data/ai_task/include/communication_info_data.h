@@ -18,11 +18,15 @@
 #define ANALYSIS_DOMAIN_COMMUNICATION_INFO_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct CommunicationTaskData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct CommunicationTaskData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
     uint16_t isMaster = 0;
     int32_t planeId = INT32_MAX;
@@ -47,9 +51,10 @@ struct CommunicationTaskData : public BasicData {
     std::string notifyId;
     std::string opKey;
 };
-struct CommunicationOpData : public BasicData {
+struct CommunicationOpData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
-    uint16_t rankSize = 0;
+    uint32_t rankSize = 0;
     int32_t relay = 0;
     int32_t retry = 0;
     uint32_t modelId = 0;
@@ -63,6 +68,6 @@ struct CommunicationOpData : public BasicData {
     std::string algType;
     std::string opType;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_COMMUNICATION_INFO_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_COMMUNICATION_INFO_DATA_H
