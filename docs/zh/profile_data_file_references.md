@@ -3030,7 +3030,7 @@ msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 |字段名|字段含义|
 |--|--|
 |L2 Buffer Bw Level|L2 Buffer带宽等级信息。当有缓存带宽信息时，不建议参考该字段值，该字段为粗粒度的统计值。|
-|Mata Bw Level|Mata带宽等级信息。|
+|Mata Bw Level|Mata带宽等级信息。以数值从低到高表示负载程度，数值越高，负载越重，可用于观察带宽负载的变化趋势。|
 
 ## Stars Chip Trans（片间传输带宽信息）<a name="ZH-CN_TOPIC_0000002477303258"></a>
 

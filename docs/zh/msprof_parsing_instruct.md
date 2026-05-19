@@ -366,9 +366,7 @@ msprof --parse=on --output=/home/profiler_data/PROF_XXX
 
 **输出说明<a name="section1110932215311"></a>**
 
-执行完上述命令，会打印展示性能数据文件信息并在PROF\_XXX的device_\{id\}和host目录下生成sqlite目录，sqlite目录下会有db文件生成。
-
-需要继续导出最终结果的timeline数据或db文件，可执行[解析并导出性能数据](#解析并导出性能数据)。
+执行完上述命令，会在PROF\_XXX的device_\{id\}和host目录下生成sqlite目录，sqlite目录下会有db文件生成。需要继续执行[解析并导出性能数据](#解析并导出性能数据)，导出最终结果的timeline数据或db文件。
 
 ## 通信性能数据解析
 
