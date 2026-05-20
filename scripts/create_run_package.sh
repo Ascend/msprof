@@ -14,7 +14,7 @@ MAKESELF_DIR=${TOP_DIR}/opensource/makeself
 # footnote for creating run package
 CREATE_RUN_SCRIPT=${MAKESELF_DIR}/makeself.sh
 
-# footnote for controling params
+# footnote for controlling params
 CONTROL_PARAM_SCRIPT=${MAKESELF_DIR}/makeself-header.sh
 
 # store run package
@@ -110,12 +110,32 @@ function create_temp_dir() {
             exit 1
             ;;
         esac
+    download_platform_run ${temp_dir}
     cp -r ${TOP_DIR}/version.info ${temp_dir}
     copy_script ${MAIN_SCRIPT} ${temp_dir}
     copy_script ${INSTALL_SCRIPT} ${temp_dir}
     copy_script ${UN_INSTALL_SCRIPT} ${temp_dir}
     copy_script ${UTILS_SCRIPT} ${temp_dir}
     build_sample
+}
+
+# download platform-profiler.run
+function download_platform_run() {
+    local temp_dir=${1}
+    local download_url="https://ascend-package.obs.cn-north-4.myhuaweicloud.com/msprof_new/platform-profiler.run"
+    local target_file="${temp_dir}/platform-profiler.run"
+
+    mkdir -p "$temp_dir"
+    echo "INFO: start to download platform-profiler.run"
+
+    if wget -q --timeout=10 --tries=1 -O "$target_file" "$download_url" 2>/dev/null; then
+        echo "INFO: platform-profiler.run downloaded successfully to ${target_file}"
+    elif curl -fsS --connect-timeout 10 --max-time 10 -o "$target_file" "$download_url" 2>/dev/null; then
+        echo "INFO: platform-profiler.run downloaded successfully to ${target_file}"
+    else
+        rm -f "$target_file"
+        echo "warning: failed to download platform-profiler.run" >&2
+    fi
 }
 
 # build sample

@@ -85,6 +85,15 @@ function implement_install() {
       print "ERROR" "Install msprof analysis whl failed."
       return 1
   fi
+  # 6. install plat_form.run
+  if [[ -s "${PLATFORM_PROFILER_RUN}" ]]; then
+    chmod u+x "${PLATFORM_PROFILER_RUN}"
+    if ./"${PLATFORM_PROFILER_RUN}" --install --install-path="${install_path}"; then
+        echo "INFO: ${PLATFORM_PROFILER_RUN} installed successfully to ${install_path}"
+    else
+        echo "ERROR: ${PLATFORM_PROFILER_RUN} installation failed" >&2
+    fi
+  fi
 }
 
 function create_directory() {
@@ -111,7 +120,7 @@ function copy_file() {
 		chmod u+w ${parent_dir}
 		chmod -R u+w ${target_file}
 		rm -r ${target_file}
-		
+
 		cp -r ${filename} ${target_file}
 		chmod -R ${parent_right} ${target_file}
 		chmod ${parent_right} ${parent_dir}
