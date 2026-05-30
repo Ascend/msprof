@@ -42,8 +42,8 @@ class TaskDispatchModelIndex:
         msprof_iteration = MsprofIteration(self.result_dir)
         iter_list = msprof_iteration.get_index_id_list_with_index_and_model(self.iter_range)
 
-        for model_id, index_id in iter_list:
-            iteration_info = msprof_iteration.get_iteration_info_by_index_id(model_id, index_id)
+        for index_id, model_id in iter_list:
+            iteration_info = msprof_iteration.get_iteration_info_by_index_id(index_id, model_id)
             if iteration_info:
                 iteration_info_list.append(iteration_info)
 
