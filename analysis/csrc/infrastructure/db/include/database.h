@@ -325,6 +325,12 @@ class DPUDB : public Database
     DPUDB();
 };
 
+class LowPowerDB : public Database
+{
+   public:
+    LowPowerDB();
+};
+
 class UbDB : public Database
 {
    public:

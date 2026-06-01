@@ -557,6 +557,17 @@ const TableColumns DPUHcclTrack = {{"npu_device_id", SQL_INTEGER_TYPE},
                                    {"stage", SQL_TEXT_TYPE}};
 }  // namespace
 
+const TableColumns LowPower = {
+    {"timestamp", SQL_INTEGER_TYPE},  {"die_id", SQL_INTEGER_TYPE},     {"data0_hard", SQL_INTEGER_TYPE},
+    {"data1_hard", SQL_INTEGER_TYPE}, {"data2_hard", SQL_INTEGER_TYPE}, {"data3_hard", SQL_INTEGER_TYPE},
+    {"data4_hard", SQL_INTEGER_TYPE}, {"data5_hard", SQL_INTEGER_TYPE}, {"data6_hard", SQL_INTEGER_TYPE},
+    {"data7_hard", SQL_INTEGER_TYPE}, {"data8_hard", SQL_INTEGER_TYPE}, {"data9_hard", SQL_INTEGER_TYPE},
+    {"data0_soft", SQL_INTEGER_TYPE}, {"data1_soft", SQL_INTEGER_TYPE}, {"data2_soft", SQL_INTEGER_TYPE},
+    {"data3_soft", SQL_INTEGER_TYPE}, {"data4_soft", SQL_INTEGER_TYPE}, {"data5_soft", SQL_INTEGER_TYPE},
+    {"data6_soft", SQL_INTEGER_TYPE}, {"data7_soft", SQL_INTEGER_TYPE}, {"data8_soft", SQL_INTEGER_TYPE},
+    {"data9_soft", SQL_INTEGER_TYPE},
+};
+
 std::string Database::GetDBName() const { return dbName_; }
 
 TableColumns Database::GetTableCols(const std::string &tableName)
@@ -869,7 +880,6 @@ DPUDB::DPUDB()
     tableColNames_["DPUTaskTrack"] = DPUTaskTrack;
     tableColNames_["DPUHcclTrack"] = DPUHcclTrack;
 }
-
 UbDB::UbDB()
 {
     dbName_ = "ub.db";
@@ -880,6 +890,11 @@ BiuPerfDB::BiuPerfDB()
 {
     dbName_ = "biu_perf.db";
     tableColNames_["BiuInstrStatus"] = BiuInstrStatus;
+}
+LowPowerDB::LowPowerDB()
+{
+    dbName_ = "lowpower.db";
+    tableColNames_["LowPower"] = LowPower;
 }
 }  // namespace Infra
 }  // namespace Analysis
