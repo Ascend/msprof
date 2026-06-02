@@ -1126,3 +1126,134 @@ TEST_F(ContextUTest, TestIsLevel0ShouldCheckProfLevel)
     EXPECT_TRUE(Context::GetInstance().IsLevel0(File::PathJoin({CONTEXT_DIR, TEST_DIR})));
     MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
 }
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenInfoIsEmpty)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion.size(), 0);
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnRightValueWhenCannVersionInfoIsReleaseVersionFormat)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "9.1.0"}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion[0], 9);
+    EXPECT_EQ(cannVersion[1], 1);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnRightValueWhenCannVersionInfoIsTestVersionFormat)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "9.1.T100"}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion[0], 9);
+    EXPECT_EQ(cannVersion[1], 1);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnRightValueWhenCannVersionInfoIsBetaVersionFormat)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "9.1.0-beta.0"}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion[0], 9);
+    EXPECT_EQ(cannVersion[1], 1);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenCannVersionInfoNotExists)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"ai_core_profiling_mode", "task-based"},
+        {"llc_profiling", "read"},
+        {"profLevel", "l1"},
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion.size(), 0);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenCannVersionInfoIsInvalidFormatOne)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "invalid_version_format"}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion.size(), 0);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenCannVersionInfoIsInvalidFormatTwo)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "9.version0"}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion.size(), 0);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}
+
+TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenCannVersionInfoIsInvalidFormatThree)
+{
+    EXPECT_TRUE(File::DeleteFile(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON})));
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).stubs().will(returnValue(true));
+    // info.json
+    nlohmann::json info = {
+        {"cannVersion", "9."}
+    };
+    FileWriter infoWriter(File::PathJoin({CONTEXT_DIR, TEST_DIR, HOST, INFO_JSON}));
+    infoWriter.WriteText(info.dump());
+
+    EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin({CONTEXT_DIR, TEST_DIR})}));
+    auto cannVersion = Context::GetInstance().GetCannVersion(HOST_ID, File::PathJoin({CONTEXT_DIR, TEST_DIR}));
+    EXPECT_EQ(cannVersion.size(), 0);
+    MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
+}

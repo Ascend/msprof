@@ -18,23 +18,26 @@
 #define ANALYSIS_PARSER_ENVIRONMENT_CONTEXT_H
 
 #include <map>
-#include <string>
 #include <set>
+#include <string>
 #include <unordered_map>
-
-#include "opensource/json/include/nlohmann/json.hpp"
 
 #include "analysis/csrc/infrastructure/utils/singleton.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
+#include "opensource/json/include/nlohmann/json.hpp"
 
-namespace Analysis {
-namespace Domain {
-namespace Environment {
+namespace Analysis
+{
+namespace Domain
+{
+namespace Environment
+{
 const uint16_t HOST_ID = 64;
 // UINT16_MAX为非法device id, HOST_ID + 1 为默认device id
 const uint16_t INVALID_DEVICE_ID = UINT16_MAX;
 const uint16_t DEFAULT_DEVICE_ID = HOST_ID + 1;
-enum class Chip : uint16_t {
+enum class Chip : uint16_t
+{
     CHIP_V1_1_0 = 0,
     CHIP_V2_1_0 = 1,
     CHIP_V3_1_0 = 2,
@@ -52,12 +55,14 @@ enum class Chip : uint16_t {
 // 通过 std::unordered_map<std::string, std::unordered_map<uint16_t, nlohmann::json>> 结构的成员变量context_
 // 以prof, deviceId两层进行数据路径分割，将该device目录下的对应json和log进行key值合并，统一整合为一份json对象
 // 数据查询以prof（无prof则默认为begin()）和deviceId（必选）进行查找
-class Context : public Utils::Singleton<Context> {
-public:
+class Context : public Utils::Singleton<Context>
+{
+   public:
     bool Load(const std::set<std::string> &profPaths);
     bool IsAllExport();
     void Clear();
-public:
+
+   public:
     // 获取start_info end_info中的时间
     bool GetProfTimeRecordInfo(Utils::ProfTimeRecord &record, const std::string &profPath = "",
                                uint16_t deviceId = HOST_ID);
@@ -90,7 +95,10 @@ public:
     uint64_t GetTotalMem(uint16_t deviceId, const std::string &profPath);
     uint64_t GetNetCardTotalSpeed(uint16_t deviceId, const std::string &profPath);
     bool IsLevel0(const std::string &profPath);
-public:
+    // 获取cann version的major version和minor version
+    std::vector<uint16_t> GetCannVersion(uint16_t deviceId, const std::string &profPath);
+
+   public:
     // 获取对应device的芯片型号
     uint16_t GetPlatformVersion(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");
     // 判断芯片类型
@@ -102,7 +110,7 @@ public:
     // 校验是否为CHIP_V1_1_0
     static bool IsFirstChipV1(uint16_t platformVersion);
 
-private:
+   private:
     nlohmann::json GetInfoByDeviceId(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");
     bool LoadJsonData(const std::string &profPath, const std::string &deviceDir, uint16_t deviceId);
     bool LoadLogData(const std::string &profPath, const std::string &deviceDir, uint16_t deviceId);
@@ -110,6 +118,6 @@ private:
     std::unordered_map<std::string, std::map<uint16_t, nlohmann::json>> context_;
 };  // class Context
 }  // namespace Environment
-}  // namespace Parser
+}  // namespace Domain
 }  // namespace Analysis
-#endif // ANALYSIS_PARSER_ENVIRONMENT_CONTEXT_H
+#endif  // ANALYSIS_PARSER_ENVIRONMENT_CONTEXT_H

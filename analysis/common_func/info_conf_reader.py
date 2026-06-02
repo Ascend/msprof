@@ -19,6 +19,7 @@ import decimal
 import json
 import logging
 import os
+import re
 from decimal import Decimal
 from typing import Dict
 
@@ -496,6 +497,20 @@ class InfoConfReader:
         """
         prof_level = self._get_prof_level()
         return prof_level in (StrConstant.PROF_LEVEL_0, StrConstant.PROF_LEVEL_0_HISI)
+
+    def get_cann_version(self) -> tuple:
+        """
+        get cann version info(format: 9.0.0 or 9.0.0-beta.0 or 9.0.T106) from info.json
+        return: major, minor, micro
+        """
+        cann_version = self._info_json.get("cannVersion", "")
+        # Extract major and minor version numbers
+        version_match = re.match(r"^(\d+)\.(\d+)", cann_version)
+        if version_match:
+            major, minor = version_match.groups()
+            return int(major), int(minor)
+        logging.warning("Cann version format is invalid or missing in info.json, version string: %s", cann_version)
+        return 0, 0
 
     def _get_prof_level(self: any) -> str:
         """

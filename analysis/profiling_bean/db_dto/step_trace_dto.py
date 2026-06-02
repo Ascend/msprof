@@ -26,6 +26,7 @@ class StepTraceOriginDto(metaclass=InstanceCheckMeta):
     """
     step trace origin DATA dto
     """
+
     index_id: int = None
     model_id: int = None
     stream_id: int = None
@@ -39,6 +40,7 @@ class StepTraceDto(metaclass=InstanceCheckMeta):
     """
     step trace dto
     """
+
     index_id: int = None
     iter_id: int = None
     model_id: int = None
@@ -51,6 +53,7 @@ class TrainingTraceDto(metaclass=InstanceCheckMeta):
     """
     Training trace dto
     """
+
     bp_end: float = None
     data_aug_bound: str = None
     device_id: int = None
@@ -68,10 +71,12 @@ class MsproftxMarkDto(metaclass=InstanceCheckMeta):
     """
     msprofts ex mark dto
     """
+
     index_id: int = 0
     timestamp: int = 0
     stream_id: int = 0
     task_id: int = 0
+    tag_id: int = 0
 
 
 Iteration = namedtuple("Iteration", ["model_id", "iteration_id", "iteration_count"])
@@ -81,6 +86,7 @@ class IterationRange(Iteration):
     """
     iteration range for model execute.
     """
+
     MAX_ITERATION_COUNT = 5
 
     def __repr__(self):
