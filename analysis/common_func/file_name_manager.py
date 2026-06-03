@@ -192,6 +192,7 @@ class FileNameManagerConstant:
     HOST_SYS_CALL_PATTERN = r"^host_syscall\.data\.slice_\d+"
     HOST_PTHREAD_CALL_PATTERN = r"^host_pthreadcall\.data\.slice_\d+"
     HOST_NETWORK_USAGE_PATTERN = r"^host_network\.data\.slice_\d+"
+    HOST_PLATFORM_PATTERN = r"^host_platform_uncore\.bin"
 
     SOC_LOG_FILE_PATTERN = r"^stars_soc\.data\.(\d+)\.slice_\d+"
     SOC_PROFILE_FILE_PATTERN = r"^stars_soc_profile\.data\.(\d+)\.slice_\d+"
@@ -248,6 +249,10 @@ class FileNameManagerConstant:
     GE_LOGIC_STREAM_INFO_PATTERN = r"^(unaging|aging)\.additional\.logic_stream_info\.slice_\d+"
     AICPU_FILE_PATTERN = r"^aicpu\.data\.(\d+)\.slice_\d+"
     HCCL_OP_INFO_FILE_PATTERN = r"^(unaging|aging)\.compact\.hccl_op_info\.slice_\d+"
+
+    # dpu
+    DPU_TASK_TRACK_FILE_PATTERN = r"^(aging|unaging)\.compact\.dpu_track\.slice_\d+"
+    DPU_HCCL_TRACK_FILE_PATTERN = r"^(aging|unaging)\.additional\.dpu_hccl_info\.slice_\d+"
 
     # V5
     V5_MODEL_EXEOM_PATTERN = r"^unaging\.additional\.model_exeom\.slice_\d+"
@@ -773,6 +778,11 @@ def get_host_pthread_call_compiles() -> tuple:
     """
     return (re.compile(FileNameManagerConstant.HOST_PTHREAD_CALL_PATTERN),)
 
+def get_host_platform_compiles() -> tuple:
+    """
+    get host platform regex compiles
+    """
+    return (re.compile(FileNameManagerConstant.HOST_PLATFORM_PATTERN),)
 
 def get_os_runtime_api_compiles() -> tuple:
     """
@@ -1165,3 +1175,21 @@ def get_dbg_file_compiles() -> tuple:
     :return: v5 host info files regex
     """
     return (re.compile(FileNameManagerConstant.DBG_PATTERN),)
+
+
+def get_dpu_track_compact_compiles() -> tuple:
+    """
+    get dpu task track regex compiles
+    """
+    return (
+        re.compile(FileNameManagerConstant.DPU_TASK_TRACK_FILE_PATTERN),
+    )
+
+
+def get_dpu_hccl_track_compact_compiles() -> tuple:
+    """
+    get runtime task track regex compiles
+    """
+    return (
+        re.compile(FileNameManagerConstant.DPU_HCCL_TRACK_FILE_PATTERN),
+    )

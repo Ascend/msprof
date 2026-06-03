@@ -18,6 +18,7 @@
 #include "analysis/csrc/domain/data_process/system/sys_io_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -175,7 +176,7 @@ TEST_F(SysIOProcessorUTest, TestRunShouldReturnFalseWhenSysIOProcessorFail)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     // 获取deviceID失败，返回HOST_ID（64）
-    MOCKER_CPP(&GetDeviceIdByDevicePath).stubs().will(returnValue(HOST_ID));
+    MOCKER_CPP(&GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(HOST_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC));
     MOCKER_CPP(&GetDeviceIdByDevicePath).reset();
     // 创建dbRunner的shared_ptr失败
@@ -208,9 +209,9 @@ TEST_F(SysIOProcessorUTest, TestProcessDataShouldReturnEmptyVectorWhenSysIOProce
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC));
     MOCKER_CPP(&OriSysIOData::empty).reset();
     // Reserve failed
-    MOCKER_CPP(&std::vector<SysIOOriginalData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<SysIOOriginalData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC));
-    MOCKER_CPP(&std::vector<SysIOOriginalData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<SysIOOriginalData>>();
 }
 
 TEST_F(SysIOProcessorUTest, TestProcessSummaryDataShouldReturnEmptyVectorWhenQueryDataFailed)
@@ -236,7 +237,7 @@ TEST_F(SysIOProcessorUTest, TestRunShouldReturnFalseWhenSysIOTimelineProcessorFa
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC_TIMELINE));
     MOCKER_CPP(&Context::GetClockMonotonicRaw).reset();
     // 获取deviceID失败，返回HOST_ID（64）
-    MOCKER_CPP(&GetDeviceIdByDevicePath).stubs().will(returnValue(HOST_ID));
+    MOCKER_CPP(&GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(HOST_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC_TIMELINE));
     MOCKER_CPP(&GetDeviceIdByDevicePath).reset();
     // 创建dbRunner的shared_ptr失败
@@ -253,7 +254,7 @@ TEST_F(SysIOProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
 {
     auto processor = NicTimelineProcessor(PROF_DIR);
     DataInventory dataInventory;
-    MOCKER_CPP(&std::vector<SysIOReceiveSendData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<SysIOReceiveSendData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NIC_TIMELINE));
-    MOCKER_CPP(&std::vector<SysIOReceiveSendData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<SysIOReceiveSendData>>();
 }

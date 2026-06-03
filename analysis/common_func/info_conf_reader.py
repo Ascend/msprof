@@ -19,6 +19,7 @@ import decimal
 import json
 import logging
 import os
+import re
 from decimal import Decimal
 from typing import Dict
 
@@ -83,8 +84,7 @@ class InfoConfReader:
         :param info_json_path:info json path
         :return:
         """
-        if not info_json_path or not os.path.exists(info_json_path) or not os.path.isfile(
-                info_json_path):
+        if not info_json_path or not os.path.exists(info_json_path) or not os.path.isfile(info_json_path):
             return {}
         try:
             with FileOpen(info_json_path, "r") as json_reader:
@@ -110,8 +110,7 @@ class InfoConfReader:
         """
         for _file in os.listdir(project_path):
             for conf_pattern in conf_patterns:
-                if conf_pattern.match(_file) \
-                        and is_valid_original_data(_file, project_path, is_conf=True):
+                if conf_pattern.match(_file) and is_valid_original_data(_file, project_path, is_conf=True):
                     return os.path.join(project_path, _file)
         return ""
 
@@ -120,10 +119,7 @@ class InfoConfReader:
         instr_profiling_freq0 = sample_json.get("instr_profiling_freq")
         instr_profiling_freq1 = sample_json.get("instrProfilingFreq")
         if instr_profiling_freq0 is None and instr_profiling_freq1 is None:
-            logging.error(
-                "instr profiling frequency not found in sample.json",
-                exc_info=Constant.TRACE_BACK_SWITCH
-            )
+            logging.error("instr profiling frequency not found in sample.json", exc_info=Constant.TRACE_BACK_SWITCH)
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
 
         instr_profiling_freq_val = instr_profiling_freq0 if instr_profiling_freq1 is None else instr_profiling_freq1
@@ -255,7 +251,8 @@ class InfoConfReader:
         Compatibility for getting collection raw time
         """
         return self._start_info.get(StrConstant.COLLECT_RAW_TIME_BEGIN), self._end_info.get(
-            StrConstant.COLLECT_RAW_TIME_END)
+            StrConstant.COLLECT_RAW_TIME_END
+        )
 
     def get_collect_date(self: any) -> tuple:
         """
@@ -277,15 +274,18 @@ class InfoConfReader:
         :return: sys time
         """
         hwts_freq = self.get_freq(StrConstant.HWTS)
-        return float(
-            sys_cnt - self._dev_cnt * NumberConstant.NANO_SECOND) / hwts_freq * time_fmt + self._host_mon * time_fmt
+        return (
+            float(sys_cnt - self._dev_cnt * NumberConstant.NANO_SECOND) / hwts_freq * time_fmt
+            + self._host_mon * time_fmt
+        )
 
     def duration_from_syscnt(self: any, delta_syscnt: int, time_fmt: int = NumberConstant.MICRO_SECOND) -> float:
         hwts_freq = self.get_freq(StrConstant.HWTS)
         return float(delta_syscnt) / hwts_freq * time_fmt
 
-    def time_from_host_syscnt(self: any, sys_cnt: int, time_fmt: int = NumberConstant.NANO_SECOND,
-                              is_host: bool = True) -> float:
+    def time_from_host_syscnt(
+        self: any, sys_cnt: int, time_fmt: int = NumberConstant.NANO_SECOND, is_host: bool = True
+    ) -> float:
         """
         transfer sys cnt to host_time unit.
         1.task_duration_sys_count: data_sys_count - start_sys_count
@@ -300,8 +300,7 @@ class InfoConfReader:
         if host_freq != self.HOST_DEFAULT_FREQ:
             host_mon = self._host_host_mon if is_host else self._host_mon
             host_cnt = self._host_host_cnt if is_host else self._host_cnt
-            time = float(sys_cnt - host_cnt * NumberConstant.NANO_SECOND) / \
-                   host_freq * time_fmt + host_mon * time_fmt
+            time = float(sys_cnt - host_cnt * NumberConstant.NANO_SECOND) / host_freq * time_fmt + host_mon * time_fmt
             return time if time >= 0.0 else 0
         return sys_cnt * time_fmt / NumberConstant.NANO_SECOND
 
@@ -325,8 +324,9 @@ class InfoConfReader:
         """
         host_freq = self.get_host_freq()
         if host_freq != self.HOST_DEFAULT_FREQ:
-            return (dev_timestamp - self._host_mon * NumberConstant.NANO_SECOND) / NumberConstant.NANO_SECOND * \
-                host_freq + self._host_cnt * NumberConstant.NANO_SECOND
+            return (
+                dev_timestamp - self._host_mon * NumberConstant.NANO_SECOND
+            ) / NumberConstant.NANO_SECOND * host_freq + self._host_cnt * NumberConstant.NANO_SECOND
         return dev_timestamp
 
     def get_json_pid_data(self: any) -> int:
@@ -429,8 +429,14 @@ class InfoConfReader:
         Obtain the actual time based on the sampling timestamp (us).
         :return: int
         """
-        return int(timestamp * NumberConstant.USTONS + self.get_start_timestamp() +
-                   self.get_delta_time() * NumberConstant.NANO_SECOND) / NumberConstant.NS_TO_US
+        return (
+            int(
+                timestamp * NumberConstant.USTONS
+                + self.get_start_timestamp()
+                + self.get_delta_time() * NumberConstant.NANO_SECOND
+            )
+            / NumberConstant.NS_TO_US
+        )
 
     def get_ai_core_profiling_mode(self):
         return self._sample_json.get("ai_core_profiling_mode")
@@ -443,8 +449,9 @@ class InfoConfReader:
         if use_us:
             res = Decimal(str(raw_timestamp)) + Decimal(str(self.get_local_time_offset(is_host)))
         else:
-            res = Decimal(str(raw_timestamp)) / Decimal(NumberConstant.USTONS) + \
-                  Decimal(str(self.get_local_time_offset(is_host)))
+            res = Decimal(str(raw_timestamp)) / Decimal(NumberConstant.USTONS) + Decimal(
+                str(self.get_local_time_offset(is_host))
+            )
         res = res.quantize(decimal.Decimal('0.000'))
         return str(res)
 
@@ -453,8 +460,9 @@ class InfoConfReader:
         transfer local time into raw time(ns)
         return: raw_timestamp(int)
         """
-        res = (Decimal(local_time) - Decimal(str(self.get_local_time_offset(is_host)))) * \
-            Decimal(NumberConstant.NS_TO_US)
+        res = (Decimal(local_time) - Decimal(str(self.get_local_time_offset(is_host)))) * Decimal(
+            NumberConstant.NS_TO_US
+        )
         return int(res)
 
     def trans_from_start_info_raw_time_into_host_cnt(self: any) -> int:
@@ -463,9 +471,10 @@ class InfoConfReader:
         return: host cnt
         """
         start_info_raw_time, _ = self.get_collect_raw_time()
-        res = ((Decimal(int(start_info_raw_time)) - Decimal(self._host_mon * NumberConstant.NANO_SECOND)) * \
-                Decimal(self.get_host_freq() / NumberConstant.NANO_SECOND)) + \
-                Decimal(self._host_cnt * NumberConstant.NANO_SECOND)
+        res = (
+            (Decimal(int(start_info_raw_time)) - Decimal(self._host_mon * NumberConstant.NANO_SECOND))
+            * Decimal(self.get_host_freq() / NumberConstant.NANO_SECOND)
+        ) + Decimal(self._host_cnt * NumberConstant.NANO_SECOND)
         return int(res)
 
     def get_local_time_offset(self: any, is_host: bool = False) -> float:
@@ -487,27 +496,37 @@ class InfoConfReader:
         check prof level0
         """
         prof_level = self._get_prof_level()
-        return prof_level == StrConstant.PROF_LEVEL_0 or prof_level == StrConstant.PROF_LEVEL_0_HISI
+        return prof_level in (StrConstant.PROF_LEVEL_0, StrConstant.PROF_LEVEL_0_HISI)
+
+    def get_cann_version(self) -> tuple:
+        """
+        get cann version info(format: 9.0.0 or 9.0.0-beta.0 or 9.0.T106) from info.json
+        return: major, minor, micro
+        """
+        cann_version = self._info_json.get("cannVersion", "")
+        # Extract major and minor version numbers
+        version_match = re.match(r"^(\d+)\.(\d+)", cann_version)
+        if version_match:
+            major, minor = version_match.groups()
+            return int(major), int(minor)
+        logging.warning("Cann version format is invalid or missing in info.json, version string: %s", cann_version)
+        return 0, 0
 
     def _get_prof_level(self: any) -> str:
         """
         get prof level from sample.json
         """
         prof_level = self._sample_json.get("profLevel")
-        return prof_level if prof_level else self._sample_json.get("prof_level") # hisi key name
+        return prof_level if prof_level else self._sample_json.get("prof_level")  # hisi key name
 
     def _load_json(self: any, result_path: str) -> None:
         """
         load info.json once
         """
-        self._info_json = self.__get_json_data(
-            self.get_conf_file_path(result_path, get_info_json_compiles()))
-        self._sample_json = self.__get_json_data(
-            self.get_conf_file_path(result_path, get_sample_json_compiles()))
-        self._start_info = self.__get_json_data(
-            self.get_conf_file_path(result_path, get_start_info_compiles()))
-        self._end_info = self.__get_json_data(
-            self.get_conf_file_path(result_path, get_end_info_compiles()))
+        self._info_json = self.__get_json_data(self.get_conf_file_path(result_path, get_info_json_compiles()))
+        self._sample_json = self.__get_json_data(self.get_conf_file_path(result_path, get_sample_json_compiles()))
+        self._start_info = self.__get_json_data(self.get_conf_file_path(result_path, get_start_info_compiles()))
+        self._end_info = self.__get_json_data(self.get_conf_file_path(result_path, get_end_info_compiles()))
 
     def _load_dev_start_path_line_by_line(self: any, log_file: any) -> None:
         self._dev_cnt = 0
@@ -569,8 +588,12 @@ class InfoConfReader:
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error('Parse time sync data error: %s', str(err), exc_info=Constant.TRACE_BACK_SWITCH)
         if self._check_monotonic_and_cnt(host_start_file):
-            logging.error("The monotonic time %s, dev_cntvct %s or host_cntvct %s is unusual, "
-                          "maybe get data from driver failed", self._host_mon, self._dev_cnt, self._host_cnt)
+            logging.error(
+                "The monotonic time %s, dev_cntvct %s or host_cntvct %s is unusual, maybe get data from driver failed",
+                self._host_mon,
+                self._dev_cnt,
+                self._host_cnt,
+            )
 
     def _load_local_time_offset(self: any) -> None:
         """

@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Infra {

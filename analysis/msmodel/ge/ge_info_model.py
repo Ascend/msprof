@@ -16,7 +16,6 @@
 from collections import namedtuple
 
 from common_func.db_name_constant import DBNameConstant
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.msprof_object import CustomizedNamedtupleFactory
 from msmodel.interface.parser_model import ParserModel
@@ -52,7 +51,7 @@ class GeModel(ParserModel):
         """
         delete ge data
         """
-        self.cur.execute('delete from {}'.format(table_name))
+        self.cur.execute('delete from {}'.format(table_name))  # nosec
 
     def get_ge_model_name(self: any) -> any:
         """
@@ -63,19 +62,44 @@ class GeModel(ParserModel):
 
 class GeInfoViewModel(ViewModel):
     TASK_INFO_TYPE = CustomizedNamedtupleFactory.enhance_namedtuple(
-        namedtuple("TaskInfo",
-                   ["model_id", "op_name", "stream_id", "task_id", "block_num", "mix_block_num",
-                    "op_stat", "task_type", "op_type", "index_id", "thread_id", "timestamp", "batch_id",
-                    "tensor_num", "input_formats", "input_data_types", "input_shapes",
-                    "output_formats", "output_data_types", "output_shapes", "device_id", "context_id",
-                    "op_flag", "hashid"]),
-        {})
+        namedtuple(
+            "TaskInfo",
+            [
+                "model_id",
+                "op_name",
+                "stream_id",
+                "task_id",
+                "block_num",
+                "mix_block_num",
+                "op_state",
+                "task_type",
+                "op_type",
+                "index_id",
+                "thread_id",
+                "timestamp",
+                "batch_id",
+                "tensor_num",
+                "input_formats",
+                "input_data_types",
+                "input_shapes",
+                "output_formats",
+                "output_data_types",
+                "output_shapes",
+                "device_id",
+                "context_id",
+                "op_flag",
+                "hashid",
+            ],
+        ),
+        {},
+    )
 
     def __init__(self, result_dir: str, table_list: list):
         super().__init__(result_dir, DBNameConstant.DB_GE_INFO, table_list)
 
     def get_ge_info_by_device_id(self: any, table_name: str, device_id: str, task_type_filter: tuple = tuple()) -> any:
-        ge_sql = "select * from {0} where device_id={1} ".format(table_name, device_id)
+        fields = ", ".join(self.TASK_INFO_TYPE._fields)
+        ge_sql = "select {0} from {1} where device_id={2} ".format(fields, table_name, device_id)  # nosec
         condition = ""
         for t in task_type_filter:
             condition += " AND task_type != '{0}' ".format(t)

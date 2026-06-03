@@ -21,6 +21,7 @@ class MsvpConstant:
     """
     msvp constant
     """
+
     CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "msconfig")
     # msvp return empty info
     MSVP_EMPTY_DATA = ([], [], 0)

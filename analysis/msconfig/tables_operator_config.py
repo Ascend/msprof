@@ -33,7 +33,7 @@ class TablesOperatorConfig(MetaConfig):
             ('complete', 'NUMERIC,null'),
             ('index_id', 'INTEGER,null'),
             ('model_id', 'INTEGER,null'),
-            ('batch_id', 'INTEGER,null')
+            ('batch_id', 'INTEGER,null'),
         ],
         'ReportTaskMap': [
             ('timeratio', 'REAL,null'),
@@ -50,7 +50,7 @@ class TablesOperatorConfig(MetaConfig):
             ('task_id', 'INTEGER,null'),
             ('stream_id', 'INTEGER,null'),
             ('device_id', 'INTEGER,null'),
-            ('batch_id', 'INTEGER,null')
+            ('batch_id', 'INTEGER,null'),
         ],
         'ModifiedTaskTimeMap': [
             ('task_id', 'INTEGER, null'),
@@ -62,7 +62,7 @@ class TablesOperatorConfig(MetaConfig):
             ('index_id', 'INTEGER,null'),
             ('model_id', 'INTEGER, null'),
             ('batch_id', 'INTEGER,null'),
-            ('subtask_id', 'INTEGER,null')
+            ('subtask_id', 'INTEGER,null'),
         ],
         'GeMergeMap': [
             ('model_id', 'INTEGER,null'),
@@ -72,7 +72,7 @@ class TablesOperatorConfig(MetaConfig):
             ('task_id', 'INTEGER,null'),
             ('stream_id', 'INTEGER,null'),
             ('batch_id', 'INTEGER,null'),
-            ('context_id', 'INTEGER,null')
+            ('context_id', 'INTEGER,null'),
         ],
         'RtsTaskMap': [
             ('task_id', 'INTEGER,null'),
@@ -83,7 +83,7 @@ class TablesOperatorConfig(MetaConfig):
             ('index_id', 'INTEGER,null'),
             ('model_id', 'INTEGER,null'),
             ('batch_id', 'INTEGER,null'),
-            ('subtask_id', 'INTEGER,null')
+            ('subtask_id', 'INTEGER,null'),
         ],
         'OpReportMap': [
             ('op_type', 'text,null'),
@@ -93,7 +93,7 @@ class TablesOperatorConfig(MetaConfig):
             ('min', 'REAL,null'),
             ('avg', 'REAL,null'),
             ('max', 'REAL,null'),
-            ('ratio', 'text,null')
+            ('ratio', 'text,null'),
         ],
         'SummaryGeMap': [
             ('model_id', 'INTEGER,null'),
@@ -116,6 +116,6 @@ class TablesOperatorConfig(MetaConfig):
             ('timestamp', 'TEXT,null'),
             ('batch_id', 'INTEGER,null'),
             ('context_id', 'INTEGER,null'),
-            ('op_flag', 'TEXT,null')
+            ('op_flag', 'TEXT,null'),
         ],
     }

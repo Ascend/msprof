@@ -18,6 +18,7 @@
 import json
 import os
 import shutil
+import tempfile
 import unittest
 from datetime import datetime
 from datetime import timezone
@@ -230,18 +231,20 @@ class TestMsprofDataStorage(unittest.TestCase):
             MsprofDataStorage.slice_msprof_json_for_so("test", dict())
 
     def test_slice_msprof_json_for_so(self):
+        tmp_dir = tempfile.mkdtemp()
+        slice_dir = os.path.join(tmp_dir, "test_slice_for_so")
         params = {
-            StrConstant.PARAM_RESULT_DIR: '/ms_test/test_slice_for_so',
-            StrConstant.PARAM_EXPORT_DUMP_FOLDER: '/ms_test/test_slice_for_so/mindstudio_profiler_output',
+            StrConstant.PARAM_RESULT_DIR: slice_dir,
+            StrConstant.PARAM_EXPORT_DUMP_FOLDER: os.path.join(slice_dir, 'mindstudio_profiler_output'),
             StrConstant.PARAM_EXPORT_TYPE: MsProfCommonConstant.TIMELINE,
             StrConstant.PARAM_DATA_TYPE: 'msprof'
         }
-        create_msprof_json_data('/ms_test/test_slice_for_so')
-        trace_file = '/ms_test/test_slice_for_so/mindstudio_profiler_output/msprof_20250215160320.json'
+        create_msprof_json_data(slice_dir)
+        trace_file = os.path.join(slice_dir, 'mindstudio_profiler_output/msprof_20250215160320.json')
         with mock.patch('os.path.getsize', return_value=300), \
                 mock.patch(NAMESPACE + '.MsprofDataStorage.read_slice_config', return_value=('on', 0, 0)):
             MsprofDataStorage.slice_msprof_json_for_so(trace_file, params)
-        shutil.rmtree('/ms_test')
+        shutil.rmtree(tmp_dir)
 
 
 if __name__ == '__main__':

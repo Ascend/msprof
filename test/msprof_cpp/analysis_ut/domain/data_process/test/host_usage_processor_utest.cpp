@@ -19,11 +19,13 @@
 #include "analysis/csrc/domain/data_process/system/host_usage_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Viewer::Database;
+using namespace Analysis::Test;
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./host_usage_data";
@@ -194,8 +196,9 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenCpuUsageProcessReserveExcep
     DataInventory dataInventory;
     auto processor = HostCpuUsageProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<CpuUsageData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<CpuUsageData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_CPU_USAGE));
+    ResetReserveFailureForVector<std::vector<CpuUsageData>>();
 }
 
 TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenCpuUsageProcessCheckFailed)
@@ -246,8 +249,9 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenMemUsageProcessReserveExcep
     DataInventory dataInventory;
     auto processor = HostMemUsageProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<MemUsageData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<MemUsageData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_MEM_USAGE));
+    ResetReserveFailureForVector<std::vector<MemUsageData>>();
 }
 
 TEST_F(HostUsageProcessorUTest, ShouldReturnOKWhenDiskUsageProcessRunSuccess)
@@ -275,8 +279,9 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenDiskUsageProcessReserveExce
     DataInventory dataInventory;
     auto processor = HostDiskUsageProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<DiskUsageData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<DiskUsageData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DISK_USAGE));
+    ResetReserveFailureForVector<std::vector<DiskUsageData>>();
 }
 
 TEST_F(HostUsageProcessorUTest, ShouldReturnOKWhenNetworkUsageProcessRunSuccess)
@@ -303,8 +308,9 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenNetworkUsageProcessReserveE
     DataInventory dataInventory;
     auto processor = HostNetworkUsageProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<NetWorkUsageData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<NetWorkUsageData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETWORK_USAGE));
+    ResetReserveFailureForVector<std::vector<NetWorkUsageData>>();
 }
 
 TEST_F(HostUsageProcessorUTest, ShouldReturnOKWhenRuntimeApiProcessRunSuccess)
@@ -331,6 +337,7 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnFalseWhenRuntimeApiProcessReserveExc
     DataInventory dataInventory;
     auto processor = OSRuntimeApiProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<OSRuntimeApiData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<OSRuntimeApiData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_OSRT_API));
+    ResetReserveFailureForVector<std::vector<OSRuntimeApiData>>();
 }

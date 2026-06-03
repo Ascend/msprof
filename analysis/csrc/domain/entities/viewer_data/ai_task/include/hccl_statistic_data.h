@@ -19,6 +19,7 @@
 
 #include <limits>
 #include <string>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Domain {

@@ -24,12 +24,20 @@ class TaskTrackBean(CompactInfoBean):
     def __init__(self: any, *args) -> None:
         super().__init__(*args)
         data = args[0]
-        self._device_id = data[6]
+        self._dev_type = (data[6] >> 12) & 0xF
+        self._device_id = data[6] & 0xFFF
         self._stream_id = data[7]
         self._task_id = data[8]
         self._batch_id = data[9]
         self._task_type = data[10]
         self._kernel_name = data[11]
+
+    @property
+    def is_dpu(self: any) -> bool:
+        """
+        Used to distinguish the device type(DPU:1/NPU:0) of tasks.
+        """
+        return bool(self._dev_type)
 
     @property
     def device_id(self: any) -> int:
@@ -89,8 +97,55 @@ class TaskTrackChip6Bean(TaskTrackBean):
     def __init__(self: any, *args) -> None:
         super().__init__(*args)
         data = args[0]
-        self._device_id = data[6]
-        self._stream_id = data[7]
         self._task_id = data[9] << 16 | data[8]
         self._batch_id = 0
-        self._task_type = data[10]
+
+
+class DPUTaskTrackBean(CompactInfoBean):
+    """
+    dpu start log bean
+    """
+    def __init__(self: any, *args) -> None:
+        super().__init__(*args)
+        data = args[0]
+        self._dev_type = (data[6] >> 12) & 0xF
+        self._device_id = data[6] & 0xFFF
+        self._stream_id = data[7]
+        self._task_id = data[8]
+        self._task_type = data[9]
+        self._start_time = data[11]
+
+    @property
+    def device_id(self: any) -> int:
+        """
+        dpu task device_id
+        """
+        return self._device_id
+
+    @property
+    def stream_id(self: any) -> int:
+        """
+        dpu task stream_id
+        """
+        return self._stream_id
+
+    @property
+    def task_id(self: any) -> int:
+        """
+        dpu task task_id
+        """
+        return self._task_id
+
+    @property
+    def task_type(self: any) -> str:
+        """
+        dpu task task_type
+        """
+        return str(self._task_type)
+
+    @property
+    def start_time(self: any) -> int:
+        """
+        dpu task start_time
+        """
+        return self._start_time

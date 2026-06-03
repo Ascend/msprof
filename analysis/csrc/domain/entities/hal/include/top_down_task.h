@@ -17,12 +17,16 @@
 #ifndef ANALYSIS_DOMAIN_ENTITIES_HAL_TOP_DOWN_TASK_H
 #define ANALYSIS_DOMAIN_ENTITIES_HAL_TOP_DOWN_TASK_H
 
+#include <stdint.h>
+
 #include <string>
 
-struct TopDownTask {
-    bool isFirst = false; // taskId-streamId-batchId-contextId都相同的任务中的第一个
-    uint16_t taskId = 0;
+struct TopDownTask
+{
+    bool isFirst = false;  // taskId-streamId-batchId-contextId都相同的任务中的第一个
+
     uint16_t batchId = 0;
+    uint32_t taskId = 0;
     uint32_t streamId = 0;
     uint32_t contextId = 0;
     int32_t indexId = 0;
@@ -34,11 +38,22 @@ struct TopDownTask {
     double endTime = 0;
 
     TopDownTask() = default;
-    TopDownTask(bool isFirst, uint16_t taskId, uint16_t batchId, uint32_t streamId, uint32_t contextId, int32_t indexId,
-                std::string deviceType, std::string hostType, uint64_t modelId, int64_t connectionId,
-                double startTime, double endTime)
-        : taskId(taskId), batchId(batchId), streamId(streamId), contextId(contextId), indexId(indexId),
-          deviceTaskType(deviceType), hostTaskType(hostType), modelId(modelId), connectionId(connectionId),
-          startTime(startTime), endTime(endTime), isFirst(isFirst) {}
+    TopDownTask(bool isFirst, uint32_t taskId, uint16_t batchId, uint32_t streamId, uint32_t contextId, int32_t indexId,
+                std::string deviceType, std::string hostType, uint64_t modelId, int64_t connectionId, double startTime,
+                double endTime)
+        : taskId(taskId),
+          batchId(batchId),
+          streamId(streamId),
+          contextId(contextId),
+          indexId(indexId),
+          deviceTaskType(deviceType),
+          hostTaskType(hostType),
+          modelId(modelId),
+          connectionId(connectionId),
+          startTime(startTime),
+          endTime(endTime),
+          isFirst(isFirst)
+    {
+    }
 };
-#endif // ANALYSIS_DOMAIN_ENTITIES_HAL_TOP_DOWN_TASK_H
+#endif  // ANALYSIS_DOMAIN_ENTITIES_HAL_TOP_DOWN_TASK_H

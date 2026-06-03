@@ -17,14 +17,18 @@
 #ifndef ANALYSIS_VIEWER_DATABASE_UNIFIED_DB_CONSTANT_H
 #define ANALYSIS_VIEWER_DATABASE_UNIFIED_DB_CONSTANT_H
 
+#include <map>
 #include <string>
 #include <unordered_map>
-#include <map>
+
 #include "analysis/csrc/infrastructure/utils/prof_common.h"
 
-namespace Analysis {
-namespace Viewer {
-namespace Database {
+namespace Analysis
+{
+namespace Viewer
+{
+namespace Database
+{
 const std::string HOST = "host";
 const std::string DEVICE_PREFIX = "device_";
 const std::string SQLITE = "sqlite";
@@ -78,7 +82,6 @@ const std::string TABLE_NAME_COMMUNICATION_TASK_INFO = "COMMUNICATION_TASK_INFO"
 const std::string TABLE_NAME_COMMUNICATION_OP = "COMMUNICATION_OP";
 
 const std::string PROCESSOR_NAME_OP_STATISTIC = "OP_STATISTIC";
-
 
 const std::string PROCESSOR_NAME_API = "API";
 const std::string TABLE_NAME_CANN_API = "CANN_API";
@@ -164,7 +167,9 @@ const std::string TABLE_NAME_PCIE_INFO_V6 = "ENUM_PCIE_INFO_V6";
 const std::string PROCESSOR_NAME_KFC_TASK = "KFC_TASK";
 const std::string PROCESSOR_NAME_KFC_COMM = "KFC_COMM";
 const std::string PROCESSOR_NAME_DEVICE_TX = "DEVICE_MSTX";
+
 const std::string PROCESSOR_NAME_SIO = "SIO";
+const std::string TABLE_NAME_SIO = "SIO";
 
 const std::string PROCESSOR_NAME_CPU_USAGE = "CPU_USAGE";
 const std::string TABLE_NAME_CPU_USAGE = "CPU_USAGE";
@@ -194,6 +199,7 @@ const std::string PROCESSOR_PMU = "PMU";
 const std::string PROCESSOR_NAME_FUSION_OP = "FUSION_OP";
 const std::string PROCESSOR_NAME_MODEL_NAME = "MODEL_NAME";
 const std::string PROCESSOR_NAME_CCU_MISSION = "CCU_MISSION";
+const std::string TABLE_NAME_CCU = "CCU";
 
 const std::string PROCESSOR_TASK_TIME_SUMMARY = "TASK_TIME_SUMMARY";
 
@@ -201,206 +207,97 @@ const std::string PROCESSOR_HOST_TASK = "HOST_TASK";
 
 const std::string PROCESSOR_NAME_BIU_PERF = "BIU_PERF";
 const std::string PROCESSOR_NAME_UB = "UB";
+const std::string TABLE_NAME_UB = "UB";
 
 const std::string PROCESSOR_NAME_BLOCK_DETAIL = "BLOCK_DETAIL";
+
+const std::string PROCESSOR_NAME_DPU = "DPU";
+const std::string TABLE_NAME_DPU_TASK = "DPU_TASK";
 // mstx event type
 const std::unordered_map<std::string, uint16_t> MSTX_EVENT_TYPE_TABLE = {
-    {"marker", 0},
-    {"push/pop", 1},
-    {"start/end", 2},
-    {"marker_ex", 3}
-};
+    {"marker", 0}, {"push/pop", 1}, {"start/end", 2}, {"marker_ex", 3}};
 
 // api level
-const std::unordered_map<std::string, uint16_t> API_LEVEL_TABLE = {
-    {"acl", MSPROF_REPORT_ACL_LEVEL},
-    {"model", MSPROF_REPORT_MODEL_LEVEL},
-    {"node", MSPROF_REPORT_NODE_LEVEL},
-    {"communication", MSPROF_REPORT_HCCL_NODE_LEVEL},
-    {"runtime", MSPROF_REPORT_RUNTIME_LEVEL}
-};
+const std::unordered_map<std::string, uint16_t> API_LEVEL_TABLE = {{"acl", MSPROF_REPORT_ACL_LEVEL},
+                                                                   {"model", MSPROF_REPORT_MODEL_LEVEL},
+                                                                   {"node", MSPROF_REPORT_NODE_LEVEL},
+                                                                   {"communication", MSPROF_REPORT_HCCL_NODE_LEVEL},
+                                                                   {"runtime", MSPROF_REPORT_RUNTIME_LEVEL}};
 
 // npu module name
 const std::unordered_map<std::string, uint16_t> MODULE_NAME_TABLE = {
-    {"SLOG", 0},
-    {"IDEDD", 1},
-    {"SCC", 2},
-    {"HCCL", 3},
-    {"FMK", 4},
-    {"CCU", 5},
-    {"DVPP", 6},
-    {"RUNTIME", 7},
-    {"CCE", 8},
-    {"HDC", 9},
-    {"DRV", 10},
-    {"NET", 11},
-    {"DEVMM", 22},
-    {"KERNEL", 23},
-    {"LIBMEDIA", 24},
-    {"CCECPU", 25},
-    {"ROS", 27},
-    {"HCCP", 28},
-    {"ROCE", 29},
-    {"TEFUSION", 30},
-    {"PROFILING", 31},
-    {"DP", 32},
-    {"APP", 33},
-    {"TS", 34},
-    {"TSDUMP", 35},
-    {"AICPU", 36},
-    {"LP", 37},
-    {"TDT", 38},
-    {"FE", 39},
-    {"MD", 40},
-    {"MB", 41},
-    {"ME", 42},
-    {"IMU", 43},
-    {"IMP", 44},
-    {"GE", 45},
-    {"CAMERA", 47},
-    {"ASCENDCL", 48},
-    {"TEEOS", 49},
-    {"ISP", 50},
-    {"SIS", 51},
-    {"HSM", 52},
-    {"DSS", 53},
-    {"PROCMGR", 54},
-    {"BBOX", 55},
-    {"AIVECTOR", 56},
-    {"TBE", 57},
-    {"FV", 58},
-    {"TUNE", 60},
-    {"HSS", 61},
-    {"FFTS", 62},
-    {"OP", 63},
-    {"UDF", 64},
-    {"HICAID", 65},
-    {"TSYNC", 66},
-    {"AUDIO", 67},
-    {"TPRT", 68},
-    {"ASCENDCKERNEL", 69},
-    {"ASYS", 70},
-    {"ATRACE", 71},
-    {"RTC", 72},
-    {"SYSMONITOR", 73},
-    {"AMP", 74},
-    {"ADETECT", 75},
-    {"MBUFF", 76},
-    {"CUSTOM", 77}
-};
+    {"SLOG", 0},        {"IDEDD", 1},     {"SCC", 2},
+    {"HCCL", 3},        {"FMK", 4},       {"CCU", 5},
+    {"DVPP", 6},        {"RUNTIME", 7},   {"CCE", 8},
+    {"HDC", 9},         {"DRV", 10},      {"NET", 11},
+    {"DEVMM", 22},      {"KERNEL", 23},   {"LIBMEDIA", 24},
+    {"CCECPU", 25},     {"ROS", 27},      {"HCCP", 28},
+    {"ROCE", 29},       {"TEFUSION", 30}, {"PROFILING", 31},
+    {"DP", 32},         {"APP", 33},      {"TS", 34},
+    {"TSDUMP", 35},     {"AICPU", 36},    {"LP", 37},
+    {"TDT", 38},        {"FE", 39},       {"MD", 40},
+    {"MB", 41},         {"ME", 42},       {"IMU", 43},
+    {"IMP", 44},        {"GE", 45},       {"CAMERA", 47},
+    {"ASCENDCL", 48},   {"TEEOS", 49},    {"ISP", 50},
+    {"SIS", 51},        {"HSM", 52},      {"DSS", 53},
+    {"PROCMGR", 54},    {"BBOX", 55},     {"AIVECTOR", 56},
+    {"TBE", 57},        {"FV", 58},       {"TUNE", 60},
+    {"HSS", 61},        {"FFTS", 62},     {"OP", 63},
+    {"UDF", 64},        {"HICAID", 65},   {"TSYNC", 66},
+    {"AUDIO", 67},      {"TPRT", 68},     {"ASCENDCKERNEL", 69},
+    {"ASYS", 70},       {"ATRACE", 71},   {"RTC", 72},
+    {"SYSMONITOR", 73}, {"AMP", 74},      {"ADETECT", 75},
+    {"MBUFF", 76},      {"CUSTOM", 77}};
 
 // hccl info DataType
 const std::unordered_map<std::string, uint16_t> HCCL_DATA_TYPE_TABLE = {
-    {"INT8", 0},
-    {"INT16", 1},
-    {"INT32", 2},
-    {"FP16", 3},
-    {"FP32", 4},
-    {"INT64", 5},
-    {"UINT64", 6},
-    {"UINT8", 7},
-    {"UINT16", 8},
-    {"UINT32", 9},
-    {"FP64", 10},
-    {"BFP16", 11},
-    {"INT128", 12},
-    {"HIF8",14},
-    {"FP8E4M3", 15},
-    {"FP8E5M2", 16},
-    {"FP8E8M0", 17},
-    {"RESERVED", 255},
-    {NA, UINT16_MAX - 1},
-    {"INVALID_TYPE", UINT16_MAX},
+    {"INT8", 0},     {"INT16", 1},    {"INT32", 2},      {"FP16", 3},          {"FP32", 4},
+    {"INT64", 5},    {"UINT64", 6},   {"UINT8", 7},      {"UINT16", 8},        {"UINT32", 9},
+    {"FP64", 10},    {"BFP16", 11},   {"INT128", 12},    {"HIF8", 14},         {"FP8E4M3", 15},
+    {"FP8E5M2", 16}, {"FP8E8M0", 17}, {"RESERVED", 255}, {NA, UINT16_MAX - 1}, {"INVALID_TYPE", UINT16_MAX},
 };
 
 // hccl info LinkType
 const std::unordered_map<std::string, uint16_t> HCCL_LINK_TYPE_TABLE = {
-    {"ON_CHIP", 0},
-    {"HCCS", 1},
-    {"PCIE", 2},
-    {"ROCE", 3},
-    {"SIO", 4},
-    {"HCCS_SW", 5},
-    {"STANDARD_ROCE", 6},
-    {"RESERVED", 255},
-    {NA, UINT16_MAX - 1},
-    {"INVALID_TYPE", UINT16_MAX},
+    {"ON_CHIP", 0}, {"HCCS", 1},       {"PCIE", 2},          {"ROCE", 3},
+    {"SIO", 4},     {"HCCS_SW", 5},    {"STANDARD_ROCE", 6}, {"UB", 7},
+    {"UBoE", 8},    {"RESERVED", 255}, {NA, UINT16_MAX - 1}, {"INVALID_TYPE", UINT16_MAX},
 };
 
 // hccl info TransPortType
 const std::unordered_map<std::string, uint16_t> HCCL_TRANSPORT_TYPE_TABLE = {
-    {"SDMA", 0},
-    {"RDMA", 1},
-    {"LOCAL", 2},
-    {"UB", 3},
-    {"RESERVED", 255},
-    {NA, UINT16_MAX - 1},
-    {"INVALID_TYPE", UINT16_MAX},
+    {"SDMA", 0}, {"RDMA", 1},       {"LOCAL", 2},         {"UB", 3},
+    {"ROCE", 4}, {"RESERVED", 255}, {NA, UINT16_MAX - 1}, {"INVALID_TYPE", UINT16_MAX},
 };
 
 // hccl info RdmaType
 const std::unordered_map<std::string, uint16_t> HCCL_RDMA_TYPE_TABLE = {
-    {"RDMA_SEND_NOTIFY", 0},
-    {"RDMA_SEND_PAYLOAD", 1},
-    {"RESERVED", 255},
-    {NA, UINT16_MAX - 1},
-    {"INVALID_TYPE", UINT16_MAX},
+    {"RDMA_SEND_NOTIFY", 0}, {"RDMA_SEND_PAYLOAD", 1},     {"RESERVED", 255},
+    {NA, UINT16_MAX - 1},    {"INVALID_TYPE", UINT16_MAX},
 };
 
 // TS为stars时芯片的sqetype
 const std::map<std::string, std::string> STARS_SQE_TYPE_TABLE{
-    {"0", "AI_CORE"},
-    {"1", "AI_CPU"},
-    {"2", "AIV_SQE"},
-    {"3", "PLACE_HOLDER_SQE"},
-    {"4", "EVENT_RECORD_SQE"},
-    {"5", "EVENT_WAIT_SQE"},
-    {"6", "NOTIFY_RECORD_SQE"},
-    {"7", "NOTIFY_WAIT_SQE"},
-    {"8", "WRITE_VALUE_SQE"},
-    {"9", "VQ6_SQE"},
-    {"10", "TOF_SQE"},
-    {"11", "SDMA_SQE"},
-    {"12", "VPC_SQE"},
-    {"13", "JPEGE_SQE"},
-    {"14", "JPEGD_SQE"},
-    {"15", "DSA_SQE"},
-    {"16", "ROCCE_SQE"},
-    {"17", "PCIE_DMA_SQE"},
-    {"18", "HOST_CPU_SQE"},
-    {"19", "CDQM_SQE"},
-    {"20", "C_CORE_SQE"}
-};
+    {"0", "AI_CORE"},          {"1", "AI_CPU"},         {"2", "AIV_SQE"},           {"3", "PLACE_HOLDER_SQE"},
+    {"4", "EVENT_RECORD_SQE"}, {"5", "EVENT_WAIT_SQE"}, {"6", "NOTIFY_RECORD_SQE"}, {"7", "NOTIFY_WAIT_SQE"},
+    {"8", "WRITE_VALUE_SQE"},  {"9", "VQ6_SQE"},        {"10", "TOF_SQE"},          {"11", "SDMA_SQE"},
+    {"12", "VPC_SQE"},         {"13", "JPEGE_SQE"},     {"14", "JPEGD_SQE"},        {"15", "DSA_SQE"},
+    {"16", "ROCCE_SQE"},       {"17", "PCIE_DMA_SQE"},  {"18", "HOST_CPU_SQE"},     {"19", "CDQM_SQE"},
+    {"20", "C_CORE_SQE"}};
 
 // TS为hwts时芯片的sqetype
 const std::map<std::string, std::string> HW_SQE_TYPE_TABLE{
-    {"0", "AI_CORE"},
-    {"1", "AI_CPU"},
-    {"2", "AIV_SQE"},
-    {"3", "PLACE_HOLDER_SQE"},
-    {"4", "EVENT_RECORD_SQE"},
-    {"5", "EVENT_WAIT_SQE"},
-    {"6", "NOTIFY_RECORD_SQE"},
-    {"7", "NOTIFY_WAIT_SQE"},
-    {"8", "WRITE_VALUE_SQE"},
-    {"9", "SDMA_SQE"},
-    {"10", "MAX_SQE"}
-};
+    {"0", "AI_CORE"},          {"1", "AI_CPU"},         {"2", "AIV_SQE"},           {"3", "PLACE_HOLDER_SQE"},
+    {"4", "EVENT_RECORD_SQE"}, {"5", "EVENT_WAIT_SQE"}, {"6", "NOTIFY_RECORD_SQE"}, {"7", "NOTIFY_WAIT_SQE"},
+    {"8", "WRITE_VALUE_SQE"},  {"9", "SDMA_SQE"},       {"10", "MAX_SQE"}};
 
 // 拷贝类型
 const std::unordered_map<std::string, uint16_t> MEMCPY_OPERATION_TABLE{
-    {"host to host", 0},
-    {"host to device", 1},
-    {"device to host", 2},
-    {"device to device", 3},
-    {"managed memory", 4},
-    {"addr device to device", 5},
-    {"host to device ex", 6},
-    {"device to host ex", 7},
-    {"other", UINT16_MAX}
-};
+    {"host to host", 0},      {"host to device", 1},    {"device to host", 2},
+    {"device to device", 3},  {"managed memory", 4},    {"addr device to device", 5},
+    {"host to device ex", 6}, {"device to host ex", 7}, {"other", UINT16_MAX}};
 
-}  // Database
-}  // Viewer
-}  // Analysis
-#endif // ANALYSIS_VIEWER_DATABASE_UNIFIED_DB_CONSTANT_H
+}  // namespace Database
+}  // namespace Viewer
+}  // namespace Analysis
+#endif  // ANALYSIS_VIEWER_DATABASE_UNIFIED_DB_CONSTANT_H

@@ -92,4 +92,5 @@ class ExportDataType(Enum):
     SOC_PMU = 75
     FREQ = 76
     VOLTAGE = 77
+    DPU = 78
     MSPROF = 100

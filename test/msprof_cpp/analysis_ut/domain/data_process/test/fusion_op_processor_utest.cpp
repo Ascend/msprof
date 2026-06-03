@@ -20,6 +20,7 @@
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 #include "analysis/csrc/domain/data_process/data_processor.h";
 #include "analysis/csrc/infrastructure/db/include/db_runner.h";
 
@@ -27,6 +28,7 @@ using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Viewer::Database;
+using namespace Analysis::Test;
 
 const std::string API_DIR = "./fusion_op";
 const std::string PROF0 = File::PathJoin({API_DIR, "PROF_0"});
@@ -154,11 +156,9 @@ TEST_F(FusionOpProcessorUTest, TestFormatDataShouldReturnEmpty)
     auto processor = FusionOpProcessor(PROF0);
     OriFusionOpDataFormat oriData;
     std::vector<FusionOpInfo> formatData;
-    MOCKER_CPP(&std::vector<FusionOpInfo>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<FusionOpInfo>>();
     ASSERT_EQ(processor.FormatData(oriData).size(), formatData.size());
-    MOCKER_CPP(&std::vector<FusionOpInfo>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<FusionOpInfo>>();
 }
 
 TEST_F(FusionOpProcessorUTest, TestRunShouldReturnFalseWhenFileOverMaxSize)

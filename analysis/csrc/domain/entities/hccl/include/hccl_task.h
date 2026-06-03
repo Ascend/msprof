@@ -17,10 +17,16 @@
 #ifndef MSPROF_ANALYSIS_ORI_HCCL_TASK_H
 #define MSPROF_ANALYSIS_ORI_HCCL_TASK_H
 
+#include <stdint.h>
+
 #include <string>
-namespace Analysis {
-namespace Domain {
-struct HcclOp {
+
+namespace Analysis
+{
+namespace Domain
+{
+struct HcclOp
+{
     uint16_t deviceId;
     uint64_t modelId;
     int32_t indexId;
@@ -38,9 +44,11 @@ struct HcclOp {
     std::string algType;
     uint64_t count;
     std::string groupName;
+    uint32_t rankSize;
 };
 
-struct HcclTask {
+struct HcclTask
+{
     uint64_t modelId;
     int32_t indexId;
     std::string name;
@@ -63,8 +71,9 @@ struct HcclTask {
     std::string linkType;
     std::string notifyId;
     std::string rdmaType;
+    uint32_t rankSize;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // MSPROF_ANALYSIS_ORI_HCCL_TASK_H
+#endif  // MSPROF_ANALYSIS_ORI_HCCL_TASK_H

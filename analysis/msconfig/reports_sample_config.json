@@ -25,7 +25,11 @@
     "nic": true,
     "roce": true,
     "qos": true,
-    "device_tx": true
+    "device_tx": true,
+    "ccu": true,
+    "biu_perf": true,
+    "ub": true,
+    "block_detail": true
   }
 }
 

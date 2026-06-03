@@ -78,6 +78,8 @@ using OriDataFormat = std::vector<
             uint32_t,
             uint32_t,
             std::string,
+            std::string,
+            std::string,
             std::string>>;
 using HcclOpOriDataFormat = std::vector<
         std::tuple<
@@ -123,6 +125,7 @@ using HcclTaskOriDataFormat = std::vector<
             std::string,
             std::string,
             std::string,
+            uint32_t,
             uint32_t
         >>;
 
@@ -135,17 +138,17 @@ const std::string HCCLDB_PATH = File::PathJoin({HOST_PATH, "sqlite", "hccl.db"})
 const OriDataFormat DATA_A{
     {0, "Default/network/network/bert/bert/bert_embedding_postprocessor/StridedSliceD-op6673",
     1, 1, 32, 0, 0, "AI_CORE", "StridedSliceD", 0, 120040, 458597374830, 1, 2, "DEFAULT_",
-    "INT32_", "1,512", "DEFAULT_", "INT32_", "1,512", 0, 1, "1", "123"},
+    "INT32_", "1,512", "DEFAULT_", "INT32_", "1,512", 0, 1, "1", "123", "N/A", "N/A"},
     {0, "Default/network/network/bert/bert/bert_embedding_postprocessor/StridedSliceD-op6673",
      1, 2, 32, 0, 0, "AI_CORE", "StridedSliceD", 0, 120040, 458597374830, 1, 2, "DEFAULT_",
-     "INT32_", "1,512", "DEFAULT_", "INT32_", "1,512", 0, 1, "1", "123"}};
+     "INT32_", "1,512", "DEFAULT_", "INT32_", "1,512", 0, 1, "1", "123", "N/A", "N/A"}};
 const runTimeData DATA_B{{4294967295, -1, 65535, 0, 4294967295, 0, "PROFILING_ENABLE", "aclnn", 0, 397936887714, -1, 1},
                    {4294967295, -1, 65535, 0, 4294967295, 0, "PROFILING_ENABLE", "aclnn", 0, 397936887714, -1, 1}};
 const HcclOpOriDataFormat DATA_HCCL_OP{{0, 3, 0, 121639, "Default/network/AllReduce-op0", "HCCL", "HcomAllReduce",
                                         9897897351791, 9897916800504, "", 33558, -1, -1, -1, "", "", 1, ""}};
 const HcclTaskOriDataFormat DATA_HCCL_TASK{{3, 0, "Memcpy", "7415574198778220483", 3, 9897976501291, 307.45316062176164,
                                             29, 386, 4294967295, 1, 0, 0, 0, 4, "SDMA", 5904896, "INVALID_TYPE", "PCIE",
-                                            "18446744073709551615", "INVALID_TYPE", 123}};
+                                            "18446744073709551615", "INVALID_TYPE", 123, 64}};
 }
 
 class LoadHostDataUtest : public testing::Test {

@@ -316,22 +316,45 @@ class Constant:
     """
     constant class
     """
+
     TRACE_BACK_SWITCH = False
     L2_CACHE_EVENTS = [
-        "0x59", "0x5b", "0x5c", "0x62", "0x6a", "0x6c", "0x71",
-        "0x74", "0x77", "0x78", "0x79", "0x7c", "0x7d", "0x7e",
-        "0xf6", "0xfb", "0xfc", "0x90", "0x91", "0x9c", "0x9d",
-        "0xbf", "0x00", "0x88", "0x89", "0x8a", "0x74", "0x75",
-        "0x97", "0x81", "0x82", "0x83",
+        "0x59",
+        "0x5b",
+        "0x5c",
+        "0x62",
+        "0x6a",
+        "0x6c",
+        "0x71",
+        "0x74",
+        "0x77",
+        "0x78",
+        "0x79",
+        "0x7c",
+        "0x7d",
+        "0x7e",
+        "0xf6",
+        "0xfb",
+        "0xfc",
+        "0x90",
+        "0x91",
+        "0x9c",
+        "0x9d",
+        "0xbf",
+        "0x00",
+        "0x88",
+        "0x89",
+        "0x8a",
+        "0x74",
+        "0x75",
+        "0x97",
+        "0x81",
+        "0x82",
+        "0x83",
     ]
-    SOC_PMU_EVENTS = [
-        "0x2", "0x8a", "0x8b", "0x8b", "0x8c", "0x8d"
-    ]
+    SOC_PMU_EVENTS = ["0x2", "0x8a", "0x8b", "0x8b", "0x8c", "0x8d"]
 
-    INVALID_INDEX_DICT = {
-        "coefficient": -1,
-        "index": -1
-    }
+    INVALID_INDEX_DICT = {"coefficient": -1, "index": -1}
 
     AI_CORE_CALCULATION_FORMULA = {
         "mac_fp16_ratio": PmuCalculateFunc.mac_fp16_ratio,
@@ -460,8 +483,15 @@ class Constant:
     HEX_NUMBER = 16
     DVPP_TYPE_NAME = ['VDEC', 'JPEGD', 'PNGD', 'JPEGE', 'VPC']
     FILTER_DIRS = [
-        ".profiler", "HCCL_PROF", "timeline", "query", 'sqlite', 'log', 'analyze',
-        'mindstudio_profiler_log', 'mindstudio_profiler_output'
+        ".profiler",
+        "HCCL_PROF",
+        "timeline",
+        "query",
+        'sqlite',
+        'log',
+        'analyze',
+        'mindstudio_profiler_log',
+        'mindstudio_profiler_output',
     ]
     NA = 'N/A'
     TASK_TYPE_OTHER = "Other"

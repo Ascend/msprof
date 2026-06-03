@@ -48,8 +48,9 @@ class MsMultiProcess(multiprocessing.Process):
         init_log(self.sample_config.get("result_dir"))
         LoadInfoManager.load_info(self.sample_config.get("result_dir"))
         ProfilingScene().set_mode(self.sample_config.get(StrConstant.EXPORT_MODE, ExportMode.ALL_EXPORT))
-        StreamExpandSpecReader().load_stream_expand_spec(os.path.join(os.path.dirname(self.sample_config.
-                                                                                      get("result_dir")), 'host'))
+        StreamExpandSpecReader().load_stream_expand_spec(
+            os.path.join(os.path.dirname(self.sample_config.get("result_dir")), 'host')
+        )
 
     @abstractmethod
     def ms_run(self: any) -> None:
@@ -73,8 +74,9 @@ class MsMultiProcess(multiprocessing.Process):
                 warn(self.FILE_NAME, 'Analysis data in "%s" failed. Maybe the data is incomplete.' % result_dir)
         except Exception as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
-        logging.info("%s process data finished, execute time is %.3f s",
-                     self.__class__.__name__, (time.time() - start_time))
+        logging.info(
+            "%s process data finished, execute time is %.3f s", self.__class__.__name__, (time.time() - start_time)
+        )
 
 
 def run_in_subprocess(func, *args: any):

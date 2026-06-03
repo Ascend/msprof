@@ -18,6 +18,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -123,9 +124,9 @@ TEST_F(NpuOpMemProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
     auto processor = NpuOpMemProcessor(PROF0);
     DataInventory dataInventory;
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<NpuOpMemData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<NpuOpMemData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
-    MOCKER_CPP(&std::vector<NpuOpMemData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<NpuOpMemData>>();
 }
 
 TEST_F(NpuOpMemProcessorUTest, TestRunShouldReturnTrueWhenCheckPathAndTableSuccess)

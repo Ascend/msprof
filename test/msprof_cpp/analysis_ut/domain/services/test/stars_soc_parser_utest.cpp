@@ -197,9 +197,9 @@ TEST_F(StarsSocParserUtest, ShouldParseErrorWhenResizeException)
     context.deviceContextInfo.deviceFilePath = SOC_LOG_PATH;
     std::vector<FftsPlusLog> log{CreateFftsPlusLog(0b100010, 1, 1, 1, 200), CreateFftsPlusLog(0b100011, 2, 1, 1, 220)};
     EXPECT_TRUE(WriteBin(log, File::PathJoin({SOC_LOG_PATH, "data"}), "stars_soc.data.0.slice_0"));
-    MOCKER_CPP(&std::vector<HalLogData>::resize, void(std::vector<HalLogData>::*)(size_t)).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Resize<HalLogData>).stubs().will(returnValue(false));
     ASSERT_EQ(Analysis::PARSER_PARSE_DATA_ERROR, starsSocParser.Run(dataInventory_, context));
+    MOCKER_CPP(&Resize<HalLogData>).reset();
 }
 
 }

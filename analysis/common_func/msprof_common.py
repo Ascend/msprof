@@ -46,6 +46,7 @@ class MsProfCommonConstant:
     """
     msprof common constant
     """
+
     DEFAULT_IP = '127.0.0.1'
     DB = "db"
     SUMMARY = "summary"
@@ -93,9 +94,10 @@ def update_sample_json(sample_config: dict, collect_path: str) -> None:
         if InfoConfReader().is_host_profiling():
             logging.info("No device info, may be no device task has run.")
         else:
-            logging.error("Get device id failed, maybe data is incomplete, "
-                          "please check the info.json under the directory: %s",
-                          sample_config["tag_id"])
+            logging.error(
+                "Get device id failed, maybe data is incomplete, please check the info.json under the directory: %s",
+                sample_config["tag_id"],
+            )
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR)
     else:
         sample_config["device_id"] = device_list[0]
@@ -109,15 +111,16 @@ def check_path_valid(path: str, is_output: bool) -> None:
     :return: None
     """
     if path == "":
-        raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR,
-                            "The path is empty. Please enter a valid path.")
+        raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, "The path is empty. Please enter a valid path.")
     try:
         if is_output and not os.path.exists(path):
             os.makedirs(path, mode=NumberConstant.DIR_AUTHORITY)
             os.chmod(path, NumberConstant.DIR_AUTHORITY)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError) as ex:
-        message = f"Failed to create \"{path}\". " \
-                  f"Please check that the path is accessible or the disk space is enough. {str(ex)} "
+        message = (
+            f"Failed to create \"{path}\". "
+            f"Please check that the path is accessible or the disk space is enough. {str(ex)} "
+        )
         raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message) from ex
     finally:
         pass
@@ -126,9 +129,23 @@ def check_path_valid(path: str, is_output: bool) -> None:
 
 def check_path_char_valid(path: str) -> None:
     invalid_char = {
-        "\n": "\\n", "\f": "\\f", "\r": "\\r", "\b": "\\b", "\t": "\\t", "\v": "\\v",
-        "\u007F": "\\u007F", "\"": "\\\"", "'": "\'", "%": "\\%", ">": "\\>", "<": "\\<", "|": "\\|",
-        "&": "\\&", "$": "\\$", ";": "\\;", "`": "\\`"
+        "\n": "\\n",
+        "\f": "\\f",
+        "\r": "\\r",
+        "\b": "\\b",
+        "\t": "\\t",
+        "\v": "\\v",
+        "\u007f": "\\u007F",
+        "\"": "\\\"",
+        "'": "'",
+        "%": "\\%",
+        ">": "\\>",
+        "<": "\\<",
+        "|": "\\|",
+        "&": "\\&",
+        "$": "\\$",
+        ";": "\\;",
+        "`": "\\`",
     }
     # 如果不是Windows系统，增加反斜杠检查
     if platform.system() != 'Windows':
@@ -189,10 +206,8 @@ def analyze_collect_data(collect_path: str, sample_config: dict) -> None:
     if not check_collection_dir(collect_path):
         return
     prepare_for_parse(collect_path)
-    print_info(MsProfCommonConstant.COMMON_FILE_NAME,
-               'Start analyzing data in "%s" ...' % collect_path)
-    print_info(MsProfCommonConstant.COMMON_FILE_NAME,
-               "It may take few minutes, please be patient ...")
+    print_info(MsProfCommonConstant.COMMON_FILE_NAME, 'Start analyzing data in "%s" ...' % collect_path)
+    print_info(MsProfCommonConstant.COMMON_FILE_NAME, "It may take few minutes, please be patient ...")
     update_sample_json(sample_config, collect_path)
     parser = AI(sample_config)
     parser.project_preparation(collect_path)
@@ -201,8 +216,7 @@ def analyze_collect_data(collect_path: str, sample_config: dict) -> None:
     file_dispatch.dispatch_parser()
     files_chmod(collect_path)
     add_all_file_complete(collect_path)
-    print_info(MsProfCommonConstant.COMMON_FILE_NAME,
-               'Analysis data in "%s" finished.' % collect_path)
+    print_info(MsProfCommonConstant.COMMON_FILE_NAME, 'Analysis data in "%s" finished.' % collect_path)
 
 
 def add_all_file_complete(collect_path: str) -> None:
@@ -230,21 +244,28 @@ def check_collection_dir(collect_path: str) -> bool:
     :param collect_path: the collect path
     """
     if not os.path.exists(PathManager.get_data_dir(collect_path)):
-        message = f"There is no \"data\" directory in \"{collect_path}\". Collect data failed. " \
-                  f"More info could be found in the path of slog on your core."
+        message = (
+            f"There is no \"data\" directory in \"{collect_path}\". Collect data failed. "
+            f"More info could be found in the path of slog on your core."
+        )
         raise ProfException(ProfException.PROF_INVALID_EXECUTE_CMD_ERROR, message, warn)
     check_dir_writable(collect_path)
     check_free_memory(collect_path)
     file_all = os.listdir(PathManager.get_data_dir(collect_path))
     if not file_all:
-        message = f"There is no file in {PathManager.get_data_dir(collect_path)}. " \
-                  f"Collect data failed. More info could be found in the path of slog on your core."
+        message = (
+            f"There is no file in {PathManager.get_data_dir(collect_path)}. "
+            f"Collect data failed. More info could be found in the path of slog on your core."
+        )
         warn(MsProfCommonConstant.COMMON_FILE_NAME, message)
         return False
     if not InfoConfReader().is_version_matched():
-        warn(MsProfCommonConstant.COMMON_FILE_NAME, f'The version package of data collection '
-                                                    f'does not match the package of data analyzing, '
-                                                    f'and some data may not be analyzed.')
+        warn(
+            MsProfCommonConstant.COMMON_FILE_NAME,
+            'The version package of data collection '
+            'does not match the package of data analyzing, '
+            'and some data may not be analyzed.',
+        )
         return True
     return True
 
@@ -289,5 +310,8 @@ def get_valid_sub_path(collect_path: str, sub_dir: str, is_file: bool) -> str:
 
 
 def _path_dir_filter_func(sub_path, root_dir):
-    return sub_path not in Constant.FILTER_DIRS and not is_link(
-        os.path.join(root_dir, sub_path)) and os.path.isdir(os.path.realpath(os.path.join(root_dir, sub_path)))
+    return (
+        sub_path not in Constant.FILTER_DIRS
+        and not is_link(os.path.join(root_dir, sub_path))
+        and os.path.isdir(os.path.realpath(os.path.join(root_dir, sub_path)))
+    )

@@ -17,39 +17,44 @@
 #ifndef ANALYSIS_VIEWER_DATABASE_DRAFTS_CANN_DB_DUMPER_H
 #define ANALYSIS_VIEWER_DATABASE_DRAFTS_CANN_DB_DUMPER_H
 
+#include <mutex>
+#include <thread>
 #include <utility>
 #include <vector>
-#include <thread>
-#include <mutex>
 
-#include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/domain/entities/tree/include/tree.h"
-#include "analysis/csrc/infrastructure/utils/utils.h"
+#include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 // 供HostTraceWorker调用， 传入Analyzer对象，将所有数据落盘
-class CANNTraceDBDumper {
-using TreeAnalyzer = Analysis::Domain::Cann::TreeAnalyzer;
-using HostTask = Analysis::Domain::HostTask;
-using OpDesc = Analysis::Domain::OpDesc;
-using HostTasks = std::vector<std::shared_ptr<HostTask>>;
-using TaskInfoData = std::vector<std::tuple<uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string,
-        std::string, std::string, int32_t, uint32_t, uint64_t, uint32_t, uint32_t, std::string, std::string,
-        std::string, std::string, std::string, std::string, uint32_t, uint32_t, std::string, std::string>>;
-using HCCLBigOpDescs = Analysis::Domain::Cann::HCCLBigOpDescs;
-using GeFusionOpInfos = Analysis::Domain::Cann::GeFusionOpInfos;
-public:
+class CANNTraceDBDumper
+{
+    using TreeAnalyzer = Analysis::Domain::Cann::TreeAnalyzer;
+    using HostTask = Analysis::Domain::HostTask;
+    using OpDesc = Analysis::Domain::OpDesc;
+    using HostTasks = std::vector<std::shared_ptr<HostTask>>;
+    using TaskInfoData = std::vector<
+        std::tuple<uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string, std::string, std::string,
+                   int32_t, uint32_t, uint64_t, uint32_t, uint32_t, std::string, std::string, std::string, std::string,
+                   std::string, std::string, uint32_t, uint32_t, std::string, std::string, std::string, std::string>>;
+    using HCCLBigOpDescs = Analysis::Domain::Cann::HCCLBigOpDescs;
+    using GeFusionOpInfos = Analysis::Domain::Cann::GeFusionOpInfos;
+
+   public:
     // 创建时传入host路径
     explicit CANNTraceDBDumper(std::string hostFilePath);
 
     // 提供DumpData方法，调用后执行落盘操作，成功返回True，失败返回False。
     bool DumpData(TreeAnalyzer analyzer);
 
-private:
+   private:
     // 落盘HCCLOP
     void DumpHcclOps(const HCCLBigOpDescs &hcclOps);
 
@@ -70,13 +75,14 @@ private:
 
     void AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInfo> &tensorDesc, MsprofNodeBasicInfo nodeBasicInfo,
                             TaskInfoData &data, const std::shared_ptr<HostTask> &task);
+    static void ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofCompactInfo> &runtimeTrack, uint32_t &blockNum,
+                                        uint32_t &mixBlockNum, std::string &gridDimStr, std::string &blockDimStr);
     static std::string GetFormat(uint32_t oriFormat);
     const uint32_t poolSize_ = 4;
     std::string hostFilePath_;
     std::atomic<bool> result_;
 };
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-
-#endif // ANALYSIS_VIEWER_DATABASE_DRAFTS_CANN_DB_DUMPER_H
+#endif  // ANALYSIS_VIEWER_DATABASE_DRAFTS_CANN_DB_DUMPER_H

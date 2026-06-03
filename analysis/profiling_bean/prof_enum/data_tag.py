@@ -110,6 +110,8 @@ class DataTag(Enum):
     LPM_INFO = 88
     STREAM_EXPAND = 89
     RUNTIME_OP_INFO = 90
+    DPU_HCCL_TRACK = 91
+    DPU_TASK_TRACK = 92
 
 
 @unique

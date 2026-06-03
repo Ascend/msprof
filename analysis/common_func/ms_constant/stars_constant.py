@@ -19,8 +19,11 @@ class StarsConstant:
     """
     class used to record constant about stars
     """
+
     ACSQ_START_FUNCTYPE = '000000'
     ACSQ_END_FUNCTYPE = '000001'
+    FUSION_TASK_START_FUNCTYPE = '010110'
+    FUSION_TASK_END_FUNCTYPE = '010111'
     FFTS_LOG_START_TAG = '100010'
     FFTS_LOG_END_TAG = '100011'
     FFTS_PMU_TAG = '101000'
@@ -34,13 +37,7 @@ class StarsConstant:
     TYPE_STARS_PA = "111111"
     TYPE_STARS_PCIE = "100010"
 
-    FFTS_TYPE = {
-        0: "AIC only",
-        1: "AIV only",
-        2: "Automatic Threading Mode",
-        3: "Manual Threading Mode",
-        4: "FFTS+"
-    }
+    FFTS_TYPE = {0: "AIC only", 1: "AIV only", 2: "Automatic Threading Mode", 3: "Manual Threading Mode", 4: "FFTS+"}
     SUBTASK_TYPE = {
         0: "AIC",
         1: "AIV",
@@ -59,7 +56,7 @@ class StarsConstant:
         11: "Writeback Data Context",
         12: "AI_CPU",
         13: "Load Context",
-        15: "DSA"
+        15: "DSA",
     }
 
     def get_subtask_type(self: any) -> dict:

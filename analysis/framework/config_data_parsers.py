@@ -161,7 +161,7 @@ class ConfigDataParsers:
             "NodeAttrInfoParser",
             "MemoryApplicationParser",
             "CtxIdParser",
-            "HcclOpInfoParser"
+            "HcclOpInfoParser",
         ]:
             return True
         return False

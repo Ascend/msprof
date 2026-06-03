@@ -28,6 +28,8 @@ class MsprofInfoConstruct:
     """
     get basic info
     """
+
+    FILE_NAME = os.path.basename(__file__)
     BASIC_MODEL_PATH = "profiling_bean.basic_info.msprof_basic_info"
     BASIC_INFO_CLASS_NAME = "MsProfBasicInfo"
     CLUSTER_INFO_MODEL_PATH = "profiling_bean.basic_info.msprof_cluster_info"
@@ -42,16 +44,22 @@ class MsprofInfoConstruct:
         """
         parser = argparse.ArgumentParser()
         parser.add_argument(
-            '-dir', '--collection-dir', dest='collection_path',
-            default='', metavar='<dir>',
-            type=str, help='<Mandatory> Specify the directory that is used for '
-                           'creating data collection results.', required=True)
+            '-dir',
+            '--collection-dir',
+            dest='collection_path',
+            default='',
+            metavar='<dir>',
+            type=str,
+            help='<Mandatory> Specify the directory that is used for creating data collection results.',
+            required=True,
+        )
         return parser
 
     @staticmethod
     def _check_cluster_sqlite(path: str) -> bool:
         from common_func.db_name_constant import DBNameConstant
         from common_func.path_manager import PathManager
+
         path = os.path.realpath(path)
         return os.path.exists(PathManager.get_db_path(path, DBNameConstant.DB_CLUSTER_RANK))
 
@@ -62,6 +70,7 @@ class MsprofInfoConstruct:
         :return: None
         """
         from common_func.common import print_msg
+
         if not hasattr(args, "collection_path"):
             return
 
@@ -98,9 +107,11 @@ class MsprofInfoConstruct:
         if hasattr(args, "collection_path"):
             path_len = len(os.path.realpath(args.collection_path))
             if path_len > self.PROF_PATH_MAX_LEN:
-                error(self.FILE_NAME,
-                      "Please ensure the length of input dir absolute path(%s) less than %s" %
-                      (path_len, self.PROF_PATH_MAX_LEN))
+                error(
+                    self.FILE_NAME,
+                    "Please ensure the length of input dir absolute path(%s) less than %s"
+                    % (path_len, self.PROF_PATH_MAX_LEN),
+                )
                 return
         try:
             check_path_char_valid(args.collection_path)

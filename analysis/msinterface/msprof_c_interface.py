@@ -25,6 +25,7 @@ from common_func.ms_multi_process import run_in_subprocess
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import DeviceParseScene, ExportDBScene
+from common_func.file_manager import check_so_valid
 
 SO_DIR = os.path.join(os.path.dirname(__file__), "..", "lib64")
 
@@ -62,6 +63,15 @@ def _export_summary(project_path: str):
     logging.info("Summary will be export by msprof_analysis.so!")
     msprof_analysis_module = importlib.import_module("msprof_analysis")
     msprof_analysis_module.parser.export_summary(project_path)
+
+def _export_platform(platform_uncore_trace: str, output_path: str):
+    if not check_so_valid(os.path.join(SO_DIR, "platform_analysis.so")):
+        logging.warning("There is no platform_analysis.so available!")
+        return
+    sys.path.append(os.path.realpath(SO_DIR))
+    logging.info("Platform data will be exported by platform_analysis.so")
+    platform_analysis_module = importlib.import_module("platform_analysis")
+    platform_analysis_module.process_platform_data(platform_uncore_trace, output_path)
 
 
 def dump_cann_trace(project_path: str):
@@ -111,3 +121,6 @@ def export_unified_db(project_path: str):
         logging.warning("Does not support exporting the msprof.db!")
         return
     run_in_subprocess(_export_unified_db, project_path)
+
+def export_platform(platform_uncore_trace: str, output_path: str):
+    run_in_subprocess(_export_platform, platform_uncore_trace, output_path)

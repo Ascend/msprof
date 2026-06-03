@@ -18,6 +18,7 @@
 #define ANALYSIS_INFRASTRUCTURE_CONTEXT_INCLUDE_CONTEXT_H
 
 #include <string>
+#include <stdint.h>
 
 namespace Analysis {
 

@@ -95,11 +95,11 @@ TEST_F(HBMAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960800,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
-                            "\"HBM\"}},{\"name\":\"process_labels\",\"pid\":2383960800,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960800,\""
-                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":23}},{\"name\":\"HBM 255/Read\",\"pid\":"
-                            "2383960800,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Read"
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960832,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
+                            "\"HBM\"}},{\"name\":\"process_labels\",\"pid\":2383960832,\"tid\":0,\"ph\":\"M\","
+                            "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960832,\""
+                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":24}},{\"name\":\"HBM 255/Read\",\"pid\":"
+                            "2383960832,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Read"
                             "(MB/s)\":15.31082505328486}},";
     EXPECT_EQ(expectStr, res.back());
 }

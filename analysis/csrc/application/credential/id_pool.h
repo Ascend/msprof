@@ -18,24 +18,29 @@
 #define ANALYSIS_ASSOCIATION_CREDENTIAL_ID_POOL_H
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <unordered_map>
-#include <mutex>
 
 #include "analysis/csrc/infrastructure/utils/singleton.h"
 
-namespace Analysis {
-namespace Application {
-namespace Credential {
-using CorrelationTuple = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>;
-class IdPool : public Utils::Singleton<IdPool> {
-public:
+namespace Analysis
+{
+namespace Application
+{
+namespace Credential
+{
+using CorrelationTuple = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>;
+class IdPool : public Utils::Singleton<IdPool>
+{
+   public:
     void Clear();
     uint64_t GetId(const CorrelationTuple& key);
     uint64_t GetUint64Id(const std::string& key);
     uint32_t GetUint32Id(const std::string& key);
     std::unordered_map<std::string, uint64_t>& GetAllUint64Ids();
-private:
+
+   private:
     uint64_t correlationIndex_ = 0;
     uint64_t uint64Index_ = 0;
     uint32_t uint32Index_ = 0;
@@ -47,7 +52,7 @@ private:
     std::unordered_map<std::string, uint32_t> uint32Ids_;
 };
 
-}
-}
-}
-#endif // ANALYSIS_ASSOCIATION_CREDENTIAL_ID_POOL_H
+}  // namespace Credential
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_ASSOCIATION_CREDENTIAL_ID_POOL_H

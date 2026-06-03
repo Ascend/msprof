@@ -22,6 +22,7 @@ class DBNameConstant(metaclass=ABCMeta):
     """
     DB name and DB table names
     """
+
     # DB name
     DB_ACL_MODULE = "acl_module.db"
     DB_AICORE_OP_SUMMARY = "ai_core_op_summary.db"
@@ -110,6 +111,7 @@ class DBNameConstant(metaclass=ABCMeta):
     DB_SOC_PMU = "soc_pmu.db"
     DB_VOLTAGE = "voltage.db"
     DB_FUSION_TASK = "fusion_task.db"
+    DB_DPU = "dpu.db"
 
     # DB tables
     TABLE_ACL_DATA = "AclData"
@@ -355,6 +357,10 @@ class DBNameConstant(metaclass=ABCMeta):
     TABLE_HCCL_OP_INFO = "HcclOpInfo"
     TABLE_STREAM_EXPAND_SPEC = "StreamExpandSpec"
 
+    # dpu
+    TABLE_DPU_TASK_TRACK = "DPUTaskTrack"
+    TABLE_DPU_HCCL_TRACK = 'DPUHcclTrack'
+
     # v5
     TABLE_V5_TASK = "V5Task"
 
@@ -382,10 +388,7 @@ class DBNameConstant(metaclass=ABCMeta):
     TABLE_NETDEV_STATS_ORIGIN = 'NetDevStatsOriginalData'
 
     # fusion task
-    TABLE_FUSION_CCU = "FusionCcu"
-    TABLE_FUSION_AI_CORE = "FusionAICore"
-    TABLE_FUSION_AI_CPU = "FusionAICPU"
-    TABLE_FUSION_COMMON_CPU = "FusionCommonCpu"
+    TABLE_FUSION_TASK = "FusionTask"
 
     @abstractmethod
     def get_db_name(self: any) -> str:

@@ -103,6 +103,8 @@ from common_func.file_name_manager import get_soc_pmu_compiles
 from common_func.file_name_manager import get_lpm_info_compiles
 from common_func.file_name_manager import get_host_stream_expand_spec_info_compiles
 from common_func.file_name_manager import get_runtime_op_info_compiles
+from common_func.file_name_manager import get_dpu_track_compact_compiles
+from common_func.file_name_manager import get_dpu_hccl_track_compact_compiles
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.path_manager import PathManager
 from framework.prof_factory_maker import ProfFactoryMaker
@@ -201,6 +203,8 @@ class FileDispatch:
         DataTag.V5_MODEL_EXEOM: get_v5_model_exeom_compiles(),
         DataTag.V5_STARS_PROFILE: get_v5_stars_profile_compiles(),
         DataTag.DBG_FILE: get_dbg_file_compiles(),
+        DataTag.DPU_TASK_TRACK: get_dpu_track_compact_compiles(),
+        DataTag.DPU_HCCL_TRACK: get_dpu_hccl_track_compact_compiles(),
     }
 
     def __init__(self: any, sample_config: dict) -> None:
@@ -214,9 +218,11 @@ class FileDispatch:
         pick up the file list with the data tag
         :return: dict with data tag
         """
+
         def sort_by_suffix_number(s):
             match = re.search(r'_(\d+)$', s)
             return int(match.group(1)) if match else float('inf')
+
         _files = sorted(os.listdir(PathManager.get_data_dir(self._project_path)), key=sort_by_suffix_number)
         for (_data_tag, _data_regs), _file in itertools.product(self.FILES_FILTER_MAP.items(), _files):
             if get_file_name_pattern_match(_file, *_data_regs):

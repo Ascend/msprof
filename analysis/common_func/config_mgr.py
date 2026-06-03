@@ -64,8 +64,10 @@ class ConfigMgr:
         check whether read or write config
         """
         sample_config = ConfigMgr.read_sample_config(result_dir)
-        return sample_config.get(StrConstant.LLC_PROF) in [StrConstant.LLC_PROFILING_READ_EVENT,
-                                                           StrConstant.LLC_PROFILING_WRITE_EVENT]
+        return sample_config.get(StrConstant.LLC_PROF) in [
+            StrConstant.LLC_PROFILING_READ_EVENT,
+            StrConstant.LLC_PROFILING_WRITE_EVENT,
+        ]
 
     @staticmethod
     def is_ai_core_sample_based(result_dir: str) -> bool:
@@ -114,7 +116,6 @@ class ConfigMgr:
             message = f"Failed to load {sample_file}. {err}"
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, message) from err
 
-
     @staticmethod
     def pre_check_sample(result_dir: str, event: any) -> dict:
         sample_config = ConfigMgr.read_sample_config(result_dir)
@@ -138,4 +139,3 @@ class ConfigMgr:
         sample_config = ConfigMgr.read_sample_config(result_dir)
         metrics = sample_config.get("ai_core_metrics")
         return metrics.startswith("Custom") if metrics else False
-

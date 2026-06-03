@@ -24,8 +24,8 @@
 namespace Analysis {
 namespace Utils {
 const double DEFAULT_FREQ = 1000.0;
-// log中数据单位为US,换算成NS时需要*1000,直接使用UINT64_MAX存在溢出等情况,需要向下取整
-const uint64_t DEFAULT_END_TIME_NS = UINT64_MAX / 1000 * 1000;
+// log中数据单位为US,换算成NS时需要*1000,此处为30分钟
+const uint64_t DEFAULT_DURATION_TIME_NS = 30ULL * 60 * 1000 * 1000 * 1000; // 30min
 
 // SyscntConversionParams 用于记录 syscnt 转为 timestamp 所需要的三个数据
 // 分为host侧和device的syscnt两种情况，不同情况下，所需要的数据来源不同

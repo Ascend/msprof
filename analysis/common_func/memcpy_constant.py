@@ -23,6 +23,7 @@ class MemoryCopyConstant:
     """
     Constant for memory copy
     """
+
     DEFAULT_TIMESTAMP = -1
     DEFAULT_VIEWER_VALUE = "N/A"
 
@@ -73,7 +74,7 @@ class MemoryCopyConstant:
         tag_index_dict = {
             cls.RECEIVE_TAG: cls.STATES_TIMESTAMPS_RECEIVE_INDEX,
             cls.START_TAG: cls.STATES_TIMESTAMPS_START_INDEX,
-            cls.END_TAG: cls.STATES_TIMESTAMPS_END_INDEX
+            cls.END_TAG: cls.STATES_TIMESTAMPS_END_INDEX,
         }
 
         return tag_index_dict.get(tag)
@@ -87,6 +88,6 @@ class MemoryCopyConstant:
             cls.H2D_TAG: cls.H2D_NAME,
             cls.D2H_TAG: cls.D2H_NAME,
             cls.D2D_TAG: cls.D2D_NAME,
-            cls.H2H_TAG: cls.H2H_NAME
+            cls.H2H_TAG: cls.H2H_NAME,
         }
         return direction_dict.get(tag, cls.DEFAULT_NAME)

@@ -119,23 +119,23 @@ TEST_F(AccPmuAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"read_bandwidth\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226599.429\","
-                            "\"ph\":\"C\",\"args\":{\"value\":1}},{\"name\":\"read_ost\",\"pid\":2383960640,\"tid\":0,"
+    std::string expectStr = "{\"name\":\"read_bandwidth\",\"pid\":2383960672,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":1}},{\"name\":\"read_ost\",\"pid\":2383960672,\"tid\":0,"
                             "\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"value\":1}},"
-                            "{\"name\":\"write_bandwidth\",\"pid\":2383960640,\"tid\":0,"
+                            "{\"name\":\"write_bandwidth\",\"pid\":2383960672,\"tid\":0,"
                             "\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"value\":1}},"
-                            "{\"name\":\"write_ost\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226599.429\","
-                            "\"ph\":\"C\",\"args\":{\"value\":0}},{\"name\":\"read_bandwidth\",\"pid\":2383960640,"
+                            "{\"name\":\"write_ost\",\"pid\":2383960672,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":0}},{\"name\":\"read_bandwidth\",\"pid\":2383960672,"
                             "\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"value\":2}},"
-                            "{\"name\":\"read_ost\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226699.429\","
-                            "\"ph\":\"C\",\"args\":{\"value\":3}},{\"name\":\"write_bandwidth\",\"pid\":2383960640,"
+                            "{\"name\":\"read_ost\",\"pid\":2383960672,\"tid\":0,\"ts\":\"1724405892226699.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":3}},{\"name\":\"write_bandwidth\",\"pid\":2383960672,"
                             "\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"value\":2}},"
-                            "{\"name\":\"write_ost\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226699.429\","
-                            "\"ph\":\"C\",\"args\":{\"value\":0}},{\"name\":\"process_name\",\"pid\":2383960640,"
+                            "{\"name\":\"write_ost\",\"pid\":2383960672,\"tid\":0,\"ts\":\"1724405892226699.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":0}},{\"name\":\"process_name\",\"pid\":2383960672,"
                             "\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Acc PMU\"}},{\"name\":\"process_labels\","
-                            "\"pid\":2383960640,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
-                            "{\"name\":\"process_sort_index\",\"pid\":2383960640,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"sort_index\":18}},";
+                            "\"pid\":2383960672,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
+                            "{\"name\":\"process_sort_index\",\"pid\":2383960672,\"tid\":0,\"ph\":\"M\","
+                            "\"args\":{\"sort_index\":19}},";
     EXPECT_EQ(expectStr, res.back());
 }
 

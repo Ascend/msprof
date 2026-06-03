@@ -19,10 +19,12 @@
 #include "analysis/csrc/domain/data_process/system/hccs_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
+using namespace Analysis::Test;
 
 namespace {
 const int DEPTH = 0;
@@ -123,15 +125,15 @@ TEST_F(HCCSProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDataFailed)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HCCS));
     MOCKER_CPP(&OriHccsData::empty).reset();
     // Reserve failed
-    MOCKER_CPP(&std::vector<HccsData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<HccsData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HCCS));
-    MOCKER_CPP(&std::vector<HccsData>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<HccsData>>();
 
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<HccsData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HCCS));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<HccsData>).reset();
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HCCS));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 }

@@ -146,6 +146,8 @@ class ExportCommand:
              'handler': AiStackDataCheckManager.contain_ccu_mission_data},
             {'export_type': ExportDataType.VOLTAGE,
              'handler': SystemDataCheckManager.contain_lpm_data},
+            {'export_type': ExportDataType.DPU,
+             'handler': AiStackDataCheckManager.contain_dpu_data},
             {'export_type': ExportDataType.FREQ,
              'handler': lambda result_dir, device_id=None: True},
             {'export_type': ExportDataType.MSPROF,

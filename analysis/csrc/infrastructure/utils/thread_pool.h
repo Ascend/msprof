@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <deque>
 #include <vector>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Utils {

@@ -19,6 +19,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -213,11 +214,11 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenFormatDataFaile
     MOCKER_CPP(&OTFormat::empty).reset();
 
     // Reserve failed
-    MOCKER_CPP(&std::vector<UnifiedTaskPmu>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<UnifiedTaskPmu>>();
     DataInventory dataInventory2;
     auto processor2 = UnifiedPmuProcessor(PROF_PATH);
     EXPECT_FALSE(processor1.Run(dataInventory2, PROCESSOR_NAME_UNIFIED_PMU));
-    MOCKER_CPP(&std::vector<UnifiedTaskPmu>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<UnifiedTaskPmu>>();
 
     // ProcessedDataFormat empty
     MOCKER_CPP(&std::vector<UnifiedTaskPmu>::empty).stubs().will(returnValue(true));
@@ -303,13 +304,13 @@ TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnFalseWhenFormatDataFai
     MOCKER_CPP(&OSSFormat::empty).reset();
 
     // Reserve failed
-    MOCKER_CPP(&std::vector<UnifiedTaskPmu>::reserve).stubs().will(throws(std::bad_alloc()));
-    MOCKER_CPP(&std::vector<UnifiedSampleSummaryPmu>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<UnifiedSampleTimelinePmu>>();
+    Analysis::Test::StubReserveFailureForVector<std::vector<UnifiedSampleSummaryPmu>>();
     DataInventory dataInventory2;
     auto processor2 = UnifiedPmuProcessor(PROF_PATH);
     EXPECT_FALSE(processor2.Run(dataInventory2, PROCESSOR_NAME_UNIFIED_PMU));
-    MOCKER_CPP(&std::vector<UnifiedSampleSummaryPmu>::reserve).reset();
-    MOCKER_CPP(&std::vector<UnifiedTaskPmu>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<UnifiedSampleTimelinePmu>>();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<UnifiedSampleSummaryPmu>>();
 
     // ProcessedDataFormat empty
     MOCKER_CPP(&std::vector<UnifiedTaskPmu>::empty).stubs().will(returnValue(true));

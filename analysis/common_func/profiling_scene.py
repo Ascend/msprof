@@ -14,13 +14,10 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import os
 import logging
 from enum import Enum
 
 from common_func.constant import Constant
-from common_func.file_manager import check_so_valid
-from common_func.platform.chip_manager import ChipManager
 from common_func.singleton import singleton
 from common_func.utils import Utils
 from common_func.db_name_constant import DBNameConstant
@@ -30,6 +27,7 @@ class ExportMode(Enum):
     """
     数据导出模式
     """
+
     ALL_EXPORT = 0
     STEP_EXPORT = 1
     GRAPH_EXPORT = 2

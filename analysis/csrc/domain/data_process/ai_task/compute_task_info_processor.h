@@ -19,25 +19,29 @@
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 // hashid, model_id, op_name, stream_id, task_id, block_num, mix_block_num, task_type, op_type,
 // op_flag, batch_id, input_formats, input_data_types, input_shapes, output_formats,
-// output_data_types, output_shapes, device_id, context_id, op_state
-using TaskInfoFormat = std::tuple<std::string, uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t,
-                                  std::string, std::string, std::string, uint32_t, std::string, std::string,
-                                  std::string, std::string, std::string, std::string, uint16_t, uint32_t, std::string>;
-class ComputeTaskInfoProcessor : public DataProcessor {
-public:
+// output_data_types, output_shapes, device_id, context_id, op_state, grid_dim, block_dim
+using TaskInfoFormat =
+    std::tuple<std::string, uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string, std::string,
+               std::string, uint32_t, std::string, std::string, std::string, std::string, std::string, std::string,
+               uint16_t, uint32_t, std::string, std::string, std::string>;
+class ComputeTaskInfoProcessor : public DataProcessor
+{
+   public:
     ComputeTaskInfoProcessor() = default;
     explicit ComputeTaskInfoProcessor(const std::string &profPath);
 
-private:
+   private:
     bool Process(DataInventory &dataInventory) override;
     std::vector<TaskInfoData> LoadData(const DBInfo &taskInfoDB, const std::string &dbPath,
-                                         std::unordered_map<std::string, std::string>& hashMap);
+                                       std::unordered_map<std::string, std::string> &hashMap);
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_COMPUTE_TASK_INFO_PROCESSOR_H
+#endif  // ANALYSIS_DOMAIN_COMPUTE_TASK_INFO_PROCESSOR_H

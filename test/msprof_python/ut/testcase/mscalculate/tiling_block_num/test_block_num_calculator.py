@@ -37,7 +37,7 @@ class TestKfcCalculator(unittest.TestCase):
     def construct_ge_info_db(self):
         create_sql = "CREATE TABLE IF NOT EXISTS " + DBNameConstant.TABLE_GE_TASK + \
                      "(model_id, op_name, stream_id, task_id, block_num, mix_block_num," \
-                     "op_stat, task_type, op_type, index_id, thread_id, timestamp, batch_id," \
+                     "op_state, task_type, op_type, index_id, thread_id, timestamp, batch_id," \
                      "tensor_num, input_formats, input_data_types, input_shapes," \
                      "output_formats, output_data_types, output_shapes, device_id, context_id, op_flag, hashid)"
         data = (

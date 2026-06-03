@@ -124,8 +124,8 @@ TEST_F(FreqParserUtest, ShouldParseErrorWhenResizeException)
     context.deviceContextInfo.deviceFilePath = FREQ_LPM_PATH;
     std::vector<FreqData> freqLpm{CreateFreqData(), CreateFreqData()};
     WriteBin(freqLpm, File::PathJoin({FREQ_LPM_PATH, "data"}), "lpmFreqConv.data.0.slice_0");
-    MOCKER_CPP(&std::vector<HalFreqData>::resize, void(std::vector<HalFreqData>::*)(size_t)).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Resize<HalFreqData>).stubs().will(returnValue(false));
     ASSERT_EQ(Analysis::PARSER_PARSE_DATA_ERROR, freqParser.Run(dataInventory_, context));
+    MOCKER_CPP(&Resize<HalFreqData>).reset();
 }
 }

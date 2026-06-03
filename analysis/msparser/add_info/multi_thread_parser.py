@@ -87,7 +87,7 @@ class MultiThreadParser(DataParser, MsMultiProcess):
         self.save()
 
     def reformat_data(self) -> list:
-        type_info_data = HashDictData(self._project_path).get_type_hash_dict().get("hccl", {})
+        type_info_data = HashDictData(self._project_path).get_type_hash_dict().get("communication", {})
         return [
             [data.level, type_info_data.get(data.struct_type, data.struct_type), data.thread_id, data.data_len,
              data.timestamp, data.thread_num, data.sub_thread_id]

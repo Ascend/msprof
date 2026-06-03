@@ -25,7 +25,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["channel"],
             "right": 0,
             "formula": "{0}%16",
-            "cmp": "!="
+            "cmp": "!=",
         },
         {
             "id": "condition_common_2",
@@ -33,7 +33,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["channel"],
             "right": 0,
             "formula": "{0}%32",
-            "cmp": "!="
+            "cmp": "!=",
         },
         {
             "id": "condition_common_3",
@@ -41,7 +41,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["height", "width"],
             "right": 0,
             "formula": "({0}*{1})%16",
-            "cmp": "!="
+            "cmp": "!=",
         },
         {
             "id": "condition_common_6",
@@ -49,7 +49,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["batch"],
             "right": 0,
             "formula": "{0}%16",
-            "cmp": "!="
+            "cmp": "!=",
         },
         {
             "id": "condition_block_num_1",
@@ -57,7 +57,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["block_num", "core_num"],
             "right": 1,
             "formula": "{0}/{1}",
-            "cmp": "<"
+            "cmp": "<",
         },
         {
             "id": "condition_block_num_2",
@@ -65,7 +65,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["block_num"],
             "right": 0,
             "formula": "{0}&({0}-1)",
-            "cmp": "!="
+            "cmp": "!=",
         },
         {
             "id": "condition_block_num_3",
@@ -73,36 +73,18 @@ class ProfConditionConfig(MetaConfig):
             "left": ["block_num", "core_num"],
             "right": 0,
             "formula": "{0}%{1}",
-            "cmp": "!="
+            "cmp": "!=",
         },
-        {
-            "id": "condition_transData_1",
-            "type": "normal",
-            "left": "op_type",
-            "right": "TransData",
-            "cmp": "=="
-        },
+        {"id": "condition_transData_1", "type": "normal", "left": "op_type", "right": "TransData", "cmp": "=="},
         {
             "id": "condition_transData_2",
             "dependency": "condition_transData_1",
             "type": "count",
             "threshold": 2,
-            "cmp": ">"
+            "cmp": ">",
         },
-        {
-            "id": "condition_memory_workspace_1",
-            "type": "normal",
-            "left": "memory_workspace",
-            "right": 0,
-            "cmp": ">"
-        },
-        {
-            "id": "condition_wait_time_1",
-            "type": "normal",
-            "left": "task_wait_time",
-            "right": 10,
-            "cmp": ">"
-        },
+        {"id": "condition_memory_workspace_1", "type": "normal", "left": "memory_workspace", "right": 0, "cmp": ">"},
+        {"id": "condition_wait_time_1", "type": "normal", "left": "task_wait_time", "right": 10, "cmp": ">"},
         {
             "id": "condition_wait_time_2",
             "dependency": "condition_wait_time_1",
@@ -110,22 +92,10 @@ class ProfConditionConfig(MetaConfig):
             "accumulate": ["task_wait_time"],
             "compare": ["task_duration", "task_wait_time"],
             "threshold": 0.03,
-            "cmp": ">"
+            "cmp": ">",
         },
-        {
-            "id": "condition_aicpu_1",
-            "type": "normal",
-            "left": "task_type",
-            "right": "AI_CPU",
-            "cmp": "=="
-        },
-        {
-            "id": "condition_memory_bound_1",
-            "type": "normal",
-            "left": "memory_bound",
-            "right": 1,
-            "cmp": ">"
-        },
+        {"id": "condition_aicpu_1", "type": "normal", "left": "task_type", "right": "AI_CPU", "cmp": "=="},
+        {"id": "condition_memory_bound_1", "type": "normal", "left": "memory_bound", "right": 1, "cmp": ">"},
         {
             "id": "condition_memory_bound_2",
             "dependency": "condition_memory_bound_1",
@@ -133,93 +103,48 @@ class ProfConditionConfig(MetaConfig):
             "accumulate": ["task_duration"],
             "compare": ["task_duration"],
             "threshold": 0.5,
-            "cmp": ">"
+            "cmp": ">",
         },
-        {
-            "id": "condition_vector_bound_1",
-            "type": "normal",
-            "left": "vector_bound",
-            "right": 1,
-            "cmp": ">"
-        },
-        {
-            "id": "condition_vector_ratio_1",
-            "type": "normal",
-            "left": "vec_ratio",
-            "right": 0.8,
-            "cmp": "<"
-        },
-        {
-            "id": "condition_vector_ratio_2",
-            "type": "normal",
-            "left": "vec_ratio",
-            "right": 0.8,
-            "cmp": ">"
-        },
-        {
-            "id": "condition_cube_ratio_1",
-            "type": "normal",
-            "left": "mac_ratio",
-            "right": 0.8,
-            "cmp": "<"
-        },
-        {
-            "id": "condition_cube_ratio_2",
-            "type": "normal",
-            "left": "mac_ratio",
-            "right": 0,
-            "cmp": ">"
-        },
-        {
-            "id": "condition_scalar_ratio_1",
-            "type": "normal",
-            "left": "scalar_ratio",
-            "right": 0.8,
-            "cmp": ">"
-        },
+        {"id": "condition_vector_bound_1", "type": "normal", "left": "vector_bound", "right": 1, "cmp": ">"},
+        {"id": "condition_vector_ratio_1", "type": "normal", "left": "vec_ratio", "right": 0.8, "cmp": "<"},
+        {"id": "condition_vector_ratio_2", "type": "normal", "left": "vec_ratio", "right": 0.8, "cmp": ">"},
+        {"id": "condition_cube_ratio_1", "type": "normal", "left": "mac_ratio", "right": 0.8, "cmp": "<"},
+        {"id": "condition_cube_ratio_2", "type": "normal", "left": "mac_ratio", "right": 0, "cmp": ">"},
+        {"id": "condition_scalar_ratio_1", "type": "normal", "left": "scalar_ratio", "right": 0.8, "cmp": ">"},
         {
             "id": "condition_vec_bankgroup_cflt_ratio_1",
             "type": "normal",
             "left": "vec_bankgroup_cflt_ratio",
             "right": 0.04,
-            "cmp": ">"
+            "cmp": ">",
         },
         {
             "id": "condition_vec_bank_cflt_ratio_1",
             "type": "normal",
             "left": "vec_bank_cflt_ratio",
             "right": 0.04,
-            "cmp": ">"
+            "cmp": ">",
         },
-        {
-            "id": "condition_task_duration_1",
-            "type": "normal",
-            "left": "task_duration",
-            "right": 20,
-            "cmp": ">"
-        },
-        {
-            "id": "condition_int64_1",
-            "type": "normal",
-            "left": "input_data_types",
-            "right": "INT64",
-            "cmp": "contain"
-        },
+        {"id": "condition_task_duration_1", "type": "normal", "left": "task_duration", "right": 20, "cmp": ">"},
+        {"id": "condition_int64_1", "type": "normal", "left": "input_data_types", "right": "INT64", "cmp": "contain"},
         {
             "id": "condition_strided_slice_grad_1",
             "type": "normal",
             "left": "op_name",
             "right": "StridedSliceGrad",
-            "cmp": "contain"
+            "cmp": "contain",
         },
         {
             "id": "condition_ai_cpu_parallelism_1",
             "type": "formula",
-            "left": ["AI CPU Execution Time(us)", "AI Core Execution Time(us)",
-                     "Concurrent AI Core and AI CPU Execution Time(us)"],
+            "left": [
+                "AI CPU Execution Time(us)",
+                "AI Core Execution Time(us)",
+                "Concurrent AI Core and AI CPU Execution Time(us)",
+            ],
             "right": 0.05,
             "formula": "{0}/({0}+{1}+{2})",
-            "cmp": ">"
+            "cmp": ">",
         },
         {
             "id": "condition_cube_affinity_1",
@@ -227,7 +152,7 @@ class ProfConditionConfig(MetaConfig):
             "left": ["Cube Utilization", "Vector Utilization", "Scalar Utilization", "MTE Utilization"],
             "right": 0.5,
             "formula": "{0}/({0}+{1}+{2}+{3})",
-            "cmp": ">="
+            "cmp": ">=",
         },
         {
             "id": "condition_cube_affinity_2",
@@ -235,8 +160,8 @@ class ProfConditionConfig(MetaConfig):
             "left": ["Cube Utilization", "Vector Utilization", "Scalar Utilization", "MTE Utilization"],
             "right": 0.5,
             "formula": "{0}/({0}+{1}+{2}+{3})",
-            "cmp": "<"
-        }
+            "cmp": "<",
+        },
     ]
 
     def __init__(self):

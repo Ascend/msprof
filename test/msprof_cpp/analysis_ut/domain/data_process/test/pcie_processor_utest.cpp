@@ -19,6 +19,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -129,10 +130,10 @@ TEST_F(PCIeProcessorUTest, TestFormatDataShouldReturnFalseWhenFormatDataFailed)
     MOCKER_CPP(&PCIeDataFormat::empty).reset();
 
     // Reserve failed
-    MOCKER_CPP(&ProcessedDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<ProcessedDataFormat>();
     auto processor2 = PCIeProcessor(PROF);
     EXPECT_FALSE(processor2.Run(dataInventory, PROCESSOR_NAME_PCIE));
-    MOCKER_CPP(&ProcessedDataFormat::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<ProcessedDataFormat>();
 
     // ProcessedDataFormat empty
     MOCKER_CPP(&ProcessedDataFormat::empty).stubs().will(returnValue(true));
@@ -145,7 +146,7 @@ TEST_F(PCIeProcessorUTest, TestFormatDataShouldReturnFalseWhenGetDeviceIdByDevic
 {
     DataInventory dataInventory = DataInventory();
     // GetDeviceIdByDevicePath get HOST_ID
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(HOST_ID));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(HOST_ID)));
     auto processor = PCIeProcessor(PROF);
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_PCIE));
     MOCKER_CPP(&ProcessedDataFormat::empty).reset();
@@ -166,7 +167,7 @@ TEST_F(PCIeProcessorUTest, TestRunShouldReturnFalseWhenProcessOneDeviceFailed)
     DataInventory dataInventory;
     auto processor = PCIeProcessor(PROF);
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(INVALID_DEVICE_ID));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(INVALID_DEVICE_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_PCIE));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 }

@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/data_process/system/netdev_stats_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -121,9 +122,9 @@ TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnFalseWhenProcessDataFailed)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&Analysis::Infra::Connection::QueryCmd).reset();
     // Reserve failed
-    MOCKER_CPP(&std::vector<NetDevStatsEventData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<NetDevStatsEventData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
-    MOCKER_CPP(&std::vector<NetDevStatsEventData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<NetDevStatsEventData>>();
     // SaveToDataInventory failed
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<NetDevStatsEventData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
@@ -145,7 +146,7 @@ TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnFalseWhenProcessSingleDevic
     auto processor = NetDevStatsProcessor(PROF_DIR);
     DataInventory dataInventory;
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 }

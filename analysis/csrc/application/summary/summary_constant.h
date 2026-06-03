@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Application {

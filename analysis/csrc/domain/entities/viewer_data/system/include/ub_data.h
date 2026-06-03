@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
  * MindStudio is licensed under Mulan PSL v2.
@@ -18,20 +18,23 @@
 #define ANALYSIS_DOMAIN_UB_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct UbData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct UbData : public BasicData
+{
     uint16_t deviceId;
     uint16_t portId;
-    uint64_t timestamp;
     uint32_t udmaRxBind;
     uint32_t udmaTxBind;
     uint32_t rxPortBandWidth;
     uint32_t txPortBandWidth;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_UB_DATA_H
+#endif  // ANALYSIS_DOMAIN_UB_DATA_H

@@ -297,3 +297,25 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenAnalysisReportJsonFailed)
 
     MOCKER_CPP(&FileReader::ReadJson).reset();
 }
+
+TEST_F(ExportManagerUTest, ShouldAddLowPowerWhenFreqIsTrue)
+{
+    nlohmann::json reports = {
+        {"json_process", {
+            {"freq", true}
+        }}
+    };
+    CreateReportsJson(reports);
+    auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
+    ExportManager manager(PROF_PATH, jsonPath);
+    
+    // mock Init()
+    MOCKER_CPP(&Context::Load).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::GetClockMonotonicRaw).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::GetMetricMode).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::IsChipV6).stubs().will(returnValue(false));
+    
+    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+}

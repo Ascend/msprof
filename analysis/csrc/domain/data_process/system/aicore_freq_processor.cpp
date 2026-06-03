@@ -15,96 +15,113 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/data_process/system/aicore_freq_processor.h"
+
 #include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
 
-AicoreFreqProcessor::AicoreFreqProcessor(const std::string& profPath) : DataProcessor(profPath)
-{}
+AicoreFreqProcessor::AicoreFreqProcessor(const std::string& profPath) : DataProcessor(profPath) {}
 
 bool AicoreFreqProcessor::Process(DataInventory& dataInventory)
 {
     auto version = Context::GetInstance().GetPlatformVersion(DEFAULT_DEVICE_ID, profPath_);
-    if (version != static_cast<int>(Chip::CHIP_V4_1_0) && version != static_cast<int>(Chip::CHIP_V1_1_1)) {
+    if (version != static_cast<int>(Chip::CHIP_V4_1_0) && version != static_cast<int>(Chip::CHIP_V1_1_1))
+    {
         // 当前仅支持910b 和 310b处理低功耗变频数据
         WARN("This platformVersion: % does not support the processing of aicore freq data.", version);
         return true;
     }
     bool flag = true;
-    std::vector<AicoreFreqData> res;
+    std::vector<LowPowerData> res;
     auto deviceList = File::GetFilesWithPrefix(profPath_, DEVICE_PREFIX);
-    for (const auto& devicePath : deviceList) {
+    for (const auto& devicePath : deviceList)
+    {
         auto deviceId = GetDeviceIdByDevicePath(devicePath);
-        if (deviceId == INVALID_DEVICE_ID) {
+        if (deviceId == INVALID_DEVICE_ID)
+        {
             ERROR("The invalid deviceId cannot to be identified.");
             flag = false;
             continue;
         }
         ProfTimeRecord timeRecord;
-        if (!Context::GetInstance().GetProfTimeRecordInfo(timeRecord, profPath_, deviceId)) {
+        if (!Context::GetInstance().GetProfTimeRecordInfo(timeRecord, profPath_, deviceId))
+        {
             ERROR("Failed to GetProfTimeRecordInfo, fileDir is %, device id is %.", profPath_, deviceId);
             flag = false;
             continue;
         }
         Utils::SyscntConversionParams params;
-        if (!Context::GetInstance().GetSyscntConversionParams(params, deviceId, profPath_)) {
+        if (!Context::GetInstance().GetSyscntConversionParams(params, deviceId, profPath_))
+        {
             ERROR("GetSyscntConversionParams failed, profPath is %.", profPath_);
             flag = false;
             continue;
         }
-        OriFreqDataFormat freqData;
-        if (!ProcessData(devicePath, freqData)) {
+        AicoreFreqProcessor::OriFreqDataFormat freqData;
+        if (!ProcessData(devicePath, freqData))
+        {
             ERROR("Get original data failed.");
             flag = false;
             continue;
         }
-        std::vector<AicoreFreqData> processedData;
-        if (!FormatData(deviceId, timeRecord, params, freqData, processedData)) {
+        std::vector<LowPowerData> processedData;
+        if (!FormatData(deviceId, timeRecord, params, freqData, processedData))
+        {
             ERROR("FormatData failed, fileDir is %.", devicePath);
             flag = false;
             continue;
         }
         res.insert(res.end(), processedData.begin(), processedData.end());
     }
-    if (!SaveToDataInventory<AicoreFreqData>(std::move(res), dataInventory, PROCESSOR_NAME_AICORE_FREQ)) {
+    if (!SaveToDataInventory<LowPowerData>(std::move(res), dataInventory, PROCESSOR_NAME_AICORE_FREQ))
+    {
         flag = false;
         ERROR("Save data failed, %.", PROCESSOR_NAME_AICORE_FREQ);
     }
     return flag;
 }
 
-bool AicoreFreqProcessor::ProcessData(const std::string& devicePath, OriFreqDataFormat& oriData)
+bool AicoreFreqProcessor::ProcessData(const std::string& devicePath, AicoreFreqProcessor::OriFreqDataFormat& oriData)
 {
     DBInfo dbInfo("freq.db", "FreqParse");
     std::string dbPath = File::PathJoin({devicePath, SQLITE, dbInfo.dbName});
-    if (!dbInfo.ConstructDBRunner(dbPath)) {
+    if (!dbInfo.ConstructDBRunner(dbPath))
+    {
         return false;
     }
     auto status = CheckPathAndTable(dbPath, dbInfo);
-    if (status == CHECK_FAILED) {
+    if (status == CHECK_FAILED)
+    {
         return false;
-    } else if (status == CHECK_SUCCESS) {
+    }
+    else if (status == CHECK_SUCCESS)
+    {
         oriData = LoadData(dbPath, dbInfo);
     }
-    if (oriData.empty()) {
+    if (oriData.empty())
+    {
         WARN("Original data is empty. DBPath is %", dbPath);
     }
     return true;
 }
 
-OriFreqDataFormat AicoreFreqProcessor::LoadData(const std::string& dbPath, DBInfo& freqDB)
+AicoreFreqProcessor::OriFreqDataFormat AicoreFreqProcessor::LoadData(const std::string& dbPath, DBInfo& freqDB)
 {
     INFO("AicoreFreqProcessor GetData, dir is %", dbPath);
-    OriFreqDataFormat oriData;
-    if (freqDB.dbRunner == nullptr) {
+    AicoreFreqProcessor::OriFreqDataFormat oriData;
+    if (freqDB.dbRunner == nullptr)
+    {
         ERROR("Create % connection failed.", dbPath);
         return oriData;
     }
     std::string sql = "SELECT syscnt, freq FROM " + freqDB.tableName;
-    if (!freqDB.dbRunner->QueryData(sql, oriData)) {
+    if (!freqDB.dbRunner->QueryData(sql, oriData))
+    {
         ERROR("Query freq data failed, db path is %.", dbPath);
         return oriData;
     }
@@ -113,51 +130,57 @@ OriFreqDataFormat AicoreFreqProcessor::LoadData(const std::string& dbPath, DBInf
 
 bool AicoreFreqProcessor::FormatData(const uint16_t& deviceId, const ProfTimeRecord& timeRecord,
                                      const Utils::SyscntConversionParams& params,
-                                     const OriFreqDataFormat& freqData,
-                                     std::vector<AicoreFreqData>& processedData)
+                                     const AicoreFreqProcessor::OriFreqDataFormat& freqData,
+                                     std::vector<LowPowerData>& processedData)
 {
     INFO("AicoreFreqProcessor FormatData.");
     double freq = 0.0;
-    if (!Context::GetInstance().GetPmuFreq(freq, deviceId, profPath_)) {
+    if (!Context::GetInstance().GetPmuFreq(freq, deviceId, profPath_))
+    {
         ERROR("Get default freq data failed.");
         return false;
     }
-    if (freqData.empty()) {
+    if (freqData.empty())
+    {
         WARN("freq original data is empty, it will use default freq.");
     }
     // 2是开始和结束的两条记录
-    if (!Reserve(processedData, freqData.size() + 2)) {
+    if (!Reserve(processedData, freqData.size() + 2))
+    {
         ERROR("Reserve for freq data failed.");
         return false;
     }
-    AicoreFreqData aicoreFreqData;
+    LowPowerData lowPowerData;
     // 将频率置为默认频率，避免最后插入结束记录时 频率为0
-    aicoreFreqData.freq = freq;
-    aicoreFreqData.deviceId = deviceId;
-    for (auto& row : freqData) {
+    lowPowerData.freq = freq;
+    lowPowerData.deviceId = deviceId;
+    for (auto& row : freqData)
+    {
         uint64_t devSyscnt;
-        std::tie(devSyscnt, aicoreFreqData.freq) = row;
+        std::tie(devSyscnt, lowPowerData.freq) = row;
         HPFloat hostTimestamp{GetTimeFromSyscnt(devSyscnt, params)};
-        aicoreFreqData.timestamp = GetLocalTime(hostTimestamp, timeRecord).Uint64();
-        if (aicoreFreqData.timestamp < timeRecord.startTimeNs) {
-            freq = aicoreFreqData.freq;
+        lowPowerData.timestamp = GetLocalTime(hostTimestamp, timeRecord).Uint64();
+        if (lowPowerData.timestamp < timeRecord.startTimeNs)
+        {
+            freq = lowPowerData.freq;
             continue;
         }
-        processedData.push_back(aicoreFreqData);
+        processedData.push_back(lowPowerData);
     }
-    if (timeRecord.endTimeNs != DEFAULT_END_TIME_NS) {
-        aicoreFreqData.timestamp = timeRecord.endTimeNs;
+    if (timeRecord.endTimeNs != timeRecord.startTimeNs + DEFAULT_DURATION_TIME_NS)
+    {
+        lowPowerData.timestamp = timeRecord.endTimeNs;
         // 结束时间的freq为最后一条记录的freq
-        processedData.push_back(aicoreFreqData);
+        processedData.push_back(lowPowerData);
     }
-    // 如果开始时间前无记录，则使用默认freq；如果有记录，则使用开始时间前的freq(此时添加 db里的数据将为乱序，但不影响数据读取)
-    aicoreFreqData.timestamp = timeRecord.startTimeNs;
-    aicoreFreqData.freq = freq;
-    processedData.push_back(aicoreFreqData);
-    std::sort(processedData.begin(), processedData.end(), [](const AicoreFreqData &ld, const AicoreFreqData &rd) {
-        return ld.timestamp < rd.timestamp;
-    });
+    // 如果开始时间前无记录，则使用默认freq；如果有记录，则使用开始时间前的freq(此时添加
+    // db里的数据将为乱序，但不影响数据读取)
+    lowPowerData.timestamp = timeRecord.startTimeNs;
+    lowPowerData.freq = freq;
+    processedData.push_back(lowPowerData);
+    std::sort(processedData.begin(), processedData.end(),
+              [](const LowPowerData& ld, const LowPowerData& rd) { return ld.timestamp < rd.timestamp; });
     return true;
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

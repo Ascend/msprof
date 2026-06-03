@@ -233,9 +233,9 @@ TEST_F(TsTrackParserUtest, ShouldParseErrorWhenResizeException)
     context.deviceContextInfo.deviceFilePath = TS_TRACK_PATH;
     std::vector<StepTrace> taskFlip1{CreateStepTrace(0x0A, 1, 1, 10, 1), CreateStepTrace(0x0A, 1, 1, 20, 2)};
     WriteBin(taskFlip1, File::PathJoin({TS_TRACK_PATH, "data"}), "ts_track.data.0.slice_0");
-    MOCKER_CPP(&std::vector<HalTrackData>::resize, void(std::vector<HalTrackData>::*)(size_t)).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Resize<HalTrackData>).stubs().will(returnValue(false));
     ASSERT_EQ(Analysis::PARSER_PARSE_DATA_ERROR, tsTrackParser.Run(dataInventory_, context));
+    MOCKER_CPP(&Resize<HalTrackData>).reset();
 }
 
 TEST_F(TsTrackParserUtest, ShouldNormalRunWhenGetOneFileSizeFail)

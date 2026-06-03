@@ -210,6 +210,8 @@ namespace {
         {4,          "SIO"},
         {5,          "HCCS_SW"},
         {6,          "STANDARD_ROCE"},
+        {7,          "UB"},
+        {8,          "UBoE"},
         {255,        "RESERVED"},
         {4294967295, "INVALID_TYPE"}
     };
@@ -218,6 +220,7 @@ namespace {
         {1,          "RDMA"},
         {2,          "LOCAL"},
         {3,          "UB"},
+        {4,          "ROCE"},
         {255,        "RESERVED"},
         {4294967295, "INVALID_TYPE"},
     };

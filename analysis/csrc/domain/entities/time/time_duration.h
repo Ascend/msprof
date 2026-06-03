@@ -16,6 +16,9 @@
 
 #ifndef ANALYSIS_DOMAIN_TIME_DURATION_H
 #define ANALYSIS_DOMAIN_TIME_DURATION_H
+
+#include <stdint.h>
+
 namespace Analysis {
 namespace Domain {
 class TimeDuration {

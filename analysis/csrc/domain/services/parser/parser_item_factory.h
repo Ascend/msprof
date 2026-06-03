@@ -17,6 +17,7 @@
 #ifndef MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_FACTORY_H
 #define MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_FACTORY_H
 
+#include <cstdint>
 #include <functional>
 #include <unordered_map>
 

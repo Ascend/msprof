@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <string>
 #include <memory>
+#include <stdint.h>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/prettywriter.h"
 

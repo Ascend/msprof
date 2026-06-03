@@ -13,6 +13,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: skip-file
+
 import os
 import logging
 from collections import OrderedDict
@@ -38,6 +40,7 @@ class HCCLExport:
     """
     hccl export
     """
+
     HCCL_SORTED_OFFSET = 70000
     INVALID_PLANE = -1
     DEFAULT_PLANE = 0
@@ -62,21 +65,23 @@ class HCCLExport:
 
     @staticmethod
     def get_hccl_arg(hccl_task):
-        return OrderedDict({
-            'notify_id': hccl_task.notify_id,
-            'duration estimated(us)': hccl_task.duration_estimated,
-            'stream id': hccl_task.stream_id,
-            'task id': hccl_task.task_id,
-            'context id': hccl_task.context_id,
-            'task type': hccl_task.hccl_name,
-            'src rank': hccl_task.local_rank,
-            'dst rank': hccl_task.remote_rank,
-            'transport type': hccl_task.transport_type,
-            'size(Byte)': hccl_task.size,
-            'data type': hccl_task.data_type,
-            'link type': hccl_task.link_type,
-            "bandwidth(GB/s)": hccl_task.bandwidth
-        })
+        return OrderedDict(
+            {
+                'notify_id': hccl_task.notify_id,
+                'duration estimated(us)': hccl_task.duration_estimated,
+                'stream id': hccl_task.stream_id,
+                'task id': hccl_task.task_id,
+                'context id': hccl_task.context_id,
+                'task type': hccl_task.hccl_name,
+                'src rank': hccl_task.local_rank,
+                'dst rank': hccl_task.remote_rank,
+                'transport type': hccl_task.transport_type,
+                'size(Byte)': hccl_task.size,
+                'data type': hccl_task.data_type,
+                'link type': hccl_task.link_type,
+                "bandwidth(GB/s)": hccl_task.bandwidth,
+            }
+        )
 
     def get_hccl_timeline_data(self: any) -> list:
         """
@@ -85,13 +90,16 @@ class HCCLExport:
         hccl_data = []
         mc2_hccl_task = []
         if os.path.exists(PathManager.get_db_path(self.project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE)):
-            with HcclViewModel(self.project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE,
-                               [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]) as hccl_model:
+            with HcclViewModel(
+                self.project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]
+            ) as hccl_model:
                 hccl_data = hccl_model.get_hccl_task()
                 mc2_hccl_task = hccl_model.get_kfc_task()
         if not hccl_data and not mc2_hccl_task:
-            logging.error("get hccl data failed, may be the hccl file not completed or hccl parser "
-                          "failed. please check data file.")
+            logging.error(
+                "get hccl data failed, may be the hccl file not completed or hccl parser "
+                "failed. please check data file."
+            )
             return []
         self._hash_data = HashDictData(self.project_path).get_ge_hash_dict()
         self._get_meta_data(hccl_data, mc2_hccl_task)
@@ -103,7 +111,8 @@ class HCCLExport:
 
     def _add_hccl_bar(self):
         self.result = TraceViewManager.metadata_event(
-            [["process_name", self.pid_value, InfoConfReader().get_json_tid_data(), "Communication"]])
+            [["process_name", self.pid_value, InfoConfReader().get_json_tid_data(), "Communication"]]
+        )
 
     def _add_group_threads(self, group: HcclGroup, start_sort_index: int, valid_group: bool) -> int:
         """
@@ -120,10 +129,10 @@ class HCCLExport:
             thread_name = f"Group {group_name} Aicpu Communication" if valid_group else "Aicpu Communication"
         else:
             thread_name = f"Group {group_name} Communication" if valid_group else "Communication"
-        self.result.extend(TraceViewManager.metadata_event(
-            [["thread_name", self.pid_value, index_now, thread_name]]))
-        self.result.extend(TraceViewManager.metadata_event(
-            [["thread_sort_index", self.pid_value, index_now, index_now]]))
+        self.result.extend(TraceViewManager.metadata_event([["thread_name", self.pid_value, index_now, thread_name]]))
+        self.result.extend(
+            TraceViewManager.metadata_event([["thread_sort_index", self.pid_value, index_now, index_now]])
+        )
 
         plane_infos = []
         plane_sort_indexes = []
@@ -169,15 +178,20 @@ class HCCLExport:
     def _format_hccl_data(self: any, hccl_data: list, group_type: int = 0) -> None:
         _hccl_format_data = self._format_hccl_communication_data(hccl_data, group_type)
         _hccl_format_op_data = self._format_hccl_op_data(group_type)
-        self.result.extend(TraceViewManager.time_graph_trace(
-            TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, _hccl_format_data + _hccl_format_op_data))
+        self.result.extend(
+            TraceViewManager.time_graph_trace(
+                TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, _hccl_format_data + _hccl_format_op_data
+            )
+        )
 
     def _format_hccl_op_data(self, group_type: int = 0):
         if not os.path.exists(PathManager.get_db_path(self.project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE)):
             return []
         with HcclViewModel(
-                self.project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE,
-                DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE]) as hccl_model:
+            self.project_path,
+            DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+            [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE, DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE],
+        ) as hccl_model:
             if group_type == DeviceHcclSource.HCCL.value:
                 hccl_op_data_from_group = hccl_model.get_hccl_op_data_by_group()
                 hccl_op_info_from_table = hccl_model.get_hccl_op_info_from_table()
@@ -191,18 +205,21 @@ class HCCLExport:
                     continue
                 hccl_op_info = hccl_op_info_from_table.get(hccl_op.connection_id, HcclOps())
                 args = {
+                    "rank_size": hccl_op_info.rank_size,
                     "connection_id": hccl_op.connection_id,
                     "model id": hccl_op.model_id,
                     "data_type": hccl_op_info.data_type,
                     "alg_type": hccl_op_info.alg_type,
-                    "count": hccl_op_info.count
+                    "count": hccl_op_info.count,
                 }
 
                 hccl_format_op_data[idx] = [
-                    hccl_op.op_name, self.pid_value,
+                    hccl_op.op_name,
+                    self.pid_value,
                     self.hccl_groups.get(hccl_op.group_name)[group_type].start_index,
                     InfoConfReader().trans_into_local_time(raw_timestamp=hccl_op.timestamp),
-                    hccl_op.duration / NumberConstant.NS_TO_US, args
+                    hccl_op.duration / NumberConstant.NS_TO_US,
+                    args,
                 ]
         return hccl_format_op_data
 
@@ -222,9 +239,12 @@ class HCCLExport:
                 continue
             thread_id = self.hccl_groups.get(_hccl_data.group_name)[group_type].start_index + _hccl_data.plane_id + 1
             _hccl_data_piece = [
-                _hccl_data.hccl_name, self.pid_value, thread_id,
+                _hccl_data.hccl_name,
+                self.pid_value,
+                thread_id,
                 InfoConfReader().trans_into_local_time(raw_timestamp=_hccl_data.timestamp),
-                _hccl_data.duration / NumberConstant.NS_TO_US, hccl_args
+                _hccl_data.duration / NumberConstant.NS_TO_US,
+                hccl_args,
             ]
             _hccl_format_data[index] = _hccl_data_piece
             index += 1

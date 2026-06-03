@@ -15,19 +15,25 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/credential/id_pool.h"
+
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Application {
-namespace Credential {
+namespace Analysis
+{
+namespace Application
+{
+namespace Credential
+{
 
-namespace {
+namespace
+{
 const uint32_t DEVICE_ID = 0;
 const uint32_t STREAM_ID = 1;
 const uint32_t TASK_ID = 2;
 const uint32_t CONTEXT_ID = 3;
 const uint32_t BATCH_ID = 4;
-}
+const uint32_t DEV_TYPE_ID = 5;
+}  // namespace
 
 // 清除map数据
 void IdPool::Clear()
@@ -44,7 +50,8 @@ void IdPool::Clear()
 uint64_t IdPool::GetUint64Id(const std::string& key)
 {
     std::lock_guard<std::mutex> lock(uint64Mutex_);
-    if (uint64Ids_.find(key) == uint64Ids_.end()) {
+    if (uint64Ids_.find(key) == uint64Ids_.end())
+    {
         uint64Ids_.insert({key, uint64Index_});
         uint64Index_++;
     }
@@ -55,7 +62,8 @@ uint64_t IdPool::GetUint64Id(const std::string& key)
 uint32_t IdPool::GetUint32Id(const std::string& key)
 {
     std::lock_guard<std::mutex> lock(uint32Mutex_);
-    if (uint32Ids_.find(key) == uint32Ids_.end()) {
+    if (uint32Ids_.find(key) == uint32Ids_.end())
+    {
         uint32Ids_.insert({key, uint32Index_});
         uint32Index_++;
     }
@@ -66,10 +74,11 @@ uint32_t IdPool::GetUint32Id(const std::string& key)
 uint64_t IdPool::GetId(const CorrelationTuple& key)
 {
     std::lock_guard<std::mutex> lock(correlationMutex_);
-    std::string stringKey = Utils::Join("_", Utils::Join("_",
-        std::get<DEVICE_ID>(key), std::get<STREAM_ID>(key)),
-        std::get<TASK_ID>(key), std::get<CONTEXT_ID>(key), std::get<BATCH_ID>(key));
-    if (correlationIds_.find(stringKey) == correlationIds_.end()) {
+    std::string stringKey =
+        Utils::Join("_", Utils::Join("_", std::get<DEVICE_ID>(key), std::get<STREAM_ID>(key)), std::get<TASK_ID>(key),
+                    std::get<CONTEXT_ID>(key), std::get<BATCH_ID>(key), std::get<DEV_TYPE_ID>(key));
+    if (correlationIds_.find(stringKey) == correlationIds_.end())
+    {
         correlationIds_.insert({stringKey, correlationIndex_});
         correlationIndex_++;
     }
@@ -83,6 +92,6 @@ std::unordered_map<std::string, uint64_t>& IdPool::GetAllUint64Ids()
     return uint64Ids_;
 }
 
-}
-}
-}
+}  // namespace Credential
+}  // namespace Application
+}  // namespace Analysis

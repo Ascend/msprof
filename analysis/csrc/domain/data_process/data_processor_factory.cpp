@@ -55,12 +55,15 @@
 #include "analysis/csrc/domain/data_process/system/biu_perf_processor.h"
 #include "analysis/csrc/domain/data_process/system/ub_processor.h"
 #include "analysis/csrc/domain/data_process/system/block_detail_processor.h"
+#include "analysis/csrc/domain/data_process/ai_task/dpu_processor.h"
 
 namespace Analysis {
 namespace Domain {
 std::unordered_map<std::string, ProcessorCreator> DataProcessorFactory::processorTable_{
     {PROCESSOR_NAME_API, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor) {
         MAKE_SHARED_RETURN_VOID(processor, ApiProcessor, profPath);}},
+    {PROCESSOR_NAME_DPU, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor) {
+        MAKE_SHARED_RETURN_VOID(processor, DPUProcessor, profPath);}},
     {PROCESSOR_NAME_COMMUNICATION, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor) {
         MAKE_SHARED_RETURN_VOID(processor, CommunicationInfoProcessor, profPath);}},
     {PROCESSOR_NAME_CCU_MISSION, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor) {

@@ -19,10 +19,12 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Domain::Environment;
+using namespace Analysis::Test;
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./ddr_path";
@@ -107,7 +109,7 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
     MOCKER_CPP(&Context::GetClockMonotonicRaw).reset();
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 
@@ -155,13 +157,13 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 
 TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
-    MOCKER_CPP(&ProcessedFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedFormat>();
     for (auto path: PROF_PATHS) {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
     }
-    MOCKER_CPP(&ProcessedFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedFormat>();
 }
 
 TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)

@@ -19,7 +19,6 @@ from collections import OrderedDict
 from common_func.db_manager import DBManager
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.ms_constant.number_constant import NumberConstant
 from common_func.msvp_common import is_number
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 
@@ -28,6 +27,7 @@ class TraceViewManager:
     """
     Trace view Manager object
     """
+
     PID_OFFSET = 10
     INDEX_OFFSET = 5
     HOST_ID_FOR_PID = 31
@@ -114,11 +114,15 @@ class TraceViewManager:
             ts = float(InfoConfReader().time_from_host_syscnt(data_list[0].get('timestamp', 0)) / DBManager.NSTOUS)
             if start_time <= ts <= end_time:
                 connect_dict = {
-                    'name': 'acl_to_npu', 'ph': 's', 'cat': StrConstant.ASYNC_ACL_NPU,
-                    'id': TraceViewManager.get_line_format_pid(data_list[0].get('stream_id'),
-                                                               data_list[0].get('task_id'),
-                                                               data_list[0].get('batch_id')),
-                    'pid': data_dict.get('pid'), 'tid': data_dict.get('tid'), 'ts': start_time
+                    'name': 'acl_to_npu',
+                    'ph': 's',
+                    'cat': StrConstant.ASYNC_ACL_NPU,
+                    'id': TraceViewManager.get_line_format_pid(
+                        data_list[0].get('stream_id'), data_list[0].get('task_id'), data_list[0].get('batch_id')
+                    ),
+                    'pid': data_dict.get('pid'),
+                    'tid': data_dict.get('tid'),
+                    'ts': start_time,
                 }
                 connect_list.append(connect_dict)
             elif ts > end_time:
@@ -139,11 +143,16 @@ class TraceViewManager:
                 if not all(str(args.get(id, '')) for id in ('Stream Id', 'Task Id', 'Batch Id')):
                     continue
                 connect_dict = {
-                    'name': 'acl_to_npu', 'ph': 'f',
-                    'id': TraceViewManager.get_line_format_pid(args.get('Stream Id'), args.get('Task Id'),
-                                                               args.get('Batch Id')),
-                    'cat': StrConstant.ASYNC_ACL_NPU, 'pid': data_dict.get('pid'), 'tid': data_dict.get('tid'),
-                    'ts': data_dict.get('ts'), 'bp': 'e'
+                    'name': 'acl_to_npu',
+                    'ph': 'f',
+                    'id': TraceViewManager.get_line_format_pid(
+                        args.get('Stream Id'), args.get('Task Id'), args.get('Batch Id')
+                    ),
+                    'cat': StrConstant.ASYNC_ACL_NPU,
+                    'pid': data_dict.get('pid'),
+                    'tid': data_dict.get('tid'),
+                    'ts': data_dict.get('ts'),
+                    'bp': 'e',
                 }
                 json_list.append(connect_dict)
         return json_list
@@ -157,16 +166,21 @@ class TraceViewManager:
         :return: format_pid: Uint32: pid use high 22bit, index_id use middle 5bit, device_id use low 5bit
         ps: pid_max is 10^22 - 1
         """
-        if layer_info.general_layer == TraceViewHeaderConstant.GENERAL_LAYER_CPU or \
-                not is_number(InfoConfReader().get_device_id()):
+        if layer_info.general_layer == TraceViewHeaderConstant.GENERAL_LAYER_DPU:
+            device_id = pid
+            pid = InfoConfReader().get_json_pid_data()
+        elif layer_info.general_layer == TraceViewHeaderConstant.GENERAL_LAYER_CPU or not is_number(
+            InfoConfReader().get_device_id()
+        ):
             # host device_id is 31, we cannot use NumberConstant.HOST_ID,
             # cause this value is also been used in record time.
             device_id = TraceViewManager.HOST_ID_FOR_PID
         else:
             device_id = int(InfoConfReader().get_device_id())
 
-        format_pid = (pid << TraceViewManager.PID_OFFSET) | \
-                     (layer_info.sort_index << TraceViewManager.INDEX_OFFSET) | device_id
+        format_pid = (
+            (pid << TraceViewManager.PID_OFFSET) | (layer_info.sort_index << TraceViewManager.INDEX_OFFSET) | device_id
+        )
         return format_pid
 
     @staticmethod

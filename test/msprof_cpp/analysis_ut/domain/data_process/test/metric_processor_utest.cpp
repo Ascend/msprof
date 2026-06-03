@@ -335,7 +335,7 @@ TEST_F(MetricProcessorUTest, TestTaskRunShouldReturnFalseWhenDeviceIDInvalid)
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     auto processor1 = MetricProcessor(PROF_PATH_A2);
     DataInventory dataInventory;
     EXPECT_FALSE(processor1.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));

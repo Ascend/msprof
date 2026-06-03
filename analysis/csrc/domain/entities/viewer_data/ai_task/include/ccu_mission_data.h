@@ -18,6 +18,7 @@
 #define ANALYSIS_DOMAIN_CCU_MISSION_DATA_H
 
 #include <string>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Domain {

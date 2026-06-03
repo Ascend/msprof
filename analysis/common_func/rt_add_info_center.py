@@ -33,7 +33,6 @@ class CaptureStatus:
 
 @singleton
 class RTAddInfoCenter:
-
     def __init__(self: any, project_path: str) -> None:
         self._op_info_dict = {}
         self._capture_info_list = []
@@ -51,7 +50,7 @@ class RTAddInfoCenter:
             with RuntimeOpInfoViewModel(project_path) as _model:
                 self._op_info_dict = _model.get_runtime_op_info_data()
         except Exception as e:
-            logging.error(f"Failed to load runtime op info data: {e}")
+            logging.error("Failed to load runtime op info data: %s", str(e))
             self._op_info_dict = []
 
     def load_capture_stream_info_data(self: any, project_path: str) -> None:
@@ -62,7 +61,7 @@ class RTAddInfoCenter:
             with CaptureStreamInfoViewModel(project_path) as _model:
                 self._capture_info_list = _model.get_capture_stream_info_data()
         except Exception as e:
-            logging.error(f"Failed to load capture stream info data: {e}")
+            logging.error("Failed to load capture stream info data: %s", str(e))
             self._capture_info_list = []
 
     def build_capture_info_time_range_dict(self) -> Dict[Tuple[int, int, int], Tuple[int, int, int]]:
@@ -70,23 +69,11 @@ class RTAddInfoCenter:
         for capture_info in self._capture_info_list:
             key = (capture_info.device_id, capture_info.stream_id, capture_info.batch_id)
 
-            current_range = capture_info_time_range_dict.get(key, (
-                0,
-                float("inf"),
-                capture_info.model_id
-            ))
+            current_range = capture_info_time_range_dict.get(key, (0, float("inf"), capture_info.model_id))
             if capture_info.capture_status == CaptureStatus.START:
-                capture_info_time_range_dict[key] = (
-                    capture_info.timestamp,
-                    current_range[1],
-                    capture_info.model_id
-                )
+                capture_info_time_range_dict[key] = (capture_info.timestamp, current_range[1], capture_info.model_id)
             elif capture_info.capture_status == CaptureStatus.END:
-                capture_info_time_range_dict[key] = (
-                    current_range[0],
-                    capture_info.timestamp,
-                    capture_info.model_id
-                )
+                capture_info_time_range_dict[key] = (current_range[0], capture_info.timestamp, capture_info.model_id)
         return capture_info_time_range_dict
 
     def find_matching_model_id(self, device_id: int, stream_id: int, batch_id: int, timestamp: float) -> Optional[int]:
@@ -98,8 +85,9 @@ class RTAddInfoCenter:
             return model_id
         return Constant.GE_OP_MODEL_ID
 
-    def get_op_info_by_id(self: any, device_id: int, stream_id: int, task_id: int, batch_id: int,
-                          timestamp: float) -> Tuple[int, RuntimeOpInfoDto]:
+    def get_op_info_by_id(
+        self: any, device_id: int, stream_id: int, task_id: int, batch_id: int, timestamp: float
+    ) -> Tuple[int, RuntimeOpInfoDto]:
         """
         get type hash dict data
         后续需要增加batchId做唯一id关联，batchId应通过capture stream info数据获取

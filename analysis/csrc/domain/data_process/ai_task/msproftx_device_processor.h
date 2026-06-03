@@ -20,26 +20,37 @@
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 
-namespace Analysis {
-namespace Domain {
-// model_id, index_id, stream_id, task_id, timestamp
-using TxDeviceData = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint64_t>;
+namespace Analysis
+{
+namespace Domain
+{
+// model_id, index_id, stream_id, task_id, timestamp, tag_id
+using TxDeviceData = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint32_t>;
 using OriMsprofTxDeviceData = std::vector<TxDeviceData>;
 
-class MsprofTxDeviceProcessor : public DataProcessor {
-public:
+class MsprofTxDeviceProcessor : public DataProcessor
+{
+   public:
     MsprofTxDeviceProcessor() = default;
-    explicit MsprofTxDeviceProcessor(const std::string  &profPath);
-private:
-    bool Process(DataInventory& dataInventory) override;
+    explicit MsprofTxDeviceProcessor(const std::string &profPath);
+
+   private:
+    bool Process(DataInventory &dataInventory) override;
     OriMsprofTxDeviceData LoadData(const DBInfo &stepTraceDB, const std::string &dbPath);
     bool ProcessOneDevice(std::vector<MsprofTxDeviceData> &res, const std::string &devPath);
-    std::vector<MsprofTxDeviceData> FormatData(OriMsprofTxDeviceData &oriData,
-                                               const Utils::ProfTimeRecord &record,
-                                               const uint16_t deviceId,
-                                               const Utils::SyscntConversionParams &params);
+    std::vector<MsprofTxDeviceData> FormatData(OriMsprofTxDeviceData &oriData, const Utils::ProfTimeRecord &record,
+                                               const uint16_t deviceId, const Utils::SyscntConversionParams &params);
+    void FormatDataByLegacyRule(std::vector<MsprofTxDeviceData> &processedData, OriMsprofTxDeviceData &oriData,
+                                const Utils::ProfTimeRecord &record, const uint16_t deviceId,
+                                const Utils::SyscntConversionParams &params);
+    void FormatDataByMarkData(std::vector<MsprofTxDeviceData> &processedData, OriMsprofTxDeviceData &oriData,
+                              const Utils::ProfTimeRecord &record, const uint16_t deviceId,
+                              const Utils::SyscntConversionParams &params);
+    void FormatDataByRangeData(std::vector<MsprofTxDeviceData> &processedData, OriMsprofTxDeviceData &oriData,
+                               const Utils::ProfTimeRecord &record, const uint16_t deviceId,
+                               const Utils::SyscntConversionParams &params);
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_MSPROFTX_PROCESSOR_H
+#endif  // ANALYSIS_DOMAIN_MSPROFTX_PROCESSOR_H

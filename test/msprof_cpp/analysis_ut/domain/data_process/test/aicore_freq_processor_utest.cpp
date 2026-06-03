@@ -19,17 +19,19 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
+using namespace Analysis::Test;
 
 // syscnt, freq
 using FreqDataFormat = std::vector<std::tuple<uint64_t, double>>;
 // deviceId, timestampNs, freq
-using ProcessedDataVecFormat = std::vector<AicoreFreqData>;
+using ProcessedDataVecFormat = std::vector<LowPowerData>;
 // deviceId, timestampNs, freq
-using QueryDataFormat = std::vector<std::tuple<uint32_t, uint64_t, double>>;
+using QueryDataFormat = std::vector<std::tuple<uint32_t, uint64_t, double, uint16_t>>;
 
 const std::string DATA_DIR = "./freq";
 const std::string MSPROF = "msprof.db";
@@ -104,9 +106,37 @@ TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenRunSuccess)
     std::string processorName = "AICORE_FREQ";
     EXPECT_TRUE(processor.Run(dataInventory, processorName));
 
-    // 有一条数据在采集范围外，将被过滤后，再新增两条开始结束记录
+    // 有一条数据在采集范围外，将被过滤后，再新增两条开始结束记�?
     uint16_t expectNum = FREQ_DATA.size() - 1 + 2;
-    auto res = dataInventory.GetPtr<std::vector<AicoreFreqData>>();
+    auto res = dataInventory.GetPtr<std::vector<LowPowerData>>();
+    EXPECT_EQ(expectNum, res->size());
+}
+
+TEST_F(AicoreFreqProcessorUTest, TestRunShouldNotAddEndTimeRecordWhenEndTimeIsDefault)
+{
+    // endTimeNs == startTimeNs + DEFAULT_DURATION_TIME_NS时不追加结束时间记录
+    if (!File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"}))) {
+        EXPECT_TRUE(CreateFreqDB(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE})));
+    }
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1715760307197379"},
+        {"startClockMonotonicRaw", "9691377159398230"},
+        {"hostMonotonic", "9691377161797070"},
+        {"platform_version", "5"},
+        {"CPU", {{{"Frequency", "100.000000"}}}},
+        {"DeviceInfo", {{{"hwts_frequency", "50"}, {"aic_frequency", "1650"}}}},
+        {"devCntvct", "484576969200418"},
+        {"hostCntvctDiff", "0"},
+    };
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+
+    auto processor = AicoreFreqProcessor(PROF);
+    auto dataInventory = DataInventory();
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
+
+    // 无结束时间记录，�? 过滤后的数据 + 开始时间记�?
+    uint16_t expectNum = FREQ_DATA.size() + 1;
+    auto res = dataInventory.GetPtr<std::vector<LowPowerData>>();
     EXPECT_EQ(expectNum, res->size());
 }
 
@@ -121,7 +151,7 @@ TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
     EXPECT_TRUE(processor.Run(dataInventory, processorName));
 
     uint16_t expectNum = 2;
-    auto res = dataInventory.GetPtr<std::vector<AicoreFreqData>>();
+    auto res = dataInventory.GetPtr<std::vector<LowPowerData>>();
     EXPECT_EQ(expectNum, res->size());
 }
 
@@ -152,13 +182,13 @@ TEST_F(AicoreFreqProcessorUTest, TestProcessShouldReturnFalseWhenProcessFailed)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
     MOCKER_CPP(&Context::GetSyscntConversionParams).reset();
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 
-    MOCKER_CPP(&DataProcessor::SaveToDataInventory<AicoreFreqData>).stubs().will(returnValue(false));
+    MOCKER_CPP(&DataProcessor::SaveToDataInventory<LowPowerData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
-    MOCKER_CPP(&DataProcessor::SaveToDataInventory<AicoreFreqData>).reset();
+    MOCKER_CPP(&DataProcessor::SaveToDataInventory<LowPowerData>).reset();
 
     MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_AICORE_FREQ));
@@ -184,9 +214,8 @@ TEST_F(AicoreFreqProcessorUTest, TestFormatDataShouldReturnFalseWhenFormatDataFa
     MOCKER_CPP(&Context::GetPmuFreq).reset();
 
     // Reserve failed
-    MOCKER_CPP(&ProcessedDataVecFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedDataVecFormat>();
     auto processor2 = AicoreFreqProcessor(PROF);
     EXPECT_FALSE(processor2.Run(dataInventory, processorName));
-    MOCKER_CPP(&ProcessedDataVecFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedDataVecFormat>();
 }
-

@@ -16,6 +16,7 @@
 import unittest
 from unittest import mock
 
+from common_func.info_conf_reader import InfoConfReader
 from msmodel.msproftx.msproftx_model import MsprofTxModel, MsprofTxExModel
 from profiling_bean.db_dto.step_trace_dto import MsproftxMarkDto
 
@@ -80,22 +81,59 @@ class TestMsprofTxExModel(unittest.TestCase):
             res = check.get_device_data()
         self.assertEqual(res, [])
 
-    def test_get_device_summary_data_should_return_true_when_last_data_is_range(self):
+    def test_get_device_summary_data_should_return_true_when_last_data_is_range_and_cann_version_before_910(self):
         with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[
-                    MsproftxMarkDto(0, 10, 0, 0),
-                    MsproftxMarkDto(1, 11, 0, 1),
-                    MsproftxMarkDto(1, 12, 0, 2)]):
+                    MsproftxMarkDto(index_id=0, timestamp=10, stream_id=0, task_id=0, tag_id=11),
+                    MsproftxMarkDto(index_id=1, timestamp=11, stream_id=0, task_id=1, tag_id=11),
+                    MsproftxMarkDto(index_id=1, timestamp=12, stream_id=0, task_id=2, tag_id=11)]):
+            InfoConfReader()._info_json = {'cannVersion': '9.0.0'}
             check = MsprofTxExModel('test6', 'step_trace.db', ['StepTrace'])
             res = check.get_device_data()
         self.assertEqual(res, [[0, 10, 0, 0, 0], [1, 11, 0, 1, 1]])
 
-    def test_get_device_summary_data_should_return_true_when_last_data_is_mark(self):
+    def test_get_device_summary_data_should_return_true_when_last_data_is_mark_and_cann_version_before_910(self):
         with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[
-                    MsproftxMarkDto(0, 10, 0, 0),
-                    MsproftxMarkDto(0, 11, 0, 1),
-                    MsproftxMarkDto(1, 12, 0, 2)]):
+                    MsproftxMarkDto(index_id=0, timestamp=10, stream_id=0, task_id=0, tag_id=11),
+                    MsproftxMarkDto(index_id=0, timestamp=11, stream_id=0, task_id=1, tag_id=11),
+                    MsproftxMarkDto(index_id=1, timestamp=12, stream_id=0, task_id=2, tag_id=11)]):
+            InfoConfReader()._info_json = {'cannVersion': '9.0.0'}
             check = MsprofTxExModel('test7', 'step_trace.db', ['StepTrace'])
             res = check.get_device_data()
         self.assertEqual(res, [[0, 10, 0, 0, 1], [1, 12, 0, 2, 0]])
+
+    def test_get_device_summary_data_should_return_true_when_last_data_is_range_and_cann_version_after_910(self):
+        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
+                mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[
+                     MsproftxMarkDto(index_id=0, timestamp=10, stream_id=0, task_id=0, tag_id=11),
+                     MsproftxMarkDto(index_id=1, timestamp=11, stream_id=0, task_id=1, tag_id=12),
+                     MsproftxMarkDto(index_id=1, timestamp=12, stream_id=0, task_id=2, tag_id=12)]):
+            InfoConfReader()._info_json = {'cannVersion': '9.1.0'}
+            check = MsprofTxExModel('test8', 'step_trace.db', ['StepTrace'])
+            res = check.get_device_data()
+        self.assertEqual(res, [[0, 10, 0, 0, 0], [1, 11, 0, 1, 1]])
+
+    def test_get_device_summary_data_should_return_true_when_last_data_is_mark_and_cann_version_after_910(self):
+        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
+                mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[
+                    MsproftxMarkDto(index_id=0, timestamp=10, stream_id=0, task_id=0, tag_id=12),
+                    MsproftxMarkDto(index_id=0, timestamp=11, stream_id=0, task_id=1, tag_id=12),
+                    MsproftxMarkDto(index_id=1, timestamp=12, stream_id=0, task_id=2, tag_id=11)]):
+            InfoConfReader()._info_json = {'cannVersion': '9.1.0'}
+            check = MsprofTxExModel('test9', 'step_trace.db', ['StepTrace'])
+            res = check.get_device_data()
+        self.assertEqual(res, [[1, 12, 0, 2, 0], [0, 10, 0, 0, 1]])
+
+    def test_get_device_summary_data_should_return_true_when_multiple_data_in_same_id_and_cann_version_after_910(self):
+        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
+            mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[
+                    MsproftxMarkDto(index_id=0, timestamp=10, stream_id=0, task_id=0, tag_id=12),
+                    MsproftxMarkDto(index_id=0, timestamp=11, stream_id=0, task_id=1, tag_id=12),
+                    MsproftxMarkDto(index_id=0, timestamp=12, stream_id=0, task_id=2, tag_id=12),
+                    MsproftxMarkDto(index_id=0, timestamp=13, stream_id=0, task_id=3, tag_id=12),
+                    MsproftxMarkDto(index_id=1, timestamp=14, stream_id=0, task_id=2, tag_id=11)]):
+            InfoConfReader()._info_json = {'cannVersion': '9.1.0'}
+            check = MsprofTxExModel('test10', 'step_trace.db', ['StepTrace'])
+            res = check.get_device_data()
+        self.assertEqual(res, [[1, 14, 0, 2, 0], [0, 10, 0, 0, 1], [0, 12, 0, 2, 1]])

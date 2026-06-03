@@ -63,8 +63,9 @@ class BatchCounter:
 
         ge_info_model = GeInfoModel(self._project_path)
         if ge_info_model.check_db() and ge_info_model.check_table():
-            self._ge_static_shape_iter_model_dict, self._ge_static_shape_model_task_dict = \
-                ge_info_model.get_ge_data(Constant.GE_STATIC_SHAPE)
+            self._ge_static_shape_iter_model_dict, self._ge_static_shape_model_task_dict = ge_info_model.get_ge_data(
+                Constant.GE_STATIC_SHAPE
+            )
             self._ge_task_batch_dict = ge_info_model.get_batch_dict()
         ge_info_model.finalize()
 
@@ -88,13 +89,17 @@ class BatchCounter:
 
         # when scene is single op, ge op iter dict is empty
         model_id = self._ge_static_shape_iter_model_dict.get(current_iter_id)
-        if model_id is not None and stream_task_batch_value in self._ge_static_shape_model_task_dict.get(model_id,
-                                                                                                         set()):
+        if model_id is not None and stream_task_batch_value in self._ge_static_shape_model_task_dict.get(
+            model_id, set()
+        ):
             batch_id = NumberConstant.DEFAULT_BATCH_ID
         else:
             batch_id = self.deal_batch_id_for_each_task(
-                iter_stream=iter_stream, task_id=task_id,
-                iter_stream_max_value=self._iter_stream_max_value, initial_batch_id=initial_batch_id)
+                iter_stream=iter_stream,
+                task_id=task_id,
+                iter_stream_max_value=self._iter_stream_max_value,
+                initial_batch_id=initial_batch_id,
+            )
         self._batch_list.append(batch_id)
         return batch_id
 
@@ -118,8 +123,9 @@ class BatchCounter:
         self._initialized_stream.setdefault(iter_stream, initial_batch_id)
         return initial_batch_id
 
-    def deal_batch_id_for_each_task(self: any, iter_stream: tuple, task_id: int,
-                                    iter_stream_max_value: dict, initial_batch_id: int) -> int:
+    def deal_batch_id_for_each_task(
+        self: any, iter_stream: tuple, task_id: int, iter_stream_max_value: dict, initial_batch_id: int
+    ) -> int:
         """
         add batch id for each task
         :param iter_stream: index for (iter id, stream id)
@@ -129,9 +135,7 @@ class BatchCounter:
         :return: batch_id
         """
         if iter_stream not in iter_stream_max_value:
-            iter_stream_max_value.setdefault(
-                iter_stream, {self.TASK_ID: task_id,
-                              self.BATCH_ID: initial_batch_id})
+            iter_stream_max_value.setdefault(iter_stream, {self.TASK_ID: task_id, self.BATCH_ID: initial_batch_id})
         else:
             current_max_value = iter_stream_max_value.pop(iter_stream)
             if current_max_value.get(self.TASK_ID, -1) >= task_id:

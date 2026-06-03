@@ -18,6 +18,7 @@
 #define ANALYSIS_VIEWER_DATABASE_DRAFTS_NUMBER_MAPPING_H
 
 #include <string>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Domain {

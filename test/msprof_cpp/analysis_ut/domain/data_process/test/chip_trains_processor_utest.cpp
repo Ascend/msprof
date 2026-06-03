@@ -19,9 +19,11 @@
 #include "analysis/csrc/domain/data_process/system/chip_trans_processor.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
+using namespace Analysis::Test;
 namespace {
 const int DEPTH = 0;
 const std::string CHIP_TRAINS_PATH = "./chip_trains";
@@ -152,13 +154,13 @@ TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenCheckPathFailed)
 
 TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
-    MOCKER_CPP(&std::vector<PaLinkInfoData>::reserve).stubs().will(throws(std::bad_alloc()));
-    MOCKER_CPP(&std::vector<PcieInfoData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<PaLinkInfoData>>();
+    StubReserveFailureForVector<std::vector<PcieInfoData>>();
     auto processor = ChipTransProcessor(PROF_PATH);
     auto dataInventory = DataInventory();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_CHIP_TRAINS));
-    MOCKER_CPP(&std::vector<PaLinkInfoData>::reserve).reset();
-    MOCKER_CPP(&std::vector<PcieInfoData>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<PaLinkInfoData>>();
+    ResetReserveFailureForVector<std::vector<PcieInfoData>>();
 }
 
 TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)

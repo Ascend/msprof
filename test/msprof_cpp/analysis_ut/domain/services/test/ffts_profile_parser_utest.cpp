@@ -14,6 +14,7 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
+#include <unistd.h>
 #include <gtest/gtest.h>
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
@@ -30,7 +31,6 @@ using namespace Analysis::Infra;
 namespace Analysis {
 namespace Domain {
 namespace {
-const std::string FFTS_PROFILE_PATH = "./ffts_profile";
 const int PMU_COUNT = 8;
 const int TIME_COUNT = 2;
 }
@@ -38,13 +38,15 @@ class FftsProfileParserUTest : public Test {
 protected:
     void SetUp() override
     {
-        EXPECT_TRUE(File::CreateDir(FFTS_PROFILE_PATH));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({FFTS_PROFILE_PATH, "data"})));
+        profilePath_ = "./ffts_profile_" + std::to_string(getpid()) + "_" +
+            ::testing::UnitTest::GetInstance()->current_test_info()->name();
+        EXPECT_TRUE(File::CreateDir(profilePath_));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({profilePath_, "data"})));
     }
     void TearDown() override
     {
         dataInventory_.RemoveRestData({});
-        EXPECT_TRUE(File::RemoveDir(FFTS_PROFILE_PATH, 0));
+        EXPECT_TRUE(File::RemoveDir(profilePath_, 0));
     }
 
     ContextPmu GenerateInvalidPmu()
@@ -114,15 +116,16 @@ protected:
 
 protected:
     DataInventory dataInventory_;
+    std::string profilePath_;
 };
 
 TEST_F(FftsProfileParserUTest, TestParseShouldReturnNoDataWhenDataFuncTypeIsInvalid)
 {
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<ContextPmu> pmu{GenerateInvalidPmu()};
-    WriteBin(pmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     // 虽然数据没有解析 但是resize了数据大小,结构体中将填充默认值数据
@@ -137,9 +140,9 @@ TEST_F(FftsProfileParserUTest, ShouldReturnContextPmuWhenParserRun)
     std::vector<uint64_t> pmuList{1, 2, 3, 4, 5, 6, 7, 8};
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<ContextPmu> pmu{GenerateContextPmu()};
-    WriteBin(pmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(1ul, pmuData->size());
@@ -154,9 +157,9 @@ TEST_F(FftsProfileParserUTest, ShouldReturnBlockPmuWhenParserRun)
     std::vector<uint64_t> pmuList{2, 4, 6, 8, 10, 12, 14, 16};
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<BlockPmu> pmu{GenerateBlockPmu()};
-    WriteBin(pmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(1ul, pmuData->size());
@@ -172,11 +175,11 @@ TEST_F(FftsProfileParserUTest, ShouldReturnContextPmuAndBlockPmuWhenParserRun)
     std::vector<uint64_t> blockPmuList{2, 4, 6, 8, 10, 12, 14, 16};
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<ContextPmu> contextPmu{GenerateContextPmu()};
-    WriteBin(contextPmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(contextPmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     std::vector<BlockPmu> blockPmu{GenerateBlockPmu()};
-    WriteBin(blockPmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(blockPmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(2ul, pmuData->size());
@@ -193,11 +196,11 @@ TEST_F(FftsProfileParserUTest, ShouldReturnContextPmuAndBlockPmuWhenParserMultiF
     std::vector<uint64_t> blockPmuList{2, 4, 6, 8, 10, 12, 14, 16};
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<ContextPmu> contextPmu{GenerateContextPmu()};
-    WriteBin(contextPmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
+    WriteBin(contextPmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
     std::vector<BlockPmu> blockPmu{GenerateBlockPmu()};
-    WriteBin(blockPmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_1");
+    WriteBin(blockPmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_1");
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(2ul, pmuData->size());
@@ -222,12 +225,12 @@ TEST_F(FftsProfileParserUTest, ShouldParseErrorWhenResizeException)
 {
     FftsProfileParser parser;
     DeviceContext context;
-    context.deviceContextInfo.deviceFilePath = FFTS_PROFILE_PATH;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
     std::vector<BlockPmu> pmu{GenerateBlockPmu()};
-    WriteBin(pmu, File::PathJoin({FFTS_PROFILE_PATH, "data"}), "ffts_profile.data.0.slice_0");
-    MOCKER_CPP(&std::vector<HalPmuData>::resize, void(std::vector<HalPmuData>::*)(size_t)).stubs()
-        .will(throws(std::bad_alloc()));
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
+    MOCKER_CPP(&Resize<HalPmuData>).stubs().will(returnValue(false));
     ASSERT_EQ(PARSER_PARSE_DATA_ERROR, parser.Run(dataInventory_, context));
+    MOCKER_CPP(&Resize<HalPmuData>).reset();
 }
 }
 }

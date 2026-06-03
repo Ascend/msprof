@@ -74,7 +74,7 @@ class TestHcclCalculator(unittest.TestCase):
             hccl_task_data = check._hccl_task_data
             hccl_op_report_data = check._hccl_op_report_data
             hccl_op_data = check._hccl_op_data
-            self.assertEqual(29, len(hccl_task_data[0]))
+            self.assertEqual(30, len(hccl_task_data[0]))
             self.assertEqual([("all_reduce", 1.0, 1.0, 1.0, 1.0, 1.0, 100.0)], hccl_op_report_data)
             self.assertEqual([], hccl_op_data)
 
@@ -90,7 +90,7 @@ class TestHcclCalculator(unittest.TestCase):
             hccl_task_data = check._hccl_task_data
             hccl_op_report_data = check._hccl_op_report_data
             hccl_op_data = check._hccl_op_data
-            self.assertEqual(29, len(hccl_task_data[0]))
+            self.assertEqual(30, len(hccl_task_data[0]))
             self.assertEqual([], hccl_op_report_data)
             self.assertEqual([], hccl_op_data)
 

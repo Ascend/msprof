@@ -53,8 +53,10 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/viewer/database/finals SOURCES)
 add_library(msprof_analysis SHARED ${SOURCES})
 
 find_package(Python REQUIRED COMPONENTS Development)
+find_package(SQLite3 REQUIRED)
 
 target_include_directories(msprof_analysis PRIVATE
+    ${SQLite3_INCLUDE_DIR}
     /usr/local/include/
     ${Python_INCLUDE_DIRS}
     ${TOP_DIR}
@@ -93,7 +95,7 @@ target_link_directories(msprof_analysis PRIVATE
 )
 
 target_link_libraries(msprof_analysis PRIVATE
-    -lsqlite3
+    SQLite::SQLite3
     -lpthread
     c_sec
 )

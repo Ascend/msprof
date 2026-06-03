@@ -19,6 +19,7 @@
 
 #include <vector>
 #include <map>
+#include <stdint.h>
 
 namespace Analysis {
 namespace Domain {

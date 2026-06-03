@@ -29,7 +29,6 @@ using namespace Analysis::Viewer::Database;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
 namespace {
-const uint32_t SORT_INDEX = 7;
 const std::string CANN_ASSEMBLER = "CANN";
 const std::string CANN_LABEL = "CPU";
 const std::string PROCESS_API = "Api";
@@ -54,7 +53,7 @@ void GenerateMetaData(std::vector<ApiData> &apiData, uint32_t pid, std::vector<s
     std::shared_ptr<MetaDataLabelEvent> processLabel;
     MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, pid, DEFAULT_TID, META_DATA_PROCESS_LABEL, CANN_LABEL);
     std::shared_ptr<MetaDataIndexEvent> processIndex;
-    MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, pid, DEFAULT_TID, META_DATA_PROCESS_INDEX, SORT_INDEX);
+    MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, pid, DEFAULT_TID, META_DATA_PROCESS_INDEX, LAYER_CANN_SORT);
     res.push_back(processName);
     res.push_back(processLabel);
     res.push_back(processIndex);
@@ -149,7 +148,7 @@ uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
         return DATA_NOT_EXIST;
     }
     auto pid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
-    auto formatPid = JsonAssembler::GetFormatPid(pid, SORT_INDEX);
+    auto formatPid = JsonAssembler::GetFormatPid(pid, LAYER_CANN_SORT);
     GenerateMetaData(*apiData, formatPid, res_);
     GenerateApiTrace(*apiData, res_, formatPid);
     auto memcpyAsyncConnectionIds = GetMemcpyAsyncConnectionIds(dataInventory);

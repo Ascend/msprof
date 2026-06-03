@@ -74,6 +74,7 @@ static std::vector<CommunicationOpData> GenerateOpData()
     data.opType = "hcom_broadcast_";
     data.modelId = 4294967295; // modelId 4294967295
     data.deviceId = 0; // device 0
+    data.rankSize = 8;
     res.push_back(data);
     return res;
 }
@@ -141,33 +142,33 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"process_name\",\"pid\":10327520,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\""
-                            "Communication\"}},{\"name\":\"process_labels\",\"pid\":10327520,\"tid\":0,\"ph\":\"M\",\""
-                            "args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10327520,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\","
-                            "\"pid\":10327520,\""
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\""
+                            "Communication\"}},{\"name\":\"process_labels\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\""
+                            "args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10327552,"
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},{\"name\":\"thread_name\","
+                            "\"pid\":10327552,\""
                             "tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Group 16898834563344171674 Communication\"}},{"
-                            "\"name\":\"thread_sort_index\",\"pid\":10327520,\"tid\":0,\"ph\":\"M\",\"args\":{\""
-                            "sort_index\":0}},{\"name\":\"thread_name\",\"pid\":10327520,\"tid\":1,\"ph\":\"M\",\"args"
-                            "\":{\"name\":\"Plane 0\"}},{\"name\":\"thread_sort_index\",\"pid\":10327520,\"tid\":1,\""
-                            "ph\":\"M\",\"args\":{\"sort_index\":1}},{\"name\":\"thread_name\",\"pid\":10327520,\"tid"
+                            "\"name\":\"thread_sort_index\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\"args\":{\""
+                            "sort_index\":0}},{\"name\":\"thread_name\",\"pid\":10327552,\"tid\":1,\"ph\":\"M\",\"args"
+                            "\":{\"name\":\"Plane 0\"}},{\"name\":\"thread_sort_index\",\"pid\":10327552,\"tid\":1,\""
+                            "ph\":\"M\",\"args\":{\"sort_index\":1}},{\"name\":\"thread_name\",\"pid\":10327552,\"tid"
                             "\":2,\"ph\":\"M\",\"args\":{\"name\":\"Plane 1\"}},{\"name\":\"thread_sort_index\",\"pid"
-                            "\":10327520,\"tid\":2,\"ph\":\"M\",\"args\":{\"sort_index\":2}},{\"name\":\"Notify_Wait\""
-                            ",\"pid\":10327520,\"tid\":1,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\","
+                            "\":10327552,\"tid\":2,\"ph\":\"M\",\"args\":{\"sort_index\":2}},{\"name\":\"Notify_Wait\""
+                            ",\"pid\":10327552,\"tid\":1,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\","
                             "\"args\":{\"notify_id\":\"456\",\"duration estimated(us)\":20.0,\"stream id\":1,\"task id"
                             "\":1,\"context id\":1,\"task type\":\"Notify_Wait\",\"src rank\":0,\"dst rank\":1,\""
                             "transport type\":\"LOCAL\",\"size(Byte)\":3200,\"data type\":\"INVALID_TYPE\",\"link type"
                             "\":\"INVALID_TYPE\",\"bandwidth(GB/s)\":0.0,\"model id\":4294967295}},{\"name\":\""
-                            "Notify_Wait\",\"pid\":10327520,\"tid\":2,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,"
+                            "Notify_Wait\",\"pid\":10327552,\"tid\":2,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,"
                             "\"ph\":\"X\",\"args\":{\"notify_id\":\"456\",\"duration estimated(us)\":20.0,\"stream id"
                             "\":1,\"task id\":1,\"context id\":2,\"task type\":\"Notify_Wait\",\"src rank\":0,\""
                             "dst rank\":1,\"transport type\":\"LOCAL\",\"size(Byte)\":3200,\"data type\":\""
                             "INVALID_TYPE\",\"link type\":\"INVALID_TYPE\",\"bandwidth(GB/s)\":0.0,\"model id\":"
-                            "4294967295}},{\"name\":\"hcom_broadcast__674_0_1\",\"pid\":10327520,\"tid\":0,\"ts\":\""
-                            "1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\",\"args\":{\"connection_id\":2762,\""
+                            "4294967295}},{\"name\":\"hcom_broadcast__674_0_1\",\"pid\":10327552,\"tid\":0,\"ts\":\""
+                            "1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\",\"args\":{\"rank_size\":8,\"connection_id\":2762,\""
                             "model id\":4294967295,\"data_type\":\"INT16\",\"alg_type\":\"MESH-RING\",\"count\":5,"
                             "\"relay\":\"no\",\"retry\":\"no\"}},{"
-                            "\"name\":\"HostToDevice11862699671552\",\"pid\":10327520,\"tid\":0,\"ph\":\"f\",\"cat\":"
+                            "\"name\":\"HostToDevice11862699671552\",\"pid\":10327552,\"tid\":0,\"ph\":\"f\",\"cat\":"
                             "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960213957.957\",\"bp\":"
                             "\"e\"},";
     EXPECT_EQ(expectStr, res.back());

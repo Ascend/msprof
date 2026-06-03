@@ -101,16 +101,16 @@ TEST_F(LLcAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960896,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
-                            "\"LLC\"}},{\"name\":\"process_labels\",\"pid\":2383960896,\"tid\":0,\"ph\":\"M\",\"args\""
-                            ":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960896,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":26}},{\"name\":\"LLC 0 Read/Hit Rate\",\"pid\":"
-                            "2383960896,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{"
-                            "\"Hit Rate(%)\":0.506}},{\"name\":\"LLC 0 Read/Throughput\",\"pid\":2383960896,\"tid\":"
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960928,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
+                            "\"LLC\"}},{\"name\":\"process_labels\",\"pid\":2383960928,\"tid\":0,\"ph\":\"M\",\"args\""
+                            ":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960928,\"tid\":0,"
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":27}},{\"name\":\"LLC 0 Read/Hit Rate\",\"pid\":"
+                            "2383960928,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{"
+                            "\"Hit Rate(%)\":0.506}},{\"name\":\"LLC 0 Read/Throughput\",\"pid\":2383960928,\"tid\":"
                             "0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Throughput(MB/s)\":67.5}},"
-                            "{\"name\":\"LLC 0 Read/Hit Rate\",\"pid\":2383960896,\"tid\":0,\"ts\":"
+                            "{\"name\":\"LLC 0 Read/Hit Rate\",\"pid\":2383960928,\"tid\":0,\"ts\":"
                             "\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"Hit Rate(%)\":0.35600000000000004}},"
-                            "{\"name\":\"LLC 0 Read/Throughput\",\"pid\":2383960896,\"tid\":0,\"ts\":"
+                            "{\"name\":\"LLC 0 Read/Throughput\",\"pid\":2383960928,\"tid\":0,\"ts\":"
                             "\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"Throughput(MB/s)\":77.8}},";
     EXPECT_EQ(expectStr, res.back());
 }

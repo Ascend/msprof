@@ -20,11 +20,13 @@
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Viewer::Database;
+using namespace Analysis::Test;
 using ProcessedFormat = std::vector<OpStatisticData>;
 
 const std::string BASE_PATH = "./op_statistic";
@@ -126,13 +128,13 @@ TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 
 TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
-    MOCKER_CPP(&ProcessedFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedFormat>();
     for (auto path: PROF_PATHS) {
         auto processor = OpStatisticProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
     }
-    MOCKER_CPP(&ProcessedFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedFormat>();
 }
 
 TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)

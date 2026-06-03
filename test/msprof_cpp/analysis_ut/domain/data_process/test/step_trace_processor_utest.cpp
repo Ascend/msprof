@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/step_trace_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
@@ -131,16 +132,15 @@ TEST_F(StepTraceProcessorUTest, ShouldReturnFalseWhenReserveException)
     auto processor = StepTraceProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
     MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<AllReduceData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<AllReduceData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
-
-    MOCKER_CPP(&std::vector<AllReduceData>::reserve).reset();
-    MOCKER_CPP(&std::vector<GetNextData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<AllReduceData>>();
+    Analysis::Test::StubReserveFailureForVector<std::vector<GetNextData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
-
-    MOCKER_CPP(&std::vector<GetNextData>::reserve).reset();
-    MOCKER_CPP(&std::vector<TrainTraceData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<GetNextData>>();
+    Analysis::Test::StubReserveFailureForVector<std::vector<TrainTraceData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<TrainTraceData>>();
 }
 
 TEST_F(StepTraceProcessorUTest, ShouldReturnFalseWhenCheckFailed)
@@ -152,7 +152,7 @@ TEST_F(StepTraceProcessorUTest, ShouldReturnFalseWhenCheckFailed)
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
 
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(HOST_ID));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(HOST_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();

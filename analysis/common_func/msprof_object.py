@@ -17,6 +17,7 @@
 """
 This file used for basic python type modification
 """
+
 from typing import OrderedDict
 from collections import namedtuple
 from collections import OrderedDict as _OrderedDict
@@ -37,7 +38,6 @@ class HighPerfDict(OrderedDict):
 
 
 class CustomizedNamedtupleFactory:
-
     @staticmethod
     def generate_named_tuple_from_dto(dto_class: type, description: any) -> any:
         """

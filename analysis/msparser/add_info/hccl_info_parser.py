@@ -86,7 +86,7 @@ class HcclInfoParser(DataParser, MsMultiProcess):
         self.save()
 
     def reformat_data(self) -> list:
-        type_info_data = HashDictData(self._project_path).get_type_hash_dict().get("hccl", {})
+        type_info_data = HashDictData(self._project_path).get_type_hash_dict().get("communication", {})
         hash_data = HashDictData(self._project_path).get_ge_hash_dict()
         reformat = []
         for data in self._hccl_info_data:

@@ -19,18 +19,21 @@
 
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "analysis/csrc/infrastructure/utils/prof_common.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 #define DEFAULT_CONTEXT_ID 0xffffffff
 
 // 算子类型枚举
-enum class OpType {
+enum class OpType
+{
     OPTYPE_HCCL_BIG = 0,
     OPTYPE_HCCL_SMALL,
     OPTYPE_COMPUTE,
@@ -40,26 +43,31 @@ enum class OpType {
 };
 
 // 计算算子描述信息
-struct OpDesc {
+struct OpDesc
+{
     std::shared_ptr<MsprofCompactInfo> nodeDesc = nullptr;
     std::shared_ptr<MsprofCompactInfo> nodeAttr = nullptr;
+    std::shared_ptr<MsprofCompactInfo> runtimeTrackDesc = nullptr;
     std::shared_ptr<ConcatTensorInfo> tensorDesc = nullptr;
     std::shared_ptr<MsprofAdditionalInfo> ctxId = nullptr;
 };
 
 // 通信小算子描述信息
-struct HcclSmallOpDesc {
+struct HcclSmallOpDesc
+{
     uint32_t ctxId = DEFAULT_CONTEXT_ID;
     uint8_t isMaster = 0;  // 1代表master
     std::shared_ptr<MsprofAdditionalInfo> hcclInfo = nullptr;
 
     HcclSmallOpDesc(uint32_t ctxId, uint32_t isMaster, const std::shared_ptr<MsprofAdditionalInfo> &hcclInfo)
         : ctxId(ctxId), isMaster(isMaster), hcclInfo(hcclInfo)
-    {}
+    {
+    }
 };
 
 // 通信大算子描述信息
-struct HcclBigOpDesc {
+struct HcclBigOpDesc
+{
     uint64_t beginTime = 0;
     uint64_t endTime = 0;
     uint16_t deviceId = 0;
@@ -74,57 +82,76 @@ struct HcclBigOpDesc {
     HcclBigOpDesc(uint64_t begin, uint64_t end, uint16_t deviceId, uint64_t modelId, int32_t indexId,
                   int64_t connectionId, uint32_t threadId, const std::shared_ptr<MsprofCompactInfo> &node,
                   const std::shared_ptr<MsprofCompactInfo> &hcclOpDesc, int64_t kfcConnectionId)
-        : beginTime(begin), endTime(end), deviceId(deviceId), modelId(modelId), indexId(indexId),
-          connectionId(connectionId), thread_id(threadId), nodeDesc(node), opInfoDesc(hcclOpDesc),
+        : beginTime(begin),
+          endTime(end),
+          deviceId(deviceId),
+          modelId(modelId),
+          indexId(indexId),
+          connectionId(connectionId),
+          thread_id(threadId),
+          nodeDesc(node),
+          opInfoDesc(hcclOpDesc),
           kfcConnectionId(kfcConnectionId)
-    {}
+    {
+    }
 };
 
 // 算子统一对外结构体
-struct Operator {
+struct Operator
+{
     Operator(std::shared_ptr<OpDesc> desc, const uint64_t &name, const OpType &type)
         : opDesc(std::move(desc)), name(name), type(type)
-    {}
+    {
+    }
 
     Operator(std::shared_ptr<HcclSmallOpDesc> desc, const uint64_t &name, const OpType &type)
         : hcclSmallOpDesc(std::move(desc)), name(name), type(type)
-    {}
+    {
+    }
 
     Operator(std::shared_ptr<HcclBigOpDesc> desc, const uint64_t &name, const OpType &type)
         : hcclBigOpDesc(std::move(desc)), name(name), type(type)
-    {}
+    {
+    }
 
-    union {
+    union
+    {
         std::shared_ptr<OpDesc> opDesc;
         std::shared_ptr<HcclSmallOpDesc> hcclSmallOpDesc;
         std::shared_ptr<HcclBigOpDesc> hcclBigOpDesc;
     };
 
-    uint64_t name = 0; // aka item_id
+    uint64_t name = 0;  // aka item_id
     OpType type = OpType::OPTYPE_INVALID;
 
     ~Operator()
     {
-        if (opDesc) {
+        if (opDesc)
+        {
             opDesc.~shared_ptr();
-        } else if (hcclSmallOpDesc) {
+        }
+        else if (hcclSmallOpDesc)
+        {
             hcclSmallOpDesc.~shared_ptr();
-        } else if (hcclBigOpDesc) {
+        }
+        else if (hcclBigOpDesc)
+        {
             hcclBigOpDesc.~shared_ptr();
         }
     }
 };
 
 // 用于存储分析树结果，DBDumper将此信息落盘
-struct HostTask {
-    uint32_t taskId = 0;       // 和采集侧的数据类型不一致，采集侧的高低16位会被分别用作batchId和TaskId
+struct HostTask
+{
+    uint32_t taskId = 0;  // 和采集侧的数据类型不一致，采集侧的高低16位会被分别用作batchId和TaskId
     uint16_t batchId = 0;
     uint16_t deviceId = 0;
     int32_t requestId = 0;
     uint32_t thread_id = 0;
     uint32_t streamId = 0;
     uint32_t contextId = 0;
-    int64_t connection_id = 0; // -1 表示该任务无node直连
+    int64_t connection_id = 0;  // -1 表示该任务无node直连
     uint64_t modelId = 0;
     uint64_t taskType = 0;
     uint64_t timeStamp = 0;
@@ -135,16 +162,19 @@ struct HostTask {
 };
 
 // 存储GeFusionOpInfo表
-struct GeFusionOpInfo {
+struct GeFusionOpInfo
+{
     uint64_t modelId;
     std::shared_ptr<ProfFusionOpInfo> fusionOpInfo = nullptr;
     GeFusionOpInfo(uint64_t modelId, const std::shared_ptr<ProfFusionOpInfo> &fusionOp)
         : modelId(modelId), fusionOpInfo(fusionOp)
-    {}
+    {
+    }
 };
 
 // 用于存储分析树结果，DBDumper将此信息落盘
-struct RuntimeOpInfo {
+struct RuntimeOpInfo
+{
     bool isValid = false;
     uint16_t deviceId = 0;
     uint16_t taskId = 0;
@@ -168,22 +198,37 @@ struct RuntimeOpInfo {
 
     RuntimeOpInfo() = default;
     RuntimeOpInfo(uint16_t deviceId, uint16_t taskId, uint16_t blockNum, uint16_t mixBlockNum, uint16_t opFlag,
-                  uint16_t tensorNum, uint32_t streamId, uint64_t modelId, std::string taskType,
-                  std::string opType, std::string opName, std::string hashId, std::string isDynamic,
-                  std::string inputFormats, std::string inputDataTypes, std::string inputShapes,
-                  std::string outputFormats, std::string outputDataTypes, std::string outputShapes)
-        : deviceId(deviceId), taskId(taskId), blockNum(blockNum), mixBlockNum(mixBlockNum), opFlag(opFlag),
-          tensorNum(tensorNum), streamId(streamId), modelId(modelId), taskType(std::move(taskType)),
-          opType(std::move(opType)), opName(std::move(opName)), hashId(std::move(hashId)),
+                  uint16_t tensorNum, uint32_t streamId, uint64_t modelId, std::string taskType, std::string opType,
+                  std::string opName, std::string hashId, std::string isDynamic, std::string inputFormats,
+                  std::string inputDataTypes, std::string inputShapes, std::string outputFormats,
+                  std::string outputDataTypes, std::string outputShapes)
+        : deviceId(deviceId),
+          taskId(taskId),
+          blockNum(blockNum),
+          mixBlockNum(mixBlockNum),
+          opFlag(opFlag),
+          tensorNum(tensorNum),
+          streamId(streamId),
+          modelId(modelId),
+          taskType(std::move(taskType)),
+          opType(std::move(opType)),
+          opName(std::move(opName)),
+          hashId(std::move(hashId)),
           isDynamic(std::move(isDynamic)),
-          inputFormats(std::move(inputFormats)), inputDataTypes(std::move(inputDataTypes)),
-          inputShapes(std::move(inputShapes)), outputFormats(std::move(outputFormats)),
-          outputDataTypes(std::move(outputDataTypes)), outputShapes(std::move(outputShapes)), isValid(true)
-    {}
+          inputFormats(std::move(inputFormats)),
+          inputDataTypes(std::move(inputDataTypes)),
+          inputShapes(std::move(inputShapes)),
+          outputFormats(std::move(outputFormats)),
+          outputDataTypes(std::move(outputDataTypes)),
+          outputShapes(std::move(outputShapes)),
+          isValid(true)
+    {
+    }
 };
 
 // 存储CaptureStreamInfo表
-struct CaptureStreamInfo {
+struct CaptureStreamInfo
+{
     uint64_t modelId = UINT32_MAX;
     uint64_t timeStamp = 0;
     uint32_t streamId = 0;
@@ -195,11 +240,17 @@ struct CaptureStreamInfo {
     CaptureStreamInfo() = default;
     CaptureStreamInfo(uint64_t modelId, uint64_t timeStamp, uint32_t streamId, uint16_t originalStreamId,
                       uint16_t deviceId, uint16_t batchId, uint16_t captureStatus)
-        : modelId(modelId), timeStamp(timeStamp), streamId(streamId), originalStreamId(originalStreamId),
-          deviceId(deviceId), batchId(batchId), captureStatus(captureStatus)
-    {}
+        : modelId(modelId),
+          timeStamp(timeStamp),
+          streamId(streamId),
+          originalStreamId(originalStreamId),
+          deviceId(deviceId),
+          batchId(batchId),
+          captureStatus(captureStatus)
+    {
+    }
 };
 
-} // namespace Domain
-} // namespace Analysis
-#endif // ANALYSIS_ENTITIES_ASCEND_OBJ_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_ENTITIES_ASCEND_OBJ_H

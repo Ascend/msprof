@@ -16,15 +16,20 @@
 #ifndef ANALYSIS_DOMAIN_TASK_INFO_DATA_H
 #define ANALYSIS_DOMAIN_TASK_INFO_DATA_H
 
+#include <stdint.h>
+
 #include <string>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 const uint8_t DEFAULT_MULTIPLE_SIZE = 2;
 const std::string SINGLE_OPERATOR = "\"";
 const std::string CSV_OPERATOR = R"(""")";
 
-struct ShapeInfo {
+struct ShapeInfo
+{
     std::string inputFormats;
     std::string inputDataTypes;
     std::string inputShapes;
@@ -33,7 +38,8 @@ struct ShapeInfo {
     std::string outputShapes;
 };
 
-struct TaskInfoData {
+struct TaskInfoData
+{
     uint16_t deviceId = UINT16_MAX;
     uint32_t modelId = UINT32_MAX;
     uint32_t streamId = UINT32_MAX;
@@ -54,8 +60,10 @@ struct TaskInfoData {
     std::string outputFormats;
     std::string outputDataTypes;
     std::string outputShapes;
+    std::string gridDim;
+    std::string blockDim;
 
-    TaskInfoData& operator=(const ShapeInfo &shapeInfo)
+    TaskInfoData &operator=(const ShapeInfo &shapeInfo)
     {
         inputFormats = escapeQuotes(shapeInfo.inputFormats);
         inputDataTypes = escapeQuotes(shapeInfo.inputDataTypes);
@@ -66,19 +74,20 @@ struct TaskInfoData {
         return *this;
     }
 
-private:
+   private:
     std::string escapeQuotes(const std::string &input)
     {
         std::string res = input;
         res.reserve(input.size() * DEFAULT_MULTIPLE_SIZE);
         std::string::size_type pos = 0;
-        while ((pos = res.find(SINGLE_OPERATOR, pos)) != std::string::npos) {
+        while ((pos = res.find(SINGLE_OPERATOR, pos)) != std::string::npos)
+        {
             res.replace(pos, SINGLE_OPERATOR.length(), CSV_OPERATOR);
             pos += CSV_OPERATOR.length();
         }
         return res;
     }
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_TASK_INFO_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_TASK_INFO_DATA_H

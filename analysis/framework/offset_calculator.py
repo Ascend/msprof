@@ -59,12 +59,12 @@ class OffsetCalculator:
             file_reader.read(offset)
             file_size -= offset
         complete_file = self.last_cache + file_reader.read(file_size)
-        left_size = (len(complete_file) % self.struct_size)
+        left_size = len(complete_file) % self.struct_size
         if left_size:
             self.last_cache = complete_file[-left_size:]
         else:
             self.last_cache = bytes()
-        return complete_file[:(len(complete_file) - len(self.last_cache))]
+        return complete_file[: (len(complete_file) - len(self.last_cache))]
 
 
 class FileCalculator(OffsetCalculator):
@@ -101,7 +101,7 @@ class FileCalculator(OffsetCalculator):
             _total_sum_size = 0
             # then calculate least file
             if _total_need_size > _file_size - _file_offset:
-                _total_need_size -= (_file_size - _file_offset)
+                _total_need_size -= _file_size - _file_offset
                 self._read_binary_file(_file, _file_offset, _file_size)
             else:
                 self._read_binary_file(_file, _file_offset, _file_offset + _total_need_size)

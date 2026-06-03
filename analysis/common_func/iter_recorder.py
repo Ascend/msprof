@@ -35,7 +35,7 @@ class IterRecorder:
     def __init__(self: any, project_path) -> None:
         self._project_path = project_path
         self._iter_end_dict = dict()
-        self._iter_time = list()
+        self._iter_time = []
         self.init_iter_time()
         self._max_iter_time = self._get_max_iter_time()
         self._current_iter_id = self.DEFAULT_ITER_ID
@@ -63,8 +63,9 @@ class IterRecorder:
         """
         if not Utils.is_step_scene(self._project_path):
             return
-        with TsTrackModel(self._project_path, DBNameConstant.DB_STEP_TRACE,
-                          [ProfilingScene().get_step_table_name()]) as ts_track_model:
+        with TsTrackModel(
+            self._project_path, DBNameConstant.DB_STEP_TRACE, [ProfilingScene().get_step_table_name()]
+        ) as ts_track_model:
             step_trace_data = ts_track_model.get_step_trace_data(ProfilingScene().get_step_table_name())
             for step_trace in step_trace_data:
                 self._iter_end_dict[step_trace.iter_id] = step_trace.step_end
@@ -79,7 +80,7 @@ class IterRecorder:
         if iters is None:
             iters = [self._current_iter_id if self._current_iter_id != self.DEFAULT_ITER_ID else 1]
         for curr_iter in iters:
-            for iter_start_time, iter_end_time in self._iter_time[curr_iter - 1:]:
+            for iter_start_time, iter_end_time in self._iter_time[curr_iter - 1 :]:
                 if sys_cnt < iter_start_time:
                     break
                 if sys_cnt <= iter_end_time:

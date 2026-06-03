@@ -24,7 +24,6 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileOpen
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.msvp_common import is_number
 from msmodel.interface.base_model import BaseModel
 
 
@@ -47,7 +46,7 @@ class Utils:
         if not _model.check_table():
             return False
 
-        sql = "select {col} from {table_name} where {col} != '{item}'".format(
+        sql = "select {col} from {table_name} where {col} != '{item}'".format(  # nosec B608
             table_name=DBNameConstant.TABLE_STEP_TRACE_DATA,
             col='model_id',
             item=Constant.GE_OP_MODEL_ID,
@@ -76,10 +75,10 @@ class Utils:
         _model = BaseModel(result_dir, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TRACE_DATA])
         if not _model.check_table():
             return False
-        sql = "select model_id from {}".format(DBNameConstant.TABLE_STEP_TRACE_DATA)
+        sql = "select model_id from {}".format(DBNameConstant.TABLE_STEP_TRACE_DATA)  # nosec B608
         model_ids = DBManager.fetch_all_data(_model.cur, sql)
         _model.finalize()
-        model_id_set = set([model_id[0] for model_id in model_ids])
+        model_id_set = set(model_id[0] for model_id in model_ids)
         if len(model_id_set) == 1:
             return False
         if Constant.GE_OP_MODEL_ID in model_id_set:
@@ -111,7 +110,7 @@ class Utils:
             for data in gen:
                 result.append(data)
             return result
-        except (TypeError, ) as err:
+        except (TypeError,) as err:
             logging.error("Failed to convert generator to list. %s", err, exc_info=Constant.TRACE_BACK_SWITCH)
             return []
 
@@ -124,7 +123,7 @@ class Utils:
         :return: generator
         """
         for i in range(0, len(all_log_bytes), struct_size):
-            yield all_log_bytes[i:i + struct_size]
+            yield all_log_bytes[i : i + struct_size]
 
     @staticmethod
     def obj_list_to_list(data_list: any) -> list:
@@ -156,8 +155,7 @@ class Utils:
         :param info_json_path:info json path
         :return:
         """
-        if not info_json_path or not os.path.exists(info_json_path) or not os.path.isfile(
-                info_json_path):
+        if not info_json_path or not os.path.exists(info_json_path) or not os.path.isfile(info_json_path):
             return []
         if os.path.getsize(info_json_path) > 1024 * 1024 * 1024:
             return []
@@ -177,13 +175,10 @@ class Utils:
     def cal_total_time(total_cycle: int, freq: int, block_num: int, core_num: int) -> float:
         if not all([block_num, core_num, freq]):
             return 0
-        total_time = total_cycle * 1000 * NumberConstant.NS_TO_US / freq / block_num * \
-                     ((block_num + core_num - 1) // core_num)
+        total_time = (
+            total_cycle * 1000 * NumberConstant.NS_TO_US / freq / block_num * ((block_num + core_num - 1) // core_num)
+        )
         return round(total_time, NumberConstant.ROUND_TWO_DECIMAL)
-
-    @staticmethod
-    def __handle_invalid_zero(data, accuracy):
-        return str(round(float(data), accuracy)).rstrip('0').rstrip('.') if is_number(data) else data
 
     @classmethod
     def need_all_model_in_one_iter(cls: any, result_dir: str, model_id: int) -> bool:
@@ -255,7 +250,9 @@ class Utils:
         return data_list[key(rank)]
 
     @classmethod
-    def filter_data_by_start_time_condition(cls: any, data_list: list, start_time: str, data_time_fetcher: Callable) -> list:
+    def filter_data_by_start_time_condition(
+        cls: any, data_list: list, start_time: str, data_time_fetcher: Callable
+    ) -> list:
         """
         filter datd by start time condition
         :param data_list:

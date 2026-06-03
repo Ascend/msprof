@@ -22,6 +22,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain;
@@ -119,11 +120,9 @@ TEST_F(TaskProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
     DataInventory dataInventory;
     auto processor = TaskProcessor(PROF_PATH_A);
-    MOCKER_CPP(&std::vector<AscendTaskData>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<AscendTaskData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_TASK));
-    MOCKER_CPP(&std::vector<AscendTaskData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<AscendTaskData>>();
 }
 
 TEST_F(TaskProcessorUTest, TestRunShouldReturnFalseWhenGetProfTimeRecordInfoFailed)

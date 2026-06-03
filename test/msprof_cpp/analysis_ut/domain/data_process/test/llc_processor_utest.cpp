@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/data_process/system/llc_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -132,7 +133,7 @@ TEST_F(LLcProcessorUTest, TestRunShouldReturnFalseWhenProcessSingleDeviceFailed)
     auto processor = LLcProcessor(PROF_DIR);
     DataInventory dataInventory;
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 }
@@ -150,9 +151,9 @@ TEST_F(LLcProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDataFailed)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&OriLLcData::empty).reset();
     // Reserve failed
-    MOCKER_CPP(&std::vector<LLcData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<LLcData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
-    MOCKER_CPP(&std::vector<LLcData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<LLcData>>();
 }
 
 TEST_F(LLcProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessSummaryDataFailed)

@@ -18,6 +18,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -104,7 +105,7 @@ TEST_F(NpuMemProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
         .will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
     // save inventory failed
@@ -117,7 +118,7 @@ TEST_F(NpuMemProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
 {
     auto processor = NpuMemProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&std::vector<NpuMemData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<NpuMemData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
-    MOCKER_CPP(&std::vector<NpuMemData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<NpuMemData>>();
 }

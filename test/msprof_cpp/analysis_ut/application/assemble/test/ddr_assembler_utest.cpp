@@ -103,18 +103,18 @@ TEST_F(DDRAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960608,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
-                            "\"DDR\"}},{\"name\":\"process_labels\",\"pid\":2383960608,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960608"
-                            ",\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":17}},{\"name\":\"DDR/Read\",\"pid\":"
-                            "2383960608,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Read("
-                            "MB/s)\":38.56}},{\"name\":\"DDR/Write\",\"pid\":2383960608,\"tid\":0,\"ts\":\""
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960640,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
+                            "\"DDR\"}},{\"name\":\"process_labels\",\"pid\":2383960640,\"tid\":0,\"ph\":\"M\","
+                            "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960640"
+                            ",\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":18}},{\"name\":\"DDR/Read\",\"pid\":"
+                            "2383960640,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Read("
+                            "MB/s)\":38.56}},{\"name\":\"DDR/Write\",\"pid\":2383960640,\"tid\":0,\"ts\":\""
                             "1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Write(MB/s)\":69.1654}},{\"name"
-                            "\":\"DDR/Read\",\"pid\":2383960608,\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\""
-                            ":\"C\",\"args\":{\"Read(MB/s)\":72.5}},{\"name\":\"DDR/Write\",\"pid\":2383960608,\"tid"
+                            "\":\"DDR/Read\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\""
+                            ":\"C\",\"args\":{\"Read(MB/s)\":72.5}},{\"name\":\"DDR/Write\",\"pid\":2383960640,\"tid"
                             "\":0,\"ts\":\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"Write(MB/s)\":64.35}},"
-                            "{\"name\":\"DDR/Read\",\"pid\":2383960608,\"tid\":0,\"ts\":\"1724405892226799.429\","
-                            "\"ph\":\"C\",\"args\":{\"Read(MB/s)\":56.78}},{\"name\":\"DDR/Write\",\"pid\":2383960608,"
+                            "{\"name\":\"DDR/Read\",\"pid\":2383960640,\"tid\":0,\"ts\":\"1724405892226799.429\","
+                            "\"ph\":\"C\",\"args\":{\"Read(MB/s)\":56.78}},{\"name\":\"DDR/Write\",\"pid\":2383960640,"
                             "\"tid\":0,\"ts\":\"1724405892226799.429\",\"ph\":\"C\",\"args\":{\"Write(MB/s)\":"
                             "17.56}},";
     EXPECT_EQ(expectStr, res.back());

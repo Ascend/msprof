@@ -29,9 +29,11 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/mc2_comm_info_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ccu_mission_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/dpu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/unified_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/acc_pmu_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/system/include/aicore_freq_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
@@ -45,6 +47,8 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/sys_io_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/netdev_stats_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/qos_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/sio_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/ub_data.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
@@ -113,6 +117,30 @@ static std::string GetMsprofDbPath()
     std::vector<std::string> files = File::GetOriginData(OUTPUT_PATH, {DB_NAME_MSPROF_DB}, {".json", ".csv"});
     EXPECT_EQ(files.size(), 1);
     return files.size() ? files[0] : "";
+}
+
+template<typename ElemT>
+static void StubReserveFailureForElem()
+{
+    MOCKER_CPP(&Reserve<ElemT>).stubs().will(returnValue(false));
+}
+
+template<typename ElemT>
+static void ResetReserveFailureForElem()
+{
+    MOCKER_CPP(&Reserve<ElemT>).reset();
+}
+
+template<typename VectorT>
+static void StubReserveFailureForVector()
+{
+    StubReserveFailureForElem<typename VectorT::value_type>();
+}
+
+template<typename VectorT>
+static void ResetReserveFailureForVector()
+{
+    ResetReserveFailureForElem<typename VectorT::value_type>();
 }
 
 static std::vector<ApiData> GenerateApiData()
@@ -248,13 +276,14 @@ static std::vector<AccPmuData> GenerateAccPmuData()
     return res;
 }
 
-static std::vector<AicoreFreqData> GenerateAicoreFreqData()
+static std::vector<LowPowerData> GenerateAicoreFreqData()
 {
-    std::vector<AicoreFreqData> res;
-    AicoreFreqData data;
+    std::vector<LowPowerData> res;
+    LowPowerData data;
     data.deviceId = 1; // device_1
     data.timestamp = 236368325745670; // timestamp 236368325745670
     data.freq = 50.0; // freq 50.0
+    data.dieId = 1; // dieId 1
     res.push_back(data);
     return res;
 }
@@ -678,6 +707,123 @@ static std::vector<QosData> GenerateQosData()
     return res;
 }
 
+static std::vector<CCUMissionTimelineData> GenerateCCUData()
+{
+    std::vector<CCUMissionTimelineData> res;
+    CCUMissionTimelineData loopData;
+    loopData.deviceId = 0; // deviceId 0
+    loopData.streamId = 7; // streamId 7
+    loopData.taskId = 23; // taskId 23
+    loopData.instructionId = 11; // instructionId 11
+    loopData.timestamp = 1717575960208020750; // start 1717575960208020750
+    loopData.duration = 1000.0; // duration 1000 ns
+    loopData.timeType = CCU_TIME_TYPE_LOOP_GROUP;
+    loopData.hasDieId = true;
+    loopData.dieId = 1; // dieId 1
+    loopData.hasDataSize = true;
+    loopData.dataSize = 4096; // dataSize 4096
+    loopData.hasBandwidth = true;
+    loopData.bandwidth = 2.5; // bandwidth 2.5
+    loopData.hasReduceInfo = true;
+    loopData.reduceOpType = "sum";
+    loopData.inputDataType = "fp16";
+    loopData.outputDataType = "fp32";
+    loopData.hasMask = true;
+    loopData.mask = 3; // mask 3
+    loopData.hasDelayChannel = true;
+    loopData.maxDelayChannel = 4; // maxDelayChannel 4
+    loopData.maxChannelDelay = 500; // maxChannelDelay 500
+    res.push_back(loopData);
+
+    CCUMissionTimelineData waitData;
+    waitData.deviceId = 1; // deviceId 1
+    waitData.streamId = 8; // streamId 8
+    waitData.taskId = 24; // taskId 24
+    waitData.instructionId = 12; // notify instructionId 12
+    waitData.notifyRankId = 2; // notifyRankId 2
+    waitData.timestamp = 1717575960209020750; // start 1717575960209020750
+    waitData.duration = 2000.0; // duration 2000 ns
+    waitData.timeType = CCU_TIME_TYPE_WAIT;
+    res.push_back(waitData);
+    return res;
+}
+
+static std::vector<DPUData> GenerateDPUData()
+{
+    std::vector<DPUData> res;
+    DPUData taskData;
+    taskData.dpuDeviceId = 2; // dpuDeviceId 2
+    taskData.threadId = 123; // threadId 123
+    taskData.timestamp = 1717575960208020750; // start 1717575960208020750
+    taskData.endTime = 1717575960208021750; // end 1717575960208021750
+    taskData.taskType = "DPU_TASK";
+    taskData.streamId = 7; // streamId 7
+    taskData.taskId = 23; // taskId 23
+    taskData.opName = "dpu_kernel";
+    taskData.isHccl = false;
+    res.push_back(taskData);
+
+    DPUData hcclData;
+    hcclData.isHccl = true;
+    hcclData.npuDeviceId = 0; // npuDeviceId 0
+    hcclData.dpuDeviceId = 3; // dpuDeviceId 3
+    hcclData.threadId = 124; // threadId 124
+    hcclData.timestamp = 1717575960209020750; // start 1717575960209020750
+    hcclData.endTime = 1717575960210020750; // end 1717575960210020750
+    hcclData.opName = "dpu_hccl";
+    hcclData.groupName = "group";
+    hcclData.groupNameId = "100";
+    hcclData.localRank = 1; // localRank 1
+    hcclData.remoteRank = 2; // remoteRank 2
+    hcclData.rankSize = 8; // rankSize 8
+    hcclData.durationEstimated = 10.5; // durationEstimated 10.5
+    hcclData.dataSize = 1024; // dataSize 1024
+    hcclData.streamId = 8; // streamId 8
+    hcclData.taskId = 24; // taskId 24
+    hcclData.aicpuTaskId = 25; // aicpuTaskId 25
+    hcclData.planeId = 1; // planeId 1
+    hcclData.opType = "all_reduce";
+    hcclData.dataType = "fp16";
+    hcclData.linkType = "HCCS";
+    hcclData.transportType = "RDMA";
+    hcclData.rdmaType = "rdma";
+    hcclData.notifyId = "notify";
+    res.push_back(hcclData);
+    return res;
+}
+
+static std::vector<SioData> GenerateSioData()
+{
+    std::vector<SioData> res;
+    SioData data;
+    data.deviceId = 0; // deviceId 0
+    data.timestamp = 1746706291651036160; // timestamp 1746706291651036160
+    data.name = "die 0";
+    data.reqRxBandwidth = 1.0; // reqRxBandwidth 1 MB/s
+    data.rspRxBandwidth = 2.0; // rspRxBandwidth 2 MB/s
+    data.snpRxBandwidth = 3.0; // snpRxBandwidth 3 MB/s
+    data.datRxBandwidth = 4.0; // datRxBandwidth 4 MB/s
+    data.reqTxBandwidth = 5.0; // reqTxBandwidth 5 MB/s
+    data.rspTxBandwidth = 6.0; // rspTxBandwidth 6 MB/s
+    data.snpTxBandwidth = 7.0; // snpTxBandwidth 7 MB/s
+    data.datTxBandwidth = 8.0; // datTxBandwidth 8 MB/s
+    res.push_back(data);
+    return res;
+}
+
+static std::vector<UbData> GenerateUbData()
+{
+    std::vector<UbData> res;
+    UbData data;
+    data.deviceId = 0; // deviceId 0
+    data.portId = 3; // portId 3
+    data.timestamp = 1746706291651036160; // timestamp 1746706291651036160
+    data.udmaRxBind = 100; // udmaRxBind 100
+    data.udmaTxBind = 200; // udmaTxBind 200
+    res.push_back(data);
+    return res;
+}
+
 static void InjectHcclData(DataInventory& dataInventory)
 {
     std::shared_ptr<std::vector<CommunicationTaskData>> dataTaskS;
@@ -765,9 +911,9 @@ TEST_F(DBAssemblerUTest, TestRunApiDataShouldReturnFalseWhenReserveFailed)
     dataInventory.Inject(dataS);
 
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
@@ -793,9 +939,9 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
     EXPECT_EQ(expectName, opName);
 
     // 大算子数据
-    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId
+    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId, rank_size
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
+        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t, uint32_t>>;
     CommunicationOpDataFormat opResult;
     sql = "SELECT * FROM " + TABLE_NAME_COMMUNICATION_OP;
     msprofDBRunner->QueryData(sql, opResult);
@@ -814,17 +960,17 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnFalseWhenReserveFailed)
     // 大算子数据
     // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+        uint32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
     InjectHcclData(dataInventory);
     // Reserve CommunicationTaskDataFormat failed
-    MOCKER_CPP(&CommunicationTaskDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<CommunicationTaskDataFormat>();
     // Reserve CommunicationOpDataFormat failed
-    MOCKER_CPP(&CommunicationOpDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<CommunicationOpDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&CommunicationTaskDataFormat::reserve).reset();
-    MOCKER_CPP(&CommunicationOpDataFormat::reserve).reset();
+    ResetReserveFailureForVector<CommunicationTaskDataFormat>();
+    ResetReserveFailureForVector<CommunicationOpDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunAccPmuDataShouldReturnTrueWhenRunSuccess)
@@ -853,38 +999,50 @@ TEST_F(DBAssemblerUTest, TestRunAccPmuDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<AccPmuData>, data);
     dataInventory.Inject<std::vector<AccPmuData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunAicoreFreqDataShouldReturnTrueWhenRunSuccess)
 {
-    // deviceId, timestampNs, freq
-    using AicoreFreqDataFormat = std::vector<std::tuple<uint16_t, uint64_t, double>>;
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
     auto data = GenerateAicoreFreqData();
-    std::shared_ptr<std::vector<AicoreFreqData>> dataS;
-    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<AicoreFreqData>, data);
-    dataInventory.Inject<std::vector<AicoreFreqData>>(dataS);
+    std::shared_ptr<std::vector<LowPowerData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<LowPowerData>, data);
+    dataInventory.Inject<std::vector<LowPowerData>>(dataS);
     EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // deviceId, timestampNs, freq, dieId
+    using AicoreFreqDataFormat = std::vector<std::tuple<uint16_t, uint64_t, double, int32_t>>;
+    AicoreFreqDataFormat checkData;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT deviceId, timestampNs, freq, dieId FROM " + TABLE_NAME_AICORE_FREQ;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, checkData));
+    ASSERT_EQ(1, checkData.size());
+    EXPECT_EQ(1, std::get<0>(checkData[0]));
+    EXPECT_EQ(236368325745670, std::get<1>(checkData[0]));
+    EXPECT_DOUBLE_EQ(50.0, std::get<2>(checkData[0]));
+    EXPECT_EQ(1, std::get<3>(checkData[0]));
 }
 
 TEST_F(DBAssemblerUTest, TestRunAicoreFreqDataShouldReturnFalseWhenReserveFailed)
 {
-    // deviceId, timestampNs, freq
-    using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, double>>;
+    // deviceId, timestampNs, freq, dieId
+    using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, double, int32_t>>;
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
     auto data = GenerateAicoreFreqData();
-    std::shared_ptr<std::vector<AicoreFreqData>> dataS;
-    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<AicoreFreqData>, data);
-    dataInventory.Inject<std::vector<AicoreFreqData>>(dataS);
+    std::shared_ptr<std::vector<LowPowerData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<LowPowerData>, data);
+    dataInventory.Inject<std::vector<LowPowerData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunDDRDataShouldReturnTrueWhenRunSuccess)
@@ -911,9 +1069,9 @@ TEST_F(DBAssemblerUTest, TestRunDDRDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<DDRData>, data);
     dataInventory.Inject<std::vector<DDRData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunEnumDataShouldReturnTrueWhenProcessorRunSuccess)
@@ -941,9 +1099,9 @@ TEST_F(DBAssemblerUTest, TestRunShouldReturnFalseWhenReserveFailedThenDataIsEmpt
     using SaveDataFormat = std::tuple<uint16_t, std::string>;
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
-    MOCKER_CPP(&std::vector<SaveDataFormat>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForElem<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&std::vector<SaveDataFormat>::reserve).reset();
+    ResetReserveFailureForElem<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunHbmDataShouldReturnTrueWhenRunSuccess)
@@ -968,9 +1126,9 @@ TEST_F(DBAssemblerUTest, TestRunHbmDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<HbmData>, data);
     dataInventory.Inject<std::vector<HbmData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenProcessorRunSuccess)
@@ -1032,9 +1190,9 @@ TEST_F(DBAssemblerUTest, TestRunHccsDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<HccsData>, data);
     dataInventory.Inject<std::vector<HccsData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 
@@ -1060,9 +1218,9 @@ TEST_F(DBAssemblerUTest, TestRunLLcDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<LLcData>, data);
     dataInventory.Inject<std::vector<LLcData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunMsprofTxDataShouldReturnTrueWhenRunSuccess)
@@ -1088,9 +1246,9 @@ TEST_F(DBAssemblerUTest, TestRunMsprofTxDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<MsprofTxHostData>, data);
     dataInventory.Inject<std::vector<MsprofTxHostData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenProcessorRunSuccess)
@@ -1177,9 +1335,9 @@ TEST_F(DBAssemblerUTest, TestRunNpuMemDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<NpuMemData>, data);
     dataInventory.Inject<std::vector<NpuMemData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunPCIeDataShouldReturnTrueWhenRunSuccess)
@@ -1208,9 +1366,9 @@ TEST_F(DBAssemblerUTest, TestRunPCIeDataShouldReturnFalseWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<PCIeData>, data);
     dataInventory.Inject<std::vector<PCIeData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSessionTimeInfoShouldReturnTrueWhenProcessorRunSuccess)
@@ -1263,9 +1421,9 @@ TEST_F(DBAssemblerUTest, TestRunSocShouldReturnFalseWhenGetTimeFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<SocBandwidthData>, data);
     dataInventory.Inject<std::vector<SocBandwidthData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&SaveDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SaveDataFormat::reserve).reset();
+    ResetReserveFailureForVector<SaveDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunStringIdsShouldReturnTrueWhenProcessorRunSuccess)
@@ -1289,13 +1447,13 @@ TEST_F(DBAssemblerUTest, TestRunStringIdsShouldReturnFalseWhenReserveFailedThenD
 {
     using TempT = std::tuple<uint64_t, std::string>;
     using ProcessedDataFormat = std::vector<std::tuple<uint64_t, std::string>>;
-    MOCKER_CPP(&ProcessedDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedDataFormat>();
     IdPool::GetInstance().GetUint64Id("pool");
     IdPool::GetInstance().GetUint64Id("Conv2d");
     auto dataInventory = DataInventory();
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&ProcessedDataFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnTrueWhenProcessorRunSuccess)
@@ -1357,9 +1515,9 @@ TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnFalseWhenGetTimeFailed)
     dataInventory.Inject(nicDataS);
 
     // Reserve failed
-    MOCKER_CPP(&SysIODataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<SysIODataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&SysIODataFormat::reserve).reset();
+    ResetReserveFailureForVector<SysIODataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunShouldReturnTrueWhenDataIsEmpty)
@@ -1442,9 +1600,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnFalseWhenReserveFa
     std::shared_ptr<std::vector<MemcpyInfoData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<MemcpyInfoData>, data);
     dataInventory.Inject<std::vector<MemcpyInfoData>>(dataS);
-    MOCKER_CPP(&ProcessedDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&ProcessedDataFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunAssemblerShouldReturnFalseWhenProfPathIsEmpty)
@@ -1454,14 +1612,15 @@ TEST_F(DBAssemblerUTest, TestRunAssemblerShouldReturnFalseWhenProfPathIsEmpty)
     EXPECT_FALSE(assembler.Run(dataInventory));
 }
 
+ 	 
 TEST_F(DBAssemblerUTest, TestSaveMetaDataShouldReturnFalseWhenReserveFailed)
 {
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
     using DataFormat = std::vector<std::tuple<std::string, std::string>>;
-    MOCKER_CPP(&DataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<DataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&DataFormat::reserve).reset();
+    ResetReserveFailureForVector<DataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestSaveNpuOpMemDataShouldReturnFalseWhenReserveFailed)
@@ -1476,9 +1635,9 @@ TEST_F(DBAssemblerUTest, TestSaveNpuOpMemDataShouldReturnFalseWhenReserveFailed)
     std::shared_ptr<std::vector<NpuOpMemData>> dataSave;
     MAKE_SHARED0_NO_OPERATION(dataSave, std::vector<NpuOpMemData>, res);
     dataInventory.Inject<std::vector<NpuOpMemData>>(dataSave);
-    MOCKER_CPP(&NpuOpMemDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<NpuOpMemDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&NpuOpMemDataFormat::reserve).reset();
+    ResetReserveFailureForVector<NpuOpMemDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestSaveComputeTaskInfoShouldReturnFalseWhenReserveFailed)
@@ -1488,16 +1647,16 @@ TEST_F(DBAssemblerUTest, TestSaveComputeTaskInfoShouldReturnFalseWhenReserveFail
     using ComputeTaskInfoFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, uint32_t,
                                                          uint64_t, uint64_t, uint64_t, uint64_t,
                                                          uint64_t, uint64_t, uint64_t, uint64_t,
-                                                         uint64_t, uint64_t, uint64_t>>;
+                                                         uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
     std::vector<TaskInfoData> res;
     TaskInfoData data;
     res.push_back(data);
     std::shared_ptr<std::vector<TaskInfoData>> dataSave;
     MAKE_SHARED0_NO_OPERATION(dataSave, std::vector<TaskInfoData>, res);
     dataInventory.Inject<std::vector<TaskInfoData>>(dataSave);
-    MOCKER_CPP(&ComputeTaskInfoFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ComputeTaskInfoFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&ComputeTaskInfoFormat::reserve).reset();
+    ResetReserveFailureForVector<ComputeTaskInfoFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestSaveAscendTaskDataShouldReturnFalseWhenReserveFailed)
@@ -1512,9 +1671,9 @@ TEST_F(DBAssemblerUTest, TestSaveAscendTaskDataShouldReturnFalseWhenReserveFaile
     std::shared_ptr<std::vector<AscendTaskData>> dataSave;
     MAKE_SHARED0_NO_OPERATION(dataSave, std::vector<AscendTaskData>, res);
     dataInventory.Inject<std::vector<AscendTaskData>>(dataSave);
-    MOCKER_CPP(&ascendTaskDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ascendTaskDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&ascendTaskDataFormat::reserve).reset();
+    ResetReserveFailureForVector<ascendTaskDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenRunSuccess)
@@ -1559,9 +1718,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnFalseWhenReserveFaile
     std::shared_ptr<std::vector<UnifiedTaskPmu>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UnifiedTaskPmu>, data);
     dataInventory.Inject<std::vector<UnifiedTaskPmu>>(dataS);
-    MOCKER_CPP(&PTFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<PTFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&PTFormat::reserve).reset();
+    ResetReserveFailureForVector<PTFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
@@ -1573,9 +1732,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnFalseWhenRe
     std::shared_ptr<std::vector<UnifiedSampleTimelinePmu>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UnifiedSampleTimelinePmu>, data);
     dataInventory.Inject<std::vector<UnifiedSampleTimelinePmu>>(dataS);
-    MOCKER_CPP(&PSTFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<PSTFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&PSTFormat::reserve).reset();
+    ResetReserveFailureForVector<PSTFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
@@ -1587,9 +1746,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnFalseWhenRes
     std::shared_ptr<std::vector<UnifiedSampleSummaryPmu>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UnifiedSampleSummaryPmu>, data);
     dataInventory.Inject<std::vector<UnifiedSampleSummaryPmu>>(dataS);
-    MOCKER_CPP(&PSSFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<PSSFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&PSSFormat::reserve).reset();
+    ResetReserveFailureForVector<PSSFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenTaskPmuDataIsNotExist)
@@ -1622,9 +1781,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnFalseWhenReserveFail
     std::shared_ptr<std::vector<CpuUsageData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CpuUsageData>, data);
     dataInventory.Inject<std::vector<CpuUsageData>>(dataS);
-    MOCKER_CPP(&format::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<format>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&format::reserve).reset();
+    ResetReserveFailureForVector<format>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnTrueWhenRunSuccess)
@@ -1647,9 +1806,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnFalseWhenReserve
     std::shared_ptr<std::vector<MemUsageData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<MemUsageData>, data);
     dataInventory.Inject<std::vector<MemUsageData>>(dataS);
-    MOCKER_CPP(&format::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<format>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&format::reserve).reset();
+    ResetReserveFailureForVector<format>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnTrueWhenRunSuccess)
@@ -1672,9 +1831,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnFalseWhenReserv
     std::shared_ptr<std::vector<DiskUsageData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<DiskUsageData>, data);
     dataInventory.Inject<std::vector<DiskUsageData>>(dataS);
-    MOCKER_CPP(&format::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<format>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&format::reserve).reset();
+    ResetReserveFailureForVector<format>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnTrueWhenRunSuccess)
@@ -1697,9 +1856,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnFalseWhenRes
     std::shared_ptr<std::vector<NetWorkUsageData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<NetWorkUsageData>, data);
     dataInventory.Inject<std::vector<NetWorkUsageData>>(dataS);
-    MOCKER_CPP(&format::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<format>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&format::reserve).reset();
+    ResetReserveFailureForVector<format>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnTrueWhenRunSuccess)
@@ -1722,9 +1881,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveOSRuntimeApiDataShouldReturnFalseWhenReserve
     std::shared_ptr<std::vector<OSRuntimeApiData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<OSRuntimeApiData>, data);
     dataInventory.Inject<std::vector<OSRuntimeApiData>>(dataS);
-    MOCKER_CPP(&format::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<format>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&format::reserve).reset();
+    ResetReserveFailureForVector<format>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveOSRuntimeApiDataShouldReturnTrueWhenRunSuccess)
@@ -1756,9 +1915,9 @@ TEST_F(DBAssemblerUTest, TestRunNetDevStatDataShouldReturnFalseWhenReserveFailed
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<NetDevStatsEventData>, data);
     dataInventory.Inject<std::vector<NetDevStatsEventData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&NetDevStatEventDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<NetDevStatEventDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&NetDevStatEventDataFormat::reserve).reset();
+    ResetReserveFailureForVector<NetDevStatEventDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveNetDevStatsDataShouldReturnTrueWhenRunSuccess)
@@ -1783,9 +1942,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenReserveFailed)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<QosData>, data);
     dataInventory.Inject<std::vector<QosData>>(dataS);
     // Reserve failed
-    MOCKER_CPP(&QosDataFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<QosDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&QosDataFormat::reserve).reset();
+    ResetReserveFailureForVector<QosDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRunSuccess)
@@ -1801,4 +1960,251 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRun
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<QosData>, data);
     dataInventory.Inject<std::vector<QosData>>(dataS);
     EXPECT_TRUE(assembler.Run(dataInventory));
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
+{
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateDPUData();
+    std::shared_ptr<std::vector<DPUData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<DPUData>, data);
+    dataInventory.Inject<std::vector<DPUData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // dpuDeviceId, globalTid, startNs, endNs, globalTaskId, streamId, taskId, opName, args
+    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
+        uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
+    DPUDataFormat dpuResult;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT dpuDeviceId, globalTid, startNs, endNs, globalTaskId, streamId, taskId, opName, args FROM "
+        + TABLE_NAME_DPU_TASK + " ORDER BY startNs";
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, dpuResult));
+    ASSERT_EQ(2, dpuResult.size());
+    EXPECT_EQ(2, std::get<0>(dpuResult[0]));
+    EXPECT_EQ(123, std::get<1>(dpuResult[0]));
+    EXPECT_EQ(1717575960208020750, std::get<2>(dpuResult[0]));
+    EXPECT_EQ(1717575960208021750, std::get<3>(dpuResult[0]));
+    EXPECT_EQ(7, std::get<5>(dpuResult[0]));
+    EXPECT_EQ(23, std::get<6>(dpuResult[0]));
+    EXPECT_EQ(3, std::get<0>(dpuResult[1]));
+    EXPECT_EQ(124, std::get<1>(dpuResult[1]));
+    EXPECT_EQ(8, std::get<5>(dpuResult[1]));
+    EXPECT_EQ(24, std::get<6>(dpuResult[1]));
+
+    using StringIdFormat = std::vector<std::tuple<uint64_t, std::string>>;
+    StringIdFormat stringIds;
+    sql = "SELECT id, value FROM " + TABLE_NAME_STRING_IDS;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, stringIds));
+    std::unordered_map<uint64_t, std::string> stringIdMap;
+    for (const auto& item : stringIds) {
+        stringIdMap[std::get<0>(item)] = std::get<1>(item);
+    }
+
+    EXPECT_EQ("dpu_kernel", stringIdMap[std::get<7>(dpuResult[0])]);
+    EXPECT_EQ("dpu_hccl", stringIdMap[std::get<7>(dpuResult[1])]);
+    const auto& taskArgs = stringIdMap[std::get<8>(dpuResult[0])];
+    EXPECT_NE(std::string::npos, taskArgs.find("Thread Id"));
+    EXPECT_NE(std::string::npos, taskArgs.find("Task Type"));
+    const auto& hcclArgs = stringIdMap[std::get<8>(dpuResult[1])];
+    EXPECT_NE(std::string::npos, hcclArgs.find("OP Type"));
+    EXPECT_NE(std::string::npos, hcclArgs.find("AI CPU Device Id"));
+    EXPECT_NE(std::string::npos, hcclArgs.find("Group Name"));
+    EXPECT_NE(std::string::npos, hcclArgs.find("Bandwidth(B/s)"));
+    EXPECT_NE(std::string::npos, hcclArgs.find("1024000"));
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnFalseWhenReserveFailed)
+{
+    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
+        uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateDPUData();
+    std::shared_ptr<std::vector<DPUData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<DPUData>, data);
+    dataInventory.Inject<std::vector<DPUData>>(dataS);
+
+    StubReserveFailureForVector<DPUDataFormat>();
+    EXPECT_FALSE(assembler.Run(dataInventory));
+    ResetReserveFailureForVector<DPUDataFormat>();
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnTrueWhenRunSuccess)
+{
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateSioData();
+    std::shared_ptr<std::vector<SioData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<SioData>, data);
+    dataInventory.Inject<std::vector<SioData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    using SioDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t,
+        double, double, double, double, double, double, double, double>>;
+    SioDataFormat sioResult;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT deviceId, name, timestampNs, rxReq, rxRsp, rxSnp, rxDat, txReq, txRsp, txSnp, txDat FROM "
+        + TABLE_NAME_SIO;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, sioResult));
+    ASSERT_EQ(1, sioResult.size());
+    EXPECT_EQ(0, std::get<0>(sioResult[0]));
+    EXPECT_EQ(1746706291651036160, std::get<2>(sioResult[0]));
+    EXPECT_DOUBLE_EQ(1.0 * BYTE_SIZE * BYTE_SIZE, std::get<3>(sioResult[0]));
+    EXPECT_DOUBLE_EQ(2.0 * BYTE_SIZE * BYTE_SIZE, std::get<4>(sioResult[0]));
+    EXPECT_DOUBLE_EQ(8.0 * BYTE_SIZE * BYTE_SIZE, std::get<10>(sioResult[0]));
+
+    using StringIdFormat = std::vector<std::tuple<uint64_t, std::string>>;
+    StringIdFormat stringIds;
+    sql = "SELECT id, value FROM " + TABLE_NAME_STRING_IDS;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, stringIds));
+    std::unordered_map<uint64_t, std::string> stringIdMap;
+    for (const auto& item : stringIds) {
+        stringIdMap[std::get<0>(item)] = std::get<1>(item);
+    }
+    EXPECT_EQ("die 0", stringIdMap[std::get<1>(sioResult[0])]);
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnFalseWhenReserveFailed)
+{
+    using SioDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t,
+        double, double, double, double, double, double, double, double>>;
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateSioData();
+    std::shared_ptr<std::vector<SioData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<SioData>, data);
+    dataInventory.Inject<std::vector<SioData>>(dataS);
+
+    StubReserveFailureForVector<SioDataFormat>();
+    EXPECT_FALSE(assembler.Run(dataInventory));
+    ResetReserveFailureForVector<SioDataFormat>();
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnTrueWhenRunSuccess)
+{
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateUbData();
+    std::shared_ptr<std::vector<UbData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UbData>, data);
+    dataInventory.Inject<std::vector<UbData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    using UbDataFormat = std::vector<std::tuple<uint16_t, uint16_t, uint64_t, uint64_t, uint64_t>>;
+    UbDataFormat ubResult;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT deviceId, portId, timestampNs, rxUdmaBind, txUdmaBind FROM " + TABLE_NAME_UB;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, ubResult));
+    ASSERT_EQ(1, ubResult.size());
+    EXPECT_EQ(0, std::get<0>(ubResult[0]));
+    EXPECT_EQ(3, std::get<1>(ubResult[0]));
+    EXPECT_EQ(1746706291651036160, std::get<2>(ubResult[0]));
+    EXPECT_EQ(100, std::get<3>(ubResult[0]));
+    EXPECT_EQ(200, std::get<4>(ubResult[0]));
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnFalseWhenReserveFailed)
+{
+    using UbDataFormat = std::vector<std::tuple<uint16_t, uint16_t, uint64_t, uint64_t, uint64_t>>;
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateUbData();
+    std::shared_ptr<std::vector<UbData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UbData>, data);
+    dataInventory.Inject<std::vector<UbData>>(dataS);
+
+    StubReserveFailureForVector<UbDataFormat>();
+    EXPECT_FALSE(assembler.Run(dataInventory));
+    ResetReserveFailureForVector<UbDataFormat>();
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenRunSuccess)
+{
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateCCUData();
+    std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CCUMissionTimelineData>, data);
+    dataInventory.Inject<std::vector<CCUMissionTimelineData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // deviceId, globalTaskId, name, startNs, endNs, args
+    using CCUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+    CCUDataFormat ccuResult;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT deviceId, globalTaskId, name, startNs, endNs, args FROM " + TABLE_NAME_CCU +
+        " ORDER BY startNs";
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, ccuResult));
+    ASSERT_EQ(2, ccuResult.size());
+    EXPECT_EQ(0, std::get<0>(ccuResult[0]));
+    EXPECT_EQ(1717575960208020750, std::get<3>(ccuResult[0]));
+    EXPECT_EQ(1717575960208021750, std::get<4>(ccuResult[0]));
+    EXPECT_EQ(1, std::get<0>(ccuResult[1]));
+    EXPECT_EQ(1717575960209020750, std::get<3>(ccuResult[1]));
+    EXPECT_EQ(1717575960209022750, std::get<4>(ccuResult[1]));
+
+    using StringIdFormat = std::vector<std::tuple<uint64_t, std::string>>;
+    StringIdFormat stringIds;
+    sql = "SELECT id, value FROM " + TABLE_NAME_STRING_IDS;
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, stringIds));
+    std::unordered_map<uint64_t, std::string> stringIdMap;
+    for (const auto& item : stringIds) {
+        stringIdMap[std::get<0>(item)] = std::get<1>(item);
+    }
+
+    EXPECT_EQ(CCU_TIME_TYPE_LOOP_GROUP, stringIdMap[std::get<2>(ccuResult[0])]);
+    EXPECT_EQ(CCU_TIME_TYPE_WAIT, stringIdMap[std::get<2>(ccuResult[1])]);
+    const auto& loopArgs = stringIdMap[std::get<5>(ccuResult[0])];
+    EXPECT_NE(std::string::npos, loopArgs.find("Instruction ID"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Die Id"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Data Size"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Bandwidth (B/s)"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Reduce Op Type"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Mask"));
+    EXPECT_NE(std::string::npos, loopArgs.find("Maximum Delay Channel"));
+
+    const auto& waitArgs = stringIdMap[std::get<5>(ccuResult[1])];
+    EXPECT_NE(std::string::npos, waitArgs.find("Notify Instruction ID"));
+    EXPECT_NE(std::string::npos, waitArgs.find("Notify Rank ID"));
+    EXPECT_EQ(std::string::npos, waitArgs.find("Data Size"));
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenDataNotExistOrEmpty)
+{
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    EXPECT_TRUE(assembler.Run(dataInventory));
+    EXPECT_TRUE(File::RemoveDir(OUTPUT_PATH, DEPTH));
+    EXPECT_TRUE(File::CreateDir(OUTPUT_PATH));
+
+    std::vector<CCUMissionTimelineData> data;
+    std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CCUMissionTimelineData>, data);
+    dataInventory.Inject<std::vector<CCUMissionTimelineData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+}
+
+TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnFalseWhenReserveFailed)
+{
+    // deviceId, globalTaskId, name, startNs, endNs, args
+    using CCUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto dataInventory = DataInventory();
+    auto data = GenerateCCUData();
+    std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CCUMissionTimelineData>, data);
+    dataInventory.Inject<std::vector<CCUMissionTimelineData>>(dataS);
+
+    StubReserveFailureForVector<CCUDataFormat>();
+    EXPECT_FALSE(assembler.Run(dataInventory));
+    ResetReserveFailureForVector<CCUDataFormat>();
 }

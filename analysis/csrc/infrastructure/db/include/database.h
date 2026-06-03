@@ -17,14 +17,16 @@
 #ifndef ANALYSIS_VIEWER_DATABASE_DATABASE_H
 #define ANALYSIS_VIEWER_DATABASE_DATABASE_H
 
-#include <vector>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/infrastructure/db/include/connection.h"
 
-namespace Analysis {
-namespace Infra {
+namespace Analysis
+{
+namespace Infra
+{
 
 using TableColumns = std::vector<TableColumn>;
 const std::string SQL_TEXT_TYPE = "TEXT";
@@ -33,246 +35,314 @@ const std::string SQL_NUMERIC_TYPE = "NUMERIC";
 const std::string SQL_REAL_TYPE = "REAL";
 
 // DB中Table映射基类
-class Database {
-public:
+class Database
+{
+   public:
     Database() = default;
     // 获取该DB实际落盘的文件名
     std::string GetDBName() const;
     // 获取该DB指定表中字段名
     TableColumns GetTableCols(const std::string &tableName);
 
-protected:
+   protected:
     std::string dbName_;
     std::unordered_map<std::string, TableColumns> tableColNames_;
 };
 
-class ApiEventDB : public Database {
-public:
+class ApiEventDB : public Database
+{
+   public:
     ApiEventDB();
 };
 
-class RuntimeDB : public Database {
-public:
+class RuntimeDB : public Database
+{
+   public:
     RuntimeDB();
 };
 
-class GEInfoDB : public Database {
-public:
+class GEInfoDB : public Database
+{
+   public:
     GEInfoDB();
 };
 
-class StreamExpandSpecDB : public Database {
-public:
+class StreamExpandSpecDB : public Database
+{
+   public:
     StreamExpandSpecDB();
 };
 
-class StreamInfoDB : public Database {
-public:
+class StreamInfoDB : public Database
+{
+   public:
     StreamInfoDB();
 };
 
-class HashDB : public Database {
-public:
+class HashDB : public Database
+{
+   public:
     HashDB();
 };
 
-class GeModelInfoDB : public Database {
-public:
+class GeModelInfoDB : public Database
+{
+   public:
     GeModelInfoDB();
 };
 
-class HCCLDB : public Database {
-public:
+class HCCLDB : public Database
+{
+   public:
     HCCLDB();
 };
 
-class RtsTrackDB : public Database {
-public:
+class RtsTrackDB : public Database
+{
+   public:
     RtsTrackDB();
 };
 
-class AscendTaskDB : public Database {
-public:
+class AscendTaskDB : public Database
+{
+   public:
     AscendTaskDB();
 };
 
-
-class TraceDB : public Database {
-public:
+class TraceDB : public Database
+{
+   public:
     TraceDB();
 };
 
-class HCCLSingleDeviceDB : public Database {
-public:
+class HCCLSingleDeviceDB : public Database
+{
+   public:
     HCCLSingleDeviceDB();
 };
 
-class NpuMemDB : public Database {
-public:
+class NpuMemDB : public Database
+{
+   public:
     NpuMemDB();
 };
 
-class NpuModuleMemDB : public Database {
-public:
+class NpuModuleMemDB : public Database
+{
+   public:
     NpuModuleMemDB();
 };
 
-class TaskMemoryDB : public Database {
-public:
+class TaskMemoryDB : public Database
+{
+   public:
     TaskMemoryDB();
 };
 
-class NicDB : public Database {
-public:
+class NicDB : public Database
+{
+   public:
     NicDB();
 };
 
-class NicReceiveSendDB : public Database {
-public:
+class NicReceiveSendDB : public Database
+{
+   public:
     NicReceiveSendDB();
 };
 
-class RoceDB : public Database {
-public:
+class RoceDB : public Database
+{
+   public:
     RoceDB();
 };
 
-class RoceReceiveSendDB : public Database {
-public:
+class RoceReceiveSendDB : public Database
+{
+   public:
     RoceReceiveSendDB();
 };
 
-class HBMDB : public Database {
-public:
+class HBMDB : public Database
+{
+   public:
     HBMDB();
 };
 
-class DDRDB : public Database {
-public:
+class DDRDB : public Database
+{
+   public:
     DDRDB();
 };
 
-class LLCDB : public Database {
-public:
+class LLCDB : public Database
+{
+   public:
     LLCDB();
 };
 
-class AicoreDB : public Database {
-public:
+class AicoreDB : public Database
+{
+   public:
     AicoreDB();
 };
 
-class AiVectorCoreDB : public Database {
-public:
+class AiVectorCoreDB : public Database
+{
+   public:
     AiVectorCoreDB();
 };
 
-class AccPmuDB : public Database {
-public:
+class AccPmuDB : public Database
+{
+   public:
     AccPmuDB();
 };
 
-class SocProfilerDB : public Database {
-public:
+class SocProfilerDB : public Database
+{
+   public:
     SocProfilerDB();
 };
 
-class PCIeDB : public Database {
-public:
+class PCIeDB : public Database
+{
+   public:
     PCIeDB();
 };
 
-class HCCSDB : public Database {
-public:
+class HCCSDB : public Database
+{
+   public:
     HCCSDB();
 };
 
-class NetDevStatsDB : public Database {
-public:
+class NetDevStatsDB : public Database
+{
+   public:
     NetDevStatsDB();
 };
 
-class FreqDB : public Database {
-public:
+class FreqDB : public Database
+{
+   public:
     FreqDB();
 };
 
-class MsprofTxDB : public Database {
-public:
+class MsprofTxDB : public Database
+{
+   public:
     MsprofTxDB();
 };
 
-class StepTraceDB : public Database {
-public:
+class StepTraceDB : public Database
+{
+   public:
     StepTraceDB();
 };
 
-
-class KfcInfo : public Database {
-public:
+class KfcInfo : public Database
+{
+   public:
     KfcInfo();
 };
 
-class Mc2CommInfoDB : public Database {
-public:
+class Mc2CommInfoDB : public Database
+{
+   public:
     Mc2CommInfoDB();
 };
 
-class HostCpuUsage : public Database {
-public:
+class HostCpuUsage : public Database
+{
+   public:
     HostCpuUsage();
 };
 
-class HostMemUsage : public Database {
-public:
+class HostMemUsage : public Database
+{
+   public:
     HostMemUsage();
 };
 
-class HostDiskUsage : public Database {
-public:
+class HostDiskUsage : public Database
+{
+   public:
     HostDiskUsage();
 };
 
-class HostNetworkUsage : public Database {
-public:
+class HostNetworkUsage : public Database
+{
+   public:
     HostNetworkUsage();
 };
 
-class HostRuntimeApi : public Database {
-public:
+class HostRuntimeApi : public Database
+{
+   public:
     HostRuntimeApi();
 };
 
-class ChipTransDB : public Database {
-public:
+class ChipTransDB : public Database
+{
+   public:
     ChipTransDB();
 };
 
-class GeLogicStreamDB : public Database {
-public:
+class GeLogicStreamDB : public Database
+{
+   public:
     GeLogicStreamDB();
 };
 
-class SioDB : public Database {
-public:
+class SioDB : public Database
+{
+   public:
     SioDB();
 };
 
-class QosDB : public Database {
-public:
+class QosDB : public Database
+{
+   public:
     QosDB();
 };
 
-class OpCounterDB : public Database {
-public:
+class OpCounterDB : public Database
+{
+   public:
     OpCounterDB();
 };
 
-class MetricSummaryDB : public Database {
-public:
+class MetricSummaryDB : public Database
+{
+   public:
     MetricSummaryDB();
 };
 
-} // namespace Infra
-} // namespace Analysis
-#endif // ANALYSIS_VIEWER_DATABASE_DATABASE_H
+class DPUDB : public Database
+{
+   public:
+    DPUDB();
+};
+
+class LowPowerDB : public Database
+{
+   public:
+    LowPowerDB();
+};
+
+class UbDB : public Database
+{
+   public:
+    UbDB();
+};
+
+class BiuPerfDB : public Database
+{
+   public:
+    BiuPerfDB();
+};
+
+}  // namespace Infra
+}  // namespace Analysis
+#endif  // ANALYSIS_VIEWER_DATABASE_DATABASE_H

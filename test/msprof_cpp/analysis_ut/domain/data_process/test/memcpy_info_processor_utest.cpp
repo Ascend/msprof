@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/memcpy_info_processor.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain;
@@ -91,10 +92,9 @@ TEST_F(MemcpyInfoProcessorUTest, GetDataShouldReturnFalseWhenDataReserveFail)
 {
     DataInventory dataInventory;
     auto processor = MemcpyInfoProcessor(PROF_PATH);
-    MOCKER_CPP(&std::vector<MemcpyInfoData>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<MemcpyInfoData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_MEMCPY_INFO));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<MemcpyInfoData>>();
     EXPECT_FALSE(dataInventory.GetPtr<std::vector<MemcpyInfoData>>());
 }
 

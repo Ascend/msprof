@@ -23,7 +23,6 @@ from common_func.path_manager import PathManager
 from common_func.config_mgr import ConfigMgr
 from common_func.msprof_common import get_path_dir
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import DataCheckScene
 
@@ -46,8 +45,10 @@ class DataCheckManager:
             if os.path.exists(os.path.join(sub_path, Constant.SAMPLE_FILE)):
                 sample_config = ConfigMgr.read_sample_config(sub_path)
                 break
-        return sample_config.get("profLevel", "") == StrConstant.PROF_LEVEL_0 or \
-            sample_config.get("prof_level", "") == StrConstant.PROF_LEVEL_0_HISI
+        return (
+            sample_config.get("profLevel", "") == StrConstant.PROF_LEVEL_0
+            or sample_config.get("prof_level", "") == StrConstant.PROF_LEVEL_0_HISI
+        )
 
     @classmethod
     def check_export_with_so(cls):
@@ -99,7 +100,6 @@ class DataCheckManager:
         split_list = file_name.split('.')
         if len(split_list) == cls.HOST_DATA_NAME_LENGTH:
             return True
-        if len(split_list) == cls.DATA_NAME_LENGTH and \
-                int(split_list[cls.DEVICE_ID_INDEX]) == device_id:
+        if len(split_list) == cls.DATA_NAME_LENGTH and int(split_list[cls.DEVICE_ID_INDEX]) == device_id:
             return True
         return False

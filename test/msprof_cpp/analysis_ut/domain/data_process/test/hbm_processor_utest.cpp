@@ -19,10 +19,12 @@
 #include "analysis/csrc/domain/data_process/system/hbm_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
+using namespace Analysis::Test;
 
 namespace {
 const int DEPTH = 0;
@@ -117,7 +119,7 @@ TEST_F(HBMProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<HbmData>).reset();
 
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(UINT16_MAX));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
 }
@@ -135,9 +137,9 @@ TEST_F(HBMProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDataFailed)
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
     MOCKER_CPP(&OriHbmData::empty).reset();
     // Reserve failed
-    MOCKER_CPP(&std::vector<HbmData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<HbmData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
-    MOCKER_CPP(&std::vector<HbmData>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<HbmData>>();
 }
 
 TEST_F(HBMProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessSummaryDataFailed)

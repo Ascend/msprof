@@ -111,23 +111,23 @@ TEST_F(PCIeAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"PCIe_cpl\",\"pid\":2383960768,\"tid\":0,\"ts\":\"1719621074669030.430\",\""
+    std::string expectStr = "{\"name\":\"PCIe_cpl\",\"pid\":2383960800,\"tid\":0,\"ts\":\"1719621074669030.430\",\""
                             "ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.0}},{\"name\":\"PCIe_nonpost\",\"pid\":"
-                            "2383960768,\"tid\":0,\"ts\":\"1719621074669030.430\",\"ph\":\"C\",\"args\":{\"Rx\":0.0"
-                            ",\"Tx\":0.0}},{\"name\":\"PCIe_nonpost_latency\",\"pid\":2383960768,\"tid\":0,\"ts\":\""
+                            "2383960800,\"tid\":0,\"ts\":\"1719621074669030.430\",\"ph\":\"C\",\"args\":{\"Rx\":0.0"
+                            ",\"Tx\":0.0}},{\"name\":\"PCIe_nonpost_latency\",\"pid\":2383960800,\"tid\":0,\"ts\":\""
                             "1719621074669030.430\",\"ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.257}},{\"name\":\""
-                            "PCIe_post\",\"pid\":2383960768,\"tid\":0,\"ts\":\"1719621074669030.430\",\"ph\":\"C\","
-                            "\"args\":{\"Rx\":0.0,\"Tx\":59.1278076171875}},{\"name\":\"PCIe_cpl\",\"pid\":2383960768,"
+                            "PCIe_post\",\"pid\":2383960800,\"tid\":0,\"ts\":\"1719621074669030.430\",\"ph\":\"C\","
+                            "\"args\":{\"Rx\":0.0,\"Tx\":59.1278076171875}},{\"name\":\"PCIe_cpl\",\"pid\":2383960800,"
                             "\"tid\":0,\"ts\":\"1719621074688865.380\",\"ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.0"
-                            "}},{\"name\":\"PCIe_nonpost\",\"pid\":2383960768,\"tid\":0,\"ts\":\""
+                            "}},{\"name\":\"PCIe_nonpost\",\"pid\":2383960800,\"tid\":0,\"ts\":\""
                             "1719621074688865.380\",\"ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.0}},{\"name\":\""
-                            "PCIe_nonpost_latency\",\"pid\":2383960768,\"tid\":0,\"ts\":\"1719621074688865.380\",\""
-                            "ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.307}},{\"name\":\"PCIe_post\",\"pid\":2383960768"
+                            "PCIe_nonpost_latency\",\"pid\":2383960800,\"tid\":0,\"ts\":\"1719621074688865.380\",\""
+                            "ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":0.307}},{\"name\":\"PCIe_post\",\"pid\":2383960800"
                             ",\"tid\":0,\"ts\":\"1719621074688865.380\",\"ph\":\"C\",\"args\":{\"Rx\":0.0,\"Tx\":"
-                            "73.43292236328125}},{\"name\":\"process_name\",\"pid\":2383960768,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"name\":\"PCIe\"}},{\"name\":\"process_labels\",\"pid\":2383960768,\"tid\":0,"
+                            "73.43292236328125}},{\"name\":\"process_name\",\"pid\":2383960800,\"tid\":0,\"ph\":\"M\","
+                            "\"args\":{\"name\":\"PCIe\"}},{\"name\":\"process_labels\",\"pid\":2383960800,\"tid\":0,"
                             "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":"
-                            "2383960768,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":22}},";
+                            "2383960800,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":23}},";
     EXPECT_EQ(expectStr, res.back());
 }
 

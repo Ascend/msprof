@@ -20,13 +20,15 @@
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
-#include "analysis/csrc/domain/data_process/data_processor.h";
-#include "analysis/csrc/infrastructure/db/include/db_runner.h";
+#include "analysis/csrc/domain/data_process/data_processor.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Viewer::Database;
+using namespace Analysis::Test;
 
 const std::string API_DIR = "./api_data";
 const std::string PROF0 = File::PathJoin({API_DIR, "PROF_0"});
@@ -182,11 +184,9 @@ TEST_F(ApiProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
 {
     auto processor = ApiProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&std::vector<ApiData>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<ApiData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
-    MOCKER_CPP(&std::vector<ApiData>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<ApiData>>();
 }
 
 TEST_F(ApiProcessorUTest, TestRunShouldReturnFalseWhenFileOverMaxSize)

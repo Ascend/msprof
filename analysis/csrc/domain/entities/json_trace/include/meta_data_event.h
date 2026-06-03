@@ -18,15 +18,20 @@
 #define MSPROF_ANALYSIS_METADATA_EVENT_H
 
 #include <vector>
+
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/domain/entities/json_trace/include/trace_event.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 // sort_index
-enum ProcessSortIndex {
+enum ProcessSortIndex
+{
     LAYER_FRAMEWORK_SORT = 6,
     LAYER_CANN_SORT,
+    LAYER_DPU_SORT,
     LAYER_CPU_USAGE_SORT,
     LAYER_MEMORY_USAGE_SORT,
     LAYER_NETWORK_USAGE_SORT,
@@ -61,6 +66,7 @@ const std::string COMPONENT_LAYER_CANN = "CANN";
 const std::string COMPONENT_LAYER_ASCEND_HW = "Ascend Hardware";
 const std::string LABEL_CPU = "CPU";
 const std::string LABEL_NPU = "NPU";
+const std::string LABEL_DPU = "DPU";
 // layer name
 const std::string PROCESS_RUNTIME = "Runtime";
 const std::string PROCESS_AI_CORE_UTILIZATION = "AI Core Utilization";
@@ -103,13 +109,15 @@ const std::string PROCESS_DEVICE_TX = "DEVICE_TX";
 const std::string PROCESS_BIU_PERF = "Biu Perf";
 const std::string PROCESS_UB = "Ub";
 const std::string PROCESS_BLOCK_DETAIL = "Block Detail";
+const std::string PROCESS_DPU = "DPU";
 
-struct LayerInfo {
+struct LayerInfo
+{
     std::string component;
     std::string label;
     uint32_t sortIndex;
 };
-const std::unordered_map<std::string, LayerInfo> LAYER_INFO {
+const std::unordered_map<std::string, LayerInfo> LAYER_INFO{
     {PROCESS_MSPROFTX, {COMPONENT_LAYER_FRAMEWORK, LABEL_CPU, LAYER_FRAMEWORK_SORT}},
     {PROCESS_ACL, {COMPONENT_LAYER_CANN, LABEL_CPU, LAYER_CANN_SORT}},
     {PROCESS_GE, {COMPONENT_LAYER_CANN, LABEL_CPU, LAYER_CANN_SORT}},
@@ -143,6 +151,7 @@ const std::unordered_map<std::string, LayerInfo> LAYER_INFO {
     {PROCESS_BIU_PERF, {PROCESS_BIU_PERF, LABEL_NPU, LAYER_BIU_PERF}},
     {PROCESS_UB, {PROCESS_UB, LABEL_NPU, LAYER_UB}},
     {PROCESS_BLOCK_DETAIL, {PROCESS_BLOCK_DETAIL, LABEL_NPU, LAYER_BLOCK_DETAIL}},
+    {PROCESS_DPU, {COMPONENT_LAYER_CANN, LABEL_DPU, LAYER_DPU_SORT}},
 };
 
 LayerInfo GetLayerInfo(std::string processName);
@@ -154,48 +163,62 @@ LayerInfo GetLayerInfo(std::string processName);
  *      E（End）：事件的结束。
  *      X：完成（Complete），表示事件已经完成。
  *      M（MetaData）：提供事件的元数据信息。
- * MetaData Phase主要用于提供事件的额外信息，这些信息对于理解事件的上下文和性质非常重要。例如，它可能包含事件的类型、来源、
- * 相关参数等。通过查看MetaData Phase，可以获得关于事件的更多背景和详细信息，从而更深入地分析事件的行为和影响‌
+ * MetaData
+ * Phase主要用于提供事件的额外信息，这些信息对于理解事件的上下文和性质非常重要。例如，它可能包含事件的类型、来源、
+ * 相关参数等。通过查看MetaData
+ * Phase，可以获得关于事件的更多背景和详细信息，从而更深入地分析事件的行为和影响‌
  */
-class MetaDataEvent : public TraceEvent {
-public:
+class MetaDataEvent : public TraceEvent
+{
+   public:
     MetaDataEvent(uint32_t pid, int tid, const std::string &name);
-private:
+
+   private:
     void ToJson(JsonWriter &ostream) override;
     virtual void ProcessArgs(JsonWriter &ostream) {};
-private:
+
+   private:
     std::string ph_ = "M";
 };
 
 // args为name参数的MetaData
-class MetaDataNameEvent : public MetaDataEvent {
-public:
+class MetaDataNameEvent : public MetaDataEvent
+{
+   public:
     MetaDataNameEvent(uint32_t pid, int tid, const std::string &name, const std::string &argName);
-private:
+
+   private:
     void ProcessArgs(JsonWriter &ostream) override;
-private:
+
+   private:
     std::string argsName_;
 };
 
 // args为labels参数的MetaData
-class MetaDataLabelEvent : public MetaDataEvent {
-public:
+class MetaDataLabelEvent : public MetaDataEvent
+{
+   public:
     MetaDataLabelEvent(uint32_t pid, int tid, const std::string &name, const std::string &label);
-private:
+
+   private:
     void ProcessArgs(JsonWriter &ostream) override;
-private:
+
+   private:
     std::string argsLabel_;
 };
 
 // args为index参数的MetaData
-class MetaDataIndexEvent : public MetaDataEvent {
-public:
+class MetaDataIndexEvent : public MetaDataEvent
+{
+   public:
     MetaDataIndexEvent(uint32_t pid, int tid, const std::string &name, int index);
-private:
+
+   private:
     void ProcessArgs(JsonWriter &ostream) override;
-private:
+
+   private:
     int argsSortIndex_;
 };
-}
-}
-#endif // MSPROF_ANALYSIS_METADATA_EVENT_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_METADATA_EVENT_H

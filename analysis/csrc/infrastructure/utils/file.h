@@ -20,6 +20,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <stdint.h>
 
 #include "opensource/json/include/nlohmann/json.hpp"
 

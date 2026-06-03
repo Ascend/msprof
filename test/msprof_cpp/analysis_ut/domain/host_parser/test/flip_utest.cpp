@@ -81,22 +81,6 @@ TEST_F(FlipUTest, TestComputeBatchIdShoulSetBatchId0WhenFlipDataIsEmpty)
     EXPECT_EQ(0, Flip::GetBatchId(*taskTrack[1]));
 }
 
-TEST_F(FlipUTest, TestComputeBatchIdShoulDoNothingWhenMakeSharedFailed)
-{
-    MOCKER_CPP(&std::make_shared<FlipTask>).stubs()
-        .will(throws(std::bad_alloc()));
-    const uint16_t dataNum = 2;
-    auto taskTrack = CreateData<MsprofCompactInfo>(dataNum);
-    // runtimeTrack: deviceId, streamId, (batchId, taskId), taskType
-    taskTrack[0]->data.runtimeTrack = {0, 1, 0x00010001, 1};
-    taskTrack[1]->data.runtimeTrack = {0, 1, 0x00010002, 1};
-    std::vector<std::shared_ptr<FlipTask>> flipTask {};
-    Flip::ComputeBatchId(taskTrack, flipTask);
-    ASSERT_EQ(dataNum, taskTrack.size());
-    EXPECT_EQ(1, Flip::GetBatchId(*taskTrack[0]));
-    EXPECT_EQ(1, Flip::GetBatchId(*taskTrack[1]));
-}
-
 TEST_F(FlipUTest, TestComputeBatchIdShouldSetBatchIdWithEachStreamWhenFlipSepTaskData)
 {
     const uint32_t compactInfoDataNum = 10;

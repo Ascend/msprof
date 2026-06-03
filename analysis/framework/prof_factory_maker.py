@@ -44,8 +44,10 @@ class ProfFactoryMaker:
         :return: NA
         """
         if not file_list:
-            logging.warning("No profiling data detected, please check the directory of %s",
-                            os.path.basename(self._sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)))
+            logging.warning(
+                "No profiling data detected, please check the directory of %s",
+                os.path.basename(self._sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)),
+            )
             return
         self._file_list = file_list
 

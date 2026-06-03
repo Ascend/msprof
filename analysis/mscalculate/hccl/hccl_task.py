@@ -42,6 +42,7 @@ class HcclOps:
     group_name: str = Constant.NA
     source: int = DeviceHcclSource.INVALID.value
     kfc_connection_id: int = Constant.DEFAULT_INVALID_VALUE
+    rank_size: int = Constant.DEFAULT_INVALID_VALUE
 
 
 @dataclass
@@ -80,3 +81,4 @@ class HcclTask:
     notify_id: int = Constant.DEFAULT_INVALID_VALUE
     rdma_type: str = Constant.NA
     thread_id: int = Constant.DEFAULT_INVALID_VALUE
+    rank_size: int = Constant.DEFAULT_INVALID_VALUE

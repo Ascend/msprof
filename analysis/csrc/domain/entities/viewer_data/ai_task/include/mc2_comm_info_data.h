@@ -17,6 +17,8 @@
 #ifndef ANALYSIS_DOMAIN_MC2_COMM_INFO_H
 #define ANALYSIS_DOMAIN_MC2_COMM_INFO_H
 
+#include <stdint.h>
+
 namespace Analysis {
 namespace Domain {
 struct MC2CommInfoData {

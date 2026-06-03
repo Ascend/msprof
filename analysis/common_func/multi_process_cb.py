@@ -27,6 +27,7 @@ class MultiProcessCbConstant:
     """
     multi process cb constant class
     """
+
     PMU_MODE_CORE = 1
     PMU_MODE_NO_CORE = 2
     PMU_MODE_INVALID = 3
@@ -151,10 +152,12 @@ def multiprocess_callback(args: any) -> None:
     insert data into
     """
     info = {
-        'end_pos': args["end_pos"], 'replayid': args["replayid"],
+        'end_pos': args["end_pos"],
+        'replayid': args["replayid"],
         "pmu_mode": MultiProcessCbConstant.PMU_MODE_INVALID,
         "query": 'INSERT INTO OriginalData VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        "sample_count": MultiProcessCbConstant.SAMPLE_COUNT, 'cpu_id': args['id']
+        "sample_count": MultiProcessCbConstant.SAMPLE_COUNT,
+        'cpu_id': args['id'],
     }
     lock = args['lock']
     conn, curs = DBManager.create_connect_db(args["dbname"])
@@ -181,8 +184,7 @@ def manipulation_data(file_obj: any, curs: any, conn: any, info: dict, lock: any
         line = line.strip()
 
         if line.startswith(':'):
-            logging.warning("Invalid control cpu data, check "
-                            "ai_ctrl_cpu.data.x.slice_x file around '%s'", line)
+            logging.warning("Invalid control cpu data, check ai_ctrl_cpu.data.x.slice_x file around '%s'", line)
             continue
         matched, pmu_mode = line_match(line, info)
         if not matched:
@@ -206,12 +208,13 @@ def line_match(line: str, info: dict) -> tuple:
     """
     pmu_pat = re.compile(
         r'^(.{{1,50}}) +(\d{{1,20}})/(\d{{1,20}}) +\[(00[{}])\]'
-        r' +(\d{{1,20}}\.\d{{1,20}}): +(\d{{1,20}}) +(\S{{1,50}}?):'.format(
-            info['cpu_id']))
+        r' +(\d{{1,20}}\.\d{{1,20}}): +(\d{{1,20}}) +(\S{{1,50}}?):'.format(info['cpu_id'])
+    )
 
     pmu_pat_raw = re.compile(
         r'^(.{{1,50}}) +(\d{{1,20}})/(\d{{1,20}}) +\[(00[{}])\] +(\d{{1,20}}\.\d{{1,20}}): +(\d{{1,20}})'
-        r' +raw +(\S{{1,50}}):'.format(info['cpu_id']))
+        r' +raw +(\S{{1,50}}):'.format(info['cpu_id'])
+    )
 
     matched = pmu_pat.search(line)
     pmu_mode = MultiProcessCbConstant.PMU_MODE_CORE
@@ -241,13 +244,11 @@ def insert_data(info: dict, curs: any, conn: any, file_obj: any, lock: any) -> t
         logging.info(info["sample"])
     if len(info["samples"]) == MultiProcessCbConstant.SAMPLE_LEN:
         lock.acquire()
-        logging.info(
-            "process %d begin insert OriginalData 100000", os.getpid())
+        logging.info("process %d begin insert OriginalData 100000", os.getpid())
         for i in info["samples"]:
             curs.execute(info["query"], i)
         conn.commit()
-        logging.info(
-            "process %d end insert OriginalData 100000", os.getpid())
+        logging.info("process %d end insert OriginalData 100000", os.getpid())
         lock.release()
         info["samples"] = []
 

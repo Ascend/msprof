@@ -18,23 +18,28 @@
 #define ANALYSIS_DOMAIN_SIO_FORMAT_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct SioData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct SioData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
-    uint16_t dieId = UINT16_MAX; // 0 ~ 1
-    double reqRxBandwidth = 0; // 请求流通道, MB/s
-    double rspRxBandwidth = 0; // 回应流通道, MB/s
-    double snpRxBandwidth = 0; // 侦听流通道, MB/s
-    double datRxBandwidth = 0; // 数据流通道, MB/s
+    uint16_t dieId = UINT16_MAX;  // 0 ~ 1
+    double reqRxBandwidth = 0;    // 请求流通道, MB/s
+    double rspRxBandwidth = 0;    // 回应流通道, MB/s
+    double snpRxBandwidth = 0;    // 侦听流通道, MB/s
+    double datRxBandwidth = 0;    // 数据流通道, MB/s
     double reqTxBandwidth = 0;
     double rspTxBandwidth = 0;
     double snpTxBandwidth = 0;
     double datTxBandwidth = 0;
+    std::string name;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_SIO_FORMAT_DATA_H
+#endif  // ANALYSIS_DOMAIN_SIO_FORMAT_DATA_H

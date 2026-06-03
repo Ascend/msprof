@@ -18,6 +18,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -125,9 +126,9 @@ TEST_F(NpuModuleMemProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
 {
     auto processor = NpuModuleMemProcessor(PROF_PATH);
     DataInventory dataInventory;
-    MOCKER_CPP(&std::vector<NpuModuleMemData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<NpuModuleMemData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MODULE_MEM));
-    MOCKER_CPP(&std::vector<NpuModuleMemData>::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<std::vector<NpuModuleMemData>>();
 }
 
 TEST_F(NpuModuleMemProcessorUTest, TestRunShouldReturnFalseWhenReserveException)
@@ -135,6 +136,7 @@ TEST_F(NpuModuleMemProcessorUTest, TestRunShouldReturnFalseWhenReserveException)
     auto processor = NpuModuleMemProcessor(PROF_PATH);
     DataInventory dataInventory;
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<NpuModuleMemData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<NpuModuleMemData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_ACC_PMU));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<NpuModuleMemData>>();
 }

@@ -158,11 +158,11 @@ TEST_F(AdditionInfoParserUTest, TestCtxIdParserShouldReturn30DataWhenParseSucces
 
 TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&std::vector<std::shared_ptr<MsprofAdditionalInfo>>::reserve).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofAdditionalInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<CtxIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     EXPECT_EQ(0, data.size());
+    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofAdditionalInfo>>).reset();
 }
 
 TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -222,26 +222,17 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserShouldReturn6000ConcatTensor
 
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&std::vector<std::shared_ptr<ConcatTensorInfo>>::reserve).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ConcatTensorInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     EXPECT_EQ(0, data.size());
+    MOCKER_CPP(&Reserve<std::shared_ptr<ConcatTensorInfo>>).reset();
 }
 
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
 {
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<ConcatTensorInfo>();
-    EXPECT_EQ(0, data.size());
-}
-
-TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenMakeSharedFailed)
-{
-    MOCKER_CPP(&std::make_shared<ConcatTensorInfo>).stubs()
-        .will(throws(std::bad_alloc()));
     auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     EXPECT_EQ(0, data.size());

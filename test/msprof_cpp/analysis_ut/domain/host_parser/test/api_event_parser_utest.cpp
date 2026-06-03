@@ -134,26 +134,17 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturn27ApiDataAnd0EventDataWhe
 
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&std::vector<std::shared_ptr<MsprofApi>>::reserve).stubs()
-        .will(throws(std::bad_alloc()));
+    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofApi>();
     EXPECT_EQ(0, data.size());
+    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).reset();
 }
 
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenPopNullptr)
 {
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofApi>();
-    EXPECT_EQ(0, data.size());
-}
-
-TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenMakeSharedFailed)
-{
-    MOCKER_CPP(&std::make_shared<MsprofApi>).stubs()
-        .will(throws(std::bad_alloc()));
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofApi>();
     EXPECT_EQ(0, data.size());

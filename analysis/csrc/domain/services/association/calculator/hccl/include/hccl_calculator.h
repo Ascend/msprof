@@ -22,14 +22,17 @@
 
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/domain/entities/hccl/include/hccl_task.h"
-#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/domain/valueobject/include/task_id.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Infra;
 
-struct DeviceHcclTask {
+struct DeviceHcclTask
+{
     std::string notifyId;
     std::string rdmaType;
     uint16_t iteration = 0;
@@ -44,6 +47,7 @@ struct DeviceHcclTask {
     uint32_t remoteRank = 0;
     uint32_t contextId = 0;
     uint32_t threadId = 0;
+    uint32_t rankSize = 0;
     int64_t connectionId = 0;
     double timestamp = 0;
     double duration = 0;
@@ -64,7 +68,8 @@ struct DeviceHcclTask {
     std::string opName;
 };
 
-struct HcclStatistics {
+struct HcclStatistics
+{
     std::string opType;
     uint32_t count = 0;
     double totalTime = 0;
@@ -74,8 +79,9 @@ struct HcclStatistics {
     double ratio = 0.0;
 };
 
-class HcclCalculator : public Process {
-private:
+class HcclCalculator : public Process
+{
+   private:
     uint32_t ProcessEntry(DataInventory& dataInventory, const Context& context) override;
     bool GetHcclData(DataInventory& dataInventory);
     bool MergeHcclTaskData(const std::shared_ptr<std::vector<TopDownTask>>& ascendTasks,
@@ -86,23 +92,24 @@ private:
                                std::map<TaskId, uint16_t>& opCount);
     bool MergeHcclOpData(const std::shared_ptr<std::vector<HcclOp>>& hcclOps,
                          const std::vector<DeviceHcclTask>& deviceHcclTasks);
-    DeviceHcclTask GetCompleteHcclTaskData(const HcclOp &op, const DeviceHcclTask &hcclTask, uint16_t count);
-    HcclOp GetCompleteHcclOpData(const HcclOp &op);
+    DeviceHcclTask GetCompleteHcclTaskData(const HcclOp& op, const DeviceHcclTask& hcclTask, uint16_t count);
+    HcclOp GetCompleteHcclOpData(const HcclOp& op);
     void UpdateHcclOpNameByGroupName(uint64_t clockMonotonicRaw);
     void UpdateHcclBandwidth();
     void CalculateTaskBandwidth(std::vector<DeviceHcclTask*> hcclTasks);
-    uint16_t GetJumpNum(const DeviceHcclTask &task);
+    uint16_t GetJumpNum(const DeviceHcclTask& task);
     double CalculateBandwidth(double size, double duration);
     uint16_t FindConsecutivePayloadTask(std::vector<DeviceHcclTask*> tasks, size_t idx);
     bool GetHcclStatisticsData(uint64_t clockMonotonicRaw);
-    bool InjectData(DataInventory &inventory);
-private:
+    bool InjectData(DataInventory& inventory);
+
+   private:
     std::vector<HcclOp> opData_;
     std::vector<DeviceHcclTask> taskData_;
     std::vector<HcclStatistics> statisticsData_;
     bool isValidData_ = false;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_CALCULATOR_HCCL_CALCULATOR_H
+#endif  // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_CALCULATOR_HCCL_CALCULATOR_H

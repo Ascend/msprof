@@ -77,7 +77,8 @@ TEST_F(IdPoolUTest, GetIdShouldReturnNewIndexWhenInputIsTupleAndKeyNotExist)
     uint32_t taskId = 4;
     uint32_t contextId = 5;
     uint32_t batchId = 6;
-    CorrelationTuple key = std::make_tuple(deviceId, streamId, taskId, contextId, batchId);
+    uint32_t devType = 0;
+    CorrelationTuple key = std::make_tuple(deviceId, streamId, taskId, contextId, batchId, devType);
     auto res = IdPool::GetInstance().GetId(key);
     EXPECT_EQ(expect, res);
     IdPool::GetInstance().Clear();
@@ -91,11 +92,24 @@ TEST_F(IdPoolUTest, GetIdShouldReturnNewIndexWhenInputIsTupleAndKeyExist)
     uint32_t taskId = 4;
     uint32_t contextId = 5;
     uint32_t batchId = 6;
-    CorrelationTuple key = std::make_tuple(deviceId, streamId, taskId, contextId, batchId);
+    uint32_t devType = 0;
+    CorrelationTuple key = std::make_tuple(deviceId, streamId, taskId, contextId, batchId, devType);
     IdPool::GetInstance().GetId(key);
     auto res = IdPool::GetInstance().GetId(key);
     EXPECT_EQ(expect, res);
     IdPool::GetInstance().Clear();
+}
+
+TEST_F(IdPoolUTest, GetIdShouldReturnDifferentIndexWhenOnlyDevTypeIsDifferent)
+{
+    uint64_t expectFirst = 0;
+    uint64_t expectSecond = 1;
+    auto npuTaskKey = std::make_tuple(1, 2, 3, 4, 5, 0);
+    auto dpuTaskKey = std::make_tuple(1, 2, 3, 4, 5, 2);
+    EXPECT_EQ(expectFirst, IdPool::GetInstance().GetId(npuTaskKey));
+    EXPECT_EQ(expectSecond, IdPool::GetInstance().GetId(dpuTaskKey));
+    EXPECT_EQ(expectFirst, IdPool::GetInstance().GetId(npuTaskKey));
+    EXPECT_EQ(expectSecond, IdPool::GetInstance().GetId(dpuTaskKey));
 }
 
 TEST_F(IdPoolUTest, GetAllUint64IdsShouldReturnMaps)
@@ -209,12 +223,12 @@ TEST_F(IdPoolUTest, IdsShouldBeUniqueWhenInputIsTupleInTheMultiThreadScenario)
 
     for (uint64_t i = 0; i < tasksNum; i++) {
         auto taskGet = [i, &taskResult, &taskMutex]() {
-            auto res = IdPool::GetInstance().GetId(std::make_tuple(i, i, i, i, i));
+            auto res = IdPool::GetInstance().GetId(std::make_tuple(i, i, i, i, i, 0));
             std::lock_guard<std::mutex> lock(taskMutex);
             taskResult.emplace_back(res);
         };
         auto taskRepeatedGet = [i, &taskRepeatedResult, &taskRepeatedMutex]() {
-            auto res = IdPool::GetInstance().GetId(std::make_tuple(i, i, i, i, i));
+            auto res = IdPool::GetInstance().GetId(std::make_tuple(i, i, i, i, i, 0));
             std::lock_guard<std::mutex> lock(taskRepeatedMutex);
             taskRepeatedResult.emplace_back(res);
         };

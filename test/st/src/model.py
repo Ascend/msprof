@@ -23,14 +23,18 @@ from torchvision.models import ResNet50_Weights
 
 class ResNet50:
     def __init__(self, num_classes=1000, device=None):
-        # Automatically choose the device: NPU > CUDA > CPU
         if device is None:
             if hasattr(torch, 'npu') and torch.npu.is_available():
                 self.device = torch.device("npu:0")
             else:
-                self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                raise RuntimeError(
+                    "Current environment does not support NPU data collection. "
+                    "Please check the versions of torch and torch_npu. "
+                    "Recommended: torch >= 2.7.1, torch_npu >= 2.7.1, Python >= 3.7.5"
+                )
         else:
             self.device = torch.device(device)
+        torch.npu.set_device(self.device)
         print(f"[INFO] Using device: {self.device}")
 
         # Load ResNet50 (with pretrained weights)

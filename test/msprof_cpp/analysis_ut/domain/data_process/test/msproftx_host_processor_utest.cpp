@@ -18,6 +18,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/msproftx_host_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain;
@@ -139,7 +140,7 @@ TEST_F(MsprofTxHostProcessorUTest, ShouldReturnFalseWhenReserveException)
     auto processor = MsprofTxHostProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
     MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<MsprofTxHostData>::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<MsprofTxHostData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_MSTX));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<MsprofTxHostData>>();
 }
-

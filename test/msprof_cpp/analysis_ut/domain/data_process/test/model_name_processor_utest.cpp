@@ -22,10 +22,12 @@
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/domain/data_process/data_processor.h";
 #include "analysis/csrc/infrastructure/db/include/db_runner.h";
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
+using namespace Analysis::Test;
 using namespace Analysis::Viewer::Database;
 
 const std::string API_DIR = "./model_name";
@@ -153,11 +155,9 @@ TEST_F(ModelNameProcessorUTest, TestFormatDataShouldReturnEmpty)
     DataInventory dataInventory;
     OriModelNameDataFormat oriData;
     std::vector<ModelName> formatData;
-    MOCKER_CPP(&std::vector<ModelName>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<ModelName>>();
     ASSERT_EQ(processor.FormatData(oriData).size(), formatData.size());
-    MOCKER_CPP(&std::vector<ModelName>::reserve).reset();
+    ResetReserveFailureForVector<std::vector<ModelName>>();
 }
 
 TEST_F(ModelNameProcessorUTest, TestRunShouldReturnFalseWhenFileOverMaxSize)

@@ -32,6 +32,7 @@ class FileSliceHelper:
     """
     This class is used to slicing file.
     """
+
     # csv count limit, less than 1000000
     CSV_LIMIT = 1000000
     # json file size less than 200M, 300 means a record is 300 Bytes
@@ -59,8 +60,10 @@ class FileSliceHelper:
     @staticmethod
     def get_export_prefix_file_name(params: dict, slice_times: int = 0, slice_switch=False) -> str:
         file_name = params.get(StrConstant.PARAM_DATA_TYPE)
-        if params.get(StrConstant.PARAM_DEVICE_ID) is not None and \
-                params.get(StrConstant.PARAM_DEVICE_ID) != NumberConstant.HOST_ID:
+        if (
+            params.get(StrConstant.PARAM_DEVICE_ID) is not None
+            and params.get(StrConstant.PARAM_DEVICE_ID) != NumberConstant.HOST_ID
+        ):
             file_name += "_" + str(params.get(StrConstant.PARAM_DEVICE_ID))
             if ProfilingScene().is_graph_export():
                 file_name += "_" + str(params.get(StrConstant.PARAM_MODEL_ID))
@@ -94,18 +97,23 @@ class FileSliceHelper:
         while len(self.data_list) >= ((slice_count + 1) * self.CSV_LIMIT):
             slice_switch = self.file_name_slice != self.COUNT_INIT
             csv_file = FileSliceHelper.make_export_file_name(self.params, self.file_name_slice, slice_switch)
-            result_json = json.loads(create_csv(csv_file, self.header,
-                                           self.data_list[slice_count * self.CSV_LIMIT:
-                                           (slice_count + 1) * self.CSV_LIMIT],
-                                           save_old_file=False))
+            result_json = json.loads(
+                create_csv(
+                    csv_file,
+                    self.header,
+                    self.data_list[slice_count * self.CSV_LIMIT : (slice_count + 1) * self.CSV_LIMIT],
+                    save_old_file=False,
+                )
+            )
             if result_json.get('status', NumberConstant.EXCEPTION) == NumberConstant.ERROR:
                 return result_json
             slice_count += 1
             self.file_name_slice += 1
 
-        self.data_list = self.data_list[slice_count * self.CSV_LIMIT:]
-        csv_file = FileSliceHelper.make_export_file_name(self.params, self.file_name_slice,
-                                                         slice_switch=(self.file_name_slice != self.COUNT_INIT))
+        self.data_list = self.data_list[slice_count * self.CSV_LIMIT :]
+        csv_file = FileSliceHelper.make_export_file_name(
+            self.params, self.file_name_slice, slice_switch=(self.file_name_slice != self.COUNT_INIT)
+        )
         return create_csv(csv_file, self.header, self.data_list, save_old_file=False)
 
     def set_header(self, header: list):
@@ -131,8 +139,9 @@ class FileSliceHelper:
 
     def dump_csv_data(self, force: bool = False):
         if force and self.data_list:
-            csv_file = FileSliceHelper.make_export_file_name(self.params, self.file_name_slice,
-                                             slice_switch=(self.file_name_slice != self.COUNT_INIT))
+            csv_file = FileSliceHelper.make_export_file_name(
+                self.params, self.file_name_slice, slice_switch=(self.file_name_slice != self.COUNT_INIT)
+            )
             create_csv(csv_file, self.header, self.data_list, use_dict=True)
             self.data_list = []
             return
@@ -141,14 +150,16 @@ class FileSliceHelper:
         slice_count = 0
         while len(self.data_list) >= ((slice_count + 1) * self.CSV_LIMIT):
             csv_file = FileSliceHelper.make_export_file_name(self.params, self.file_name_slice, slice_switch=True)
-            create_csv(csv_file, self.header,
-                       self.data_list[slice_count * self.CSV_LIMIT:
-                                      (slice_count + 1) * self.CSV_LIMIT],
-                       use_dict=True)
+            create_csv(
+                csv_file,
+                self.header,
+                self.data_list[slice_count * self.CSV_LIMIT : (slice_count + 1) * self.CSV_LIMIT],
+                use_dict=True,
+            )
             slice_count += 1
             self.file_name_slice += 1
         # clear used data to avoid oom
-        self.data_list = self.data_list[slice_count * self.CSV_LIMIT:]
+        self.data_list = self.data_list[slice_count * self.CSV_LIMIT :]
 
     def _pretreat_json_data(self, json_data: list):
         """
@@ -170,6 +181,5 @@ class FileSliceHelper:
         try:
             with FdOpen(filename) as trace_file:
                 trace_file.write(json.dumps(self.header + self.data_list))
-        except (OSError, SystemError, ValueError, TypeError,
-                RuntimeError) as err:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)

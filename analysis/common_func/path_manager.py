@@ -27,6 +27,7 @@ class PathManager:
     """
     file path manager
     """
+
     DATA = "data"
     LOG = ".log"
     SQLITE = "sqlite"
@@ -83,8 +84,7 @@ class PathManager:
         """
         get log directory in result directory
         """
-        return os.path.realpath(cls.get_path_under_result_dir(
-            os.path.dirname(result_dir), cls.MINDSTUDIO_PROFILER_LOG))
+        return os.path.realpath(cls.get_path_under_result_dir(os.path.dirname(result_dir), cls.MINDSTUDIO_PROFILER_LOG))
 
     @classmethod
     def get_sql_dir(cls: any, result_dir: str) -> str:
@@ -106,14 +106,29 @@ class PathManager:
         get db name path in result directory
         """
         db_filter = {
-            DBNameConstant.DB_ACL_MODULE, DBNameConstant.DB_RUNTIME, DBNameConstant.DB_GE_MODEL_INFO,
-            DBNameConstant.DB_GE_HOST_INFO, DBNameConstant.DB_GE_INFO,
-            DBNameConstant.DB_RTS_TRACK, DBNameConstant.DB_HCCL, DBNameConstant.DB_MSPROFTX,
-            DBNameConstant.DB_GE_HASH, DBNameConstant.DB_API_EVENT, DBNameConstant.DB_HCCL_INFO,
-            DBNameConstant.DB_MULTI_THREAD, DBNameConstant.DB_TENSOR_ADD_INFO, DBNameConstant.DB_NODE_BASIC_INFO,
-            DBNameConstant.DB_FUSION_ADD_INFO, DBNameConstant.DB_GRAPH_ADD_INFO, DBNameConstant.DB_CTX_ID,
-            DBNameConstant.DB_SYNC_ACL_NPU, DBNameConstant.DB_MEMORY_OP, DBNameConstant.DB_GE_LOGIC_STREAM_INFO,
-            DBNameConstant.DB_MC2_COMM_INFO, DBNameConstant.DB_STREAM_INFO
+            DBNameConstant.DB_ACL_MODULE,
+            DBNameConstant.DB_RUNTIME,
+            DBNameConstant.DB_GE_MODEL_INFO,
+            DBNameConstant.DB_GE_HOST_INFO,
+            DBNameConstant.DB_GE_INFO,
+            DBNameConstant.DB_RTS_TRACK,
+            DBNameConstant.DB_HCCL,
+            DBNameConstant.DB_MSPROFTX,
+            DBNameConstant.DB_GE_HASH,
+            DBNameConstant.DB_API_EVENT,
+            DBNameConstant.DB_HCCL_INFO,
+            DBNameConstant.DB_MULTI_THREAD,
+            DBNameConstant.DB_TENSOR_ADD_INFO,
+            DBNameConstant.DB_NODE_BASIC_INFO,
+            DBNameConstant.DB_FUSION_ADD_INFO,
+            DBNameConstant.DB_GRAPH_ADD_INFO,
+            DBNameConstant.DB_CTX_ID,
+            DBNameConstant.DB_SYNC_ACL_NPU,
+            DBNameConstant.DB_MEMORY_OP,
+            DBNameConstant.DB_GE_LOGIC_STREAM_INFO,
+            DBNameConstant.DB_MC2_COMM_INFO,
+            DBNameConstant.DB_STREAM_INFO,
+            DBNameConstant.DB_DPU,
         }
         base_result_dir = result_dir
         if db_name in db_filter:
@@ -126,8 +141,7 @@ class PathManager:
         get collection log path
         """
         base_name = os.path.basename(result_dir)
-        return cls.get_path_under_result_dir(cls.get_log_dir(result_dir),
-                                             cls.COLLECTION_LOG + base_name + cls.LOG)
+        return cls.get_path_under_result_dir(cls.get_log_dir(result_dir), cls.COLLECTION_LOG + base_name + cls.LOG)
 
     @classmethod
     def get_dispatch_dir(cls: any, result_dir: str) -> str:
@@ -207,7 +221,6 @@ class PathManager:
             PathManager.del_dir(summary_dir)
             PathManager.del_dir(timeline_dir)
 
-
     @classmethod
     def del_dir(cls: any, del_path):
         """
@@ -224,12 +237,12 @@ class PathManager:
         shutil.rmtree(del_path, ignore_errors=True)
 
     @classmethod
-    def safe_os_walk(cls, path, max_depth=10, *args, **kwargs):
+    def safe_os_walk(cls, path, *args, max_depth=10, **kwargs):
         """
         带深度限制的目录遍历器，类似os.walk但限制最大递归深度
         :param path: 根目录路径
-        :param max_depth: 最大递归深度
         :param args: 传递给os.walk的位置参数
+        :param max_depth: 最大递归深度
         :param kwargs: 传递给os.walk的关键字参数
         :yield: (dir_path, dirs, files) 与os.walk相同的元组
               - dir_path: 当前目录的绝对路径

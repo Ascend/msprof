@@ -38,7 +38,7 @@ const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
 
 class QosAssemblerUTest : public testing::Test {
 protected:
-    static void SetUpTestCase()
+    virtual void SetUp()
     {
         if (File::Check(BASE_PATH)) {
             File::RemoveDir(BASE_PATH, DEPTH);
@@ -48,20 +48,33 @@ protected:
         EXPECT_TRUE(File::CreateDir(DEVICE_PATH));
         EXPECT_TRUE(File::CreateDir(RESULT_PATH));
     }
-    static void TearDownTestCase()
+    virtual void TearDown()
     {
         EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
         dataInventory_.RemoveRestData({});
         GlobalMockObject::verify();
     }
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
 protected:
-    static DataInventory dataInventory_;
+    DataInventory dataInventory_;
 };
-DataInventory QosAssemblerUTest::dataInventory_;
+
+static std::string ReadTraceContent()
+{
+    auto files = File::GetOriginData(RESULT_PATH, {MSPROF_JSON_FILE}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    EXPECT_FALSE(res.empty());
+    return res.empty() ? "" : res.back();
+}
+
+static void InjectQosData(DataInventory &dataInventory, const std::vector<QosData> &qosData)
+{
+    std::shared_ptr<std::vector<QosData>> dataS;
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<QosData>, qosData);
+    dataInventory.Inject(dataS);
+}
 
 static std::vector<QosData> GenerateQosData()
 {
@@ -107,6 +120,25 @@ static std::vector<QosData> GenerateQosData()
     return res;
 }
 
+static std::vector<QosData> GenerateQosV6Data()
+{
+    std::vector<QosData> res;
+    QosData dieZero;
+    dieZero.deviceId = 0;
+    dieZero.dieId = 0;
+    dieZero.timestamp = 1724405892226599429;
+    dieZero.bw3 = 11;
+    dieZero.bw4 = 12;
+    res.push_back(dieZero);
+
+    QosData dieOne = dieZero;
+    dieOne.dieId = 1;
+    dieOne.bw3 = 21;
+    dieOne.bw4 = 22;
+    res.push_back(dieOne);
+    return res;
+}
+
 TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataNotExists)
 {
     QosAssembler assembler;
@@ -116,10 +148,8 @@ TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataNotExists)
 TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
 {
     QosAssembler assembler;
-    std::shared_ptr<std::vector<QosData>> dataS;
     auto data = GenerateQosData();
-    MAKE_SHARED_NO_OPERATION(dataS, std::vector<QosData>, data);
-    dataInventory_.Inject(dataS);
+    InjectQosData(dataInventory_, data);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086)); // pid 2328086
     std::vector<std::string> qosEvents {"OTHERS", "DVPP"};
     MOCKER_CPP(&Context::GetQosEvents).stubs().will(returnValue(qosEvents));
@@ -130,22 +160,82 @@ TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960960,\"tid\":0,\"ph\":\"M\",\"args\":"
-                            "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960960,\"tid\""
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":"
+                            "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\""
                             ":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\""
-                            "process_sort_index\",\"pid\":2383960960,\"tid\":0,\"ph\":\"M\",\""
-                            "args\":{\"sort_index\":28}},";
+                            "process_sort_index\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\""
+                            "args\":{\"sort_index\":29}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
 TEST_F(QosAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
 {
     QosAssembler assembler;
-    std::shared_ptr<std::vector<QosData>> dataS;
     auto data = GenerateQosData();
-    MAKE_SHARED_NO_OPERATION(dataS, std::vector<QosData>, data);
-    dataInventory_.Inject(dataS);
+    InjectQosData(dataInventory_, data);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086)); // pid 2328086
     MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
+}
+
+TEST_F(QosAssemblerUTest, ShouldGenerateMergedDieSeriesForV6Platform)
+{
+    QosAssembler assembler;
+    InjectQosData(dataInventory_, GenerateQosV6Data());
+    std::vector<std::string> qosEvents {"OTHERS", "DVPP"};
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));
+    MOCKER_CPP(&Context::GetQosEvents).stubs().will(returnValue(qosEvents));
+    MOCKER_CPP(&Context::GetPlatformVersion).stubs().will(returnValue(static_cast<unsigned short>(15)));
+    MOCKER_CPP(&Context::IsChipV6).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::IsChipV4).stubs().will(returnValue(false));
+
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+
+    std::string content = ReadTraceContent();
+    std::string expectMeta = "{\"name\":\"process_name\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":"
+                             "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\":0,"
+                             "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
+                             "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":29}},";
+    std::string expectOthers1 = "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                                "\"ph\":\"C\",\"args\":{\"die 0\":11,\"die 1\":21}}";
+    std::string expectOthers2 = "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                                "\"ph\":\"C\",\"args\":{\"die 1\":21,\"die 0\":11}}";
+    std::string expectDvpp1 = "{\"name\":\"QoS DVPP\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                              "\"ph\":\"C\",\"args\":{\"die 0\":12,\"die 1\":22}}";
+    std::string expectDvpp2 = "{\"name\":\"QoS DVPP\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                              "\"ph\":\"C\",\"args\":{\"die 1\":22,\"die 0\":12}}";
+    EXPECT_EQ(0ul, content.find(expectMeta));
+    EXPECT_TRUE(content.find(expectOthers1) != std::string::npos || content.find(expectOthers2) != std::string::npos);
+    EXPECT_TRUE(content.find(expectDvpp1) != std::string::npos || content.find(expectDvpp2) != std::string::npos);
+}
+
+TEST_F(QosAssemblerUTest, ShouldGenerateCounterSeriesForV4Platform)
+{
+    QosAssembler assembler;
+    auto data = GenerateQosData();
+    InjectQosData(dataInventory_, data);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));
+    std::vector<std::string> qosEvents {"OTHERS", "DVPP"};
+    MOCKER_CPP(&Context::GetQosEvents).stubs().will(returnValue(qosEvents));
+    MOCKER_CPP(&Context::GetPlatformVersion).stubs().will(returnValue(static_cast<unsigned short>(15)));
+    MOCKER_CPP(&Context::IsChipV6).stubs().will(returnValue(false));
+    MOCKER_CPP(&Context::IsChipV4).stubs().will(returnValue(true));
+
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+
+    std::string content = ReadTraceContent();
+    std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":"
+                            "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\":0,"
+                            "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
+                            "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":29}},{\"name\":"
+                            "\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":10}},{\"name\":\"QoS DVPP\",\"pid\":2383960992,"
+                            "\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"value\":10}},"
+                            "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892227599.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":20}},{\"name\":\"QoS DVPP\",\"pid\":2383960992,"
+                            "\"tid\":0,\"ts\":\"1724405892227599.429\",\"ph\":\"C\",\"args\":{\"value\":20}},"
+                            "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892228599.429\","
+                            "\"ph\":\"C\",\"args\":{\"value\":30}},{\"name\":\"QoS DVPP\",\"pid\":2383960992,"
+                            "\"tid\":0,\"ts\":\"1724405892228599.429\",\"ph\":\"C\",\"args\":{\"value\":30}},";
+    EXPECT_EQ(expectStr, content);
 }

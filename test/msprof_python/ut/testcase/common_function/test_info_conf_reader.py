@@ -147,6 +147,21 @@ class TestInfoConfReader(unittest.TestCase):
         InfoConfReader()._info_json = {}
         self.assertEqual("", InfoConfReader().get_data_under_device('test_type'))
 
+    def test_get_cann_version_should_return_cann_version_when_cann_version_is_valid(self):
+        InfoConfReader()._info_json = {"cannVersion": "9.1.0"}
+        self.assertEqual((9, 1), InfoConfReader().get_cann_version())
+        InfoConfReader()._info_json = {"cannVersion": "9.1.0-beta.0"}
+        self.assertEqual((9, 1), InfoConfReader().get_cann_version())
+        InfoConfReader()._info_json = {"cannVersion": "9.1.T106"}
+        self.assertEqual((9, 1), InfoConfReader().get_cann_version())
+        InfoConfReader()._info_json = {}
+
+    def test_get_cann_version_should_return_0_when_cann_version_is_invalid(self):
+        InfoConfReader()._info_json = {"cannVersion": "invalid_version"}
+        self.assertEqual((0, 0), InfoConfReader().get_cann_version())
+        InfoConfReader()._info_json = {}
+        self.assertEqual((0, 0), InfoConfReader().get_cann_version())
+
 
 if __name__ == '__main__':
     unittest.main()

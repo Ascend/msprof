@@ -44,6 +44,7 @@ class MsvpCommonConst:
     """
     msvp common
     """
+
     # cpu_config_type
     TS_CPU = "ts_cpu"
     AI_CPU = "ai_cpu"
@@ -135,7 +136,7 @@ def get_cpu_event_config(sample_config: dict, cpu_type: str) -> list:
         if _events != '0x11':
             events.append(_events)
     cpu_events = []
-    new_events = (events[i:i + 6] for i in range(0, len(events), 6))
+    new_events = (events[i : i + 6] for i in range(0, len(events), 6))
     for j in new_events:
         cpu_events.append(j)
     if cpu_type == 'ai_ctrl_cpu':
@@ -215,9 +216,8 @@ def create_csv_writer(csv_file: str, headers: list, data: list):
             writer.writerow(headers)
         slice_count = len(data) // NumberConstant.DATA_NUM
         for index in range(slice_count):
-            writer.writerows(data[index * NumberConstant.DATA_NUM:
-                                  (index + 1) * NumberConstant.DATA_NUM])
-        writer.writerows(data[slice_count * NumberConstant.DATA_NUM:])
+            writer.writerows(data[index * NumberConstant.DATA_NUM : (index + 1) * NumberConstant.DATA_NUM])
+        writer.writerows(data[slice_count * NumberConstant.DATA_NUM :])
 
 
 def create_normal_writer(csv_file: str, headers: list, data: list):
@@ -227,9 +227,8 @@ def create_normal_writer(csv_file: str, headers: list, data: list):
         _csv_file.write(','.join(headers))
         slice_count = len(data) // NumberConstant.DATA_NUM
         for index in range(slice_count):
-            _csv_file.writelines(data[index * NumberConstant.DATA_NUM:
-                                      (index + 1) * NumberConstant.DATA_NUM])
-        _csv_file.writelines(data[slice_count * NumberConstant.DATA_NUM:])
+            _csv_file.writelines(data[index * NumberConstant.DATA_NUM : (index + 1) * NumberConstant.DATA_NUM])
+        _csv_file.writelines(data[slice_count * NumberConstant.DATA_NUM :])
 
 
 def create_json(json_file: str, headers: list, data: list, save_old_file: bool = True) -> str:
@@ -332,17 +331,22 @@ def check_dir_writable(path: str, create_dir: bool = False) -> None:
         try:
             os.makedirs(path, Constant.FOLDER_MASK)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
-            ReturnCodeCheck.print_and_return_status(json.dumps(
-                {'status': NumberConstant.ERROR,
-                 'info': "Failed to create path '%s'. %s" % (path, err)}))
+            ReturnCodeCheck.print_and_return_status(
+                json.dumps({'status': NumberConstant.ERROR, 'info': "Failed to create path '%s'. %s" % (path, err)})
+            )
         finally:
             pass
     check_path_valid(path, False)
     if not os.access(path, os.W_OK):
-        ReturnCodeCheck.print_and_return_status(json.dumps(
-            {'status': NumberConstant.ERROR,
-             'info': "The path '%s' does not have permission to write. Please "
-                     'check that the path is writeable.' % path}))
+        ReturnCodeCheck.print_and_return_status(
+            json.dumps(
+                {
+                    'status': NumberConstant.ERROR,
+                    'info': "The path '%s' does not have permission to write. Please "
+                    'check that the path is writeable.' % path,
+                }
+            )
+        )
 
 
 def is_valid_original_data(file_name: str, project_path: str, is_conf: bool = False) -> bool:
@@ -354,8 +358,11 @@ def is_valid_original_data(file_name: str, project_path: str, is_conf: bool = Fa
     :return: result of checking original data
     """
     file_parent_path = project_path if is_conf else PathManager.get_data_dir(project_path)
-    if file_name.endswith(Constant.COMPLETE_TAG) or file_name.endswith(Constant.DONE_TAG) \
-            or file_name.endswith(Constant.ZIP_TAG):
+    if (
+        file_name.endswith(Constant.COMPLETE_TAG)
+        or file_name.endswith(Constant.DONE_TAG)
+        or file_name.endswith(Constant.ZIP_TAG)
+    ):
         return False
     if os.path.exists(os.path.join(file_parent_path, file_name + Constant.COMPLETE_TAG)):
         return False
@@ -370,8 +377,10 @@ def float_calculate(input_list: list, operator: str = '+') -> str:
     :return: result after calculated
     """
     operator_dict = {
-        StrConstant.OPERATOR_PLUS: add, StrConstant.OPERATOR_MINUS: sub,
-        StrConstant.OPERATOR_MULTIPLY: mul, StrConstant.OPERATOR_DIVISOR: truediv
+        StrConstant.OPERATOR_PLUS: add,
+        StrConstant.OPERATOR_MINUS: sub,
+        StrConstant.OPERATOR_MULTIPLY: mul,
+        StrConstant.OPERATOR_DIVISOR: truediv,
     }
     if operator not in operator_dict or not input_list or None in input_list:
         return str(0)

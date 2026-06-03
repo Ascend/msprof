@@ -95,6 +95,9 @@ class StructDecoder:
         "RuntimeOpInfo256Bean": StructFmt.RUNTIME_OP_INFO_256_FMT,
         "V5ExeomBean": StructFmt.V5_MODEL_EXEOM_FMT,
         "V5StarsBean": StructFmt.V5_STARS_PROFILE_FMT,
+        "DPUHcclTrackBean": StructFmt.DPU_HCCL_TRACK_FMT,
+        "DPUTaskTrackBean": StructFmt.DPU_TASK_TRACK_FMT,
+        "FusionTaskBean": StructFmt.FUSION_TASK_FMT,
     }
 
     @classmethod

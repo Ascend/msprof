@@ -22,13 +22,16 @@
 
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 
 
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
 using namespace Analysis::Viewer::Database;
 using namespace  Analysis::Domain;
+using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain::Cann;
+using TypeData = Analysis::Domain::Host::Cann::TypeData;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
 const uint32_t INPUT_DATA_TYPE_POSITION = 15;
 const uint32_t GROUP_NAME_POSITION = 3;
@@ -107,6 +110,37 @@ protected:
         MOCKER_CPP(&TreeAnalyzer::GetComputeTasks).stubs().will(returnValue(*kernelTasks));
     }
 
+    static void MockGetComputeTasksWithMixedRuntimeTracks()
+    {
+        auto kernelTasks = std::make_shared<HostTasks>();
+        auto makeTask = [&](uint64_t taskType, bool isSimt, uint16_t numBlocks, uint8_t ratio,
+                            uint16_t gx, uint16_t gy, uint16_t gz, uint16_t bx, uint16_t by, uint16_t bz) {
+            auto kernelTask = std::make_shared<HostTask>();
+            auto kernelDesc = std::make_shared<OpDesc>();
+            kernelDesc->tensorDesc = std::make_shared<ConcatTensorInfo>();
+            kernelDesc->nodeDesc = std::make_shared<MsprofCompactInfo>();
+            kernelDesc->nodeDesc->data.nodeBasicInfo = MsprofNodeBasicInfo{};
+            kernelDesc->nodeDesc->data.nodeAttrInfo = MsprofAttrInfo{};
+            auto runtimeTrackDesc = std::make_shared<MsprofCompactInfo>();
+            runtimeTrackDesc->dataLen = MSPROF_COMPACT_INFO_DATA_LENGTH;
+            runtimeTrackDesc->data.runtimeTrack.taskType = taskType;
+            if (isSimt) {
+                runtimeTrackDesc->data.runtimeTrack.extInfo.simtKernelInfo.gridDim = {gx, gy, gz};
+                runtimeTrackDesc->data.runtimeTrack.extInfo.simtKernelInfo.blockDim = {bx, by, bz};
+            } else {
+                runtimeTrackDesc->data.runtimeTrack.extInfo.kernelInfo.numBlocks = numBlocks;
+                runtimeTrackDesc->data.runtimeTrack.extInfo.kernelInfo.ratio = ratio;
+            }
+            kernelDesc->runtimeTrackDesc = runtimeTrackDesc;
+            kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>();
+            kernelTask->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
+            kernelTasks->push_back(std::make_shared<HostTask>(*kernelTask));
+        };
+        makeTask(99, true, 0, 0, 2, 3, 4, 5, 6, 7);
+        makeTask(0, false, 100, 3, 0, 0, 0, 0, 0, 0);
+        MOCKER_CPP(&TreeAnalyzer::GetComputeTasks).stubs().will(returnValue(*kernelTasks));
+    }
+
     static void MockGetTasks()
     {
         auto pMiniOpDesc = std::make_shared<HcclSmallOpDesc>(0, 0, nullptr);
@@ -176,17 +210,16 @@ TEST_F(CannDBDumperUtest,
     GEInfoDB geInfoDB;
     std::string opDescDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, geInfoDB.GetDBName()});
     DBRunner opDescDBRunner(opDescDBPath);
-    std::vector<std::tuple<uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            std::string, uint32_t, uint32_t, double, uint32_t, uint32_t, std::string,
-            std::string, std::string, std::string, std::string, std::string, uint32_t,
-            uint32_t, uint32_t>> TaskInfoData;
-    opDescDBRunner.QueryData("select * from TaskInfo", TaskInfoData);
-    EXPECT_EQ(TaskInfoData.size(), 1);
-    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(TaskInfoData[0]), "N/A");
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    opDescDBRunner.QueryData("select * from TaskInfo", taskInfoData);
+    EXPECT_EQ(taskInfoData.size(), 1);
+    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<24>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<25>(taskInfoData[0]), NA);
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, uint32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -224,17 +257,14 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
     GEInfoDB geInfoDB;
     std::string opDescDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, geInfoDB.GetDBName()});
     DBRunner opDescDBRunner(opDescDBPath);
-    std::vector<std::tuple<uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            std::string, uint32_t, uint32_t, double, uint32_t, uint32_t, std::string,
-            std::string, std::string, std::string, std::string, std::string, uint32_t,
-            uint32_t, uint32_t>> TaskInfoData;
-    opDescDBRunner.QueryData("select * from TaskInfo", TaskInfoData);
-    EXPECT_EQ(TaskInfoData.size(), 1);
-    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(TaskInfoData[0]), "N/A");
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    opDescDBRunner.QueryData("select * from TaskInfo", taskInfoData);
+    EXPECT_EQ(taskInfoData.size(), 1);
+    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(taskInfoData[0]), NA);
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -279,20 +309,17 @@ TEST_F(CannDBDumperUtest,
     GEInfoDB geInfoDB;
     std::string opDescDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, geInfoDB.GetDBName()});
     DBRunner opDescDBRunner(opDescDBPath);
-    std::vector<std::tuple<uint32_t, std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            std::string, uint32_t, uint32_t, double, uint32_t, uint32_t, std::string,
-            std::string, std::string, std::string, std::string, std::string, uint32_t,
-            uint32_t, uint32_t>> TaskInfoData;
-    opDescDBRunner.QueryData("select * from TaskInfo", TaskInfoData);
-    EXPECT_EQ(TaskInfoData.size(), 1);
-    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(TaskInfoData[0]), "N/A");
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    opDescDBRunner.QueryData("select * from TaskInfo", taskInfoData);
+    EXPECT_EQ(taskInfoData.size(), 1);
+    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(taskInfoData[0]), NA);
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string>> HCCLTaskData;
+            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
-    EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "N/A");
+    EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), NA);
 }
 
 TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnFalseWhenInsertDataToDBFailed)
@@ -385,11 +412,13 @@ TEST_F(CannDBDumperUtest, TestGetFormat_SubFormat_One)
     EXPECT_EQ(result, "NCHW:1");
 }
 
-TEST_F(CannDBDumperUtest, TestAddTaskInfoOpIsNullWhenProfLevel0)
+TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel0)
 {
     CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
     auto hostTaskPtr = std::make_shared<HostTask>();
-    hostTaskPtr->op = nullptr;
+    auto kernelDesc = std::make_shared<OpDesc>();
+    auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_RESERVED);
+    hostTaskPtr->op = kernelOp;
     hostTaskPtr->kernelName = 0;
     CANNTraceDBDumper::TaskInfoData taskInfoData;
     bool isLevel0 = true;
@@ -400,11 +429,13 @@ TEST_F(CannDBDumperUtest, TestAddTaskInfoOpIsNullWhenProfLevel0)
     EXPECT_EQ(taskInfoData.size(), 1ul);
 }
 
-TEST_F(CannDBDumperUtest, TestAddTaskInfoOpIsNullWhenProfLevel1)
+TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel1)
 {
     CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
     auto hostTaskPtr = std::make_shared<HostTask>();
-    hostTaskPtr->op = nullptr;
+    auto kernelDesc = std::make_shared<OpDesc>();
+    auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_RESERVED);
+    hostTaskPtr->op = kernelOp;
     hostTaskPtr->kernelName = 0;
     CANNTraceDBDumper::TaskInfoData taskInfoData;
     bool isLevel0 = false;
@@ -441,4 +472,31 @@ TEST_F(CannDBDumperUtest, TestDumpGeFusionOps)
     cannTraceDbDumper.DumpGeFusionOps(geFusionOpInfos);
     EXPECT_FALSE(cannTraceDbDumper.result_);
     MOCKER_CPP(&DBRunner::InsertData<>).reset();
+}
+
+TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenTaskHasSimtRuntimeTrack)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(false));
+    MOCKER_CPP(&TypeData::Get).stubs()
+        .will(returnValue(std::string("KERNEL_SIMT")))
+        .then(returnValue(std::string("KERNEL_AICORE")));
+    MockGetComputeTasksWithMixedRuntimeTracks();
+    CANNTraceDBDumper cannTraceDbDumper(".");
+    auto treeNode = std::make_shared<TreeNode>(nullptr);
+    TreeAnalyzer treeAnalyzer(treeNode, THREAD_ID);
+    bool ret = cannTraceDbDumper.DumpData(treeAnalyzer);
+    EXPECT_TRUE(ret);
+
+    GEInfoDB geInfoDB;
+    std::string opDescDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, geInfoDB.GetDBName()});
+    DBRunner opDescDBRunner(opDescDBPath);
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    opDescDBRunner.QueryData("select * from TaskInfo", taskInfoData);
+    EXPECT_EQ(taskInfoData.size(), 2);
+    EXPECT_EQ(std::get<24>(taskInfoData[0]), "2,3,4");
+    EXPECT_EQ(std::get<25>(taskInfoData[0]), "5,6,7");
+    EXPECT_EQ(std::get<4>(taskInfoData[1]), 100u);
+    EXPECT_EQ(std::get<5>(taskInfoData[1]), 300u);
+    EXPECT_EQ(std::get<24>(taskInfoData[1]), "N/A");
+    EXPECT_EQ(std::get<25>(taskInfoData[1]), "N/A");
 }

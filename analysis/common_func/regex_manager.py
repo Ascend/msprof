@@ -19,6 +19,7 @@ class RegexManagerConstant:
     """
     regex manager constant class
     """
+
     # check the expression inner bracket.
     REGEX_INNER_BRACKET = r'\([^()]+\)'
     # check the expression connected by && or ||.

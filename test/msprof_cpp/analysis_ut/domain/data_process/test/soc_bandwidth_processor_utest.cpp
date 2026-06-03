@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Utils;
@@ -129,13 +130,13 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
-    MOCKER_CPP(&ProcessedFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<ProcessedFormat>();
     for (auto path: PROF_PATHS) {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
     }
-    MOCKER_CPP(&ProcessedFormat::reserve).reset();
+    Analysis::Test::ResetReserveFailureForVector<ProcessedFormat>();
 }
 
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)

@@ -20,11 +20,13 @@
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Viewer::Database;
+using namespace Analysis::Test;
 using ProcessedFormat = std::vector<HcclStatisticData>;
 
 const std::string BASE_PATH = "./hccl_statistic";
@@ -125,13 +127,13 @@ TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 
 TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
-    MOCKER_CPP(&ProcessedFormat::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<ProcessedFormat>();
     for (auto path: PROF_PATHS) {
         auto processor = HcclStatisticProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));
     }
-    MOCKER_CPP(&ProcessedFormat::reserve).reset();
+    ResetReserveFailureForVector<ProcessedFormat>();
 }
 
 TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
@@ -147,7 +149,7 @@ TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunne
 
 TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenGetDeviceIdByDevicePathFailed)
 {
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(INVALID_DEVICE_ID));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(INVALID_DEVICE_ID)));
     for (auto path: PROF_PATHS) {
         auto processor = HcclStatisticProcessor(path);
         auto dataInventory = DataInventory();

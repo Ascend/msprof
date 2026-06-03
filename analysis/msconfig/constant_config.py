@@ -23,13 +23,7 @@ class ConstantConfig(MetaConfig):
             ('ai_ctrl_cpu_profiling_events', '0x11,0x8'),
             ('ts_cpu_profiling_events', '0x11,0x8'),
             ('hbm_profiling_events', 'read,write'),
-            ('ddr_profiling_events', 'read,write')
+            ('ddr_profiling_events', 'read,write'),
         ],
-        'GENERAL': [
-            ('dangerous_app_list', 'rm,mv,reboot,shutdown,halt')
-        ]
+        'GENERAL': [('dangerous_app_list', 'rm,mv,reboot,shutdown,halt')],
     }
-
-    def __init__(self):
-        super().__init__()
-

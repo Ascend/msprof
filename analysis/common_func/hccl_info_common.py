@@ -38,6 +38,7 @@ class DataType(Enum):
     """
     Data type enum
     """
+
     INT8 = 0
     INT16 = 1
     INT32 = 2
@@ -75,6 +76,8 @@ class LinkType(Enum):
     SIO = 4
     HCCS_SW = 5
     STANDARD_ROCE = 6
+    UB = 7
+    UBoE = 8
     RESERVED = 255
     INVALID_TYPE = 4294967295
 
@@ -84,6 +87,7 @@ class TransPortType(Enum):
     RDMA = 1
     LOCAL = 2
     UB = 3
+    ROCE = 4
     RESERVED = 255
     INVALID_TYPE = 4294967295
 
@@ -119,6 +123,7 @@ class ReduceOpType(Enum):
     """
     DataType enum for reduce op
     """
+
     SUM = 0
     PROD = 1
     MAX = 2

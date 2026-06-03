@@ -16,7 +16,7 @@
 
 import os
 from abc import ABC
-from typing import List, Optional
+from typing import List
 
 from common_func.file_manager import check_so_valid
 from common_func.platform.chip_manager import ChipManager
@@ -27,6 +27,7 @@ class CppEnableSceneConstant:
     """
     C++ enable scene constant
     """
+
     DB = "db"
     SUMMARY = "summary"
     TIMELINE = "timeline"
@@ -123,7 +124,7 @@ class CannCalculatorScene(CppEnableScene):
     Cann calculator scene: check whether cpp cann calculator is enabled
     """
 
-    SCENE_CHIP_BLACKLIST = [ChipModel.CHIP_V5_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0]
+    SCENE_CHIP_BLACKLIST = [ChipModel.CHIP_V5_1_0, ChipModel.CHIP_V6_2_0]
 
 
 class DeviceParseScene(CppEnableScene):
@@ -147,7 +148,7 @@ class ExportDBScene(CppEnableScene):
         ChipModel.CHIP_V4_1_0,
         ChipModel.CHIP_V1_1_1,
         ChipModel.CHIP_V6_1_0,
-        ChipModel.CHIP_V6_2_0
+        ChipModel.CHIP_V6_2_0,
     ]
 
 

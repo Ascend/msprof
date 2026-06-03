@@ -23,6 +23,7 @@ class StepTraceConstant:
     """
     Constant for Step trace
     """
+
     MODEL_START_TAG = 0
     MODEL_END_TAG = 1
     FP_TAG = 2

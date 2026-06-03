@@ -19,14 +19,17 @@
 
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct LowPowerData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct LowPowerData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
-    uint16_t dieId = UINT16_MAX;
-    double aicFreq = 0.0;
+    int32_t dieId = -1;
+    double freq = 0.0;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_LOW_POWER_DATA_H
+#endif  // ANALYSIS_DOMAIN_LOW_POWER_DATA_H

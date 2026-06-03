@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/mc2_comm_info_processor.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain;
@@ -92,10 +93,9 @@ TEST_F(Mc2CommInfoProcessorUTest, GetDataShouldReturnFalseWhenDataReserveFail)
 {
     DataInventory dataInventory;
     auto processor = Mc2CommInfoProcessor(PROF_PATH);
-    MOCKER_CPP(&std::vector<MC2CommInfoData>::reserve)
-    .stubs()
-    .will(throws(std::bad_alloc()));
+    Analysis::Test::StubReserveFailureForVector<std::vector<MC2CommInfoData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_MC2_COMM_INFO));
+    Analysis::Test::ResetReserveFailureForVector<std::vector<MC2CommInfoData>>();
     EXPECT_FALSE(dataInventory.GetPtr<std::vector<MC2CommInfoData>>());
 }
 

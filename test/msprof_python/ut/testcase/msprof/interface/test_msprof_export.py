@@ -17,6 +17,7 @@ import os.path
 import shutil
 import sqlite3
 import json
+import tempfile
 import unittest
 from argparse import Namespace
 from unittest import mock
@@ -777,13 +778,15 @@ class TestExportCommand(unittest.TestCase):
             test._start_view(path_table)
 
     def test__check_and_split_json_trace(self) -> None:
-        create_msprof_json_data("/ms_test/test_export_so")
+        tmp_dir = tempfile.mkdtemp()
+        test_dir = os.path.join(tmp_dir, "test_export_so")
+        create_msprof_json_data(test_dir)
         args_dic = {"collection_path": "test_export_so", "iteration_id": None, "model_id": None,
                     "iteration_count": None}
         args = Namespace(**args_dic)
         test = ExportCommand("timeline", args)
-        test._check_and_split_json_trace("/ms_test/test_export_so")
-        shutil.rmtree("/ms_test")
+        test._check_and_split_json_trace(test_dir)
+        shutil.rmtree(tmp_dir)
 
 
 if __name__ == '__main__':

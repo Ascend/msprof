@@ -203,6 +203,9 @@ std::vector<JsonProcess> ExportManager::GetProcessEnum()
         if (it.value()) {
             auto processEnum = strToJsonProcess.at(it.key());
             jsonProcesses.push_back(processEnum);
+            if (it.key() == "freq") {
+                jsonProcesses.push_back(JsonProcess::LOW_POWER);
+            }
         }
     }
     return std::move(jsonProcesses);

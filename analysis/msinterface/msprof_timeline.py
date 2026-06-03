@@ -40,6 +40,7 @@ class MsprofTimeline:
     """
     This class is used to export a summary timeline json file.
     """
+
     FILE_NAME = os.path.basename(__file__)
 
     def __init__(self: any) -> None:
@@ -71,30 +72,36 @@ class MsprofTimeline:
         for data_dict in json_list:
             pid = data_dict.get(StrConstant.TRACE_HEADER_PID, TraceViewHeaderConstant.DEFAULT_PID_VALUE)
             if data_dict.get(StrConstant.TRACE_HEADER_NAME) == "process_name":
-                pid_process_name[pid] = data_dict.get(StrConstant.TRACE_HEADER_ARGS, {}) \
-                    .get(StrConstant.TRACE_HEADER_NAME, "")
+                pid_process_name[pid] = data_dict.get(StrConstant.TRACE_HEADER_ARGS, {}).get(
+                    StrConstant.TRACE_HEADER_NAME, ""
+                )
             if pid_process_name.get(pid) not in TraceViewHeaderConstant.MSPROF_TIMELINE_FILTER_LIST:
                 pid_json_data.setdefault(pid, []).append(data_dict)
-        for key in pid_process_name.keys():
+        for key in pid_process_name:
             if pid_process_name.get(key) not in TraceViewHeaderConstant.MSPROF_TIMELINE_FILTER_LIST:
                 filtered_data_list.append([key, pid_process_name.get(key), pid_json_data.get(key)])
         return filtered_data_list
 
     @classmethod
-    def modify_timeline_info(cls: any, process_name: str, layer_info: TraceViewHeaderConstant.LayerInfo,
-                             format_pid: int, value: dict) -> None:
+    def modify_timeline_info(
+        cls: any, process_name: str, layer_info: TraceViewHeaderConstant.LayerInfo, format_pid: int, value: dict
+    ) -> None:
         """
         modify timeline info based on layer_info
         """
         value[StrConstant.TRACE_HEADER_PID] = format_pid
         if value.get(StrConstant.TRACE_HEADER_NAME) == "process_name":
-            value.setdefault(StrConstant.TRACE_HEADER_ARGS, {})[StrConstant.TRACE_HEADER_NAME] = \
+            value.setdefault(StrConstant.TRACE_HEADER_ARGS, {})[StrConstant.TRACE_HEADER_NAME] = (
                 layer_info.component_layer
+            )
 
-        if value.get(StrConstant.TRACE_HEADER_NAME) == "thread_name" and \
-                process_name == TraceViewHeaderConstant.PROCESS_STEP_TRACE:
-            value.setdefault(StrConstant.TRACE_HEADER_ARGS, {})[StrConstant.TRACE_HEADER_NAME] = \
+        if (
+            value.get(StrConstant.TRACE_HEADER_NAME) == "thread_name"
+            and process_name == TraceViewHeaderConstant.PROCESS_STEP_TRACE
+        ):
+            value.setdefault(StrConstant.TRACE_HEADER_ARGS, {})[StrConstant.TRACE_HEADER_NAME] = (
                 f'{process_name}({value.get(StrConstant.TRACE_HEADER_ARGS, {}).get(StrConstant.TRACE_HEADER_NAME, "")})'
+            )
 
         if cls.is_cann_ai_stack_data(layer_info, value):
             # if is cann data, remove device_id
@@ -104,8 +111,7 @@ class MsprofTimeline:
                 prefix = process_name
             else:
                 prefix = StrConstant.LEVEL_MAP.get(level, level.capitalize())
-            value[StrConstant.TRACE_HEADER_NAME] = \
-                f'{prefix}@{value.get(StrConstant.TRACE_HEADER_NAME, "")}'
+            value[StrConstant.TRACE_HEADER_NAME] = f'{prefix}@{value.get(StrConstant.TRACE_HEADER_NAME, "")}'
 
     @classmethod
     def get_layer_label_and_sort(cls: any, pid: int, layer_info: TraceViewHeaderConstant.LayerInfo) -> list:
@@ -129,8 +135,11 @@ class MsprofTimeline:
         """
         return whether the data is cann ai stack data
         """
-        return value.get("ph") == "X" and \
-            layer_info.component_layer == TraceViewHeaderConstant.COMPONENT_LAYER_CANN
+        return (
+            value.get("ph") == "X"
+            and layer_info.component_layer == TraceViewHeaderConstant.COMPONENT_LAYER_CANN
+            and layer_info.general_layer == TraceViewHeaderConstant.GENERAL_LAYER_CPU
+        )
 
     def init_export_data(self: any) -> None:
         self._export_data_list = []
@@ -154,7 +163,9 @@ class MsprofTimeline:
                     start_time, end_time = self.get_start_end_time()
                     export_data = filter(
                         lambda value: value["ph"] in TraceViewHeaderConstant.NOT_FILTER_PHASE
-                            or self.is_in_iteration(value, start_time, end_time), export_data)
+                        or self.is_in_iteration(value, start_time, end_time),
+                        export_data,
+                    )
                 self._export_data_list.extend(export_data)
         except (TypeError, ValueError) as err:
             logging.error(err, exc_info=Constant.TRACE_BACK_SWITCH)
@@ -214,10 +225,12 @@ class MsprofTimeline:
         # Show all data without iteration time
         if not self._iteration_time:
             return True
-        time_start = Decimal(str(json_value.get(TraceViewHeaderConstant.TRACE_HEADER_TS,
-                                                NumberConstant.DEFAULT_START_TIME)))
-        time_dur = Decimal(str(json_value.get(TraceViewHeaderConstant.TRACE_HEADER_DURATION,
-                                              NumberConstant.DEFAULT_START_TIME)))
+        time_start = Decimal(
+            str(json_value.get(TraceViewHeaderConstant.TRACE_HEADER_TS, NumberConstant.DEFAULT_START_TIME))
+        )
+        time_dur = Decimal(
+            str(json_value.get(TraceViewHeaderConstant.TRACE_HEADER_DURATION, NumberConstant.DEFAULT_START_TIME))
+        )
         time_end = time_start + time_dur
 
         return start_time <= time_start < end_time or time_start < start_time < time_end
@@ -238,8 +251,9 @@ class MsprofTimeline:
             start_time, _ = InfoConfReader().get_collect_time()
             self._iteration_time = (float(start_time), float('inf'))  # 结束时间设置为无穷大
         else:
-            start_time, end_time = MsprofIteration(result_dir).get_iter_interval(iter_range,
-                                                                                 NumberConstant.MICRO_SECOND)
+            start_time, end_time = MsprofIteration(result_dir).get_iter_interval(
+                iter_range, NumberConstant.MICRO_SECOND
+            )
             start_time = Decimal(InfoConfReader().trans_into_local_time(start_time, use_us=True))
             end_time = Decimal(InfoConfReader().trans_into_local_time(end_time, use_us=True))
             self._iteration_time = (float(start_time), float(end_time))
@@ -253,8 +267,9 @@ class MsprofTimeline:
             return layer_info
         else:
             self._default_sort_index += 1
-            return TraceViewHeaderConstant.LayerInfo(process_name, TraceViewHeaderConstant.GENERAL_LAYER_NPU,
-                                                     self._default_sort_index)
+            return TraceViewHeaderConstant.LayerInfo(
+                process_name, TraceViewHeaderConstant.GENERAL_LAYER_NPU, self._default_sort_index
+            )
 
     def get_start_end_time(self: any):
         return self._iteration_time

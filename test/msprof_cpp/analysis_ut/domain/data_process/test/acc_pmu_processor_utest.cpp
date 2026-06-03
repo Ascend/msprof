@@ -18,11 +18,13 @@
 #include "analysis/csrc/domain/data_process/system/acc_pmu_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "reserve_mock_utils.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
 using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain::Environment;
+using namespace Analysis::Test;
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./acc_path";
@@ -94,7 +96,7 @@ TEST_F(AccPmuProcessorUTest, ShouldReturnFalseWhenCheckFailed)
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
 
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(INVALID_DEVICE_ID));
+    MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(INVALID_DEVICE_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_ACC_PMU));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
@@ -134,6 +136,7 @@ TEST_F(AccPmuProcessorUTest, ShouldReturnFalseWhenReserveException)
     DataInventory dataInventory;
     auto processor = AccPmuProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&std::vector<AccPmuData>::reserve).stubs().will(throws(std::bad_alloc()));
+    StubReserveFailureForVector<std::vector<AccPmuData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_ACC_PMU));
+    ResetReserveFailureForVector<std::vector<AccPmuData>>();
 }
