@@ -85,6 +85,7 @@ from viewer.stars.acc_pmu_viewer import AccPmuViewer
 from viewer.stars.block_detail_viewer import BlockDetailViewer
 from viewer.stars.low_power_viewer import LowPowerViewer
 from viewer.stars.sio_viewer import SioViewer
+from viewer.stars.fusion_task_viewer import FusionTaskViewer
 from viewer.stars.stars_chip_trans_view import StarsChipTransView
 from viewer.stars.stars_soc_view import StarsSocView
 from viewer.static_op_mem_viewer import StaticOpMemViewer
@@ -105,6 +106,7 @@ class MsProfExportDataUtils:
     """
     Export data such as csv or json
     """
+
     cfg_parser = None
     init_cfg_finished = False
     LOCK = threading.Lock()
@@ -117,14 +119,14 @@ class MsProfExportDataUtils:
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
             return MsProfExportDataUtils._get_task_timeline(configs, params)
         if ChipManager().is_chip_v1():
-            db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR),
-                                              configs.get(StrConstant.CONFIG_DB))
-            return get_task_scheduler_data(db_path, configs.get(StrConstant.CONFIG_TABLE), configs,
-                                           params)
+            db_path = PathManager.get_db_path(
+                params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB)
+            )
+            return get_task_scheduler_data(db_path, configs.get(StrConstant.CONFIG_TABLE), configs, params)
         message = {
             'host_id': MsProfCommonConstant.DEFAULT_IP,
             'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
-            'result_dir': params.get(StrConstant.PARAM_RESULT_DIR)
+            'result_dir': params.get(StrConstant.PARAM_RESULT_DIR),
         }
         return TaskOpViewer.get_task_op_summary(message)
 
@@ -138,7 +140,7 @@ class MsProfExportDataUtils:
                 'project_path': params.get(StrConstant.PARAM_RESULT_DIR),
                 'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
                 'start_time': NumberConstant.DEFAULT_START_TIME,
-                'end_time': NumberConstant.DEFAULT_END_TIME
+                'end_time': NumberConstant.DEFAULT_END_TIME,
             }
             result = get_ddr_timeline(ddr_param)
             return result
@@ -151,8 +153,9 @@ class MsProfExportDataUtils:
         """
         get system cpu usage data
         """
-        db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR),
-                                          DBNameConstant.DB_HOST_SYS_USAGE_CPU)
+        db_path = PathManager.get_db_path(
+            params.get(StrConstant.PARAM_RESULT_DIR), DBNameConstant.DB_HOST_SYS_USAGE_CPU
+        )
         if params.get(StrConstant.DATA_TYPE) == "cpu_usage":
             return get_sys_cpu_usage_data(db_path, configs.get(StrConstant.CONFIG_TABLE), configs)
         if params.get(StrConstant.DATA_TYPE) == "process_cpu_usage":
@@ -164,29 +167,44 @@ class MsProfExportDataUtils:
         """
         get cpu pmu events
         """
-        return get_cpu_hot_function(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB),
-                                    configs.get(StrConstant.CONFIG_TABLE), configs.get(StrConstant.CONFIG_HEADERS))
+        return get_cpu_hot_function(
+            params.get(StrConstant.PARAM_RESULT_DIR),
+            configs.get(StrConstant.CONFIG_DB),
+            configs.get(StrConstant.CONFIG_TABLE),
+            configs.get(StrConstant.CONFIG_HEADERS),
+        )
 
     @staticmethod
     def _get_ts_cpu_top_funcs(configs: dict, params: dict) -> any:
         """
         get ts cpu top function
         """
-        return TsCpuReport().get_output_top_function(configs.get(StrConstant.CONFIG_DB),
-                                                     params.get(StrConstant.PARAM_RESULT_DIR))
+        return TsCpuReport().get_output_top_function(
+            configs.get(StrConstant.CONFIG_DB), params.get(StrConstant.PARAM_RESULT_DIR)
+        )
 
     @staticmethod
     def _get_cpu_pmu_events(configs: dict, params: dict) -> any:
         """
         get cpu pmu events
         """
-        if params.get(StrConstant.PARAM_DATA_TYPE) == StrConstant.CTL_CPU_PMU or params.get(
-                StrConstant.PARAM_DATA_TYPE) == StrConstant.AI_CPU_PMU:
-            return get_aictrl_pmu_events(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB),
-                                         configs.get(StrConstant.CONFIG_TABLE), configs.get(StrConstant.CONFIG_HEADERS))
+        if (
+            params.get(StrConstant.PARAM_DATA_TYPE) == StrConstant.CTL_CPU_PMU
+            or params.get(StrConstant.PARAM_DATA_TYPE) == StrConstant.AI_CPU_PMU
+        ):
+            return get_aictrl_pmu_events(
+                params.get(StrConstant.PARAM_RESULT_DIR),
+                configs.get(StrConstant.CONFIG_DB),
+                configs.get(StrConstant.CONFIG_TABLE),
+                configs.get(StrConstant.CONFIG_HEADERS),
+            )
         if params.get(StrConstant.PARAM_DATA_TYPE) == StrConstant.TS_CPU_PMU:
-            return get_ts_pmu_events(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB),
-                                     configs.get(StrConstant.CONFIG_TABLE), configs.get(StrConstant.CONFIG_HEADERS))
+            return get_ts_pmu_events(
+                params.get(StrConstant.PARAM_RESULT_DIR),
+                configs.get(StrConstant.CONFIG_DB),
+                configs.get(StrConstant.CONFIG_TABLE),
+                configs.get(StrConstant.CONFIG_HEADERS),
+            )
         return MsvpConstant.MSVP_EMPTY_DATA
 
     @staticmethod
@@ -194,8 +212,9 @@ class MsProfExportDataUtils:
         """
         get memory data
         """
-        db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR),
-                                          DBNameConstant.DB_HOST_SYS_USAGE_MEM)
+        db_path = PathManager.get_db_path(
+            params.get(StrConstant.PARAM_RESULT_DIR), DBNameConstant.DB_HOST_SYS_USAGE_MEM
+        )
         if params.get(StrConstant.PARAM_DATA_TYPE) == "sys_mem":
             return get_sys_mem_data(db_path, configs.get(StrConstant.CONFIG_TABLE), configs)
         if params.get(StrConstant.PARAM_DATA_TYPE) == "process_mem":
@@ -209,8 +228,7 @@ class MsProfExportDataUtils:
         """
         db_name = DBNameConstant.DB_AICORE_OP_SUMMARY
         db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR), db_name)
-        return AiCoreOpReport.get_op_summary_data(params.get(StrConstant.PARAM_RESULT_DIR),
-                                                  db_path, configs)
+        return AiCoreOpReport.get_op_summary_data(params.get(StrConstant.PARAM_RESULT_DIR), db_path, configs)
 
     @staticmethod
     def _get_l2_cache_data(configs: dict, params: dict) -> tuple:
@@ -220,7 +238,8 @@ class MsProfExportDataUtils:
         db_name = configs.get(StrConstant.CONFIG_DB)
         db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR), db_name)
         headers, data, count = get_l2_cache_data(
-            db_path, configs.get(StrConstant.CONFIG_TABLE), configs.get(StrConstant.CONFIG_UNUSED_COLS))
+            db_path, configs.get(StrConstant.CONFIG_TABLE), configs.get(StrConstant.CONFIG_UNUSED_COLS)
+        )
         if headers and data:
             data = process_hit_rate(headers, data)
             op_dict = DataManager.get_op_dict(params.get(StrConstant.PARAM_RESULT_DIR))
@@ -237,13 +256,12 @@ class MsProfExportDataUtils:
         message = {
             "device_id": params.get(StrConstant.PARAM_DEVICE_ID),
             'host_id': MsProfCommonConstant.DEFAULT_IP,
-            'project_path': params.get(StrConstant.PARAM_RESULT_DIR)
+            'project_path': params.get(StrConstant.PARAM_RESULT_DIR),
         }
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
             return StepTraceViewer.get_step_trace_timeline(message)
         else:
-            reduce_headers, data, count = StepTraceViewer \
-                .get_step_trace_summary(message)
+            reduce_headers, data, count = StepTraceViewer.get_step_trace_summary(message)
             headers = configs[StrConstant.CONFIG_HEADERS] + reduce_headers
             return headers, data, count
 
@@ -281,7 +299,7 @@ class MsProfExportDataUtils:
                 'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
                 'dvppid': 'all',
                 'start_time': NumberConstant.DEFAULT_START_TIME,
-                'end_time': NumberConstant.DEFAULT_END_TIME
+                'end_time': NumberConstant.DEFAULT_END_TIME,
             }
             result = get_dvpp_timeline(dvpp_param)
             return result
@@ -289,50 +307,61 @@ class MsProfExportDataUtils:
         data_type = params.get(StrConstant.PARAM_DATA_TYPE)
         db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB))
         if data_type == StrConstant.DVPP_DATA:
-            return get_peripheral_dvpp_data(db_path, configs.get(StrConstant.CONFIG_TABLE),
-                                            params.get(StrConstant.PARAM_DEVICE_ID), configs)
+            return get_peripheral_dvpp_data(
+                db_path, configs.get(StrConstant.CONFIG_TABLE), params.get(StrConstant.PARAM_DEVICE_ID), configs
+            )
         return MsvpConstant.MSVP_EMPTY_DATA
 
     @staticmethod
     def _get_nic_data(configs: dict, params: dict) -> any:
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
-            nic_result = get_network_timeline(params.get(StrConstant.PARAM_RESULT_DIR),
-                                              params.get(StrConstant.PARAM_DEVICE_ID),
-                                              NumberConstant.DEFAULT_START_TIME,
-                                              NumberConstant.DEFAULT_END_TIME, params.get(StrConstant.DATA_TYPE))
+            nic_result = get_network_timeline(
+                params.get(StrConstant.PARAM_RESULT_DIR),
+                params.get(StrConstant.PARAM_DEVICE_ID),
+                NumberConstant.DEFAULT_START_TIME,
+                NumberConstant.DEFAULT_END_TIME,
+                params.get(StrConstant.DATA_TYPE),
+            )
             return nic_result
 
         data_type = params.get(StrConstant.PARAM_DATA_TYPE)
         db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB))
         if data_type == StrConstant.NIC_DATA:
-            return get_peripheral_nic_data(db_path, configs.get(StrConstant.CONFIG_TABLE),
-                                           params.get(StrConstant.PARAM_DEVICE_ID), configs)
+            return get_peripheral_nic_data(
+                db_path, configs.get(StrConstant.CONFIG_TABLE), params.get(StrConstant.PARAM_DEVICE_ID), configs
+            )
         return MsvpConstant.MSVP_EMPTY_DATA
 
     @staticmethod
     def _get_roce_data(configs: dict, params: dict) -> any:
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
-            roce_result = get_network_timeline(params.get(StrConstant.PARAM_RESULT_DIR),
-                                               params.get(StrConstant.PARAM_DEVICE_ID),
-                                               NumberConstant.DEFAULT_START_TIME,
-                                               NumberConstant.DEFAULT_END_TIME, params.get(StrConstant.DATA_TYPE))
+            roce_result = get_network_timeline(
+                params.get(StrConstant.PARAM_RESULT_DIR),
+                params.get(StrConstant.PARAM_DEVICE_ID),
+                NumberConstant.DEFAULT_START_TIME,
+                NumberConstant.DEFAULT_END_TIME,
+                params.get(StrConstant.DATA_TYPE),
+            )
             return roce_result
 
         data_type = params.get(StrConstant.PARAM_DATA_TYPE)
         db_path = PathManager.get_db_path(params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB))
         if data_type == StrConstant.ROCE_DATA:
-            return get_peripheral_nic_data(db_path, configs.get(StrConstant.CONFIG_TABLE),
-                                           params.get(StrConstant.PARAM_DEVICE_ID), configs)
+            return get_peripheral_nic_data(
+                db_path, configs.get(StrConstant.CONFIG_TABLE), params.get(StrConstant.PARAM_DEVICE_ID), configs
+            )
         return MsvpConstant.MSVP_EMPTY_DATA
 
     @staticmethod
     def _get_hccs_data(configs: dict, params: dict) -> any:
         _ = configs
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
-            result = get_hccs_timeline(params.get(StrConstant.PARAM_RESULT_DIR),
-                                       params.get(StrConstant.PARAM_DEVICE_ID),
-                                       NumberConstant.DEFAULT_START_TIME,
-                                       NumberConstant.DEFAULT_END_TIME)
+            result = get_hccs_timeline(
+                params.get(StrConstant.PARAM_RESULT_DIR),
+                params.get(StrConstant.PARAM_DEVICE_ID),
+                NumberConstant.DEFAULT_START_TIME,
+                NumberConstant.DEFAULT_END_TIME,
+            )
             return result
 
         hccs_view = InterConnectionView(params.get(StrConstant.PARAM_RESULT_DIR), {})
@@ -344,37 +373,45 @@ class MsProfExportDataUtils:
         get mini llc data, contains bandwidth and capacity
         """
         if sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_BAND_ITEM:
-            return get_llc_bandwidth(params.get(StrConstant.PARAM_RESULT_DIR),
-                                     params.get(StrConstant.PARAM_DEVICE_ID))
+            return get_llc_bandwidth(params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_DEVICE_ID))
         if not sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_CAPACITY_ITEM:
             return MsvpConstant.MSVP_EMPTY_DATA
-        if not (params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_AICPU or params.get(
-                StrConstant.DATA_TYPE) == StrConstant.LLC_CTRLCPU):
+        if not (
+            params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_AICPU
+            or params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_CTRLCPU
+        ):
             return MsvpConstant.MSVP_EMPTY_DATA
         types = StrConstant.AICPU
         if params.get(StrConstant.DATA_TYPE) != StrConstant.LLC_AICPU:
             types = StrConstant.CTRL_CPU
-        return llc_capacity_data(params.get(StrConstant.PARAM_RESULT_DIR),
-                                 params.get(StrConstant.PARAM_DEVICE_ID),
-                                 types)
+        return llc_capacity_data(
+            params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_DEVICE_ID), types
+        )
 
     @staticmethod
     def __get_non_mini_llc_data(sample_config: dict, params: dict) -> any:
         """
         get non mini llc data, contains read and write
         """
-        result = get_llc_train_summary(params.get(StrConstant.PARAM_RESULT_DIR), sample_config,
-                                       params.get(StrConstant.PARAM_DEVICE_ID))
+        result = get_llc_train_summary(
+            params.get(StrConstant.PARAM_RESULT_DIR), sample_config, params.get(StrConstant.PARAM_DEVICE_ID)
+        )
         res = json.loads(result)
         if res['status'] == NumberConstant.SUCCESS:
             llc_data = res['data']['table']
             llc_header = ['Mode', 'Task', 'Hit Rate(%)', 'Throughput(MB/s)']
             llc_data = [[item[key] for key in llc_header] for item in llc_data]
             return llc_header, llc_data, len(llc_data)
-        return [], json.dumps({
-            "status": NumberConstant.ERROR,
-            "info": "Failed to get LLC data(%s) in non-mini scene." % (params.get(StrConstant.DATA_TYPE))
-        }), 0
+        return (
+            [],
+            json.dumps(
+                {
+                    "status": NumberConstant.ERROR,
+                    "info": "Failed to get LLC data(%s) in non-mini scene." % (params.get(StrConstant.DATA_TYPE)),
+                }
+            ),
+            0,
+        )
 
     @staticmethod
     def _get_llc_data(configs: dict, params: dict) -> any:
@@ -386,10 +423,16 @@ class MsProfExportDataUtils:
             if ChipManager().is_chip_v1():
                 return MsProfExportDataUtils.__get_mini_llc_data(sample_config, params)
             return MsProfExportDataUtils.__get_non_mini_llc_data(sample_config, params)
-        return [], json.dumps({
-            "status": NumberConstant.ERROR,
-            "info": "Failed to get LLC sample config data(%s)." % (params.get(StrConstant.DATA_TYPE))
-        }), 0
+        return (
+            [],
+            json.dumps(
+                {
+                    "status": NumberConstant.ERROR,
+                    "info": "Failed to get LLC sample config data(%s)." % (params.get(StrConstant.DATA_TYPE)),
+                }
+            ),
+            0,
+        )
 
     @staticmethod
     def _get_hbm_data(configs: dict, params: dict) -> any:
@@ -399,12 +442,11 @@ class MsProfExportDataUtils:
                 'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
                 'hbm_id': 0,
                 'start_time': NumberConstant.DEFAULT_START_TIME,
-                'end_time': NumberConstant.DEFAULT_END_TIME
+                'end_time': NumberConstant.DEFAULT_END_TIME,
             }
             result = get_hbm_timeline(hbm_param)
             return result
-        data = get_hbm_summary_data(params.get(StrConstant.PARAM_RESULT_DIR),
-                                    params.get(StrConstant.PARAM_DEVICE_ID))
+        data = get_hbm_summary_data(params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_DEVICE_ID))
         if data:
             if isinstance(data, list):
                 return configs.get(StrConstant.CONFIG_HEADERS), data, len(data)
@@ -419,21 +461,22 @@ class MsProfExportDataUtils:
                 'project_path': params.get(StrConstant.PARAM_RESULT_DIR),
                 'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
                 'start_time': NumberConstant.DEFAULT_START_TIME,
-                'end_time': NumberConstant.DEFAULT_END_TIME
+                'end_time': NumberConstant.DEFAULT_END_TIME,
             }
             result = get_pcie_timeline(pcie_param)
             return result
-        return InterConnectionView(params.get(StrConstant.PARAM_RESULT_DIR),
-                                   {}).get_pcie_summary_data()
+        return InterConnectionView(params.get(StrConstant.PARAM_RESULT_DIR), {}).get_pcie_summary_data()
 
     @staticmethod
     def _get_aicpu_data(configs: dict, params: dict) -> any:
         if ChipManager().is_sqe_id_supported():
-            aicpu_data = ParseAiCpuData.analysis_aicpu_by_sqe_id(params.get(StrConstant.PARAM_RESULT_DIR),
-                                                   params.get(StrConstant.PARAM_ITER_ID))
+            aicpu_data = ParseAiCpuData.analysis_aicpu_by_sqe_id(
+                params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_ITER_ID)
+            )
         else:
-            aicpu_data = ParseAiCpuData.analysis_aicpu(params.get(StrConstant.PARAM_RESULT_DIR),
-                                                    params.get(StrConstant.PARAM_ITER_ID))
+            aicpu_data = ParseAiCpuData.analysis_aicpu(
+                params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_ITER_ID)
+            )
         return configs.get(StrConstant.CONFIG_HEADERS), aicpu_data, len(aicpu_data)
 
     @staticmethod
@@ -442,8 +485,7 @@ class MsProfExportDataUtils:
         result_dir = params.get(StrConstant.PARAM_RESULT_DIR)
         device_id = params.get(StrConstant.PARAM_DEVICE_ID)
 
-        dp_result = ParseDpData.analyse_dp(
-            PathManager.get_data_dir(result_dir), device_id)
+        dp_result = ParseDpData.analyse_dp(PathManager.get_data_dir(result_dir), device_id)
         dp_headers = configs.get('headers')
         if dp_result:
             return dp_headers, dp_result, len(dp_result)
@@ -535,8 +577,9 @@ class MsProfExportDataUtils:
         _ = configs
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
             return HCCLExport(params).get_hccl_timeline_data()
-        logging.warning("Please check params, currently hccl data does not support exporting files "
-                        "other than timeline.")
+        logging.warning(
+            "Please check params, currently hccl data does not support exporting files other than timeline."
+        )
         return []
 
     @staticmethod
@@ -600,6 +643,11 @@ class MsProfExportDataUtils:
         return SioViewer(configs, params).get_timeline_data()
 
     @staticmethod
+    def _get_fusion_task_data(configs: dict, params: dict) -> any:
+        configs['result_dir'] = params.get(StrConstant.PARAM_RESULT_DIR)
+        return FusionTaskViewer(configs, params).get_timeline_data()
+
+    @staticmethod
     def _get_aicpu_mi_data(configs: dict, params: dict) -> any:
         data = ParseAiCpuData.get_aicpu_mi_data(params.get(StrConstant.PARAM_RESULT_DIR))
         return configs.get(StrConstant.CONFIG_HEADERS), data, len(data)
@@ -635,13 +683,14 @@ class MsProfExportDataUtils:
         if params.get(StrConstant.DATA_TYPE) is None:
             return json.dumps({"status": NumberConstant.ERROR, "info": "Parameter data_type is none."})
         if not cls.init_cfg_finished:
-            cls.LOCK.acquire()
+            cls.LOCK.acquire()  # pylint: disable=consider-using-with
             if not cls.init_cfg_finished:
                 cls._load_export_data_config()
             cls.LOCK.release()
         configs = cls._get_configs_with_data_type(params.get(StrConstant.PARAM_DATA_TYPE))
-        if configs.get(StrConstant.CONFIG_HANDLER) is not None \
-                and hasattr(cls, configs.get(StrConstant.CONFIG_HANDLER)):
+        if configs.get(StrConstant.CONFIG_HANDLER) is not None and hasattr(
+            cls, configs.get(StrConstant.CONFIG_HANDLER)
+        ):
             handler = getattr(cls, configs.get(StrConstant.CONFIG_HANDLER))
             if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.SUMMARY:
                 headers, data, _ = handler(configs, params)
@@ -652,10 +701,12 @@ class MsProfExportDataUtils:
             if params.get(StrConstant.PARAM_DATA_TYPE) in skip_list:
                 return json.dumps({"status": NumberConstant.SKIP})
             return MsprofDataStorage().export_timeline_data_to_json(timeline_data, params)
-        return json.dumps({
-            "status": NumberConstant.ERROR,
-            "info": "Unable to handler data type %s." % params.get(StrConstant.PARAM_DATA_TYPE)
-        })
+        return json.dumps(
+            {
+                "status": NumberConstant.ERROR,
+                "info": "Unable to handler data type %s." % params.get(StrConstant.PARAM_DATA_TYPE),
+            }
+        )
 
     @classmethod
     def add_timeline_data(cls: any, params: dict, data: any) -> None:
@@ -666,7 +717,8 @@ class MsProfExportDataUtils:
         :return:
         """
         filter_list = [
-            "msprof", "ffts_sub_task_time",
+            "msprof",
+            "ffts_sub_task_time",
         ]
         if not ProfilingScene().is_all_export():
             filter_list.append("step_trace")
@@ -692,8 +744,7 @@ class MsProfExportDataUtils:
         configs = {}
         if cls.cfg_parser:
             if cls.cfg_parser.has_option(data_type, StrConstant.CONFIG_HANDLER):
-                configs[StrConstant.CONFIG_HANDLER] = cls.cfg_parser.get(data_type,
-                                                                         StrConstant.CONFIG_HANDLER)
+                configs[StrConstant.CONFIG_HANDLER] = cls.cfg_parser.get(data_type, StrConstant.CONFIG_HANDLER)
 
             configs[StrConstant.CONFIG_HEADERS] = []
             if cls.cfg_parser.has_option(data_type, StrConstant.CONFIG_HEADERS):
@@ -724,14 +775,16 @@ class MsProfExportDataUtils:
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
             return get_aicore_utilization_timeline(params.get(StrConstant.PARAM_RESULT_DIR, ""))
         params[StrConstant.CORE_DATA_TYPE] = StrConstant.AI_CORE_PMU_EVENTS
-        return AiCoreReport.get_core_sample_data(params.get(StrConstant.PARAM_RESULT_DIR),
-                                                 configs.get(StrConstant.CONFIG_DB), params)
+        return AiCoreReport.get_core_sample_data(
+            params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB), params
+        )
 
     @classmethod
     def _get_aiv_sample_based_data(cls: any, configs: dict, params: dict) -> any:
         params[StrConstant.CORE_DATA_TYPE] = StrConstant.AI_VECTOR_CORE_PMU_EVENTS
-        return AiCoreReport.get_core_sample_data(params.get(StrConstant.PARAM_RESULT_DIR),
-                                                 configs.get(StrConstant.CONFIG_DB), params)
+        return AiCoreReport.get_core_sample_data(
+            params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB), params
+        )
 
     @classmethod
     def _get_block_detail_data(cls: any, configs: dict, params: dict) -> any:

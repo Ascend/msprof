@@ -83,15 +83,19 @@ class TestFusionTaskParser(unittest.TestCase):
         self.assertEqual(len(parser._data_list), 0)
 
     def test_get_task_time_fully_matched(self):
+        """2 pairs fully matched — result has 10 fields incl. display fusion_task_type, mission_id, ccu_die_id"""
         result_dir = ''
         db = ''
         table_list = ['']
+        # args: [header, magic, task_id, syscnt, fusion_task_type_raw, acc_id, r1, r2, r3]
+        # args[4]=1 (bit0=cpu), args[4]=2 (bit1=aicpu)
         args_start_1 = [22, 0x6BD3, 100, 56, 1, 3, 0, 0, 0]
-        args_end_1 = [23, 0x6BD3, 100, 60, 1, 3, 0, 0, 0]
+        args_end_1   = [23, 0x6BD3, 100, 60, 1, 3, 0, 0, 0]
         args_start_2 = [22, 0x6BD3, 200, 80, 2, 7, 0, 0, 0]
-        args_end_2 = [23, 0x6BD3, 200, 90, 2, 7, 0, 0, 0]
+        args_end_2   = [23, 0x6BD3, 200, 90, 2, 7, 0, 0, 0]
         parser = FusionTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
         parser._data_list = [
             FusionTaskBean(args_start_1), FusionTaskBean(args_end_1),
             FusionTaskBean(args_start_2), FusionTaskBean(args_end_2),
@@ -99,9 +103,45 @@ class TestFusionTaskParser(unittest.TestCase):
         ret = parser.get_task_time()
         expect_ret = (
             [
-                [0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, '0000000000000001'],
-                [0, 200, 7, 'AI_CORE', 1600.0, 1800.0, 200.0, '0000000000000010'],
+                [0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0,  'CPU', 0, None],
+                [0, 200, 7, 'AI_CORE', 1600.0, 1800.0, 200.0, 'AICPU', 0, None],
             ],
+            [],
+        )
+        self.assertEqual(ret, expect_ret)
+
+    def test_get_task_time_with_mission_id(self):
+        """mission_id extraction: args[4]=0x61 → fusion=bit0=cpu, mission=bits[8:5]=3"""
+        result_dir = ''
+        db = ''
+        table_list = ['']
+        args_start = [22, 0x6BD3, 100, 56, 0x61, 3, 0, 0, 0]
+        args_end   = [23, 0x6BD3, 100, 60, 0x61, 3, 0, 0, 0]
+        parser = FusionTaskParser(result_dir, db, table_list)
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        parser._data_list = [FusionTaskBean(args_start), FusionTaskBean(args_end)]
+        ret = parser.get_task_time()
+        expect_ret = (
+            [[0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, 'CPU', 3, None]],
+            [],
+        )
+        self.assertEqual(ret, expect_ret)
+
+    def test_get_task_time_ccu_die0(self):
+        """ccu die0: args[4]=8 (bit3) → fusion_task_type='CCU', ccu_die_id=0"""
+        result_dir = ''
+        db = ''
+        table_list = ['']
+        args_start = [22, 0x6BD3, 100, 56, 8, 3, 0, 0, 0]
+        args_end   = [23, 0x6BD3, 100, 60, 8, 3, 0, 0, 0]
+        parser = FusionTaskParser(result_dir, db, table_list)
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        parser._data_list = [FusionTaskBean(args_start), FusionTaskBean(args_end)]
+        ret = parser.get_task_time()
+        expect_ret = (
+            [[0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, 'CCU', 0, 0]],
             [],
         )
         self.assertEqual(ret, expect_ret)
@@ -111,9 +151,10 @@ class TestFusionTaskParser(unittest.TestCase):
         db = ''
         table_list = ['']
         args_start_1 = [22, 0x6BD3, 100, 56, 1, 3, 0, 0, 0]
-        args_end_1 = [23, 0x6BD3, 100, 50, 1, 3, 0, 0, 0]
+        args_end_1   = [23, 0x6BD3, 100, 50, 1, 3, 0, 0, 0]
         parser = FusionTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
         parser._data_list = [
             FusionTaskBean(args_start_1), FusionTaskBean(args_end_1),
         ]
@@ -128,7 +169,8 @@ class TestFusionTaskParser(unittest.TestCase):
         table_list = ['']
         args_start_1 = [22, 0x6BD3, 100, 56, 1, 3, 0, 0, 0]
         parser = FusionTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
         parser._data_list = [FusionTaskBean(args_start_1)]
         ret = parser.get_task_time()
         self.assertEqual(ret[0], [])
@@ -140,17 +182,18 @@ class TestFusionTaskParser(unittest.TestCase):
         db = ''
         table_list = ['']
         args_start_1 = [22, 0x6BD3, 100, 56, 1, 3, 0, 0, 0]
-        args_end_1 = [23, 0x6BD3, 100, 60, 1, 3, 0, 0, 0]
-        args_end_2 = [23, 0x6BD3, 100, 70, 1, 3, 0, 0, 0]
+        args_end_1   = [23, 0x6BD3, 100, 60, 1, 3, 0, 0, 0]
+        args_end_2   = [23, 0x6BD3, 100, 70, 1, 3, 0, 0, 0]
         parser = FusionTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJsonReaderManager(info_json=InfoJson(
+            DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
         parser._data_list = [
             FusionTaskBean(args_start_1), FusionTaskBean(args_end_1),
             FusionTaskBean(args_end_2),
         ]
         ret = parser.get_task_time()
         expect_ret = (
-            [[0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, '0000000000000001']],
+            [[0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, 'CPU', 0, None]],
             [],
         )
         self.assertEqual(ret, expect_ret)

@@ -31,6 +31,7 @@ from common_func.data_check_manager import DataCheckManager
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileManager
+from common_func.file_manager import check_file_readable
 from common_func.file_name_manager import get_msprof_json_without_slice_compiles
 from common_func.host_data_check_manager import HostDataCheckManager
 from common_func.info_conf_reader import InfoConfReader
@@ -71,186 +72,166 @@ from profiling_bean.db_dto.step_trace_dto import StepTraceDto
 from profiling_bean.prof_enum.export_data_type import ExportDataType
 from tuning.cluster.cluster_tuning_facade import ClusterTuningFacade
 from tuning.cluster_tuning import ClusterTuning
-from common_func.file_manager import check_file_readable
 
 
 class ExportCommand:
     """
     The class for handle export command.
     """
+
     FILE_NAME = os.path.basename(__file__)
     EXPORT_HANDLE_MAP = {
         MsProfCommonConstant.TIMELINE: [
-            {'export_type': ExportDataType.STEP_TRACE,
-             'handler': AiStackDataCheckManager.contain_training_trace_data_or_step},
-            {'export_type': ExportDataType.API,
-             'handler': AiStackDataCheckManager.contain_api_data},
-            {'export_type': ExportDataType.TASK_TIME,
-             'handler': AiStackDataCheckManager.contain_core_cpu_reduce_data},
+            {
+                'export_type': ExportDataType.STEP_TRACE,
+                'handler': AiStackDataCheckManager.contain_training_trace_data_or_step,
+            },
+            {'export_type': ExportDataType.API, 'handler': AiStackDataCheckManager.contain_api_data},
+            {'export_type': ExportDataType.TASK_TIME, 'handler': AiStackDataCheckManager.contain_core_cpu_reduce_data},
             {'export_type': ExportDataType.HBM, 'handler': SystemDataCheckManager.contain_hbm_data},
             {'export_type': ExportDataType.DDR, 'handler': SystemDataCheckManager.contain_ddr_data},
-            {'export_type': ExportDataType.PCIE,
-             'handler': SystemDataCheckManager.contain_pcie_data},
-            {'export_type': ExportDataType.HCCS,
-             'handler': SystemDataCheckManager.contain_hccs_data},
+            {'export_type': ExportDataType.PCIE, 'handler': SystemDataCheckManager.contain_pcie_data},
+            {'export_type': ExportDataType.HCCS, 'handler': SystemDataCheckManager.contain_hccs_data},
             {'export_type': ExportDataType.NIC, 'handler': SystemDataCheckManager.contain_nic_data},
-            {'export_type': ExportDataType.ROCE,
-             'handler': SystemDataCheckManager.contain_roce_data},
-            {'export_type': ExportDataType.LLC_READ_WRITE,
-             'handler': SystemDataCheckManager.contain_read_write_data},
-            {'export_type': ExportDataType.LLC_AICPU,
-             'handler': SystemDataCheckManager.contain_llc_capacity_data},
-            {'export_type': ExportDataType.LLC_CTRLCPU,
-             'handler': SystemDataCheckManager.contain_llc_capacity_data},
-            {'export_type': ExportDataType.LLC_BANDWIDTH,
-             'handler': SystemDataCheckManager.contain_llc_bandwidth_data},
-            {'export_type': ExportDataType.NPU_MEM,
-             'handler': SystemDataCheckManager.contain_npu_mem_data},
-            {'export_type': ExportDataType.AI_CORE_UTILIZATION,
-             'handler': AiStackDataCheckManager.contain_ai_core_sample_based},
-            {'export_type': ExportDataType.HOST_CPU_USAGE,
-             'handler': HostDataCheckManager.contain_host_cpuusage_data},
-            {'export_type': ExportDataType.HOST_MEM_USAGE,
-             'handler': HostDataCheckManager.contain_host_mem_usage_data},
-            {'export_type': ExportDataType.HOST_NETWORK_USAGE,
-             'handler': HostDataCheckManager.contain_host_network_usage_data},
-            {'export_type': ExportDataType.HOST_DISK_USAGE,
-             'handler': HostDataCheckManager.contain_host_disk_usage_data},
-            {'export_type': ExportDataType.OS_RUNTIME_API,
-             'handler': HostDataCheckManager.contain_runtime_api_data},
-            {'export_type': ExportDataType.FFTS_SUB_TASK_TIME,
-             'handler': AiStackDataCheckManager.contain_sub_task_data},
-            {'export_type': ExportDataType.COMMUNICATION,
-             'handler': AiStackDataCheckManager.contain_hccl_hcom_data},
-            {'export_type': ExportDataType.MSPROF_TX,
-             'handler': AiStackDataCheckManager.contain_msproftx_data},
-            {'export_type': ExportDataType.STARS_SOC,
-             'handler': AiStackDataCheckManager.contain_stars_soc_profiler_data},
-            {'export_type': ExportDataType.STARS_CHIP_TRANS,
-             'handler': AiStackDataCheckManager.contain_stars_chip_trans_data},
-            {'export_type': ExportDataType.LOW_POWER,
-             'handler': AiStackDataCheckManager.contain_stars_low_power_data},
-            {'export_type': ExportDataType.INSTR,
-             'handler': AiStackDataCheckManager.contain_biu_perf_data},
-            {'export_type': ExportDataType.ACC_PMU,
-             'handler': AiStackDataCheckManager.contain_acc_pmu_data},
-            {'export_type': ExportDataType.SIO,
-             'handler': AiStackDataCheckManager.contain_sio_data},
-            {'export_type': ExportDataType.QOS,
-             'handler': SystemDataCheckManager.contain_qos_data},
-            {'export_type': ExportDataType.BLOCK_DETAIL,
-             'handler': AiStackDataCheckManager.contain_block_log_data},
-            {'export_type': ExportDataType.UB,
-             'handler': AiStackDataCheckManager.contain_ub_data},
-            {'export_type': ExportDataType.CCU_MISSION,
-             'handler': AiStackDataCheckManager.contain_ccu_mission_data},
-            {'export_type': ExportDataType.VOLTAGE,
-             'handler': SystemDataCheckManager.contain_lpm_data},
-            {'export_type': ExportDataType.DPU,
-             'handler': AiStackDataCheckManager.contain_dpu_data},
-            {'export_type': ExportDataType.FREQ,
-             'handler': lambda result_dir, device_id=None: True},
-            {'export_type': ExportDataType.MSPROF,
-             'handler': lambda result_dir, device_id=None: True}
+            {'export_type': ExportDataType.ROCE, 'handler': SystemDataCheckManager.contain_roce_data},
+            {'export_type': ExportDataType.LLC_READ_WRITE, 'handler': SystemDataCheckManager.contain_read_write_data},
+            {'export_type': ExportDataType.LLC_AICPU, 'handler': SystemDataCheckManager.contain_llc_capacity_data},
+            {'export_type': ExportDataType.LLC_CTRLCPU, 'handler': SystemDataCheckManager.contain_llc_capacity_data},
+            {'export_type': ExportDataType.LLC_BANDWIDTH, 'handler': SystemDataCheckManager.contain_llc_bandwidth_data},
+            {'export_type': ExportDataType.NPU_MEM, 'handler': SystemDataCheckManager.contain_npu_mem_data},
+            {
+                'export_type': ExportDataType.AI_CORE_UTILIZATION,
+                'handler': AiStackDataCheckManager.contain_ai_core_sample_based,
+            },
+            {'export_type': ExportDataType.HOST_CPU_USAGE, 'handler': HostDataCheckManager.contain_host_cpuusage_data},
+            {'export_type': ExportDataType.HOST_MEM_USAGE, 'handler': HostDataCheckManager.contain_host_mem_usage_data},
+            {
+                'export_type': ExportDataType.HOST_NETWORK_USAGE,
+                'handler': HostDataCheckManager.contain_host_network_usage_data,
+            },
+            {
+                'export_type': ExportDataType.HOST_DISK_USAGE,
+                'handler': HostDataCheckManager.contain_host_disk_usage_data,
+            },
+            {'export_type': ExportDataType.OS_RUNTIME_API, 'handler': HostDataCheckManager.contain_runtime_api_data},
+            {
+                'export_type': ExportDataType.FFTS_SUB_TASK_TIME,
+                'handler': AiStackDataCheckManager.contain_sub_task_data,
+            },
+            {'export_type': ExportDataType.COMMUNICATION, 'handler': AiStackDataCheckManager.contain_hccl_hcom_data},
+            {'export_type': ExportDataType.MSPROF_TX, 'handler': AiStackDataCheckManager.contain_msproftx_data},
+            {
+                'export_type': ExportDataType.STARS_SOC,
+                'handler': AiStackDataCheckManager.contain_stars_soc_profiler_data,
+            },
+            {
+                'export_type': ExportDataType.STARS_CHIP_TRANS,
+                'handler': AiStackDataCheckManager.contain_stars_chip_trans_data,
+            },
+            {'export_type': ExportDataType.LOW_POWER, 'handler': AiStackDataCheckManager.contain_stars_low_power_data},
+            {'export_type': ExportDataType.INSTR, 'handler': AiStackDataCheckManager.contain_biu_perf_data},
+            {'export_type': ExportDataType.ACC_PMU, 'handler': AiStackDataCheckManager.contain_acc_pmu_data},
+            {'export_type': ExportDataType.SIO, 'handler': AiStackDataCheckManager.contain_sio_data},
+            {'export_type': ExportDataType.QOS, 'handler': SystemDataCheckManager.contain_qos_data},
+            {'export_type': ExportDataType.BLOCK_DETAIL, 'handler': AiStackDataCheckManager.contain_block_log_data},
+            {'export_type': ExportDataType.UB, 'handler': AiStackDataCheckManager.contain_ub_data},
+            {'export_type': ExportDataType.CCU_MISSION, 'handler': AiStackDataCheckManager.contain_ccu_mission_data},
+            {'export_type': ExportDataType.VOLTAGE, 'handler': SystemDataCheckManager.contain_lpm_data},
+            {'export_type': ExportDataType.DPU, 'handler': AiStackDataCheckManager.contain_dpu_data},
+            {'export_type': ExportDataType.FUSION_TASK, 'handler': AiStackDataCheckManager.contain_fusion_task_data},
+            {'export_type': ExportDataType.FREQ, 'handler': lambda result_dir, device_id=None: True},
+            {'export_type': ExportDataType.MSPROF, 'handler': lambda result_dir, device_id=None: True},
         ],
         MsProfCommonConstant.SUMMARY: [
-            {'export_type': ExportDataType.TASK_TIME,
-             'handler': AiStackDataCheckManager.contain_task_time_task},
-            {'export_type': ExportDataType.L2_CACHE,
-             'handler': AiStackDataCheckManager.contain_l2_cache_data},
-            {'export_type': ExportDataType.STEP_TRACE,
-             'handler': AiStackDataCheckManager.contain_step_trace_summary_data},
-            {'export_type': ExportDataType.OP_SUMMARY,
-             'handler': AiStackDataCheckManager.contain_op_summary_data},
-            {'export_type': ExportDataType.OP_STATISTIC,
-             'handler': AiStackDataCheckManager.contain_op_statistic_data},
-            {'export_type': ExportDataType.AICPU,
-             'handler': AiStackDataCheckManager.contain_dp_aicpu_data},
-            {'export_type': ExportDataType.DP,
-             'handler': AiStackDataCheckManager.contain_data_preprocess_dp_data},
-            {'export_type': ExportDataType.CPU_USAGE,
-             'handler': SystemDataCheckManager.contain_cpu_usage_data},
-            {'export_type': ExportDataType.PROCESS_CPU_USAGE,
-             'handler': SystemDataCheckManager.contain_pid_cpu_usage_data},
-            {'export_type': ExportDataType.SYS_MEM,
-             'handler': SystemDataCheckManager.contains_sys_memory_data},
-            {'export_type': ExportDataType.PROCESS_MEM,
-             'handler': SystemDataCheckManager.contains_pid_memory_data},
+            {'export_type': ExportDataType.TASK_TIME, 'handler': AiStackDataCheckManager.contain_task_time_task},
+            {'export_type': ExportDataType.L2_CACHE, 'handler': AiStackDataCheckManager.contain_l2_cache_data},
+            {
+                'export_type': ExportDataType.STEP_TRACE,
+                'handler': AiStackDataCheckManager.contain_step_trace_summary_data,
+            },
+            {'export_type': ExportDataType.OP_SUMMARY, 'handler': AiStackDataCheckManager.contain_op_summary_data},
+            {'export_type': ExportDataType.OP_STATISTIC, 'handler': AiStackDataCheckManager.contain_op_statistic_data},
+            {'export_type': ExportDataType.AICPU, 'handler': AiStackDataCheckManager.contain_dp_aicpu_data},
+            {'export_type': ExportDataType.DP, 'handler': AiStackDataCheckManager.contain_data_preprocess_dp_data},
+            {'export_type': ExportDataType.CPU_USAGE, 'handler': SystemDataCheckManager.contain_cpu_usage_data},
+            {
+                'export_type': ExportDataType.PROCESS_CPU_USAGE,
+                'handler': SystemDataCheckManager.contain_pid_cpu_usage_data,
+            },
+            {'export_type': ExportDataType.SYS_MEM, 'handler': SystemDataCheckManager.contains_sys_memory_data},
+            {'export_type': ExportDataType.PROCESS_MEM, 'handler': SystemDataCheckManager.contains_pid_memory_data},
             {'export_type': ExportDataType.HBM, 'handler': SystemDataCheckManager.contain_hbm_data},
             {'export_type': ExportDataType.DDR, 'handler': SystemDataCheckManager.contain_ddr_data},
-            {'export_type': ExportDataType.PCIE,
-             'handler': SystemDataCheckManager.contain_pcie_data},
-            {'export_type': ExportDataType.HCCS,
-             'handler': SystemDataCheckManager.contain_hccs_data},
-            {'export_type': ExportDataType.DVPP,
-             'handler': SystemDataCheckManager.contain_dvpp_data},
+            {'export_type': ExportDataType.PCIE, 'handler': SystemDataCheckManager.contain_pcie_data},
+            {'export_type': ExportDataType.HCCS, 'handler': SystemDataCheckManager.contain_hccs_data},
+            {'export_type': ExportDataType.DVPP, 'handler': SystemDataCheckManager.contain_dvpp_data},
             {'export_type': ExportDataType.NIC, 'handler': SystemDataCheckManager.contain_nic_data},
-            {'export_type': ExportDataType.ROCE,
-             'handler': SystemDataCheckManager.contain_roce_data},
-            {'export_type': ExportDataType.LLC_READ_WRITE,
-             'handler': SystemDataCheckManager.contain_read_write_data},
-            {'export_type': ExportDataType.LLC_AICPU,
-             'handler': SystemDataCheckManager.contain_llc_capacity_data},
-            {'export_type': ExportDataType.LLC_CTRLCPU,
-             'handler': SystemDataCheckManager.contain_llc_capacity_data},
-            {'export_type': ExportDataType.LLC_BANDWIDTH,
-             'handler': SystemDataCheckManager.contain_llc_bandwidth_data},
-            {'export_type': ExportDataType.AI_CPU_TOP_FUNCTION,
-             'handler': SystemDataCheckManager.contain_ai_cpu_data},
-            {'export_type': ExportDataType.AI_CPU_PMU_EVENTS,
-             'handler': SystemDataCheckManager.contain_ai_cpu_data},
-            {'export_type': ExportDataType.CTRL_CPU_TOP_FUNCTION,
-             'handler': SystemDataCheckManager.contain_ctrl_cpu_data},
-            {'export_type': ExportDataType.CTRL_CPU_PMU_EVENTS,
-             'handler': SystemDataCheckManager.contain_ctrl_cpu_data},
-            {'export_type': ExportDataType.TS_CPU_TOP_FUNCTION,
-             'handler': SystemDataCheckManager.contain_ts_cpu_data},
-            {'export_type': ExportDataType.TS_CPU_PMU_EVENTS,
-             'handler': SystemDataCheckManager.contain_ts_cpu_data},
-            {'export_type': ExportDataType.NPU_MEM,
-             'handler': SystemDataCheckManager.contain_npu_mem_summary_data},
-            {'export_type': ExportDataType.FUSION_OP,
-             'handler': AiStackDataCheckManager.contain_fusion_op_data},
-            {'export_type': ExportDataType.AI_CORE_UTILIZATION,
-             'handler': AiStackDataCheckManager.contain_ai_core_sample_based},
-            {'export_type': ExportDataType.AI_VECTOR_CORE_UTILIZATION,
-             'handler': AiStackDataCheckManager.contain_aiv_core_sample_based},
-            {'export_type': ExportDataType.OS_RUNTIME_STATISTIC,
-             'handler': HostDataCheckManager.contain_runtime_api_data},
-            {'export_type': ExportDataType.MSPROF_TX,
-             'handler': AiStackDataCheckManager.contain_msproftx_data},
-            {'export_type': ExportDataType.HOST_CPU_USAGE,
-             'handler': HostDataCheckManager.contain_host_cpuusage_data},
-            {'export_type': ExportDataType.HOST_MEM_USAGE,
-             'handler': HostDataCheckManager.contain_host_mem_usage_data},
-            {'export_type': ExportDataType.HOST_NETWORK_USAGE,
-             'handler': HostDataCheckManager.contain_host_network_usage_data},
-            {'export_type': ExportDataType.HOST_DISK_USAGE,
-             'handler': HostDataCheckManager.contain_host_disk_usage_data},
-            {'export_type': ExportDataType.OPERATOR_MEMORY,
-             'handler': AiStackDataCheckManager.contain_op_mem_data},
-            {'export_type': ExportDataType.MEMORY_RECORD,
-             'handler': AiStackDataCheckManager.contain_mem_rec_data},
-            {'export_type': ExportDataType.COMMUNICATION_STATISTIC,
-             'handler': AiStackDataCheckManager.contain_hccl_statistic_data},
-            {'export_type': ExportDataType.API_STATISTIC,
-             'handler': AiStackDataCheckManager.contain_api_statistic_data},
-            {'export_type': ExportDataType.NPU_MODULE_MEM,
-             'handler': AiStackDataCheckManager.contain_npu_module_mem_data},
-            {'export_type': ExportDataType.AICPU_MI,
-             'handler': AiStackDataCheckManager.contain_dp_aicpu_data},
-            {'export_type': ExportDataType.STATIC_OP_MEM,
-             'handler': AiStackDataCheckManager.contain_static_op_mem_data},
-            {'export_type': ExportDataType.UB,
-             'handler': AiStackDataCheckManager.contain_ub_data},
-            {'export_type': ExportDataType.CCU_MISSION,
-             'handler': AiStackDataCheckManager.contain_ccu_mission_data},
-            {'export_type': ExportDataType.CCU_CHANNEL,
-             'handler': SystemDataCheckManager.contain_ccu_channel_data},
-            {'export_type': ExportDataType.SOC_PMU,
-             'handler': SystemDataCheckManager.contain_soc_pmu_data},
-
-        ]
+            {'export_type': ExportDataType.ROCE, 'handler': SystemDataCheckManager.contain_roce_data},
+            {'export_type': ExportDataType.LLC_READ_WRITE, 'handler': SystemDataCheckManager.contain_read_write_data},
+            {'export_type': ExportDataType.LLC_AICPU, 'handler': SystemDataCheckManager.contain_llc_capacity_data},
+            {'export_type': ExportDataType.LLC_CTRLCPU, 'handler': SystemDataCheckManager.contain_llc_capacity_data},
+            {'export_type': ExportDataType.LLC_BANDWIDTH, 'handler': SystemDataCheckManager.contain_llc_bandwidth_data},
+            {'export_type': ExportDataType.AI_CPU_TOP_FUNCTION, 'handler': SystemDataCheckManager.contain_ai_cpu_data},
+            {'export_type': ExportDataType.AI_CPU_PMU_EVENTS, 'handler': SystemDataCheckManager.contain_ai_cpu_data},
+            {
+                'export_type': ExportDataType.CTRL_CPU_TOP_FUNCTION,
+                'handler': SystemDataCheckManager.contain_ctrl_cpu_data,
+            },
+            {
+                'export_type': ExportDataType.CTRL_CPU_PMU_EVENTS,
+                'handler': SystemDataCheckManager.contain_ctrl_cpu_data,
+            },
+            {'export_type': ExportDataType.TS_CPU_TOP_FUNCTION, 'handler': SystemDataCheckManager.contain_ts_cpu_data},
+            {'export_type': ExportDataType.TS_CPU_PMU_EVENTS, 'handler': SystemDataCheckManager.contain_ts_cpu_data},
+            {'export_type': ExportDataType.NPU_MEM, 'handler': SystemDataCheckManager.contain_npu_mem_summary_data},
+            {'export_type': ExportDataType.FUSION_OP, 'handler': AiStackDataCheckManager.contain_fusion_op_data},
+            {
+                'export_type': ExportDataType.AI_CORE_UTILIZATION,
+                'handler': AiStackDataCheckManager.contain_ai_core_sample_based,
+            },
+            {
+                'export_type': ExportDataType.AI_VECTOR_CORE_UTILIZATION,
+                'handler': AiStackDataCheckManager.contain_aiv_core_sample_based,
+            },
+            {
+                'export_type': ExportDataType.OS_RUNTIME_STATISTIC,
+                'handler': HostDataCheckManager.contain_runtime_api_data,
+            },
+            {'export_type': ExportDataType.MSPROF_TX, 'handler': AiStackDataCheckManager.contain_msproftx_data},
+            {'export_type': ExportDataType.HOST_CPU_USAGE, 'handler': HostDataCheckManager.contain_host_cpuusage_data},
+            {'export_type': ExportDataType.HOST_MEM_USAGE, 'handler': HostDataCheckManager.contain_host_mem_usage_data},
+            {
+                'export_type': ExportDataType.HOST_NETWORK_USAGE,
+                'handler': HostDataCheckManager.contain_host_network_usage_data,
+            },
+            {
+                'export_type': ExportDataType.HOST_DISK_USAGE,
+                'handler': HostDataCheckManager.contain_host_disk_usage_data,
+            },
+            {'export_type': ExportDataType.OPERATOR_MEMORY, 'handler': AiStackDataCheckManager.contain_op_mem_data},
+            {'export_type': ExportDataType.MEMORY_RECORD, 'handler': AiStackDataCheckManager.contain_mem_rec_data},
+            {
+                'export_type': ExportDataType.COMMUNICATION_STATISTIC,
+                'handler': AiStackDataCheckManager.contain_hccl_statistic_data,
+            },
+            {
+                'export_type': ExportDataType.API_STATISTIC,
+                'handler': AiStackDataCheckManager.contain_api_statistic_data,
+            },
+            {
+                'export_type': ExportDataType.NPU_MODULE_MEM,
+                'handler': AiStackDataCheckManager.contain_npu_module_mem_data,
+            },
+            {'export_type': ExportDataType.AICPU_MI, 'handler': AiStackDataCheckManager.contain_dp_aicpu_data},
+            {
+                'export_type': ExportDataType.STATIC_OP_MEM,
+                'handler': AiStackDataCheckManager.contain_static_op_mem_data,
+            },
+            {'export_type': ExportDataType.UB, 'handler': AiStackDataCheckManager.contain_ub_data},
+            {'export_type': ExportDataType.CCU_MISSION, 'handler': AiStackDataCheckManager.contain_ccu_mission_data},
+            {'export_type': ExportDataType.CCU_CHANNEL, 'handler': SystemDataCheckManager.contain_ccu_channel_data},
+            {'export_type': ExportDataType.SOC_PMU, 'handler': SystemDataCheckManager.contain_soc_pmu_data},
+        ],
     }
     MODEL_ID = "model_id"
     INPUT_MODEL_ID = "input_model_id"
@@ -268,7 +249,7 @@ class ExportCommand:
             'export_type_list': [],
             'devices_list': '',
             'model_id': getattr(args, self.MODEL_ID, None),
-            'input_model_id': getattr(args, self.MODEL_ID, None) is not None
+            'input_model_id': getattr(args, self.MODEL_ID, None) is not None,
         }
         self.iteration_range = None
         self._cluster_params = {'is_cluster_scene': False, 'cluster_path': []}
@@ -290,11 +271,12 @@ class ExportCommand:
         if not conn or not curs or not DBManager.judge_table_exist(curs, table_name):
             logging.warning(
                 "Can not get model id from framework data, maybe framework data is not collected,"
-                " try to export data with no framework data.")
+                " try to export data with no framework data."
+            )
             DBManager.destroy_db_connect(conn, curs)
             return set()
 
-        sql = "select model_id from {0}".format(table_name)
+        sql = "select model_id from {0}".format(table_name)  # nosec B608
         model_ids = DBManager.fetch_all_data(curs, sql)
         model_ids_set = {model_id[0] for model_id in model_ids}
         DBManager.destroy_db_connect(conn, curs)
@@ -308,8 +290,9 @@ class ExportCommand:
     @staticmethod
     def _check_flip_data(host_flip: list, device_flip: list) -> None:
         if len(host_flip) != len(device_flip):
-            logging.warning("Different flip numbers, %d host flips and %d device flips.",
-                            len(host_flip), len(device_flip))
+            logging.warning(
+                "Different flip numbers, %d host flips and %d device flips.", len(host_flip), len(device_flip)
+            )
         for host_f, device_f in zip(host_flip, device_flip):
             if host_f.flip_num != device_f.flip_num:
                 logging.warning("The flip is not consistent between host and device")
@@ -324,8 +307,10 @@ class ExportCommand:
     def _get_min_model_id(model_match_set):
         if model_match_set:
             return min(model_match_set)
-        message = "The model_id obtained from the GE doesn't overlap that in the step_trace. The reported data " \
-                  "may be lost and the profiling will stop. Check whether the reported data is correct."
+        message = (
+            "The model_id obtained from the GE doesn't overlap that in the step_trace. The reported data "
+            "may be lost and the profiling will stop. Check whether the reported data is correct."
+        )
         raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, message)
 
     @staticmethod
@@ -361,8 +346,7 @@ class ExportCommand:
         if ProfilingScene().is_graph_export():
             if ProfilingScene().is_operator():
                 # 单算子不能按子图导
-                error(self.FILE_NAME,
-                      "Please do not set 'model-id' and 'iteration-id' in single op mode.")
+                error(self.FILE_NAME, "Please do not set 'model-id' and 'iteration-id' in single op mode.")
                 call_sys_exit(ProfException.PROF_INVALID_PARAM_ERROR)
             return
         if not (ChipManager().is_chip_all_data_export() and InfoConfReader().is_all_export_version()):
@@ -387,8 +371,9 @@ class ExportCommand:
             return
         with TaskTrackModel(result_dir, [DBNameConstant.TABLE_HOST_TASK_FLIP]) as host_flip_model:
             host_flip = host_flip_model.get_all_data(DBNameConstant.TABLE_HOST_TASK_FLIP, TaskFlip)
-        with TsTrackModel(result_dir, DBNameConstant.DB_STEP_TRACE,
-                          [DBNameConstant.TABLE_DEVICE_TASK_FLIP]) as device_flip_model:
+        with TsTrackModel(
+            result_dir, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]
+        ) as device_flip_model:
             device_flip = device_flip_model.get_task_flip_data()
         self._check_flip_data(host_flip, device_flip)
 
@@ -396,13 +381,15 @@ class ExportCommand:
         conn, curs = DBManager.check_connect_db(result_dir, DBNameConstant.DB_STEP_TRACE)
         if not (conn and curs):
             return self._get_min_model_id(model_match_set)
-        sql = "select model_id, max(index_id) from {} group by model_id".format(DBNameConstant.TABLE_STEP_TRACE_DATA)
+        sql = "select model_id, max(index_id) from {} group by model_id".format(DBNameConstant.TABLE_STEP_TRACE_DATA)  # nosec B608
         model_and_index = list(filter(lambda x: x[0] in model_match_set, DBManager.fetch_all_data(curs, sql)))
 
         if not ge_data_set:
             trace_data = DBManager.fetch_all_data(
-                curs, "select model_id, iter_id from {}".format(DBNameConstant.TABLE_STEP_TRACE_DATA),
-                dto_class=StepTraceDto)
+                curs,
+                "select model_id, iter_id from {}".format(DBNameConstant.TABLE_STEP_TRACE_DATA),  # nosec B608
+                dto_class=StepTraceDto,
+            )
             result = dict()
             for data in trace_data:
                 model_id_times = result.get(data.model_id, 0)
@@ -433,18 +420,25 @@ class ExportCommand:
         min_iter = iter_range[0]
         max_iter = iter_range[1]
         if self.iteration_id < min_iter or self.iteration_id + self.iteration_count - 1 > max_iter:
-            error(self.FILE_NAME,
-                  f'The exported iteration {self.iteration_id}-{self.iteration_id + self.iteration_count - 1} '
-                  f'is invalid for model id {self.list_map.get(self.MODEL_ID)}. '
-                  f'Please enter a valid iteration within {min_iter}-{max_iter}.')
+            error(
+                self.FILE_NAME,
+                f'The exported iteration {self.iteration_id}-{self.iteration_id + self.iteration_count - 1} '
+                f'is invalid for model id {self.list_map.get(self.MODEL_ID)}. '
+                f'Please enter a valid iteration within {min_iter}-{max_iter}.',
+            )
             return False
 
-        if self.iteration_count < NumberConstant.DEFAULT_ITER_ID \
-                or self.iteration_count > IterationRange.MAX_ITERATION_COUNT:
-            error(self.FILE_NAME, f'The iteration count {self.iteration_count} is invalid '
-                                  f'for model id {self.list_map.get(self.MODEL_ID)}. '
-                                  f'Must be greater than 0 and less than or equal to '
-                                  f'{IterationRange.MAX_ITERATION_COUNT}. Please enter a valid iteration count.')
+        if (
+            self.iteration_count < NumberConstant.DEFAULT_ITER_ID
+            or self.iteration_count > IterationRange.MAX_ITERATION_COUNT
+        ):
+            error(
+                self.FILE_NAME,
+                f'The iteration count {self.iteration_count} is invalid '
+                f'for model id {self.list_map.get(self.MODEL_ID)}. '
+                f'Must be greater than 0 and less than or equal to '
+                f'{IterationRange.MAX_ITERATION_COUNT}. Please enter a valid iteration count.',
+            )
             return False
         return True
 
@@ -457,8 +451,10 @@ class ExportCommand:
         ProfilingScene().init(project_path)
         if ProfilingScene().is_all_export():
             if self.iteration_count > NumberConstant.DEFAULT_ITER_COUNT:
-                warn(self.FILE_NAME, f'Param of "iteration-count" is {self.iteration_count}, '
-                                     f'but it is unnecessary in all export mode.')
+                warn(
+                    self.FILE_NAME,
+                    f'Param of "iteration-count" is {self.iteration_count}, but it is unnecessary in all export mode.',
+                )
                 self.iteration_count = NumberConstant.DEFAULT_ITER_COUNT
             return
 
@@ -474,10 +470,13 @@ class ExportCommand:
         if not is_data_analyzed:
             analyze_collect_data(result_dir, self.sample_config)
         else:
-            print_info(self.FILE_NAME, 'The data in "%s" has been analyzed. '
-                                       'Parsing phase will be skipped.' % result_dir)
-            logging.warning("File all_file.complete already exists. All data will be exported from db in sqlite. "
-                            "Path is %s ", result_dir)
+            print_info(
+                self.FILE_NAME, 'The data in "%s" has been analyzed. Parsing phase will be skipped.' % result_dir
+            )
+            logging.warning(
+                "File all_file.complete already exists. All data will be exported from db in sqlite. Path is %s ",
+                result_dir,
+            )
             self.is_data_analyzed = True
 
     def _check_model_id(self: any, result_dir: str) -> None:
@@ -494,13 +493,16 @@ class ExportCommand:
             return
 
         model_ids_ge = ExportCommand.get_model_id_set(
-            result_dir, DBNameConstant.DB_GE_INFO, DBNameConstant.TABLE_GE_TASK)
+            result_dir, DBNameConstant.DB_GE_INFO, DBNameConstant.TABLE_GE_TASK
+        )
 
         model_ids_step = ExportCommand.get_model_id_set(
-            result_dir, DBNameConstant.DB_STEP_TRACE, DBNameConstant.TABLE_STEP_TRACE_DATA)
+            result_dir, DBNameConstant.DB_STEP_TRACE, DBNameConstant.TABLE_STEP_TRACE_DATA
+        )
 
         model_ids_hccl = ExportCommand.get_model_id_set(
-            result_dir, DBNameConstant.DB_HCCL, DBNameConstant.TABLE_HCCL_TASK)
+            result_dir, DBNameConstant.DB_HCCL, DBNameConstant.TABLE_HCCL_TASK
+        )
 
         model_match_union = model_ids_ge
         if model_ids_hccl:
@@ -522,14 +524,16 @@ class ExportCommand:
             return
 
         if profiling_scene.is_graph_export() and self.list_map.get(self.MODEL_ID) not in model_match_set:
-            message = f"The model id {self.list_map.get(self.MODEL_ID)} is invalid. " \
-                      f"Must select from {model_match_set}. Please enter a valid model id."
+            message = (
+                f"The model id {self.list_map.get(self.MODEL_ID)} is invalid. "  # nosec B608
+                f"Must select from {model_match_set}. Please enter a valid model id."  # nosec B608
+            )
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, message)
 
     def _set_iteration_info(self, result_dir):
-        self.iteration_range = IterationRange(model_id=self.list_map.get('model_id'),
-                                              iteration_id=self.iteration_id,
-                                              iteration_count=self.iteration_count)
+        self.iteration_range = IterationRange(
+            model_id=self.list_map.get('model_id'), iteration_id=self.iteration_id, iteration_count=self.iteration_count
+        )
         MsprofTimeline().set_iteration_info(result_dir, self.iteration_range)
 
     def _update_device_list(self):
@@ -568,25 +572,26 @@ class ExportCommand:
                 logging.warning(result.get('info', ""))
 
     def _print_export_info(self: any, params: dict, data: str) -> None:
-        export_info = 'The {0} {1} data has been ' \
-                      'exported to "{2}".'.format(params.get(StrConstant.PARAM_DATA_TYPE),
-                                                  self.command_type,
-                                                  data)
+        export_info = 'The {0} {1} data has been exported to "{2}".'.format(
+            params.get(StrConstant.PARAM_DATA_TYPE), self.command_type, data
+        )
 
         if params.get(StrConstant.PARAM_DEVICE_ID) is not None:
             if params.get(StrConstant.PARAM_DEVICE_ID) == str(NumberConstant.HOST_ID):
-                export_info = 'The {0} {1} data of host for iteration {2} has been ' \
-                              'exported to "{3}".'.format(params.get(StrConstant.PARAM_DATA_TYPE),
-                                                          self.command_type,
-                                                          params.get(StrConstant.PARAM_ITER_ID),
-                                                          data)
+                export_info = 'The {0} {1} data of host for iteration {2} has been exported to "{3}".'.format(
+                    params.get(StrConstant.PARAM_DATA_TYPE),
+                    self.command_type,
+                    params.get(StrConstant.PARAM_ITER_ID),
+                    data,
+                )
             else:
-                export_info = 'The {0} {1} data of device {2} for iteration {3} has been ' \
-                              'exported to "{4}".'.format(params.get(StrConstant.PARAM_DATA_TYPE),
-                                                          self.command_type,
-                                                          params.get(StrConstant.PARAM_DEVICE_ID),
-                                                          params.get(StrConstant.PARAM_ITER_ID),
-                                                          data)
+                export_info = 'The {0} {1} data of device {2} for iteration {3} has been exported to "{4}".'.format(
+                    params.get(StrConstant.PARAM_DATA_TYPE),
+                    self.command_type,
+                    params.get(StrConstant.PARAM_DEVICE_ID),
+                    params.get(StrConstant.PARAM_ITER_ID),
+                    data,
+                )
         print_info(self.FILE_NAME, export_info)
 
     def _clear_dir(self, rm_list: list) -> None:
@@ -608,8 +613,10 @@ class ExportCommand:
             if err.message:
                 err.callback(MsProfCommonConstant.COMMON_FILE_NAME, err.message)
             else:
-                warn(MsProfCommonConstant.COMMON_FILE_NAME,
-                     'Analysis data in "%s" failed. Maybe the data is incomplete.' % result_dir)
+                warn(
+                    MsProfCommonConstant.COMMON_FILE_NAME,
+                    'Analysis data in "%s" failed. Maybe the data is incomplete.' % result_dir,
+                )
 
     def _handle_export_output_data(self: any, event, result_dir):
         if not self.list_map.get('devices_list', []):
@@ -626,8 +633,9 @@ class ExportCommand:
                 if self.command_type == MsProfCommonConstant.TIMELINE:
                     self._handle_export_output_data(event, result_dir)
                     continue
-                process = multiprocessing.Process(target=self._multiprocessing_handle_export_data,
-                                                  args=(event, result_dir, export_mode))
+                process = multiprocessing.Process(
+                    target=self._multiprocessing_handle_export_data, args=(event, result_dir, export_mode)
+                )
                 process.start()
                 processes.append(process)
             for process in processes:
@@ -636,8 +644,10 @@ class ExportCommand:
             if err.message:
                 err.callback(MsProfCommonConstant.COMMON_FILE_NAME, err.message)
             else:
-                warn(MsProfCommonConstant.COMMON_FILE_NAME,
-                     'Analysis data in "%s" failed. Maybe the data is incomplete.' % result_dir)
+                warn(
+                    MsProfCommonConstant.COMMON_FILE_NAME,
+                    'Analysis data in "%s" failed. Maybe the data is incomplete.' % result_dir,
+                )
 
     def _export_data(self: any, event: dict, device_id: str, result_dir: str) -> None:
         export_data_type = event.get('export_type', ExportDataType.INVALID).name.lower()
@@ -649,7 +659,7 @@ class ExportCommand:
             StrConstant.PARAM_ITER_ID: self.iteration_range,
             StrConstant.PARAM_EXPORT_FORMAT: self.export_format,
             StrConstant.PARAM_MODEL_ID: self.list_map.get("model_id"),
-            StrConstant.PARAM_EXPORT_DUMP_FOLDER: self.command_type
+            StrConstant.PARAM_EXPORT_DUMP_FOLDER: self.command_type,
         }
 
         self._handle_export_data(params)
@@ -665,7 +675,7 @@ class ExportCommand:
             "collection_path": self.collection_path,
             "model_id": 0,
             "npu_id": -1,
-            "iteration_id": self.iteration_id
+            "iteration_id": self.iteration_id,
         }
         try:
             ClusterTuningFacade(params).process()
@@ -697,8 +707,11 @@ class ExportCommand:
                     path_table[StrConstant.DEVICE_PATH].append(sub_path)
                 path_table.setdefault("collection_path", collect_path)
             elif sub_path and is_cluster:
-                warn(self.FILE_NAME, 'Invalid parsing dir("%s"), -dir must be profiling data dir '
-                                     'such as PROF_XXX_XXX_XXX' % collect_path)
+                warn(
+                    self.FILE_NAME,
+                    'Invalid parsing dir("%s"), -dir must be profiling data dir '
+                    'such as PROF_XXX_XXX_XXX' % collect_path,
+                )
             else:
                 self._process_sub_dirs(sub_dir, is_cluster=True)
             self.list_map['devices_list'] = ''
@@ -792,7 +805,7 @@ class ExportCommand:
             StrConstant.PARAM_RESULT_DIR: result_dir,
             StrConstant.PARAM_EXPORT_DUMP_FOLDER: output_path,
             StrConstant.PARAM_EXPORT_TYPE: MsProfCommonConstant.TIMELINE,
-            StrConstant.PARAM_DATA_TYPE: 'msprof'
+            StrConstant.PARAM_DATA_TYPE: 'msprof',
         }
         MsprofDataStorage().slice_msprof_json_for_so(expect_file, params)
 

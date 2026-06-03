@@ -614,6 +614,8 @@ class TablesConfig(MetaConfig):
             ('end_time', 'INTEGER,null'),
             ('task_time', 'INTEGER,null'),
             ('fusion_task_type', 'TEXT,null'),
+            ('mission_id', 'INTEGER,null'),
+            ('ccu_die_id', 'INTEGER,null'),
         ],
         'AcsqTaskTimeMap': [
             ('task_id', 'INTEGER,null'),

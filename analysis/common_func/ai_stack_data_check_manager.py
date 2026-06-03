@@ -508,3 +508,12 @@ class AiStackDataCheckManager(DataCheckManager):
         return cls.check_data_exist(
             result_dir, file_name_manager.get_dpu_track_compact_compiles()
         ) or cls.check_data_exist(result_dir, file_name_manager.get_dpu_hccl_track_compact_compiles())
+
+    @classmethod
+    def contain_fusion_task_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        """
+        The data path contain fusion task data or not
+        """
+        return DBManager.check_tables_in_db(
+            PathManager.get_db_path(result_dir, DBNameConstant.DB_FUSION_TASK), DBNameConstant.TABLE_FUSION_TASK
+        )

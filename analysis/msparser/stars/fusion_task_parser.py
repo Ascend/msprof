@@ -92,6 +92,8 @@ class FusionTaskParser(LogBaseParser):
                     end_task.sys_cnt,
                     end_task.sys_cnt - start_task.sys_cnt,
                     start_task.fusion_task_type,
+                    start_task.mission_id,
+                    start_task.ccu_die_id,
                 ]
                 matched_result.append(res)
             if len(start_que) > 1 or end_que:

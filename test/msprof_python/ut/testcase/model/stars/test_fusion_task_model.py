@@ -50,9 +50,10 @@ class TestFusionTaskModel(TestDirCRBaseModel):
         self.assertEqual(ret, 1)
 
     def test_flush_and_get_summary_data_integration(self):
+        """data_list: 10 fields incl. display fusion_task_type, mission_id, ccu_die_id"""
         fusion_data = [
-            [0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, '1'],
-            [0, 200, 7, 'AI_CORE', 1600.0, 1800.0, 200.0, '2'],
+            [0, 100, 3, 'AI_CORE', 1120.0, 1200.0, 80.0, 'CPU', 0, None],
+            [0, 200, 7, 'AI_CORE', 1600.0, 1800.0, 200.0, 'CCU', 1, 0],
         ]
         model = FusionTaskModel(
             self.PROF_DEVICE_DIR, DBNameConstant.DB_FUSION_TASK,
@@ -63,7 +64,11 @@ class TestFusionTaskModel(TestDirCRBaseModel):
             model.flush(fusion_data)
             ret = model.get_summary_data()
             self.assertEqual(len(ret), 2)
-            self.assertEqual(ret[0].op_name, '1')
-            self.assertEqual(ret[1].op_name, '2')
+            self.assertEqual(ret[0].op_name, 'CPU')
+            self.assertEqual(ret[0].mission_id, 0)
+            self.assertEqual(ret[0].ccu_die_id, None)
+            self.assertEqual(ret[1].op_name, 'CCU')
+            self.assertEqual(ret[1].mission_id, 1)
+            self.assertEqual(ret[1].ccu_die_id, 0)
         finally:
             model.finalize()

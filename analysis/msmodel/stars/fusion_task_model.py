@@ -18,7 +18,7 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from msmodel.interface.parser_model import ParserModel
-from profiling_bean.db_dto.task_time_dto import TaskTimeDto
+from profiling_bean.db_dto.fusion_task_dto import FusionTaskDto
 
 
 class FusionTaskModel(ParserModel):
@@ -42,11 +42,11 @@ class FusionTaskModel(ParserModel):
         sql = (
             "select fusion_task_type as op_name, task_type, stream_id, task_id, "
             "task_time/{NS_TO_US} as task_time, "
-            "start_time, end_time from {table}".format(  # nosec B608
+            "start_time, end_time, mission_id, ccu_die_id from {table}".format(  # nosec B608
                 table=DBNameConstant.TABLE_FUSION_TASK, NS_TO_US=NumberConstant.NS_TO_US
             )
         )  # nosec B608
-        return DBManager.fetch_all_data(self.cur, sql, dto_class=TaskTimeDto)
+        return DBManager.fetch_all_data(self.cur, sql, dto_class=FusionTaskDto)
 
     def get_timeline_data(self: any) -> list:
         """

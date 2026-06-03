@@ -109,19 +109,19 @@ static std::vector<LowPowerData> GenerateFreqDataWithDifferentDies()
     data.deviceId = 0;
     data.dieId = 0;
     data.timestamp = 1719621074669030430;
-    data.aicFreq = 800;
+    data.freq = 800;
     res.push_back(data);
 
     data.deviceId = 1;
     data.dieId = 1;
     data.timestamp = 1719621074669031430;
-    data.aicFreq = 900;
+    data.freq = 900;
     res.push_back(data);
 
     data.deviceId = 2;
     data.dieId = 2;
     data.timestamp = 1719621074669032430;
-    data.aicFreq = 1000;
+    data.freq = 1000;
     res.push_back(data);
     return res;
 }
@@ -133,7 +133,7 @@ static std::vector<LowPowerData> GenerateFreqDataWithUnsupportedDie()
     data.deviceId = 0;
     data.dieId = 2;
     data.timestamp = 1719621074669030430;
-    data.aicFreq = 800;
+    data.freq = 800;
     res.push_back(data);
     return res;
 }
@@ -145,13 +145,13 @@ static std::vector<LowPowerData> GenerateFreqDataWithSupportedDiesOnSameDevice()
     dieZero.deviceId = 0;
     dieZero.dieId = 0;
     dieZero.timestamp = 1719621074669030430;
-    dieZero.aicFreq = 800;
+    dieZero.freq = 800;
     res.push_back(dieZero);
 
     LowPowerData dieOne = dieZero;
     dieOne.dieId = 1;
     dieOne.timestamp = 1719621074669031430;
-    dieOne.aicFreq = 900;
+    dieOne.freq = 900;
     res.push_back(dieOne);
     return res;
 }

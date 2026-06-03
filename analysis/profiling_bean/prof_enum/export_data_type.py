@@ -23,6 +23,7 @@ class ExportDataType(Enum):
     """
     data type for summary and timeline.
     """
+
     INVALID = -1
     MSPROF_TX = 0
     STEP_TRACE = 1
@@ -93,4 +94,5 @@ class ExportDataType(Enum):
     FREQ = 76
     VOLTAGE = 77
     DPU = 78
+    FUSION_TASK = 79
     MSPROF = 100

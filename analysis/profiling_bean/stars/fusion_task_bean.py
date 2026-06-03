@@ -14,6 +14,7 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+from common_func.constant import Constant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.utils import Utils
 from profiling_bean.struct_info.struct_decoder import StructDecoder
@@ -39,8 +40,9 @@ class FusionTaskBean(StructDecoder):
         self._task_id = args[2]
         # Word 3 (64bit): syscnt
         self._sys_cnt = InfoConfReader().time_from_syscnt(args[3])
-        # Word 4 (16bit): fusion_task_type
-        self._fusion_task_type = args[4]
+        # Word 4 (16bit): fusion_task_type[4:0], mission_id[8:5]
+        self._fusion_task_type = args[4] & 0x1F
+        self._mission_id = (args[4] >> 5) & 0xF
         # Word 5 (16bit): acc_id
         self._acc_id = args[5]
 
@@ -79,10 +81,37 @@ class FusionTaskBean(StructDecoder):
         """get sys cnt (converted to time)"""
         return self._sys_cnt
 
+    # one-hot bit → type name: bit0=cpu, bit1=aicpu, bit2=aicore, bit3=ccu, bit4=ccu
+    _FUSION_TYPE_BIT_MAP = {0: 'CPU', 1: 'AICPU', 2: 'AICORE', 3: 'CCU', 4: 'CCU'}
+    _CCU_DIE_BIT_MAP = {3: 0, 4: 1}
+
     @property
     def fusion_task_type(self: any) -> str:
-        """get fusion task type"""
-        return str(format(self._fusion_task_type, '016b'))
+        """get fusion task type display name"""
+        return self.get_fusion_type_display(self._fusion_task_type)[0]
+
+    @property
+    def ccu_die_id(self: any) -> int:
+        """get ccu die id, None if not a CCU task"""
+        return self.get_fusion_type_display(self._fusion_task_type)[1]
+
+    @classmethod
+    def get_fusion_type_display(cls, raw_value: int) -> tuple:
+        """
+        Convert one-hot raw value to (type_name, ccu_die_id_or_None).
+        bit0=cpu, bit1=aicpu, bit2=aicore, bit3=ccu_die0, bit4=ccu_die1
+        """
+        if not raw_value:
+            return Constant.TASK_TYPE_UNKNOWN, None
+        bit = raw_value.bit_length() - 1
+        type_name = cls._FUSION_TYPE_BIT_MAP.get(bit, Constant.TASK_TYPE_UNKNOWN)
+        die_id = cls._CCU_DIE_BIT_MAP.get(bit) if type_name == 'CCU' else None
+        return type_name, die_id
+
+    @property
+    def mission_id(self: any) -> int:
+        """get mission id from fusion_task_type bits[8:5]"""
+        return self._mission_id
 
     @property
     def acc_id(self: any) -> int:

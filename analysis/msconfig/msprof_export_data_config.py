@@ -244,6 +244,11 @@ class MsProfExportDataConfig(MetaConfig):
             ('table', DBNameConstant.TABLE_SOC_DATA),
         ],
         'stars_chip_trans': [('handler', '_get_stars_chip_trans_data'), ('db', DBNameConstant.DB_STARS_CHIP_TRANS)],
+        'fusion_task': [
+            ('handler', '_get_fusion_task_data'),
+            ('db', DBNameConstant.DB_FUSION_TASK),
+            ('table', DBNameConstant.TABLE_FUSION_TASK),
+        ],
         'low_power': [
             ('handler', '_get_low_power_data'),
             ('db', DBNameConstant.DB_LOW_POWER),

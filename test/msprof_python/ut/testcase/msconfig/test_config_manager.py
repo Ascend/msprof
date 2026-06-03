@@ -36,6 +36,6 @@ class TestConfigManager(unittest.TestCase):
         config = ConfigManager.get(ConfigManager.TABLES_OPERATOR)
         self.assertEqual(len(config.items('SummaryGeMap')), 21)
         config = ConfigManager.get(ConfigManager.MSPROF_EXPORT_DATA)
-        self.assertEqual(len(config.sections()), 66)
+        self.assertEqual(len(config.sections()), 67)
         config = ConfigManager.get(ConfigManager.DATA_CALCULATOR)
         self.assertEqual(len(config.sections()), 27)
