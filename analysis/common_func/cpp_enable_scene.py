@@ -124,7 +124,7 @@ class CannCalculatorScene(CppEnableScene):
     Cann calculator scene: check whether cpp cann calculator is enabled
     """
 
-    SCENE_CHIP_BLACKLIST = [ChipModel.CHIP_V5_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0]
+    SCENE_CHIP_BLACKLIST = [ChipModel.CHIP_V5_1_0, ChipModel.CHIP_V6_2_0]
 
 
 class DeviceParseScene(CppEnableScene):

@@ -19,6 +19,7 @@
 #include <set>
 #include <string>
 
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 
@@ -35,10 +36,16 @@ using namespace Analysis::Domain::Host::Cann;
 
 namespace
 {
+bool IsChipV6()
+{
+    static bool isV6 =
+        Environment::Context::GetInstance().IsChipV6(Environment::Context::GetInstance().GetPlatformVersion());
+    return isV6;
+}
+inline uint16_t GetBatchId(uint32_t taskId) { return IsChipV6() ? 0 : static_cast<uint16_t>(taskId >> 16); }
+inline uint32_t GetTaskIdBit() { return IsChipV6() ? 0xFFFFFFFF : 0x0000FFFF; }
 const uint32_t VALID_CTXID_NUM = 2;
 const int64_t INVALID_VALUE = -1;
-const uint16_t TWO_BYTES = 16;
-const uint32_t TASK_ID_BIT = 0x0000FFFF;
 const uint16_t AICORE_TASK_TYPE = 0;
 const uint16_t AICPU_TASK_TYPE = 1;
 const uint64_t INVALID_MODEL_ID = 4294967295;
@@ -170,6 +177,7 @@ void TreeAnalyzer::AnalyzeRuntimeNode(const std::shared_ptr<TreeNode> &node)
         if (otherTask)
         {
             tasks_.emplace_back(otherTask);
+
             auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, otherTask->taskType);
             // 对于纯rts_track数据,只有算子类型在白名单中才生成computeTask数据
             if (KERNEL_COMPUTE_WHITE_LIST.find(taskType) != KERNEL_COMPUTE_WHITE_LIST.end())
@@ -280,7 +288,7 @@ void TreeAnalyzer::UpdateHcclBigOpDescs(const std::shared_ptr<TreeNode> &node)
     auto modelApi = modelTrace != nullptr ? modelTrace->event->apiPtr : nullptr;
     auto indexId = modelApi != nullptr ? modelApi->reserve : -1;
     auto modelId = GetModelId(modelApi, deviceId, track->data.runtimeTrack.streamId,
-                              static_cast<uint16_t>(track->data.runtimeTrack.taskId >> TWO_BYTES), track->timeStamp);
+                              GetBatchId(track->data.runtimeTrack.taskId), track->timeStamp);
     auto connectionId = nodeNode->event->id;
     auto nodeRecords = GetNodeRecordsByType(nodeNode, EventType::EVENT_TYPE_NODE_BASIC_INFO);
     std::shared_ptr<MsprofCompactInfo> nodeDesc = nullptr;
@@ -340,10 +348,10 @@ std::shared_ptr<HostTask> TreeAnalyzer::GenHostTask(const std::shared_ptr<Msprof
 
     task->connection_id = connectionId;
     task->streamId = track->data.runtimeTrack.streamId;
-    task->taskId = static_cast<uint16_t>(track->data.runtimeTrack.taskId & TASK_ID_BIT);
+    task->taskId = static_cast<uint32_t>(track->data.runtimeTrack.taskId & GetTaskIdBit());
     task->contextId = ctxId;
     task->op = opPtr;
-    task->batchId = static_cast<uint16_t>(track->data.runtimeTrack.taskId >> TWO_BYTES);
+    task->batchId = GetBatchId(track->data.runtimeTrack.taskId);
     task->requestId = modelApi != nullptr ? modelApi->reserve : INVALID_VALUE;
     task->taskType = taskType;
     task->deviceId = track->data.runtimeTrack.deviceId;
@@ -391,7 +399,7 @@ HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shar
 
         std::vector<uint32_t> ctxIds;
         // 只有FFTS+类型应该保留CtxId
-        if (desc->ctxId)
+        if (desc->ctxId && !IsChipV6())
         {
             auto ctxIdInfo = ReinterpretConvert<MsprofContextIdInfo *>(desc->ctxId->data);
             ctxIds.assign(ctxIdInfo->ctxIds, ctxIdInfo->ctxIds + ctxIdInfo->ctxIdNum);
@@ -593,8 +601,9 @@ std::shared_ptr<HostTask> TreeAnalyzer::GetOtherTaskDesc(const std::shared_ptr<T
     }
     auto track = tracks.back()->compactPtr;
     auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, track->data.runtimeTrack.taskType);
-    uint32_t contextId =
-        (taskType == KERNEL_MIX_AIC_TASK_TYPE || taskType == KERNEL_MIX_AIV_TASK_TYPE) ? 0 : DEFAULT_CONTEXT_ID;
+    uint32_t contextId = (taskType == KERNEL_MIX_AIC_TASK_TYPE || taskType == KERNEL_MIX_AIV_TASK_TYPE) && !IsChipV6()
+                             ? 0
+                             : DEFAULT_CONTEXT_ID;
     // 使用父节点的id作为connection_id，主要是为了将record_event的api与task_track关联起来
     std::shared_ptr<Operator> op;
     std::shared_ptr<OpDesc> desc;
