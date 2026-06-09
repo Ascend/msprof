@@ -47,7 +47,7 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(file_path)
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 non_empty_lines = [line for line in file if line.strip()]
                 if len(non_empty_lines) < min_lines:
                     raise ValueError(f"The file {file_path} has less than {min_lines} non-empty lines.")
@@ -65,7 +65,7 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(txt_path)
-            with open(txt_path, 'r', encoding='utf-8') as txtfile:
+            with open(txt_path, "r", encoding="utf-8") as txtfile:
                 content = txtfile.read()
                 if not content:
                     raise ValueError(f"The file {txt_path} is empty.")
@@ -87,7 +87,7 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(csv_path)
-            with open(csv_path, newline='', encoding='utf-8') as csvfile:
+            with open(csv_path, newline="", encoding="utf-8") as csvfile:
                 reader = csv.reader(csvfile)
                 first_row = next(reader)  # Get the first row
                 csv_headers_set = set(first_row)
@@ -120,13 +120,15 @@ class FileChecker:
         try:
             cls.check_file_exists(csv_path)
             cls.check_csv_headers(csv_path, list(item_pattern.keys()))
-            reader = csv.DictReader(open(csv_path, 'r', newline='', encoding='utf-8'))
-            csv_data = list(reader)
+            with open(csv_path, "r", newline="", encoding="utf-8") as csvfile:
+                reader = csv.DictReader(csvfile)
+                csv_data = list(reader)
             for column, patterns in item_pattern.items():
                 patterns = [patterns] if not isinstance(patterns, list) else patterns
                 if fuzzy_match:
-                    regex_patterns = [re.compile(re.escape(pattern).replace(r'\*', '.*'), re.IGNORECASE)
-                                      for pattern in patterns]
+                    regex_patterns = [
+                        re.compile(re.escape(pattern).replace(r"\*", ".*"), re.IGNORECASE) for pattern in patterns
+                    ]
                     found_match = all(any(rp.search(row[column]) for row in csv_data) for rp in regex_patterns)
                 else:
                     found_match = all(any(row[column] == pattern for row in csv_data) for pattern in patterns)
@@ -136,8 +138,13 @@ class FileChecker:
             raise RuntimeError(f"Failed to read CSV file, ERROR: {e}")
 
     @classmethod
-    def check_timeline_values(cls, timeline_path: str, key: str = "name", value_list: list = None,
-                              fuzzy_match: bool = True) -> None:
+    def check_timeline_values(
+        cls,
+        timeline_path: str,
+        key: str = "name",
+        value_list: list = None,
+        fuzzy_match: bool = True,
+    ) -> None:
         """
         Check if a timeline file contains the specified list of values for a given key.
 
@@ -162,11 +169,11 @@ class FileChecker:
             value_list = []
         try:
             cls.check_file_exists(timeline_path)
-            with open(timeline_path, 'r', encoding='utf-8') as timelinefile:
+            with open(timeline_path, "r", encoding="utf-8") as timelinefile:
                 data = json.load(timelinefile)
                 for value in value_list:
                     if fuzzy_match:
-                        pattern = re.compile(re.escape(value).replace(r'\*', '.*'), re.IGNORECASE)
+                        pattern = re.compile(re.escape(value).replace(r"\*", ".*"), re.IGNORECASE)
                         found_match = any(pattern.search(item.get(key, "")) for item in data)
                     else:
                         found_match = any(item.get(key, None) == value for item in data)
@@ -199,10 +206,10 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(json_path)
-            with open(json_path, 'r', encoding='utf-8') as jsonfile:
+            with open(json_path, "r", encoding="utf-8") as jsonfile:
                 data = json.load(jsonfile)
                 for nested_key, value in item_pattern.items():
-                    keys = nested_key.split('.')
+                    keys = nested_key.split(".")
                     current = data
                     for key in keys:
                         if isinstance(current, dict) and key in current:
@@ -211,7 +218,8 @@ class FileChecker:
                             raise KeyError(f"Key '{nested_key}' not found in JSON file.")
                     if current != value:
                         raise ValueError(
-                            f"Value for key '{nested_key}' does not match. Expected '{value}', found '{current}'")
+                            f"Value for key '{nested_key}' does not match. Expected '{value}', found '{current}'"
+                        )
         except (IOError, OSError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Failed to read JSON file, ERROR: {e}")
 
@@ -235,7 +243,7 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(json_path)
-            with open(json_path, 'r', encoding='utf-8') as jsonfile:
+            with open(json_path, "r", encoding="utf-8") as jsonfile:
                 data = json.load(jsonfile)
                 for key in keys:
                     if key not in data:
@@ -268,10 +276,10 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(json_path)
-            with open(json_path, 'r', encoding='utf-8') as jsonfile:
+            with open(json_path, "r", encoding="utf-8") as jsonfile:
                 data = json.load(jsonfile)
                 for nested_key in keys:
-                    keys = nested_key.split('.')
+                    keys = nested_key.split(".")
                     current = data
                     for key in keys:
                         if isinstance(current, dict) and key in current:
@@ -292,7 +300,7 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(file_path)
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 line_count = sum(1 for _ in file)
             if line_count != expected_line_count:
                 raise ValueError(f"Expected {expected_line_count} lines, but found {line_count} in file {file_path}.")
@@ -309,22 +317,21 @@ class FileChecker:
             table_name (str): Table to be verified.
             table_struct (list): List of expected headers.
         """
+        conn, curs = None, None
         try:
             cls.check_file_exists(db_path)
             conn, curs = DBManager.create_connect_db(db_path)
-            curs.execute(
-                "select count(*) from sqlite_master where type='table' and " "name=?",
-                (table_name,),
-            )
+            if not (conn and curs):
+                raise RuntimeError(f"Failed to connect to database: {db_path}")
+            if not DBManager.judge_table_exists(curs, table_name):
+                raise ValueError(f"Table '{table_name}' does not exist in database '{db_path}'.")
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read db, ERROR: {e}")
         finally:
             DBManager.destroy_db_connect(conn, curs)
 
     @classmethod
-    def check_db_table_struct(
-            cls, db_path: str, table_name: str, table_struct: list
-    ) -> None:
+    def check_db_table_struct(cls, db_path: str, table_name: str, table_struct: list) -> None:
         """
         Check if the struct of a table match the given struct list.
 
@@ -348,9 +355,7 @@ class FileChecker:
             DBManager.destroy_db_connect(conn, curs)
 
     @classmethod
-    def compare_csv_num_with_table(
-            cls, csv_path: str, db_path: str, table_name: str
-    ) -> None:
+    def compare_csv_num_with_table(cls, csv_path: str, db_path: str, table_name: str) -> None:
         """
         Check if the struct of a table match the given struct list.
 
@@ -385,16 +390,22 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(file_path)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-            if keyword.lower() in content.lower():  # Convert both content and keywords to lowercase and then check
-                raise RuntimeError(f"file {file_path} contains the keyword '{keyword}'.")
+            matched_lines = []
+            with open(file_path, "r", encoding="utf-8") as file:
+                for line_no, line in enumerate(file, start=1):
+                    if keyword.lower() in line.lower():
+                        matched_lines.append(f"{line_no}: {line.rstrip()}")
+
+            if matched_lines:
+                matched_content = "\n".join(matched_lines)
+                raise RuntimeError(f"file {file_path} contains the keyword '{keyword}':\n{matched_content}")
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read file, ERROR: {e}")
 
     @classmethod
-    def check_communication_fields_from_trace_view(cls, trace_view_path: str, communication_operator: str,
-                                                   fields: list) -> None:
+    def check_communication_fields_from_trace_view(
+        cls, trace_view_path: str, communication_operator: str, fields: list
+    ) -> None:
         """
         Check whether the communication operator in the trace_view.json file contains the specified field.
 
@@ -423,22 +434,22 @@ class FileChecker:
         communication_operators = []
         try:
             cls.check_file_exists(trace_view_path)
-            with open(trace_view_path, 'r', encoding='utf-8') as jsonfile:
+            with open(trace_view_path, "r", encoding="utf-8") as jsonfile:
                 data = json.load(jsonfile)
                 for item in data:
                     if item.get("name", "").startswith(communication_operator):
                         communication_operators.append(item)
         except (IOError, OSError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Failed to read JSON file, ERROR: {e}")
-        for communication_operator in communication_operators:
-            args = communication_operator.get("args")
+        for communication_item in communication_operators:
+            args = communication_item.get("args")
             if set(fields) != args.keys():
                 raise ValueError(f"args of {args.keys()} does not equal {fields}")
 
     @classmethod
-    def check_communication_fields_from_communication_json(cls, communication_json_path: str,
-                                                           communication_operator: str,
-                                                           fields: list) -> None:
+    def check_communication_fields_from_communication_json(
+        cls, communication_json_path: str, communication_operator: str, fields: list
+    ) -> None:
         """
         Check whether the communication operator in the communication.json file contains the specified field.
 
@@ -473,7 +484,7 @@ class FileChecker:
         communication_fields = []
         try:
             cls.check_file_exists(communication_json_path)
-            with open(communication_json_path, 'r', encoding='utf-8') as jsonfile:
+            with open(communication_json_path, "r", encoding="utf-8") as jsonfile:
                 data = json.load(jsonfile)
                 for step_data in data.values():
                     communications = step_data.get("collective", {})
@@ -507,15 +518,21 @@ class FileChecker:
             excel_headers = df.columns.tolist()
             if excel_headers != headers:
                 raise ValueError(
-                    f"{excel_path} (Sheet: {sheet_name}) Headers mismatch. Expected: {headers}, Actual: {excel_headers}")
+                    f"{excel_path} (Sheet: {sheet_name}) Headers mismatch. Expected: {headers}, Actual: {excel_headers}"
+                )
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read Excel file, ERROR: {e}")
         except ValueError as e:
             raise RuntimeError(f"Sheet '{sheet_name}' not found in Excel file, ERROR: {e}")
 
     @classmethod
-    def check_excel_items(cls, excel_path: str, sheet_name: str, item_pattern: dict,
-                          fuzzy_match: bool = True) -> None:
+    def check_excel_items(
+        cls,
+        excel_path: str,
+        sheet_name: str,
+        item_pattern: dict,
+        fuzzy_match: bool = True,
+    ) -> None:
         """
         Enhanced version with detailed error reporting for Excel sheet data validation
         """
@@ -531,7 +548,7 @@ class FileChecker:
                 for pattern in patterns:
                     if fuzzy_match:
                         # Fuzzy matching
-                        regex_pattern = re.compile(re.escape(pattern).replace(r'\*', '.*'), re.IGNORECASE)
+                        regex_pattern = re.compile(re.escape(pattern).replace(r"\*", ".*"), re.IGNORECASE)
                         pattern_found = any(regex_pattern.search(cell_value) for cell_value in column_data)
                     else:
                         # Exact match
@@ -543,7 +560,8 @@ class FileChecker:
                 if missing_patterns:
                     raise ValueError(
                         f"Column '{column}' in sheet '{sheet_name}' missing patterns: {missing_patterns}. "
-                        f"Available data: {column_data}")
+                        f"Available data: {column_data}"
+                    )
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read Excel file, ERROR: {e}")
         except ValueError as e:
@@ -571,18 +589,22 @@ class FileChecker:
             if len(row_data) != len(expected_fields):
                 raise ValueError(
                     f"{excel_path} (Sheet: {sheet_name}, Row: {row_index + 1}) Field count mismatch. "
-                    f"Expected: {len(expected_fields)}, Actual: {len(row_data)}")
+                    f"Expected: {len(expected_fields)}, Actual: {len(row_data)}"
+                )
             for i, (actual, expected) in enumerate(zip(row_data, expected_fields)):
                 if actual != expected:
                     raise ValueError(
                         f"{excel_path} (Sheet: {sheet_name}, Row: {row_index + 1}, Column: {i + 1}) Field mismatch. "
-                        f"Expected: {expected}, Actual: {actual}")
+                        f"Expected: {expected}, Actual: {actual}"
+                    )
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read Excel file, ERROR: {e}")
         except ValueError as e:
             raise RuntimeError(f"Sheet '{sheet_name}' not found in Excel file, ERROR: {e}")
         except IndexError as e:
-            raise RuntimeError(f"Row index {row_index} is out of range for sheet '{sheet_name}' in Excel file, ERROR: {e}")
+            raise RuntimeError(
+                f"Row index {row_index} is out of range for sheet '{sheet_name}' in Excel file, ERROR: {e}"
+            )
 
     @classmethod
     def check_html_table_headers(cls, html_path: str, table_title: str, headers: list) -> None:
@@ -604,21 +626,22 @@ class FileChecker:
         """
         try:
             cls.check_file_exists(html_path)
-            with open(html_path, 'r', encoding='utf-8') as file:
-                soup = BeautifulSoup(file, 'html.parser')
+            with open(html_path, "r", encoding="utf-8") as file:
+                soup = BeautifulSoup(file, "html.parser")
 
             # Find the h2 tag with the specified table title
-            h2 = soup.find('h2', string=table_title)
+            h2 = soup.find("h2", string=table_title)
             if h2:
-                table = h2.find_next('table')
+                table = h2.find_next("table")
                 if table:
-                    header_row = table.find('tr')
+                    header_row = table.find("tr")
                     if header_row:
-                        actual_headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+                        actual_headers = [th.get_text(strip=True) for th in header_row.find_all("th")]
                         if actual_headers != headers:
                             raise ValueError(
                                 f"{html_path} (Table: {table_title}) Headers mismatch. Expected: {headers}, "
-                                f"Actual: {actual_headers}")
+                                f"Actual: {actual_headers}"
+                            )
                     else:
                         raise RuntimeError(f"Header row not found in the table: {table_title}")
                 else:
@@ -630,10 +653,10 @@ class FileChecker:
 
     @classmethod
     def check_csv_data_non_negative(
-            cls,
-            file_path: str,
-            comparison_func: Callable[[str], bool],
-            columns: Optional[Iterable[str]] = None,
+        cls,
+        file_path: str,
+        comparison_func: Callable[[str], bool],
+        columns: Optional[Iterable[str]] = None,
     ) -> None:
         """
         Check whether the specified columns of the CSV file satisfy
@@ -665,8 +688,7 @@ class FileChecker:
                         value = row[col]
                         if not comparison_func(value):
                             raise AssertionError(
-                                f"CSV column '{col}' contains value that does not meet "
-                                f"the condition: {value}"
+                                f"CSV column '{col}' contains value that does not meet the condition: {value}"
                             )
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to read CSV file, ERROR: {e}")
