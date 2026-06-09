@@ -13,11 +13,11 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: skip-file
 import json
 import logging
 import os
 import re
-import stat
 
 from common_func.common import CommonConstant, print_info
 from common_func.common import error
@@ -35,6 +35,7 @@ class FileManager:
     """
     class to manage files
     """
+
     FILE_AUTHORITY = 0o640
 
     @staticmethod
@@ -95,8 +96,9 @@ class FileManager:
             all_file_name = os.path.join(data_dir, FileNameManagerConstant.ALL_FILE_TAG)
             if os.path.exists(all_file_name):
                 is_analyse = True
-                logging.warning("Data has been analyzed, path is %s, "
-                                "there are %s in sqlite.", project_path, sqlite_list)
+                logging.warning(
+                    "Data has been analyzed, path is %s, there are %s in sqlite.", project_path, sqlite_list
+                )
         return is_analyse
 
     @classmethod
@@ -106,8 +108,7 @@ class FileManager:
         """
         file_dir = PathManager.get_data_dir(project_path)
         try:
-            if os.path.exists(os.path.join(file_dir, file_name)) and \
-                    not file_name.endswith(Constant.COMPLETE_TAG):
+            if os.path.exists(os.path.join(file_dir, file_name)) and not file_name.endswith(Constant.COMPLETE_TAG):
                 file_path = os.path.join(file_dir, file_name + Constant.COMPLETE_TAG)
                 with FdOpen(file_path):
                     os.chmod(file_path, cls.FILE_AUTHORITY)
@@ -123,8 +124,10 @@ class FileManager:
             try:
                 os.makedirs(query_path, mode=NumberConstant.DIR_AUTHORITY)
             except OSError:
-                error(os.path.basename(__file__),
-                      "Storing data failed, you may not have the permission to write files in the current path.")
+                error(
+                    os.path.basename(__file__),
+                    "Storing data failed, you may not have the permission to write files in the current path.",
+                )
                 return
         output_file_path = PathManager.get_query_result_path(collection_path, file_name)
         check_path_valid(output_file_path, True)
@@ -134,8 +137,9 @@ class FileManager:
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             error(os.path.basename(__file__), err)
         else:
-            print_info(os.path.basename(__file__),
-                       "The data has stored successfully, file path: {}".format(output_file_path))
+            print_info(
+                os.path.basename(__file__), "The data has stored successfully, file path: {}".format(output_file_path)
+            )
 
 
 class FileOpen:
@@ -164,8 +168,14 @@ class FdOpen:
     creat and write file
     """
 
-    def __init__(self: any, file_path: str, flags: int = Constant.WRITE_FLAGS, mode: int = Constant.WRITE_MODES,
-                 operate: str = "w", newline: str = None) -> None:
+    def __init__(
+        self: any,
+        file_path: str,
+        flags: int = Constant.WRITE_FLAGS,
+        mode: int = Constant.WRITE_MODES,
+        operate: str = "w",
+        newline: str = None,
+    ) -> None:
         self.file_path = file_path
         self.flags = flags
         self.newline = newline
@@ -212,52 +222,68 @@ def check_path_valid(path: str, is_file: bool, max_size: int = Constant.MAX_READ
     if path == "":
         raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, "The path is empty. Please enter a valid path.")
     if not os.path.exists(path):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" does not exist. Please check that the path exists.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR,
+            f"The path \"{path}\" does not exist. Please check that the path exists.",
+        )
     if is_link(path):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" is link. Please check the path.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR, f"The path \"{path}\" is link. Please check the path."
+        )
     if len(path) > NumberConstant.PROF_PATH_MAX_LEN:
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"Please ensure the length of input path \"{path}\" less than "
-                            f"{NumberConstant.PROF_PATH_MAX_LEN}")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR,
+            f"Please ensure the length of input path \"{path}\" less than {NumberConstant.PROF_PATH_MAX_LEN}",
+        )
     if is_file:
         if not os.path.isfile(path):
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                                f"The path \"{path}\" is not a file. Please check the path.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PATH_ERROR, f"The path \"{path}\" is not a file. Please check the path."
+            )
         if os.path.getsize(path) > max_size:
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                                f"The path \"{path}\" is too large to read. Please check the path.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PATH_ERROR,
+                f"The path \"{path}\" is too large to read. Please check the path.",
+            )
     else:
         if not os.path.isdir(path):
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                                f"The path \"{path}\" is not a directory. Please check the path.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PATH_ERROR, f"The path \"{path}\" is not a directory. Please check the path."
+            )
     if is_root_user():
         return
     if not os.access(path, os.R_OK):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" does not have permission to read. "
-                            f"Please check that the path is readable.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR,
+            f"The path \"{path}\" does not have permission to read. Please check that the path is readable.",
+        )
     if is_other_writable(path):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" is writable by any other users.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR, f"The path \"{path}\" is writable by any other users."
+        )
     if not check_path_owner(path):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" owner is not root or current user.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR, f"The path \"{path}\" owner is not root or current user."
+        )
 
 
 def check_db_path_valid(path: str, is_create: bool = False, max_size: int = Constant.MAX_READ_DB_FILE_BYTES) -> None:
     if is_link(path):
-        ReturnCodeCheck.print_and_return_status(json.dumps(
-            {'status': NumberConstant.ERROR,
-             'info': "The db file '%s' is link. Please check the "
-                     'path.' % path}))
+        ReturnCodeCheck.print_and_return_status(
+            json.dumps(
+                {'status': NumberConstant.ERROR, 'info': "The db file '%s' is link. Please check the path." % path}
+            )
+        )
 
     if not is_create and os.path.exists(path) and os.path.getsize(path) > max_size:
-        ReturnCodeCheck.print_and_return_status(json.dumps(
-            {'status': NumberConstant.ERROR,
-             'info': "The db file '%s' is too large to read. Please check the "
-                     'path.' % path}))
+        ReturnCodeCheck.print_and_return_status(
+            json.dumps(
+                {
+                    'status': NumberConstant.ERROR,
+                    'info': "The db file '%s' is too large to read. Please check the path." % path,
+                }
+            )
+        )
 
 
 def check_file_readable(path: str) -> None:
@@ -274,9 +300,10 @@ def check_file_writable(path: str) -> None:
     if path and os.path.exists(path):
         check_path_valid(path, True)
         if not os.access(path, os.W_OK):
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                                f"The path \"{path}\" does not have permission to write. "
-                                f"Please check that the path is writeable.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PATH_ERROR,
+                f"The path \"{path}\" does not have permission to write. Please check that the path is writeable.",
+            )
 
 
 def check_dir_readable(path: str) -> None:
@@ -294,9 +321,10 @@ def check_dir_writable(path: str) -> None:
     if is_root_user():
         return
     if not os.access(path, os.W_OK):
-        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR,
-                            f"The path \"{path}\" does not have permission to write. "
-                            f"Please check that the path is writeable.")
+        raise ProfException(
+            ProfException.PROF_INVALID_PATH_ERROR,
+            f"The path \"{path}\" does not have permission to write. Please check that the path is writeable.",
+        )
 
 
 def is_other_writable(path: str) -> bool:
@@ -338,8 +366,7 @@ def check_so_valid(path: str) -> bool:
         logging.warning("The path %s is link. Please check the path.", path)
         return False
     elif not os.access(path, os.R_OK):
-        logging.warning("The path %s does not have permission to open. "
-                        "Please check that the path is readable.", path)
+        logging.warning("The path %s does not have permission to open. Please check that the path is readable.", path)
         return False
     elif is_other_writable(path):
         logging.warning("The path %s is writable by others", path)

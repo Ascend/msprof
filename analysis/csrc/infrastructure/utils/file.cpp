@@ -18,35 +18,38 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+
+#include <algorithm>
+#include <cstring>
 #include <set>
 #include <unordered_map>
-#include <cstring>
-#include <algorithm>
 
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Utils {
+namespace Analysis
+{
+namespace Utils
+{
 
-namespace {
+namespace
+{
 const uint16_t MAX_PATH_SIZE = 1024;
 const uint32_t MAX_SUB_FILES_SIZE = 100000;
-const uint64_t MAX_JSON_FILE_READ_SIZE = 21474836480; // 20GB
-constexpr int DIR_CHECK_MODE = R_OK | W_OK | X_OK; // rwx
+const uint64_t MAX_JSON_FILE_READ_SIZE = 21474836480;  // 20GB
+constexpr int DIR_CHECK_MODE = R_OK | W_OK | X_OK;     // rwx
 const int MAX_DEPTH = 20;
 const std::unordered_map<std::string, std::string> INVALID_CHAR = {
-    {"\n", "\\n"}, {"\f", "\\f"}, {"\r", "\\r"}, {"\b", "\\b"}, {"\t", "\\t"},
-    {"\v", "\\v"}, {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},
-    {"\\", "\\\\"}, {"%", "\\%"}, {">", "\\>"}, {"<", "\\<"}, {"|", "\\|"},
-    {"&", "\\&"}, {"$", "\\$"}
-};
-}
+    {"\n", "\\n"},         {"\f", "\\f"},  {"\r", "\\r"}, {"\b", "\\b"},  {"\t", "\\t"}, {"\v", "\\v"},
+    {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},   {"\\", "\\\\"}, {"%", "\\%"},  {">", "\\>"},
+    {"<", "\\<"},          {"|", "\\|"},   {"&", "\\&"},  {"$", "\\$"}};
+}  // namespace
 
 bool File::Chmod(const std::string &path, const mode_t &mode)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
@@ -55,7 +58,8 @@ bool File::Chmod(const std::string &path, const mode_t &mode)
 
 bool File::Access(const std::string &path, const int &mode)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
@@ -64,27 +68,27 @@ bool File::Access(const std::string &path, const int &mode)
 
 bool File::DeleteFile(const std::string &filePath)
 {
-    if (filePath.empty()) {
+    if (filePath.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
     return unlink(filePath.c_str()) == 0;
 }
 
-bool File::Exist(const std::string &path)
-{
-    return Access(path, F_OK);
-}
+bool File::Exist(const std::string &path) { return Access(path, F_OK); }
 
 bool File::IsSoftLink(const std::string &path)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
     std::string tmpPath = Rstrip(path, "./");
     struct stat fileStat;
-    if (lstat(tmpPath.c_str(), &fileStat) != 0) {
+    if (lstat(tmpPath.c_str(), &fileStat) != 0)
+    {
         ERROR("The file lstat failed. The Error code is %", strerror(errno));
         return false;
     }
@@ -93,12 +97,14 @@ bool File::IsSoftLink(const std::string &path)
 
 bool File::IsFile(const std::string &path)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
     struct stat fileStat;
-    if (stat(path.c_str(), &fileStat) != 0) {
+    if (stat(path.c_str(), &fileStat) != 0)
+    {
         ERROR("The file stat failed.");
         return false;
     }
@@ -107,12 +113,14 @@ bool File::IsFile(const std::string &path)
 
 uint64_t File::Size(const std::string &filePath)
 {
-    if (filePath.empty()) {
+    if (filePath.empty())
+    {
         ERROR("The file path is empty.");
         return 0;
     }
     struct stat fileStat;
-    if (lstat(filePath.c_str(), &fileStat) != 0) {
+    if (lstat(filePath.c_str(), &fileStat) != 0)
+    {
         ERROR("The file lstat failed. The Error code is %", strerror(errno));
         return 0;
     }
@@ -121,29 +129,36 @@ uint64_t File::Size(const std::string &filePath)
 
 bool File::CheckDir(const std::string &path)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The directory path is empty.");
         return false;
     }
-    if (path.size() > MAX_PATH_SIZE) {
+    if (path.size() > MAX_PATH_SIZE)
+    {
         ERROR("The length of path '%' > %.", path, MAX_PATH_SIZE);
         return false;
     }
-    for (auto &item: INVALID_CHAR) {
-        if (path.find(item.first) != std::string::npos) {
+    for (auto &item : INVALID_CHAR)
+    {
+        if (path.find(item.first) != std::string::npos)
+        {
             ERROR("The path contains invalid character: %s.", item.second.c_str());
             return false;
         }
     }
-    if (!File::Exist(path)) {
+    if (!File::Exist(path))
+    {
         ERROR("The directory path '%' not exists.", path);
         return false;
     }
-    if (IsSoftLink(path)) {
+    if (IsSoftLink(path))
+    {
         ERROR("The path '%' is soft link.", path);
         return false;
     }
-    if (!File::Access(path, DIR_CHECK_MODE)) {
+    if (!File::Access(path, DIR_CHECK_MODE))
+    {
         ERROR("The path '%' have no rwx access.", path);
         return false;
     }
@@ -152,22 +167,27 @@ bool File::CheckDir(const std::string &path)
 
 bool File::CreateDir(const std::string &path, const mode_t &mode)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("Create directory path is empty.");
         return false;
     }
-    if (File::Exist(path)) {
-        if (IsSoftLink(path)) {
+    if (File::Exist(path))
+    {
+        if (IsSoftLink(path))
+        {
             ERROR("The path '%' is soft link.", path);
             return false;
         }
-        if (!File::Access(path, DIR_CHECK_MODE)) {
+        if (!File::Access(path, DIR_CHECK_MODE))
+        {
             ERROR("The path '%' have no rwx access.", path);
             return false;
         }
         return true;
     }
-    if (mkdir(path.c_str(), mode) != 0) {
+    if (mkdir(path.c_str(), mode) != 0)
+    {
         ERROR("Create directory '%' failed.", path);
         return false;
     }
@@ -176,46 +196,57 @@ bool File::CreateDir(const std::string &path, const mode_t &mode)
 
 bool File::RemoveDir(const std::string &path, int depth)
 {
-    if (depth >= MAX_DEPTH) {
+    if (depth >= MAX_DEPTH)
+    {
         ERROR("The maximum recursion depth is exceeded");
         return false;
     }
-    if (!File::Check(path)) {
+    if (!File::Check(path))
+    {
         ERROR("Remove dir failed, check path error.");
         return false;
     }
-    DIR *dir = opendir(path.c_str()); // 打开目录
-    if (dir == nullptr) { // 打开目录失败
+    DIR *dir = opendir(path.c_str());  // 打开目录
+    if (dir == nullptr)
+    {  // 打开目录失败
         ERROR("Remove dir failed, open dir error.");
         return false;
     }
     const struct dirent *entry = nullptr;
-    while ((entry = readdir(dir)) != nullptr) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) { // 跳过当前目录和父目录
+    while ((entry = readdir(dir)) != nullptr)
+    {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        {  // 跳过当前目录和父目录
             continue;
         }
         auto absPath = path + "/" + entry->d_name;
         struct stat st;
-        if (lstat(absPath.c_str(), &st) == -1) { // 获取文件/文件夹的属性
+        if (lstat(absPath.c_str(), &st) == -1)
+        {  // 获取文件/文件夹的属性
             closedir(dir);
             ERROR("Remove dir failed, lstat error.");
             return false;
         }
-        if (S_ISDIR(st.st_mode)) { // 如果是文件夹，递归删除
-            if (!RemoveDir(absPath, depth + 1)) {
+        if (S_ISDIR(st.st_mode))
+        {  // 如果是文件夹，递归删除
+            if (!RemoveDir(absPath, depth + 1))
+            {
                 closedir(dir);
                 ERROR("Remove dir failed, rm child dir error.");
                 return false;
             }
-            rmdir(absPath.c_str()); // 删除文件夹
-        } else { // 如果是文件，直接删除
+            rmdir(absPath.c_str());  // 删除文件夹
+        }
+        else
+        {  // 如果是文件，直接删除
             remove(absPath.c_str());
         }
     }
     // 关闭目录流
     closedir(dir);
     // 删除当前目录
-    if (rmdir(path.c_str()) != 0) {
+    if (rmdir(path.c_str()) != 0)
+    {
         ERROR("Remove dir failed.");
         return false;
     }
@@ -224,13 +255,16 @@ bool File::RemoveDir(const std::string &path, int depth)
 
 std::string File::PathJoin(const std::vector<std::string> &paths)
 {
-    if (paths.empty()) {
+    if (paths.empty())
+    {
         ERROR("The file stat failed.");
         return "";
     }
     std::stringstream ss;
-    for (size_t i = 0; i < paths.size(); ++i) {
-        if (i == 0) {
+    for (size_t i = 0; i < paths.size(); ++i)
+    {
+        if (i == 0)
+        {
             ss << paths[i];
             continue;
         }
@@ -243,18 +277,23 @@ std::vector<std::string> File::GetFilesWithPrefix(const std::string &path, const
 {
     std::vector<std::string> res;
     DIR *dir = opendir(path.c_str());
-    if (dir == nullptr) {
+    if (dir == nullptr)
+    {
         ERROR("Failed open directory: '%'", path);
         return res;
     }
     dirent *entry;
-    while ((entry = readdir(dir)) != nullptr) {
+    while ((entry = readdir(dir)) != nullptr)
+    {
         std::string fileName(entry->d_name);
-        if (fileName.size() < prefix.size()) {
+        if (fileName.size() < prefix.size())
+        {
             continue;
         }
-        if (fileName.substr(0, prefix.size()) == prefix) {  // 如果fileName是以prefix为前缀
-            if (res.size() > MAX_SUB_FILES_SIZE) {
+        if (fileName.substr(0, prefix.size()) == prefix)
+        {  // 如果fileName是以prefix为前缀
+            if (res.size() > MAX_SUB_FILES_SIZE)
+            {
                 closedir(dir);
                 WARN("Find more than % sub files in '%' dir", MAX_SUB_FILES_SIZE, path);
                 return res;
@@ -271,13 +310,16 @@ std::vector<std::string> File::GetFilesWithPrefix(const std::string &path, const
 
 std::vector<std::string> File::FilterFileWithSuffix(const std::vector<std::string> &files, const std::string &suffix)
 {
-    if (suffix.empty()) {
+    if (suffix.empty())
+    {
         return files;
     }
     std::vector<std::string> res;
-    for (const auto &file : files) {
+    for (const auto &file : files)
+    {
         // 过滤掉以suffix为后缀的file
-        if (file.size() >= suffix.size() && file.substr(file.size() - suffix.size(), file.size()) == suffix) {
+        if (file.size() >= suffix.size() && file.substr(file.size() - suffix.size(), file.size()) == suffix)
+        {
             continue;
         }
         res.emplace_back(file);
@@ -287,19 +329,23 @@ std::vector<std::string> File::FilterFileWithSuffix(const std::vector<std::strin
 
 bool File::Check(const std::string &path, uint64_t maxReadFileBytes)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         ERROR("The file path is empty.");
         return false;
     }
-    if (path.size() > MAX_PATH_SIZE) {
+    if (path.size() > MAX_PATH_SIZE)
+    {
         ERROR("The length of file path '%' > %.", path, MAX_PATH_SIZE);
         return false;
     }
-    if (IsSoftLink(path)) {
+    if (IsSoftLink(path))
+    {
         ERROR("The path '%' is soft link.", path);
         return false;
     }
-    if (File::Size(path) > maxReadFileBytes) {
+    if (File::Size(path) > maxReadFileBytes)
+    {
         ERROR("The file '%' size > %.", path, maxReadFileBytes);
         return false;
     }
@@ -308,16 +354,19 @@ bool File::Check(const std::string &path, uint64_t maxReadFileBytes)
 
 void FileReader::Open(const std::string &path, const std::ios_base::openmode &mode)
 {
-    if (!Check(path)) {
+    if (!Check(path))
+    {
         ERROR("The FileReader open check failed: '%'.", path);
         return;
     }
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         ERROR("The FileReader is opened: '%'.", path);
         return;
     }
     inStream_.open(path, mode);
-    if (inStream_.fail()) {
+    if (inStream_.fail())
+    {
         ERROR("Open file '%' failed", path);
         return;
     }
@@ -326,7 +375,8 @@ void FileReader::Open(const std::string &path, const std::ios_base::openmode &mo
 
 int FileReader::ReadBinary(std::stringstream &ss)
 {
-    if (!IsOpen()) {
+    if (!IsOpen())
+    {
         ERROR("File '%' not open.", path_);
         return ANALYSIS_ERROR;
     }
@@ -337,12 +387,14 @@ int FileReader::ReadBinary(std::stringstream &ss)
 
 int FileReader::ReadText(std::vector<std::string> &text)
 {
-    if (!IsOpen()) {
+    if (!IsOpen())
+    {
         ERROR("File '%' not open.", path_);
         return ANALYSIS_ERROR;
     }
     std::string line;
-    while (getline(inStream_, line)) {
+    while (getline(inStream_, line))
+    {
         text.emplace_back(line);
     }
     return ANALYSIS_OK;
@@ -350,13 +402,17 @@ int FileReader::ReadText(std::vector<std::string> &text)
 
 int FileReader::ReadJson(nlohmann::json &content)
 {
-    if (!IsOpen()) {
+    if (!IsOpen())
+    {
         ERROR("File '%' not open.", path_);
         return ANALYSIS_ERROR;
     }
-    try {
+    try
+    {
         content = nlohmann::json::parse(inStream_);
-    } catch (const nlohmann::json::parse_error &e) {
+    }
+    catch (const nlohmann::json::parse_error &e)
+    {
         ERROR("Read json failed: '%'", path_);
         ERROR(e.what());
         return ANALYSIS_ERROR;
@@ -366,48 +422,53 @@ int FileReader::ReadJson(nlohmann::json &content)
 
 bool FileReader::Check(const std::string &path, uint64_t maxReadFileBytes)
 {
-    if (!File::Check(path, maxReadFileBytes)) {
+    if (!File::Check(path, maxReadFileBytes))
+    {
         ERROR("The FileReader check failed: '%'.", path);
         return false;
     }
-    if (!File::IsFile(path)) {
+    if (!File::IsFile(path))
+    {
         ERROR("The read path '%' is not a file.", path);
         return false;
     }
-    if (!File::Access(path, R_OK)) {
+    if (!File::Access(path, R_OK))
+    {
         ERROR("The file '%' has no read permission.", path);
         return false;
     }
     return true;
 }
 
-bool FileReader::IsOpen() const
-{
-    return inStream_.is_open();
-}
+bool FileReader::IsOpen() const { return inStream_.is_open(); }
 
 void FileReader::Close()
 {
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         inStream_.close();
     }
 }
 
 bool FileWriter::Check(const std::string &path, uint64_t maxReadFileBytes)
 {
-    if (!File::Exist(path)) {
+    if (!File::Exist(path))
+    {
         INFO("The file not exists: %.", path);
         return true;
     }
-    if (!File::Check(path, maxReadFileBytes)) {
+    if (!File::Check(path, maxReadFileBytes))
+    {
         ERROR("The FileWriter check failed: '%'.", path);
         return false;
     }
-    if (!File::IsFile(path)) {
+    if (!File::IsFile(path))
+    {
         ERROR("The write path '%' is not a file.", path);
         return false;
     }
-    if (!File::Access(path, W_OK)) {
+    if (!File::Access(path, W_OK))
+    {
         ERROR("The file '%' has no write permission.", path);
         return false;
     }
@@ -416,16 +477,19 @@ bool FileWriter::Check(const std::string &path, uint64_t maxReadFileBytes)
 
 void FileWriter::Open(const std::string &path, const std::ios_base::openmode &mode)
 {
-    if (!Check(path, MAX_JSON_FILE_READ_SIZE)) {
+    if (!Check(path, MAX_JSON_FILE_READ_SIZE))
+    {
         ERROR("The FileWriter open check failed: '%'.", path);
         return;
     }
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         ERROR("The FileReader is opened: '%'.", path);
         return;
     }
     outStream_.open(path, mode);
-    if (outStream_.fail()) {
+    if (outStream_.fail())
+    {
         ERROR("Open '%' failed", path);
         return;
     }
@@ -435,7 +499,8 @@ void FileWriter::Open(const std::string &path, const std::ios_base::openmode &mo
 
 void FileWriter::WriteText(const std::string &content)
 {
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         outStream_ << content;
         outStream_.flush();
     }
@@ -443,7 +508,8 @@ void FileWriter::WriteText(const std::string &content)
 
 void FileWriter::WriteText(const char *content, std::size_t len)
 {
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         outStream_.write(content, len);
         outStream_.flush();
     }
@@ -451,13 +517,16 @@ void FileWriter::WriteText(const char *content, std::size_t len)
 
 void FileWriter::WriteTextBack(const std::string &content, int back)
 {
-    if (IsOpen()) {
-        if (content.size() < static_cast<std::size_t>(std::abs(back))) {
+    if (IsOpen())
+    {
+        if (content.size() < static_cast<std::size_t>(std::abs(back)))
+        {
             ERROR("The length of the overwritten content exceeds the length of the written content.");
             return;
         }
         outStream_.seekp(back, std::ios_base::end);
-        if (outStream_.fail()) {
+        if (outStream_.fail())
+        {
             ERROR("The offset is over file's range");
             return;
         }
@@ -466,44 +535,41 @@ void FileWriter::WriteTextBack(const std::string &content, int back)
     }
 }
 
-bool FileWriter::IsOpen() const
-{
-    return outStream_.is_open();
-}
+bool FileWriter::IsOpen() const { return outStream_.is_open(); }
 
 void FileWriter::Close()
 {
-    if (IsOpen()) {
+    if (IsOpen())
+    {
         outStream_.close();
     }
 }
 
-std::vector<std::string> File::GetOriginData(const std::string &path,
-                                             const std::vector<std::string> &prePatterns,
+std::vector<std::string> File::GetOriginData(const std::string &path, const std::vector<std::string> &prePatterns,
                                              const std::vector<std::string> &sufFilters)
 {
     std::vector<std::string> files;
-    for (const auto &prefix : prePatterns) {
+    for (const auto &prefix : prePatterns)
+    {
         auto matchedFiles = File::GetFilesWithPrefix(path, prefix);
-        for (const auto &filter : sufFilters) {
+        for (const auto &filter : sufFilters)
+        {
             matchedFiles = File::FilterFileWithSuffix(matchedFiles, filter);
         }
 
-        std::move(
-            matchedFiles.begin(),
-            matchedFiles.end(),
-            back_inserter(files)
-        );
+        std::move(matchedFiles.begin(), matchedFiles.end(), back_inserter(files));
     }
     return files;
 }
 std::vector<std::string> File::SortFilesByAgingAndSliceNum(std::vector<std::string> &files)
 {
     static std::set<std::string> usefulPre = {"aging", "unaging"};
-    auto func = [](std::string &f1, std::string &f2) {
+    auto func = [](std::string &f1, std::string &f2)
+    {
         auto base1 = BaseName(f1);
         auto base2 = BaseName(f2);
-        if (base1.empty() or base2.empty()) {
+        if (base1.empty() or base2.empty())
+        {
             ERROR("Illegal file name % or %", base1, base2);
             return base1 > base2;
         }
@@ -513,12 +579,13 @@ std::vector<std::string> File::SortFilesByAgingAndSliceNum(std::vector<std::stri
         auto patternAging2 = Split(base2, ".");
         auto patternSlice1 = Split(base1, "_");
         auto patternSlice2 = Split(base2, "_");
-        if (usefulPre.find(patternAging1[0]) == usefulPre.end() or
-            usefulPre.find(patternAging2[0]) == usefulPre.end()) {
+        if (usefulPre.find(patternAging1[0]) == usefulPre.end() or usefulPre.find(patternAging2[0]) == usefulPre.end())
+        {
             ERROR("Illegal file name % or %, aging|unaging prefix is needed", base1, base2);
             return base1 > base2;
         }
-        if (!IsNumber(patternSlice1.back()) or !IsNumber(patternSlice2.back())) {
+        if (!IsNumber(patternSlice1.back()) or !IsNumber(patternSlice2.back()))
+        {
             ERROR("Illegal file name % or %, no slice num found", base1, base2);
             return base1 > base2;
         }
@@ -532,7 +599,8 @@ std::vector<std::string> File::SortFilesByAgingAndSliceNum(std::vector<std::stri
 }
 std::string File::BaseName(const std::string &path)
 {
-    if (path.empty()) {
+    if (path.empty())
+    {
         return path;
     }
     return Split(path, "/").back();

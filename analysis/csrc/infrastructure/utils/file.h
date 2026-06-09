@@ -17,23 +17,27 @@
 #ifndef ANALYSIS_UTILS_FILE_H
 #define ANALYSIS_UTILS_FILE_H
 
-#include <string>
-#include <fstream>
-#include <vector>
 #include <stdint.h>
+
+#include <fstream>
+#include <string>
+#include <vector>
 
 #include "opensource/json/include/nlohmann/json.hpp"
 
-namespace Analysis {
-namespace Utils {
+namespace Analysis
+{
+namespace Utils
+{
 // 该类主要用于文件相关的处理接口
 // 主要包括以下特性：
 // 1. 空路径、软连接和路径长度的校验
 // 2. Chmod修改文件和目录的权限
 // 3. 文件和目录的rwx权限校验
 // 4. 创建目录、路径拼接、获取子文件名等操作
-class File {
-public:
+class File
+{
+   public:
     File() = default;
     virtual ~File() = default;
     // 文件的打开默认大小设置为64MB，允许使用时设置自己需要的大小
@@ -72,17 +76,15 @@ public:
 // 主要包括以下特性：
 // 1. 文本文件、二进制文件和json文件的安全读取
 // 2. 安全校验：空路径和软连接的校验，文件校验，文件大小校验，文件读权限校验
-class FileReader {
-public:
+class FileReader
+{
+   public:
     FileReader() = default;
     explicit FileReader(const std::string &path, const std::ios_base::openmode &mode = std::ios::in) : path_(path)
     {
         Open(path, mode);
     }
-    virtual ~FileReader()
-    {
-        Close();
-    }
+    virtual ~FileReader() { Close(); }
     void Open(const std::string &path, const std::ios_base::openmode &mode = std::ios::in);
     void Close();
     bool IsOpen() const;
@@ -91,7 +93,7 @@ public:
     int ReadJson(nlohmann::json &content);
     static bool Check(const std::string &path, uint64_t maxReadFileBytes = 64 * 1024 * 1024);
 
-private:
+   private:
     std::string path_;
     std::ifstream inStream_;
 };  // class FileReader
@@ -101,19 +103,17 @@ private:
 // 1. 字符串写入文件
 // 2. 安全校验：空路径和软连接的校验，文件校验，文件写权限校验
 // 3. 设置写入文件的rwx权限，默认0640
-class FileWriter {
-public:
+class FileWriter
+{
+   public:
     FileWriter() = default;
-    explicit FileWriter(const std::string &path,
-                        const std::ios_base::openmode &mode = std::ios::out, const mode_t &permission = 0640)
+    explicit FileWriter(const std::string &path, const std::ios_base::openmode &mode = std::ios::out,
+                        const mode_t &permission = 0640)
         : path_(path), permission_(permission)
     {
         Open(path, mode);
     }
-    virtual ~FileWriter()
-    {
-        Close();
-    }
+    virtual ~FileWriter() { Close(); }
     void Open(const std::string &path, const std::ios_base::openmode &mode = std::ios::out);
     void Close();
     bool IsOpen() const;
@@ -122,7 +122,7 @@ public:
     void WriteTextBack(const std::string &content, int back);
     static bool Check(const std::string &path, uint64_t maxReadFileBytes = 64 * 1024 * 1024);
 
-private:
+   private:
     std::string path_;
     std::ofstream outStream_;
     mode_t permission_ = 0640;
@@ -130,4 +130,4 @@ private:
 }  // namespace Utils
 }  // namespace Analysis
 
-#endif // ANALYSIS_UTILS_FILE_H
+#endif  // ANALYSIS_UTILS_FILE_H

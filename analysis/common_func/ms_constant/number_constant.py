@@ -21,6 +21,7 @@ class NumberConstant:
     """
     Constant for number
     """
+
     NULL_NUMBER = 0
     EXCEPTION = -1
     SUCCESS = 0
@@ -69,8 +70,8 @@ class NumberConstant:
     NS_TO_US = 1000.0
     NS_TO_MS = 1000000.0
     TEN_NS_TO_US = 100.0
-    NS_TO_S = 0.001 ** 3
-    US_TO_S = 0.001 ** 2
+    NS_TO_S = 0.001**3
+    US_TO_S = 0.001**2
     MS_TO_S = 0.001
     S_TO_MS = 1000.0
     MS_TO_US = 1000.0
@@ -83,7 +84,7 @@ class NumberConstant:
     DEFAULT_STREAM_ID = 65535
     DEFAULT_TASK_ID = 65535
     PROF_PATH_MAX_LEN = 1024
-    INT64_MAX = 2 ** 63 - 1
+    INT64_MAX = 2**63 - 1
     UINT64_MAX = 18446744073709551615
 
     # memory units transfer
@@ -98,7 +99,7 @@ class NumberConstant:
     # llc capacity num translate to MB
     LLC_CAPACITY_CONVERT_MB = 64.0 / (1024 * 1024)
     USAGE_PLACES = Decimal(10) ** -6
-    SEC_TO_US = 10 ** 6
+    SEC_TO_US = 10**6
 
     INVALID_ITER_ID = -1
     ZERO_ITER_ID = 0
@@ -156,8 +157,8 @@ class NumberConstant:
     RANK_NUM_PER_SERVER = 8
     RANK_NUM_PER_OS = 4
     MAX_RANK_NUMS = 4096
-    COMMUNICATION_B_to_MB = 1000 ** 2
-    COMMUNICATION_B_to_GB = 0.001 ** 3
+    COMMUNICATION_B_to_MB = 1000**2
+    COMMUNICATION_B_to_GB = 0.001**3
     COMMUNICATION_MB_to_GB = 1000
 
     # magic number: 5A5A
