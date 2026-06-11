@@ -27,12 +27,12 @@ function kill_prof_cmd(){
             echo "UID of ${ppid} is:${ppid_user}, UID running this script is:${shell_user}"
             exit 1
         fi
-        pidLine=`pstree -p ${command_param}`
+        pidLine=`pstree -T -p ${command_param}`
         pidLine=`echo $pidLine | awk 'BEGIN{ FS="(" ; RS=")" } NF>1 { print $NF }'`
         for pid in $pidLine
-            do 
+            do
                 kill -2 ${pid}
-            done     
+            done
         exit 1
     else
         echo "Input pid:${command_param} error"
