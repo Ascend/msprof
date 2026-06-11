@@ -113,10 +113,10 @@ function implement_install() {
     chmod_dir_with_backup "${lib64_dir}" lib64_origin_right
     chmod_dir_with_backup "${msprof_path_dir}" msprof_path_origin_right
     chmod u+x "${PLATFORM_PROFILER_RUN}"
-    if ./"${PLATFORM_PROFILER_RUN}" --install --install-path="${install_path}"; then
-        echo "INFO: ${PLATFORM_PROFILER_RUN} installed successfully to ${install_path}"
+    if ./"${PLATFORM_PROFILER_RUN}" --install --install-path="${install_path}" > /dev/null 2>&1; then
+        print "INFO" "${PLATFORM_PROFILER_RUN} installed successfully to ${install_path}"
     else
-        echo "ERROR: ${PLATFORM_PROFILER_RUN} installation failed" >&2
+        print "ERROR" "${PLATFORM_PROFILER_RUN} installation failed."
     fi
     restore_dir_right "${lib64_dir}" "${lib64_origin_right}"
     restore_dir_right "${msprof_path_dir}" "${msprof_path_origin_right}"
