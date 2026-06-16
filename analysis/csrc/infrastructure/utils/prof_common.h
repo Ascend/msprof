@@ -382,6 +382,16 @@ extern "C"
         } extInfo;
     };
 
+    struct MsprofDpuTrack
+    {                       // for MsprofReportCompactInfo buffer data
+        uint16_t deviceId;  // high 4 bits, devType: dpu: 1, low 12 bits device id
+        uint16_t streamId;
+        uint32_t taskId;
+        uint32_t taskType;  // task type enum
+        uint32_t res;
+        uint64_t startTime;  // start time
+    };
+
     struct MsprofCaptureStreamInfo
     {                               // for MsprofReportCompactInfo buffer data
         uint16_t captureStatus;     // 标志是否销毁 0记为正常 1记为销毁
@@ -500,12 +510,44 @@ extern "C"
         {
             uint8_t info[MSPROF_COMPACT_INFO_DATA_LENGTH];
             MsprofRuntimeTrack runtimeTrack;
+            MsprofDpuTrack dpuTrack;
             MsprofCaptureStreamInfo captureStreamInfo;
             MsprofNodeBasicInfo nodeBasicInfo;
             MsprofAttrInfo nodeAttrInfo;
             MsprofHcclOPInfo hcclopInfo;
             MsprofMemcpyInfo memcpyInfo;
         } data;
+    };
+
+    struct MsprofDpuHcclTrack
+    {
+        uint64_t itemId;
+        uint64_t cclTag;
+        uint64_t groupName;
+        uint32_t localRank;
+        uint32_t remoteRank;
+        uint32_t rankSize;
+        uint32_t stage;
+        uint64_t notifyID;
+        uint64_t timeStamp;
+        double durationEstimated;
+        uint64_t srcAddr;
+        uint64_t dstAddr;
+        uint64_t dataSize;  // bytes
+        uint32_t taskId;
+        uint32_t aicpu_task_id;
+        uint16_t streamId;
+        uint16_t planeID;
+        uint16_t npuDevId;
+        uint16_t dpuDevId;
+        uint8_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
+        uint8_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
+        uint8_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE'}
+        uint8_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
+        uint8_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
+        uint8_t role;           // role {0: dst, 1:src}
+        uint8_t workFlowMode;
+        uint8_t reserves[1];
     };
 
     const uint16_t MSPROF_ADDITIONAL_INFO_DATA_LENGTH = 232;
@@ -524,6 +566,7 @@ extern "C"
             MsprofAicpuModelAdditionalData aicpuModel;
             MsprofAicpuDpAdditionalData aicpuDp;
             MsprofAicpuMiAdditionalData aicpuMi;
+            MsprofDpuHcclTrack dpuHcclTrack;
         };
     };
 

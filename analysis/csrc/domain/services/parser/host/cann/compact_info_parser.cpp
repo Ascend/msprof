@@ -30,6 +30,17 @@ using namespace Analysis::Domain::Adapter;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
 
+namespace
+{
+enum class DevType : uint16_t
+{
+    NPU = 0,
+    DPU = 1,
+};
+}
+
+const std::unordered_map<uint64_t, uint64_t> &TaskTrackParser::GetDpuKernelNameMap() const { return dpuKernelNameMap_; }
+
 void CompactInfoParser::Init(const std::vector<std::string> &filePrefix)
 {
     MAKE_SHARED_NO_OPERATION(chunkProducer_, ChunkGenerator, sizeof(MsprofCompactInfo), path_, filePrefix);
@@ -168,6 +179,18 @@ int TaskTrackParser::ProduceData()
         // 同时Maintenance task可能会在流销毁的flip task后面，影响batch id的计算，所以过滤掉
         if (compactInfo->data.runtimeTrack.taskType == maintenanceTaskType)
         {
+            delete compactInfo;
+            continue;
+        }
+
+        // Collect DPU kernel name for cross-reference
+        DevType devType = static_cast<DevType>((compactInfo->data.runtimeTrack.deviceId >> 12) & 0xF);
+        if (devType == DevType::DPU)
+        {
+            uint16_t devId = compactInfo->data.runtimeTrack.deviceId;
+            uint32_t taskId = compactInfo->data.runtimeTrack.taskId;
+            uint64_t key = (static_cast<uint64_t>(devId) << 32) | taskId;
+            dpuKernelNameMap_[key] = compactInfo->data.runtimeTrack.kernelName;
             delete compactInfo;
             continue;
         }

@@ -337,3 +337,153 @@ TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserProduceDataShouldReturn9DataW
     auto data = parser->ParseData<MsprofCompactInfo>();
     Check(data, EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
+
+
+
+// ==================== DPU TaskTrackParser Tests ====================
+
+static void GenDpuTrackData(uint16_t dataNum = DATA_NUM, uint16_t invalidDataNum = 0)
+{
+    const uint32_t dataLen = sizeof(MsprofDpuTrack);
+    const uint16_t level = MSPROF_REPORT_NODE_LEVEL;
+    std::vector<MsprofCompactInfo> agingTraces;
+    std::vector<MsprofCompactInfo> unAgingTraces;
+    for (uint32_t i = 0; i < dataNum; ++i) {
+        MsprofCompactInfo info;
+        info.level = level;
+        info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_INVALID);
+        info.threadId = i;
+        info.dataLen = dataLen;
+        info.timeStamp = dataNum + i;
+        if (i >= dataNum - invalidDataNum) {
+            info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
+        }
+        MsprofDpuTrack track;
+        track.deviceId = static_cast<uint16_t>(i);
+        track.streamId = static_cast<uint16_t>(i * 2);
+        track.taskId = i * 3;
+        track.taskType = 1;
+        track.startTime = static_cast<uint64_t>(i * 1000);
+        info.data.dpuTrack = track;
+        if (i * 2 < dataNum) {
+            unAgingTraces.emplace_back(info);
+        } else {
+            agingTraces.emplace_back(info);
+        }
+    }
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(DATA_DIR);
+    fakeGen->WriteBin<MsprofCompactInfo>(unAgingTraces, EventType::EVENT_TYPE_INVALID, false);
+    fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, EventType::EVENT_TYPE_INVALID, true);
+}
+
+TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserShouldReturn10DataWhenParseSuccess)
+{
+    GenDpuTrackData();
+    auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto data = parser->ParseData<MsprofCompactInfo>();
+    EXPECT_EQ(data.size(), DATA_NUM);
+    for (uint32_t i = 0; i < data.size(); ++i) {
+        EXPECT_EQ(data[i]->data.dpuTrack.deviceId, i);
+        EXPECT_EQ(data[i]->data.dpuTrack.streamId, i * 2);
+        EXPECT_EQ(data[i]->data.dpuTrack.taskId, i * 3);
+        EXPECT_EQ(data[i]->data.dpuTrack.startTime, i * 1000);
+    }
+}
+
+TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserProduceDataShouldReturnEmptyWhenPopNullptr)
+{
+    MOCKER_CPP(&ChunkGenerator::Pop).stubs()
+        .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
+    auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto data = parser->ParseData<MsprofCompactInfo>();
+    EXPECT_EQ(0, data.size());
+}
+
+TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserProduceDataShouldReturn8DataWhen2DataIsInvalid)
+{
+    const uint16_t invalidDataNum = 2;
+    GenDpuTrackData(DATA_NUM, invalidDataNum);
+    auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto data = parser->ParseData<MsprofCompactInfo>();
+    EXPECT_EQ(data.size(), DATA_NUM - invalidDataNum);
+}
+
+// ==================== TaskTrackParser DPU Kernel Name Collection Tests ====================
+
+static void GenTaskTrackWithDPUData(const std::vector<uint32_t> &dpuIndices,
+                                    const std::vector<uint64_t> &dpuKernelNames,
+                                    uint16_t dataNum = DATA_NUM)
+{
+    const uint32_t dataLen = 8;
+    const uint64_t dpuDeviceTypeBits = static_cast<uint64_t>(1) << 12;
+    const uint16_t level = MSPROF_REPORT_RUNTIME_LEVEL;
+    std::vector<MsprofCompactInfo> agingTraces;
+    std::vector<MsprofCompactInfo> unAgingTraces;
+    uint32_t dpuIdx = 0;
+    for (uint32_t i = 0; i < dataNum; ++i) {
+        MsprofCompactInfo info{};
+        info.level = level;
+        info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
+        info.threadId = i;
+        info.dataLen = dataLen;
+        info.timeStamp = DATA_NUM + i;
+        info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        info.data.runtimeTrack.deviceId = 0;
+        info.data.runtimeTrack.streamId = 0;
+        info.data.runtimeTrack.taskId = i;
+        info.data.runtimeTrack.taskType = 1;
+        info.data.runtimeTrack.kernelName = i + 100;
+        if (dpuIdx < dpuIndices.size() && dpuIndices[dpuIdx] == i) {
+            info.data.runtimeTrack.deviceId = static_cast<uint16_t>(dpuDeviceTypeBits | (i & 0xFFF));
+            info.data.runtimeTrack.kernelName = dpuKernelNames[dpuIdx];
+            dpuIdx++;
+        }
+        if (i * 2 < dataNum) {
+            unAgingTraces.emplace_back(info);
+        } else {
+            agingTraces.emplace_back(info);
+        }
+    }
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(DATA_DIR);
+    fakeGen->WriteBin<MsprofCompactInfo>(unAgingTraces, EventType::EVENT_TYPE_TASK_TRACK, false);
+    fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, EventType::EVENT_TYPE_TASK_TRACK, true);
+}
+
+TEST_F(CompactInfoParserUTest, TestTaskTrackParserShouldCollectDpuKernelNamesWhenDpuDataPresent)
+{
+    GenCompactInfoData(EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, 0, true);
+    const uint16_t totalData = 5;
+    const std::vector<uint32_t> dpuIndices = {1, 3};
+    const std::vector<uint64_t> dpuKernelNames = {0xABCD, 0x1234};
+    GenTaskTrackWithDPUData(dpuIndices, dpuKernelNames, totalData);
+    auto parser = std::make_shared<TaskTrackParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto compactData = parser->ParseData<MsprofCompactInfo>();
+    auto &kernelMap = parser->GetDpuKernelNameMap();
+    EXPECT_EQ(compactData.size(), totalData - dpuIndices.size());
+    EXPECT_EQ(kernelMap.size(), dpuIndices.size());
+    for (size_t idx = 0; idx < dpuIndices.size(); ++idx) {
+        uint32_t i = dpuIndices[idx];
+        uint16_t devId = static_cast<uint16_t>((static_cast<uint64_t>(1) << 12) | (i & 0xFFF));
+        uint64_t expectedKey = (static_cast<uint64_t>(devId) << 32) | i;
+        auto it = kernelMap.find(expectedKey);
+        EXPECT_NE(it, kernelMap.end());
+        EXPECT_EQ(it->second, dpuKernelNames[idx]);
+    }
+    for (const auto &data : compactData) {
+        uint16_t deviceId = data->data.runtimeTrack.deviceId;
+        EXPECT_NE(((deviceId >> 12) & 0xF), 1);
+    }
+}
+
+TEST_F(CompactInfoParserUTest, TestTaskTrackParserDpuKernelNameMapShouldBeEmptyWhenNoDpuData)
+{
+    const uint16_t totalData = 3;
+    const std::vector<uint32_t> dpuIndices = {};
+    const std::vector<uint64_t> dpuKernelNames = {};
+    GenTaskTrackWithDPUData(dpuIndices, dpuKernelNames, totalData);
+    auto parser = std::make_shared<TaskTrackParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto compactData = parser->ParseData<MsprofCompactInfo>();
+    auto &kernelMap = parser->GetDpuKernelNameMap();
+    EXPECT_EQ(compactData.size(), totalData);
+    EXPECT_TRUE(kernelMap.empty());
+}

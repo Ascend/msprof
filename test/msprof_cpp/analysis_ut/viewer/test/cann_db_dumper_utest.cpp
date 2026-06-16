@@ -74,7 +74,7 @@ protected:
         auto kernelTask = std::make_shared<HostTask>();
         MsprofNodeBasicInfo msprofNodeBasicInfo{};
         MsprofAttrInfo msprofNodeAttrInfo{};
-        auto ctx = std::make_shared<MsprofAdditionalInfo>();
+        auto ctx = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
         ctx->threadId = 0;
         auto tensorDesc = std::make_shared<ConcatTensorInfo>();
         tensorDesc->tensorNum = 1;
@@ -83,7 +83,7 @@ protected:
         kernelDesc->nodeDesc = std::make_shared<MsprofCompactInfo>();
         kernelDesc->nodeDesc->data.nodeBasicInfo = msprofNodeBasicInfo;
         kernelDesc->nodeDesc->data.nodeAttrInfo = msprofNodeAttrInfo;
-        kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>();
+        kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
         auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
         kernelTask->op = kernelOp;
         std::shared_ptr<HostTask> computeTaskPointer = kernelTask;
@@ -97,7 +97,7 @@ protected:
         auto kernelTask = std::make_shared<HostTask>();
         MsprofNodeBasicInfo msprofNodeBasicInfo{};
         MsprofAttrInfo msprofNodeAttrInfo{};
-        auto ctx = std::make_shared<MsprofAdditionalInfo>();
+        auto ctx = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
         ctx->threadId = 0;
         auto tensorDesc = std::make_shared<ConcatTensorInfo>();
         tensorDesc->tensorNum = 1;
@@ -132,7 +132,7 @@ protected:
                 runtimeTrackDesc->data.runtimeTrack.extInfo.kernelInfo.ratio = ratio;
             }
             kernelDesc->runtimeTrackDesc = runtimeTrackDesc;
-            kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>();
+            kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
             kernelTask->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
             kernelTasks->push_back(std::make_shared<HostTask>(*kernelTask));
         };

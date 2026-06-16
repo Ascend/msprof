@@ -68,7 +68,7 @@ protected:
         std::vector<MsprofAdditionalInfo> unAgingTraces;
         const uint32_t dataLen = 8;
         for (uint32_t i = 0; i < DATA_NUM; ++i) {
-            MsprofAdditionalInfo info;
+            MsprofAdditionalInfo info{};
             info.level = level;
             info.type = static_cast<uint32_t>(type);
             info.threadId = i;
@@ -110,7 +110,7 @@ protected:
         std::vector<MsprofAdditionalInfo> agingTraces;
         std::vector<MsprofAdditionalInfo> unAgingTraces;
         for (uint32_t i = 0; i < TENSOR_DATA_NUM; ++i) {
-            MsprofAdditionalInfo info;
+            MsprofAdditionalInfo info{};
             info.level = level;
             info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_TENSOR_INFO);
             info.threadId = i / concatTensorNum;

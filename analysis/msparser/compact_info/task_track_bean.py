@@ -13,14 +13,21 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+from enum import Enum
 
 from msparser.compact_info.compact_info_bean import CompactInfoBean
+
+
+class DevType(Enum):
+    NPU = 0
+    DPU = 1
 
 
 class TaskTrackBean(CompactInfoBean):
     """
     task track bean
     """
+
     def __init__(self: any, *args) -> None:
         super().__init__(*args)
         data = args[0]
@@ -37,7 +44,7 @@ class TaskTrackBean(CompactInfoBean):
         """
         Used to distinguish the device type(DPU:1/NPU:0) of tasks.
         """
-        return bool(self._dev_type)
+        return self._dev_type == DevType.DPU.value
 
     @property
     def device_id(self: any) -> int:
@@ -94,6 +101,7 @@ class TaskTrackChip6Bean(TaskTrackBean):
     task track bean for chip v6
     task id use 32 bit, batch id is always 0
     """
+
     def __init__(self: any, *args) -> None:
         super().__init__(*args)
         data = args[0]
@@ -105,6 +113,7 @@ class DPUTaskTrackBean(CompactInfoBean):
     """
     dpu start log bean
     """
+
     def __init__(self: any, *args) -> None:
         super().__init__(*args)
         data = args[0]

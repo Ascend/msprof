@@ -16,41 +16,47 @@
 
 #ifndef ANALYSIS_WORKER_HOST_TRACE_THREAD_H
 #define ANALYSIS_WORKER_HOST_TRACE_THREAD_H
+#include <set>
 #include <string>
 #include <utility>
-#include <set>
+
+#include "analysis/csrc/domain/entities/tree/include/tree.h"
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 #include "analysis/csrc/infrastructure/utils/safe_unordered_map.h"
-#include "analysis/csrc/domain/entities/tree/include/tree.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Host::Cann;
 
 // HostTraceWorker负责控制CANN Host侧数据解析->EventQueue->建树->分析树->Dump 流程
 // 此流程由Worker拉起
-class HostTraceWorker {
+class HostTraceWorker
+{
     using TreeNode = Analysis::Domain::TreeNode;
     using CANNWarehouse = Analysis::Domain::Host::Cann::CANNWarehouse;
     using CANNWarehouses = Analysis::Utils::SafeUnorderedMap<uint32_t, CANNWarehouse>;
-public:
+
+   public:
     // hostPath为采集侧落盘host二进制数据路径
-    explicit HostTraceWorker(const std::string &hostPath)
-        : hostPath_(hostPath)
-    {}
+    explicit HostTraceWorker(const std::string &hostPath) : hostPath_(hostPath) {}
     // 启动整个流程
     bool Run();
-private:
+
+   private:
     void MultiThreadBuildTree();
     void MultiThreadAnalyzeTreeDumpData();
     void DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpFlipTask(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpModelName(ThreadPool &pool, const std::string &hostDataPath);
     void DumpMemcpyInfo(const std::string &hostDataPath);
-private:
+
+   private:
     const uint32_t poolSize_ = 10;
     std::mutex mutex_;
     std::vector<std::pair<uint32_t, std::shared_ptr<TreeNode>>> treeNodes_;
@@ -59,6 +65,6 @@ private:
     CANNWarehouses cannWarehouses_;
 };
 
-} // namespace Domain
-} // namespace Analysis
-#endif // ANALYSIS_WORKER_HOST_TRACE_THREAD_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_WORKER_HOST_TRACE_THREAD_H

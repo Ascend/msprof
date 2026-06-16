@@ -82,7 +82,7 @@ DPUProcessor::TrackFormat DPUProcessor::LoadTrackData()
         return oriData;
     }
 
-    auto status = CheckPathAndTable(dbPath, dpuDB);
+    auto status = CheckPathAndTable(dbPath, dpuDB, false);
     if (status != CHECK_SUCCESS)
     {
         return oriData;
@@ -110,7 +110,7 @@ DPUProcessor::HcclTrackFormat DPUProcessor::LoadHcclTrackData()
         return oriData;
     }
 
-    auto status = CheckPathAndTable(dbPath, dpuDB);
+    auto status = CheckPathAndTable(dbPath, dpuDB, false);
     if (status != CHECK_SUCCESS)
     {
         return oriData;

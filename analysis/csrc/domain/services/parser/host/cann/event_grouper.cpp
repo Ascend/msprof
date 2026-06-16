@@ -17,6 +17,7 @@
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 
 using namespace Analysis::Utils;
@@ -43,6 +44,9 @@ std::set<uint32_t> &EventGrouper::GetThreadIdSet() { return threadIds_; }
 std::vector<std::shared_ptr<Event>> &EventGrouper::GetApiTraces() { return apiTraces_; }
 
 std::vector<std::shared_ptr<Adapter::FlipTask>> &EventGrouper::GetFlipTasks() { return flipTasks_; }
+
+std::vector<std::shared_ptr<MsprofCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
+std::unordered_map<uint64_t, uint64_t> &EventGrouper::GetDpuKernelNameMap() { return dpuKernelNameMap_; }
 
 bool EventGrouper::Group()
 {
@@ -111,6 +115,13 @@ bool EventGrouper::Group()
         {
             GroupEvents<HcclOpInfoParser, MsprofCompactInfo, &CANNWarehouse::hcclOpInfoEvents>(
                 "HcclOpInfo", EventType::EVENT_TYPE_HCCL_OP_INFO);
+        });
+    pool.AddTask(
+        [this]()
+        {
+            // 复用模板函数 临时使用taskTrackEvents占位 实际业务不使用
+            GroupEvents<DpuTaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+                "DpuTaskTrack", EventType::EVENT_TYPE_TASK_TRACK);
         });
 
     pool.WaitAllTasks();
@@ -277,7 +288,8 @@ void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehous
 
     auto traces = parser->ParseData<MsprofCompactInfo>();
     SortByTimeAndLevel(traces);
-    flipTasks_ = parser->ParseData<Adapter::FlipTask>();
+    flipTasks_ = parser->GetData<Adapter::FlipTask>();
+    dpuKernelNameMap_ = parser->GetDpuKernelNameMap();
 
     // 统计各个threadId元素个数，用于EventQueue分配精确的内存大小，避免大量内存浪费
     std::unordered_map<uint32_t, uint64_t> threadIdNum;
@@ -307,6 +319,18 @@ void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehous
     }
     std::lock_guard<std::mutex> lock(tidLock_);
     threadIds_.insert(threadIds.begin(), threadIds.end());
+}
+
+// dpuTaskTrack特化
+template <>
+void EventGrouper::GroupEvents<DpuTaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+    const std::string &typeName, EventType eventType)
+{
+    Utils::TimeLogger t{"Group " + typeName};
+    std::shared_ptr<DpuTaskTrackParser> parser;
+    MAKE_SHARED_RETURN_VOID(parser, DpuTaskTrackParser, hostPath_);
+    dpuTrackData_ = parser->ParseData<MsprofCompactInfo>();
+    INFO("Parsed DPU task track data, size: %", dpuTrackData_.size());
 }
 
 template <>

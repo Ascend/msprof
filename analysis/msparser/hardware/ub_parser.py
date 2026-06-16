@@ -10,6 +10,7 @@ from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileManager
 from common_func.file_manager import FileOpen
+from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msprof_exception import ProfException
@@ -34,6 +35,7 @@ class ParsingUBData(MsMultiProcess):
         self._model = UBModel(self.project_path, DBNameConstant.DB_UB, [DBNameConstant.TABLE_UB_BW])
         self._file_list.sort(key=lambda x: int(x.split("_")[-1]))
         self._data_list = []
+        self._device_id = "0"
 
     def ms_run(self: any) -> None:
         """
@@ -41,6 +43,7 @@ class ParsingUBData(MsMultiProcess):
         :return: None
         """
         try:
+            self._device_id = InfoConfReader().get_device_id()
             if self._file_list:
                 self.parse()
                 self.save()
@@ -77,8 +80,10 @@ class ParsingUBData(MsMultiProcess):
             struct_nums = _file_size // StructFmt.UB_FMT_SIZE
             struct_data = struct.unpack(StructFmt.BYTE_ORDER_CHAR + StructFmt.UB_FMT * struct_nums, ub_data)
             for i in range(struct_nums):
-                # do not save Magic Num and reserved fields
-                self._data_list.append(list(struct_data[i * 19 + 1:i * 19 + 3] + struct_data[i * 19 + 4:i * 19 + 19]))
+                # do not save Magic Num and reserved fields, and device_id is obtained from InfoConfReader
+                self._data_list.append(
+                    [self._device_id, struct_data[i * 19 + 2]] + list(struct_data[i * 19 + 4 : i * 19 + 19])
+                )
         return NumberConstant.SUCCESS
 
     def _handle_original_data(self: any, file_name: str) -> None:
