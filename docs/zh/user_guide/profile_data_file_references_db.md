@@ -3,7 +3,7 @@
 msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_\{时间戳\}.db表结构文件，该文件推荐使用MindStudio Insight工具查看，也可以使用Navicat Premium等数据库开发工具直接打开。当前db文件汇总的性能数据如下：
 
 >[!NOTE] 
->db文件均以表格形式展示性能数据，且所有数据均以数字映射（例如opName字段下的算子名显示为194），数字与名称的映射表为[STRING\_IDS](#STRING_IDS)。
+>db文件均以表格形式展示性能数据，且所有数据均以数字映射（例如opName字段下的算子名显示为194），数字与名称的映射表为[STRING\_IDS](#string_ids)。
 
 **单位相关**
 
@@ -289,7 +289,7 @@ msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_
 |7|device to host ex|
 |65535|other|
 
-## STRING\_IDS
+## STRING_IDS
 
 映射表，用于存储ID和字符串映射关系。
 
@@ -388,8 +388,8 @@ task数据，呈现所有硬件执行的算子信息。
 |attrInfo|INTEGER|算子的attr信息，用来映射算子shape，算子自定义的参数等，STRING_IDS(attrInfo)|
 |opState|INTEGER|算子的动静态信息，dynamic表示动态算子，static表示静态算子，N/A表示该场景或该算子不识别，STRING_IDS(opState)|
 |hf32Eligible|INTEGER|标识是否使用HF32精度标记，YES表示使用，NO表示未使用，N/A表示该场景或该算子不识别，STRING_IDS(hf32Eligible)|
-|gridDim|INTEGER|体现SIMT线程模型的线程块网络（Grid）中启用的线程块个数，同一时刻一个AIV核只执行一个线程块任务。仅Atlas 350 加速卡支持该字段。STRING_IDS(gridDim)|
-|blockDim|INTEGER|体现SIMT线程模型的线程块（Thread Block）启用的线程个数，一个线程块最多可以启用2048个线程。仅Atlas 350 加速卡支持该字段。STRING_IDS(blockDim)|
+|gridDim|INTEGER|体现SIMT线程模型的线程块网络（Grid）中启用的线程块个数，同一时刻一个AIV核只执行一个线程块任务。仅Ascend 950 系列产品支持该字段。STRING_IDS(gridDim)|
+|blockDim|INTEGER|体现SIMT线程模型的线程块（Thread Block）启用的线程个数，一个线程块最多可以启用2048个线程。仅Ascend 950 系列产品支持该字段。STRING_IDS(blockDim)|
 
 ## COMMUNICATION\_TASK\_INFO
 
@@ -487,7 +487,7 @@ AI Core频率信息。
 | deviceId    |INTEGER|设备ID|
 | timestampNs |NUMERIC|频率变化时的本地时间，单位ns|
 | freq        |INTEGER|AI Core频率值，单位MHz|
-| dieId |INTEGER|用于区分芯片场景的dieId，仅Atlas 350 加速卡支持<br>对于Atlas 200I/500 A2 推理产品和Atlas A2 训练系列产品/Atlas A2 推理系列产品不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
+| dieId |INTEGER|用于区分芯片场景的dieId，仅Ascend 950 系列产品支持<br>对于Atlas 200I/500 A2 推理产品和Atlas A2 训练系列产品/Atlas A2 推理系列产品不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
 
 ## ACC\_PMU
 

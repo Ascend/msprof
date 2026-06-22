@@ -66,7 +66,7 @@
 - all：编译全量run包（包含采集与解析功能）
 - analysis：编译解析run包（仅包含解析功能）
 
-更多参数说明请参见[编译run包参数说明](#51-编译run包参数说明)。
+更多参数说明请参见[编译run包参数说明](#61-编译run包参数说明)。
 
 编译完成后，会在当前路径`output`目录下生成run包，名称格式为`mindstudio-profiler_{version}_{arch}.run`。其中，`version`为版本号，`arch`为系统架构（根据实际运行系统自动适配）。
 
@@ -99,7 +99,7 @@ bash build/build.sh --mode=analysis --version={version}
    ./mindstudio-profiler_{version}_{arch}.run --install
    ```
 
-   安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#52-安装run包参数说明)。
+   安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#62-安装run包参数说明)。
 
    执行安装命令时，会自动执行`--check`参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
 
@@ -113,7 +113,19 @@ bash build/build.sh --mode=analysis --version={version}
    mindstudio-profiler package install success.
    ```
 
-## 3. 卸载
+## 3. 验证安装
+
+安装完成后，执行以下命令验证工具是否安装成功：
+
+```bash
+msprof --help
+```
+
+若输出不报错，且能显示帮助信息，则表明安装成功。
+
+若 `msprof --help` 提示命令不存在，请确认当前终端使用的是安装 `msprof` 的 Python 环境。
+
+## 4. 卸载
 
 可通过如下步骤卸载：
 
@@ -142,13 +154,15 @@ bash build/build.sh --mode=analysis --version={version}
    Successfully uninstalled 1 tool ({tools_name})
    ```
 
-## 4. 升级
+## 5. 升级
 
 升级即“先卸后装”。直接执行安装命令，工具将自动卸载旧版本，并引导您完成覆盖安装。
 
-## 5. 附录
+可通过`msprof --version`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.0.0/release_notes.md)》。
 
-### 5.1 编译run包参数说明
+## 6. 附录
+
+### 6.1 编译run包参数说明
 
 msProf工具run包的编译命令可配置如下参数。
 
@@ -158,7 +172,7 @@ msProf工具run包的编译命令可配置如下参数。
 | --mode       | 可选      | 编译run包方式。可取值：<br>&#8226; all：编译出包含msProf采集和解析功能的软件包。<br>&#8226; analysis：编译出仅包含msProf解析功能的软件包。<br>默认值为analysis。 |
 | --version    | 可选      | 配置run包的版本号。<br>默认值为none。                        |
 
-### 5.2 安装run包参数说明
+### 6.2 安装run包参数说明
 
 msProf工具run包的安装命令可配置如下参数。
 

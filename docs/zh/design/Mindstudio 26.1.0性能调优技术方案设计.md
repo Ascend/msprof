@@ -1,7 +1,7 @@
 
 # 背景描述（Background）
 
-继承代际芯片的软硬件调度全流程能力，主要扩展A5芯片的调度、计算&&通信、AI核计算单元、系统硬件指标的调优能力构筑，支持性能调优分析。
+继承代际芯片的软硬件调度全流程能力，主要扩展Ascend 950PR/Ascend 950DT芯片的调度、计算&&通信、AI核计算单元、系统硬件指标的调优能力构筑，支持性能调优分析。
 
 # 用例分析（Use Case）
 
@@ -9,7 +9,7 @@
 
 功能点1：D-Die/U-Die带宽信息的呈现能力
 
-使用限制：A5形态
+使用限制：Ascend 950PR/Ascend 950DT形态
 
 使用约束：NA
 
@@ -23,7 +23,7 @@ DFX设计：
 
 功能点2：Fusion Task任务的呈现能力
 
-使用限制：A5形态
+使用限制：Ascend 950PR/Ascend 950DT形态
 
 使用约束：NA
 
@@ -37,7 +37,7 @@ DFX设计：
 
 功能点3：DPU算子耗时统计及呈现能力
 
-使用限制：A5形态、使用DPU进行运算
+使用限制：Ascend 950PR/Ascend 950DT形态、使用DPU进行运算
 
 使用约束：NA
 
@@ -51,7 +51,7 @@ DFX设计：
 
 功能点4：代际芯片特性继承能力
 
-使用限制：A5芯片
+使用限制：Ascend 950PR/Ascend 950DT芯片
 
 使用约束：NA
 
@@ -66,7 +66,7 @@ DFX设计：
 1. 设计思路
 
    ```text
-     A5 全栈结构图
+     Ascend 950PR/Ascend 950DT 全栈结构图
 
      ┌───────────────────────────────────────────────────────────────────────────────┐
      │                                 AI Framework                                  │
@@ -102,7 +102,7 @@ DFX设计：
 
    ```
 
-   代际芯片的软硬件调度全流程能力，结合A5芯片能力，主要扩展调度器、计算&&通信通路、AI核上计算单元、系统级硬件指标等多方面的调优能力构筑。
+   代际芯片的软硬件调度全流程能力，结合Ascend 950PR/Ascend 950DT芯片能力，主要扩展调度器、计算&&通信通路、AI核上计算单元、系统级硬件指标等多方面的调优能力构筑。
 
    - Stars调度器新增fusion task类别任务
    - AI核计算单元Die间带宽能力
@@ -163,7 +163,7 @@ DFX设计：
 
       ```
 
-      A5代际芯片Host新增DPU运算模块，包含计算和通信类任务，支持通过Device ID进行区分，DPU和NPU的ID分开，数据解析同样通过唯一ID进行关联和呈现，timeline trace图新增CANN层的DPU泳道数据，支持性能的分析。
+      Ascend 950PR/Ascend 950DT代际芯片Host新增DPU运算模块，包含计算和通信类任务，支持通过Device ID进行区分，DPU和NPU的ID分开，数据解析同样通过唯一ID进行关联和呈现，timeline trace图新增CANN层的DPU泳道数据，支持性能的分析。
 
       **计算类任务**：直接在Host侧的DPU模块进行下发和执行，不会下发到Device
 
@@ -185,7 +185,7 @@ DFX设计：
 
 # 使用说明（User Guide）
 
-- 接口描述：A5支持reports参数控制返回timeline数据内容
+- 接口描述：Ascend 950PR/Ascend 950DT支持reports参数控制返回timeline数据内容
 - 接口原型：msprof --reports
 - 输入/输出参数：
 
@@ -217,11 +217,11 @@ DFX设计：
 
 | 用例名称                       | 预置条件                                                                         | 预期输入                                                     | 预期输出                                                     |
 | ------------------------------ |------------------------------------------------------------------------------| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| D/U-Die带宽数据采集用例        | A5 CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增泳道可展示D/U-Die带宽柱形曲线 |
-| Fusion Task任务呈现用例        | A5 CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，Ascend Hardware下可展示fusion task任务耗时信息 |
-| DPU算子耗时统计及呈现能力用例  | A5 CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增CANN：DPU下可展示DPU任务的耗时呈现 |
-| msprof命令行支持report参数用例 | A5 CANN软件包正确安装<br />内置reports_sample_config.json（只配置“ascend：true”，其他全为false） | 通过msprof执行业务应用：msprof --output=* ./main [args] --reports=“reports_sample_config.json” | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，只支持AscendHardware泳道的呈现 |
-| msprof命令行支持解析默认导出DB | A5 CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成的交付件包含DB文件 |
+| D/U-Die带宽数据采集用例        | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增泳道可展示D/U-Die带宽柱形曲线 |
+| Fusion Task任务呈现用例        | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，Ascend Hardware下可展示fusion task任务耗时信息 |
+| DPU算子耗时统计及呈现能力用例  | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增CANN：DPU下可展示DPU任务的耗时呈现 |
+| msprof命令行支持report参数用例 | Ascend 950PR/Ascend 950DT CANN软件包正确安装<br />内置reports_sample_config.json（只配置“ascend：true”，其他全为false） | 通过msprof执行业务应用：msprof --output=* ./main [args] --reports=“reports_sample_config.json” | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，只支持AscendHardware泳道的呈现 |
+| msprof命令行支持解析默认导出DB | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成的交付件包含DB文件 |
 |                                |                                                                              |                                                              |                                                              |
 
 # 缺点与风险（可选）（Drawbacks）

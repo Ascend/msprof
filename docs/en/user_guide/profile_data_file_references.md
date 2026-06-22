@@ -48,7 +48,7 @@ After parsing, msProf generates two types of profile data files:
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -239,7 +239,7 @@ The AI Core, AI Vector Core, and AICPU operator summary data does not contain ti
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -299,7 +299,7 @@ The content of the `op_summary_*.csv` file varies depending on the msProf collec
 |Context ID|Context ID, which identifies a small operator of a subtask. If no small operator exists, `N/A` is displayed.|
 |aiv_time(us)|Theoretical execution duration of a task on the AI Vector Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Vector Core. The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
 |aicore_time(us)|Theoretical execution duration of the task on the AI Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Core.<br>This data is inaccurate and not recommended for reference if the frequency of the AI Core changes (for example, due to manual frequency regulation, dynamic frequency regulation when power consumption exceeds the threshold, or on Atlas 300V/Atlas 300I Pro products).<br>For details about frequency changes for the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and the Ascend 350 accelerator card, see [Viewing AI Core Frequency](#en-us_topic_0000001751419248_section9194165318231).<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
-|total_cycles|Total number of execution cycles of the task on the AI Core, which is the sum of the execution cycles of all blocks.<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.<br>For the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and the Atlas 350 accelerator card, this field is split into `aic_total_cycles` (total cycles executed on the AI Cube Core) and `aiv_total_cycles` (total cycles executed on the AI Vector Core).|
+|total_cycles|Total number of execution cycles of the task on the AI Core, which is the sum of the execution cycles of all blocks.<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.<br>For the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and the Ascend 950 Products, this field is split into `aic_total_cycles` (total cycles executed on the AI Cube Core) and `aiv_total_cycles` (total cycles executed on the AI Vector Core).|
 |Register value|Value of the custom register whose data is to be collected. This field is determined by custom registers specified in the `--aic-metrics` option.|
 
 The following fields are generated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`. When `--task-time` is set to `l0`, these fields are not collected and `N/A` is displayed. The content of the generated data is determined by the value of the `--aic-metrics` option.
@@ -332,14 +332,14 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 
 |Field|Description|
 |--|--|
-| *_mac_fp16_ratio  | Ratio of cycles taken to execute Cube fp16 instructions to the total cycles. The Atlas 350 accelerator card supports only `aic_mac_fp16_ratio`.|
-| *_mac_int8_ratio  | Ratio of cycles taken to execute Cube int8 instructions to the total cycles. The Atlas 350 accelerator card supports only `aic_mac_int8_ratio`.|
-| *_vec_fp32_ratio  | Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-| *_vec_fp16_ratio  | Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. The Atlas 350 accelerator card does not support this field.|
-| *_vec_int32_ratio | Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-| *_vec_misc_ratio  | Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-| *_cube_fops       | Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Atlas 350 accelerator card supports only `aic_cube_fops`.|
-| *_vector_fops     | Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Atlas 350 accelerator card does not support this field.|
+| *_mac_fp16_ratio  | Ratio of cycles taken to execute Cube fp16 instructions to the total cycles. The Ascend 950 Products supports only `aic_mac_fp16_ratio`.|
+| *_mac_int8_ratio  | Ratio of cycles taken to execute Cube int8 instructions to the total cycles. The Ascend 950 Products supports only `aic_mac_int8_ratio`.|
+| *_vec_fp32_ratio  | Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+| *_vec_fp16_ratio  | Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. The Ascend 950 Products does not support this field.|
+| *_vec_int32_ratio | Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+| *_vec_misc_ratio  | Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+| *_cube_fops       | Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products supports only `aic_cube_fops`.|
+| *_vector_fops     | Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products does not support this field.|
 
 Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
@@ -351,8 +351,8 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 |*_ub_write_bw(GB/s)|UB write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |*_l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |*_l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|*_l2_read_bw|L2 read bandwidth (GB/s). The Atlas 350 accelerator card does not support this field.|
-|*_l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
+|*_l2_read_bw|L2 read bandwidth (GB/s). The Ascend 950 Products does not support this field.|
+|*_l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
 |*_main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |*_main_mem_write_bw(GB/s)|Main memory write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -367,7 +367,7 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 |*_l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |*_l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |*_l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|*_l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Atlas 350 accelerator card does not support this field.|
+|*_l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Ascend 950 Products does not support this field.|
 |*_l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |*_l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
@@ -381,7 +381,7 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 |*_ub_write_bw_vector(GB/s)|Bandwidth for Vector to write data to UB (GB/s).|
 |*_ub_read_bw_scalar(GB/s)|Bandwidth for Scalar to read data from UB (GB/s).|
 |*_ub_write_bw_scalar(GB/s)|Bandwidth for Scalar to write data to UB (GB/s).|
-|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth for Vector FixPipe to write data to UB (excluding UB backpressure) (GB/s). Only the Atlas 350 accelerator card supports this field.|
+|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth for Vector FixPipe to write data to UB (excluding UB backpressure) (GB/s). Only the Ascend 950 Products supports this field.|
 
 Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
@@ -389,7 +389,7 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 
 |Field|Description|
 |--|--|
-|*_vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
+|*_vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
 |*_vec_bank_cflt_ratio|Ratio of cycles taken to execute `vec_bank_stall_cycles` instructions to the total cycles. Improper read/write pointer addresses for Vector instruction operands can lead to bank conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |*_vec_resc_cflt_ratio|Ratio of cycles taken to execute `vec_resc_cflt_ratio` instructions to the total cycles. If an operator involves multiple compute units, ensure that they are concurrently scheduled. If the operator logic keeps delivering instructions to a compute unit that is already busy, the overall computing power is not fully utilized. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -418,16 +418,16 @@ Supported products:
 
 | Field                         | Description                                                    |
 | ------------------------------- | ------------------------------------------------------------ |
-| `*_write_cache_hit`             | Number of cache write hits. The Atlas 350 accelerator card does not support this field.  |
-| `*_write_cache_miss_allocate`   | Number of cache reallocations after cache write misses. The Atlas 350 accelerator card does not support this field.|
-| `*_r*_read_cache_hit`           | Number of cache read hits in the `r*` channel. The Atlas 350 accelerator card does not support this field.|
-| `*_r*_read_cache_miss_allocate` | Number of cache re-allocations after read misses in the `r*` channel. The Atlas 350 accelerator card does not support this field.|
-| `*_read_local_l2_hit`           | Number of cache read hits. Only the Atlas 350 accelerator card supports this field.  |
-| `*_read_local_l2_miss`          | Number of cache read misses. Only the Atlas 350 accelerator card supports this field.    |
-| `*_read_local_l2_victim`        | Number of cache read misses that trigger cache victimization. Only the Atlas 350 accelerator card supports this field.|
-| `*_write_local_l2_hit`          | Number of cache write hits. Only the Atlas 350 accelerator card supports this field.  |
-| `*_write_local_l2_miss`         | Number of cache write misses. Only the Atlas 350 accelerator card supports this field.    |
-| `*_write_local_l2_victim`       | Number of cache write misses that trigger cache victimization. Only the Atlas 350 accelerator card supports this field.|
+| `*_write_cache_hit`             | Number of cache write hits. The Ascend 950 Products does not support this field.  |
+| `*_write_cache_miss_allocate`   | Number of cache reallocations after cache write misses. The Ascend 950 Products does not support this field.|
+| `*_r*_read_cache_hit`           | Number of cache read hits in the `r*` channel. The Ascend 950 Products does not support this field.|
+| `*_r*_read_cache_miss_allocate` | Number of cache re-allocations after read misses in the `r*` channel. The Ascend 950 Products does not support this field.|
+| `*_read_local_l2_hit`           | Number of cache read hits. Only the Ascend 950 Products supports this field.  |
+| `*_read_local_l2_miss`          | Number of cache read misses. Only the Ascend 950 Products supports this field.    |
+| `*_read_local_l2_victim`        | Number of cache read misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
+| `*_write_local_l2_hit`          | Number of cache write hits. Only the Ascend 950 Products supports this field.  |
+| `*_write_local_l2_miss`         | Number of cache write misses. Only the Ascend 950 Products supports this field.    |
+| `*_write_local_l2_victim`       | Number of cache write misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
 
 > [!note] Note
 >
@@ -438,7 +438,7 @@ Supported products:
 
 - Atlas A2 training products/Atlas A2 inference products
 - Atlas A3 training products/Atlas A3 inference products
-- Atlas 350 accelerator card
+- Ascend 950 Products
 - Atlas 200I/500 A2 inference products
 
 **Table 10** Field description (PipelineExecuteUtilization)
@@ -472,7 +472,7 @@ Statistics about the AI Core and AICPU operator call counts and durations do not
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -513,7 +513,7 @@ Timeline information of API duration statistics is displayed on the **CANN** tra
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -569,7 +569,7 @@ The preceding figure is sorted by the **Time** column in descending order to ide
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -646,7 +646,7 @@ Timeline information of the task scheduler profile data is displayed on the **As
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -719,7 +719,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -813,7 +813,7 @@ Collective communication operator data is collected and parsed only in scenarios
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -923,7 +923,7 @@ The memory usage records of CANN operators do not contain timeline information. 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -956,7 +956,7 @@ The memory usage details of CANN operators do not contain timeline information. 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1006,7 +1006,7 @@ Timeline information of the NPU memory usage is displayed on the **NPU MEM** tra
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1039,7 +1039,7 @@ The memory usage data of the NPU components does not contain timeline informatio
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1106,7 +1106,7 @@ Timeline information about the percentage of AI Core instructions is displayed o
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1162,12 +1162,12 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |--|--|
 |mac_fp16_ratio|Ratio of cycles taken to execute Cube fp16 instructions to the total cycles.|
 |mac_int8_ratio|Ratio of cycles taken to execute Cube int8 instructions to the total cycles.|
-|vec_fp32_ratio|Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-|vec_fp16_ratio|Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-|vec_int32_ratio|Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
-|vec_misc_ratio|Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
+|vec_fp32_ratio|Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|vec_fp16_ratio|Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|vec_int32_ratio|Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|vec_misc_ratio|Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
 |cube_fops|Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model.|
-|vector_fops|Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Atlas 350 accelerator card does not support this field.|
+|vector_fops|Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products does not support this field.|
 
 **Table 4** Field description (Memory)
 
@@ -1177,8 +1177,8 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |ub_write_bw(GB/s)|UB write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|l2_read_bw|L2 read bandwidth (GB/s). The Atlas 350 accelerator card does not support this field.|
-|l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
+|l2_read_bw|L2 read bandwidth (GB/s). The Ascend 950 Products does not support this field.|
+|l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
 |main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |main_mem_write_bw(GB/s)|Main memory write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -1191,7 +1191,7 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Atlas 350 accelerator card does not support this field.|
+|l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Ascend 950 Products does not support this field.|
 |l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
@@ -1210,7 +1210,7 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 
 |Field|Description|
 |--|--|
-|vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Atlas 350 accelerator card does not support this field.|
+|vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
 |vec_bank_cflt_ratio|Ratio of cycles taken to execute `vec_bank_stall_cycles` instructions to the total cycles. Improper read/write pointer addresses for Vector instruction operands can lead to bank conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |vec_resc_cflt_ratio|Ratio of cycles taken to execute `vec_resc_cflt_ratio` instructions to the total cycles. If an operator involves multiple compute units, ensure that they are concurrently scheduled. If the operator logic keeps delivering instructions to a compute unit that is already busy, the overall computing power is not fully utilized. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -1218,22 +1218,22 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 
 |Field|Description|
 |--|--|
-|write_cache_hit|Number of cache write hits. The Atlas 350 accelerator card does not support this field.|
-|write_cache_miss_allocate|Number of cache reallocations after cache write misses. The Atlas 350 accelerator card does not support this field.|
-|r*_read_cache_hit|Number of cache read hits in the `r*` channel. The Atlas 350 accelerator card does not support this field.|
-|r*_read_cache_miss_allocate|Number of cache re-allocations after read misses in the `r*` channel. The Atlas 350 accelerator card does not support this field.|
-|read_local_l2_hit|Number of cache read hits. Only the Atlas 350 accelerator card supports this field.|
-|read_local_l2_miss|Number of cache read misses. Only the Atlas 350 accelerator card supports this field.|
-|read_local_l2_victim|Number of cache read misses that trigger cache victimization. Only the Atlas 350 accelerator card supports this field.|
-|write_local_l2_hit|Number of cache write hits. Only the Atlas 350 accelerator card supports this field.|
-|write_local_l2_miss|Number of cache write misses. Only the Atlas 350 accelerator card supports this field.|
-|write_local_l2_victim|Number of cache write misses that trigger cache victimization. Only the Atlas 350 accelerator card supports this field.|
+|write_cache_hit|Number of cache write hits. The Ascend 950 Products does not support this field.|
+|write_cache_miss_allocate|Number of cache reallocations after cache write misses. The Ascend 950 Products does not support this field.|
+|r*_read_cache_hit|Number of cache read hits in the `r*` channel. The Ascend 950 Products does not support this field.|
+|r*_read_cache_miss_allocate|Number of cache re-allocations after read misses in the `r*` channel. The Ascend 950 Products does not support this field.|
+|read_local_l2_hit|Number of cache read hits. Only the Ascend 950 Products supports this field.|
+|read_local_l2_miss|Number of cache read misses. Only the Ascend 950 Products supports this field.|
+|read_local_l2_victim|Number of cache read misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
+|write_local_l2_hit|Number of cache write hits. Only the Ascend 950 Products supports this field.|
+|write_local_l2_miss|Number of cache write misses. Only the Ascend 950 Products supports this field.|
+|write_local_l2_victim|Number of cache write misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
 
 Supported products:
 
 - Atlas A2 training products/Atlas A2 inference products
 - Atlas A3 training products/Atlas A3 inference products
-- Atlas 350 accelerator card
+- Ascend 950 Products
 - Atlas 200I/500 A2 inference products
 
 **Table 9** Field description (MemoryAccess)
@@ -1261,7 +1261,7 @@ Statistics about the percentage of AI Vector Core instructions do not contain ti
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1300,7 +1300,7 @@ The AICPU operator duration data does not contain timeline information. The summ
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1339,7 +1339,7 @@ Records the sizes of data preparation queues. It is generated when AICPU is enab
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1371,7 +1371,7 @@ The L2 cache data does not contain timeline information. The summary information
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1421,7 +1421,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1458,7 +1458,7 @@ Memory statistics for static graph operators do not contain timeline information
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1496,7 +1496,7 @@ The system memory data does not contain timeline information. The summary inform
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1533,7 +1533,7 @@ The process memory usage data does not contain timeline information. The summary
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1566,7 +1566,7 @@ Utilization data for the AICPU (executing AICPU operators) and Ctrl CPU (executi
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1601,7 +1601,7 @@ The CPU utilization data of processes does not contain timeline information. The
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1632,7 +1632,7 @@ Timeline information of the on-chip memory read/write speed data is displayed in
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1691,7 +1691,7 @@ Timeline information of the HCCS collective communication bandwidth data is disp
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1736,7 +1736,7 @@ Timeline information of NIC summary is displayed on the **NIC** track in `msprof
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1791,7 +1791,7 @@ Timeline information of the RoCE bandwidth data is displayed on the **RoCE** tra
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1846,7 +1846,7 @@ Timeline information of the PCIe bandwidth data is displayed on the **PCIe** tra
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1892,7 +1892,7 @@ The bandwidth and latency data of AI Core and AI Vector does not contain summary
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1946,7 +1946,7 @@ The accelerator bandwidth and concurrency data does not contain summary informat
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1977,7 +1977,7 @@ The SoC transmission bandwidth information does not contain summary information.
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2006,7 +2006,7 @@ The inter-chip transmission bandwidth data does not contain summary information.
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -2024,10 +2024,10 @@ The following figure shows data on the **Stars Chip Trans** track in `msprof_*.j
 
 |Field|Description|
 |--|--|
-|PA Link Rx|RX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Atlas 350 accelerator card does not support this field.|
-|PA Link Tx|TX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Atlas 350 accelerator card does not support this field.|
-|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Atlas 350 accelerator card supports this field.|
-|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Atlas 350 accelerator card supports this field.|
+|PA Link Rx|RX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Ascend 950 Products does not support this field.|
+|PA Link Tx|TX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Ascend 950 Products does not support this field.|
+|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Ascend 950 Products supports this field.|
+|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Ascend 950 Products supports this field.|
 
 #### llc_read_write (L3 Cache Read/Write Rate)<a name="EN-US_TOPIC_0000002477463240"></a>
 
@@ -2037,7 +2037,7 @@ The timeline information of the L3 cache read/write rate data is displayed on th
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2085,7 +2085,7 @@ The DVPP data does not contain timeline information. The summary information is 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2119,7 +2119,7 @@ The AICPU top function data does not contain timeline information. The summary i
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2151,7 +2151,7 @@ The AICPU PMU event data does not contain timeline information. The summary info
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2182,7 +2182,7 @@ The Ctrl CPU top function data does not contain timeline information. The summar
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2214,7 +2214,7 @@ The Ctrl CPU PMU event data does not contain timeline information. The summary i
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2245,7 +2245,7 @@ The TS CPU top function data does not contain timeline information. The summary 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2276,7 +2276,7 @@ The TS CPU PMU event data does not contain timeline information. The summary inf
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|x|
+|Ascend 950 Products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2307,7 +2307,7 @@ The host-side CPU utilization data is displayed on the **CPU Usage** track in `m
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2353,7 +2353,7 @@ Timeline information about host-side memory usage is displayed on the **Memory U
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2397,7 +2397,7 @@ Timeline information about host-side drive I/O usage is displayed on the **Disk 
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2442,7 +2442,7 @@ Timeline information about host-side network I/O usage is displayed on the **Net
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2486,7 +2486,7 @@ Timeline information of the syscall and pthreadcall data on the host is displaye
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2536,7 +2536,7 @@ The host-side system CPU utilization data does not contain timeline information.
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2571,7 +2571,7 @@ The CPU utilization data of host-side processes does not contain timeline inform
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2602,7 +2602,7 @@ The host-side system memory usage data does not contain timeline information. Th
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2639,7 +2639,7 @@ The memory usage data for processes on the host does not contain timeline inform
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 accelerator card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2672,7 +2672,7 @@ The following example shows the content format of `process_mem_*.csv`.
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Atlas 350 accelerator card                  |    √     |
+| Ascend 950 Products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    √     |
 | Atlas A2 training products/Atlas A2 inference products|    √     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2707,7 +2707,7 @@ Timeline information of the collective communication instructions is displayed o
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Atlas 350 accelerator card                  |    √     |
+| Ascend 950 Products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2748,7 +2748,7 @@ The bandwidth data of the collective communication unit (CCU) does not contain t
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Atlas 350 accelerator card                  |    √     |
+| Ascend 950 Products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2780,7 +2780,7 @@ Timeline information of the UB bandwidth data is displayed on the **UB** track i
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Atlas 350 accelerator card                  |    √     |
+| Ascend 950 Products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |

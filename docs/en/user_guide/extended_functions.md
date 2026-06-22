@@ -6,7 +6,7 @@
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -117,7 +117,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -183,7 +183,7 @@ To export profile data using `msprof.py`, perform the following steps:
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -240,7 +240,7 @@ To export final timeline data or .db files, proceed to [Exporting Profile Data](
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -312,7 +312,7 @@ After the command for querying profile data is executed, the results will be pri
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -468,7 +468,7 @@ The following examples show the directory structure of the generated profile dat
 
 |Product|Supported|
 |--|:-:|
-|Atlas 350 Accelerator Card|√|
+|Ascend 950 Products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
