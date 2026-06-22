@@ -21,6 +21,11 @@ namespace Analysis
 namespace Application
 {
 
+namespace
+{
+const std::string INVALID_DATA_SIZE = "Invalid";
+}
+
 std::string HcclAssembler::TransEnumToType(uint64_t key, const std::unordered_map<std::string, uint16_t> &enumTable)
 {
     for (const auto &node : enumTable)
@@ -49,6 +54,7 @@ void HcclOpTraceEvent::ProcessArgs(JsonWriter &ostream)
 
 void HcclTaskTraceEvent::ProcessArgs(JsonWriter &ostream)
 {
+    auto size_str = size_ >= UINT32_MAX ? INVALID_DATA_SIZE : std::to_string(size_);
     ostream["notify_id"] << notifyId_;
     ostream["duration estimated(us)"] << esDur_;
     ostream["stream id"] << streamId_;
@@ -58,7 +64,7 @@ void HcclTaskTraceEvent::ProcessArgs(JsonWriter &ostream)
     ostream["src rank"] << srcRank_;
     ostream["dst rank"] << dstRank_;
     ostream["transport type"] << transportType_;
-    ostream["size(Byte)"] << size_;
+    ostream["size(Byte)"] << size_str;
     ostream["data type"] << dataType_;
     ostream["link type"] << linkType_;
     ostream["bandwidth(GB/s)"] << bandwidth_;

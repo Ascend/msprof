@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import List
 from typing import Set
 
+from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
@@ -45,6 +46,7 @@ class HCCLExport:
     INVALID_PLANE = -1
     DEFAULT_PLANE = 0
     INVALID_GROUP = 'N/A'
+    INVALID_DATA_SIZE = "Invalid"
 
     @dataclass
     class HcclGroup:
@@ -65,6 +67,7 @@ class HCCLExport:
 
     @staticmethod
     def get_hccl_arg(hccl_task):
+        size_str = HCCLExport.INVALID_DATA_SIZE if hccl_task.size >= Constant.UINT32_MAX else str(hccl_task.size)
         return OrderedDict(
             {
                 'notify_id': hccl_task.notify_id,
@@ -76,7 +79,7 @@ class HCCLExport:
                 'src rank': hccl_task.local_rank,
                 'dst rank': hccl_task.remote_rank,
                 'transport type': hccl_task.transport_type,
-                'size(Byte)': hccl_task.size,
+                'size(Byte)': size_str,
                 'data type': hccl_task.data_type,
                 'link type': hccl_task.link_type,
                 "bandwidth(GB/s)": hccl_task.bandwidth,

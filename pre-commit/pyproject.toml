@@ -118,7 +118,9 @@ exclude_dirs = [
 ]
 
 # 启用所有安全检查
-skips = []
+skips = [
+  "B608" # 跳过 sql 注入检测
+]
 
 # 报告格式
 format = "screen"

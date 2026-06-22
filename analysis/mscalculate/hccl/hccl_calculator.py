@@ -158,7 +158,7 @@ class HcclCalculator(ICalculator, MsMultiProcess):
 
     @staticmethod
     def _calculate_bandwidth_gb_s(duration, size):
-        if abs(duration) < 1e-15:
+        if abs(duration) < 1e-15 or size >= Constant.UINT32_MAX:
             bandwidth = 0
         else:
             bandwidth = (size * NumberConstant.COMMUNICATION_B_to_GB) / (duration * NumberConstant.NS_TO_S)

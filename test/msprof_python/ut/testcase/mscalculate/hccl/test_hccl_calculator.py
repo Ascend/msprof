@@ -301,6 +301,10 @@ class TestHcclCalculator(unittest.TestCase):
         self.assertEqual(ret, 655.4435946615847)
         self.assertEqual(ret_0_duration, 0)
 
+    def test_calculate_bandwidth_gb_s_should_return_0_when_size_overflow(self):
+        ret = HcclCalculator._calculate_bandwidth_gb_s(duration=100, size=Constant.UINT32_MAX)
+        self.assertEqual(ret, 0)
+
     def test_update_bandwidth_should_update_correct_bandwidth(self):
         RDMA = 'RDMA'
         OP_NAME = 'hcom_allReduce__721_0_1'

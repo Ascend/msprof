@@ -27,6 +27,7 @@ from common_func.msprof_exception import ProfException
 from tuning.cluster.cluster_parser_factory import ClusterCommunicationParserFactory
 from tuning.cluster.cluster_parser_factory import CommunicationMatrixParserFactory
 from tuning.cluster.cluster_parser_factory import CriticalPathAnalysisParserFactory
+from mscalculate.hccl.hccl_task import HcclTask
 
 NAMESPACE = 'tuning.cluster.cluster_parser_factory'
 
@@ -171,23 +172,23 @@ class TestClusterCommunicationParserFactory(unittest.TestCase):
             ClusterCommunicationParserFactory(self.params).get_hccl_events_from_db(0, '', [(0, 100)])
 
     def test_get_hccl_events_from_db(self):
-        hcclop = HcclOp()
+        hccl_task = HcclTask(op_name='all_reduce')
         model_space = 'msmodel.cluster_info.communication_model.CommunicationModel'
         with mock.patch(model_space + '.check_db', return_value=True), \
                 mock.patch('common_func.db_manager.DBManager.judge_table_exist', return_value=True), \
-                mock.patch('common_func.db_manager.DBManager.fetch_all_data', side_effect=[[hcclop], []]):
+                mock.patch('common_func.db_manager.DBManager.fetch_all_data', side_effect=[[hccl_task], []]):
             test_parser = ClusterCommunicationParserFactory(self.params)
             test_parser.get_hccl_events_from_db(0, '', [(0, 100)])
-            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hcclop]}})
+            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hccl_task]}})
 
     def test_get_hccl_events_from_db_with_cpa(self):
-        hcclop = HcclOp()
+        hccl_task = HcclTask(op_name='all_reduce')
         top_hccl_ops = tuple(('allReduce_1_1', 'allReduce_2_2', 'allReduce_3_3', 'allReduce_4_4', 'allReduce_5_5'))
         with mock.patch(NAMESPACE + '.CommunicationModel.check_db', return_value=True), \
-                mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db', return_value=[hcclop]):
+                mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db', return_value=[hccl_task]):
             test_parser = ClusterCommunicationParserFactory(self.params)
             test_parser.get_hccl_events_from_db(0, '', [(0, 100)], top_hccl_ops)
-            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hcclop]}})
+            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hccl_task]}})
 
 
 class TestCommunicationMatrixParserFactory(unittest.TestCase):
