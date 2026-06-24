@@ -200,6 +200,7 @@ const std::string AIV_KERNEL = "AivKernel";
 const std::string PROCESSOR_OP_SUMMARY = "OP_SUMMARY";
 const std::string PROCESSOR_PMU = "PMU";
 const std::string PROCESSOR_NAME_FUSION_OP = "FUSION_OP";
+const std::string PROCESSOR_NAME_FUSION_TASK = "FUSION_TASK";
 const std::string PROCESSOR_NAME_MODEL_NAME = "MODEL_NAME";
 const std::string PROCESSOR_NAME_CCU_MISSION = "CCU_MISSION";
 const std::string TABLE_NAME_CCU = "CCU";

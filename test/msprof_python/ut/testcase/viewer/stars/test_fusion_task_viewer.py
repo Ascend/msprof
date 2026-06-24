@@ -46,7 +46,7 @@ class TestFusionTaskViewer(unittest.TestCase):
             }
             ret = viewer.get_trace_timeline(fusion_data)
         # metadata_event (1 'M' event) + time_graph_trace response
-        self.assertEqual(len(ret), 1)
+        self.assertEqual(len(ret), 2)
 
     def test_timeline_non_ccu_args(self):
         """non-CCU tasks: no mission_id or ccu_die_id in args"""
@@ -61,12 +61,12 @@ class TestFusionTaskViewer(unittest.TestCase):
             }
             viewer.get_trace_timeline(fusion_data)
         args_dict = mock_trace.call_args[0][1][0][5]
-        self.assertNotIn('MISSION ID', args_dict)
-        self.assertNotIn('CCU DIE ID', args_dict)
-        self.assertEqual(args_dict['FUSION TASK TYPE'], 'CPU')
+        self.assertNotIn('Mission Id', args_dict)
+        self.assertNotIn('Ccu Die Id', args_dict)
+        self.assertEqual(args_dict['Fusion Task Type'], 'CPU')
 
     def test_timeline_ccu_args(self):
-        """CCU tasks include mission_id and ccu_die_id in args"""
+        """CCU tasks include Mission Id and Ccu Die Id in args"""
         fusion_data = [[0, 100, 3, 'CCU_SQE', 56, 60, 4, 'CCU', 3, 0]]
         config = {}
         mock_trace = mock.MagicMock(return_value=[])
@@ -78,18 +78,20 @@ class TestFusionTaskViewer(unittest.TestCase):
             }
             viewer.get_trace_timeline(fusion_data)
         args_dict = mock_trace.call_args[0][1][0][5]
-        self.assertEqual(args_dict['MISSION ID'], 3)
-        self.assertEqual(args_dict['CCU DIE ID'], 0)
-        self.assertEqual(args_dict['FUSION TASK TYPE'], 'CCU')
+        self.assertEqual(args_dict['Mission Id'], 3)
+        self.assertEqual(args_dict['Ccu Die Id'], 0)
+        self.assertEqual(args_dict['Fusion Task Type'], 'CCU')
 
     def test_get_timeline_header(self):
         config = {}
         viewer = FusionTaskViewer(config)
         InfoConfReader()._info_json = {'pid': 1, 'tid': 2}
         ret = viewer.get_timeline_header()
-        self.assertEqual(len(ret), 1)
+        self.assertEqual(len(ret), 2)
         self.assertEqual(ret[0][0], 'process_name')
         self.assertEqual(ret[0][3], 'Fusion Task')
+        self.assertEqual(ret[1][0], 'thread_name')
+        self.assertEqual(ret[1][3], 'Fusion Task')
 
     def test_get_timeline_data(self):
         config = {'result_dir': 'test'}

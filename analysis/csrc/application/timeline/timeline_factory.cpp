@@ -26,6 +26,7 @@
 #include "analysis/csrc/application/timeline/ddr_assembler.h"
 #include "analysis/csrc/application/timeline/device_tx_assembler.h"
 #include "analysis/csrc/application/timeline/dpu_assembler.h"
+#include "analysis/csrc/application/timeline/fusion_task_assembler.h"
 #include "analysis/csrc/application/timeline/hbm_assembler.h"
 #include "analysis/csrc/application/timeline/hccl_assembler.h"
 #include "analysis/csrc/application/timeline/hccs_assembler.h"
@@ -52,6 +53,8 @@ std::unordered_map<std::string, AssemblerCreator> TimelineFactory::assemblerTabl
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, AccPmuAssembler); }},
     {PROCESS_DPU,
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, DPUAssembler); }},
+    {PROCESS_FUSION_TASK,
+     [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, FusionTaskAssembler); }},
     {PROCESS_TASK,
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, AscendHardwareAssembler); }},
     {PROCESS_API,

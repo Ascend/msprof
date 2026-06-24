@@ -58,6 +58,7 @@ enum ProcessSortIndex
     LAYER_BIU_PERF,
     LAYER_UB,
     LAYER_BLOCK_DETAIL,
+    LAYER_FUSION_TASK,
     RESERVED
 };
 // 组件名称
@@ -110,6 +111,7 @@ const std::string PROCESS_BIU_PERF = "Biu Perf";
 const std::string PROCESS_UB = "Ub";
 const std::string PROCESS_BLOCK_DETAIL = "Block Detail";
 const std::string PROCESS_DPU = "DPU";
+const std::string PROCESS_FUSION_TASK = "Fusion Task";
 
 struct LayerInfo
 {
@@ -152,6 +154,7 @@ const std::unordered_map<std::string, LayerInfo> LAYER_INFO{
     {PROCESS_UB, {PROCESS_UB, LABEL_NPU, LAYER_UB}},
     {PROCESS_BLOCK_DETAIL, {PROCESS_BLOCK_DETAIL, LABEL_NPU, LAYER_BLOCK_DETAIL}},
     {PROCESS_DPU, {COMPONENT_LAYER_CANN, LABEL_DPU, LAYER_DPU_SORT}},
+    {PROCESS_FUSION_TASK, {PROCESS_FUSION_TASK, LABEL_NPU, LAYER_FUSION_TASK}},
 };
 
 LayerInfo GetLayerInfo(std::string processName);

@@ -41,7 +41,8 @@ class FusionTaskViewer:
     def get_timeline_header() -> list:
         pid = InfoConfReader().get_json_pid_data()
         return [
-            ["process_name", pid, InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_FUSION_TASK]
+            ["process_name", pid, InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_FUSION_TASK],
+            ["thread_name", pid, 0, TraceViewHeaderConstant.PROCESS_FUSION_TASK],
         ]
 
     @staticmethod
@@ -58,16 +59,15 @@ class FusionTaskViewer:
             task_name = "Fusion {}".format(data[7])
             is_ccu = data[7] == 'CCU'
             args = {
-                "STREAM ID": data[0],
-                "TASK ID": data[1],
-                "ACC ID": data[2],
-                "TASK TYPE": data[3],
-                "FUSION TASK TYPE": data[7],
+                "Task Id": data[1],
+                "Acc Id": data[2],
+                "Task Type": data[3],
+                "Fusion Task Type": data[7],
             }
             if is_ccu:
-                args["MISSION ID"] = data[8]
+                args["Mission Id"] = data[8]
                 if data[9] is not None:
-                    args["CCU DIE ID"] = data[9]
+                    args["Ccu Die Id"] = data[9]
             result.append([task_name, pid, data[0], start_time, task_dur, args])
         _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result)
         meta = TraceViewManager.metadata_event(FusionTaskViewer.get_timeline_header())

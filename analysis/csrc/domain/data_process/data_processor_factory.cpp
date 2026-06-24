@@ -22,6 +22,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/compute_task_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/dpu_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/fusion_op_processor.h"
+#include "analysis/csrc/domain/data_process/ai_task/fusion_task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/hccl_statistic_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/host_task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/kfc_comm_processor.h"
@@ -145,6 +146,8 @@ std::unordered_map<std::string, ProcessorCreator> DataProcessorFactory::processo
      { MAKE_SHARED_RETURN_VOID(processor, UnifiedPmuProcessor, profPath); }},
     {PROCESSOR_NAME_FUSION_OP, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, FusionOpProcessor, profPath); }},
+    {PROCESSOR_NAME_FUSION_TASK, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
+     { MAKE_SHARED_RETURN_VOID(processor, FusionTaskProcessor, profPath); }},
     {PROCESSOR_NAME_MODEL_NAME, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, ModelNameProcessor, profPath); }},
     {PROCESSOR_NAME_COMM_STATISTIC, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
