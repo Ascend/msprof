@@ -12,11 +12,11 @@
 
 </div>
 
-## 📢 最新消息
+## ✨ 最新消息
 
-* [2025.12.30]：MindStudio Profiler项目首次上线 
+* [2025.12.30]：MindStudio Profiler项目首次上线
 
-## 📌 简介
+## ℹ️ 简介
 
 MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析工具，支持采集与解析 CANN 层和昇腾 AI 处理器 NPU 硬件层的软硬件性能数据，帮助定位模型训练或推理过程中的性能问题。`msProf` 也是其他 Profiling 采集接口的基础能力，许多上层性能采集与分析能力最终都依赖 `msProf` 完成底层数据采集。若希望了解昇腾性能调优工具的完整全景，可进一步参考[MindStudio Profiler 文档总览](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/)。
 
@@ -28,12 +28,6 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 |------------| --- |:----------------------------------------------------------------------------------------------------------------------------------:|-----------|
 | **性能数据采集** | 通过 `msProf` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/devaids/Profiling/atlasprofiling_16_0010.html) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
 | **性能数据解析** | 使用 `msProf` 工具对采集到的性能数据进行解析，生成可读的分析结果。 |                                       [性能数据解析](docs/zh/user_guide/msprof_parsing_instruct.md)                              | [analysis](https://gitcode.com/Ascend/msprof/tree/master/analysis) |
-
-## 🛠️ 安装指南
-
-msProf 工具内置在 CANN Toolkit 开发套件中，推荐直接下载 CANN 包进行安装，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
-
-如需通过源码编译方式安装，请参见 《[msProf 工具安装指南](docs/zh/getting_started/msprof_install_guide.md)》。
 
 ## 🚀 快速入门
 
@@ -53,42 +47,47 @@ msprof --output=./output --application="python3 train.py"
 msprof --output=./output --application="./run_standalone_train.sh"
 ```
 
-以 ResNet50 模型训练任务为例，《[快速入门](docs/zh/getting_started/quick_start.md)》贯穿性能调优全流程，帮助您在 10 分钟内快速体验 msProf 工具在数据采集、解析导出、性能分析等环节的核心功能。
+以 ResNet50 模型训练任务为例，《[快速入门](docs/zh/quick_start/quick_start.md)》贯穿性能调优全流程，帮助您在 10 分钟内快速体验 msProf 工具在数据采集、解析导出、性能分析等环节的核心功能。
 
-## 🗂️ 目录结构
+## 📦 安装指南
 
-关键目录如下，详细信息参见[目录结构说明](docs/zh/dir_structure.md)。
+msProf 工具内置在 CANN Toolkit 开发套件中，推荐直接下载 CANN 包进行安装，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
 
-```text
-.
-├── .gitcode                  # 仓库元数据
-├── analysis                  # 数据解析目录
-├── build                     # 构建目录
-│   └── build.sh              # 构建脚本
-├── cmake                     # CMake 文件目录
-├── docs                      # 文档目录
-│   └── zh                    # 中文文档
-├── misc                      # 其他工具
-│   ├── function_monitor      # 轻量化函数监控工具
-│   └── gil_tracer            # Python GIL 锁检测工具
-├── samples                   # 工具样例目录
-│   └── README.md             # 样例说明
-├── scripts                   # 安装、升级相关脚本
-├── test                      # 测试与覆盖率统计脚本
-└── README.md                 # 项目说明文档
-```
+如需通过源码编译方式安装，请参见 《[msProf 工具安装指南](docs/zh/install_guide/msprof_install_guide.md)》。
 
-## 📝 相关说明
+## 📘 使用指南
 
-- 《[贡献指南](CONTRIBUTING.md)》
+工具的详细使用方法，请参见《[msProf 使用指南](docs/zh/user_guide/msprof_parsing_instruct.md)》。
 
-- 《[License声明](docs/zh/legal/license_notice.md)》 
+## 💡 典型案例
 
-- 《[安全声明](docs/zh/legal/security_statement.md)》 
+通过典型问题场景帮助用户理解并掌握工具使用，请参见《[msProf 典型案例](docs/zh/best_practices/basic_cases.md)》。
 
-- 《[免责声明](docs/zh/legal/disclaimer.md)》  
+## ❓ FAQ
 
-## 💬 建议与交流
+常见问题及解决方案，请参见《[msProf FAQ](docs/zh/support/faq.md)》。
+
+## 🌌 智能检索
+
+为提升文档查阅效率，我们提供多种高效检索方式：
+
+🔹 [AI 问答（DeepWiki）](https://deepwiki.com/mindstudio-docs/master)：自然语言问答，快速把握项目架构与模块关系。<br>
+🔹 [AI 问答（ZRead）](https://zread.ai/mindstudio-docs/master)：中文问答体验更优，精准定位功能用法与细节。<br>
+🔹 [精确搜索（ReadTheDocs）](https://mindstudio-docs-master.readthedocs.io)：关键词全文检索，直达接口、参数与报错等信息。<br>
+
+## 🛠️ 贡献指南
+
+欢迎参与项目贡献，请参见 [《贡献指南》](docs/zh/contributing/contributing_guide.md)。
+
+## ⚖️ 相关说明
+
+- 《[License声明](docs/zh/legal/LICENSE.md)》
+
+- 《[安全声明](docs/zh/legal/SECURITY.md)》
+
+- 《[免责声明](docs/zh/legal/disclaimer.md)》
+
+## 🤝 建议与交流
 
 欢迎大家为社区做贡献。如果有任何疑问或建议，请提交 [Issues](https://gitcode.com/Ascend/msprof/issues)，我们会尽快回复。感谢您的支持。
 
@@ -96,17 +95,10 @@ msprof --output=./output --application="./run_standalone_train.sh"
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | <img src="https://raw.gitcode.com/mengguangxin/docs/files/dev_0526/common/Writing_Template/figures/qr_code_wechat_work.png" width="120"><br><sub>*扫码加入技术交流群*</sub> | <img src="https://raw.gitcode.com/mengguangxin/docs/files/dev_0526/common/Writing_Template/figures/qr_code_wechat_official_account.png" width="120"><br><sub>*扫码关注官方公众号*</sub> | 扫码入群并关注公众号，直达 MindStudio 用户与开发者最快捷的交流平台：<br> **快速提问：** 与社区小伙伴即时探讨技术问题<br>**掌握动态：** 第一时间获取版本发布与功能更新通知<br> **经验共享：** 与广大开发者交流最佳实践与实战心得  <br> <br> **更多支持渠道**：👉 昇腾助手：[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://gitcode.com/Ascend/msit/blob/master/docs/zh/figures/readme/xiaozhushou.png) 👉 昇腾论坛：[![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
 
-## 🤝 致谢
+## 🙏 致谢
 
-本工具由华为公司的下列部门贡献：   
+本工具由华为公司的下列部门贡献：
 
-- 昇腾计算MindStudio开发部  
+- 昇腾计算MindStudio开发部
 
 感谢来自社区的每一个PR，欢迎贡献。
-
-## 👥 关于MindStudio团队
-
-华为 MindStudio 全流程开发工具链团队致力于提供端到端的昇腾 AI 应用开发解决方案，使能开发者高效完成训练开发、推理开发和算子开发。您可以通过以下渠道进一步了解 MindStudio 团队：
-
-- 昇腾论坛：[![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/)
-- 昇腾小助手：[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://raw.gitcode.com/Ascend/msinsight/master/docs/zh/user_guide/figures/readme/xiaozhushou.png)

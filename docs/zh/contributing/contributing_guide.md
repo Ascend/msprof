@@ -47,7 +47,7 @@
 
 4. 编译测试
 
-   将开发完成的代码编译成whl包进行测试，详细步骤请参见《[msProf工具安装指南](docs/zh/getting_started/msprof_install_guide.md)》。
+   将开发完成的代码编译成whl包进行测试，详细步骤请参见《[msProf工具安装指南](../install_guide/msprof_install_guide.md)》。
 
 5. 文档开发
 
@@ -180,7 +180,7 @@ bash scripts/generate_coverage_cpp.sh
    1. 提交Pull Request后，您需要通知相关“负责人”（ Reviewers和Committers）进行内容审核。
    2. 您需要根据反馈审核意见修改代码，并重新提交更新。此流程可能涉及多轮迭代，请保持积极响应和沟通。
 
-   Pull Request流程中会提示相关的“负责人”，可在Pull Request流程中指定相关“负责人”，或通过[README](README.md)的关于MindStudio团队联系我们。
+   Pull Request流程中会提示相关的“负责人”，可在Pull Request流程中指定相关“负责人”，或通过[README](../../../README.md)的关于MindStudio团队联系我们。
 
 6. **代码合并**
 
@@ -249,13 +249,13 @@ Closes #123
 
 - **Issues**：用于报告Bug、提出功能建议和讨论技术问题
 - **Pull Requests**：用于代码审查和讨论具体实现
-- **微信群**：日常交流和快速问答（参见[README](README.md)的关于MindStudio团队章节）
+- **微信群**：日常交流和快速问答（参见[README](../../../README.md)的关于MindStudio团队章节）
 
 ## 许可证
 
-通过向本项目贡献代码，您同意您的贡献将按照项目的许可证进行授权。详见[LICENSE](LICENSE)文件。
+通过向本项目贡献代码，您同意您的贡献将按照项目的许可证进行授权。详见[LICENSE](../../../LICENSE)文件。
 
-msProf工具docs目录下的文档适用CC-BY 4.0许可证，详见[docs/LICENSE](./docs/LICENSE)。
+msProf工具docs目录下的文档适用CC-BY 4.0许可证，详见[docs/LICENSE](../../LICENSE)。
 
 ## 致谢
 
