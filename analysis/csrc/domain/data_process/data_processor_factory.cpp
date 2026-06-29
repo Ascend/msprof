@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -16,6 +16,7 @@
 
 #include "analysis/csrc/domain/data_process/include/data_processor_factory.h"
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/api_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/ccu_mission_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/communication_info_processor.h"
@@ -59,7 +60,6 @@
 #include "analysis/csrc/domain/data_process/system/soc_bandwidth_processor.h"
 #include "analysis/csrc/domain/data_process/system/sys_io_processor.h"
 #include "analysis/csrc/domain/data_process/system/ub_processor.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {

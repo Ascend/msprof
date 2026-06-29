@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -19,19 +19,19 @@
 #include "analysis/csrc/application/summary/npu_memory_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_mem_data.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./npu_mem_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 }
 
 class NpuMemoryAssemblerUTest : public testing::Test {

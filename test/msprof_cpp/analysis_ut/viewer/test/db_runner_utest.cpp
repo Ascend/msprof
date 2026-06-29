@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -21,7 +21,7 @@
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 
 using DATA_FORMAT = std::vector<std::tuple<int32_t, uint32_t, int64_t, uint16_t, double, double, std::string>>;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
 

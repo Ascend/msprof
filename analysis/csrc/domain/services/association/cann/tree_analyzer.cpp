@@ -63,13 +63,15 @@ const std::string KERNEL_AI_VECTOR_CORE_TASK_TYPE = "KERNEL_AIVEC";
 const std::string KERNEL_MIX_AIC_TASK_TYPE = "KERNEL_MIX_AIC";
 const std::string KERNEL_MIX_AIV_TASK_TYPE = "KERNEL_MIX_AIV";
 const std::string KERNEL_AI_CPU_TASK_TYPE = "KERNEL_AICPU";
-const std::string KERNEL_SIMT_TASK_TYPE = "KERNEL_SIMT";
-const std::set<std::string> CONTEXT_ID_WHITE_LIST = {KERNEL_AI_CORE_TASK_TYPE,   KERNEL_AI_VECTOR_CORE_TASK_TYPE,
-                                                     KERNEL_FFTS_PLUS_TASK_TYPE, KERNEL_SIMT_TASK_TYPE,
-                                                     KERNEL_MIX_AIC_TASK_TYPE,   KERNEL_MIX_AIV_TASK_TYPE};
-const std::set<std::string> KERNEL_COMPUTE_WHITE_LIST = {KERNEL_AI_CORE_TASK_TYPE, KERNEL_AI_VECTOR_CORE_TASK_TYPE,
-                                                         KERNEL_AI_CPU_TASK_TYPE,  KERNEL_SIMT_TASK_TYPE,
-                                                         KERNEL_MIX_AIC_TASK_TYPE, KERNEL_MIX_AIV_TASK_TYPE};
+
+const std::set<std::string> CONTEXT_ID_WHITE_LIST = {
+    KERNEL_AI_CORE_TASK_TYPE,   KERNEL_AI_VECTOR_CORE_TASK_TYPE,
+    KERNEL_FFTS_PLUS_TASK_TYPE, Analysis::Common::KERNEL_SIMT_TASK_TYPE,
+    KERNEL_MIX_AIC_TASK_TYPE,   KERNEL_MIX_AIV_TASK_TYPE};
+const std::set<std::string> KERNEL_COMPUTE_WHITE_LIST = {
+    KERNEL_AI_CORE_TASK_TYPE, KERNEL_AI_VECTOR_CORE_TASK_TYPE,
+    KERNEL_AI_CPU_TASK_TYPE,  Analysis::Common::KERNEL_SIMT_TASK_TYPE,
+    KERNEL_MIX_AIC_TASK_TYPE, KERNEL_MIX_AIV_TASK_TYPE};
 
 uint64_t GetModelId(const std::shared_ptr<MsprofApi> &api, uint16_t deviceId, uint32_t streamId, uint16_t batchId,
                     uint64_t timestamp)

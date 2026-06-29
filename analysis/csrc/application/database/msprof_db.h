@@ -14,17 +14,24 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
-#ifndef ANALYSIS_DOMAIN_SERVICES_CONSTANT_DEFAULT_VALUE_CONSTANT_H
-#define ANALYSIS_DOMAIN_SERVICES_CONSTANT_DEFAULT_VALUE_CONSTANT_H
+#ifndef ANALYSIS_APPLICATION_DATABASE_MSPROF_DB_H
+#define ANALYSIS_APPLICATION_DATABASE_MSPROF_DB_H
 
-#include <string>
+#include "analysis/csrc/infrastructure/db/include/database.h"
 
-namespace Analysis {
-namespace Domain {
-const double INVALID_TIME = -1;
-const std::string SQLITE = "sqlite";
-const std::string UNKNOWN_STRING = "UNKNOWN";
-}
-}
+namespace Analysis
+{
+namespace Application
+{
+using namespace Infra;
 
-#endif // ANALYSIS_DOMAIN_SERVICES_CONSTANT_DEFAULT_VALUE_CONSTANT_H
+class MsprofDB : public Infra::Database
+{
+   public:
+    MsprofDB();
+};
+
+}  // namespace Application
+}  // namespace Analysis
+
+#endif  // ANALYSIS_APPLICATION_DATABASE_MSPROF_DB_H

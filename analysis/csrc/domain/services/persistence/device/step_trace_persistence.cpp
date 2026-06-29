@@ -14,28 +14,33 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/services/persistence/device/step_trace_persistence.h"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
-#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
-#include "analysis/csrc/domain/services/modeling/step_trace/include/step_trace_process.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Viewer::Database;
-namespace {
+#include "analysis/csrc/domain/services/modeling/step_trace/include/step_trace_process.h"
+#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
+
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
+namespace
+{
 const uint16_t STEP_START_TAG = 60000;
 const uint16_t STEP_END_TAG = 60001;
-}
+}  // namespace
 
 StepTraceDataVectorFormat GenerateStepTraceData(std::map<uint32_t, std::vector<StepTraceTasks>>& stepTraceTask)
 {
     StepTraceDataVectorFormat processedData;
-    for (auto &it : stepTraceTask) {
+    for (auto& it : stepTraceTask)
+    {
         auto model_id = it.first;
         uint32_t iter_id = 0;
-        for (const auto& element : it.second) {
-            processedData.emplace_back(element.indexId, model_id, element.stepTrace.start,
-                                       element.stepTrace.end, iter_id);
+        for (const auto& element : it.second)
+        {
+            processedData.emplace_back(element.indexId, model_id, element.stepTrace.start, element.stepTrace.end,
+                                       iter_id);
             iter_id++;
         }
     }
@@ -45,14 +50,16 @@ StepTraceDataVectorFormat GenerateStepTraceData(std::map<uint32_t, std::vector<S
 uint32_t ProcessStepTraceDataEntry(DataInventory& dataInventory, const DeviceContext& context, DBInfo& stepTraceDB)
 {
     auto stepTraceTask = dataInventory.GetPtr<std::map<uint32_t, std::vector<StepTraceTasks>>>();
-    if (!stepTraceTask || stepTraceTask->empty()) {
+    if (!stepTraceTask || stepTraceTask->empty())
+    {
         WARN("StepTraceTasks is empty.");
         return ANALYSIS_OK;
     }
     std::string dbPath = Utils::File::PathJoin({context.GetDeviceFilePath(), SQLITE, stepTraceDB.dbName});
     auto data = GenerateStepTraceData(*stepTraceTask);
     auto res = SaveData(data, stepTraceDB, dbPath);
-    if (!res) {
+    if (!res)
+    {
         ERROR("Process % failed!", stepTraceDB.tableName);
         return ANALYSIS_ERROR;
     }
@@ -62,19 +69,22 @@ uint32_t ProcessStepTraceDataEntry(DataInventory& dataInventory, const DeviceCon
 
 uint32_t ProcessStepTimeEntry(DataInventory& dataInventory, const DeviceContext& context, DBInfo& stepTraceDB)
 {
-    auto halTrackDatas = dataInventory.GetPtr<std::vector<HalTrackData>>();
-    if (!halTrackDatas || halTrackDatas->empty()) {
-        WARN("halTrackDatas is empty.");
+    auto halTrackData = dataInventory.GetPtr<std::vector<HalTrackData>>();
+    if (!halTrackData || halTrackData->empty())
+    {
+        WARN("halTrackData is empty.");
         return ANALYSIS_OK;
     }
     std::string dbPath = Utils::File::PathJoin({context.GetDeviceFilePath(), SQLITE, stepTraceDB.dbName});
-    auto data = GenerateStepTime(*halTrackDatas);
-    if (data.empty()) {
+    auto data = GenerateStepTime(*halTrackData);
+    if (data.empty())
+    {
         WARN("StepTime data is empty.");
         return ANALYSIS_OK;
     }
     auto res = SaveData(data, stepTraceDB, dbPath);
-    if (!res) {
+    if (!res)
+    {
         ERROR("Process % failed!", stepTraceDB.tableName);
         return ANALYSIS_ERROR;
     }
@@ -97,5 +107,5 @@ uint32_t StepTracePersistence::ProcessEntry(DataInventory& dataInventory, const 
     return res;
 }
 
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

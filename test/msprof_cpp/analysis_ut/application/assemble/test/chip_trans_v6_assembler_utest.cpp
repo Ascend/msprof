@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
 * Copyright (c) 2026 Huawei Technologies Co., Ltd.
 * This file is part of the MindStudio project.
 *
@@ -18,14 +18,14 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/timeline/chip_trans_v6_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/chip_trans_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
  	 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
  	 
 namespace {
@@ -34,7 +34,7 @@ const std::string BASE_PATH = "./chip_trans_v6_assembler_utest";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string DEVICE0_PATH = File::PathJoin({PROF_PATH, "device_0"});
 const std::string DEVICE1_PATH = File::PathJoin({PROF_PATH, "device_1"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 }
  	 
 class ChipTransV6AssemblerUTest : public testing::Test {
@@ -139,4 +139,3 @@ TEST_F(ChipTransV6AssemblerUTest, ShouldReturnFalseWhenNoDeviceDirectoryExists)
  	auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
  	EXPECT_TRUE(files.empty());
 }
- 	 

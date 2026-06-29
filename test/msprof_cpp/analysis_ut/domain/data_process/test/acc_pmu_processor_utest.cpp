@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,12 +17,12 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/data_process/system/acc_pmu_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Test;
 namespace {

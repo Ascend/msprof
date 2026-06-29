@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/summary/fusion_op_assembler.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -25,14 +25,14 @@
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./fusion_op_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 }
 
 class FusionOpAssemblerUTest : public testing::Test {

@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -20,12 +20,12 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using HashMap = std::unordered_map<std::string, std::string>;
 
 // "model_id", "index_id", "op_name", "op_timestamp", "op_duration", "iteration", "hccl_name",

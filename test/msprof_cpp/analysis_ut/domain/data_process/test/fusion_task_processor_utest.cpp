@@ -26,13 +26,13 @@
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 
 namespace {
 const int DEPTH = 0;

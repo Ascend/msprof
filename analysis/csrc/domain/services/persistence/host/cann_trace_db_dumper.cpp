@@ -34,6 +34,7 @@ using HashData = Analysis::Domain::Host::Cann::HashData;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
 using MappingType = NumberMapping::MappingType;
 using namespace Infra;
+using namespace Analysis::Common;
 
 using HCCLOpsDumpData = std::vector<
     std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, uint64_t, uint64_t,
@@ -52,16 +53,11 @@ using GeFusionOpsDumpData = std::vector<std::tuple<uint64_t, std::string, uint32
 
 namespace
 {
-const int32_t INVALID_VALUE = -1;
-const std::string NA = "N/A";
 const uint32_t INPUT_FORMAT_INDEX = 0;
 const uint32_t OUTPUT_FORMAT_INDEX = 1;
-const std::string KERNEL_MIX_AIC_TASK_TYPE = "KERNEL_MIX_AIC";
-const std::string KERNEL_MIX_AIV_TASK_TYPE = "KERNEL_MIX_AIV";
-const std::string KERNEL_SIMT_TASK_TYPE = "KERNEL_SIMT";
 const std::unordered_map<std::string, uint32_t> RtsTaskTypeMap = {
-    {"KERNEL_AICORE", 0},  {"KERNEL_AICPU", 1},   {"KERNEL_AIVEC", 2},
-    {"KERNEL_MIX_AIC", 4}, {"KERNEL_MIX_AIV", 5}, {"KERNEL_SIMT", 2},
+    {KERNEL_AICORE_TASK_TYPE, 0},  {KERNEL_AICPU_TASK_TYPE, 1},   {KERNEL_AIVEC_TASK_TYPE, 2},
+    {KERNEL_MIX_AIC_TASK_TYPE, 4}, {KERNEL_MIX_AIV_TASK_TYPE, 5}, {KERNEL_SIMT_TASK_TYPE, 2},
 };  // KERNEL_SIMT类型算子是aiv类型的
 
 std::string TransTaskTypeFromRtsToGe(uint64_t rtsTaskType)

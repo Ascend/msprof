@@ -64,14 +64,12 @@ using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Environment;
 using IdPool = Analysis::Application::Credential::IdPool;
+using namespace Analysis::Common;
+using namespace Analysis::Infra;
 
 namespace
 {
-const std::string UNKNOWN = "UNKNOWN";
-const size_t EXPECT_TIME_LEN = 14;
-const std::string TASK_INDEX_NAME = "TaskIndex";
 const std::vector<std::string> TASK_INDEX_COL_NAMES = {"startNs", "globalTaskId"};
-const std::string COMM_INDEX_NAME = "CommunicationTaskIndex";
 const std::vector<std::string> COMM_TASK_INDEX_COLS = {"globalTaskId"};
 using CommScheduleDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>>;
 using ComputeTaskInfoFormat =
@@ -1499,45 +1497,45 @@ bool SaveCCUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
 // 创建 SaveData 的函数类型
 using SaveDataFunc = std::function<bool(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)>;
 const std::unordered_map<std::string, SaveDataFunc> DATA_SAVER = {
-    {Viewer::Database::PROCESSOR_NAME_API, SaveApiData},
-    {Viewer::Database::PROCESSOR_NAME_COMMUNICATION, SaveCommunicationData},
-    {Viewer::Database::PROCESSOR_NAME_ACC_PMU, SaveAccPmuData},
-    {Viewer::Database::PROCESSOR_NAME_AICORE_FREQ, SaveAicoreFreqData},
-    {Viewer::Database::PROCESSOR_NAME_DDR, SaveDDRData},
-    {Viewer::Database::PROCESSOR_NAME_ENUM, SaveEnumData},
-    {Viewer::Database::PROCESSOR_NAME_HBM, SaveHbmData},
-    {Viewer::Database::PROCESSOR_NAME_HOST_INFO, SaveHostInfoData},
-    {Viewer::Database::PROCESSOR_NAME_HCCS, SaveHccsData},
-    {Viewer::Database::PROCESSOR_NAME_NETDEV_STATS, SaveNetDevStatsData},
-    {Viewer::Database::PROCESSOR_NAME_LLC, SaveLlcData},
-    {Viewer::Database::PROCESSOR_NAME_META_DATA, SaveMetaData},
-    {Viewer::Database::PROCESSOR_NAME_MSTX, SaveMsprofTxData},
-    {Viewer::Database::PROCESSOR_NAME_NPU_INFO, SaveNpuData},
-    {Viewer::Database::PROCESSOR_NAME_NPU_MEM, SaveNpuMemData},
-    {Viewer::Database::PROCESSOR_NAME_NPU_OP_MEM, SaveNpuOpMemData},
-    {Viewer::Database::PROCESSOR_NAME_NPU_MODULE_MEM, SaveNpuModuleMemData},
-    {Viewer::Database::PROCESSOR_NAME_PCIE, SavePCIeData},
-    {Viewer::Database::PROCESSOR_NAME_SESSION_TIME_INFO, SaveSessionTimeInfoData},
-    {Viewer::Database::PROCESSOR_NAME_SOC, SaveSocData},
-    {Viewer::Database::PROCESSOR_NAME_NIC, SaveNicData},
-    {Viewer::Database::PROCESSOR_NAME_ROCE, SaveRoCEData},
-    {Viewer::Database::PROCESSOR_NAME_DPU, SaveDPUData},
-    {Viewer::Database::PROCESSOR_NAME_SIO, SaveSIOData},
-    {Viewer::Database::PROCESSOR_NAME_UB, SaveUBData},
-    {Viewer::Database::PROCESSOR_NAME_TASK, SaveAscendTaskData},
-    {Viewer::Database::PROCESSOR_NAME_COMPUTE_TASK_INFO, SaveComputeTaskInfo},
-    {Viewer::Database::PROCESSOR_NAME_MEMCPY_INFO, SaveMemcpyInfoData},
-    {Viewer::Database::PROCESSOR_NAME_TASK_PMU_INFO, SaveTaskPmuData},
-    {Viewer::Database::PROCESSOR_NAME_SAMPLE_PMU_TIMELINE, SaveSamplePmuTimelineData},
-    {Viewer::Database::PROCESSOR_NAME_SAMPLE_PMU_SUMMARY, SaveSamplePmuSummaryData},
-    {Viewer::Database::PROCESSOR_NAME_CPU_USAGE, SaveCpuUsageData},
-    {Viewer::Database::PROCESSOR_NAME_MEM_USAGE, SaveHostMemUsageData},
-    {Viewer::Database::PROCESSOR_NAME_DISK_USAGE, SaveHostDiskUsageData},
-    {Viewer::Database::PROCESSOR_NAME_NETWORK_USAGE, SaveHostNetworkUsageData},
-    {Viewer::Database::PROCESSOR_NAME_OSRT_API, SaveOSRuntimeApiData},
-    {Viewer::Database::PROCESSOR_NAME_OVERLAP_ANALYSIS, SaveOverlapAnalysisData},
-    {Viewer::Database::PROCESSOR_NAME_QOS, SaveQosData},
-    {Viewer::Database::PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
+    {PROCESSOR_NAME_API, SaveApiData},
+    {PROCESSOR_NAME_COMMUNICATION, SaveCommunicationData},
+    {PROCESSOR_NAME_ACC_PMU, SaveAccPmuData},
+    {PROCESSOR_NAME_AICORE_FREQ, SaveAicoreFreqData},
+    {PROCESSOR_NAME_DDR, SaveDDRData},
+    {PROCESSOR_NAME_ENUM, SaveEnumData},
+    {PROCESSOR_NAME_HBM, SaveHbmData},
+    {PROCESSOR_NAME_HOST_INFO, SaveHostInfoData},
+    {PROCESSOR_NAME_HCCS, SaveHccsData},
+    {PROCESSOR_NAME_NETDEV_STATS, SaveNetDevStatsData},
+    {PROCESSOR_NAME_LLC, SaveLlcData},
+    {PROCESSOR_NAME_META_DATA, SaveMetaData},
+    {PROCESSOR_NAME_MSTX, SaveMsprofTxData},
+    {PROCESSOR_NAME_NPU_INFO, SaveNpuData},
+    {PROCESSOR_NAME_NPU_MEM, SaveNpuMemData},
+    {PROCESSOR_NAME_NPU_OP_MEM, SaveNpuOpMemData},
+    {PROCESSOR_NAME_NPU_MODULE_MEM, SaveNpuModuleMemData},
+    {PROCESSOR_NAME_PCIE, SavePCIeData},
+    {PROCESSOR_NAME_SESSION_TIME_INFO, SaveSessionTimeInfoData},
+    {PROCESSOR_NAME_SOC, SaveSocData},
+    {PROCESSOR_NAME_NIC, SaveNicData},
+    {PROCESSOR_NAME_ROCE, SaveRoCEData},
+    {PROCESSOR_NAME_DPU, SaveDPUData},
+    {PROCESSOR_NAME_SIO, SaveSIOData},
+    {PROCESSOR_NAME_UB, SaveUBData},
+    {PROCESSOR_NAME_TASK, SaveAscendTaskData},
+    {PROCESSOR_NAME_COMPUTE_TASK_INFO, SaveComputeTaskInfo},
+    {PROCESSOR_NAME_MEMCPY_INFO, SaveMemcpyInfoData},
+    {PROCESSOR_NAME_TASK_PMU_INFO, SaveTaskPmuData},
+    {PROCESSOR_NAME_SAMPLE_PMU_TIMELINE, SaveSamplePmuTimelineData},
+    {PROCESSOR_NAME_SAMPLE_PMU_SUMMARY, SaveSamplePmuSummaryData},
+    {PROCESSOR_NAME_CPU_USAGE, SaveCpuUsageData},
+    {PROCESSOR_NAME_MEM_USAGE, SaveHostMemUsageData},
+    {PROCESSOR_NAME_DISK_USAGE, SaveHostDiskUsageData},
+    {PROCESSOR_NAME_NETWORK_USAGE, SaveHostNetworkUsageData},
+    {PROCESSOR_NAME_OSRT_API, SaveOSRuntimeApiData},
+    {PROCESSOR_NAME_OVERLAP_ANALYSIS, SaveOverlapAnalysisData},
+    {PROCESSOR_NAME_QOS, SaveQosData},
+    {PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
 };
 
 bool CheckMsprofDb(const std::string& outputPath)

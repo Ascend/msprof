@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -18,13 +18,17 @@
 #define ANALYSIS_DOMAIN_MSPROF_TX_HOST_DATA_H
 
 #include <string>
-#include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Analysis::Viewer::Database;
-struct MsprofTxHostData : public BasicData {
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
+
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
+struct MsprofTxHostData : public BasicData
+{
     uint16_t eventType = UINT16_MAX;
     uint32_t pid = UINT32_MAX;
     uint32_t tid = UINT32_MAX;
@@ -37,6 +41,6 @@ struct MsprofTxHostData : public BasicData {
     std::string domain;
     std::string message;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_MSPROF_TX_HOST_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_MSPROF_TX_HOST_DATA_H

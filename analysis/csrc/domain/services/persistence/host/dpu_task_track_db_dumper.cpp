@@ -24,13 +24,7 @@ namespace Domain
 {
 
 using HashData = Analysis::Domain::Host::Cann::HashData;
-
-namespace
-{
-const uint16_t DEVICE_ID_MASK = 0xFFF;
-const std::string NA = "N/A";
-const std::string AI_CPU = "AI_CPU";
-}  // namespace
+using namespace Analysis::Common;
 
 DpuTaskTrackDBDumper::DpuTaskTrackDBDumper(const std::string &hostFilePath)
     : BaseDumper<DpuTaskTrackDBDumper>(hostFilePath, "DPUTaskTrack")

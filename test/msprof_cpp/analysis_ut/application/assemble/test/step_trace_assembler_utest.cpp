@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -18,21 +18,21 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/timeline/step_trace_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/step_trace_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./step_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 std::string expectStr = "{\"name\":\"Iteration 1\",\"pid\":10248640,\"tid\":70013,\"ts\":\"830073224.426\",\"dur\":"
                         "9598.772,\"ph\":\"X\",\"cat\":\"Iteration Time\",\"args\":{\"Iteration ID\":1,\"FP Start\":\""
                         "830074691.065\",\"BP End\":\"830082803.479\",\"Iteration End\":\"830082823.198\",\""

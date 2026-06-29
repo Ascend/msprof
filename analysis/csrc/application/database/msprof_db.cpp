@@ -14,16 +14,15 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
-#include "analysis/csrc/viewer/database/finals/msprof_db.h"
+#include "analysis/csrc/application/database/msprof_db.h"
 
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 
 namespace Analysis
 {
-namespace Viewer
+namespace Application
 {
-namespace Database
-{
+using namespace Infra;
 
 namespace
 {
@@ -185,7 +184,7 @@ const TableColumns NETDEV_STATS = {
     {"roceRxCnpPkt", SQL_INTEGER_TYPE},   {"roceNewPktRty", SQL_INTEGER_TYPE},  {"nicTxByte", SQL_INTEGER_TYPE},
     {"nicTxBandwidth", SQL_NUMERIC_TYPE}, {"nicRxByte", SQL_INTEGER_TYPE},      {"nicRxBandwidth", SQL_NUMERIC_TYPE}};
 
-const TableColumns ENUM_TABLE = {{"id", SQL_INTEGER_TYPE, true}, {"name", SQL_TEXT_TYPE}};
+const TableColumns ENUM_TABLE_COLS = {{"id", SQL_INTEGER_TYPE, true}, {"name", SQL_TEXT_TYPE}};
 
 const TableColumns ACC_PMU = {{"accId", SQL_INTEGER_TYPE},         {"readBwLevel", SQL_INTEGER_TYPE},
                               {"writeBwLevel", SQL_INTEGER_TYPE},  {"readOstLevel", SQL_INTEGER_TYPE},
@@ -197,7 +196,7 @@ const TableColumns SOC_BANDWIDTH_LEVEL = {{"l2BufferBwLevel", SQL_INTEGER_TYPE},
                                           {"timestampNs", SQL_NUMERIC_TYPE},
                                           {"deviceId", SQL_INTEGER_TYPE}};
 
-const TableColumns META_DATA = {{"name", SQL_TEXT_TYPE}, {"value", SQL_TEXT_TYPE}};
+const TableColumns META_DATA_COLS = {{"name", SQL_TEXT_TYPE}, {"value", SQL_TEXT_TYPE}};
 
 const TableColumns AICORE_FREQ = {{"deviceId", SQL_INTEGER_TYPE},
                                   {"timestampNs", SQL_NUMERIC_TYPE},
@@ -294,7 +293,7 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_NETDEV_STATS, NETDEV_STATS},
                       {TABLE_NAME_ACC_PMU, ACC_PMU},
                       {TABLE_NAME_SOC, SOC_BANDWIDTH_LEVEL},
-                      {TABLE_NAME_META_DATA, META_DATA},
+                      {TABLE_NAME_META_DATA, META_DATA_COLS},
                       {TABLE_NAME_AICORE_FREQ, AICORE_FREQ},
                       {TABLE_NAME_MSTX, MSTX},
                       {TABLE_NAME_MEMCPY_INFO, MEMCPY_INFO},
@@ -310,17 +309,16 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_SIO, SIO},
                       {TABLE_NAME_CCU, CCU},
                       // ENUM
-                      {TABLE_NAME_ENUM_API_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_MODULE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_HCCL_DATA_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_HCCL_LINK_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_MSTX_EVENT_TYPE, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_MEMCPY_OPERATION, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_OVERLAY_ANALYSIS_TYPE, ENUM_TABLE}};
+                      {TABLE_NAME_ENUM_API_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_MODULE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_HCCL_DATA_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_HCCL_LINK_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_MSTX_EVENT_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_MEMCPY_OPERATION, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_OVERLAY_ANALYSIS_TYPE, ENUM_TABLE_COLS}};
 }
 
-}  // namespace Database
-}  // namespace Viewer
+}  // namespace Application
 }  // namespace Analysis

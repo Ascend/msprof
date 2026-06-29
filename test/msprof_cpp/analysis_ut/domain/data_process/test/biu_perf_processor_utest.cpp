@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -19,7 +19,7 @@
 #include "analysis/csrc/domain/data_process/system/biu_perf_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;

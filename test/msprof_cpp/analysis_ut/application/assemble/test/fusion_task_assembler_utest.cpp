@@ -19,14 +19,15 @@
 
 #include "analysis/csrc/application/timeline/fusion_task_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/fusion_task_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
 using namespace Analysis::Domain::Environment;
+using namespace Analysis::Common;
 
 namespace {
 const int DEPTH = 0;

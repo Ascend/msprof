@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -15,20 +15,21 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/timeline/hbm_assembler.h"
+
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Domain::Environment;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-namespace {
-const std::unordered_map<std::string, std::string> CounterNameMap {
-    {"read", "Read"},
-    {"write", "Write"}
-};
+namespace
+{
+const std::unordered_map<std::string, std::string> CounterNameMap{{"read", "Read"}, {"write", "Write"}};
 }
 
 HBMAssembler::HBMAssembler() : JsonAssembler(PROCESS_HBM, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
@@ -39,10 +40,13 @@ void GenerateHbmTrace(std::vector<HbmData> &hbmData, const std::unordered_map<ui
     std::shared_ptr<CounterEvent> event;
     std::string counterName;
     std::string series;
-    for (const auto &data : hbmData) {
+    for (const auto &data : hbmData)
+    {
         counterName.clear();
-        counterName.append("HBM ").append(std::to_string(data.hbmId)).append("/").append(CounterNameMap.at(
-            data.eventType));
+        counterName.append("HBM ")
+            .append(std::to_string(data.hbmId))
+            .append("/")
+            .append(CounterNameMap.at(data.eventType));
         series.clear();
         series.append(CounterNameMap.at(data.eventType)).append("(MB/s)");
         MAKE_SHARED_RETURN_VOID(event, CounterEvent, pidMap.at(data.deviceId), DEFAULT_TID,
@@ -55,14 +59,16 @@ void GenerateHbmTrace(std::vector<HbmData> &hbmData, const std::unordered_map<ui
 uint8_t HBMAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto hbmData = dataInventory.GetPtr<std::vector<HbmData>>();
-    if (hbmData == nullptr) {
+    if (hbmData == nullptr)
+    {
         WARN("Can't get hbmData from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> pidMap;
     auto layerInfo = GetLayerInfo(PROCESS_HBM);
     auto deviceList = File::GetFilesWithPrefix(profPath, DEVICE_PREFIX);
-    for (const auto& devicePath: deviceList) {
+    for (const auto &devicePath : deviceList)
+    {
         auto deviceId = GetDeviceIdByDevicePath(devicePath);
         auto pid = Context::GetInstance().GetPidFromInfoJson(deviceId, profPath);
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
@@ -70,16 +76,18 @@ uint8_t HBMAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
     }
     GenerateHWMetaData(pidMap, layerInfo, res_);
     GenerateHbmTrace(*hbmData, pidMap, res_);
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         ERROR("Can't Generate any HBM process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

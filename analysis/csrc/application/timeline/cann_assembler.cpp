@@ -15,31 +15,35 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/timeline/cann_assembler.h"
+
 #include <algorithm>
 #include <unordered_set>
+
+#include "analysis/csrc/application/timeline/connection_id_pool.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/timeline/connection_id_pool.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Domain::Environment;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
+
 using namespace Analysis::Utils;
-namespace {
+namespace
+{
 const std::string CANN_ASSEMBLER = "CANN";
 const std::string CANN_LABEL = "CPU";
 const std::string PROCESS_API = "Api";
-const std::unordered_map<uint16_t, std::string> LEVEL_MAP{
-    {MSPROF_REPORT_ACL_LEVEL, "AscendCL"},
-    {MSPROF_REPORT_RUNTIME_LEVEL, "Runtime"},
-    {MSPROF_REPORT_MODEL_LEVEL, "Model"},
-    {MSPROF_REPORT_NODE_LEVEL, "Node"},
-    {MSPROF_REPORT_HCCL_NODE_LEVEL, "Communication"}
-};
-}
+const std::unordered_map<uint16_t, std::string> LEVEL_MAP{{MSPROF_REPORT_ACL_LEVEL, "AscendCL"},
+                                                          {MSPROF_REPORT_RUNTIME_LEVEL, "Runtime"},
+                                                          {MSPROF_REPORT_MODEL_LEVEL, "Model"},
+                                                          {MSPROF_REPORT_NODE_LEVEL, "Node"},
+                                                          {MSPROF_REPORT_HCCL_NODE_LEVEL, "Communication"}};
+}  // namespace
 
 CannAssembler::CannAssembler() : JsonAssembler(PROCESS_API, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
@@ -53,11 +57,13 @@ void GenerateMetaData(std::vector<ApiData> &apiData, uint32_t pid, std::vector<s
     std::shared_ptr<MetaDataLabelEvent> processLabel;
     MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, pid, DEFAULT_TID, META_DATA_PROCESS_LABEL, CANN_LABEL);
     std::shared_ptr<MetaDataIndexEvent> processIndex;
-    MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, pid, DEFAULT_TID, META_DATA_PROCESS_INDEX, LAYER_CANN_SORT);
+    MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, pid, DEFAULT_TID, META_DATA_PROCESS_INDEX,
+                            LAYER_CANN_SORT);
     res.push_back(processName);
     res.push_back(processLabel);
     res.push_back(processIndex);
-    for (const auto &id : tidSet) {
+    for (const auto &id : tidSet)
+    {
         int tid = static_cast<int>(id);
         std::string argName{"Thread " + std::to_string(tid)};
         std::shared_ptr<MetaDataNameEvent> threadName;
@@ -71,8 +77,10 @@ void GenerateMetaData(std::vector<ApiData> &apiData, uint32_t pid, std::vector<s
 
 std::string GetLevel(uint16_t level)
 {
-    for (const auto &node : API_LEVEL_TABLE) {
-        if (node.second == level) {
+    for (const auto &node : API_LEVEL_TABLE)
+    {
+        if (node.second == level)
+        {
             return node.first;
         }
     }
@@ -82,22 +90,26 @@ std::string GetLevel(uint16_t level)
 std::string GetTraceName(uint16_t level, std::string &name)
 {
     auto it = LEVEL_MAP.find(level);
-    if (it != LEVEL_MAP.end()) {
+    if (it != LEVEL_MAP.end())
+    {
         return it->second + "@" + name;
     }
     return PROCESS_API + "@" + name;
 }
 
-std::unordered_set<uint64_t> GetMemcpyAsyncConnectionIds(DataInventory& dataInventory)
+std::unordered_set<uint64_t> GetMemcpyAsyncConnectionIds(DataInventory &dataInventory)
 {
     std::unordered_set<uint64_t> connectionIds;
     auto taskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
-    if (taskData == nullptr) {
+    if (taskData == nullptr)
+    {
         WARN("Can't get task data from dataInventory");
         return connectionIds;
     }
-    for (const auto& task: *taskData) {
-        if (task.hostType == MEMCPY_ASYNC) {
+    for (const auto &task : *taskData)
+    {
+        if (task.hostType == MEMCPY_ASYNC)
+        {
             connectionIds.emplace(task.connectionId);
         }
     }
@@ -109,10 +121,11 @@ void GenerateApiTrace(std::vector<ApiData> &apiData, std::vector<std::shared_ptr
     std::string levelStr;
     std::string traceName;
     double dur;
-    for (auto &data : apiData) {
+    for (auto &data : apiData)
+    {
         levelStr = GetLevel(data.level);
         traceName = GetTraceName(data.level, data.apiName);
-        dur = static_cast<double>(data.end - data.timestamp) / NS_TO_US;
+        dur = static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US;
         std::shared_ptr<ApiTraceEvent> event;
         MAKE_SHARED_RETURN_VOID(event, ApiTraceEvent, pid, data.threadId, dur,
                                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.threadId,
@@ -126,15 +139,17 @@ void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, std::v
 {
     std::string connId;
     std::string name;
-    for (auto &data : apiData) {
+    for (auto &data : apiData)
+    {
         if (MSPROF_REPORT_NODE_LEVEL == data.level || RECORD_EVENT == data.id || WAIT_EVENT == data.id ||
-            memcpyAsyncConnectionIds.find(data.connectionId) != memcpyAsyncConnectionIds.end()) {
+            memcpyAsyncConnectionIds.find(data.connectionId) != memcpyAsyncConnectionIds.end())
+        {
             connId = ConnectionIdPool::GetConnectionId(data.connectionId, ConnectionCategory::GENERAL);
             name = HOST_TO_DEVICE + connId;
             std::shared_ptr<FlowEvent> start;
             MAKE_SHARED_RETURN_VOID(start, FlowEvent, pid, data.threadId,
-                                    DivideByPowersOfTenWithPrecision(data.timestamp),
-                                    HOST_TO_DEVICE, connId, name, FLOW_START);
+                                    DivideByPowersOfTenWithPrecision(data.timestamp), HOST_TO_DEVICE, connId, name,
+                                    FLOW_START);
             res.push_back(start);
         }
     }
@@ -143,7 +158,8 @@ void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, std::v
 uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto apiData = dataInventory.GetPtr<std::vector<ApiData>>();
-    if (apiData == nullptr) {
+    if (apiData == nullptr)
+    {
         WARN("Can't get apiData from dataInventory");
         return DATA_NOT_EXIST;
     }
@@ -153,16 +169,18 @@ uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
     GenerateApiTrace(*apiData, res_, formatPid);
     auto memcpyAsyncConnectionIds = GetMemcpyAsyncConnectionIds(dataInventory);
     GenerateConnectionTrace(*apiData, formatPid, res_, memcpyAsyncConnectionIds);
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         ERROR("Can't Generate any CANN process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

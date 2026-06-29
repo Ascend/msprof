@@ -17,55 +17,65 @@
 #ifndef ANALYSIS_APPLICATION_DB_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_DB_ASSEMBLER_H
 
-#include "analysis/csrc/infrastructure/db/include/db_info.h"
+#include "analysis/csrc/application/database/msprof_db.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
-#include "analysis/csrc/viewer/database/finals/msprof_db.h"
+#include "analysis/csrc/infrastructure/db/include/db_info.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
 
-class DBAssembler {
-public:
+class DBAssembler
+{
+   public:
     DBAssembler() = default;
     DBAssembler(const std::string &profPath, const std::string &outputPath);
     virtual ~DBAssembler() = default;
     bool Run(DataInventory &dataInventory);
-    const static std::set<std::string>& GetProcessList();
-private:
+    const static std::set<std::string> &GetProcessList();
+
+   private:
     std::string profPath_;
     std::string outputPath_;
     DBInfo msprofDB_;
 };
 
-template<typename... Args>
-bool SaveData(const std::vector<std::tuple<Args...>> &data, const std::string &tableName, DBInfo& msprofDB)
+template <typename... Args>
+bool SaveData(const std::vector<std::tuple<Args...>> &data, const std::string &tableName, DBInfo &msprofDB)
 {
     INFO("DBAssembler Save % Data.", tableName);
-    if (data.empty()) {
+    if (data.empty())
+    {
         ERROR("% is empty.", tableName);
         return false;
     }
-    if (msprofDB.database == nullptr) {
+    if (msprofDB.database == nullptr)
+    {
         ERROR("Msprof db database is nullptr.");
         return false;
     }
-    if (msprofDB.dbRunner == nullptr) {
+    if (msprofDB.dbRunner == nullptr)
+    {
         ERROR("Msprof db runner is nullptr.");
         return false;
     }
-    if (!msprofDB.dbRunner->CreateTable(tableName, msprofDB.database->GetTableCols(tableName))) {
+    if (!msprofDB.dbRunner->CreateTable(tableName, msprofDB.database->GetTableCols(tableName)))
+    {
         ERROR("Create table: % failed", tableName);
         return false;
     }
-    if (!msprofDB.dbRunner->InsertData(tableName, data)) {
+    if (!msprofDB.dbRunner->InsertData(tableName, data))
+    {
         ERROR("Insert data into % failed", tableName);
         return false;
     }
     return true;
 }
 
-}
-}
+}  // namespace Application
+}  // namespace Analysis
 
-#endif // ANALYSIS_APPLICATION_DB_ASSEMBLER_H
+#endif  // ANALYSIS_APPLICATION_DB_ASSEMBLER_H

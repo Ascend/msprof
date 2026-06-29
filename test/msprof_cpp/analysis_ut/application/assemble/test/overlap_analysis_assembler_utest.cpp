@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -21,19 +21,19 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 
 namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./overlap_analysis_assembler";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 
 class OverlapAnalysisAssemblerUTest : public testing::Test {
 protected:

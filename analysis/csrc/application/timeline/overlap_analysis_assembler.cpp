@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,18 +17,18 @@
 
 #include <set>
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/overlap_analysis_processor.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {
 namespace Application
 {
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Common;
+using namespace Analysis::Application;
 namespace
 {
 const std::string COMP_NAME = "Computing";
@@ -54,7 +54,7 @@ std::string GetOverlapName(OverlapAnalysisType type)
         case OverlapAnalysisType::FREE:
             return FREE_NAME;
         default:
-            return UNKNOWN_STRING;
+            return UNKNOWN;
     }
 }
 }  // namespace
@@ -92,8 +92,9 @@ std::vector<std::shared_ptr<TraceEvent>> OverlapAnalysisAssembler::GenerateOverl
         std::shared_ptr<OverlapEvent> event;
         auto formatPid = pidMap_[data.deviceId];
         MAKE_SHARED_RETURN_VALUE(event, OverlapEvent, overlapEvents, formatPid, static_cast<int>(data.type),
-                                 data.duration / NS_TO_US, DivideByPowersOfTenWithPrecision(data.timestamp),
-                                 GetOverlapName(data.type), data.type);
+                                 static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                                 DivideByPowersOfTenWithPrecision(data.timestamp), GetOverlapName(data.type),
+                                 data.type);
         overlapEvents.emplace_back(event);
     }
     return overlapEvents;

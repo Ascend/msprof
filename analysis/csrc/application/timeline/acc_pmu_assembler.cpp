@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -19,16 +19,19 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/acc_pmu_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Domain::Environment;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-namespace {
-const std::vector<std::string> COUNTERS {"read_bandwidth", "read_ost", "write_bandwidth", "write_ost"};
+namespace
+{
+const std::vector<std::string> COUNTERS{"read_bandwidth", "read_ost", "write_bandwidth", "write_ost"};
 const std::string VALUE = "value";
-}
+}  // namespace
 
 AccPmuAssembler::AccPmuAssembler() : JsonAssembler(PROCESS_ACC_PMU, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
@@ -37,9 +40,11 @@ void InjectAccPmuTraceToRes(std::vector<uint32_t> &dataList, std::string &time,
 {
     std::shared_ptr<CounterEvent> event;
     const int pidIndex = 4;
-    for (size_t i = 0; i < COUNTERS.size(); ++i) {
+    for (size_t i = 0; i < COUNTERS.size(); ++i)
+    {
         MAKE_SHARED_RETURN_VOID(event, CounterEvent, dataList[pidIndex], DEFAULT_TID, time, COUNTERS[i]);
-        if (event != nullptr) {
+        if (event != nullptr)
+        {
             event->SetSeriesIValue(VALUE, dataList[i]);
             res.push_back(event);
         }
@@ -54,24 +59,31 @@ void GenerateAccPmuTrace(std::vector<AccPmuData> &accPmuData, const std::unorder
     uint32_t pid;
     std::vector<uint32_t> resultDataList = {0, 0, 0, 0, 0};
     // processor中sql语句按timestamp升序排序，故可保证time顺序
-    for (const auto &data: accPmuData) {
+    for (const auto &data : accPmuData)
+    {
         time = DivideByPowersOfTenWithPrecision(data.timestamp);
         pid = pidMap.at(data.deviceId);
         std::vector<uint32_t> dataList = {data.readBwLevel, data.readOstLevel, data.writeBwLevel, data.writeOstLevel,
                                           pid};
-        if (prevTime.empty()) {
+        if (prevTime.empty())
+        {
             resultDataList = dataList;
             prevTime = time;
             continue;
         }
-        if (prevTime == time) {
-            for (size_t i = 0; i < resultDataList.size(); ++i) {
+        if (prevTime == time)
+        {
+            for (size_t i = 0; i < resultDataList.size(); ++i)
+            {
                 resultDataList[i] = std::max(resultDataList[i], dataList[i]);
             }
-        } else {
+        }
+        else
+        {
             InjectAccPmuTraceToRes(resultDataList, prevTime, res);
             resultDataList = {0, 0, 0, 0, 0};
-            for (size_t i = 0; i < resultDataList.size(); ++i) {
+            for (size_t i = 0; i < resultDataList.size(); ++i)
+            {
                 resultDataList[i] = std::max(resultDataList[i], dataList[i]);
             }
             prevTime = time;
@@ -83,14 +95,16 @@ void GenerateAccPmuTrace(std::vector<AccPmuData> &accPmuData, const std::unorder
 uint8_t AccPmuAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto accPmuData = dataInventory.GetPtr<std::vector<AccPmuData>>();
-    if (accPmuData == nullptr) {
+    if (accPmuData == nullptr)
+    {
         WARN("Can't get accPmuData from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> pidMap;
     auto layerInfo = GetLayerInfo(PROCESS_ACC_PMU);
     auto deviceList = File::GetFilesWithPrefix(profPath, DEVICE_PREFIX);
-    for (const auto& devicePath: deviceList) {
+    for (const auto &devicePath : deviceList)
+    {
         auto deviceId = GetDeviceIdByDevicePath(devicePath);
         auto pid = Context::GetInstance().GetPidFromInfoJson(deviceId, profPath);
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
@@ -98,16 +112,18 @@ uint8_t AccPmuAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &
     }
     GenerateAccPmuTrace(*accPmuData, pidMap, res_);
     GenerateHWMetaData(pidMap, layerInfo, res_);
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         ERROR("Can't Generate any Acc PMU process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

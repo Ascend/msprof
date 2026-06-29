@@ -124,7 +124,7 @@ protected:
 
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturn27ApiDataAnd0EventDataWhenParseSuccess)
 {
-    auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto apiData = parser->ParseData<MsprofApi>();
     auto eventData = parser->ParseData<MsprofEvent>();
     const uint16_t apiDataNum = API_DATA_NUM + EVENT_DATA_NUM / 2;  // 2个event数据合成一个api数据
@@ -135,7 +135,7 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturn27ApiDataAnd0EventDataWhe
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenReserveFailed)
 {
     MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).stubs().will(returnValue(false));
-    auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofApi>();
     EXPECT_EQ(0, data.size());
     MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).reset();
@@ -145,7 +145,7 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenPopNullptr)
 {
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<ApiEventParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofApi>();
     EXPECT_EQ(0, data.size());
 }

@@ -18,7 +18,6 @@
 
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
@@ -27,7 +26,7 @@ namespace Analysis
 {
 namespace Domain
 {
-using namespace Viewer::Database;
+using namespace Analysis::Application;
 // model_id, index_id, stream_id, task_id, context_id, batch_id, start_time, duration, host_task_type,
 // device_task_type, connection_id
 using ProcessedDataFormat = std::vector<std::tuple<uint64_t, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, double,

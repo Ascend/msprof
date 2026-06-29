@@ -15,26 +15,29 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/timeline/npu_mem_assembler.h"
+
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_mem_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Domain::Environment;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-namespace {
-struct CounterName {
+namespace
+{
+struct CounterName
+{
     std::string hbm;
     std::string ddr;
     std::string memory;
 };
-const std::unordered_map<std::string, CounterName> CounterNameMap {
-    {"0", {"APP/HBM", "APP/DDR", "APP/Memory"}},
-    {"1", {"Device/HBM", "Device/DDR", "Device/Memory"}}
-};
-}
+const std::unordered_map<std::string, CounterName> CounterNameMap{{"0", {"APP/HBM", "APP/DDR", "APP/Memory"}},
+                                                                  {"1", {"Device/HBM", "Device/DDR", "Device/Memory"}}};
+}  // namespace
 
 NpuMemAssembler::NpuMemAssembler() : JsonAssembler(PROCESS_NPU_MEM, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
@@ -44,12 +47,13 @@ void GenerateNpuMemTrace(std::vector<NpuMemData> &npuMemData, const std::unorder
     std::shared_ptr<CounterEvent> event;
     std::string time;
     uint32_t pid;
-    for (const auto &data : npuMemData) {
+    for (const auto &data : npuMemData)
+    {
         time = DivideByPowersOfTenWithPrecision(data.timestamp);
         pid = pidMap.at(data.deviceId);
-        double hbmValue = static_cast<double>(data.hbm) / B_TO_KB;
-        double ddrValue = static_cast<double>(data.ddr) / B_TO_KB;
-        double memoryValue = static_cast<double>(data.memory) / B_TO_KB;
+        double hbmValue = static_cast<double>(data.hbm) / Analysis::Common::BYTE_SIZE;
+        double ddrValue = static_cast<double>(data.ddr) / Analysis::Common::BYTE_SIZE;
+        double memoryValue = static_cast<double>(data.memory) / Analysis::Common::BYTE_SIZE;
         MAKE_SHARED_RETURN_VOID(event, CounterEvent, pid, DEFAULT_TID, time, CounterNameMap.at(data.event).ddr);
         event->SetSeriesDValue("KB", ddrValue);
         res.push_back(event);
@@ -65,14 +69,16 @@ void GenerateNpuMemTrace(std::vector<NpuMemData> &npuMemData, const std::unorder
 uint8_t NpuMemAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto npuMemData = dataInventory.GetPtr<std::vector<NpuMemData>>();
-    if (npuMemData == nullptr) {
+    if (npuMemData == nullptr)
+    {
         WARN("Can't get npuMemData from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> pidMap;
     auto layerInfo = GetLayerInfo(PROCESS_NPU_MEM);
     auto deviceList = File::GetFilesWithPrefix(profPath, DEVICE_PREFIX);
-    for (const auto& devicePath: deviceList) {
+    for (const auto &devicePath : deviceList)
+    {
         auto deviceId = GetDeviceIdByDevicePath(devicePath);
         auto pid = Context::GetInstance().GetPidFromInfoJson(deviceId, profPath);
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
@@ -80,16 +86,18 @@ uint8_t NpuMemAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &
     }
     GenerateHWMetaData(pidMap, layerInfo, res_);
     GenerateNpuMemTrace(*npuMemData, pidMap, res_);
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         ERROR("Can't Generate any NpuMem process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -25,7 +25,7 @@ namespace {
 const int DEPTH = 0;
 const std::string BASE_PATH = "./summary_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 }
 
 class SummaryManagerUTest : public testing::Test {

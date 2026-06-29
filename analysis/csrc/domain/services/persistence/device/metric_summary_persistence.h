@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,14 +17,17 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H
 
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
-#include "analysis/csrc/infrastructure/process/include/process.h"
-#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
+#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
+#include "analysis/csrc/infrastructure/process/include/process_register.h"
 
-namespace Analysis {
-namespace Domain {
-enum PmuHeaderType {
+namespace Analysis
+{
+namespace Domain
+{
+enum PmuHeaderType
+{
     TASK_ID = 0,
     AIC_TOTAL_CYCLE,
     AIC_TOTAL_TIME,
@@ -34,34 +37,37 @@ enum PmuHeaderType {
     AIV_PMU_RESULT
 };
 using namespace Infra;
-using namespace Viewer::Database;
-class MetricSummaryPersistence : public Process {
-private:
+using namespace Analysis::Application;
+class MetricSummaryPersistence : public Process
+{
+   private:
     ~MetricSummaryPersistence() override;
     uint32_t ProcessEntry(DataInventory& dataInventory, const Context& context) override;
     TableColumns GetTableColumn(const DeviceContext& context);
     uint32_t GenerateAndSavePmuData(std::map<TaskId, std::vector<DeviceTask>>& deviceTask, std::string& dbPath);
     uint32_t SaveDataToDb(std::map<TaskId, std::vector<DeviceTask>>& deviceTask, std::string& dbPath, DBInfo& dbInfo);
     bool BindAndExecuteInsert(std::unordered_map<PmuHeaderType, std::vector<uint64_t>>& ids,
-                                        std::unordered_map<PmuHeaderType, std::vector<double>>& pmu);
+                              std::unordered_map<PmuHeaderType, std::vector<double>>& pmu);
     bool ConstructData(std::unordered_map<PmuHeaderType, std::vector<uint64_t>>& ids,
                        std::unordered_map<PmuHeaderType, std::vector<double>>& result, DeviceTask& task, int aicLength,
                        int aivLength);
     void CreateConnection(const std::string& dbPath);
-private:
+
+   private:
     std::unique_ptr<MetricCalculator> aicCalculator_;
     std::unique_ptr<MetricCalculator> aivCalculator_;
     int aicLength_ = 0;
     int aivLength_ = 0;
-    sqlite3 *db_ = nullptr;
-    sqlite3_stmt *stmt_ = nullptr;
+    sqlite3* db_ = nullptr;
+    sqlite3_stmt* stmt_ = nullptr;
     bool dynamicFlag = false;
 };
 
-class MetricSummaryDB : public Database {
-public:
+class MetricSummaryDB : public Database
+{
+   public:
     MetricSummaryDB(TableColumns columns);
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H

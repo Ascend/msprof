@@ -15,17 +15,19 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/services/persistence/device/acc_pmu_persistence.h"
+
 #include "analysis/csrc/domain/entities/hal/include/hal_log.h"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
-#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_parser.h"
+#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Viewer::Database;
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
 using namespace Utils;
 const int READ = 0;
 const int WRITE = 1;
@@ -36,8 +38,10 @@ ProcessedDataFormat GenerateAccPmuData(std::vector<HalLogData>& logData, const D
 {
     auto params = GenerateSyscntConversionParams(context);
     ProcessedDataFormat processedData;
-    for (auto& data : logData) {
-        if (data.type != ACC_PMU) {
+    for (auto& data : logData)
+    {
+        if (data.type != ACC_PMU)
+        {
             continue;
         }
         auto hfFloatTime = GetTimeFromSyscnt(data.accPmu.timestamp, params);
@@ -51,7 +55,8 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
     auto accPmu = dataInventory.GetPtr<std::vector<HalLogData>>();
-    if (!accPmu) {
+    if (!accPmu)
+    {
         ERROR("acc pmu data is null.");
         return ANALYSIS_ERROR;
     }
@@ -61,12 +66,14 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
     INFO("Start to process %.", dbPath);
     MAKE_SHARED_RETURN_VALUE(accPmuDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
     auto data = GenerateAccPmuData(*accPmu, deviceContext);
-    if (data.empty()) {
+    if (data.empty())
+    {
         INFO("There is no acc pmu data don't need to persistence!");
         return ANALYSIS_OK;
     }
     auto res = SaveData(data, accPmuDB, dbPath);
-    if (res) {
+    if (res)
+    {
         INFO("Process % done!", accPmuDB.tableName);
         return ANALYSIS_OK;
     }
@@ -76,5 +83,5 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
 REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser);
 REGISTER_PROCESS_DEPENDENT_DATA(AccPmuPersistence, std::vector<HalLogData>);
 REGISTER_PROCESS_SUPPORT_CHIP(AccPmuPersistence, CHIP_V4_1_0);
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

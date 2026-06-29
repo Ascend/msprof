@@ -15,42 +15,55 @@
  * -------------------------------------------------------------------------*/
 
 #include "data_processor.h"
+
 #include <unordered_map>
+
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Analysis::Viewer::Database;
-namespace {
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
+using namespace Analysis::Common;
+namespace
+{
 const uint64_t INVALID_DB_SIZE = 0;
 }
 DataProcessor::DataProcessor(const std::string &profPath) : profPath_(profPath) {}
 
-bool DataProcessor::Run(DataInventory& dataInventory, const std::string &processorName)
+bool DataProcessor::Run(DataInventory &dataInventory, const std::string &processorName)
 {
     INFO("% Run. Dir is %", processorName, profPath_);
     auto retFlag = Process(dataInventory);
-    if (!retFlag) {
+    if (!retFlag)
+    {
         PRINT_ERROR("% run failed!", processorName);
     }
     return retFlag;
 }
 
-uint8_t DataProcessor::CheckPathAndTable(const std::string& path, const DBInfo& dbInfo, bool enableStrictCheck)
+uint8_t DataProcessor::CheckPathAndTable(const std::string &path, const DBInfo &dbInfo, bool enableStrictCheck)
 {
-    if (!Utils::File::Exist(path) || Utils::File::Size(path) == INVALID_DB_SIZE) {
+    if (!Utils::File::Exist(path) || Utils::File::Size(path) == INVALID_DB_SIZE)
+    {
         WARN("Can't find the db, the path is %.", path);
         return NOT_EXIST;
     }
-    if (!Utils::FileReader::Check(path, MAX_DB_BYTES)) {
+    if (!Utils::FileReader::Check(path, MAX_DB_BYTES))
+    {
         ERROR("Check % failed.", path);
         return CHECK_FAILED;
     }
-    if (!dbInfo.dbRunner->CheckTableExists(dbInfo.tableName)) {
-        if (enableStrictCheck) {
+    if (!dbInfo.dbRunner->CheckTableExists(dbInfo.tableName))
+    {
+        if (enableStrictCheck)
+        {
             ERROR("Check % not exists", dbInfo.tableName);
             return CHECK_FAILED;
-        } else {
+        }
+        else
+        {
             WARN("Check % not exists", dbInfo.tableName);
             return NOT_EXIST;
         }
@@ -63,10 +76,12 @@ uint16_t DataProcessor::GetEnumTypeValue(const std::string &key, const std::stri
                                          const std::unordered_map<std::string, uint16_t> &enumTable)
 {
     auto it = enumTable.find(key);
-    if (it == enumTable.end()) {
+    if (it == enumTable.end())
+    {
         ERROR("Unknown enum key: %, table is: %.", key, tableName);
         uint16_t res;
-        if (Utils::StrToU16(res, key) != ANALYSIS_OK) {
+        if (Utils::StrToU16(res, key) != ANALYSIS_OK)
+        {
             ERROR("Unknown enum key: %, it will be set %.", key, UINT16_MAX);
             return UINT16_MAX;
         }
@@ -74,5 +89,5 @@ uint16_t DataProcessor::GetEnumTypeValue(const std::string &key, const std::stri
     }
     return it->second;
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

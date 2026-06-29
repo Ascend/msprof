@@ -25,20 +25,16 @@ namespace Analysis
 {
 namespace Application
 {
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using IdPool = Analysis::Application::Credential::IdPool;
+using namespace Analysis::Common;
 namespace
 {
 using MEMCPY_INFO_FORMAT = std::map<TaskId, MemcpyInfoData>;
-const std::string TASK_TYPE_FFTS_PLUS = "FFTS_PLUS";
-const std::string TASK_TYPE_UNKNOWN = "UNKNOWN";
-const std::string TASK_TYPE_NA = "N/A";
 const std::vector<std::string> MEMCPY_OPERATIONS{"host to host",      "host to device",   "device to host",
                                                  "device to device",  "managed memory",   "addr device to device",
                                                  "host to device ex", "device to host ex"};
-const std::string OTHER_DIRECTION = "other";
 }  // namespace
 
 MEMCPY_INFO_FORMAT GenerateMemcpyInfoDataMap(const std::shared_ptr<std::vector<MemcpyInfoData>> &res)
@@ -143,7 +139,7 @@ std::string AscendHardwareAssembler::GetOpName(const AscendTaskData &data)
     {
         return it->second;
     }
-    if (data.hostType == TASK_TYPE_FFTS_PLUS || data.hostType == TASK_TYPE_UNKNOWN)
+    if (data.hostType == TASK_TYPE_FFTS_PLUS || data.hostType == UNKNOWN)
     {
         return data.deviceType;
     }
@@ -155,7 +151,7 @@ std::string AscendHardwareAssembler::GetTaskType(const AscendTaskData &data)
     TaskId id{static_cast<uint16_t>(data.streamId), static_cast<uint16_t>(data.batchId), data.taskId, data.contextId,
               data.deviceId};
     auto it = taskType_.find(id);
-    if (it != taskType_.end() && it->second != TASK_TYPE_NA)
+    if (it != taskType_.end() && it->second != NA)
     {
         return it->second;
     }
@@ -201,7 +197,7 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
         int tid = static_cast<int>(GetPhysicStreamId(data.streamId));
         pidTidSet_.insert({formatPid, tid});
-        if (data.taskType == KERNEL_SIMT_TASK_TYPE)
+        if (data.taskType == Analysis::Common::KERNEL_SIMT_TASK_TYPE)
         {
             std::string gridDim = NA;
             std::string blockDim = NA;
@@ -212,19 +208,19 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
                 blockDim = it->second.second;
             }
             std::shared_ptr<SimtTaskEvent> event;
-            MAKE_SHARED_RETURN_VOID(event, SimtTaskEvent, formatPid, tid, data.duration / NS_TO_US,
-                                    DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId,
-                                    data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
-                                    taskTypeName, gridDim, blockDim);
+            MAKE_SHARED_RETURN_VOID(
+                event, SimtTaskEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
+                data.batchId, data.contextId, data.connectionId, taskTypeName, gridDim, blockDim);
             res_.push_back(event);
         }
         else
         {
             std::shared_ptr<TaskTraceEvent> event;
-            MAKE_SHARED_RETURN_VOID(event, TaskTraceEvent, formatPid, tid, data.duration / NS_TO_US,
-                                    DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId,
-                                    data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
-                                    taskTypeName);
+            MAKE_SHARED_RETURN_VOID(
+                event, TaskTraceEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
+                data.batchId, data.contextId, data.connectionId, taskTypeName);
             res_.push_back(event);
         }
         GenerateTaskConnectionTrace(data, formatPid, id);
@@ -243,7 +239,8 @@ void AscendHardwareAssembler::GenerateKfcTrace(const std::vector<KfcTurnData> &k
         // 存储pid，tid组合的最小集
         pidTidSet_.insert({formatPid, formatTid});
         std::shared_ptr<KfcTurnTraceEvent> event;
-        MAKE_SHARED_RETURN_VOID(event, KfcTurnTraceEvent, formatPid, formatTid, datum.duration / NS_TO_US,
+        MAKE_SHARED_RETURN_VOID(event, KfcTurnTraceEvent, formatPid, formatTid,
+                                static_cast<double>(datum.duration) / Analysis::Common::NS_TO_US,
                                 DivideByPowersOfTenWithPrecision(datum.timestamp), traceName, datum.streamId,
                                 datum.taskId);
         res_.push_back(event);
@@ -297,7 +294,8 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncTrace(DataInventory &dataInvent
                 bandwidth = static_cast<double>(dataSize) / data.duration;  // GB/s, 全部按照1000计算
             }
         }
-        MAKE_SHARED_RETURN_VOID(event, MemcpyAsyncEvent, formatPid, tid, data.duration / NS_TO_US,
+        MAKE_SHARED_RETURN_VOID(event, MemcpyAsyncEvent, formatPid, tid,
+                                static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                                 DivideByPowersOfTenWithPrecision(data.timestamp), data.hostType, data.modelId,
                                 data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
                                 data.deviceType, dataSize, bandwidth, memcpyDirection, showFlag);

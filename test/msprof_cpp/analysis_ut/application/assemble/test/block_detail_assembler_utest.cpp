@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -18,14 +18,14 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/timeline/block_detail_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task//include/block_detail_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 
 namespace {
@@ -33,7 +33,7 @@ namespace {
     const std::string BASE_PATH = "./block_detail_assembler_utest";
     const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
     const std::string DEVICE_PATH = File::PathJoin({PROF_PATH, "device_0"});
-    const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+    const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 }
 
 class BlockDetailAssemblerUTest : public testing::Test {

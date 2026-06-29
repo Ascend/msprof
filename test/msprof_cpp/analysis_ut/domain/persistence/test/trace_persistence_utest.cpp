@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -30,7 +30,7 @@ namespace Analysis {
     using namespace Analysis::Infra;
     using namespace Analysis::Domain;
     using namespace Analysis::Utils;
-    using namespace Analysis::Viewer::Database;
+    using namespace Analysis::Application;
     namespace {
         const std::string DEVICE_PATH = "./device_1";
     }

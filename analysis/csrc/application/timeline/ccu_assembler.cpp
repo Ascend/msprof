@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -15,52 +15,63 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/timeline/ccu_assembler.h"
+
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Utils;
 
 void CCUMissionTraceEvent::ProcessArgs(JsonWriter &ostream)
 {
     ostream["Physic Stream Id"] << data_.streamId;
     ostream["Task Id"] << data_.taskId;
-    if (data_.timeType == CCU_TIME_TYPE_WAIT) {
+    if (data_.timeType == CCU_TIME_TYPE_WAIT)
+    {
         ostream["Notify Instruction ID"] << data_.instructionId;
         ostream["Notify Rank ID"] << data_.notifyRankId;
-    } else {
+    }
+    else
+    {
         ostream["Instruction ID"] << data_.instructionId;
     }
-    if (data_.hasDieId) {
+    if (data_.hasDieId)
+    {
         ostream["Die Id"] << data_.dieId;
     }
-    if (data_.hasDataSize) {
+    if (data_.hasDataSize)
+    {
         ostream["Data Size"] << data_.dataSize;
     }
-    if (data_.hasBandwidth) {
+    if (data_.hasBandwidth)
+    {
         ostream["Bandwidth (MB/s)"] << data_.bandwidth;
     }
-    if (data_.hasReduceInfo) {
+    if (data_.hasReduceInfo)
+    {
         ostream["Reduce Op Type"] << data_.reduceOpType;
         ostream["Input Data Type"] << data_.inputDataType;
         ostream["Output Data Type"] << data_.outputDataType;
     }
-    if (data_.hasMask) {
+    if (data_.hasMask)
+    {
         ostream["Mask"] << data_.mask;
     }
-    if (data_.hasDelayChannel) {
+    if (data_.hasDelayChannel)
+    {
         ostream["Maximum Delay Channel"] << data_.maxDelayChannel;
         ostream["Maximum Channel Delay"] << data_.maxChannelDelay;
     }
 }
 
-CCUAssembler::CCUAssembler()
-    : JsonAssembler(PROCESSOR_NAME_CCU_MISSION, {{MSPROF_JSON_FILE, FileCategory::MSPROF}})
-{}
+CCUAssembler::CCUAssembler() : JsonAssembler(PROCESSOR_NAME_CCU_MISSION, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void CCUAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layer)
 {
-    for (const auto &it : pidMap) {
+    for (const auto &it : pidMap)
+    {
         std::shared_ptr<MetaDataNameEvent> processName;
         MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_NAME,
                                 layer.component);
@@ -85,33 +96,37 @@ void CCUAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t> &pidM
     }
 }
 
-uint8_t CCUAssembler::AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t CCUAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
-    if (ccuData == nullptr) {
+    if (ccuData == nullptr)
+    {
         WARN("Can't get ccu mission data from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> devicePid;
     auto layer = GetLayerInfo(PROCESS_CCU);
-    for (const auto &data : *ccuData) {
+    for (const auto &data : *ccuData)
+    {
         auto pid = GetDevicePid(devicePid, data.deviceId, profPath, layer.sortIndex);
         std::shared_ptr<CCUMissionTraceEvent> event;
-        MAKE_SHARED_RETURN_VALUE(event, CCUMissionTraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID, data.duration / NS_TO_US,
+        MAKE_SHARED_RETURN_VALUE(event, CCUMissionTraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
+                                 static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), data);
         res_.emplace_back(std::move(event));
     }
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         WARN("No ccu timeline events are generated.");
         return DATA_NOT_EXIST;
     }
     GenerateMetaData(devicePid, layer);
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-} // Application
-} // Analysis
-
+}  // namespace Application
+}  // namespace Analysis

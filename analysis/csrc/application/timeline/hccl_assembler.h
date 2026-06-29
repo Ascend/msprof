@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,19 +17,19 @@
 #ifndef ANALYSIS_APPLICATION_HCCL_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_HCCL_ASSEMBLER_H
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/timeline/connection_id_pool.h"
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {
 namespace Application
 {
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Utils;
 const int32_t INVALID_PLANE = -1;
 enum class HcclType
@@ -176,7 +176,8 @@ class HcclAssembler : public JsonAssembler
             dataType = TransEnumToType(data.dataType, HCCL_DATA_TYPE_TABLE);
             linkType = TransEnumToType(data.linkType, HCCL_LINK_TYPE_TABLE);
             std::shared_ptr<HcclTaskTraceEvent> event;
-            MAKE_SHARED_RETURN_VOID(event, HcclTaskTraceEvent, formatPid, tid, data.duration / NS_TO_US,
+            MAKE_SHARED_RETURN_VOID(event, HcclTaskTraceEvent, formatPid, tid,
+                                    static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                                     DivideByPowersOfTenWithPrecision(data.timestamp), data.taskType, data.srcRank,
                                     data.dstRank, data.streamId, data.taskId, data.contextId, data.modelId, data.size,
                                     data.durationEstimated, data.bandwidth, data.notifyId, transport, data.taskType,
@@ -218,7 +219,8 @@ class HcclAssembler : public JsonAssembler
             std::shared_ptr<HcclOpTraceEvent> event;
             retry = (data.retry == 1) ? "yes" : "no";
             relay = (data.relay == 1) ? "yes" : "no";
-            MAKE_SHARED_RETURN_VOID(event, HcclOpTraceEvent, formatPid, tid, (data.end - data.timestamp) / NS_TO_US,
+            MAKE_SHARED_RETURN_VOID(event, HcclOpTraceEvent, formatPid, tid,
+                                    static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US,
                                     DivideByPowersOfTenWithPrecision(data.timestamp), data.opName, data.modelId,
                                     data.count, data.connectionId, dataType, data.algType, relay, retry, data.rankSize);
             res_.push_back(event);

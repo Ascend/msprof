@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -21,7 +21,7 @@
 #include "analysis/csrc/domain/services/persistence/host/type_info_db_dumper.h"
 
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
 using TypeInfoData = std::unordered_map<uint16_t, std::unordered_map<uint64_t, std::string>>;

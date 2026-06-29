@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -23,12 +23,12 @@
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hal/include/hal.h"
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
 
 namespace Analysis
@@ -36,6 +36,7 @@ namespace Analysis
 namespace Domain
 {
 using namespace Utils;
+using namespace Analysis::Common;
 namespace
 {
 const uint64_t DEFAULT_MODEL_ID = UINT32_MAX;
@@ -91,7 +92,7 @@ SyscntConversionParams GetSyscntConversionParams(const DeviceContext& context)
 
 std::string GetDeviceTaskTypeStr(const DeviceTask& task)
 {
-    std::string res = UNKNOWN_STRING;
+    std::string res = UNKNOWN;
     if (task.logType == HalLogType::ACSQ_LOG)
     {
         auto it = deviceTaskAcsqTypeMap.find(task.taskType);
@@ -131,9 +132,8 @@ void MergeByOnlyHostTask(std::vector<TopDownTask>& res, std::vector<HostTask>& h
 {
     for (auto& task : hostTask)
     {
-        res.emplace_back(false, task.taskId, task.batchId, task.streamId, task.contextId, task.requestId,
-                         UNKNOWN_STRING, task.taskTypeStr, task.modelId, task.connection_id, INVALID_TIME,
-                         INVALID_TIME);
+        res.emplace_back(false, task.taskId, task.batchId, task.streamId, task.contextId, task.requestId, UNKNOWN,
+                         task.taskTypeStr, task.modelId, task.connection_id, INVALID_TIME, INVALID_TIME);
     }
 }
 
@@ -145,8 +145,8 @@ void MergeByOnlyDeviceTask(std::vector<TopDownTask>& res, std::vector<DeviceTask
         auto start = GetTimeFromSyscnt(task.taskStart, params);
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
         res.emplace_back(false, key.taskId, key.batchId, key.streamId, key.contextId, DEFAULT_INDEX_ID,
-                         GetDeviceTaskTypeStr(task), UNKNOWN_STRING, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID,
-                         start.Double(), end.Double());
+                         GetDeviceTaskTypeStr(task), UNKNOWN, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID, start.Double(),
+                         end.Double());
     }
 }
 

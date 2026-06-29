@@ -17,7 +17,6 @@
 #include "analysis/csrc/domain/services/persistence/device/device_hccl_persistence.h"
 
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
-#include "analysis/csrc/domain/services/constant/default_value_constant.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
@@ -26,7 +25,7 @@ namespace Analysis
 {
 namespace Domain
 {
-using namespace Viewer::Database;
+using namespace Analysis::Application;
 namespace
 {
 // modelId, opName, taskType, opType, timestamp, relay, retry, dataType, algType, count, groupName, connectionId,

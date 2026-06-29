@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,17 +17,20 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_PERSISTENCE_UTILS_H
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_PERSISTENCE_UTILS_H
 
-#include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/infrastructure/db/include/db_runner.h"
-#include "analysis/csrc/infrastructure/db/include/database.h"
-#include "analysis/csrc/infrastructure/utils/time_utils.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
+#include "analysis/csrc/infrastructure/db/include/database.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "analysis/csrc/infrastructure/utils/time_utils.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Viewer::Database;
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
 using namespace Utils;
-struct DBInfo {
+struct DBInfo
+{
     std::string dbName;
     std::string tableName;
     std::shared_ptr<Database> database;
@@ -37,27 +40,32 @@ struct DBInfo {
     virtual ~DBInfo() = default;
 };
 
-template<typename... Args>
-bool SaveData(const std::vector<std::tuple<Args...>> &data, DBInfo& dbInfo, std::string& dbPath)
+template <typename... Args>
+bool SaveData(const std::vector<std::tuple<Args...>>& data, DBInfo& dbInfo, std::string& dbPath)
 {
     INFO("Processor Save % Data.", dbInfo.tableName);
-    if (data.empty()) {
+    if (data.empty())
+    {
         ERROR("% is empty.", dbInfo.tableName);
         return false;
     }
-    if (dbInfo.database == nullptr) {
+    if (dbInfo.database == nullptr)
+    {
         ERROR("Msprof db database is nullptr.");
         return false;
     }
-    if (dbInfo.dbRunner == nullptr) {
+    if (dbInfo.dbRunner == nullptr)
+    {
         ERROR("Msprof db runner is nullptr.");
         return false;
     }
-    if (!dbInfo.dbRunner->CreateTable(dbInfo.tableName, dbInfo.database->GetTableCols(dbInfo.tableName))) {
+    if (!dbInfo.dbRunner->CreateTable(dbInfo.tableName, dbInfo.database->GetTableCols(dbInfo.tableName)))
+    {
         ERROR("Create table: % failed", dbInfo.tableName);
         return false;
     }
-    if (!dbInfo.dbRunner->InsertData(dbInfo.tableName, data)) {
+    if (!dbInfo.dbRunner->InsertData(dbInfo.tableName, data))
+    {
         ERROR("Insert data into % failed", dbPath);
         return false;
     }
@@ -65,6 +73,6 @@ bool SaveData(const std::vector<std::tuple<Args...>> &data, DBInfo& dbInfo, std:
 }
 
 SyscntConversionParams GenerateSyscntConversionParams(const DeviceContext& context);
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_PERSISTENCE_UTILS_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_PERSISTENCE_UTILS_H

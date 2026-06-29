@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -20,7 +20,7 @@
 #include "analysis/csrc/application/include/export_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -30,7 +30,7 @@
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain;
 
@@ -40,7 +40,7 @@ const std::string BASE_PATH = "./export_test";
 const std::string DEVICE = "device_0";
 const std::string DB_NAME = "trace.db";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, OUTPUT_PATH});
+const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 const std::string REPORTS_JSON = "reports.json";
 }
 using ReduceDataType = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t>>;

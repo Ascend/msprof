@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -19,7 +19,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/data_processor.h";
 #include "analysis/csrc/infrastructure/db/include/db_runner.h";
 #include "reserve_mock_utils.h"
@@ -28,7 +28,7 @@ using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Test;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 
 const std::string API_DIR = "./model_name";
 const std::string PROF0 = File::PathJoin({API_DIR, "PROF_0"});

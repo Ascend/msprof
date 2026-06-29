@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/database/db_assembler.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/application/credential/id_pool.h"
@@ -54,16 +54,16 @@
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 using IdPool = Analysis::Application::Credential::IdPool;
 using namespace Analysis::Infra;
+using namespace Analysis::Common;
 
 namespace {
 const int DEPTH = 0;
 const std::string DATA_DIR = "./db_assembler";
-const std::string PROF = File::PathJoin({DATA_DIR, "PROF"});
-const std::string OUTPUT_PATH = File::PathJoin({PROF, "mindstudio_profiler_output"});
+const std::string PROF = File::PathJoin(std::vector<std::string>{DATA_DIR, "PROF"});
 }
 
 class DBAssemblerUTest : public testing::Test {
@@ -72,7 +72,7 @@ protected:
     {
         EXPECT_TRUE(File::CreateDir(DATA_DIR));
         EXPECT_TRUE(File::CreateDir(PROF));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF, DEVICE_PREFIX + "0"})));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin(std::vector<std::string>{PROF, DEVICE_PREFIX + "0"})));
     }
 
     static void TearDownTestCase()
@@ -82,7 +82,7 @@ protected:
 
     virtual void SetUp()
     {
-        EXPECT_TRUE(File::CreateDir(OUTPUT_PATH));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH})));
         nlohmann::json record = {
             {"startCollectionTimeBegin", "1715760307197379"},
             {"endCollectionTimeEnd",     "1715760313397397"},
@@ -107,8 +107,8 @@ protected:
     virtual void TearDown()
     {
         IdPool::GetInstance().Clear();
-        if (File::Exist(OUTPUT_PATH)) {
-            EXPECT_TRUE(File::RemoveDir(OUTPUT_PATH, DEPTH));
+        if (File::Exist(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}))) {
+            EXPECT_TRUE(File::RemoveDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}), DEPTH));
         }
         GlobalMockObject::verify();
     }
@@ -116,7 +116,7 @@ protected:
 
 static std::string GetMsprofDbPath()
 {
-    std::vector<std::string> files = File::GetOriginData(OUTPUT_PATH, {DB_NAME_MSPROF_DB}, {".json", ".csv"});
+    std::vector<std::string> files = File::GetOriginData(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}), {DB_NAME_MSPROF_DB}, {".json", ".csv"});
     EXPECT_EQ(files.size(), 1);
     return files.size() ? files[0] : "";
 }
@@ -898,7 +898,7 @@ static void CheckStringId(std::vector<std::tuple<uint64_t, std::string>> data)
 
 TEST_F(DBAssemblerUTest, TestRunApiDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     std::shared_ptr<std::vector<ApiData>> dataS;
     auto data = GenerateApiData();
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
@@ -926,7 +926,7 @@ TEST_F(DBAssemblerUTest, TestRunApiDataShouldReturnFalseWhenReserveFailed)
     // start, end, type, globalTid, connectionId, name
     using SaveDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint16_t,
         uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     std::shared_ptr<std::vector<ApiData>> dataS;
     auto data = GenerateApiData();
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
@@ -941,7 +941,7 @@ TEST_F(DBAssemblerUTest, TestRunApiDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     InjectHcclData(dataInventory);
     EXPECT_TRUE(assembler.Run(dataInventory));
@@ -984,7 +984,7 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnFalseWhenReserveFailed)
     // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
         uint32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     InjectHcclData(dataInventory);
     // Reserve CommunicationTaskDataFormat failed
@@ -1001,7 +1001,7 @@ TEST_F(DBAssemblerUTest, TestRunAccPmuDataShouldReturnTrueWhenRunSuccess)
     // accId, readBwLevel, writeBwLevel, readOstLevel, writeOstLevel, timestampNs, deviceId
     using AccPmuDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint32_t,
         uint32_t, uint32_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateAccPmuData();
     std::shared_ptr<std::vector<AccPmuData>> dataS;
@@ -1015,7 +1015,7 @@ TEST_F(DBAssemblerUTest, TestRunAccPmuDataShouldReturnFalseWhenReserveFailed)
     // accId, readBwLevel, writeBwLevel, readOstLevel, writeOstLevel, timestampNs, deviceId
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint32_t,
         uint32_t, uint32_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateAccPmuData();
     std::shared_ptr<std::vector<AccPmuData>> dataS;
@@ -1029,7 +1029,7 @@ TEST_F(DBAssemblerUTest, TestRunAccPmuDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunAicoreFreqDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateAicoreFreqData();
     std::shared_ptr<std::vector<LowPowerData>> dataS;
@@ -1056,7 +1056,7 @@ TEST_F(DBAssemblerUTest, TestRunAicoreFreqDataShouldReturnFalseWhenReserveFailed
 {
     // deviceId, timestampNs, freq, dieId
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, double, int32_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateAicoreFreqData();
     std::shared_ptr<std::vector<LowPowerData>> dataS;
@@ -1072,7 +1072,7 @@ TEST_F(DBAssemblerUTest, TestRunDDRDataShouldReturnTrueWhenRunSuccess)
 {
     // device_id, timestamp, flux_read, flux_write
     using DDRDataFormat = std::vector<std::tuple<uint32_t, double, double, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateDDRData();
     std::shared_ptr<std::vector<DDRData>> dataS;
@@ -1085,7 +1085,7 @@ TEST_F(DBAssemblerUTest, TestRunDDRDataShouldReturnFalseWhenReserveFailed)
 {
     // device_id, timestamp, flux_read, flux_write
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateDDRData();
     std::shared_ptr<std::vector<DDRData>> dataS;
@@ -1100,7 +1100,7 @@ TEST_F(DBAssemblerUTest, TestRunDDRDataShouldReturnFalseWhenReserveFailed)
 TEST_F(DBAssemblerUTest, TestRunEnumDataShouldReturnTrueWhenProcessorRunSuccess)
 {
     // 执行enum processor
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 
@@ -1120,7 +1120,7 @@ TEST_F(DBAssemblerUTest, TestRunEnumDataShouldReturnTrueWhenProcessorRunSuccess)
 TEST_F(DBAssemblerUTest, TestRunShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using SaveDataFormat = std::tuple<uint16_t, std::string>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     StubReserveFailureForElem<SaveDataFormat>();
     EXPECT_FALSE(assembler.Run(dataInventory));
@@ -1129,7 +1129,7 @@ TEST_F(DBAssemblerUTest, TestRunShouldReturnFalseWhenReserveFailedThenDataIsEmpt
 
 TEST_F(DBAssemblerUTest, TestRunHbmDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHbmData();
     std::shared_ptr<std::vector<HbmData>> dataS;
@@ -1142,7 +1142,7 @@ TEST_F(DBAssemblerUTest, TestRunHbmDataShouldReturnFalseWhenReserveFailed)
 {
     // device_id, timestamp, flux_read, flux_write
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint8_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHbmData();
     std::shared_ptr<std::vector<HbmData>> dataS;
@@ -1164,7 +1164,7 @@ TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenProcessorRunSuccess)
     MOCKER_CPP(&Context::GetHostUid).stubs().will(returnValue(hostUid));
     MOCKER_CPP(&Context::GetHostName).stubs().will(returnValue(hostName));
 
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
     MOCKER_CPP(&File::GetFilesWithPrefix).reset();
@@ -1185,7 +1185,7 @@ TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenProcessorRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenNoHost)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
@@ -1193,7 +1193,7 @@ TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenNoHost)
 
 TEST_F(DBAssemblerUTest, TestRunHccsDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHccsData();
     std::shared_ptr<std::vector<HccsData>> dataS;
@@ -1206,7 +1206,7 @@ TEST_F(DBAssemblerUTest, TestRunHccsDataShouldReturnFalseWhenReserveFailed)
 {
     // deviceId, timestampNs, txThroughput, rxThroughput
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHccsData();
     std::shared_ptr<std::vector<HccsData>> dataS;
@@ -1221,7 +1221,7 @@ TEST_F(DBAssemblerUTest, TestRunHccsDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunLLcDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateLlcData();
     std::shared_ptr<std::vector<LLcData>> dataS;
@@ -1234,7 +1234,7 @@ TEST_F(DBAssemblerUTest, TestRunLLcDataShouldReturnFalseWhenReserveFailed)
 {
     // deviceId, llcID, timestamp, hitRate, throughput, mode
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, double, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateLlcData();
     std::shared_ptr<std::vector<LLcData>> dataS;
@@ -1248,7 +1248,7 @@ TEST_F(DBAssemblerUTest, TestRunLLcDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunMsprofTxDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateMsprofTxData();
     std::shared_ptr<std::vector<MsprofTxHostData>> dataS;
@@ -1262,7 +1262,7 @@ TEST_F(DBAssemblerUTest, TestRunMsprofTxDataShouldReturnFalseWhenReserveFailed)
     // startNs, endNs, eventType, rangeId, category, message, globalTid, endGlobalTid, domainId, connectionId
     using SaveDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint16_t,
         uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateMsprofTxData();
     std::shared_ptr<std::vector<MsprofTxHostData>> dataS;
@@ -1294,7 +1294,7 @@ TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenProcessorRunSuccess)
         .then(returnValue(chip5))
         .then(returnValue(chip7))
         .then(returnValue(chipX));
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
     MOCKER_CPP(&File::GetFilesWithPrefix).reset();
@@ -1331,14 +1331,14 @@ TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenProcessorRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenNoDevice)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
 
 TEST_F(DBAssemblerUTest, TestRunNpuMemDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateNpuMemData();
     std::shared_ptr<std::vector<NpuMemData>> dataS;
@@ -1351,7 +1351,7 @@ TEST_F(DBAssemblerUTest, TestRunNpuMemDataShouldReturnFalseWhenReserveFailed)
 {
     // type, ddr, hbm, timestamp, deviceId
     using SaveDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateNpuMemData();
     std::shared_ptr<std::vector<NpuMemData>> dataS;
@@ -1365,7 +1365,7 @@ TEST_F(DBAssemblerUTest, TestRunNpuMemDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunPCIeDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GeneratePCIeData();
     std::shared_ptr<std::vector<PCIeData>> dataS;
@@ -1382,7 +1382,7 @@ TEST_F(DBAssemblerUTest, TestRunPCIeDataShouldReturnFalseWhenReserveFailed)
     using SaveDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
         uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
         uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GeneratePCIeData();
     std::shared_ptr<std::vector<PCIeData>> dataS;
@@ -1399,7 +1399,7 @@ TEST_F(DBAssemblerUTest, TestRunSessionTimeInfoShouldReturnTrueWhenProcessorRunS
     using TimeDataFormat = std::vector<std::tuple<uint64_t, uint64_t>>;
     Utils::ProfTimeRecord expectRecord{1715760307197379000, 1715760313397397000, UINT64_MAX};
     auto dataInventory = DataInventory();
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     EXPECT_TRUE(assembler.Run(dataInventory));
 
     std::shared_ptr<DBRunner> dbRunner;
@@ -1417,14 +1417,14 @@ TEST_F(DBAssemblerUTest, TestRunSessionTimeInfoShouldReturnFalseWhenGetTimeFaile
     using TimeDataFormat = std::vector<std::tuple<uint64_t, uint64_t>>;
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     auto dataInventory = DataInventory();
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     EXPECT_FALSE(assembler.Run(dataInventory));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSocShouldReturnTrueWhenProcessorRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateSocData();
     std::shared_ptr<std::vector<SocBandwidthData>> dataS;
@@ -1437,7 +1437,7 @@ TEST_F(DBAssemblerUTest, TestRunSocShouldReturnFalseWhenGetTimeFailed)
 {
     // l2_buffer_bw_level, mata_bw_level, timestamp, deviceId
     using SaveDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateSocData();
     std::shared_ptr<std::vector<SocBandwidthData>> dataS;
@@ -1453,7 +1453,7 @@ TEST_F(DBAssemblerUTest, TestRunStringIdsShouldReturnTrueWhenProcessorRunSuccess
 {
     using IDS_DATA_FORMAT = std::vector<std::tuple<uint64_t, std::string>>;
     IDS_DATA_FORMAT result;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     IdPool::GetInstance().GetUint64Id("pool");
     IdPool::GetInstance().GetUint64Id("Conv2d");
@@ -1474,14 +1474,14 @@ TEST_F(DBAssemblerUTest, TestRunStringIdsShouldReturnFalseWhenReserveFailedThenD
     IdPool::GetInstance().GetUint64Id("pool");
     IdPool::GetInstance().GetUint64Id("Conv2d");
     auto dataInventory = DataInventory();
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     EXPECT_FALSE(assembler.Run(dataInventory));
     ResetReserveFailureForVector<ProcessedDataFormat>();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnTrueWhenProcessorRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto nicData = GenerateNicData();
     auto roceData = GenerateRoceData();
@@ -1513,7 +1513,7 @@ TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnTrueWhenProcessorRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnTrueWhenRoceDataExistButSysIOOriginalDataEmpty)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto emptyData = GenerateEmptyRoceData();
     std::shared_ptr<std::vector<RoceOriginalData>> emptyDataS;
@@ -1530,7 +1530,7 @@ TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnFalseWhenGetTimeFailed)
     // txPacketRate, txByteRate, txPackets, txBytes, txErrors, txDropped, funcId
     using SysIODataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, double, double, uint32_t,
         uint32_t, uint32_t, uint32_t, double, double, uint32_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto nicData = GenerateNicData();
     std::shared_ptr<std::vector<NicOriginalData>> nicDataS;
@@ -1547,13 +1547,13 @@ TEST_F(DBAssemblerUTest, TestRunShouldReturnTrueWhenDataIsEmpty)
 {
     IdPool::GetInstance().Clear();
     auto dataInventory = DataInventory();
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveNpuOpMemDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateNpuOpMemData();
     std::shared_ptr<std::vector<NpuOpMemData>> dataS;
@@ -1564,7 +1564,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveNpuOpMemDataShouldReturnTrueWhenRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunSaveNpuModuleMemDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateNpuModuleMemData();
     std::shared_ptr<std::vector<NpuModuleMemData>> dataS;
@@ -1575,7 +1575,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveNpuModuleMemDataShouldReturnTrueWhenRunSucce
 
 TEST_F(DBAssemblerUTest, TestRunSaveAscendTaskDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateAscendTaskData();
     auto deviceTx = GenerateDeviceTxData();
@@ -1590,7 +1590,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveAscendTaskDataShouldReturnTrueWhenRunSuccess
 
 TEST_F(DBAssemblerUTest, TestRunSaveComputeTaskInfoShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateComputeTaskInfo();
     auto kfcStream = GenerateKfcStreamData();
@@ -1605,7 +1605,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveComputeTaskInfoShouldReturnTrueWhenRunSucces
 
 TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateMemcpyInfoData();
     std::shared_ptr<std::vector<MemcpyInfoData>> dataS;
@@ -1617,7 +1617,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnTrueWhenRunSuccess
 TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using ProcessedDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateMemcpyInfoData();
     std::shared_ptr<std::vector<MemcpyInfoData>> dataS;
@@ -1630,7 +1630,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnFalseWhenReserveFa
 
 TEST_F(DBAssemblerUTest, TestRunAssemblerShouldReturnFalseWhenProfPathIsEmpty)
 {
-    auto assembler = DBAssembler("", OUTPUT_PATH);
+    auto assembler = DBAssembler("", File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_FALSE(assembler.Run(dataInventory));
 }
@@ -1638,7 +1638,7 @@ TEST_F(DBAssemblerUTest, TestRunAssemblerShouldReturnFalseWhenProfPathIsEmpty)
  	 
 TEST_F(DBAssemblerUTest, TestSaveMetaDataShouldReturnFalseWhenReserveFailed)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     using DataFormat = std::vector<std::tuple<std::string, std::string>>;
     StubReserveFailureForVector<DataFormat>();
@@ -1648,7 +1648,7 @@ TEST_F(DBAssemblerUTest, TestSaveMetaDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestSaveNpuOpMemDataShouldReturnFalseWhenReserveFailed)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     using NpuOpMemDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
                                                       uint64_t, uint64_t, uint64_t, uint16_t>>;
@@ -1665,7 +1665,7 @@ TEST_F(DBAssemblerUTest, TestSaveNpuOpMemDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestSaveComputeTaskInfoShouldReturnFalseWhenReserveFailed)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     using ComputeTaskInfoFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, uint32_t,
                                                          uint64_t, uint64_t, uint64_t, uint64_t,
@@ -1684,7 +1684,7 @@ TEST_F(DBAssemblerUTest, TestSaveComputeTaskInfoShouldReturnFalseWhenReserveFail
 
 TEST_F(DBAssemblerUTest, TestSaveAscendTaskDataShouldReturnFalseWhenReserveFailed)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     using ascendTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, int64_t, uint64_t,
                                                        uint32_t, uint32_t, uint32_t, int32_t, uint32_t, uint32_t>>;
@@ -1701,7 +1701,7 @@ TEST_F(DBAssemblerUTest, TestSaveAscendTaskDataShouldReturnFalseWhenReserveFaile
 
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedTaskPmuData();
     std::shared_ptr<std::vector<UnifiedTaskPmu>> dataS;
@@ -1712,7 +1712,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedSampleTimelinePmuData();
     std::shared_ptr<std::vector<UnifiedSampleTimelinePmu>> dataS;
@@ -1723,7 +1723,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnTrueWhenRun
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedSampleSummaryPmuData();
     std::shared_ptr<std::vector<UnifiedSampleSummaryPmu>> dataS;
@@ -1735,7 +1735,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnTrueWhenRunS
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using PTFormat = std::vector<std::tuple<uint64_t, uint64_t, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedTaskPmuData();
     std::shared_ptr<std::vector<UnifiedTaskPmu>> dataS;
@@ -1749,7 +1749,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnFalseWhenReserveFaile
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using PSTFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, double, double, uint16_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedSampleTimelinePmuData();
     std::shared_ptr<std::vector<UnifiedSampleTimelinePmu>> dataS;
@@ -1763,7 +1763,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnFalseWhenRe
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using PSSFormat = std::vector<std::tuple<uint16_t, uint64_t, double, uint16_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedSampleSummaryPmuData();
     std::shared_ptr<std::vector<UnifiedSampleSummaryPmu>> dataS;
@@ -1776,21 +1776,21 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnFalseWhenRes
 
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenTaskPmuDataIsNotExist)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnTrueWhenSamplePmuTimelineDataIsNotExist)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnTrueWhenSamplePmuSummaryDataIsNotExist)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
 }
@@ -1798,7 +1798,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnTrueWhenSamp
 TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using format = std::vector<std::tuple<uint64_t, uint64_t, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateCpuUsageData();
     std::shared_ptr<std::vector<CpuUsageData>> dataS;
@@ -1811,7 +1811,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnFalseWhenReserveFail
 
 TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateCpuUsageData();
     std::shared_ptr<std::vector<CpuUsageData>> dataS;
@@ -1823,7 +1823,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveCpuUsageDataShouldReturnTrueWhenRunSuccess)
 TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using format = std::vector<std::tuple<uint64_t, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostMemUsageData();
     std::shared_ptr<std::vector<MemUsageData>> dataS;
@@ -1836,7 +1836,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnFalseWhenReserve
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostMemUsageData();
     std::shared_ptr<std::vector<MemUsageData>> dataS;
@@ -1848,7 +1848,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostMemUsageDataShouldReturnTrueWhenRunSucce
 TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using format = std::vector<std::tuple<uint64_t, double, double, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostDiskUsageData();
     std::shared_ptr<std::vector<DiskUsageData>> dataS;
@@ -1861,7 +1861,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnFalseWhenReserv
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostDiskUsageData();
     std::shared_ptr<std::vector<DiskUsageData>> dataS;
@@ -1873,7 +1873,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostDiskUsageDataShouldReturnTrueWhenRunSucc
 TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using format = std::vector<std::tuple<uint64_t, double, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostNetWorkUsageData();
     std::shared_ptr<std::vector<NetWorkUsageData>> dataS;
@@ -1886,7 +1886,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnFalseWhenRes
 
 TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateHostNetWorkUsageData();
     std::shared_ptr<std::vector<NetWorkUsageData>> dataS;
@@ -1898,7 +1898,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveHostNetworkUsageDataShouldReturnTrueWhenRunS
 TEST_F(DBAssemblerUTest, TestRunSaveOSRuntimeApiDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
     using format = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateOSRuntimeApiData();
     std::shared_ptr<std::vector<OSRuntimeApiData>> dataS;
@@ -1911,7 +1911,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveOSRuntimeApiDataShouldReturnFalseWhenReserve
 
 TEST_F(DBAssemblerUTest, TestRunSaveOSRuntimeApiDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateOSRuntimeApiData();
     std::shared_ptr<std::vector<OSRuntimeApiData>> dataS;
@@ -1929,7 +1929,7 @@ TEST_F(DBAssemblerUTest, TestRunNetDevStatDataShouldReturnFalseWhenReserveFailed
         std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, double,
                                uint64_t, double, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
                                uint64_t, uint64_t, uint64_t, uint64_t, double, uint64_t, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     // Empty data
     EXPECT_TRUE(assembler.Run(dataInventory));
@@ -1945,7 +1945,7 @@ TEST_F(DBAssemblerUTest, TestRunNetDevStatDataShouldReturnFalseWhenReserveFailed
 
 TEST_F(DBAssemblerUTest, TestRunSaveNetDevStatsDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateNetDevStatsData();
     std::shared_ptr<std::vector<NetDevStatsEventData>> dataS;
@@ -1958,7 +1958,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenReserveFailed)
 {
     // deviceId, eventName, bandwidth, timestampNs
     using QosDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateQosData();
     std::shared_ptr<std::vector<QosData>> dataS;
@@ -1972,7 +1972,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     // Empty data
     EXPECT_TRUE(assembler.Run(dataInventory));
@@ -1987,7 +1987,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRun
 
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateDPUData();
     std::shared_ptr<std::vector<DPUData>> dataS;
@@ -2043,7 +2043,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnFalseWhenReserveFailed)
 {
     using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
         uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateDPUData();
     std::shared_ptr<std::vector<DPUData>> dataS;
@@ -2057,7 +2057,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateSioData();
     std::shared_ptr<std::vector<SioData>> dataS;
@@ -2096,7 +2096,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnFalseWhenReserveFailed)
 {
     using SioDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t,
         double, double, double, double, double, double, double, double>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateSioData();
     std::shared_ptr<std::vector<SioData>> dataS;
@@ -2110,7 +2110,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnFalseWhenReserveFailed)
 
 TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUbData();
     std::shared_ptr<std::vector<UbData>> dataS;
@@ -2136,7 +2136,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnTrueWhenRunSuccess)
 TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnFalseWhenReserveFailed)
 {
     using UbDataFormat = std::vector<std::tuple<uint16_t, uint16_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUbData();
     std::shared_ptr<std::vector<UbData>> dataS;
@@ -2151,7 +2151,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnFalseWhenReserveFailed)
 TEST_F(DBAssemblerUTest, TestRunSaveOverlapAnalysisDataShouldReturnTrueWhenRunSuccess)
 {
     using OverlapAnalysisDataFormat = std::vector<std::tuple<uint64_t, uint16_t, uint64_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateOverlapAnalysisData();
     std::shared_ptr<std::vector<OverlapAnalysisData>> dataS;
@@ -2177,7 +2177,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveOverlapAnalysisDataShouldReturnTrueWhenRunSu
 TEST_F(DBAssemblerUTest, TestRunSaveOverlapAnalysisDataShouldReturnFalseWhenReserveFailed)
 {
     using OverlapAnalysisDataFormat = std::vector<std::tuple<uint64_t, uint16_t, uint64_t, uint64_t, uint16_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateOverlapAnalysisData();
     std::shared_ptr<std::vector<OverlapAnalysisData>> dataS;
@@ -2191,7 +2191,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveOverlapAnalysisDataShouldReturnFalseWhenRese
 
 TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenRunSuccess)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateCCUData();
     std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
@@ -2244,11 +2244,11 @@ TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenRunSuccess)
 
 TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenDataNotExistOrEmpty)
 {
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     EXPECT_TRUE(assembler.Run(dataInventory));
-    EXPECT_TRUE(File::RemoveDir(OUTPUT_PATH, DEPTH));
-    EXPECT_TRUE(File::CreateDir(OUTPUT_PATH));
+    EXPECT_TRUE(File::RemoveDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}), DEPTH));
+    EXPECT_TRUE(File::CreateDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH})));
 
     std::vector<CCUMissionTimelineData> data;
     std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
@@ -2261,7 +2261,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnFalseWhenReserveFailed)
 {
     // deviceId, globalTaskId, name, startNs, endNs, args
     using CCUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, OUTPUT_PATH);
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateCCUData();
     std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;

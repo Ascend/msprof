@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -21,13 +21,13 @@
 
 #include <string>
 
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
+
 namespace Analysis
 {
 namespace Application
 {
-const uint8_t ASSEMBLE_FAILED = 0;
-const uint8_t ASSEMBLE_SUCCESS = 1;
-const uint8_t DATA_NOT_EXIST = 2;
 const int DEFAULT_TID = 0;
 const uint32_t HOST_PID = 31;
 const int HIGH_BIT_OFFSET = 10;
@@ -43,17 +43,13 @@ const std::string MS_TX = "MsTx";
 const std::string FLOW_START = "s";
 const std::string FLOW_END = "f";
 const std::string FLOW_BP = "e";
-const std::string OUTPUT_PATH = "mindstudio_profiler_output";
 const std::string JSON_SUFFIX = ".json";
 const std::string MSPROF_JSON_FILE = "msprof";
-const double NS_TO_US = 1000.0;
 const int CONN_OFFSET = 32;
-const double B_TO_KB = 1024.0;
 const std::string STEP_TRACE_FILE = "step_trace";
 const std::string MSPROF_TX_FILE = "msprof_tx";
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string MEMCPY_ASYNC = "MEMCPY_ASYNC";
-const std::string KERNEL_SIMT_TASK_TYPE = "KERNEL_SIMT";
 /*
  * json格式要求多个对象使用[]包装，再每一层json后添加了","分割，最终会形成[{},true]的结果，因此需要写入内容的时候过滤掉
  * [ true],共6位长度

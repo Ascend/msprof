@@ -15,25 +15,29 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/timeline/device_tx_assembler.h"
+
 #include "analysis/csrc/application/timeline/connection_id_pool.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
 
-namespace Analysis {
-namespace Application {
-using namespace Analysis::Viewer::Database;
+namespace Analysis
+{
+namespace Application
+{
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
 
-void DeviceTxTraceEvent::ProcessArgs(JsonWriter& ostream)
+void DeviceTxTraceEvent::ProcessArgs(JsonWriter &ostream)
 {
     ostream["Physic Stream Id"] << streamId_;
     ostream["Task Id"] << taskId_;
 }
 
 DeviceTxAssembler::DeviceTxAssembler()
-    : JsonAssembler(PROCESS_MSPROFTX, {{MSPROF_JSON_FILE, FileCategory::MSPROF},
-                    {MSPROF_TX_FILE, FileCategory::MSPROF_TX}})
-{}
+    : JsonAssembler(PROCESS_MSPROFTX,
+                    {{MSPROF_JSON_FILE, FileCategory::MSPROF}, {MSPROF_TX_FILE, FileCategory::MSPROF_TX}})
+{
+}
 
 void DeviceTxAssembler::GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceData> &txData,
                                               const std::string &profPath, const LayerInfo &layer,
@@ -41,9 +45,11 @@ void DeviceTxAssembler::GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceDa
 {
     uint32_t formatPid;
     std::string traceName = NA;
-    for (const auto &data : txData) {
+    for (const auto &data : txData)
+    {
         auto it = h2dMessage_.find(data.connectionId);
-        if (it != h2dMessage_.end()) {
+        if (it != h2dMessage_.end())
+        {
             traceName = it->second;
         }
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
@@ -51,9 +57,9 @@ void DeviceTxAssembler::GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceDa
         // 存储pid，tid组合的最小集
         dPidTidSet_.insert({formatPid, tid});
         std::shared_ptr<DeviceTxTraceEvent> event;
-        MAKE_SHARED_RETURN_VOID(event, DeviceTxTraceEvent, formatPid, tid, data.duration / NS_TO_US,
-                                DivideByPowersOfTenWithPrecision(data.timestamp),
-                                traceName, data.streamId, data.taskId);
+        MAKE_SHARED_RETURN_VOID(
+            event, DeviceTxTraceEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+            DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.streamId, data.taskId);
         res_.push_back(event);
         GenerateTxConnectionTrace(data, formatPid);
     }
@@ -66,22 +72,26 @@ void DeviceTxAssembler::GenerateTxConnectionTrace(const MsprofTxDeviceData &data
     name.append("_").append(connId);
     int tid = static_cast<int>(data.streamId);
     std::shared_ptr<FlowEvent> end;
-    MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
-                            MS_TX, connId, name, FLOW_END, FLOW_BP);
+    MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp), MS_TX,
+                            connId, name, FLOW_END, FLOW_BP);
     res_.push_back(end);
 }
 
-uint8_t DeviceTxAssembler::AssembleData(DataInventory& dataInventory, JsonWriter& ostream, const std::string& profPath)
+uint8_t DeviceTxAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
 {
     auto deviceTxData = dataInventory.GetPtr<std::vector<MsprofTxDeviceData>>();
-    if (deviceTxData == nullptr) {
+    if (deviceTxData == nullptr)
+    {
         WARN("Can't get device_tx data from dataInventory");
         return DATA_NOT_EXIST;
     }
     auto txData = dataInventory.GetPtr<std::vector<MsprofTxHostData>>();
-    if (txData != nullptr) {
-        for (const auto &data : *txData) {
-            if (data.connectionId != DEFAULT_CONNECTION_ID_MSTX) {  // tx ex数据才会有connectionId
+    if (txData != nullptr)
+    {
+        for (const auto &data : *txData)
+        {
+            if (data.connectionId != DEFAULT_CONNECTION_ID_MSTX)
+            {  // tx ex数据才会有connectionId
                 h2dMessage_.emplace(data.connectionId, data.message);
             }
         }
@@ -90,16 +100,18 @@ uint8_t DeviceTxAssembler::AssembleData(DataInventory& dataInventory, JsonWriter
     auto deviceLayer = GetLayerInfo(PROCESS_TASK);
     GenerateDeviceTxTrace(*deviceTxData, profPath, deviceLayer, devicePid);
     GenerateTaskMetaData(devicePid, deviceLayer, res_, dPidTidSet_);
-    if (res_.empty()) {
+    if (res_.empty())
+    {
         ERROR("Can't Generate any device tx process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_) {
+    for (const auto &node : res_)
+    {
         node->DumpJson(ostream);
     }
     // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
     ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

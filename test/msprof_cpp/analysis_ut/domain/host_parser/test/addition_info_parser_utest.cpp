@@ -151,7 +151,7 @@ protected:
 
 TEST_F(AdditionInfoParserUTest, TestCtxIdParserShouldReturn30DataWhenParseSuccess)
 {
-    auto parser = std::make_shared<CtxIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<CtxIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
@@ -159,7 +159,7 @@ TEST_F(AdditionInfoParserUTest, TestCtxIdParserShouldReturn30DataWhenParseSucces
 TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
     MOCKER_CPP(&Reserve<std::shared_ptr<MsprofAdditionalInfo>>).stubs().will(returnValue(false));
-    auto parser = std::make_shared<CtxIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<CtxIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     EXPECT_EQ(0, data.size());
     MOCKER_CPP(&Reserve<std::shared_ptr<MsprofAdditionalInfo>>).reset();
@@ -169,7 +169,7 @@ TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmp
 {
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<CtxIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<CtxIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     EXPECT_EQ(0, data.size());
 }
@@ -178,35 +178,35 @@ TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturn29D
 {
     const uint16_t invalidDataNum = 1;
     GenAdditionalInfoData(EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_NODE_LEVEL, invalidDataNum);
-    auto parser = std::make_shared<CtxIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<CtxIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
 TEST_F(AdditionInfoParserUTest, TestFusionOpInfoParserShouldReturn30DataWhenParseSuccess)
 {
-    auto parser = std::make_shared<FusionOpInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<FusionOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_FUSION_OP_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(AdditionInfoParserUTest, TestGraphIdParserShouldReturn30DataWhenParseSuccess)
 {
-    auto parser = std::make_shared<GraphIdParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<GraphIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_GRAPH_ID_MAP, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(AdditionInfoParserUTest, TestHcclInfoParserShouldReturn30DataWhenParseSuccess)
 {
-    auto parser = std::make_shared<HcclInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<HcclInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<MsprofAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_HCCL_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserShouldReturn6000ConcatTensorInfoDataWhenParseSuccess)
 {
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto concatTensorInfo = parser->ParseData<ConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint32_t dataNum = TENSOR_DATA_NUM / TENSOR_NUM_TO_CONCAT;
@@ -223,7 +223,7 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserShouldReturn6000ConcatTensor
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
     MOCKER_CPP(&Reserve<std::shared_ptr<ConcatTensorInfo>>).stubs().will(returnValue(false));
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     EXPECT_EQ(0, data.size());
     MOCKER_CPP(&Reserve<std::shared_ptr<ConcatTensorInfo>>).reset();
@@ -233,7 +233,7 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmpty
 {
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     EXPECT_EQ(0, data.size());
 }
@@ -241,7 +241,7 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmpty
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturn6000DataWhen1DataIsInvalid)
 {
     GenTensorData(MSPROF_REPORT_NODE_LEVEL, TENSOR_NUM_TO_CONCAT, 1);
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint32_t dataNum = TENSOR_DATA_NUM / TENSOR_NUM_TO_CONCAT;
@@ -259,7 +259,7 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturn3600D
     uint32_t concatTensorNum = 8;
     uint32_t geTensorNum = 3;
     GenTensorData(MSPROF_REPORT_NODE_LEVEL, concatTensorNum, 0, geTensorNum);
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin({DATA_DIR, "host", "data"}));
+    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint16_t dataNum = TENSOR_DATA_NUM / concatTensorNum;

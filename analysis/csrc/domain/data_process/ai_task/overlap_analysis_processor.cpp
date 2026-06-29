@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -19,9 +19,9 @@
 #include <algorithm>
 #include <utility>
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {
@@ -29,7 +29,7 @@ namespace Domain
 {
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 namespace
 {
 const std::set<std::string> FILTER_TYPE = {"KERNEL_AICORE",  "KERNEL_AIVEC",     "FFTS_PLUS",        "KERNEL_MIX_AIC",

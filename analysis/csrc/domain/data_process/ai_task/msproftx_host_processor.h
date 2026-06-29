@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -18,51 +18,61 @@
 #define ANALYSIS_DOMAIN_MSPROFTX_HOST_PROCESSOR_H
 
 #include <functional>
+
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 // pid, tid, category, payload_type, message_type, payload_value, start, end, event_type, message
 using OriMsprofTxHostData = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint64_t,
-                                        uint64_t, std::string, std::string>>;
+                                                   uint64_t, std::string, std::string>>;
 // pid, tid, mark_id, start, end, event_type, domain, message
-using OriMsprofTxExHostData = std::vector<std::tuple<uint32_t, uint32_t, uint64_t, uint64_t, uint64_t,
-                                                     std::string, std::string, std::string>>;
-class MsprofTxHostProcessor : public DataProcessor {
-public:
+using OriMsprofTxExHostData =
+    std::vector<std::tuple<uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, std::string, std::string, std::string>>;
+class MsprofTxHostProcessor : public DataProcessor
+{
+   public:
     MsprofTxHostProcessor() = default;
     explicit MsprofTxHostProcessor(const std::string &profPath);
-private:
-    bool Process(DataInventory& dataInventory) override;
+
+   private:
+    bool Process(DataInventory &dataInventory) override;
     void FormatTxData(const OriMsprofTxHostData &oriTxData, std::vector<MsprofTxHostData> &processedData,
                       Utils::SyscntConversionParams &params, Utils::ProfTimeRecord &record);
     void FormatTxExData(const OriMsprofTxExHostData &oriTxExData, std::vector<MsprofTxHostData> &processedData,
                         Utils::SyscntConversionParams &params, Utils::ProfTimeRecord &record);
 
-    template<typename T>
-    bool ProcessData(T &oriData, DBInfo& info, bool &notExistFlag,
+    template <typename T>
+    bool ProcessData(T &oriData, DBInfo &info, bool &notExistFlag,
                      std::function<T(const DBInfo &dbInfo, const std::string &dbPath)> func)
     {
         std::string dbPath = Utils::File::PathJoin({profPath_, HOST, SQLITE, info.dbName});
-        if (!info.ConstructDBRunner(dbPath)) {
+        if (!info.ConstructDBRunner(dbPath))
+        {
             return false;
         }
         auto status = CheckPathAndTable(dbPath, info, false);
-        if (status == CHECK_FAILED) {
+        if (status == CHECK_FAILED)
+        {
             return false;
-        } else if (status == NOT_EXIST) {
+        }
+        else if (status == NOT_EXIST)
+        {
             notExistFlag = true;
             return true;
         }
         oriData = func(info, dbPath);
-        if (oriData.empty()) {
+        if (oriData.empty())
+        {
             WARN("original data is empty. DBPath is %", dbPath);
         }
         return true;
     }
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_MSPROFTX_HOST_PROCESSOR_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_MSPROFTX_HOST_PROCESSOR_H

@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -33,7 +33,7 @@ using namespace Analysis::Application;
 namespace {
     const int DEPTH = 0;
     const std::string BASE_PATH = "./dump_tools_csv_writer_utest";
-    const std::string OUTPUT_DIR = File::PathJoin({BASE_PATH, OUTPUT_PATH});
+    const std::string OUTPUT_DIR = File::PathJoin({BASE_PATH, Analysis::Common::OUTPUT_PATH});
 }
 
 class CsvWriterUTest : public testing::Test {

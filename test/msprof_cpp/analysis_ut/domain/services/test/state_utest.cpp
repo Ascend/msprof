@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "analysis/csrc/domain/services/modeling/step_trace/state.h"
-#include "analysis/csrc/domain/services/modeling/step_trace/step_trace_constant.h"
 namespace Analysis {
 namespace Domain {
 namespace {

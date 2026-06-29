@@ -17,15 +17,14 @@
 #ifndef ANALYSIS_APPLICATION_FUSION_TASK_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_FUSION_TASK_ASSEMBLER_H
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/fusion_task_data.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {
 namespace Application
 {
-using namespace Analysis::Viewer::Database;
 class FusionTaskTraceEvent : public DurationEvent
 {
    public:

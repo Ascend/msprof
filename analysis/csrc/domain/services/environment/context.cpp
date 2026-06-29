@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -17,11 +17,11 @@
 
 #include <unordered_set>
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/config.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
 
 namespace Analysis
 {
@@ -31,7 +31,7 @@ namespace Environment
 {
 using namespace Analysis;
 using namespace Analysis::Utils;
-using namespace Viewer::Database;
+using namespace Analysis::Application;
 
 namespace
 {

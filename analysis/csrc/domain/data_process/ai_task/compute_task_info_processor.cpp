@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -20,7 +20,7 @@ namespace Analysis
 {
 namespace Domain
 {
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 ComputeTaskInfoProcessor::ComputeTaskInfoProcessor(const std::string &profPath) : DataProcessor(profPath) {}
 
 bool ComputeTaskInfoProcessor::Process(DataInventory &dataInventory)

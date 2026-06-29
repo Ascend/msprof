@@ -28,7 +28,7 @@ namespace Analysis
 namespace Application
 {
 using namespace Analysis::Domain::Environment;
-using namespace Analysis::Viewer::Database;
+using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Utils;
 
@@ -116,7 +116,7 @@ void DPUAssembler::GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_
     for (const auto &data : dpuData)
     {
         auto formatPid = JsonAssembler::GetFormatPid(pid, layer.sortIndex, data.dpuDeviceId);
-        double dur = static_cast<double>(data.endTime - data.timestamp) / NS_TO_US;
+        double dur = static_cast<double>(data.endTime - data.timestamp) / Analysis::Common::NS_TO_US;
         std::string ts = DivideByPowersOfTenWithPrecision(data.timestamp);
         int tid = static_cast<int>(data.streamId);
 

@@ -15,7 +15,6 @@
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/data_process/system/ub_processor.h"
 
-#include "analysis/csrc/domain/services/constant/time_unit_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 
 namespace Analysis

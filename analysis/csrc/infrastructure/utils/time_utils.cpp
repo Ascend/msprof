@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------
+﻿/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -18,15 +18,17 @@
 
 #include <ctime>
 #include <iomanip>
+
 #include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-namespace Analysis {
-namespace Utils {
+namespace Analysis
+{
+namespace Utils
+{
 
-using namespace Analysis::Viewer::Database;
-const int YEAR_DISPLAY_WIDTH = 4; // 年的固定宽度是4
-const int TIME_DISPLAY_WIDTH = 2; // 日期的固定宽度是2，不足的前面补零
-const int NS_US = 3; // NS到US的时间转换的数量级，3表示10^3的指数
+const int YEAR_DISPLAY_WIDTH = 4;  // 年的固定宽度是4
+const int TIME_DISPLAY_WIDTH = 2;  // 日期的固定宽度是2，不足的前面补零
+const int NS_US = 3;               // NS到US的时间转换的数量级，3表示10^3的指数
 
 /**
  * 通过host_start.log或者device_start.log参数计算时间
@@ -41,9 +43,12 @@ HPFloat GetTimeFromCnt(uint64_t sysCnt, uint64_t hostMonotonic, uint64_t referen
     uint64_t timeDiff = (sysCnt >= referenceCnt) ? (sysCnt - referenceCnt) : (referenceCnt - sysCnt);
     HPFloat res = static_cast<double>(timeDiff) / frequency;
     res = res << NS_US;
-    if (sysCnt >= referenceCnt) {
+    if (sysCnt >= referenceCnt)
+    {
         res = HPFloat(hostMonotonic) + res;
-    } else {
+    }
+    else
+    {
         res = HPFloat(hostMonotonic) - res;
     }
     return res;
@@ -57,12 +62,10 @@ std::string GetFormatLocalTime()
     std::stringstream sstr;
 
     // 将秒数转换为本地时间,年从1900算起,需要+1900,月为0-11,所以要+1
-    sstr << std::setw(YEAR_DISPLAY_WIDTH) << std::setfill('0') << (tm->tm_year + 1900) <<
-         std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << (tm->tm_mon + 1) <<
-         std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_mday <<
-         std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_hour <<
-         std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_min <<
-         std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_sec;
+    sstr << std::setw(YEAR_DISPLAY_WIDTH) << std::setfill('0') << (tm->tm_year + 1900) << std::setw(TIME_DISPLAY_WIDTH)
+         << std::setfill('0') << (tm->tm_mon + 1) << std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_mday
+         << std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_hour << std::setw(TIME_DISPLAY_WIDTH)
+         << std::setfill('0') << tm->tm_min << std::setw(TIME_DISPLAY_WIDTH) << std::setfill('0') << tm->tm_sec;
 
     // 格式：20231129134509  年月日时分秒的拼接字符串
     return sstr.str();
@@ -87,7 +90,8 @@ HPFloat GetTimeFromSyscnt(uint64_t syscnt, const SyscntConversionParams &params)
  */
 HPFloat GetTimeFromHostCnt(uint64_t syscnt, const SyscntConversionParams &params)
 {
-    if (IsDoubleEqual(params.hostFreq, DEFAULT_FREQ)) {
+    if (IsDoubleEqual(params.hostFreq, DEFAULT_FREQ))
+    {
         // 当freq为默认值时,默认数据为 monotonic,直接返回即可
         return {syscnt};
     }
