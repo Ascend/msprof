@@ -19,63 +19,23 @@ import logging
 from src.base_ascend_msprof_checker import BaseAscendMsprofChecker
 
 logging.basicConfig(level=logging.INFO,
-                    format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s')
+                    format="\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s")
 
 
 class TestAscendMsprofAppTaskBasedMemory(BaseAscendMsprofChecker):
-    def check_ai_vector_core_utilization_data(self):
-        super().check_ai_vector_core_utilization_data()
-
-    def check_time_line_data(self):
-        super().check_time_line_data()
-
-    def check_op_summary_data(self):
-        super().check_op_summary_data()
-
-    def check_op_statistic_data(self):
-        super().check_op_statistic_data()
-
-    def check_ai_core_utilization_data(self):
-        super().check_ai_core_utilization_data()
-
-    def check_npu_mem_data(self):
-        super().check_npu_mem_data()
-
-    def check_npu_module_mem_data(self):
-        super().check_npu_module_mem_data()
-
-    def check_soc_pmu_data(self):
-        super().check_soc_pmu_data()
-
-    def check_task_time_data(self):
-        super().check_task_time_data()
-
-    def check_api_statistic_data(self):
-        super().check_api_statistic_data()
-
-    def check_hbm_data(self):
-        super().check_hbm_data()
-
-    def check_l2_cache_data(self):
-        super().check_l2_cache_data()
-
-    def check_llc_read_write_data(self):
-        super().check_llc_read_write_data()
-
-    def check_other_data(self):
-        super().check_other_data()
+    EXPECT_DB_TABLES = [
+        "ACC_PMU", "AICORE_FREQ", "CANN_API", "COMPUTE_TASK_INFO", "ENUM_API_TYPE",
+        "ENUM_HCCL_DATA_TYPE", "ENUM_HCCL_LINK_TYPE", "ENUM_HCCL_RDMA_TYPE", "ENUM_HCCL_TRANSPORT_TYPE",
+        "ENUM_MEMCPY_OPERATION", "ENUM_MODULE", "ENUM_MSTX_EVENT_TYPE", "HBM", "HOST_INFO", "LLC",
+        "MEMCPY_INFO", "META_DATA", "NPU_INFO", "NPU_MEM", "NPU_MODULE_MEM", "QOS", "RANK_DEVICE_MAP",
+        "SESSION_TIME_INFO", "SOC_BANDWIDTH_LEVEL", "STRING_IDS", "TASK", "TASK_PMU_INFO",
+    ]
 
 
 def test_ascend_msprof_app_task_based_memory(prof_path):
-    expect_db_tables = ["ACC_PMU", "AICORE_FREQ", "CANN_API", "COMPUTE_TASK_INFO", "ENUM_API_TYPE",
-                        "ENUM_HCCL_DATA_TYPE", "ENUM_HCCL_LINK_TYPE", "ENUM_HCCL_RDMA_TYPE", "ENUM_HCCL_TRANSPORT_TYPE",
-                        "ENUM_MEMCPY_OPERATION", "ENUM_MODULE", "ENUM_MSTX_EVENT_TYPE", "HBM", "HOST_INFO", "LLC",
-                        "MEMCPY_INFO", "META_DATA", "NPU_INFO", "NPU_MEM", "NPU_MODULE_MEM", "QOS", "RANK_DEVICE_MAP",
-                        "SESSION_TIME_INFO", "SOC_BANDWIDTH_LEVEL", "STRING_IDS", "TASK", "TASK_PMU_INFO"]
-    test_ascend_msprof = TestAscendMsprofAppTaskBasedMemory(prof_path, expect_db_tables)
-    test_ascend_msprof.check_msprof_file()
+    TestAscendMsprofAppTaskBasedMemory(prof_path).check_msprof_file()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     path = sys.argv[1]
     test_ascend_msprof_app_task_based_memory(path)

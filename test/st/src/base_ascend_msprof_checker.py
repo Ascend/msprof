@@ -13,7 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-from abc import ABC, abstractmethod
+from abc import ABC
 import glob
 import logging
 
@@ -21,191 +21,234 @@ from utils.db_check import DBManager
 from utils.file_check import FileChecker
 from utils.table_fields import TableFields
 
-logging.basicConfig(level=logging.INFO,
-                    format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s"
+)
 
 
 class BaseAscendMsprofChecker(ABC):
+    EXPECT_DB_TABLES = []
+    DB_VALUE_SPECS = []
+    DISABLED_CHECKS = set()
+
+    TIMELINE_CHECKS = [
+        {"key": "cat", "values": ["HostToDevice"], "fuzzy_match": True},
+        {"key": "name", "values": ["aclnnAdd_*", "Conv2D*", "*Relu*"], "fuzzy_match": True},
+    ]
+
+    OP_SUMMARY_SPEC = {
+        "pattern": "op_summary_*.csv",
+        "headers": [
+            "Task Duration(us)",
+            "Task Wait Time(us)",
+            "Task Start Time(us)",
+            "Block Num",
+            "Mix Block Num",
+            "Task ID",
+            "Stream ID",
+            "Device_id",
+            "Model ID",
+        ],
+        "items": [
+            {"pattern": {"Op Name": ["aclnnAdd_*", "Conv2D*", "*Relu*"]}},
+            {"pattern": {"OP Type": ["Add", "Conv2D", "Relu"], "Task Type": ["AI_VECTOR_CORE", "AI_CORE", "MIX_AIV"]}, "fuzzy_match": False},
+        ],
+        "non_negative_columns": [
+            "Task Duration(us)",
+            "Task Wait Time(us)",
+            "Task Start Time(us)",
+            "Task ID",
+            "Stream ID",
+            "Device_id",
+            "Model ID",
+        ],
+    }
+    OP_STATISTIC_SPEC = {
+        "pattern": "op_statistic_*.csv",
+        "headers": [
+            "Device_id",
+            "OP Type",
+            "Core Type",
+            "Count",
+            "Total Time(us)",
+            "Min Time(us)",
+            "Avg Time(us)",
+            "Max Time(us)",
+            "Ratio(%)",
+        ],
+        "items": [
+            {"pattern": {"OP Type": ["Add", "Conv2D", "Relu"], "Core Type": ["AI_VECTOR_CORE", "AI_CORE", "MIX_AIV"]}, "fuzzy_match": False}
+        ],
+        "non_negative_columns": ["Count", "Total Time(us)", "Min Time(us)", "Avg Time(us)", "Max Time(us)", "Ratio(%)"],
+    }
+    AI_CORE_UTILIZATION_SPEC = None
+    AI_VECTOR_CORE_UTILIZATION_SPEC = None
+    API_STATISTIC_SPEC = {
+        "pattern": "api_statistic*.csv",
+        "headers": ["Device_id", "Level", "API Name", "Time(us)", "Count", "Avg(us)", "Min(us)", "Max(us)", "Variance"],
+        "items": [
+            {"pattern": {"Level": ["acl", "runtime", "node"]}, "fuzzy_match": False},
+            {"pattern": {"API Name": ["Add*", "Cast*", "Relu*"]}},
+        ],
+        "non_negative_columns": ["Time(us)", "Count", "Avg(us)", "Min(us)", "Max(us)", "Variance"],
+    }
+    HBM_SPEC = {
+        "pattern": "hbm*.csv",
+        "headers": ["Device_id", "Metric", "Read(MB/s)", "Write(MB/s)"],
+        "non_negative_columns": ["Read(MB/s)", "Write(MB/s)"],
+    }
+    L2_CACHE_SPEC = {
+        "pattern": "l2_cache*.csv",
+        "headers": ["Device_id", "Stream Id", "Task Id", "Hit Rate", "Victim Rate", "Op Name"],
+        "items": [{"pattern": {"Op Name": ["Conv2D*", "Add*", "TransData*"]}}],
+        "non_negative_columns": ["Stream Id", "Task Id", "Victim Rate"],
+    }
+    LLC_READ_WRITE_SPEC = {
+        "pattern": "llc_read_write*.csv",
+        "headers": ["Device_id", "Mode", "Task", "Hit Rate(%)", "Throughput(MB/s)"],
+        "non_negative_columns": ["Hit Rate(%)", "Throughput(MB/s)"],
+    }
+    NPU_MEM_SPEC = {
+        "pattern": "npu_mem*.csv",
+        "headers": ["Device_id", "event", "ddr(KB)", "hbm(KB)", "memory(KB)", "timestamp(us)"],
+        "non_negative_columns": ["ddr(KB)", "hbm(KB)", "memory(KB)", "timestamp(us)"],
+    }
+    NPU_MODULE_MEM_SPEC = {
+        "pattern": "npu_module_mem*.csv",
+        "headers": ["Device_id", "Component", "Timestamp(us)", "Total Reserved(KB)", "Device"],
+        "items": [{"pattern": {"Component": ["APP"]}, "fuzzy_match": False}],
+        "non_negative_columns": ["Timestamp(us)", "Total Reserved(KB)"],
+    }
+    SOC_PMU_SPEC = {
+        "pattern": "soc_pmu*.csv",
+        "headers": ["Device_id", "Stream Id", "Task Id", "TLB Hit Rate", "TLB Miss Rate", "Op Name"],
+        "items": [{"pattern": {"Op Name": ["Conv2D*", "*TransData*", "*Add*"]}}],
+        "non_negative_columns": ["Stream Id", "Task Id", "TLB Hit Rate", "TLB Miss Rate"],
+    }
+    TASK_TIME_SPEC = {
+        "pattern": "task_time*.csv",
+        "headers": ["Device_id", "kernel_name", "kernel_type", "stream_id", "task_id", "task_time(us)", "task_start(us)", "task_stop(us)"],
+        "items": [
+            {"pattern": {"kernel_name": ["Conv2D*", "*TransData*", "*Add*"]}},
+            {"pattern": {"kernel_type": ["AI_VECTOR_CORE", "AI_CORE", "MIX_AIV"]}, "fuzzy_match": False},
+        ],
+        "non_negative_columns": ["stream_id", "task_id", "task_time(us)", "task_start(us)", "task_stop(us)"],
+    }
+    OTHER_CSV_SPECS = []
+
+    def __init__(self, prof_path, expect_db_tables=None):
+        self.prof_path = prof_path
+        self.expect_db_tables = list(self.EXPECT_DB_TABLES if expect_db_tables is None else expect_db_tables)
 
     def _is_non_negative(self, value):
-        """ Check if a given value is non-negative (i.e., greater than or equal to zero)."""
         return float(value) >= 0.0
 
-    def __init__(self, prof_path, expect_db_tables):
-        self.prof_path = prof_path
-        self.expect_db_tables = expect_db_tables
+    def _output_glob(self, pattern):
+        return glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/{pattern}")
+
+    def _check_timeline_files(self, pattern, display_name, checks):
+        if not checks:
+            return
+        paths = self._output_glob(pattern)
+        if not paths:
+            raise FileNotFoundError(f"No {display_name} found in {self.prof_path}")
+        for path in paths:
+            for check in checks:
+                FileChecker.check_timeline_values(
+                    path,
+                    check.get("key", "name"),
+                    check.get("values", []),
+                    fuzzy_match=check.get("fuzzy_match", True),
+                )
+
+    def _check_csv_files(self, display_name, spec):
+        if not spec:
+            return
+        paths = self._output_glob(spec["pattern"])
+        if not paths:
+            raise FileNotFoundError(f"No {display_name} found in {self.prof_path}")
+        for path in paths:
+            headers = spec.get("headers")
+            if headers:
+                FileChecker.check_csv_headers(path, headers)
+            for item in spec.get("items", []):
+                FileChecker.check_csv_items(
+                    path,
+                    item["pattern"],
+                    fuzzy_match=item.get("fuzzy_match", True),
+                )
+            columns = spec.get("non_negative_columns")
+            if columns:
+                FileChecker.check_csv_data_non_negative(path, comparison_func=self._is_non_negative, columns=columns)
 
     def check_msprof_file(self):
         self.check_msprof_text_file()
         self.check_msprof_db_file()
 
     def check_msprof_text_file(self):
-        # 1. msprof.json
-        self.check_time_line_data()
-        # 2. op_summary.csv
-        self.check_op_summary_data()
-        # 3. op_statistic.csv
-        self.check_op_statistic_data()
-        # 4. ai_core_utilization.csv
-        self.check_ai_core_utilization_data()
-        # 5. ai_vector_core_utilization.csv
-        self.check_ai_vector_core_utilization_data()
-        # 6. api_statistic.csv
-        self.check_api_statistic_data()
-        # 7. hbm.csv
-        self.check_hbm_data()
-        # 8. l2_cache.csv
-        self.check_l2_cache_data()
-        # 9. llc_read_write.csv
-        self.check_llc_read_write_data()
-        # 10.npu_mem.csv
-        self.check_npu_mem_data()
-        # 10.npu_module_mem.csv
-        self.check_npu_module_mem_data()
-        # 11.soc_pmu.csv
-        self.check_soc_pmu_data()
-        # 12.task_time.csv
-        self.check_task_time_data()
-        # 13. other data
-        self.check_other_data()
-        # 14. profiler.log
-        self.check_msprof_log()
+        checks = [
+            ("time_line", self.check_time_line_data),
+            ("op_summary", self.check_op_summary_data),
+            ("op_statistic", self.check_op_statistic_data),
+            ("ai_core_utilization", self.check_ai_core_utilization_data),
+            ("ai_vector_core_utilization", self.check_ai_vector_core_utilization_data),
+            ("api_statistic", self.check_api_statistic_data),
+            ("hbm", self.check_hbm_data),
+            ("l2_cache", self.check_l2_cache_data),
+            ("llc_read_write", self.check_llc_read_write_data),
+            ("npu_mem", self.check_npu_mem_data),
+            ("npu_module_mem", self.check_npu_module_mem_data),
+            ("soc_pmu", self.check_soc_pmu_data),
+            ("task_time", self.check_task_time_data),
+            ("other", self.check_other_data),
+            ("msprof_log", self.check_msprof_log),
+        ]
+        for check_name, check_func in checks:
+            if check_name not in self.DISABLED_CHECKS:
+                check_func()
 
-    @abstractmethod
     def check_time_line_data(self):
-        msprof_json_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/msprof_*.json")
-        if not msprof_json_path:
-            raise FileNotFoundError(f"No msprof.json found in {self.prof_path}")
-        FileChecker.check_timeline_values(msprof_json_path[0], "cat", ["HostToDevice", ], fuzzy_match=True)
-        FileChecker.check_timeline_values(msprof_json_path[0], "name", ["aclnnAdd_*", "Conv2D*", "*Relu*"])
+        self._check_timeline_files("msprof_*.json", "msprof.json", self.TIMELINE_CHECKS)
 
-    @abstractmethod
     def check_op_summary_data(self):
-        op_summary_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/op_summary_*.csv")
-        if not op_summary_path:
-            raise FileNotFoundError(f"No op_summary.csv found in {self.prof_path}")
-        FileChecker.check_csv_items(op_summary_path[0], {"Op Name": ["aclnnAdd_*", "Conv2D*", "*Relu*"]})
-        FileChecker.check_csv_items(op_summary_path[0], {"OP Type": ["Add", "Conv2D", "Relu"],
-                                                         "Task Type": ["AI_VECTOR_CORE", "AI_CORE", "MIX_AIV"]},
-                                    fuzzy_match=False)
-        FileChecker.check_csv_data_non_negative(op_summary_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Task Duration(us)", "Task Wait Time(us)",
-                                                         "Task Start Time(us)", "Block Dim", "Mix Block Dim",
-                                                         "Task ID", "Stream ID", "Device_id", "Model ID"])
+        self._check_csv_files("op_summary.csv", self.OP_SUMMARY_SPEC)
 
-    @abstractmethod
     def check_op_statistic_data(self):
-        op_statistic_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/op_statistic_*.csv")
-        if not op_statistic_path:
-            raise FileNotFoundError(f"No op_statistic.csv found in {self.prof_path}")
-        FileChecker.check_csv_items(op_statistic_path[0], {"OP Type": ["Add", "Conv2D", "Relu"],
-                                                           "Core Type": ["AI_VECTOR_CORE", "AI_CORE", "MIX_AIV"]},
-                                    fuzzy_match=False)
-        FileChecker.check_csv_data_non_negative(op_statistic_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Count", "Total Time(us)",
-                                                         "Min Time(us)", "Avg Time(us)", "Max Time(us)",
-                                                         "Ratio(%)"])
+        self._check_csv_files("op_statistic.csv", self.OP_STATISTIC_SPEC)
 
-    @abstractmethod
     def check_ai_core_utilization_data(self):
-        pass
+        self._check_csv_files("ai_core_utilization.csv", self.AI_CORE_UTILIZATION_SPEC)
 
-    @abstractmethod
     def check_ai_vector_core_utilization_data(self):
-        pass
+        self._check_csv_files("ai_vector_core_utilization.csv", self.AI_VECTOR_CORE_UTILIZATION_SPEC)
 
-    @abstractmethod
     def check_api_statistic_data(self):
-        api_statistic_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                       f"api_statistic*.csv")
-        if not api_statistic_path:
-            raise FileNotFoundError(f"No api_statistic.csv found in {self.prof_path}")
-        FileChecker.check_csv_items(api_statistic_path[0], {"Level": ["acl", "runtime", "node"]},
-                                    fuzzy_match=False)
-        FileChecker.check_csv_items(api_statistic_path[0], {"API Name": ["Add*", "Cast*", "Relu*"]},
-                                    fuzzy_match=True)
-        FileChecker.check_csv_data_non_negative(api_statistic_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Time(us)", "Count", "Avg(us)",
-                                                         "Min(us)", "Max(us)",
-                                                         "Variance"])
+        self._check_csv_files("api_statistic.csv", self.API_STATISTIC_SPEC)
 
-    @abstractmethod
     def check_hbm_data(self):
-        hbm_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                             f"hbm*.csv")
-        if not hbm_path:
-            raise FileNotFoundError(f"No hbm.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(hbm_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Read(MB/s)", "Write(MB/s)"])
+        self._check_csv_files("hbm.csv", self.HBM_SPEC)
 
-    @abstractmethod
     def check_l2_cache_data(self):
-        l2_cache_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                  f"l2_cache*.csv")
-        if not l2_cache_path:
-            raise FileNotFoundError(f"No l2_cache.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(l2_cache_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Stream Id", "Task Id", "Victim Rate"])
-        FileChecker.check_csv_items(l2_cache_path[0], {"Op Name": ["Conv2D*", "Add*", "TransData*"]},
-                                    fuzzy_match=True)
+        self._check_csv_files("l2_cache.csv", self.L2_CACHE_SPEC)
 
-    @abstractmethod
     def check_llc_read_write_data(self):
-        llc_read_write_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                        f"llc_read_write*.csv")
-        if not llc_read_write_path:
-            raise FileNotFoundError(f"No llc_read_write.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(llc_read_write_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Hit Rate(%)", "Throughput(MB/s)"])
+        self._check_csv_files("llc_read_write.csv", self.LLC_READ_WRITE_SPEC)
 
-    @abstractmethod
     def check_npu_mem_data(self):
-        npu_mem_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                 f"npu_mem*.csv")
-        if not npu_mem_path:
-            raise FileNotFoundError(f"No npu_mem.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(npu_mem_path[0], comparison_func=self._is_non_negative,
-                                                columns=["ddr(KB)", "hbm(KB)", "memory(KB)", "timestamp(us)"])
+        self._check_csv_files("npu_mem.csv", self.NPU_MEM_SPEC)
 
-    @abstractmethod
     def check_npu_module_mem_data(self):
-        npu_module_mem_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                        f"npu_module_mem*.csv")
-        if not npu_module_mem_path:
-            raise FileNotFoundError(f"No npu_mem.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(npu_module_mem_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Timestamp(us)", "Total Reserved(KB)"])
-        FileChecker.check_csv_items(npu_module_mem_path[0], {"Component": ["APP"]},
-                                    fuzzy_match=False)
+        self._check_csv_files("npu_module_mem.csv", self.NPU_MODULE_MEM_SPEC)
 
-    @abstractmethod
     def check_soc_pmu_data(self):
-        soc_pmu_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                 f"soc_pmu*.csv")
-        if not soc_pmu_path:
-            raise FileNotFoundError(f"No soc_pmu.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(soc_pmu_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Stream Id", "Task Id", "TLB Hit Rate", "TLB Miss Rate"])
-        FileChecker.check_csv_items(soc_pmu_path[0], {"Op Name": ["Conv2D*", "*TransData*", "*Add*"]},
-                                    fuzzy_match=True)
+        self._check_csv_files("soc_pmu.csv", self.SOC_PMU_SPEC)
 
-    @abstractmethod
     def check_task_time_data(self):
-        task_time_path = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_output/"
-                                   f"task_time*.csv")
-        if not task_time_path:
-            raise FileNotFoundError(f"No task_time.csv found in {self.prof_path}")
-        FileChecker.check_csv_data_non_negative(task_time_path[0], comparison_func=self._is_non_negative,
-                                                columns=["Stream Id", "Task Id", "task_time(us)", "task_start(us)",
-                                                         "task_stop(us)"])
-        FileChecker.check_csv_items(task_time_path[0], {"kernel_name": ["Conv2D*", "*TransData*", "*Add*"]},
-                                    fuzzy_match=True)
-        FileChecker.check_csv_items(task_time_path[0], {"kernel_type": ["AI_VECTOR_CORE", "AI_CORE",
-                                                                        "MIX_AIV"]}, fuzzy_match=False)
+        self._check_csv_files("task_time.csv", self.TASK_TIME_SPEC)
 
-    @abstractmethod
     def check_other_data(self):
-        pass
+        for spec in self.OTHER_CSV_SPECS:
+            self._check_csv_files(spec.get("display_name", spec["pattern"]), spec)
 
     def check_msprof_log(self):
         msprof_log_paths = glob.glob(f"{self.prof_path}/PROF_*/mindstudio_profiler_log/*.log")
@@ -215,16 +258,28 @@ class BaseAscendMsprofChecker(ABC):
             FileChecker.check_file_for_keyword(msprof_log_path, "[ERROR]")
 
     def check_msprof_db_file(self):
-        db_path = glob.glob(f"{self.prof_path}/PROF_*/msprof_*.db")
-        if not db_path:
+        db_paths = glob.glob(f"{self.prof_path}/PROF_*/msprof_*.db")
+        if not db_paths:
             raise FileNotFoundError(f"No db file found in {self.prof_path}")
-        FileChecker.check_file_exists(db_path[0])
-        for table_name in self.expect_db_tables:
-            # 1. Check table exist
-            FileChecker.check_db_table_exist(db_path[0], table_name)
-            # 2. Check table fields
-            res_table_fields = DBManager.fetch_all_field_name_in_table(db_path[0], table_name)
-            if res_table_fields != TableFields.get_fields(table_name):
-                raise ValueError(
-                    f"Fields for table '{table_name}' do not match. Expected: {TableFields.get_fields(table_name)}, "
-                    f"Actual: {res_table_fields}")
+        for db_path in db_paths:
+            FileChecker.check_file_exists(db_path)
+            for table_name in self.expect_db_tables:
+                FileChecker.check_db_table_exist(db_path, table_name)
+                res_table_fields = DBManager.fetch_all_field_name_in_table(db_path, table_name)
+                if res_table_fields != TableFields.get_fields(table_name):
+                    raise ValueError(
+                        f"Fields for table '{table_name}' do not match. Expected: {TableFields.get_fields(table_name)}, "
+                        f"Actual: {res_table_fields}"
+                    )
+            self.check_db_value_specs(db_path)
+
+    def check_db_value_specs(self, db_path):
+        for spec in self.DB_VALUE_SPECS:
+            DBManager.check_table_field_expected_values(
+                db_path=db_path,
+                table_name=spec["table"],
+                field_name=spec["field"],
+                expected_values=spec["expected_values"],
+                where_clause=spec.get("where"),
+                allow_extra=spec.get("allow_extra", False),
+            )

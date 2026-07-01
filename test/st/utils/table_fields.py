@@ -33,6 +33,7 @@ class TableFields:
         "count",
         "opType",
         "deviceId",
+        "rankSize",
     ]
     COMMUNICATION_TASK_INFO = [
         "name",
@@ -309,6 +310,9 @@ class TableFields:
     RankDeviceMap = ["rankId", "deviceId", "hostUid", "profilePath"]
     SAMPLE_PMU_SUMMARY = ["deviceId", "metric", "value", "coreId", "coreType"]
     SAMPLE_PMU_TIMELINE = ["deviceId", "timestampNs", "totalCycle", "usage", "freq", "coreId", "coreType"]
+    ENUM_OVERLAY_ANALYSIS_TYPE = ["id", "name"]
+    OVERLAP_ANALYSIS = ["id", "deviceId", "startNs", "endNs", "type"]
+    SIO = ["deviceId", "name", "timestampNs", "rxReq", "rxRsp", "rxSnp", "rxDat", "txReq", "txRsp", "txSnp", "txDat"]
 
     @classmethod
     def get_fields(cls, name):

@@ -16,6 +16,7 @@
 import sys
 import glob
 import pandas as pd
+from utils.file_check import FileChecker
 
 # pylint: disable=duplicate-code
 DEFAULT_MODEL_ID = 4294967295
@@ -26,6 +27,7 @@ def test_ascend_msprof_acl_graph_and_triton_inductor(prof_path):
     if not op_summary_path:
         raise FileNotFoundError(f"No op_summary.csv found in {prof_path}")
 
+    FileChecker.check_csv_headers(op_summary_path[0], ["Op Name", "Model ID"])
     df = pd.read_csv(op_summary_path[0])
 
     if "Op Name" not in df.columns:

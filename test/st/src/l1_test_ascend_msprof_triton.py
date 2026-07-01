@@ -35,6 +35,7 @@ def test_ascend_msprof_triton_op(prof_path):
     if not op_summary_path:
         raise FileNotFoundError(f"No op_summary.csv found in {prof_path}")
 
+    FileChecker.check_csv_headers(op_summary_path[0], list(REQUIRED_COLUMNS))
     FileChecker.check_csv_items(
         op_summary_path[0],
         {

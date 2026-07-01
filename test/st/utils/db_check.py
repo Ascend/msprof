@@ -298,3 +298,55 @@ class DBManager:
             raise RuntimeError(f"Failed to fetch data, ERROR: {_err}")
         finally:
             DBManager.destroy_db_connect(conn, curs)
+
+    @classmethod
+    def check_table_field_expected_values(
+        cls,
+        db_path: str,
+        table_name: str,
+        field_name: str,
+        expected_values: list,
+        where_clause: str = None,
+        allow_extra: bool = False,
+    ) -> None:
+        """
+        Check whether the distinct values of the specified field match expectations.
+
+        Args:
+            db_path (str): Path to the SQLite database file.
+            table_name (str): Name of the table to check.
+            field_name (str): Field name to check.
+            expected_values (list): Expected distinct values.
+            where_clause (str, optional): Optional SQL WHERE clause without the ``WHERE`` keyword.
+            allow_extra (bool, optional): If True, only require expected values to be a subset
+                of actual values. If False, require exact set equality.
+        """
+        conn, curs = DBManager.create_connect_db(db_path)
+        if not (conn and curs):
+            return
+
+        try:
+            sql = f"SELECT DISTINCT {field_name} FROM {table_name}"
+            if where_clause:
+                sql += f" WHERE {where_clause}"
+            data = DBManager.fetch_all_data(curs, sql)
+            actual_values = [row[0] for row in data]
+            actual_set = set(actual_values)
+            expected_set = set(expected_values)
+
+            if allow_extra:
+                missing_values = expected_set - actual_set
+                if missing_values:
+                    raise ValueError(
+                        f"Field '{field_name}' in table '{table_name}' in database '{db_path}' "
+                        f"is missing expected values: {sorted(missing_values)}. Actual values: {sorted(actual_set)}"
+                    )
+            elif actual_set != expected_set:
+                raise ValueError(
+                    f"Field '{field_name}' in table '{table_name}' in database '{db_path}' "
+                    f"does not match expected values. Expected: {sorted(expected_set)}, Actual: {sorted(actual_set)}"
+                )
+        except sqlite3.Error as _err:
+            raise RuntimeError(f"Failed to fetch data, ERROR: {_err}")
+        finally:
+            DBManager.destroy_db_connect(conn, curs)

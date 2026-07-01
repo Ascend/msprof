@@ -678,9 +678,12 @@ class FileChecker:
             with open(file_path, mode="r", newline="", encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
                 if columns is not None:
-                    columns = set(columns) & set(reader.fieldnames or [])
-                    if not columns:
-                        raise AssertionError("None of the specified columns exist in CSV")
+                    csv_headers = set(reader.fieldnames or [])
+                    expected_columns = set(columns)
+                    missing_columns = expected_columns - csv_headers
+                    if missing_columns:
+                        raise AssertionError(f"Missing columns in CSV: {sorted(missing_columns)}")
+                    columns = expected_columns
 
                 for row in reader:
                     iter_cols = columns if columns is not None else row.keys()
