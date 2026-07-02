@@ -8,7 +8,7 @@
 
 ## 使用前准备
 
-1. 获取仓库中提供的参数解析、绑核脚本：[entrance.py](./entrance.py)，[cpu_binder.py](./cpu_binder/cpu_binder.py)
+1. 获取仓库中提供的参数解析、绑核脚本：[entrance.py](./entrance.py)，[cpu_binder.py](./cpu_binder.py)
 
 ## 功能介绍
 
