@@ -157,12 +157,12 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             ",\"pid\":10327552,\"tid\":1,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\","
                             "\"args\":{\"notify_id\":\"456\",\"duration estimated(us)\":20.0,\"stream id\":1,\"task id"
                             "\":1,\"context id\":1,\"task type\":\"Notify_Wait\",\"src rank\":0,\"dst rank\":1,\""
-                            "transport type\":\"LOCAL\",\"size(Byte)\":\"3200\",\"data type\":\"INVALID_TYPE\",\"link type"
+                            "transport type\":\"LOCAL\",\"size(Byte)\":3200,\"data type\":\"INVALID_TYPE\",\"link type"
                             "\":\"INVALID_TYPE\",\"bandwidth(GB/s)\":0.0,\"model id\":4294967295}},{\"name\":\""
                             "Notify_Wait\",\"pid\":10327552,\"tid\":2,\"ts\":\"1717575960213957.957\",\"dur\":1000.0,"
                             "\"ph\":\"X\",\"args\":{\"notify_id\":\"456\",\"duration estimated(us)\":20.0,\"stream id"
                             "\":1,\"task id\":1,\"context id\":2,\"task type\":\"Notify_Wait\",\"src rank\":0,\""
-                            "dst rank\":1,\"transport type\":\"LOCAL\",\"size(Byte)\":\"3200\",\"data type\":\""
+                            "dst rank\":1,\"transport type\":\"LOCAL\",\"size(Byte)\":3200,\"data type\":\""
                             "INVALID_TYPE\",\"link type\":\"INVALID_TYPE\",\"bandwidth(GB/s)\":0.0,\"model id\":"
                             "4294967295}},{\"name\":\"hcom_broadcast__674_0_1\",\"pid\":10327552,\"tid\":0,\"ts\":\""
                             "1717575960213957.957\",\"dur\":1000.0,\"ph\":\"X\",\"args\":{\"rank_size\":8,\"connection_id\":2762,\""
@@ -172,34 +172,6 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960213957.957\",\"bp\":"
                             "\"e\"},";
     EXPECT_EQ(expectStr, res.back());
-}
-
-
-
-TEST_F(HcclAssemblerUTest, ShouldReturnInvalidWhenSizeOverflow)
-{
-    HcclAssembler assembler;
-    std::shared_ptr<std::vector<CommunicationOpData>> opDataS;
-    std::shared_ptr<std::vector<CommunicationTaskData>> taskS;
-    auto opData = GenerateOpData();
-    auto task = GenerateTaskData();
-    // Override size to UINT32_MAX for overflow testing
-    for (auto& t : task) {
-        t.size = UINT32_MAX;
-    }
-    MAKE_SHARED_NO_OPERATION(opDataS, std::vector<CommunicationOpData>, opData);
-    MAKE_SHARED_NO_OPERATION(taskS, std::vector<CommunicationTaskData>, task);
-    dataInventory_.Inject(opDataS);
-    dataInventory_.Inject(taskS);
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10085));
-    MOCKER_CPP(&Context::IsLevel0).stubs().will(returnValue(false));
-    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
-    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
-    EXPECT_EQ(1ul, files.size());
-    FileReader reader(files.back());
-    std::vector<std::string> res;
-    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    EXPECT_TRUE(res.back().find("\"size(Byte)\":\"Invalid\"") != std::string::npos);
 }
 
 TEST_F(HcclAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)

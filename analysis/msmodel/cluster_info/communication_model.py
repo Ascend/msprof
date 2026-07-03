@@ -15,7 +15,6 @@
 # -------------------------------------------------------------------------
 import logging
 
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.msprof_exception import ProfException
@@ -65,9 +64,6 @@ class CommunicationModel(ViewModel):
                 (conditions.get('iter_end', 0), conditions.get('iter_start', float('inf'))),
                 dto_class=HcclTask,
             )
-        for item in data:
-            if item.size >= Constant.UINT32_MAX:
-                item.replace(size=0)
         if not data:
             logging.error("Fail to connect %s, hccl parser is interrupted", DBNameConstant.DB_HCCL_SINGLE_DEVICE)
             raise ProfException(ProfException.PROF_INVALID_CONNECT_ERROR)

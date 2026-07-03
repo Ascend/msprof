@@ -25,7 +25,6 @@ from common_func.msprof_object import CustomizedNamedtupleFactory
 from mscalculate.hccl.hccl_task import HcclOps
 from mscalculate.hccl.hccl_task import HcclTask
 from common_func.info_conf_reader import InfoConfReader
-from common_func.constant import Constant
 from constant.constant import ITER_RANGE
 from sqlite.db_manager import DBManager
 from viewer.get_hccl_export_data import HCCLExport
@@ -174,15 +173,6 @@ class TestHCCLExport(unittest.TestCase):
         result = hccl._format_hccl_communication_data(hccl_data)
         self.assertEqual(len(result), 0)
 
-    def test_get_hccl_arg_should_show_invalid_when_size_overflow(self):
-        task = HcclTaskTuple(size=Constant.UINT32_MAX, notify_id=1, local_rank=0,
-                            remote_rank=1, transport_type="RDMA", data_type="FP16",
-                            link_type="PIX", bandwidth=100.0,
-                            duration_estimated=10, stream_id=1,
-                             task_id=1, task_type="HCCL")
-        result = HCCLExport.get_hccl_arg(task)
-        self.assertEqual(result['size(Byte)'], HCCLExport.INVALID_DATA_SIZE)
-
     def test_get_hccl_arg_should_show_normal_size_when_size_valid(self):
         task = HcclTaskTuple(size=1024, notify_id=1, local_rank=0,
                             remote_rank=1, transport_type="RDMA", data_type="FP16",
@@ -190,7 +180,7 @@ class TestHCCLExport(unittest.TestCase):
                             duration_estimated=10, stream_id=1,
                              task_id=1, task_type="HCCL")
         result = HCCLExport.get_hccl_arg(task)
-        self.assertEqual(result['size(Byte)'], '1024')
+        self.assertEqual(result['size(Byte)'], 1024)
 
 
 if __name__ == '__main__':
