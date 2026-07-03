@@ -33,11 +33,11 @@ const std::string DB_SUFFIX = "qos.db";
 const std::string PROF_DIR = File::PathJoin({QOS_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "QosBwData";
 const OriQosData QOS_DATA = {
-    {10332804861006.51, 1, 217, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {10332804960128.49, 1, 220, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {10332805060230.49, 1, 220, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {10332805160232.488, 1, 227, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {10332805260134.484, 1, 238, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+    {120332804861006.51, 0, 217, 0, 555, 0, 0, 0, 0, 0, 0, 0},
+    {120332804960128.49, 0, 220, 0, 530, 0, 0, 0, 0, 0, 0, 0},
+    {120332805060230.49, 1, 220, 0, 566, 0, 0, 0, 0, 0, 0, 0},
+    {120332805160232.488, 1, 227, 0, 456, 0, 0, 0, 0, 0, 0, 0},
+    {120332805260134.484, 1, 238, 0, 741, 0, 0, 0, 0, 0, 0, 0}
 };
 }
 
@@ -57,6 +57,7 @@ protected:
             {"startClockMonotonicRaw", "36470610791630"},
             {"hostMonotonic", "36471130547330"},
             {"devMonotonic", "36471130547330"},
+            {"platform_version", "5"},
             {"CPU", {{{"Frequency", "100.000000"}}}},
         };
         MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
@@ -136,4 +137,34 @@ TEST_F(QosProcessorUTest, TestRunShouldReturnFalseWhenProcessSingleDeviceFailed)
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(INVALID_DEVICE_ID)));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_QOS));
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).reset();
+}
+
+TEST_F(QosProcessorUTest, TestRunShouldReturnTrueWhenV6Platform)
+{
+    GlobalMockObject::verify();
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1701069323851824"},
+        {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},
+        {"hostMonotonic", "36471130547330"},
+        {"devMonotonic", "36471130547330"},
+        {"platform_version", "15"},
+        {"CPU", {{{"Frequency", "100.000000"}}}},
+    };
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+
+    auto processor = QosProcessor(PROF_DIR);
+    DataInventory dataInventory;
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_QOS));
+
+    auto res = dataInventory.GetPtr<std::vector<QosData>>();
+    ASSERT_NE(nullptr, res);
+    ASSERT_FALSE(res->empty());
+    ASSERT_EQ(5U, res->size());
+    std::vector<uint32_t> expectedBw3 = {555, 530, 566, 456, 741};
+    std::vector<uint32_t> expectedDieId = {0, 0, 1, 1, 1};
+    for (size_t i = 0; i < res->size(); i++) {
+        EXPECT_EQ(expectedDieId[i], (*res)[i].dieId);
+        EXPECT_EQ(expectedBw3[i], (*res)[i].bw1);
+    }
 }

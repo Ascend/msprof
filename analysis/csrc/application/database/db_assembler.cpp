@@ -1243,7 +1243,7 @@ bool SaveQosData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
         WARN("QOS data not exist.");
         return true;
     }
-    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>> res;
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, int32_t>> res;
     if (!Reserve(res, qosData->size()))
     {
         ERROR("Reserved for QOS data failed.");
@@ -1275,7 +1275,8 @@ bool SaveQosData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
                                         data.bw6, data.bw7, data.bw8, data.bw9, data.bw10};
         for (size_t i = 0; i < it->second.size(); i++)
         {
-            res.emplace_back(data.deviceId, it->second[i], bandwidth[i] * BYTE_SIZE * BYTE_SIZE, data.timestamp);
+            res.emplace_back(data.deviceId, it->second[i], bandwidth[i] * BYTE_SIZE * BYTE_SIZE, data.timestamp,
+                             data.dieId);
         }
     }
     return SaveData(res, TABLE_NAME_QOS, msprofDB);

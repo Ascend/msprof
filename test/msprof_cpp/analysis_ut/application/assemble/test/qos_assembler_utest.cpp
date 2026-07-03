@@ -127,14 +127,14 @@ static std::vector<QosData> GenerateQosV6Data()
     dieZero.deviceId = 0;
     dieZero.dieId = 0;
     dieZero.timestamp = 1724405892226599429;
-    dieZero.bw3 = 11;
-    dieZero.bw4 = 12;
+    dieZero.bw1 = 11;
+    dieZero.bw2 = 12;
     res.push_back(dieZero);
 
     QosData dieOne = dieZero;
     dieOne.dieId = 1;
-    dieOne.bw3 = 21;
-    dieOne.bw4 = 22;
+    dieOne.bw1 = 21;
+    dieOne.bw2 = 22;
     res.push_back(dieOne);
     return res;
 }

@@ -19,26 +19,29 @@
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/qos_data.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Utils;
 
 // timestamp, bw1, ..., bw10
-using OriQosData = std::vector<std::tuple<double, uint16_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-    uint32_t, uint32_t, uint32_t, uint32_t>>;
+using OriQosData = std::vector<std::tuple<double, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
+                                          uint32_t, uint32_t, uint32_t, uint32_t>>;
 // 该类用于定义处理qos.db中QosBwData表
-class QosProcessor : public DataProcessor {
-public:
+class QosProcessor : public DataProcessor
+{
+   public:
     QosProcessor() = default;
     explicit QosProcessor(const std::string &profPath);
 
-private:
-    bool Process(DataInventory& dataInventory) override;
+   private:
+    bool Process(DataInventory &dataInventory) override;
     bool ProcessSingleDevice(const std::string &devicePath, std::vector<QosData> &allProcessedData);
     OriQosData LoadData(const DBInfo &qosDB);
     std::vector<QosData> FormatData(const OriQosData &oriData, const LocaltimeContext &localtimeContext);
 };
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_QOS_PROCESSOR_H
+#endif  // ANALYSIS_DOMAIN_QOS_PROCESSOR_H

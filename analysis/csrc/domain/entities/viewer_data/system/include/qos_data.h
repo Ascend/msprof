@@ -18,14 +18,18 @@
 #define ANALYSIS_DOMAIN_QOS_FORMAT_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct QosData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct QosData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
-    uint16_t dieId = 0;
-    uint32_t bw1 = 0; // MB/s
+    int32_t dieId = -1;
+    uint32_t bw1 = 0;  // MB/s
     uint32_t bw2 = 0;
     uint32_t bw3 = 0;
     uint32_t bw4 = 0;
@@ -36,7 +40,7 @@ struct QosData : public BasicData {
     uint32_t bw9 = 0;
     uint32_t bw10 = 0;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_QOS_FORMAT_DATA_H
+#endif  // ANALYSIS_DOMAIN_QOS_FORMAT_DATA_H

@@ -240,7 +240,8 @@ const TableColumns OVERLAP_ANALYSIS = {{"id", SQL_INTEGER_TYPE, true},
 const TableColumns QOS = {{"deviceId", SQL_INTEGER_TYPE},
                           {"eventName", SQL_NUMERIC_TYPE},
                           {"bandwidth", SQL_NUMERIC_TYPE},
-                          {"timestampNs", SQL_NUMERIC_TYPE}};
+                          {"timestampNs", SQL_NUMERIC_TYPE},
+                          {"dieId", SQL_NUMERIC_TYPE}};
 
 const TableColumns DPU_TASK = {
     {"dpuDeviceId", SQL_INTEGER_TYPE}, {"globalTid", SQL_NUMERIC_TYPE},    {"startNs", SQL_NUMERIC_TYPE},

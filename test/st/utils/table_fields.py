@@ -209,7 +209,7 @@ class TableFields:
         "type",
     ]
     PYTORCH_CALLCHAINS = ["id", "stack", "stackDepth"]
-    QOS = ["deviceId", "eventName", "bandwidth", "timestampNs"]
+    QOS = ["deviceId", "eventName", "bandwidth", "timestampNs", "dieId"]
     ROCE = [
         "deviceId",
         "timestampNs",

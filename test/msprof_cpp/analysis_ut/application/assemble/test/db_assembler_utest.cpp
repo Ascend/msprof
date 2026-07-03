@@ -1957,7 +1957,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveNetDevStatsDataShouldReturnTrueWhenRunSucces
 TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenReserveFailed)
 {
     // deviceId, eventName, bandwidth, timestampNs
-    using QosDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>>;
+    using QosDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, int32_t>>;
     auto assembler = DBAssembler(PROF, OUTPUT_PATH);
     auto dataInventory = DataInventory();
     auto data = GenerateQosData();
