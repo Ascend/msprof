@@ -14,12 +14,12 @@ if [ -z "$PYTHONPATH" ]; then
 else
     export PYTHONPATH="${PARENT_RUN_ALL_PATH}:$PYTHONPATH"
 fi
-result_file=${PARENT_RUN_ALL_PATH}/run_all_result.txt
-output_path=${PARENT_RUN_ALL_PATH}/result
-rm -rf $result_file
-rm -rf $output_path
+result_file="${PARENT_RUN_ALL_PATH}/run_all_result.txt"
+output_path="${PARENT_RUN_ALL_PATH}/result"
+rm -rf -- "$result_file"
+rm -rf -- "$output_path"
 touch "$result_file"
-mkdir -p $output_path
+mkdir -p "$output_path"
 
 LEVEL="l0"
 
@@ -58,15 +58,15 @@ if [ ! -z "$test_list" ]; then
     do
         echo -e "${WHITE}====================${i%.sh} Test Case ====================${NC}"
         start_time=$(date "+%s")
-        bash $i $output_path
+        bash "$i" "$output_path"
         check_exit_code=$?
         end_time=$(date "+%s")
         duration_time=$(( ${end_time} - ${start_time} ))
         if [ 0 -ne ${check_exit_code} ]; then
-            echo "$i fail" >> $result_file
+            echo "$i fail" >> "$result_file"
             echo -e "--------------------------------------${WHITE}${i%.sh}${NC}------${RED}FAIL${NC}"
         else
-            echo "$i pass ${duration_time}" >> $result_file
+            echo "$i pass ${duration_time}" >> "$result_file"
             echo -e "--------------------------------------${WHITE}${i%.sh}${NC}------${GREEN}PASS${NC}"
         fi
     done

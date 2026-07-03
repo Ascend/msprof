@@ -1,11 +1,37 @@
 #!/bin/bash
 
+resolve_output_path() {
+    local output_path="${1:-}"
+    local script_name="${2:-$0}"
+
+    if [ -z "${output_path}" ]; then
+        echo "Usage: ${script_name} <output_path>" >&2
+        exit 1
+    fi
+
+    readlink -m "${output_path}"
+}
+
 init_testcase_dir() {
     local testcase_result_dir="$1"
-    if [ ! -d ${testcase_result_dir} ]; then
-        mkdir -p ${testcase_result_dir}
+    local resolved_testcase_dir
+
+    if [ -z "${testcase_result_dir}" ] || [ "${testcase_result_dir}" = "/" ]; then
+        echo "Error: invalid testcase_result_dir: '${testcase_result_dir}'" >&2
+        exit 1
+    fi
+
+    resolved_testcase_dir="$(readlink -m "${testcase_result_dir}")"
+    if [ -z "${resolved_testcase_dir}" ] || [ "${resolved_testcase_dir}" = "/" ] || \
+       [ "$(dirname "${resolved_testcase_dir}")" = "/" ]; then
+        echo "Error: unsafe testcase_result_dir: '${testcase_result_dir}'" >&2
+        exit 1
+    fi
+
+    if [ ! -d "${resolved_testcase_dir}" ]; then
+        mkdir -p "${resolved_testcase_dir}"
     else
-        rm -rf ${testcase_result_dir}/*
+        find "${resolved_testcase_dir}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
     fi
 }
 
@@ -55,7 +81,7 @@ check_plog_error() {
     local plog_path="$1"
     local file_name="$2"
     local testcase_result_dir="$3"
-    if grep "ERROR" ${plog_path} | grep -q "PROFILING"; then
+    if grep "ERROR" "${plog_path}" | grep -q "PROFILING"; then
         if [ -n "${testcase_result_dir}" ]; then
             dump_error_logs "${testcase_result_dir}"
         fi
