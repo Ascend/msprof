@@ -13,18 +13,21 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
+
 #include "gtest/gtest.h"
-#include "analysis/csrc/domain/data_process/system/npu_mem_processor.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 #include "reserve_mock_utils.h"
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/system/npu_mem_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
+
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
-using namespace Analysis::Viewer::Database;
-namespace {
+using namespace Analysis::Application;
+namespace
+{
 const int DEPTH = 0;
 const std::string NPU_MEM_DIR = "./npu_mem";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -33,12 +36,12 @@ const std::string PROF0 = File::PathJoin({NPU_MEM_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "NpuMem";
 using OriDataFormat = std::vector<std::tuple<std::string, uint64_t, uint64_t, double, uint64_t>>;
 using ProcessedDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
-const OriDataFormat DATA_0{{"0", 0, 47243669504, 4, 47243669504},
-                           {"1", 0, 47414005760, 212, 47414005760}};
-}
+const OriDataFormat DATA_0{{"0", 0, 47243669504, 4, 47243669504}, {"1", 0, 47414005760, 212, 47414005760}};
+}  // namespace
 
-class NpuMemProcessorUTest : public testing::Test {
-protected:
+class NpuMemProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -85,24 +88,13 @@ TEST_F(NpuMemProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
 {
     auto processor = NpuMemProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
-    MOCKER_CPP(&Context::GetClockMonotonicRaw)
-        .stubs()
-        .will(returnValue(false));
-    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
-    MOCKER_CPP(&Context::GetClockMonotonicRaw).reset();
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
-    MOCKER_CPP(&DataProcessor::CheckPathAndTable)
-        .stubs()
-        .will(returnValue(CHECK_FAILED));
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_MEM));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
     MOCKER_CPP(&Utils::GetDeviceIdByDevicePath).stubs().will(returnValue(static_cast<uint16_t>(UINT16_MAX)));

@@ -438,6 +438,23 @@ class InfoConfReader:
             / NumberConstant.NS_TO_US
         )
 
+    def get_absolute_time_by_sampling_timestamp(self: any, timestamp: any) -> int:
+        """
+        Obtain the absolute timestamp(ns) based on the sampling timestamp(us).
+        """
+        return int(
+            timestamp * NumberConstant.USTONS
+            + self.get_start_timestamp()
+            + self.get_delta_time() * NumberConstant.NANO_SECOND
+            + self.get_local_time_offset() * NumberConstant.NS_TO_US
+        )
+
+    def format_absolute_ns_to_us(self: any, timestamp: any) -> str:
+        """
+        Format an absolute timestamp(ns) to the trace timestamp unit(us).
+        """
+        return str((Decimal(str(timestamp)) / Decimal(NumberConstant.NS_TO_US)).quantize(Decimal('0.000')))
+
     def get_ai_core_profiling_mode(self):
         return self._sample_json.get("ai_core_profiling_mode")
 

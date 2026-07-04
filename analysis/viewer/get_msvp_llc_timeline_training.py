@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import json
 import sqlite3
 import logging
 from collections import OrderedDict
@@ -36,6 +35,27 @@ from msmodel.hardware.mini_llc_model import cal_core2cpu
 from viewer.get_trace_timeline import TraceViewer
 
 
+def _multiple_name_dump_with_absolute_ns(trace_parser: any, trace_data: dict, legend: dict, pid: int, tid: int) -> list:
+    _result = []
+    if not isinstance(trace_data, dict) or not trace_data:
+        return _result
+    for key in list(trace_data.keys()):
+        column_trace_data = Utils.generator_to_list(
+            [
+                key,
+                InfoConfReader().format_absolute_ns_to_us(item[0]),
+                pid,
+                tid,
+                OrderedDict(list(zip(legend[key], item[1:]))),
+            ]
+            for item in trace_data[key]
+        )
+        _result += TraceViewManager.column_graph_trace(
+            TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, column_trace_data
+        )
+    return _result
+
+
 def _fill_llc_nomini(param: dict, results: dict, legends: dict, sample_config: dict, curs: any) -> None:
     for llc_id in range(0, 4):
         param['llc_id'] = llc_id
@@ -49,17 +69,18 @@ def _fill_llc_nomini(param: dict, results: dict, legends: dict, sample_config: d
         llc_event = {"Throughput": ["Throughput(MB/s)"], "Hit Rate": ["Hit Rate(%)"]}
         if data_total:
             for _direct in ["Throughput", "Hit Rate"]:
-                results['LLC {} {}/{}'.format(llc_id, result_data['mode'].capitalize(),
-                                              _direct)] = data_total.get(_direct, 0)
-                legends['LLC {} {}/{}'.format(llc_id, result_data['mode'].capitalize(),
-                                              _direct)] = llc_event.get(_direct, 0)
+                results['LLC {} {}/{}'.format(llc_id, result_data['mode'].capitalize(), _direct)] = data_total.get(
+                    _direct, 0
+                )
+                legends['LLC {} {}/{}'.format(llc_id, result_data['mode'].capitalize(), _direct)] = llc_event.get(
+                    _direct, 0
+                )
 
 
 def get_llc_nomini_data(param: dict, sample_config: dict, curs: any) -> list:
     """
     get llc time series data
     """
-    delta_dev = InfoConfReader().get_delta_time()
     results = OrderedDict()
     legends = OrderedDict()
     try:
@@ -69,14 +90,12 @@ def get_llc_nomini_data(param: dict, sample_config: dict, curs: any) -> list:
         return []
     trace_parser = TraceViewer("LLC")
     _trace_results = TraceViewManager.metadata_event(
-        [["process_name", InfoConfReader().get_json_pid_data(),
-          InfoConfReader().get_json_tid_data(), "LLC"]])
+        [["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), "LLC"]]
+    )
     if legends and results:
-        _trace_results += \
-            trace_parser.multiple_name_dump(
-                results, legends, delta_dev,
-                InfoConfReader().get_json_pid_data(),
-                InfoConfReader().get_json_tid_data())
+        _trace_results += _multiple_name_dump_with_absolute_ns(
+            trace_parser, results, legends, InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data()
+        )
         return _trace_results
     logging.error("No data is collected.")
     return []
@@ -118,32 +137,49 @@ def _format_llc_trace_data(bandwidth_data: list, delta_dev: float) -> list:
     interval_time = [0] * len(bandwidth_data)
     for index, _bandwidth_data in enumerate(bandwidth_data):
         if (index + 1) < len(bandwidth_data):
-            interval_time[index] = \
-                round((float(bandwidth_data[index + 1][0]) - float(bandwidth_data[index][0])), CommonConstant.ROUND_SIX)
+            interval_time[index] = round(
+                (float(bandwidth_data[index + 1][0]) - float(bandwidth_data[index][0])), CommonConstant.ROUND_SIX
+            )
         else:
             interval_time[index] = interval_time[0]
         bandwidth_data_value = get_bandwidth_value(_bandwidth_data, interval_time[index])
         if not bandwidth_data_value:
             return []
 
-        trace_data.extend([["LLC/Read",
-                            InfoConfReader().trans_into_local_time(
-                                raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND,
-                                use_us=True),
-                            InfoConfReader().get_json_pid_data(),
-                            InfoConfReader().get_json_tid_data(),
-                            OrderedDict([("BandWidth(MB/s)", bandwidth_data_value[0]),
-                                         ("Hit Rate(%)", bandwidth_data_value[1]),
-                                         ("Hit BandWidth(MB/s)", bandwidth_data_value[2])])],
-                           ["LLC/Write",
-                            InfoConfReader().trans_into_local_time(
-                                raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND,
-                                use_us=True),
-                            InfoConfReader().get_json_pid_data(),
-                            InfoConfReader().get_json_tid_data(),
-                            OrderedDict([("BandWidth(MB/s)", bandwidth_data_value[3]),
-                                         ("Hit Rate(%)", bandwidth_data_value[4]),
-                                         ("Hit BandWidth(MB/s)", bandwidth_data_value[5])])]])
+        trace_data.extend(
+            [
+                [
+                    "LLC/Read",
+                    InfoConfReader().trans_into_local_time(
+                        raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND, use_us=True
+                    ),
+                    InfoConfReader().get_json_pid_data(),
+                    InfoConfReader().get_json_tid_data(),
+                    OrderedDict(
+                        [
+                            ("BandWidth(MB/s)", bandwidth_data_value[0]),
+                            ("Hit Rate(%)", bandwidth_data_value[1]),
+                            ("Hit BandWidth(MB/s)", bandwidth_data_value[2]),
+                        ]
+                    ),
+                ],
+                [
+                    "LLC/Write",
+                    InfoConfReader().trans_into_local_time(
+                        raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND, use_us=True
+                    ),
+                    InfoConfReader().get_json_pid_data(),
+                    InfoConfReader().get_json_tid_data(),
+                    OrderedDict(
+                        [
+                            ("BandWidth(MB/s)", bandwidth_data_value[3]),
+                            ("Hit Rate(%)", bandwidth_data_value[4]),
+                            ("Hit BandWidth(MB/s)", bandwidth_data_value[5]),
+                        ]
+                    ),
+                ],
+            ]
+        )
     return trace_data
 
 
@@ -153,16 +189,16 @@ def get_llc_bandwidth(curs: any) -> list:
     """
     delta_dev = InfoConfReader().get_delta_time()
     meta_data = [
-        [
-            "process_name", InfoConfReader().get_json_pid_data(),
-            InfoConfReader().get_json_tid_data(), "LLC Bandwidth"
-        ]
+        ["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), "LLC Bandwidth"]
     ]
     result_data = TraceViewManager.metadata_event(meta_data)
-    cols = "timestamp, sum(read_allocate), sum(read_noallocate), sum(read_hit), " \
-           "sum(write_allocate), sum(write_noallocate), sum(write_hit)"
-    sql = "SELECT {cols} FROM {table_name} group by timestamp" \
-        .format(cols=cols, table_name=DBNameConstant.TABLE_LLC_METRIC_DATA)
+    cols = (
+        "timestamp, sum(read_allocate), sum(read_noallocate), sum(read_hit), "
+        "sum(write_allocate), sum(write_noallocate), sum(write_hit)"
+    )
+    sql = "SELECT {cols} FROM {table_name} group by timestamp".format(  # nosec B608
+        cols=cols, table_name=DBNameConstant.TABLE_LLC_METRIC_DATA
+    )
     bandwidth_data = DBManager.fetch_all_data(curs, sql)
     bandwidth_data = Utils.generator_to_list(list(i) for i in bandwidth_data)
     if not bandwidth_data:
@@ -173,8 +209,7 @@ def get_llc_bandwidth(curs: any) -> list:
     if not trace_data:
         logging.error("Failed to get read and write of llc_bandwidth.")
         return []
-    result_data.extend(
-        TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data))
+    result_data.extend(TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data))
     return result_data
 
 
@@ -182,15 +217,20 @@ def _format_llc_capacity(dsid_sql_data: list) -> list:
     trace_data = []
     delta_dev = InfoConfReader().get_delta_time()
     for disid_data in dsid_sql_data:
-        trace_data.extend(Utils.generator_to_list(["Core {}".format(i),
-                                                   InfoConfReader().trans_into_local_time(
-                                                       raw_timestamp=(delta_dev + disid_data[4]) *
-                                                                     NumberConstant.MICRO_SECOND, use_us=True),
-                                                   InfoConfReader().get_json_pid_data(),
-                                                   InfoConfReader().get_json_tid_data(),
-                                                   OrderedDict([("Capacity(MB)",
-                                                                 round(disid_data[i], CommonConstant.ROUND_SIX))])]
-                                                  for i in range(0, 4)))
+        trace_data.extend(
+            Utils.generator_to_list(
+                [
+                    "Core {}".format(i),
+                    InfoConfReader().trans_into_local_time(
+                        raw_timestamp=(delta_dev + disid_data[4]) * NumberConstant.MICRO_SECOND, use_us=True
+                    ),
+                    InfoConfReader().get_json_pid_data(),
+                    InfoConfReader().get_json_tid_data(),
+                    OrderedDict([("Capacity(MB)", round(disid_data[i], CommonConstant.ROUND_SIX))]),
+                ]
+                for i in range(0, 4)
+            )
+        )
     return trace_data
 
 
@@ -199,10 +239,15 @@ def _get_dsid_sql_data(params: dict, types: str, curs: any) -> list:
 
     core2cpu = cal_core2cpu(project_path, params.get(StrConstant.PARAM_DEVICE_ID))
     dsid_name = core2cpu[types]
-    dsid_name = Utils.generator_to_list("sum({dsid})*{LLC_CAPACITY}/({KILOBYTE}*{KILOBYTE})".format(
-        LLC_CAPACITY=MiniLlcModel.LLC_CAPACITY, KILOBYTE=Constant.KILOBYTE, dsid=i) for i in dsid_name)
-    sql = "select {column}, timestamp from {table_name} where device_id = ? " \
-          "group by timestamp".format(column=",".join(dsid_name), table_name=DBNameConstant.TABLE_LLC_DSID)
+    dsid_name = Utils.generator_to_list(
+        "sum({dsid})*{LLC_CAPACITY}/({KILOBYTE}*{KILOBYTE})".format(
+            LLC_CAPACITY=MiniLlcModel.LLC_CAPACITY, KILOBYTE=Constant.KILOBYTE, dsid=i
+        )
+        for i in dsid_name
+    )
+    sql = "select {column}, timestamp from {table_name} where device_id = ? group by timestamp".format(  # nosec B608
+        column=",".join(dsid_name), table_name=DBNameConstant.TABLE_LLC_DSID
+    )
     dsid_sql_data = curs.execute(sql, (params.get(StrConstant.PARAM_DEVICE_ID),)).fetchall()
     return dsid_sql_data
 
@@ -226,13 +271,16 @@ def get_llc_capacity(params: dict, curs: any) -> list:
         trace_data = _format_llc_capacity(dsid_sql_data)
         meta_data = [
             [
-                "process_name", InfoConfReader().get_json_pid_data(),
-                InfoConfReader().get_json_tid_data(), "LLC of {}".format(types_map.get(types, ""))
+                "process_name",
+                InfoConfReader().get_json_pid_data(),
+                InfoConfReader().get_json_tid_data(),
+                "LLC of {}".format(types_map.get(types, "")),
             ]
         ]
         result_data = TraceViewManager.metadata_event(meta_data)
         result_data.extend(
-            TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data))
+            TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data)
+        )
         return result_data
     finally:
         pass
@@ -254,28 +302,38 @@ def get_bandwidth_value(bandwidth_data: list, interval_time: float) -> list:
     write_hit_bandwidth_value = 0.0
     write_bandwidth_value = 0.0
     if not NumberConstant.is_zero(interval_time):
-        read_bandwidth_value = round(sum_re_allocate / interval_time * NumberConstant.LLC_CAPACITY_CONVERT_MB,
-                                     CommonConstant.ROUND_SIX)
-        read_hit_bandwidth_value = round(bandwidth_data[3] * NumberConstant.LLC_CAPACITY_CONVERT_MB /
-                                         interval_time, CommonConstant.ROUND_SIX)
-        write_bandwidth_value = round(sum_wr_allocate / interval_time
-                                      * NumberConstant.LLC_CAPACITY_CONVERT_MB, CommonConstant.ROUND_SIX)
-        write_hit_bandwidth_value = round(bandwidth_data[6] * NumberConstant.LLC_CAPACITY_CONVERT_MB /
-                                          interval_time, CommonConstant.ROUND_SIX)
+        read_bandwidth_value = round(
+            sum_re_allocate / interval_time * NumberConstant.LLC_CAPACITY_CONVERT_MB, CommonConstant.ROUND_SIX
+        )
+        read_hit_bandwidth_value = round(
+            bandwidth_data[3] * NumberConstant.LLC_CAPACITY_CONVERT_MB / interval_time, CommonConstant.ROUND_SIX
+        )
+        write_bandwidth_value = round(
+            sum_wr_allocate / interval_time * NumberConstant.LLC_CAPACITY_CONVERT_MB, CommonConstant.ROUND_SIX
+        )
+        write_hit_bandwidth_value = round(
+            bandwidth_data[6] * NumberConstant.LLC_CAPACITY_CONVERT_MB / interval_time, CommonConstant.ROUND_SIX
+        )
 
     read_hit_rate_value = 0.0
     if not NumberConstant.is_zero(sum_re_allocate):
-        read_hit_rate_value = round(bandwidth_data[3] / sum_re_allocate * NumberConstant.PERCENTAGE,
-                                    CommonConstant.ROUND_SIX)
+        read_hit_rate_value = round(
+            bandwidth_data[3] / sum_re_allocate * NumberConstant.PERCENTAGE, CommonConstant.ROUND_SIX
+        )
 
     write_hit_rate_value = 0.0
     if not NumberConstant.is_zero(sum_wr_allocate):
-        write_hit_rate_value = round(bandwidth_data[6] / sum_wr_allocate * NumberConstant.PERCENTAGE,
-                                     CommonConstant.ROUND_SIX)
+        write_hit_rate_value = round(
+            bandwidth_data[6] / sum_wr_allocate * NumberConstant.PERCENTAGE, CommonConstant.ROUND_SIX
+        )
 
     bandwidth_value = [
-        read_bandwidth_value, read_hit_rate_value, read_hit_bandwidth_value,
-        write_bandwidth_value, write_hit_rate_value, write_hit_bandwidth_value
+        read_bandwidth_value,
+        read_hit_rate_value,
+        read_hit_bandwidth_value,
+        write_bandwidth_value,
+        write_hit_rate_value,
+        write_hit_bandwidth_value,
     ]
     return bandwidth_value if bandwidth_value else []
 
@@ -323,18 +381,34 @@ def get_llc_metric_data(param: dict, curs: any) -> dict:
     """
     metric_data = {}
     # If the end time is equal to 0, output data for all time
-    sql = 'SELECT timestamp, throughput FROM {0} WHERE device_id = ? ' \
-          'AND l3tId = ? AND timestamp between ? and ?;'.format(StrConstant.LLC_METRICS_TABLE)
-    sql_ = 'SELECT timestamp, hitRate FROM {0} WHERE device_id = ? ' \
-           'AND l3tId = ? AND timestamp between ? and ?;'.format(StrConstant.LLC_METRICS_TABLE)
-    metric_data['Throughput'] = DBManager.fetch_all_data(curs, sql, (param[StrConstant.PARAM_DEVICE_ID],
-                                                                     param['llc_id'],
-                                                                     NumberConstant.DEFAULT_START_TIME,
-                                                                     NumberConstant.DEFAULT_END_TIME))
-    metric_data['Hit Rate'] = DBManager.fetch_all_data(curs, sql_, (param[StrConstant.PARAM_DEVICE_ID],
-                                                                    param['llc_id'],
-                                                                    NumberConstant.DEFAULT_START_TIME,
-                                                                    NumberConstant.DEFAULT_END_TIME))
+    sql = (
+        'SELECT timestamp, throughput FROM {0} WHERE device_id = ? AND l3tId = ? AND timestamp between ? and ?;'.format(  # nosec B608
+            StrConstant.LLC_METRICS_TABLE
+        )
+    )
+    sql_ = 'SELECT timestamp, hitRate FROM {0} WHERE device_id = ? AND l3tId = ? AND timestamp between ? and ?;'.format(  # nosec B608
+        StrConstant.LLC_METRICS_TABLE
+    )
+    metric_data['Throughput'] = DBManager.fetch_all_data(
+        curs,
+        sql,
+        (
+            param[StrConstant.PARAM_DEVICE_ID],
+            param['llc_id'],
+            NumberConstant.DEFAULT_START_TIME,
+            NumberConstant.DEFAULT_END_TIME,
+        ),
+    )
+    metric_data['Hit Rate'] = DBManager.fetch_all_data(
+        curs,
+        sql_,
+        (
+            param[StrConstant.PARAM_DEVICE_ID],
+            param['llc_id'],
+            NumberConstant.DEFAULT_START_TIME,
+            NumberConstant.DEFAULT_END_TIME,
+        ),
+    )
     return metric_data
 
 
@@ -344,17 +418,15 @@ def _reformat_ddr_data(trace_parser: any, data_total: dict) -> list:
     legends = OrderedDict()
     ddr_events = {"Read": ["Read(MB/s)"], "Write": ["Write(MB/s)"]}
     meta_data = [
-        ["process_name", InfoConfReader().get_json_pid_data(),
-         InfoConfReader().get_json_tid_data(), trace_parser.scope]
+        ["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), trace_parser.scope]
     ]
     _result = TraceViewManager.metadata_event(meta_data)
     for _direct in ["Read", "Write"]:
         results['DDR/{}'.format(_direct)] = data_total.get(_direct, 0)
         legends['DDR/{}'.format(_direct)] = ddr_events.get(_direct, 0)
         _result += trace_parser.multiple_name_dump(
-            results, legends, delta_dev,
-            InfoConfReader().get_json_pid_data(),
-            InfoConfReader().get_json_tid_data())
+            results, legends, delta_dev, InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data()
+        )
     return _result
 
 
@@ -388,15 +460,17 @@ def get_ddr_metric_data(param: dict, curs: any) -> dict:
         for key, value in ddr_events.items():
             # If the end time is equal to 0, output data for all time
             if abs(param['end_time'] - 0) <= NumberConstant.FLT_EPSILON:
-                sql = 'select timestamp,{} ' \
-                      'from DDRMetricData where device_id = ?;'.format(key)
+                sql = 'select timestamp,{} from DDRMetricData where device_id = ?;'.format(key)  # nosec B608
                 ddr_training_data = DBManager.fetch_all_data(curs, sql, (param['device_id']))
             else:
-                sql = 'select timestamp,{} from DDRMetricData where device_id = ? and ' \
-                      'timestamp between ? and ?;'.format(key)
-                ddr_training_data = DBManager.fetch_all_data(curs, sql, (param['device_id'],
-                                                                         param['start_time'],
-                                                                         param['end_time']))
+                sql = (
+                    'select timestamp,{} from DDRMetricData where device_id = ? and timestamp between ? and ?;'.format(  # nosec B608
+                        key
+                    )
+                )
+                ddr_training_data = DBManager.fetch_all_data(
+                    curs, sql, (param['device_id'], param['start_time'], param['end_time'])
+                )
             if ddr_training_data:
                 result_data[value] = ddr_training_data
 
@@ -427,14 +501,13 @@ def _reformat_hbm_data(trace_parser: any, param: dict, curs: any) -> list:
                 "process_name",
                 InfoConfReader().get_json_pid_data(),
                 InfoConfReader().get_json_tid_data(),
-                trace_parser.scope
+                trace_parser.scope,
             ]
         ]
         _result = TraceViewManager.metadata_event(meta_data)
-        delta_dev = InfoConfReader().get_delta_time()
-        _result += trace_parser.multiple_name_dump(results, legends, delta_dev,
-                                                   InfoConfReader().get_json_pid_data(),
-                                                   InfoConfReader().get_json_tid_data())
+        _result += _multiple_name_dump_with_absolute_ns(
+            trace_parser, results, legends, InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data()
+        )
     return _result
 
 
@@ -475,20 +548,17 @@ def get_hbm_bw_data(param: dict, curs: any) -> dict:
         for key, value in hbm_events.items():
             # If the end time is equal to 0, output data for all time
             if abs(param['end_time'] - 0) <= NumberConstant.FLT_EPSILON:
-                sql = 'select timestamp, bandwidth from HBMbwData ' \
-                      'where device_id = ? and hbmId = ? and event_type=?;'
-                result_data[value] = DBManager.fetch_all_data(curs, sql, (param['device_id'],
-                                                                          param['hbm_id'],
-                                                                          key))
+                sql = 'select timestamp, bandwidth from HBMbwData where device_id = ? and hbmId = ? and event_type=?;'
+                result_data[value] = DBManager.fetch_all_data(curs, sql, (param['device_id'], param['hbm_id'], key))
             else:
-                sql = 'select timestamp, bandwidth from HBMbwData ' \
-                      'where device_id = ? and hbmId = ? and event_type=? and ' \
-                      'timestamp between ? and ?'
-                result_data[value] = DBManager.fetch_all_data(curs, sql, (param['device_id'],
-                                                                          param['hbm_id'],
-                                                                          key,
-                                                                          param['start_time'],
-                                                                          param['end_time']))
+                sql = (
+                    'select timestamp, bandwidth from HBMbwData '
+                    'where device_id = ? and hbmId = ? and event_type=? and '
+                    'timestamp between ? and ?'
+                )
+                result_data[value] = DBManager.fetch_all_data(
+                    curs, sql, (param['device_id'], param['hbm_id'], key, param['start_time'], param['end_time'])
+                )
         return result_data
     except (OSError, SystemError, ValueError, TypeError, RuntimeError):
         logging.error("Get HBM data failed.")

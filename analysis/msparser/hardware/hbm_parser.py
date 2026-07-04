@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 # -------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
@@ -16,7 +17,6 @@
 
 import logging
 import os
-import struct
 
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
@@ -31,7 +31,28 @@ from common_func.path_manager import PathManager
 from framework.offset_calculator import OffsetCalculator
 from msmodel.hardware.hbm_model import HbmModel
 from msparser.data_struct_size_constant import StructFmt
+from msparser.versioned_struct_parser import VersionedStructParser
+from msparser.versioned_struct_parser import VersionedStructSpec
 from profiling_bean.prof_enum.data_tag import DataTag
+
+
+def decode_hbm_v1(record: tuple) -> tuple:
+    timestamp, count, event_id, hbm_id = record
+    timestamp = InfoConfReader().get_absolute_time_by_sampling_timestamp(timestamp)
+    event_type = 'read' if event_id == 0 else 'write'
+    return timestamp, count, event_type, hbm_id
+
+
+def decode_hbm_v2(record: tuple) -> tuple:
+    _, _, event_id, hbm_id, count, timestamp = record
+    event_type = 'read' if event_id == 0 else 'write'
+    return timestamp, count, event_type, hbm_id
+
+
+HBM_STRUCT_SPECS = {
+    "1.0": VersionedStructSpec(StructFmt.HBM_FMT, StructFmt.HBM_FMT_SIZE, decode_hbm_v1),
+    "2.0": VersionedStructSpec(StructFmt.HBM_FMT_V2, StructFmt.HBM_FMT_SIZE_V2, decode_hbm_v2),
+}
 
 
 class ParsingHBMData(MsMultiProcess):
@@ -45,16 +66,12 @@ class ParsingHBMData(MsMultiProcess):
         self.sample_config = sample_config
         self._file_list = file_list.get(DataTag.HBM, [])
         self.project_path = sample_config.get("result_dir", "")
-        self.calculate = OffsetCalculator(self._file_list, StructFmt.HBM_FMT_SIZE, self.project_path)
-        self._model = HbmModel(self.project_path, DBNameConstant.DB_HBM,
-                               [DBNameConstant.TABLE_HBM_ORIGIN, DBNameConstant.TABLE_HBM_BW])
+        self._struct_parser = VersionedStructParser("HBM", HBM_STRUCT_SPECS)
+        self.calculate = OffsetCalculator(self._file_list, self._struct_parser.spec.size, self.project_path)
+        self._model = HbmModel(
+            self.project_path, DBNameConstant.DB_HBM, [DBNameConstant.TABLE_HBM_ORIGIN, DBNameConstant.TABLE_HBM_BW]
+        )
         self._file_list.sort(key=lambda x: int(x.split("_")[-1]))
-
-    @staticmethod
-    def _update_hbm_data(start_time: int, item: list, headers: list) -> tuple:
-        item[0] = start_time + item[0] * NumberConstant.USTONS
-        item[2] = '{}'.format('read' if item[2] == 0 else 'write')
-        return tuple(headers + item)
 
     def read_binary_data(self: any, file_name: str, device_id: str, replay_id: str) -> int:
         """
@@ -68,13 +85,8 @@ class ParsingHBMData(MsMultiProcess):
         try:
             with FileOpen(hbm_file, "rb") as hbm_f:
                 hbm_data = self.calculate.pre_process(hbm_f.file_reader, _file_size)
-                struct_nums = _file_size // StructFmt.HBM_FMT_SIZE
-                struct_data = struct.unpack(StructFmt.BYTE_ORDER_CHAR + StructFmt.HBM_FMT * struct_nums,
-                                            hbm_data)
-                start_time = InfoConfReader().get_start_timestamp()
-                for i in range(struct_nums):
-                    self.hbm_data.append(self._update_hbm_data(start_time, list(struct_data[i * 4:(i + 1) * 4]),
-                                                               [device_id, replay_id]))
+                for item in self._struct_parser.iter_decoded_records(hbm_data):
+                    self.hbm_data.append(tuple([device_id, replay_id] + list(item)))
             return NumberConstant.SUCCESS
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error("%s: %s", file_name, err, exc_info=Constant.TRACE_BACK_SWITCH)

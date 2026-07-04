@@ -15,10 +15,7 @@
 # -------------------------------------------------------------------------
 
 import logging
-import struct
-
 from common_func.constant import Constant
-from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.struct_info.struct_decoder import StructDecoder
 
 
@@ -65,20 +62,20 @@ class NpuMemDataBean(StructDecoder):
         """
         return self._timestamp
 
-    def npu_mem_decode(self: any, bin_data: any) -> any:
+    def npu_mem_decode(self: any, record: any) -> any:
         """
-        decode the npu mem bin data
-        :param bin_data: npu mem bin data
+        decode the npu mem data
+        :param record: unpacked npu mem record
         :return: instance of npu mem
         """
-        if self.construct_bean(struct.unpack(StructFmt.NPU_MEM_FMT, bin_data)):
+        if self.construct_bean(record):
             return self
         return {}
 
     def construct_bean(self: any, *args: dict) -> bool:
         """
         refresh the npu mem data
-        :param args: npu mem bin data
+        :param args: unpacked npu mem data
         :return: True or False
         """
         _npu_mem_data = args[0]
@@ -87,6 +84,23 @@ class NpuMemDataBean(StructDecoder):
             self._ddr = _npu_mem_data[3]
             self._hbm = _npu_mem_data[4]
             self._timestamp = _npu_mem_data[0]
+            return True
+        logging.error("NPU mem data struct is incomplete, please check the npu mem file.")
+        return False
+
+
+class NpuMemDataBeanV2(NpuMemDataBean):
+    """
+    Npu mem data bean for collection version 2.0 parsing.
+    """
+
+    def construct_bean(self: any, *args: dict) -> bool:
+        _npu_mem_data = args[0]
+        if _npu_mem_data:
+            self._event = _npu_mem_data[1]
+            self._timestamp = _npu_mem_data[2]
+            self._ddr = _npu_mem_data[3]
+            self._hbm = _npu_mem_data[4]
             return True
         logging.error("NPU mem data struct is incomplete, please check the npu mem file.")
         return False

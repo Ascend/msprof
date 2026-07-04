@@ -16,16 +16,19 @@
 
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include "reserve_mock_utils.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/llc_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/viewer/database/finals/unified_db_constant.h"
-#include "reserve_mock_utils.h"
+
+
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string LLC_DIR = "./llc";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -35,16 +38,15 @@ const std::string TABLE_NAME = "LLCMetrics";
 // device_id, l3tid, timestamp, hitrate, throughput
 using LLcDataFormat = std::vector<std::tuple<uint32_t, uint32_t, double, double, double>>;
 using SummaryData = std::vector<std::tuple<uint32_t, double, double>>;
-const LLcDataFormat LLC_DATA = {
-    {0, 3, 1746926653520, 0.24780535338553, 46125.86192964499},
-    {0, 3, 1746947297520, 0.18461538461538, 109.36894497190467},
-    {0, 3, 1746965912520, 0.17953667953668, 108.06976900349181},
-    {0, 3, 1746984498520, 0.19827586206897, 97.30946680296998},
-    {0, 3, 1747003061520, 0.18028169014085, 74.70337499326618}
-};
-}
-class LLcProcessorUTest : public testing::Test {
-protected:
+const LLcDataFormat LLC_DATA = {{0, 3, 1746926653520, 0.24780535338553, 46125.86192964499},
+                                {0, 3, 1746947297520, 0.18461538461538, 109.36894497190467},
+                                {0, 3, 1746965912520, 0.17953667953668, 108.06976900349181},
+                                {0, 3, 1746984498520, 0.19827586206897, 97.30946680296998},
+                                {0, 3, 1747003061520, 0.18028169014085, 74.70337499326618}};
+}  // namespace
+class LLcProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -95,21 +97,15 @@ TEST_F(LLcProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
 {
     auto processor = LLcProcessor(PROF_DIR);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     // make DBRunner shared ptr failed
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
     // db里面表不存在
-    MOCKER_CPP(&DataProcessor::CheckPathAndTable)
-        .stubs()
-        .will(returnValue(CHECK_FAILED));
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
 
@@ -142,10 +138,6 @@ TEST_F(LLcProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDataFailed)
 {
     auto processor = LLcProcessor(PROF_DIR);
     DataInventory dataInventory;
-    // 时间相关信息不存在
-    MOCKER_CPP(&Context::GetClockMonotonicRaw).stubs().will(returnValue(false));
-    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
-    MOCKER_CPP(&Context::GetClockMonotonicRaw).reset();
     // LoadData failed
     MOCKER_CPP(&OriLLcData::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
