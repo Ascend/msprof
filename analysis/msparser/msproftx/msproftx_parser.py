@@ -39,11 +39,12 @@ class MsprofTxParser(IParser, MsMultiProcess):
     """
     parsing MsprofTx data class
     """
+
     EVENT_DICT = {
         NumberConstant.MARKER: 'marker',
         NumberConstant.PUSH_AND_POP: 'push/pop',
         NumberConstant.START_AND_END: 'start/end',
-        NumberConstant.MARKER_EX: 'marker_ex'
+        NumberConstant.MARKER_EX: 'marker_ex',
     }
     TX_INFO_TYPE = 0
     TX_EX_INFO_TYPE = 1
@@ -54,7 +55,7 @@ class MsprofTxParser(IParser, MsMultiProcess):
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH, '')
         self._cur_file_list = []
         self._msproftx_data = []
-        self._msproftx_ex_data = []
+        self._msproftx_ex_data_dict = {}
 
     def parse(self: any) -> None:
         """
@@ -75,13 +76,46 @@ class MsprofTxParser(IParser, MsMultiProcess):
         :return: None
         """
         if self._msproftx_data:
-            with MsprofTxModel(self._project_path, DBNameConstant.DB_MSPROFTX,
-                               [DBNameConstant.TABLE_MSPROFTX]) as tx_model:
+            with MsprofTxModel(
+                self._project_path, DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX]
+            ) as tx_model:
                 tx_model.flush(self._msproftx_data)
-        if self._msproftx_ex_data:
-            with MsprofTxExModel(self._project_path, DBNameConstant.DB_MSPROFTX,
-                             [DBNameConstant.TABLE_MSPROFTX_EX]) as tx_ex_model:
-                tx_ex_model.flush(self._msproftx_ex_data)
+        msproftx_ex_data = []
+        hash_data = HashDictData(self._project_path).get_ge_hash_dict()
+        if self._msproftx_ex_data_dict:
+            for mark_id, obj_list in self._msproftx_ex_data_dict.items():
+                obj_list.sort(key=lambda x: x.seg_idx)  # sort by seg_idx
+                seg_all = [obj.seg_idx for obj in obj_list]
+
+                # seg_idx should be continuous and start from 0, if not, log a warning
+                missing_segs = set(range(0, obj_list[-1].seg_idx + 1)) - set(seg_all)
+                if missing_segs:
+                    logging.warning(
+                        "mark_id=%s segment lost, missing seg index: %s, received seg indices: %s",
+                        mark_id,
+                        missing_segs,
+                        seg_all,
+                    )
+
+                full_msg = "".join(obj.message for obj in obj_list)  # concatenate message by seg_idx
+                first_obj = obj_list[0]
+                domain_str = str(first_obj.domain)
+                final_row = (
+                    first_obj.process_id,
+                    first_obj.thread_id,
+                    self.EVENT_DICT.get(first_obj.event_type, ''),
+                    first_obj.start_time,
+                    first_obj.end_time,
+                    mark_id,
+                    hash_data.get(domain_str, 'invalid'),
+                    full_msg,
+                )
+                msproftx_ex_data.append(final_row)
+            if msproftx_ex_data:
+                with MsprofTxExModel(
+                    self._project_path, DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX_EX]
+                ) as tx_ex_model:
+                    tx_ex_model.flush(msproftx_ex_data)
 
     def ms_run(self: any) -> None:
         """
@@ -100,27 +134,31 @@ class MsprofTxParser(IParser, MsMultiProcess):
         """
         parsing msproftx data and insert into msproftx.db
         """
-        hash_data = HashDictData(self._project_path).get_ge_hash_dict()
-        calculate = OffsetCalculator(self._cur_file_list, StructFmt.MSPROFTX_FMT_SIZE,
-                                     self._project_path)
+        calculate = OffsetCalculator(self._cur_file_list, StructFmt.MSPROFTX_FMT_SIZE, self._project_path)
         msproftx_file = PathManager.get_data_file_path(self._project_path, file_name)
         with FileOpen(msproftx_file, 'rb') as msproftx_f:
             msproftx_data = calculate.pre_process(msproftx_f.file_reader, os.path.getsize(msproftx_file))
             for chunk in Utils.chunks(msproftx_data, StructFmt.MSPROFTX_FMT_SIZE):
                 data_object = MsprofTxDecoder.decode(chunk)
                 if data_object.info_type == MsprofTxParser.TX_INFO_TYPE:
-                    self._msproftx_data.append((data_object.process_id, data_object.thread_id,
-                                                data_object.category, self.EVENT_DICT.get(data_object.event_type, ''),
-                                                data_object.payload_type, data_object.payload_value,
-                                                data_object.start_time, data_object.end_time,
-                                                data_object.message_type,
-                                                data_object.message))
+                    self._msproftx_data.append(
+                        (
+                            data_object.process_id,
+                            data_object.thread_id,
+                            data_object.category,
+                            self.EVENT_DICT.get(data_object.event_type, ''),
+                            data_object.payload_type,
+                            data_object.payload_value,
+                            data_object.start_time,
+                            data_object.end_time,
+                            data_object.message_type,
+                            data_object.message,
+                        )
+                    )
                 elif data_object.info_type == MsprofTxParser.TX_EX_INFO_TYPE:
-                    domain_str = str(data_object.domain)
-                    self._msproftx_ex_data.append((data_object.process_id, data_object.thread_id,
-                                                   self.EVENT_DICT.get(data_object.event_type, ''),
-                                                   data_object.start_time, data_object.end_time,
-                                                   data_object.mark_id, hash_data.get(domain_str, 'invalid'),
-                                                   data_object.message))
+                    mark_id = data_object.mark_id
+                    if mark_id not in self._msproftx_ex_data_dict:
+                        self._msproftx_ex_data_dict[mark_id] = []
+                    self._msproftx_ex_data_dict[mark_id].append(data_object)
                 else:
                     logging.error("Invalid info_type: %d", data_object.info_type)

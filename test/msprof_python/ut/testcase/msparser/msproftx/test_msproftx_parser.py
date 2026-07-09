@@ -86,28 +86,16 @@ class TestMsprofTxParser(unittest.TestCase):
             check = MsprofTxParser(self.file_list, self.CONFIG)
             check.parse()
             self.assertFalse(check._msproftx_data)
-            self.assertFalse(check._msproftx_ex_data)
+            self.assertFalse(check._msproftx_ex_data_dict)
 
-    def test_parse_should_parse_success_when_open_file_success(self):
+    def test_parse_should_run_success_when_open_file_success(self):
         with mock.patch(NAMESPACE + '.logging.error'):
             InfoConfReader()._info_json = {'devices': '0'}
             check = MsprofTxParser(self.file_list, self.CONFIG)
             check.parse()
             self.assertTrue(check._msproftx_data)
-            self.assertTrue(check._msproftx_ex_data)
-
-    def test_save_with_msproftx_data(self):
-        with mock.patch('msmodel.msproftx.msproftx_model.MsprofTxModel.flush'):
-            InfoConfReader()._info_json = {"devices": '0'}
-            check = MsprofTxParser(self.file_list, self.CONFIG)
-            check._msproftx_data = [123]
+            self.assertTrue(check._msproftx_ex_data_dict)
             check.save()
-
-    def test_save_with_msproftx_data(self):
-        with mock.patch('msmodel.msproftx.msproftx_model.MsprofTxExModel.flush'):
-            InfoConfReader()._info_json = {"devices": '0'}
-            check = MsprofTxParser(self.file_list, self.CONFIG)
-            check._msproftx_ex_data = [123]
             check.save()
 
     def test_ms_run(self):

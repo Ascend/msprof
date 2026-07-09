@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-from common_func.constant import Constant
 
 from profiling_bean.struct_info.struct_decoder import StructDecoder
 
@@ -28,6 +27,7 @@ class MsprofTxDecoder(StructDecoder):
         filed = args[0]
         self._magic = filed[0]
         self._info_type = filed[6]
+        self._seg_idx = filed[7]
         self._data_tag = filed[10]
         self._process_id = filed[11]
         self._thread_id = filed[12]
@@ -49,6 +49,10 @@ class MsprofTxDecoder(StructDecoder):
     @property
     def info_type(self: any) -> int:
         return self._info_type
+
+    @property
+    def seg_idx(self: any) -> int:
+        return self._seg_idx
 
     @property
     def data_tag(self: any) -> int:
