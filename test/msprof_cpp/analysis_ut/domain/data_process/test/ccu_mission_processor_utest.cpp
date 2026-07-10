@@ -68,6 +68,7 @@ MissionSeedData BuildMissionData()
 ChannelSeedData BuildChannelData()
 {
     return {
+        {4, 9000, 0, 0, 999},
         {3, 3000, 0, 0, 88},
         {4, 7500, 0, 0, 120},
         {5, 9000, 0, 0, 999}
@@ -237,6 +238,65 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
     EXPECT_TRUE(waitData->hasDelayChannel);
     EXPECT_EQ(4, waitData->maxDelayChannel);
     EXPECT_EQ(120u, waitData->maxChannelDelay);
+}
+
+TEST_F(CcuMissionProcessorUTest, TestRunShouldUsePrefixMaxDelayForChannelZero)
+{
+    std::shared_ptr<DBRunner> ccuDbRunner;
+    MAKE_SHARED_RETURN_VOID(ccuDbRunner, DBRunner, CCU_DB_PATH);
+    ChannelSeedData channelData {
+        {0, 7900, 0, 0, 77},
+        {4, 7500, 0, 0, 120},
+        {0, 7000, 0, 0, 150},
+        {0, 8000, 0, 0, 999},
+        {0, 9000, 0, 0, 1000}
+    };
+    EXPECT_TRUE(ccuDbRunner->DeleteData("DELETE FROM " + CHANNEL_TABLE));
+    EXPECT_TRUE(ccuDbRunner->InsertData(CHANNEL_TABLE, channelData));
+
+    std::shared_ptr<DBRunner> addInfoDbRunner;
+    MAKE_SHARED_RETURN_VOID(addInfoDbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
+    WaitSeedData waitData {
+        {1, 10, 200, 0, 255, 0},
+        {1, 10, 200, 0, 255, 0},
+        {1, 10, 200, 0, 255, 4}
+    };
+    EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + WAIT_TABLE));
+    EXPECT_TRUE(addInfoDbRunner->InsertData(WAIT_TABLE, waitData));
+
+    DataInventory dataInventory;
+    CCUMissionProcessor processor(PROF_PATH);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CCU_MISSION));
+
+    auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
+    ASSERT_NE(nullptr, ccuData);
+    const auto *waitTimelineData = FindByType(*ccuData, CCU_TIME_TYPE_WAIT);
+    ASSERT_NE(nullptr, waitTimelineData);
+    EXPECT_TRUE(waitTimelineData->hasDelayChannel);
+    EXPECT_EQ(0, waitTimelineData->maxDelayChannel);
+    EXPECT_EQ(150u, waitTimelineData->maxChannelDelay);
+}
+
+TEST_F(CcuMissionProcessorUTest, TestRunShouldIgnoreChannelSamplesAtOrAfterMissionEnd)
+{
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_DB_PATH);
+    ChannelSeedData channelData {
+        {3, 8000, 0, 0, 88},
+        {4, 9000, 0, 0, 120}
+    };
+    EXPECT_TRUE(dbRunner->DeleteData("DELETE FROM " + CHANNEL_TABLE));
+    EXPECT_TRUE(dbRunner->InsertData(CHANNEL_TABLE, channelData));
+
+    DataInventory dataInventory;
+    CCUMissionProcessor processor(PROF_PATH);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CCU_MISSION));
+
+    auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
+    ASSERT_NE(nullptr, ccuData);
+    const auto *waitData = FindByType(*ccuData, CCU_TIME_TYPE_WAIT);
+    ASSERT_NE(nullptr, waitData);
+    EXPECT_FALSE(waitData->hasDelayChannel);
 }
 
 TEST_F(CcuMissionProcessorUTest, TestRunShouldReturnFalseWhenGetSyscntConversionParamsFailed)

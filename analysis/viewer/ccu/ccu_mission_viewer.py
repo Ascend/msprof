@@ -50,11 +50,13 @@ class CCUMissionViewer(BaseViewer, ABC):
             DataTag.CCU_CHANNEL: (CCUViewerChannelModel, ccu_device_path),
         }
         if os.path.exists(ccu_add_info_path):
-            self.model_list.update({
-                DataTag.CCU_TASK: (CCUViewerTaskInfoModel, ccu_add_info_path),
-                DataTag.CCU_WAIT_SIGNAL: (CCUViewerWaitSignalInfoModel, ccu_add_info_path),
-                DataTag.CCU_GROUP: (CCUViewerGroupInfoModel, ccu_add_info_path)
-            })
+            self.model_list.update(
+                {
+                    DataTag.CCU_TASK: (CCUViewerTaskInfoModel, ccu_add_info_path),
+                    DataTag.CCU_WAIT_SIGNAL: (CCUViewerWaitSignalInfoModel, ccu_add_info_path),
+                    DataTag.CCU_GROUP: (CCUViewerGroupInfoModel, ccu_add_info_path),
+                }
+            )
         self.pid = InfoConfReader().get_json_pid_data()
         self.tid = InfoConfReader().get_json_tid_data()
 
@@ -62,26 +64,36 @@ class CCUMissionViewer(BaseViewer, ABC):
     def format_mission_summary_data(summary_data: list) -> list:
         return [
             (
-                data.stream_id, data.task_id, data.lp_instr_id,
+                data.stream_id,
+                data.task_id,
+                data.lp_instr_id,
                 format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(data.lp_start_time)),
                 format_high_precision_for_csv(
-                    str(InfoConfReader().duration_from_syscnt(data.lp_end_time - data.lp_start_time))),
-                data.setckebit_instr_id, data.rel_id,
+                    str(InfoConfReader().duration_from_syscnt(data.lp_end_time - data.lp_start_time))
+                ),
+                data.setckebit_instr_id,
+                data.rel_id,
                 format_high_precision_for_csv(
-                    str(InfoConfReader().duration_from_syscnt(data.rel_end_time - data.setckebit_start_time)))
-            ) for data in summary_data
+                    str(InfoConfReader().duration_from_syscnt(data.rel_end_time - data.setckebit_start_time))
+                ),
+            )
+            for data in summary_data
         ]
 
     @staticmethod
-    def get_max_delay_channel_and_channel_delay(host_data: list, mission_data: any, channel_data: list) -> any:
+    def get_max_delay_channel_and_channel_delay(host_data: list, mission_data: any, channel_data: dict) -> any:
         if not channel_data:
             return None, None
         host_channel_ids = {channel.channel_id for channel in host_data}
-        within_channel = [channel for channel in channel_data if channel.channel_id in host_channel_ids]
-        seq_channel = [channel
-                       for channel in within_channel
-                       if channel.timestamp < mission_data.end_time
-                       ]
+
+        within_channel = []
+        for host_channel_id in host_channel_ids:
+            if host_channel_id in channel_data:
+                within_channel.extend(channel_data[host_channel_id])
+        if not within_channel:
+            return None, None
+
+        seq_channel = [channel for channel in within_channel if channel.timestamp < mission_data.end_time]
         if seq_channel:
             max_delay_channel = max(seq_channel, key=lambda x: x.avg_bw)
             return max_delay_channel.channel_id, max_delay_channel.avg_bw
@@ -89,11 +101,8 @@ class CCUMissionViewer(BaseViewer, ABC):
 
     def get_timeline_header(self) -> list:
         header = [
-            ["process_name",
-             self.pid, self.tid,
-             TraceViewHeaderConstant.PROCESS_CCU],
-            ["thread_name",
-             self.pid, self.tid, TraceViewHeaderConstant.PROCESS_COMMUNICATION],
+            ["process_name", self.pid, self.tid, TraceViewHeaderConstant.PROCESS_CCU],
+            ["thread_name", self.pid, self.tid, TraceViewHeaderConstant.PROCESS_COMMUNICATION],
         ]
         return TraceViewManager.metadata_event(header)
 
@@ -149,19 +158,17 @@ class CCUMissionViewer(BaseViewer, ABC):
         ccu_mission_data = ccu_data_dict.get(DataTag.CCU_MISSION, [])
         loop_data = [data for data in ccu_mission_data if data.time_type == 'LoopGroup']
         wait_data = [data for data in ccu_mission_data if data.time_type == 'Wait']
-        result.extend(self.get_formatted_loop_data(
-            loop_data,
-            ccu_data_dict.get(DataTag.CCU_GROUP, [])
-        ))
-        result.extend(self.get_formatted_wait_data(
-            wait_data,
-            ccu_data_dict.get(DataTag.CCU_WAIT_SIGNAL, []),
-            ccu_data_dict.get(DataTag.CCU_CHANNEL, [])
-        ))
+        result.extend(self.get_formatted_loop_data(loop_data, ccu_data_dict.get(DataTag.CCU_GROUP, [])))
+        result.extend(
+            self.get_formatted_wait_data(
+                wait_data, ccu_data_dict.get(DataTag.CCU_WAIT_SIGNAL, []), ccu_data_dict.get(DataTag.CCU_CHANNEL, [])
+            )
+        )
         if not result:
             return []
         return self.get_timeline_header() + TraceViewManager.time_graph_trace(
-            TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result)
+            TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result
+        )
 
     def get_summary_data(self: any) -> tuple:
         """
@@ -189,35 +196,20 @@ class CCUMissionViewer(BaseViewer, ABC):
             start_time = InfoConfReader().trans_syscnt_into_local_time(data.start_time)
             duration = InfoConfReader().duration_from_syscnt(data.end_time - data.start_time)
             host_data = grouped_group_data.get(key, [])
-            args = {
-                "Physic Stream Id": data.stream_id,
-                "Task Id": data.task_id,
-                "Instruction ID": data.lp_instr_id
-            }
+            args = {"Physic Stream Id": data.stream_id, "Task Id": data.task_id, "Instruction ID": data.lp_instr_id}
             if host_data:
-                args.update({
-                    "Die Id": host_data[0].die_id,
-                    "Data Size": host_data[0].data_size
-                })
+                args.update({"Die Id": host_data[0].die_id, "Data Size": host_data[0].data_size})
                 if duration != 0:
-                    args.update({
-                        "Bandwidth (MB/s)": host_data[0].data_size / duration * Constant.BYTE_US_TO_MB_S
-                    })
+                    args.update({"Bandwidth (MB/s)": host_data[0].data_size / duration * Constant.BYTE_US_TO_MB_S})
                 if host_data[0].reduce_op_type != CCUMissionViewer.RESERVED:
-                    args.update({
-                        "Reduce Op Type": host_data[0].reduce_op_type,
-                        "Input Data Type": host_data[0].input_data_type,
-                        "Output Data Type": host_data[0].output_data_type
-                    })
-            result.append(
-                [
-                    data.time_type,
-                    self.pid, self.tid,
-                    start_time,
-                    duration if duration > 0 else 0,
-                    args
-                ]
-            )
+                    args.update(
+                        {
+                            "Reduce Op Type": host_data[0].reduce_op_type,
+                            "Input Data Type": host_data[0].input_data_type,
+                            "Output Data Type": host_data[0].output_data_type,
+                        }
+                    )
+            result.append([data.time_type, self.pid, self.tid, start_time, duration if duration > 0 else 0, args])
         return result
 
     def get_formatted_wait_data(self, wait_data, wait_signal_data, channel_data):
@@ -234,6 +226,12 @@ class CCUMissionViewer(BaseViewer, ABC):
             key = (item.task_id, item.instr_id)
             grouped_wait_signal_data[key].append(item)
 
+        # channel data is classified by channel_id for easy access when calculating max delay channel and channel delay
+        channel_data_classified = defaultdict(list)
+        for item in channel_data:
+            key = item.channel_id
+            channel_data_classified[key].append(item)
+
         for key, data_list in grouped_loop_data.items():
             latest_data = max(data_list, key=lambda x: x.end_time)
             start_time = InfoConfReader().trans_syscnt_into_local_time(latest_data.start_time)
@@ -243,31 +241,19 @@ class CCUMissionViewer(BaseViewer, ABC):
                 "Physic Stream Id": latest_data.stream_id,
                 "Task Id": latest_data.task_id,
                 "Notify Instruction ID": latest_data.setckebit_instr_id,
-                "Notify Rank ID": latest_data.rel_id
+                "Notify Rank ID": latest_data.rel_id,
             }
             if host_data:
-                args.update({
-                    "Die Id": host_data[0].die_id,
-                    "Mask": host_data[0].mask
-                })
+                args.update({"Die Id": host_data[0].die_id, "Mask": host_data[0].mask})
                 max_delay_channel, max_channel_delay = self.get_max_delay_channel_and_channel_delay(
-                    host_data,
-                    latest_data,
-                    channel_data
+                    host_data, latest_data, channel_data_classified
                 )
                 if max_delay_channel and max_channel_delay:
-                    args.update({
-                        "Maximum Delay Channel": max_delay_channel,
-                        "Maximum Channel Delay": max_channel_delay
-                    })
+                    args.update(
+                        {"Maximum Delay Channel": max_delay_channel, "Maximum Channel Delay": max_channel_delay}
+                    )
 
             result.append(
-                [
-                    latest_data.time_type,
-                    self.pid, self.tid,
-                    start_time,
-                    duration if duration > 0 else 0,
-                    args
-                ]
+                [latest_data.time_type, self.pid, self.tid, start_time, duration if duration > 0 else 0, args]
             )
         return result
