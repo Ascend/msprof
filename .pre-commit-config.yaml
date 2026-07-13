@@ -1,5 +1,5 @@
 minimum_pre_commit_version: 4.0.0
-exclude: ^LICENSES/|^test/st/|\.(html|csv|svg)$|.*_utest\.cpp$|^test/.*\.cpp$|^test_.*\.py$|.*/test_.*\.py$
+exclude: ^LICENSES/|^test/st/|^\.pre-commit-config\.yaml$|\.(html|csv|svg)$|.*_utest\.cpp$|^test/.*\.cpp$|^test_.*\.py$|.*/test_.*\.py$
 
 default_stages: [pre-commit]
 ci:
@@ -84,3 +84,19 @@ repos:
           - "--verbose"
           - "-i"
         exclude: ^build/|tests/third_party/
+
+  # -------------------------- Gitleaks 本地离线二进制扫描 --------------------------
+  - repo: local
+    hooks:
+      - id: gitleaks-offline-scan
+        name: Gitleaks Secret Scan(Local Binary)
+        entry: ./gitleaks
+        language: system
+        pass_filenames: true
+        exclude: ^\.pre-commit-config\.yaml$
+        args:
+          - protect
+          - --verbose
+          - --redact
+          - --config=pre-commit/.gitleaks.toml
+        stages: [pre-commit]
