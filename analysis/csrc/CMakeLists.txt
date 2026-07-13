@@ -55,8 +55,12 @@ add_library(msprof_analysis SHARED ${SOURCES})
 find_package(Python REQUIRED COMPONENTS Development)
 find_package(SQLite3 REQUIRED)
 
+# 从 find_package 找到的绝对路径中提取库目录，用于构建时链接器搜索
+# 链接仍使用 -lsqlite3，避免将构建镜像的绝对路径嵌入 NEEDED，保证运行时可在 LD_LIBRARY_PATH 中查找
+get_filename_component(SQLite3_LIB_DIR ${SQLite3_LIBRARIES} DIRECTORY)
+
 target_include_directories(msprof_analysis PRIVATE
-    ${SQLite3_INCLUDE_DIR}
+    ${SQLite3_INCLUDE_DIRS}
     /usr/local/include/
     ${Python_INCLUDE_DIRS}
     ${TOP_DIR}
@@ -91,11 +95,12 @@ target_link_options(msprof_analysis PRIVATE
 )
 
 target_link_directories(msprof_analysis PRIVATE
+    ${SQLite3_LIB_DIR}
     ${SECUREC_LIB_DIR}
 )
 
 target_link_libraries(msprof_analysis PRIVATE
-    SQLite::SQLite3
+    -lsqlite3
     -lpthread
     c_sec
 )
