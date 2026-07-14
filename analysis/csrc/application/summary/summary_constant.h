@@ -39,6 +39,7 @@ const std::string TASK_TIME_SUMMARY_NAME = "task_time";
 const std::string STEP_TRACE_SUMMARY_NAME = "step_trace";
 const std::string COMM_STATISTIC_NAME = "communication_statistic";
 const std::string OP_STATISTIC_NAME = "op_statistic";
+const std::string PAGE_FAULT_NAME = "page_fault";
 
 const std::string SUMMARY_SUFFIX = ".csv";
 const std::string SLICE = "slice";

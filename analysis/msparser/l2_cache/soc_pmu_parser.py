@@ -47,6 +47,7 @@ class SocPmuParser(IParser, MsMultiProcess):
         self._model = SocPmuModel(self._project_path, [DBNameConstant.TABLE_SOC_PMU])
         self._soc_pmu_data = []
         self._ha_data = []
+        self._page_fault = []
 
     @staticmethod
     def _check_file_complete(file_path: str) -> int:
@@ -66,6 +67,9 @@ class SocPmuParser(IParser, MsMultiProcess):
         if self._ha_data:
             with L2CacheParserModel(self._project_path, [DBNameConstant.TABLE_L2CACHE_PARSE]) as _model:
                 _model.flush(self._ha_data)
+        if self._page_fault:
+            with SocPmuModel(self._project_path, [DBNameConstant.TABLE_PAGE_FAULT]) as _model:
+                _model.flush(self._page_fault, DBNameConstant.TABLE_PAGE_FAULT)
 
     def parse(self: any) -> None:
         """
@@ -85,7 +89,8 @@ class SocPmuParser(IParser, MsMultiProcess):
                 for index in range(_file_size // StructFmt.SOC_PMU_FMT_SIZE):
                     soc_pmu_data_bean = SocPmuChip6Bean() if is_chip_v6 else SocPmuBean()
                     soc_pmu_data_bean.decode(
-                        _all_soc_pmu_data[index * StructFmt.SOC_PMU_FMT_SIZE:(index + 1) * StructFmt.SOC_PMU_FMT_SIZE])
+                        _all_soc_pmu_data[index * StructFmt.SOC_PMU_FMT_SIZE : (index + 1) * StructFmt.SOC_PMU_FMT_SIZE]
+                    )
                     self._add_data_by_type(soc_pmu_data_bean)
             FileManager.add_complete_file(self._project_path, _file_path)
 
@@ -111,5 +116,7 @@ class SocPmuParser(IParser, MsMultiProcess):
             self._ha_data.append(data)
         elif soc_pmu_data_bean.data_type == 2:
             self._soc_pmu_data.append(data)
+        elif soc_pmu_data_bean.data_type == 4:
+            self._page_fault.append(data)
         else:
             logging.warning("Unsupported data type: %s", soc_pmu_data_bean.data_type)

@@ -201,6 +201,7 @@ const std::string PROCESSOR_NAME_UB = "UB";
 const std::string TABLE_NAME_UB = "UB";
 
 const std::string PROCESSOR_NAME_BLOCK_DETAIL = "BLOCK_DETAIL";
+const std::string PROCESSOR_NAME_PAGE_FAULT = "PAGE_FAULT";
 
 const std::string PROCESSOR_NAME_DPU = "DPU";
 const std::string TABLE_NAME_DPU_TASK = "DPU_TASK";

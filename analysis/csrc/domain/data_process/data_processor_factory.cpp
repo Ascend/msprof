@@ -54,6 +54,7 @@
 #include "analysis/csrc/domain/data_process/system/npu_mem_processor.h"
 #include "analysis/csrc/domain/data_process/system/npu_module_mem_processor.h"
 #include "analysis/csrc/domain/data_process/system/npu_op_mem_processor.h"
+#include "analysis/csrc/domain/data_process/system/page_fault_processor.h"
 #include "analysis/csrc/domain/data_process/system/pcie_processor.h"
 #include "analysis/csrc/domain/data_process/system/qos_processor.h"
 #include "analysis/csrc/domain/data_process/system/sio_processor.h"
@@ -122,6 +123,8 @@ std::unordered_map<std::string, ProcessorCreator> DataProcessorFactory::processo
      { MAKE_SHARED_RETURN_VOID(processor, SioProcessor, profPath); }},
     {PROCESSOR_NAME_SOC, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, SocBandwidthProcessor, profPath); }},
+    {PROCESSOR_NAME_PAGE_FAULT, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
+     { MAKE_SHARED_RETURN_VOID(processor, PageFaultProcessor, profPath); }},
     {PROCESSOR_NAME_NIC_TIMELINE, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, NicTimelineProcessor, profPath); }},
     {PROCESSOR_NAME_ROCE_TIMELINE, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
