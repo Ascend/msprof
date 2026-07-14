@@ -33,3 +33,10 @@
 - **Q：安装 `mindstudio-profiler_26.0.0_aarch64.run --install` 时提示 `Not enough space left in /root` 怎么处理？**
 - A：这是安装包在解压阶段默认使用了 `/root` 作为临时目录，但 `/root` 剩余空间不足导致安装失败，并不是 `.run` 包本身损坏。
   - 可先清理 `/root` 下无用文件，确保有足够剩余空间后重新执行安装。
+  - 如果不方便清理 `/root`，可以通过设置 `TMPDIR` 将解压临时目录切换到其他空间更大的路径，例如：
+
+  ```bash
+  mkdir -p /path/to/tmpdir
+  export TMPDIR=/path/to/tmpdir
+  ./mindstudio-profiler_26.0.0_aarch64.run --install
+  ```
