@@ -77,7 +77,7 @@ function create_collector_temp_dir() {
     cp ${runtime_dir}/${arch_name}/include/acl/acl_prof.h ${temp_dir}
     cp ${runtime_dir}/${arch_name}/include/ge/ge_prof.h ${temp_dir}
     # 2. oam_tools
-    cp ${oam_tools_dir}/oam_tools/profiler/bin/msprof ${temp_dir}
+    cp ${oam_tools_dir}/tools/profiler/bin/msprof ${temp_dir}
 }
 
 function create_analysis_temp_dir() {
