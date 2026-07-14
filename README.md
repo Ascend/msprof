@@ -1,14 +1,14 @@
 <h1 align="center">MindStudio Profiler</h1>
 
 <div align="center">
-  <p><b>昇腾性能采集工具</b></p>
+<p><b><span style="font-size:24px;">昇腾性能采集工具</span></b></p>
 
+ [![快速入门](https://badgen.net/badge/快速入门/QuickStart/blue)](docs/zh/quick_start/msprof_quick_start.md)
  [![Ask DeepWiki](https://badgen.net/badge/Ask/DeepWiki/blue)](https://deepwiki.com/kali20gakki/msprof )
- [![Ask ZRead](https://badgen.net/badge/Ask/ZRead/orange)](https://zread.ai/kali20gakki/msprof)
- [![doc](https://badgen.net/badge/doc/readthedocs/green)](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/msprof/)
- [![License](https://badgen.net/badge/License/MulanPSL-2.0/blue)](https://raw.gitcode.com/Ascend/msinsight/files/master/License)
- [![Version](https://badgen.net/badge/Version/26.0.0-alpha.1/green)](https://gitcode.com/Ascend/msprof/releases)
- [![Ascend](https://img.shields.io/badge/Hardware-Ascend-orange.svg)](https://www.hiascend.com/)
+ [![Ask ZRead](https://badgen.net/badge/Ask/ZRead/blue)](https://zread.ai/kali20gakki/msprof)
+ [![精确搜索](https://badgen.net/badge/doc/ReadTheDocs/blue)](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/msprof/)
+ [![昇腾社区](https://badgen.net/badge/昇腾社区/Community/blue)](https://www.hiascend.com/cn/developer/software/mindstudio) 
+ [![报告问题](https://badgen.net/badge/报告问题/Issues/blue)](https://gitcode.com/Ascend/msprof/issues) 
 
 </div>
 
@@ -20,7 +20,9 @@
 
 MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析工具，支持采集与解析 CANN 层和昇腾 AI 处理器 NPU 硬件层的软硬件性能数据，帮助定位模型训练或推理过程中的性能问题。`msProf` 也是其他 Profiling 采集接口的基础能力，许多上层性能采集与分析能力最终都依赖 `msProf` 完成底层数据采集。若希望了解昇腾性能调优工具的完整全景，可进一步参考[MindStudio Profiler 文档总览](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/)。
 
-![msprof](./docs/zh/figures/msprof.png)
+<div align="center">
+  <img src="./docs/zh/figures/msprof.png" alt="架构图" width="700">
+</div>
 
 ## ⚙️ 功能介绍
 
@@ -31,23 +33,18 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 
 ## 🚀 快速入门
 
-msProf 工具通过命令行调用，通用采集命令格式如下：
+**10 分钟实战体验**  
+以 ResNet50 训练为例，覆盖**数据采集、解析导出与性能分析**全流程。点击立即开始：[《msProf 快速入门》](docs/zh/quick_start/msprof_quick_start.md)。
+
+**极简命令行速查**  
+若已熟悉操作流程，可直接执行采集命令。通用格式为 `msprof --output=<输出目录> --application="<启动命令>"`，示例如下：
 
 ```bash
-msprof --output=<输出目录> --application="<应用程序> <参数>"
-```
-
-示例：
-
-```bash
-# 示例1：采集Python任务
+# 示例 1：采集 Python 训练任务
 msprof --output=./output --application="python3 train.py"
-
-# 示例2：采集Shell脚本拉起的AI任务
+# 示例 2：采集 Shell 脚本拉起的任务
 msprof --output=./output --application="./run_standalone_train.sh"
 ```
-
-以 ResNet50 模型训练任务为例，《[快速入门](docs/zh/quick_start/msprof_quick_start.md)》贯穿性能调优全流程，帮助您在 10 分钟内快速体验 msProf 工具在数据采集、解析导出、性能分析等环节的核心功能。
 
 ## 📦 安装指南
 
