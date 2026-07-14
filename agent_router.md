@@ -14,9 +14,9 @@
   - `getting_started/<filename>` -> `docs/zh/getting_started/<filename>`
   - `user_guide/<filename>` -> `docs/zh/user_guide/<filename>`
   - `legal/<filename>` -> `docs/zh/legal/<filename>`
-  - `design/<filename>` -> `docs/zh/design/<filename>`
+  - `development_guide/<filename>` -> `docs/zh/development_guide/<filename>`
   - `figures/<filename>` -> `docs/zh/figures/<filename>`
-- `design/` 和 `figures/` 默认不要主动读取，除非用户明确要求查看设计文档或图片
+- `development_guide/` 和 `figures/` 默认不要主动读取，除非用户明确要求查看设计文档或图片
 
 ## docs/zh 结构
 
@@ -36,6 +36,6 @@ docs/zh/
 │   ├── security_statement.md                        // 权限、安全、漏洞、root、umask
 │   ├── disclaimer.md                                // 免责声明
 │   └── license_notice.md                            // 许可证声明
-├── design/                                          // 设计文档，默认不要主动读取
+├── development_guide/                                          // 设计文档，默认不要主动读取
 └── figures/                                         // 配图，默认不要主动读取
 ```

@@ -29,3 +29,7 @@
 
 - **Q：msprof动态采集，配置完成后实际当前路径没有采集到相关数据？**
 - A：优先查看prof_dir的路径，如果是相对路径则是相对于脚本的路径，而不是相对于profiler_config.json的路径；
+
+- **Q：安装 `mindstudio-profiler_26.0.0_aarch64.run --install` 时提示 `Not enough space left in /root` 怎么处理？**
+- A：这是安装包在解压阶段默认使用了 `/root` 作为临时目录，但 `/root` 剩余空间不足导致安装失败，并不是 `.run` 包本身损坏。
+  - 可先清理 `/root` 下无用文件，确保有足够剩余空间后重新执行安装。

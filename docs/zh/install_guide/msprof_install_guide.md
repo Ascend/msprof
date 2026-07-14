@@ -74,14 +74,14 @@
 
 ```shell
 # 编译全量run包，包含msProf的采集和解析功能
-bash build/build.sh --mode=all --version={version}
+bash build/build.sh --mode=all --version=26.0.0
 ```
 
 ##### 2.3.2.2 方式二：编译msProf解析run包
 
 ```shell
 # 单独编译解析包
-bash build/build.sh --mode=analysis --version={version}
+bash build/build.sh --mode=analysis --version=26.0.0
 ```
 
 #### 2.3.3 安装run包
@@ -90,13 +90,13 @@ bash build/build.sh --mode=analysis --version={version}
 
    ```shell
    cd output
-   chmod +x mindstudio-profiler_{version}_{arch}.run
+   chmod +x mindstudio-profiler_26.0.0_{arch}.run
    ```
 
 2. 执行安装命令。
 
    ```shell
-   ./mindstudio-profiler_{version}_{arch}.run --install
+   ./mindstudio-profiler_26.0.0_{arch}.run --install
    ```
 
    安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#62-安装run包参数说明)。
