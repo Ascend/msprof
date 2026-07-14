@@ -74,14 +74,14 @@
 
 ```shell
 # 编译全量run包，包含msProf的采集和解析功能
-bash build/build.sh --mode=all --version=26.0.0
+bash build/build.sh --mode=all --version={version}
 ```
 
 ##### 2.3.2.2 方式二：编译msProf解析run包
 
 ```shell
 # 单独编译解析包
-bash build/build.sh --mode=analysis --version=26.0.0
+bash build/build.sh --mode=analysis --version={version}
 ```
 
 #### 2.3.3 安装run包
@@ -90,13 +90,13 @@ bash build/build.sh --mode=analysis --version=26.0.0
 
    ```shell
    cd output
-   chmod +x mindstudio-profiler_26.0.0_{arch}.run
+   chmod +x mindstudio-profiler_{version}_{arch}.run
    ```
 
 2. 执行安装命令。
 
    ```shell
-   ./mindstudio-profiler_26.0.0_{arch}.run --install
+   ./mindstudio-profiler_{version}_{arch}.run --install
    ```
 
    安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#62-安装run包参数说明)。
@@ -166,11 +166,11 @@ msprof --help
 
 msProf工具run包的编译命令可配置如下参数。
 
-| 参数         | 可选/必选 | 说明                                                         |
-| ------------ | --------- | ------------------------------------------------------------ |
+| 参数         | 可选/必选 | 说明                                                                                                                       |
+| ------------ | --------- |--------------------------------------------------------------------------------------------------------------------------|
 | --build_type | 可选      | 编译run包类型，可取值：<br>&#8226; Release：编译出用于生产环境部署的软件包。<br>&#8226; Debug：编译出用于开发调试的软件包（只支持编译**解析**部分的Debug软件包）。<br>默认值为Release。 |
-| --mode       | 可选      | 编译run包方式。可取值：<br>&#8226; all：编译出包含msProf采集和解析功能的软件包。<br>&#8226; analysis：编译出仅包含msProf解析功能的软件包。<br>默认值为analysis。 |
-| --version    | 可选      | 配置run包的版本号。<br>默认值为none。                        |
+| --mode       | 可选      | 编译run包方式。可取值：<br>&#8226; all：编译出包含msProf采集和解析功能的软件包。<br>&#8226; analysis：编译出仅包含msProf解析功能的软件包。<br>默认值为analysis。          |
+| --version    | 可选      | 配置run包的版本号，用户自定义。<br>默认值为none。                                                                                           |
 
 ### 6.2 安装run包参数说明
 
