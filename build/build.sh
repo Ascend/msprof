@@ -59,7 +59,8 @@ function build_runtime() {
     cd runtime
     echo "build runtime start."
     bash install_deps.sh
-    bash build.sh
+    python download_3rd_party.py
+    bash build.sh --cann_3rd_lib_path=third_party
     cd build_out/
     chmod +x cann-npu-runtime_*.run
     ./cann-npu-runtime_*.run --noexec --extract=./runtime_decompress
@@ -73,7 +74,7 @@ function build_oam_tools() {
     cd ${TOP_DIR}/build/collector
     git clone https://gitcode.com/cann/oam-tools.git
     cd oam-tools
-    sed -i '45s#set(ASCEND_CANN_PACKAGE_PATH .*)#set(ASCEND_CANN_PACKAGE_PATH '${TOP_DIR}'/build/collector/runtime_install/cann/)#' CMakeLists.txt
+    export ASCEND_HOME_PATH=$TOP_DIR/build/collector/runtime_install/cann/
     echo "build oam-tools start."
     bash build.sh
     cd build_out/
