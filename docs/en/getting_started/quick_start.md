@@ -8,7 +8,7 @@ This tutorial consists of three parts to help you quickly learn the basic usage 
 
 ## Environment Setup
 
-- Install the CANN Toolkit and ops operator packages. For details, see [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=netyum&OS=openEuler).
+- Install the CANN Toolkit and ops operator packages. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download).
 - Set the environment variables.
 
     ```bash
