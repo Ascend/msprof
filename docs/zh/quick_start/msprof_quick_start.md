@@ -26,18 +26,18 @@ msProf 是面向昇腾 AI 处理器的性能数据采集与分析工具。本文
 
 开始前，请确认服务器满足以下要求：
 
-| 项目   | 要求                                                        | 验证方法                           |
-|------|-----------------------------------------------------------|--------------------------------|
-| **硬件算力** | Linux 服务器配备至少 1 张 NPU 卡（基于昇腾 310P/910B/A3/A5 芯片），驱动与固件已安装 | 执行 `npu-smi info`，确认 NPU 卡状态正常 |
-| **容器运行** | 已安装并运行 Docker（建议版本 ≥ 18.0）                                | 执行 `docker ps`，无报错即表示服务正常启动    |
-| **脚本执行** | 宿主机已安装 Python 3                                           | 在宿主机执行 `python3 -V`，有版本信息输出即表示已安装 |
-| **网络通信** | 已安装 curl（任意版本）                                            | 执行 `curl -V`，有版本信息输出即表示已安装     |
+| 项目   | 要求                                                       | 验证方法                           |
+|------|----------------------------------------------------------|--------------------------------|
+| **硬件算力** | Linux 服务器配备至少 1 张 NPU 卡，驱动与固件已安装 | 执行 `npu-smi info`，确认 NPU 卡状态正常 |
+| **容器运行** | 已安装并运行 Docker（建议版本 ≥ 18.0）                               | 执行 `docker ps`，无报错即表示服务正常启动    |
+| **脚本执行** | 宿主机已安装 Python 3                                          | 在宿主机执行 `python3 -V`，有版本信息输出即表示已安装 |
+| **网络通信** | 已安装 curl（任意版本）                                           | 执行 `curl -V`，有版本信息输出即表示已安装     |
 
 > 👉 确认前置条件满足后，若环境具备公网访问能力，本章后续命令可全程直接 **Copy/Paste** 执行，无需手动输入或拼接，以避免因输入错误导致命令执行失败。
 
-#### 2.1.2 宿主机：基于芯片型号自动识别并配置镜像环境变量
+#### 2.1.2 宿主机：自动识别并配置镜像环境变量
 
-在宿主机执行以下命令。该命令将根据当前 NPU 芯片型号匹配对应的 CANN 镜像，并将完整镜像地址写入环境变量，供后续流程使用：
+在宿主机执行以下命令（本命令做了三件事：① 读取 NPU PCI ID → ② 匹配镜像版本 → ③ 写入环境变量供后续流程使用）：
 
 ```bash
 source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | head -n1 | cut -d: -f2); case "$dev_id" in 'd500' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-310p-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=310P";; 'd802' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-910b-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=910B";; 'd803' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-a3-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=A3";; 'd806' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-950-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=950";; * ) echo "unset MY_STUDY_VAR_CANN_IMAGE MY_CHIP_NAME; echo >&2; echo -e '\033[31m[FAIL] Get device ID: $dev_id. Learning is not supported in the current environment.\033[0m' >&2";; esac)"
@@ -52,7 +52,7 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 
 若命令执行后输出 `[PASS]`，则表示执行成功；若输出 `[FAIL]`，可能原因如下：
 
-1. 硬件不在本教程支持范围内：本学习环境仅支持昇腾 310P、910B、A3 及 A5 系列芯片，请切换至兼容的硬件环境后重试；
+1. 硬件不在本教程支持范围内：本学习环境仅支持昇腾 310P、A2、A3 及 950 系列产品，请切换至兼容的硬件环境后重试；
 2. 底层环境异常：未安装 `lspci`，或当前用户无法通过 `lspci -n -D` 查询 NPU PCI ID，请联系环境管理员确认底层环境。
 
 #### 2.1.3 宿主机：拉取镜像
@@ -89,7 +89,7 @@ cd ~ && curl -fLO --retry 3 https://inst.obs.cn-north-4.myhuaweicloud.com/env/ct
 [root@xxxxxx ~]#
 ```
 
-若提示错误或出现容器选择界面，请返回 [第 2.1.2 节](#212-宿主机基于芯片型号自动识别并配置镜像环境变量)，确认命令输出 `[PASS]`，再重新启动容器。
+若提示错误或出现容器选择界面，请返回 [第 2.1.2 节](#212-宿主机自动识别并配置镜像环境变量)，确认命令输出 `[PASS]`，再重新启动容器。
 
 
 #### 2.1.6 容器内：安装 Python 依赖
@@ -195,6 +195,8 @@ NA              0               device_0        2026-03-23 03:17:50.954390      
 [INFO] Profiling finished.
 [INFO] Process profiling data complete. Data is saved in /home/prof_output/PROF_000001_20260323031749197_00815596RKPKAHRB.
 ```
+
+若脚本提示没有空闲 NPU，请结束其他 NPU 任务或在其完成后重试；若超过 5 分钟不完成，有可能是 NPU 异常或被抢占，请重新执行或指定其他空闲 NPU。
 
 #### 2.2.3 查看采集结果
 
@@ -322,7 +324,7 @@ sudo systemctl restart docker
 
 **方案二：离线导入 CANN 镜像**
 
-如果代理方案不可行，请先在内网 NPU 服务器上执行 [第 2.1.2 节](#212-宿主机基于芯片型号自动识别并配置镜像环境变量)，记录 `MY_STUDY_VAR_CANN_IMAGE` 的完整值。然后在具备公网访问能力且 CPU 架构相同的中转机上执行以下命令，将第一行的值替换为刚才记录的镜像地址：
+如果代理方案不可行，请先在内网 NPU 服务器上执行 [第 2.1.2 节](#212-宿主机自动识别并配置镜像环境变量)，记录 `MY_STUDY_VAR_CANN_IMAGE` 的完整值。然后在具备公网访问能力且 CPU 架构相同的中转机上执行以下命令，将第一行的值替换为刚才记录的镜像地址：
 
 ```bash
 CANN_IMAGE='完整镜像地址'
@@ -359,7 +361,7 @@ ls -l ctr_in.py
 
 ### 3.3 离线安装 Python 依赖
 
-优先使用内网 pip 源安装依赖。若没有可用的内网软件源，请在具备公网访问能力、与内网 NPU 服务器 CPU 架构相同且使用 Python 3.11 的中转环境中，按以下方式下载所需安装包：
+优先使用内网 pip 源安装依赖。若没有可用的内网软件源，请在具备公网访问能力、与内网 NPU 服务器 CPU 架构相同且使用 Python 版本的中转环境中，按以下方式下载所需安装包：
 
 ```bash
 mkdir -p offline_wheels
@@ -372,4 +374,24 @@ python3 -m pip download xxx --dest offline_wheels
 pip3 install --no-index --find-links="${HOME}/offline_wheels" xxx
 ```
 
-安装完成后，返回 [第 2.1.7 节](#217-容器内环境检查)，然后执行验证命令，无需再次执行联网安装命令。
+安装完成后，返回 [第 2.1.7 节](#217-容器内检查环境安装正确性)，然后执行验证命令，无需再次执行联网安装命令。
+
+## 4. 常见问题（FAQ）
+
+### 4.1 退出容器后如何重新进入？
+
+在宿主机执行以下任一命令：
+
+**方法一（推荐）**：执行 `~/ctr_in.py`，交互式选择目标容器（若仅有一个容器则自动进入）。
+
+**方法二（原生命令）**：执行 `docker exec -it <container_name> bash`（请替换为实际容器名称）。
+
+### 4.2 执行 Docker 命令遇到 permission denied 类错误提示？
+
+可能当前用户未加入 Docker 用户组。可使用 root 权限在宿主机执行：
+
+```bash
+sudo usermod -aG docker <当前用户名>
+```
+
+执行后需要重新登录当前用户会话，或执行 `newgrp docker` 使用户组变更立即生效。不建议以 root 身份进行日常操作。
