@@ -102,7 +102,7 @@ const std::string TABLE_NAME_ENUM_HCCL_DATA_TYPE = "ENUM_HCCL_DATA_TYPE";
 const std::string TABLE_NAME_ENUM_HCCL_LINK_TYPE = "ENUM_HCCL_LINK_TYPE";
 const std::string TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE = "ENUM_HCCL_TRANSPORT_TYPE";
 const std::string TABLE_NAME_ENUM_HCCL_RDMA_TYPE = "ENUM_HCCL_RDMA_TYPE";
-const std::string TABLE_NAME_ENUM_OVERLAY_ANALYSIS_TYPE = "ENUM_OVERLAY_ANALYSIS_TYPE";
+const std::string TABLE_NAME_ENUM_OVERLAP_ANALYSIS_TYPE = "ENUM_OVERLAP_ANALYSIS_TYPE";
 
 const std::string PROCESSOR_NAME_NIC = "NIC";
 const std::string TABLE_NAME_NIC = "NIC";
@@ -301,8 +301,8 @@ const std::unordered_map<std::string, uint16_t> MEMCPY_OPERATION_TABLE{
     {"device to device", 3},  {"managed memory", 4},    {"addr device to device", 5},
     {"host to device ex", 6}, {"device to host ex", 7}, {"other", UINT16_MAX}};
 
-// overlay analysis 类型
-const std::unordered_map<std::string, uint16_t> OVERLAY_TYPE_TABLE{
+// overlap analysis 类型
+const std::unordered_map<std::string, uint16_t> OVERLAP_TYPE_TABLE{
     {"COMPUTE", 0}, {"COMMUNICATION", 1}, {"COMM_NOT_OVERLAP_COMP", 2}, {"FREE", 3}, {"RESERVE", UINT16_MAX}};
 
 }  // namespace Database

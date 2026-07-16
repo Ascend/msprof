@@ -319,7 +319,7 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, ENUM_TABLE},
                       {TABLE_NAME_MSTX_EVENT_TYPE, ENUM_TABLE},
                       {TABLE_NAME_ENUM_MEMCPY_OPERATION, ENUM_TABLE},
-                      {TABLE_NAME_ENUM_OVERLAY_ANALYSIS_TYPE, ENUM_TABLE}};
+                      {TABLE_NAME_ENUM_OVERLAP_ANALYSIS_TYPE, ENUM_TABLE}};
 }
 
 }  // namespace Database
