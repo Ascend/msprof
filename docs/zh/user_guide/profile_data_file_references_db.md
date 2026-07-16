@@ -2,7 +2,7 @@
 
 msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_\{时间戳\}.db表结构文件，该文件推荐使用MindStudio Insight工具查看，也可以使用Navicat Premium等数据库开发工具直接打开。当前db文件汇总的性能数据如下：
 
->[!NOTE] 
+>[!NOTE]
 >db文件均以表格形式展示性能数据，且所有数据均以数字映射（例如opName字段下的算子名显示为194），数字与名称的映射表为[STRING\_IDS](#string_ids)。
 
 **单位相关**
@@ -288,6 +288,29 @@ msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_
 |6|host to device ex|
 |7|device to host ex|
 |65535|other|
+
+## ENUM\_OVERLAP\_ANALYSIS\_TYPE
+
+枚举表。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时默认生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|id|INTEGER|索引，ID|
+|name|TEXT|重叠分析事件类型|
+
+**表 2**  内容
+
+|id|name|
+|--|--|
+|0|COMPUTE|
+|1|COMMUNICATION|
+|2|COMM_NOT_OVERLAP_COMP|
+|3|FREE|
+|65535|RESERVE|
 
 ## STRING_IDS
 
@@ -1027,6 +1050,22 @@ Host侧syscall和pthreadcall数据。
 |globalTid|NUMERIC|该API所在线程的全局TID。高32位：PID，低32位：TID|
 |startNs|INTEGER|API的开始时间，单位ns|
 |endNs|INTEGER|API的结束时间，单位ns|
+
+## OVERLAP\_ANALYSIS
+
+集合通信算子和计算及通信流水掩盖数据，该数据只有存在计算算子或存在卡间通信的场景下才能被采集并解析出性能数据。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时默认生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|id|INTEGER|主键，重叠分析事件ID|
+|deviceId|INTEGER|设备ID|
+|startNs|NUMERIC|事件开始时间，单位ns|
+|endNs|NUMERIC|事件结束时间，单位ns|
+|type|INTEGER|事件类型，ENUM_OVERLAP_ANALYSIS_TYPE(type)|
 
 ## NETDEV\_STATS
 

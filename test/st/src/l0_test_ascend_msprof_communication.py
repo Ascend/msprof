@@ -38,7 +38,7 @@ class TestAscendMsprofCommunication(BaseAscendMsprofChecker):
         "ENUM_MEMCPY_OPERATION",
         "ENUM_MODULE",
         "ENUM_MSTX_EVENT_TYPE",
-        "ENUM_OVERLAY_ANALYSIS_TYPE",
+        "ENUM_OVERLAP_ANALYSIS_TYPE",
         "HBM",
         "HCCS",
         "HOST_INFO",
