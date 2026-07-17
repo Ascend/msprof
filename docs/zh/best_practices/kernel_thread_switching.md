@@ -15,7 +15,7 @@ Linux操作系统基于时间片轮转、进程优先级调度机制实现线程
 为精准定位线程频繁切换的触发场景、切换频次、耗时开销及异常线程点位，本次采用系统调度监控工具、内核调度探针、业务性能剖析工具开展专项数据分析，完整定位流程如下：
 
 1. 全量调度采集
-使用官方ftrace采集工具完成内核调度数据采集，工具详情参考：ftrace_tools工具（[https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools]）。
+使用官方ftrace采集工具完成内核调度数据采集，工具详情参考：ftrace_tools工具（[https://gitcode.com/Ascend/msinsight/tree/26.1.0/scripts/ftrace_tools]）。
 2. 数据联合分析
 将线程上下文切换行为数据与业务Profiler性能数据、CPU占用数据、任务吞吐数据、延迟波动数据进行交叉比对、关联分析，匹配业务性能劣化时段与线程高频切换时段的对应关系，区分正常调度切换与异常高频切换场景。
 3. 异常位点锁定

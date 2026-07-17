@@ -91,7 +91,6 @@ cd ~ && curl -fLO --retry 3 https://inst.obs.cn-north-4.myhuaweicloud.com/env/ct
 
 若提示错误或出现容器选择界面，请返回 [第 2.1.2 节](#212-宿主机自动识别并配置镜像环境变量)，确认命令输出 `[PASS]`，再重新启动容器。
 
-
 #### 2.1.6 容器内：安装 Python 依赖
 
 在容器内执行以下命令：
@@ -257,16 +256,18 @@ PROF_XXX
 
 本节操作需在安装了 MindStudio Insight 的本地环境中进行，推荐使用 Windows 或 macOS 图形界面运行。
 
-1.  **安装工具**：若尚未安装，请前往昇腾社区 [MindStudio 下载](https://www.hiascend.com/developer/software/mindstudio/download) 页面获取并安装。
-2.  **熟悉操作**：如需了解基本使用方法，请参见《[MindStudio Insight 系统调优快速入门](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/quick_start/system_tuning_quick_start.md)》。
+1. **安装工具**：若尚未安装，请前往昇腾社区 [MindStudio 下载](https://www.hiascend.com/developer/software/mindstudio/download) 页面获取并安装。
+2. **熟悉操作**：如需了解基本使用方法，请参见《[MindStudio Insight 系统调优快速入门](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/quick_start/system_tuning_quick_start.md)》。
 
 #### 2.3.2 加载 msProf 采集数据
 
 1. 打开 MindStudio Insight。
-2.  在容器内执行以下命令，获取并复制输出的变量赋值语句：
+2. 在容器内执行以下命令，获取并复制输出的变量赋值语句：
+
     ```bash
     echo "CONTAINER_ID=${HOSTNAME:-$(cat /etc/hostname)}; PROF_DIR=${PROF_DIR}"
     ```
+
 3. 切换至宿主机终端，粘贴并执行上一步复制的变量赋值语句，然后使用 `docker cp` 将 Profiling 数据从容器拷贝至本地：
 
     ```bash
@@ -280,9 +281,9 @@ PROF_XXX
 
 MindStudio Insight 的 Timeline 界面主要包含以下三个功能区域：
 
--   **区域一（CANN 层）**：展示 ACL、Runtime 等软件栈关键接口的执行耗时。
--   **区域二（NPU 设备层）**：展示 Ascend Hardware 各 Stream 的执行时序、迭代轨迹及处理器系统级数据。
--   **区域三（详情面板）**：展示选中对象的详细属性。单击 Timeline 中的任意色块，即可在此处查看对应算子或接口的完整信息。
+- **区域一（CANN 层）**：展示 ACL、Runtime 等软件栈关键接口的执行耗时。
+- **区域二（NPU 设备层）**：展示 Ascend Hardware 各 Stream 的执行时序、迭代轨迹及处理器系统级数据。
+- **区域三（详情面板）**：展示选中对象的详细属性。单击 Timeline 中的任意色块，即可在此处查看对应算子或接口的完整信息。
 
 ![MindStudio Insight Timeline 界面](../figures/zh-cn_image_0000002502558722.png)
 <div style="text-align: center;">
@@ -291,8 +292,8 @@ MindStudio Insight 的 Timeline 界面主要包含以下三个功能区域：
 
 借助上述可视化视图，可高效完成以下性能分析任务：
 
--   **瓶颈定位**：快速识别耗时异常的 API、算子及任务流。
--   **下发关系分析**：通过 HostToDevice 连线，直观分析 Host 侧任务与 Device 侧任务的调度依赖与时序对齐情况。
+- **瓶颈定位**：快速识别耗时异常的 API、算子及任务流。
+- **下发关系分析**：通过 HostToDevice 连线，直观分析 Host 侧任务与 Device 侧任务的调度依赖与时序对齐情况。
 
 更多高级操作与分析方法，请参见《[MindStudio Insight 系统调优指南](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》。
 
@@ -339,7 +340,7 @@ docker load -i cann.tar
 docker images | grep cann
 ```
 
-加载完成后，继续完成 [第 3.2 节](#32-传输容器启动脚本)，再返回 [第 2.1.5 节](#215-宿主机启动容器)，然后启动容器。如果已切换宿主机 shell，请重新执行第 2.1.2 节中的命令以恢复镜像环境变量。
+加载完成后，继续完成 [第 3.2 节](#32-传输容器启动脚本)，再返回 [第 2.1.5 节](#215-宿主机启动容器)，然后启动容器。如果已切换宿主机 shell，请重新执行第 [第 2.1.2 节](#212-宿主机自动识别并配置镜像环境变量) 中的命令以恢复镜像环境变量。
 
 ### 3.2 传输容器启动脚本
 

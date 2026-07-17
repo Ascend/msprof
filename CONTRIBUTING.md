@@ -47,7 +47,7 @@
 
 4. 编译测试
 
-   将开发完成的代码编译成whl包进行测试，详细步骤请参见《[msProf工具安装指南](docs/zh/getting_started/msprof_install_guide.md)》。
+   将开发完成的代码编译成whl包进行测试，详细步骤请参见《[msProf工具安装指南](docs/zh/install_guide/msprof_install_guide.md)》。
 
 5. 文档开发
 

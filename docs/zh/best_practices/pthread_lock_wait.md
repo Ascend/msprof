@@ -2,9 +2,9 @@
 
 ## 【问题背景】
 
-在 Pytorch 大模型分布式训练场景中，[DataLoader、pin_memory](https://docs.pytorch.org/docs/2.12/data.html#torch.utils.data.DataLoader) 模块采用多线程生产者 - 消费者模型，使用 pthread 互斥锁（pthread_mutex_t）保护共享队列的并发访问。
+在 PyTorch 大模型分布式训练场景中，[DataLoader、pin_memory](https://docs.pytorch.org/docs/2.12/data.html#torch.utils.data.DataLoader) 模块采用多线程生产者 - 消费者模型，使用 pthread 互斥锁（pthread_mutex_t）保护共享队列的并发访问。
 
-训练运行在多卡 NPU 服务器上，数据加载线程池配置为 16 个 worker 线程，主线程负责从队列中取数据喂给 GPU 计算。随着 batch size 增大和数据预处理逻辑复杂化，训练性能出现下降。
+训练运行在多卡 NPU 服务器上，数据加载线程池配置为 16 个 worker 线程，主线程负责从队列中取数据喂给 NPU 计算。随着 batch size 增大和数据预处理逻辑复杂化，训练性能出现下降。
 
 ## 【问题来源】
 
@@ -58,7 +58,7 @@
 
     1. 编译 MSOSRT 工具。
 
-        将代码仓下载到本地，执行``bash build.sh``，生成 `libmsosrt_trace.so` 库文件。
+        将代码仓下载到本地，执行`bash build.sh`，生成 `libmsosrt_trace.so` 库文件。
 
     2. 执行`export LD_PRELOAD=./libmsosrt_trace.so:$LD_PRELOAD`，将libmsosrt_trace.so加入到LD_PRELOAD环境变量中。
 

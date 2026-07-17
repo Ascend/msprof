@@ -10,7 +10,7 @@
 
   1. 通过命令行或 API 接口两种方式采集 Python GIL 数据。
   2. 将采集的 Python GIL 数据进行后处理，转换为Chrome Trace Json格式。
-  3. 联合 Profiler 数据导入[MindStudio Insight](https://www.hiascend.com/document/detail/zh/mindstudio/830/GUI_baseddevelopmenttool/msascendinsightug/Insight_userguide_0002.html)，进行可视化展示，Profiler 数据采集可参见 [MindStudio 性能调优工具](https://www.hiascend.com/document/detail/zh/canncommercial/850/devaids/Profiling/atlasprofiling_16_0001.html)。
+  3. 联合 Profiler 数据导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)，进行可视化展示，Profiler 数据采集可参见 [msProf性能数据采集](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/preparation/before_you_start.md)。
 
 ## 使用前准备
 
@@ -53,19 +53,19 @@ python gil_trace_record.py [--pid <PID>] [--duration <duration>]
 
 在 NPU 上启动模型 Python 进程，获取其 PID，假设为 12345，新创建一个终端窗口，用于运行 gil_trace_record.py 脚本（需要 root 权限）。
 
-+ 示例1：采集指定 PID 为 12345 的进程的 GIL 数据，持续时间为 10 秒。
+- 示例1：采集指定 PID 为 12345 的进程的 GIL 数据，持续时间为10秒。
 
   ```bash
   python gil_trace_record.py --pid 12345 --duration 10
   ```
 
-+ 示例2：采集所有运行在 NPU 上的 Python 进程的 GIL 数据，持续时间为 10 秒。
+- 示例2：采集所有运行在 NPU 上的 Python 进程的 GIL 数据，持续时间为10秒。
 
   ```bash
   python gil_trace_record.py --duration 10
   ```
 
-+ 示例3：采集指定 PID 为 12345 的进程的 GIL 数据，手动结束采集。
+- 示例3：采集指定 PID 为 12345 的进程的 GIL 数据，手动结束采集。
 
   ```bash
   python gil_trace_record.py --pid 12345
@@ -103,7 +103,7 @@ import os
 from gil_trace_record import gil_trace_record_start, gil_trace_record_stop
 
 def train():
-    # 采集当前进程的 GIL 数据，持续时间为 10 秒
+    # 采集当前进程的 GIL 数据，持续时间为10秒
     gil_trace_record_start(pid_list=[os.getpid()], duration=10)
 
     profiling_start()
@@ -160,9 +160,9 @@ python gil_trace_convert.py --input GIL_12345_rank_0.json --output GIL_12345_ran
 
 其中，每个色块表示一个 GIL 事件，分为三种类型：
 
-+ ``take_gil``：表示线程等待 GIL 锁。
-+ ``hold_gil``：表示线程持有 GIL 锁。
-+ ``drop_gil``：表示线程释放 GIL 锁。
+- `take_gil`：表示线程等待 GIL 锁。
+- `hold_gil`：表示线程持有 GIL 锁。
+- `drop_gil`：表示线程释放 GIL 锁。
 
 **与 Profiler 数据联合呈现**
 

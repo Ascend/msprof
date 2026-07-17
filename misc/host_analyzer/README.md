@@ -4,7 +4,7 @@
 
 当前 AI 训练、推理业务场景中，Host侧（CPU）的任务下发（如算子调度、内存分配）与Device侧（NPU）的任务执行是异步进行的。当Host侧任务下发耗时超过Device侧任务执行耗时时，Device会因等待新任务而处于空闲状态，形成性能瓶颈，即HostBound问题。
 
-针对以上问题，我们设计了Host侧的诊断调优工具，提供简单、易用的绑核能力，通过将进程和线程分别绑定在不同CPU上执行以减少互相之间的干扰与资源竞争
+针对以上问题，我们设计了Host侧的诊断调优工具，提供简单、易用的绑核能力，通过将进程和线程分别绑定在不同CPU上执行以减少互相之间的干扰与资源竞争。
 
 ## 使用前准备
 
@@ -18,7 +18,7 @@
 
 提供自定义绑核能力，根据用户输入json中的配置方案完成进程/线程级绑核；缺省输入时以经验最优方案进行绑核: 
 
-  - 为每张卡的关键线程 acl_thread/release_thread 单独分配一个 CPU 核，dev[i]_sq_task 单独分配一个 CPU 核（宿主机可绑，未查询到时跳过），算子相关中断 sq_send_trigger_irq 和 cq_update_irq 各单独分配一个 CPU 核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到 6 个 CPU 核上，即每张 NPU 卡绑定到 11 个 CPU 核（分配 CPU 时考虑 NPU 亲和及跨 NUMA 内存访问时延）
+  - 为每张卡的关键线程 acl_thread/release_thread 单独分配一个 CPU 核，dev[i]_sq_task 单独分配一个 CPU 核（宿主机可绑，未查询到时跳过），算子相关中断 sq_send_trigger_irq 和 cq_update_irq 各单独分配一个 CPU 核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到 6 个 CPU 核上，即每张 NPU 卡绑定到 11 个 CPU 核（分配 CPU 时考虑 NPU 亲和及跨 NUMA 内存访问时延）。
 
 #### 命令格式
 
@@ -41,7 +41,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
 | process_name     | 可选    | 需要绑定的进程或线程名称，类型为str，由is_thread参数决定是进程或线程，指定非NPU卡对应进程或线程时进程数或线程数应等于cpu_list参数长度 <br/>默认值为None                                                |
 | pid              | 可选    | 需要绑定的PID号，可以是一个或多个PID，该参数长度应等于cpu_list参数长度，类型为List[int] <br/>默认值为[]                                                                         |
 | cpu_list         | 必选    | 绑定CPU列表，可以是一个或多个CPU区间，类型为List[str] <br/>默认值为[]                                                                                              |
-| mem_bind         | 可选    | 选择是否需要在绑定CPU后将内存迁移至对应NUMA节点，类型为bool，取值为：<br/>&bull; true：表示绑核后将使用内存迁移至对应NUMA节点<br/>&bull; false：表示绑核后不需要将使用内存迁移至对应NUMA节点<br/>默认值为false      |
+| mem_bind         | 可选    | 选择是否需要在绑定CPU后将内存迁移至对应NUMA节点，类型为bool，取值为：<br/>&bull; true：表示绑核后将内存迁移至对应NUMA节点<br/>&bull; false：表示绑核后不需要将内存迁移至对应NUMA节点<br/>默认值为false      |
 | is_thread        | 可选    | 选择绑定的ID是进程ID还是线程ID，类型为bool，取值为：<br/>&bull; true：表示绑定线程ID<br/>&bull; false：表示绑定进程ID<br/>默认值为false                                            |
 | is_irq           | 可选    | 选择绑定的是否为硬件中断，类型为bool，取值为：<br/>&bull; true：表示绑定的是硬件中断<br/>&bull; false：表示绑定的不是硬件中断<br/>默认值为false                                             |
 | irq_id           | 可选    | 需要绑定的硬件中断的中断号，类型为List[int]                                                                                                                  |
@@ -117,7 +117,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
 
 #### 输出示例
 
-以使用示例1为例，会输出以下信息展示将绑定结果：
+以使用示例1为例，会输出以下信息展示绑定结果：
 
   ```text
   [2026-03-13 10:34:27,406] [INFO]:Start binding core round 1: {"process_name": "VLLM::Worker_TP", "cpu_list": ["4-10","16-22","52-58","64-70"], "bind_sub_process": true}

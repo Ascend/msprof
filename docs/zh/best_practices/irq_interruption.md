@@ -15,7 +15,7 @@
 为精准定位高频中断的触发类型、负载分布、耗时时段及对业务的影响，本次采用内核调度采集工具联合业务性能剖析工具，开展多维度数据关联分析，逐层收敛问题根因，完整定位流程如下：
 
 1. 内核中断与调度数据全量采集
-使用官方ftrace采集工具，采集模型稳态运行阶段的内核调度、硬中断、软中断全维度数据，精准捕获sq_send_trigger_irq、cq_update_irq两类业务关键中断的触发频次、CPU分布、处理耗时等核心信息，工具详情参考：ftrace_tools工具（[https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools]）。
+使用官方ftrace采集工具，采集模型稳态运行阶段的内核调度、硬中断、软中断全维度数据，精准捕获sq_send_trigger_irq、cq_update_irq两类业务关键中断的触发频次、CPU分布、处理耗时等核心信息，工具详情参考：ftrace_tools工具（[https://gitcode.com/Ascend/msinsight/tree/26.1.0/scripts/ftrace_tools]）。
 2. 多源数据联合交叉分析
 将ftrace采集的中断日志数据，与业务Profiler性能数据、CPU占用数据、算子下发耗时、集群Rank耗时对比数据进行时间轴对齐关联。精准匹配中断高发时段与业务性能劣化、算子下发卡顿、集群延迟升高时段的对应关系，区分系统常规中断与昇腾硬件业务异常高频中断。
 3. 中断负载与CPU热点定位

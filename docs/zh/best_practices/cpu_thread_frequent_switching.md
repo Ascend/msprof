@@ -51,9 +51,9 @@
    perf stat -e context-switches,cpu-migrations -p <PID> sleep 10
    ```
 
-   确认线程调度开销占总 CPU 时间的占比较大，超过 20%。
+   确认线程调度开销占总 CPU 时间的比例较大，超过 20%。
 
-3. 通过 MindStudio 提供的 [ftrace_tools](https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools) 工具，完成了 CPU 调度事件的采集工作，采集结果如下
+3. 通过 MindStudio 提供的 [ftrace_tools](https://gitcode.com/Ascend/msinsight/tree/26.1.0/scripts/ftrace_tools) 工具，完成了 CPU 调度事件的采集工作，采集结果如下
 
    ![ftrace_tools_result](../figures/profiler_case_cpu_switch_5.png)
 
@@ -78,7 +78,7 @@
 
 3. 主进程绑核注意事项：python3.11 作为主进程，其派生的所有子线程默认会继承父进程的 CPU 亲和性。若将主进程仅绑定至单个 CPU 核，将导致其所有子线程都只能在该核上运行，引发严重的资源竞争。因此主进程及其子线程应分配至一组连续的 CPU 核范围内。
 
-4. 隔离干扰进程：观测到大量 CSD 线程存在频繁的上下文切换，经确认属于 dpc（分布式文件共享系统）子线程。使用 MindStudio 提供的[自动化绑核](https://gitcode.com/Ascend/msprof/tree/master/misc/host_analyzer)工具，将 dpc 进程与训练进程分别绑定至不同的 CPU 核区间，实现资源隔离，避免相互抢占干扰。
+4. 隔离干扰进程：观测到大量 CSD 线程存在频繁的上下文切换，经确认属于 dpc（分布式文件共享系统）子线程。使用 MindStudio 提供的[自动化绑核](https://gitcode.com/Ascend/msprof/tree/26.1.0/misc/host_analyzer)工具，将 dpc 进程与训练进程分别绑定至不同的 CPU 核区间，实现资源隔离，避免相互抢占干扰。
 
 ## 【定位方法论总结】
 

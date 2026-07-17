@@ -61,7 +61,7 @@ bash /usr/local/Ascend/mindie/latest/scripts/start.sh \
     --max-prefill-tokens 8192
 ```
 
-**等待 60 秒后关闭采集**（避免数据量爆炸）：
+**等待60秒后关闭采集**（避免数据量爆炸）：
 
 ```json
 {

@@ -331,7 +331,7 @@ msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_
 
 无对应开关。
 
-**表 2**  格式
+**表 1**  格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -357,7 +357,7 @@ hostUid及名称。
 
 无对应开关。
 
-**表 2**  格式
+**表 1**  格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -496,6 +496,7 @@ CANN API数据。
 |eventName|NUMERIC|QoS事件名称，STRING_IDS(eventName)|
 |bandwidth|NUMERIC|QoS对应时间的带宽，单位Byte / s|
 |timestampNs|NUMERIC|本地时间，单位ns|
+|dieId|INTEGER|用于区分芯片场景的dieId，仅Ascend 950 系列产品支持<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
 
 ## AICORE\_FREQ
 
@@ -510,7 +511,7 @@ AI Core频率信息。
 | deviceId    |INTEGER|设备ID|
 | timestampNs |NUMERIC|频率变化时的本地时间，单位ns|
 | freq        |INTEGER|AI Core频率值，单位MHz|
-| dieId |INTEGER|用于区分芯片场景的dieId，仅Ascend 950 系列产品支持<br>对于Atlas 200I/500 A2 推理产品和Atlas A2 训练系列产品/Atlas A2 推理系列产品不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
+| dieId |INTEGER|用于区分芯片场景的dieId，仅Ascend 950 系列产品支持<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
 
 ## ACC\_PMU
 
@@ -818,7 +819,7 @@ HCCS集合通信带宽数据。
 | 字段名      | 类型    | 含义                              |
 | ----------- | ------- | --------------------------------- |
 | deviceId    | NUMERIC | 设备ID                            |
-| name        | INTEGER | CCU小算子的名称，STRING_IDS(name) |
+| name        | INTEGER | die通道的标记，STRING_IDS(name) |
 | timestampNs | NUMERIC | 本地时间，单位ns                  |
 | rxReq       | NUMERIC | 请求流通道的接收带宽              |
 | rxRsp       | NUMERIC | 回应流通道的接收带宽              |
@@ -978,7 +979,7 @@ mstx接口采集的Host侧数据，Device侧数据在TASK表中整合。
 |--|--|--|
 |globalTaskId|NUMERIC|主键，全局算子任务ID，用于关联TASK|
 |size|NUMERIC|拷贝的数据量|
-|memcpyOperation|NUMERIC|拷贝类型，STRING_IDS(memcpyDirection)|
+|memcpyOperation|NUMERIC|拷贝类型，STRING_IDS(memcpyOperation)|
 
 ## CPU\_USAGE
 
@@ -1018,8 +1019,8 @@ Host侧磁盘I/O利用率数据。
 |字段名|类型|含义|
 |--|--|--|
 |timestampNs|NUMERIC|采样时的本地时间，单位ns|
-|readRate|NUMERIC|磁盘读速率，单位B/s|
-|writeRate|NUMERIC|磁盘写速率，单位B/s|
+|readRate|NUMERIC|磁盘读速率，单位Byte/s|
+|writeRate|NUMERIC|磁盘写速率，单位Byte/s|
 |usage|NUMERIC|利用率(%)|
 
 ## HOST\_NETWORK\_USAGE
@@ -1034,7 +1035,7 @@ Host侧系统级别的网络I/O利用率数据。
 |--|--|--|
 |timestampNs|NUMERIC|采样时的本地时间，单位ns|
 |usage|NUMERIC|利用率(%)|
-|speed|NUMERIC|网络使用速率，单位B/s|
+|speed|NUMERIC|网络使用速率，单位Byte/s|
 
 ## OSRT\_API
 

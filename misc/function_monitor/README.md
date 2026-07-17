@@ -10,7 +10,7 @@
 
 1. 通过 Python 装饰器或 with 语句实现对指定函数的执行时间及 CPU PMU 指标采集，支持基于耗时阈值进行数据过滤，并将采集结果持久化写入日志文件。
 2. 将采集的日志文件后处理，转换为 Chrome Trace Json 格式。
-3. 导入[MindStudio Insight](https://www.hiascend.com/document/detail/zh/mindstudio/830/GUI_baseddevelopmenttool/msascendinsightug/Insight_userguide_0002.html)，进行可视化展示，分析函数执行耗时与 CPU PMU 指标之间的关系。
+3. 导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)，进行可视化展示，分析函数执行耗时与 CPU PMU 指标之间的关系。
 
 ## 注意事项
 
@@ -33,7 +33,7 @@
 | ENABLE_LIBKPERF | 可选 | 指定是否使用 libkperf 采集 CPU PMU 指标，支持设置为 True 或 False，默认值为 False， 表示不开启 |
 | FUNCTION_MONITOR_LOG_PATH | 可选 | 指定函数监控采集日志文件的存储路径，若未指定，则默认存储在当前用户主目录下的 function_monitor_log 目录（如 /home/user/function_monitor_log） |
 
-当设置 **ENABLE_LIBKPERF** 环境变量为 True 时，采集 CPU PMU 指标时，用户可在 `function_monitor.py` 中 `PerformanceMonitor` 类的 `evt_list` 参数中指定要采集的 perf event 列表，默认值为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']。**
+当设置 **ENABLE_LIBKPERF** 环境变量为 True 时，采集 CPU PMU 指标时，用户可在 `function_monitor.py` 中 `PerformanceMonitor` 类的 `evt_list` 参数中指定要采集的 perf event 列表，默认值为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
 
 当前系统支持的 perf event 列表可通过 `perf list` 命令查看，详细说明可参考 [perf event 官方文档](https://man7.org/linux/man-pages/man1/perf-list.1.html)，用户可根据实际需求选择要采集的 perf event。
 
@@ -188,7 +188,7 @@ python log2trace.py --input <input_file> --output <output_file>
 | 参数 | 可选/必选 | 说明 |
 | --- | --- | --- |
 | --input | 必选 | 指定输入的 function_monitor 采集日志文件路径，需指定到文件名 |
-| --output | 可选 | 指定输出的 Chrome Trace Json 文件路径，需指定到文件名, 若未指定，则默认在当前目录下生成与输入文件名相同但后缀为 '_trace.json' 的文件 |
+| --output | 可选 | 指定输出的 Chrome Trace Json 文件路径，需指定到文件名，若未指定，则默认在当前目录下生成与输入文件名相同但后缀为 '_trace.json' 的文件 |
 
 **使用示例**
 

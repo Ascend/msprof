@@ -2,17 +2,17 @@
 
 ## 问题背景
 
-大模型推理服务的一条请求可拆分为三个阶段：前处理（Tokenizer 编码）、模型推理（Prefill + Decode）、后处理（Detokenizer 解码）。其中前/后处理在 CPU 侧执行，涉及文本编码/解码、特殊 token 处理、chat template 渲染等操作。当输入 prompt 较长（>10K tokens）或服务处于多轮对话场景时，前后处理的 CPU 耗时可能超过模型推理耗时，成为端到端延迟的主要瓶颈。
+大模型推理服务的一条请求可拆分为三个阶段：前处理（Tokenizer 编码）、模型推理（Prefill + Decode）、后处理（Detokenizer 解码）。其中前/后处理在 CPU 侧执行，涉及文本编码/解码、特殊 token 处理、chat template 渲染等操作。当输入 prompt 较长（>10000 tokens）或服务处于多轮对话场景时，前后处理的 CPU 耗时可能超过模型推理耗时，成为端到端延迟的主要瓶颈。
 
 用户反馈在A2上部署对话模型服务，TTFT（首令牌生成时间）约 450ms，其中模型 Prefill 仅占约 180ms，怀疑前处理耗时过长，需通过服务化 profiling 定位具体环节。
 
 ## 问题现象
 
-稳定复现。以单条 8K token 的 prompt 为例：
+稳定复现。以单条 8000 token 的 prompt 为例：
 
 - TTFT 约 450ms，远超预期的 ~200ms
 - NPU 在请求到达后有明显的空闲等待期（约 250ms），期间无任何计算活动
-- prompt 越长，TTFT 中的空闲占比越高：2K prompt 时空闲约 60ms，8K prompt 时空闲约 250ms
+- prompt 越长，TTFT 中的空闲占比越高：2000 prompt 时空闲约 60ms，8000 prompt 时空闲约 250ms
 - 并发请求下，前后处理排队等待现象明显——后续请求的前处理需等待前序请求完成后处理才能开始
 
 <div align="center"><img src="../figures/profiler_model_time_consume.png" /></div>
@@ -51,11 +51,11 @@ Prefill 完成后同样存在一段 CPU 后处理区间：
 
 从导出 CSV 中筛选前处理相关函数，按耗时排序。
 
-<div align="center"><img src="../figures/profiler_model_time_usag.png" /></div>
+<div align="center"><img src="../figures/profiler_model_time_usage.png" /></div>
 
 关键发现：
 
-- Tokenizer encode 耗时占比最高（约 60%），8K prompt 需约 150ms 逐字符编码
+- Tokenizer encode 耗时占比最高（约 60%），8000 prompt 需约 150ms 逐字符编码
 - Chat template 渲染耗时约 55ms（22%），涉及字符串拼接和特殊 token 插入
 - Tensor 构造与 Host→Device 传输耗时约 30ms（12%）
 - 其他（参数校验、memory pinning 等）约 15ms（6%）
@@ -67,15 +67,15 @@ Prefill 完成后同样存在一段 CPU 后处理区间：
 
 ## 问题根因
 
-前处理中 Tokenizer encode 对 prompt 全量文本逐字符编码，未启用缓存机制。在多轮对话场景下，固定的 system prompt 每次请求都被重新编码，导致前处理耗时与 prompt 长度线性增长。8K prompt 下前处理耗时约 250ms，占 TTFT 的 55.6%，NPU 在此期间完全空闲。
+前处理中 Tokenizer encode 对 prompt 全量文本逐字符编码，未启用缓存机制。在多轮对话场景下，固定的 system prompt 每次请求都被重新编码，导致前处理耗时与 prompt 长度线性增长。8000 prompt 下前处理耗时约 250ms，占 TTFT 的 55.6%，NPU 在此期间完全空闲。
 
 该问题属于**服务化管线配置问题**：Tokenizer 缓存未启用，且前后处理与模型推理共享 CPU 线程，阻塞 NPU 调度。该故障模式需补充至故障模式库。
 
 ## 问题结论
 
-1. 前处理耗时过长的根因是 Tokenizer encode 未启用缓存，每次请求对全量 prompt 重新编码，8K prompt 下耗时约 150ms。
+1. 前处理耗时过长的根因是 Tokenizer encode 未启用缓存，每次请求对全量 prompt 重新编码，8000 prompt 下耗时约 150ms。
 2. 前后处理全流程在 CPU 侧执行，NPU 空闲等待约 270ms（前处理 250ms + 后处理 20ms），占 TTFT 的 60%。
-3. 前处理耗时与 prompt 长度呈线性增长，16K prompt 下前处理约 480ms，几乎与 Prefill 耗时持平。
+3. 前处理耗时与 prompt 长度呈线性增长，16000 prompt 下前处理约 480ms，几乎与 Prefill 耗时持平。
 4. 优化方向：启用 Tokenizer 缓存（system prompt 仅编码一次）、使用 Rust/C++ 层 Tokenizer 绕过 Python GIL、将前后处理与模型推理部署到不同线程/进程以避免阻塞 NPU 调度。
 
 ## 定位方法论总结

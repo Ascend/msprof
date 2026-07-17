@@ -140,11 +140,11 @@ echo 3 > /proc/sys/vm/drop_caches
 - 容器化部署时确认特权模式和路径权限，避免模型、rank table、共享内存或设备文件访问失败。
 
 ```bash
-docker run --privileged=true ...
+docker run --privileged=true
 ```
 
 - 若KVCache使用率长期偏低且内存占用高，检查maxSeqLen是否远大于真实数据集最大序列长度。
-- 若服务进程被杀，优先检查系统日志、容器内存限制和权重加载阶段内存峰值。
+- 若服务进程停止，优先检查系统日志、容器内存限制和权重加载阶段内存峰值。
 
 ### 通信与环境变量配置不足
 

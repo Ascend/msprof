@@ -1,7 +1,7 @@
 
 # 背景描述（Background）
 
-继承代际芯片的软硬件调度全流程能力，主要扩展Ascend 950PR/Ascend 950DT芯片的调度、计算&&通信、AI核计算单元、系统硬件指标的调优能力构筑，支持性能调优分析。
+继承代际芯片的软硬件调度全流程能力，主要扩展Ascend 950PR/Ascend 950DT芯片的调度、计算和通信、AI核计算单元、系统硬件指标的调优能力构筑，支持性能调优分析。
 
 # 用例分析（Use Case）
 
@@ -102,7 +102,7 @@ DFX设计：
 
    ```
 
-   代际芯片的软硬件调度全流程能力，结合Ascend 950PR/Ascend 950DT芯片能力，主要扩展调度器、计算&&通信通路、AI核上计算单元、系统级硬件指标等多方面的调优能力构筑。
+   代际芯片的软硬件调度全流程能力，结合Ascend 950PR/Ascend 950DT芯片能力，主要扩展调度器、计算和通信通路、AI核上计算单元、系统级硬件指标等多方面的调优能力构筑。
 
    - Stars调度器新增fusion task类别任务
    - AI核计算单元Die间带宽能力
@@ -121,7 +121,7 @@ DFX设计：
         └───────┘    └───────┘    └───────┘    └───────┘
       ```
 
-      Die间带宽数据通过Stars数据格式上报，Profiling落盘性能数据后，解析完成后生成timeline柱形图，支持分析D/U-Die之间的带宽信息。带宽范围主要由上图可见：UDie0与DDie0、DDie0与DDie1、DDie1与UDie1的带宽统计
+      Die间带宽数据通过Stars数据格式上报，Profiling落盘性能数据后，解析完成后生成timeline柱形图，支持分析D/U-Die之间的带宽信息。带宽范围主要由D/U Die结构图可见：UDie0与DDie0、DDie0与DDie1、DDie1与UDie1的带宽统计
 
       DFX设计
 
@@ -176,7 +176,7 @@ DFX设计：
 
    4. 代际芯片命令行参数功能实现设计
       - reports参数补齐：对标代际芯片支持reports参数筛选timeline trace图中需要呈现的泳道内容
-      - 默认导出DB：通过msprof进行数据解析过程需要补齐默然导出DB文件
+      - 默认导出DB：通过msprof进行数据解析过程需要补齐默认导出DB文件
       - 性能数据交付件（task_time.csv / soc_pmu.csv）拷贝到ASCEND_PROFILER_OUTPUT目录下，支持数据的呈现和分析
 
       DFX设计
@@ -220,7 +220,7 @@ DFX设计：
 | D/U-Die带宽数据采集用例        | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增泳道可展示D/U-Die带宽柱形曲线 |
 | Fusion Task任务呈现用例        | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，Ascend Hardware下可展示fusion task任务耗时信息 |
 | DPU算子耗时统计及呈现能力用例  | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，新增CANN：DPU下可展示DPU任务的耗时呈现 |
-| msprof命令行支持report参数用例 | Ascend 950PR/Ascend 950DT CANN软件包正确安装<br />内置reports_sample_config.json（只配置“ascend：true”，其他全为false） | 通过msprof执行业务应用：msprof --output=* ./main [args] --reports=“reports_sample_config.json” | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，只支持AscendHardware泳道的呈现 |
+| msprof命令行支持report参数用例 | Ascend 950PR/Ascend 950DT CANN软件包正确安装<br />内置reports_sample_config.json（只配置“ascend：true”，其他全为false） | 通过msprof执行业务应用：msprof --output=* ./main [args] --reports="reports_sample_config.json" | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成timeline数据，只支持AscendHardware泳道的呈现 |
 | msprof命令行支持解析默认导出DB | Ascend 950PR/Ascend 950DT CANN软件包正确安装                                                               | 通过msprof执行业务应用：msprof --output=* ./main [args]      | 1、采集到PROF性能数据，并打印自动解析完成<br />2、生成的交付件包含DB文件 |
 |                                |                                                                              |                                                              |                                                              |
 
