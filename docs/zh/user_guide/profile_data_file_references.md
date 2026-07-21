@@ -14,28 +14,39 @@
     │    └── data
     ├── device_{id}   // Device侧性能原始数据，用户无需关注
     │       └── data
-    ├── msprof_{timestamp}.db  // db格式的性能数据
-    ├── mindstudio_profiler_output   // Host和各个Device的性能数据汇总
-        ├── msprof_{timestamp}.json  // chrome格式timeline数据
-        ├── op_summary_{timestamp}.csv // AI Core和AI CPU算子数据
+    ├── msprof_{timestamp}.db  // DB类型的性能数据
+    ├── mindstudio_profiler_output   // Text类型的性能数据
+        ├── msprof_{timestamp}.json
+        ├── op_summary_{timestamp}.csv
         └── ...
+    PLATFORM_{timestamp}   // NUMA性能数据结果，当前用于内部可视化绘图，用户无需关注
+    ├── platform.db
+    └── metrics.csv
    ```
 
-解析后生成两类性能数据文件：
+上述PROF_XXX目录中的性能数据文件主要包括如下类型：
 
-- **DB**格式：`msprof_{timestamp}.db`文件，存放解析后的DB类型性能数据。
-- **Text**格式：`mindstudio_profiler_output`文件夹，存放解析后的Text类型性能数据，包含以下两类文件：
-  1. Timeline信息文件（`msprof_{timestamp}.json`）：
-     - 使用MindStudio Insight打开，可视化展示AI任务运行时各层级算子的调用关系与执行时序。
-  2. Summary信息文件（`op_summary_{timestamp}.csv`, `api_statistic_{timestamp}.csv`等文件）：
-     - 多维度的统计摘要信息。
-     - 以表格形式汇总运行耗时。
+- **DB**：`msprof_{timestamp}.db`文件
 
-## DB格式性能数据<a name="ZH-CN_TOPIC_0000002509383183"></a>
+  以DB格式存放解析后的性能数据，该文件汇总所有性能数据，具体表结构与内容请参见[DB格式性能数据文件](profile_data_file_references_db.md)。
 
-`msprof_*.db`为汇总所有性能数据的DB格式文件，具体表结构与内容请参考[DB格式性能数据文件](./profile_data_file_references_db.md)。
+- **Text**：`mindstudio_profiler_output`目录
 
-## Text格式性能数据<a name="ZH-CN_TOPIC_0000002509383183"></a>
+  存放解析后的Text类型性能数据，包含以下两类文件：
+
+  - Timeline信息文件（`msprof_{timestamp}.json`）
+
+    使用MindStudio Insight打开，可视化展示AI任务运行时各层级算子的调用关系与执行时序。
+
+  - Summary信息文件（目录下的csv格式文件）
+
+    多维度的统计摘要信息；以表格形式汇总运行耗时。
+
+  详细介绍请参见[Text格式性能数据](#ZH-CN_TOPIC_0000002509383184)。
+
+上述PLATFORM_{timestamp}目录详细介绍请参见[PLATFORM平台数据](#ZH-CN_TOPIC_0000012509383185)。
+
+## Text格式性能数据<a name="ZH-CN_TOPIC_0000002509383184"></a>
 
 ### 常用交付件
 
@@ -842,7 +853,7 @@ step\_trace\_\*.json文件内容格式示例如下：
 **图 1**  step\_trace\_\*.json<a name="zh-cn_topic_0000001706482137_fig131371629121716"></a>  
 ![](../figures/step_trace_-json.png "step_trace_-json")
 
-迭代轨迹数据即训练任务及AI软件栈的软件信息，实现对训练任务的性能分析。以默认的两段式梯度切分为例，通过打印出训练任务中关键节点fp\_start/bp\_end的时间，达到把一个迭代的执行情况描述清楚的目的。
+迭代轨迹数据即训练任务及AI软件栈的软件信息，实现对训练任务的性能分析。以默认的两段式梯度切分为例，通过打印出训练任务中关键节点fp_start、bp_end、Reduce Start、Reduce Duration(us)的时间，达到把一个迭代的执行情况描述清楚的目的。
 
 离线推理场景下不采集FP（训练网络迭代轨迹正向算子的开始位置）和BP（训练网络迭代轨迹反向算子的结束位置），采集结果将显示FP Start、BP End为NA且不存在timeline。
 
@@ -865,6 +876,7 @@ step\_trace\_\*.json文件内容格式示例如下：
 |FP_BP Time|FP/BP计算时间（BP End - FP Start），单位ns。|
 |Iteration Refresh|迭代拖尾时间（Iteration End - BP End），单位ns。|
 |Data_aug Bound|数据增强拖尾（本轮迭代FP Start - 上一个迭代Iteration End）。如果计算第一轮数据增强拖尾时没有上一轮迭代的Iteration End数据，那么第一轮迭代的数据增强拖尾数据值默认为N/A。|
+|Reduce|集合通信时间，可能存在多组集合通信时间（ph：B表示某一组的开始时间，ph：E表示该组的结束时间）；如果非多P环境，则没有Reduce数据。|
 
 **数据读取时间分析<a name="zh-cn_topic_0000001706482137_section18193612191110"></a>**
 
@@ -906,6 +918,8 @@ step\_trace\_\*.csv文件内容格式示例如下：
 |Iteration Refresh(us)|迭代拖尾时间（Iteration End - BP End），单位us。|
 |Data Aug Bound(us)|数据增强拖尾（本轮迭代FP Start - 上一个迭代Iteration End），单位us。如果计算第一轮数据增强拖尾时没有上一轮迭代的Iteration End数据，那么第一轮迭代的数据增强拖尾数据值默认为N/A。|
 |Model ID|某轮迭代的模型中的图ID。|
+|Reduce Start(us)|集合通信开始时间，单位us。|
+|Reduce Duration(us)|集合通信时间，可能存在多组集合通信时间，本示例按照系统默认切分策略是分为两段集合通信时间，Reduce Start表示开始时间，Reduce Duration表示由开始到结束时间，单位us。如果非多P环境，则没有Reduce数据。|
 
 #### communication\_statistic（集合通信算子统计信息）<a name="ZH-CN_TOPIC_0000002509503209"></a>
 
@@ -2931,3 +2945,34 @@ ub_*.csv文件内容格式示例如下：
 | TimeStamp               | 时间戳，单位us。                 |
 | UBRxPortBandWidth(MB/s) | UB当前时刻的接收带宽，单位MB/s。 |
 | UBTxPortBandWidth(MB/s) | UB当前时刻的发送带宽，单位MB/s。 |
+
+## PLATFORM_{timestamp}<a name="ZH-CN_TOPIC_0000012509383185"></a>
+
+当前仅包含platform.db和metrics.csv文件，其中platform.db用于内部可视化绘图无需关注，metrics.csv记录各个numa节点在各个时间段下的带宽信息。
+
+在性能数据采集时，配置msprof --host-sys=numa参数生成。
+
+当前数据用于内部可视化绘图，用户无需关注。
+
+**产品支持情况**
+
+| 产品                                        | 是否支持 |
+| ------------------------------------------- | :------: |
+| Ascend 950 系列产品                         |    √     |
+| Atlas A3 训练系列产品/Atlas A3 推理系列产品 |    √     |
+| Atlas A2 训练系列产品/Atlas A2 推理系列产品 |    √     |
+| Atlas 200I/500 A2 推理产品                  |    √     |
+| Atlas 推理系列产品                          |    √     |
+| Atlas 训练系列产品                          |    √     |
+
+**metrics.csv文件说明**
+
+metrics.csv文件内容如下：
+
+**表 1** 字段说明
+
+| 字段名 | 字段含义         |
+| ------ | ---------------- |
+| ts     | 时间戳。         |
+| value  | 带宽值。         |
+| name   | 事件的指标名称。 |
