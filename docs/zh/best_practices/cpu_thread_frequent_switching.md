@@ -51,7 +51,7 @@
    perf stat -e context-switches,cpu-migrations -p <PID> sleep 10
    ```
 
-   确认线程调度开销占总 CPU 时间的占比较大，超过 20%。
+   确认线程调度开销占总 CPU 时间的比例较大，超过 20%。
 
 3. 通过 MindStudio 提供的 [ftrace_tools](https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools) 工具，完成了 CPU 调度事件的采集工作，采集结果如下
 

@@ -74,14 +74,14 @@
 
 ```shell
 # 编译全量run包，包含msProf的采集和解析功能
-bash build/build.sh --mode=all --version={version}
+bash build/build.sh --mode=all --version=26.1.0
 ```
 
 ##### 2.3.2.2 方式二：编译msProf解析run包
 
 ```shell
 # 单独编译解析包
-bash build/build.sh --mode=analysis --version={version}
+bash build/build.sh --mode=analysis --version=26.1.0
 ```
 
 #### 2.3.3 安装run包
@@ -90,13 +90,13 @@ bash build/build.sh --mode=analysis --version={version}
 
    ```shell
    cd output
-   chmod +x mindstudio-profiler_{version}_{arch}.run
+   chmod +x mindstudio-profiler_26.1.0_{arch}.run
    ```
 
 2. 执行安装命令。
 
    ```shell
-   ./mindstudio-profiler_{version}_{arch}.run --install
+   ./mindstudio-profiler_26.1.0_{arch}.run --install
    ```
 
    安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#62-安装run包参数说明)。
@@ -132,7 +132,7 @@ msprof --help
 1. 下载脚本。
 
    ```bash
-   curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.0.0/ms_install.py
+   curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.1.0/ms_install.py
    ```
 
    > [!NOTE]
@@ -158,7 +158,7 @@ msprof --help
 
 升级即“先卸后装”。直接执行安装命令，工具将自动卸载旧版本，并引导您完成覆盖安装。
 
-可通过`msprof --version`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.0.0/release_notes.md)》。
+可通过`msprof --version`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes.md)》。
 
 ## 6. 附录
 

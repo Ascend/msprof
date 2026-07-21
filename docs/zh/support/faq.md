@@ -3,7 +3,7 @@
 ## 一、故障排查
 
 - **Q：为什么PROF文件夹拖入insight没有任何呈现？**
-- A：确认PROF目录下是否存在mindstudio_profiler_output目录，不存在相关目录使用msprof --export=on --output={PROF路径}进行数据解析。
+- A：确认PROF目录下是否存在mindstudio_profiler_output目录，若不存在相关目录，则使用msprof --export=on --output={PROF路径}进行数据解析。
 
 - **Q：PLOG日志在哪里？如何配置？**
 - A：PLOG（Process LOG）记录数据采集和解析过程中的详细信息，是排查采集失败、数据为空等问题的首选依据。
