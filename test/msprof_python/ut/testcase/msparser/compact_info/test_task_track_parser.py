@@ -48,7 +48,7 @@ class TestTaskTrackParser(unittest.TestCase):
                     '1000': 'task_track',
                 },
             }
-            bean_data = TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789])
+            bean_data = TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789, 0, 0, 0, 0])
             check.format_task_track_data([bean_data])
             self.assertEqual(len(check._task_track_data), 1)
             self.assertEqual(len(check._task_track_data[0]), 11)
@@ -82,15 +82,15 @@ class TestTaskTrackParser(unittest.TestCase):
     def test_reformat_data_should_return_4_task_track_and_3_flip_and_1_dpu_when_filtered_maintenance(self):
         InfoConfReader()._info_json = {"drvVersion": InfoConfReader().ALL_EXPORT_VERSION}
         task_data = [
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 6, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 3, 123456789]),
-            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 4, 123456789]),
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 0, 0, 1, 123456789]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 97, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 6, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 3, 123456789, 0, 0, 0, 0]),
+            TaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 4, 123456789, 0, 0, 0, 0]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 0, 0, 1, 123456789, 0, 0, 0, 0]),
         ]
 
         with mock.patch(GE_HASH_MODEL_NAMESPACE + '.GeHashViewModel.init'), \
@@ -113,10 +113,10 @@ class TestTaskTrackParser(unittest.TestCase):
     def test_reformat_data_should_return_4_task_track_when_get_4_task(self):
         InfoConfReader()._info_json = {"drvVersion": InfoConfReader().ALL_EXPORT_VERSION}
         task_data = [
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789]),
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789]),
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789]),
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789])
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789, 0, 0, 0, 0]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 1, 123456789, 0, 0, 0, 0]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789, 0, 0, 0, 0]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 0, 0, 0, 0, 2, 123456789, 0, 0, 0, 0])
         ]
 
         with mock.patch(GE_HASH_MODEL_NAMESPACE + '.GeHashViewModel.init'), \
@@ -132,8 +132,8 @@ class TestTaskTrackParser(unittest.TestCase):
             DPUTaskTrackBean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 0, 1, 0, 75838889643892]),
         ]
         task_tracks = [
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 0, 0, 1, 123456789]),
-            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 1, 0, 1, 987654321]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 0, 0, 1, 123456789, 0, 0, 0, 0]),
+            TaskTrackChip6Bean([23130, 5000, 1000, 270722, 12, 75838889645892, 4096, 0, 1, 0, 1, 987654321, 0, 0, 0, 0]),
         ]
 
         with mock.patch(GE_HASH_MODEL_NAMESPACE + '.GeHashViewModel.init'), \

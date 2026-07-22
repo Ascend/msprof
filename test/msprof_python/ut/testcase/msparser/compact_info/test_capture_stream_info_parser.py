@@ -41,7 +41,7 @@ class TestTaskTrackParser(unittest.TestCase):
             CaptureStreamInfoBean([23130, 5000, 1000, 270722, 12, 75838889645892, 1, 0xffff, 0xffff, 0, 0]),
         ]
         check._format_stream_data(capture_stream_data)
-        self.assertEqual(len(check._capture_stream_data), 3)
+        self.assertEqual(len(check._capture_stream_data), 4)
 
     def test_format_mc2_comm_info_data(self):
         check = CaptureStreamInfoParser(self.file_list, CONFIG)

@@ -30,3 +30,13 @@ class TaskTrackDto(metaclass=InstanceCheckMeta):
     thread_id: int = None
     timestamp: float = None
     kernel_name: str = None
+    model_id: int = None
+
+
+@dataclass
+class TaskTrackV2Dto(metaclass=InstanceCheckMeta):
+    device_id: int = None
+    stream_id: int = None
+    task_id: int = None
+    batch_id: int = None
+    model_id: int = None

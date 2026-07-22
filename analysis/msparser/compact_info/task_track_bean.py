@@ -38,6 +38,7 @@ class TaskTrackBean(CompactInfoBean):
         self._batch_id = data[9]
         self._task_type = data[10]
         self._kernel_name = data[11]
+        self._model_id = data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24)
 
     @property
     def is_dpu(self: any) -> bool:
@@ -88,6 +89,11 @@ class TaskTrackBean(CompactInfoBean):
         """
         return str(self._kernel_name)
 
+    @property
+    def model_id(self: any) -> int:
+        """model_id from extInfo.modelInfo (valid when taskType is model_execute/model_notify_wait)"""
+        return self._model_id
+
     @batch_id.setter
     def batch_id(self: any, batch_id) -> None:
         """
@@ -106,6 +112,84 @@ class TaskTrackChip6Bean(TaskTrackBean):
         super().__init__(*args)
         data = args[0]
         self._task_id = data[9] << 16 | data[8]
+        self._batch_id = 0
+
+
+class TaskTrackV2Bean(CompactInfoBean):
+    """
+    task track bean for V2 format (streamId u32, taskType u32, extInfo includes modelInfo)
+    """
+
+    def __init__(self: any, *args) -> None:
+        super().__init__(*args)
+        data = args[0]
+        self._dev_type = (data[6] >> 12) & 0xF
+        self._device_id = data[6] & 0xFFF
+        self._stream_id = data[8]
+        self._task_id = data[9]
+        self._batch_id = data[10]
+        self._task_type = data[11]
+        self._kernel_name = data[12]
+        self._model_id = data[13] | (data[14] << 8) | (data[15] << 16) | (data[16] << 24)
+
+    @property
+    def is_dpu(self: any) -> bool:
+        """
+        Used to distinguish the device type(DPU:1/NPU:0) of tasks.
+        """
+        return self._dev_type == DevType.DPU.value
+
+    @property
+    def device_id(self: any) -> int:
+        """task track device_id"""
+        return self._device_id
+
+    @property
+    def stream_id(self: any) -> int:
+        """task track stream_id (uint32_t in V2)"""
+        return self._stream_id
+
+    @property
+    def task_id(self: any) -> int:
+        """task track task_id (low 16 bits)"""
+        return self._task_id
+
+    @property
+    def batch_id(self: any) -> int:
+        """task track batch_id (high 16 bits of taskId)"""
+        return self._batch_id
+
+    @property
+    def task_type(self: any) -> str:
+        """task track task_type (uint32_t in V2)"""
+        return str(self._task_type)
+
+    @property
+    def kernel_name(self: any) -> str:
+        """task track kernel_name"""
+        return str(self._kernel_name)
+
+    @property
+    def model_id(self: any) -> int:
+        """model_id from extInfo.modelInfo (valid when taskType is model_execute/model_notify_wait)"""
+        return self._model_id
+
+    @batch_id.setter
+    def batch_id(self: any, batch_id) -> None:
+        """task track batch_id"""
+        self._batch_id = batch_id
+
+
+class TaskTrackV2Chip6Bean(TaskTrackV2Bean):
+    """
+    task track v2 bean for chip v6
+    task id use 32 bit, batch id is always 0
+    """
+
+    def __init__(self: any, *args) -> None:
+        super().__init__(*args)
+        data = args[0]
+        self._task_id = data[10] << 16 | data[9]
         self._batch_id = 0
 
 

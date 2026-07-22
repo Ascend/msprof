@@ -1141,6 +1141,13 @@ class TablesConfig(MetaConfig):
             ('data_len', 'INTEGER,null'),
             ('kernel_name', 'TEXT,null'),
         ],
+        'ModelInfoMap': [
+            ('device_id', 'INTEGER,null'),
+            ('stream_id', 'INTEGER,null'),
+            ('task_id', 'INTEGER,null'),
+            ('batch_id', 'INTEGER,null'),
+            ('model_id', 'INTEGER,null'),
+        ],
         'RuntimeOpInfoMap': [
             ('level', 'TEXT,null'),
             ('struct_type', 'TEXT,null'),

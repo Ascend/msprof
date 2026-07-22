@@ -23,6 +23,7 @@ from common_func.path_manager import PathManager
 from common_func.db_name_constant import DBNameConstant
 from msmodel.add_info.runtime_op_info_model import RuntimeOpInfoViewModel
 from msmodel.compact_info.capture_stream_info_model import CaptureStreamInfoViewModel
+from msmodel.compact_info.task_track_model import TaskTraceV2ViewModel
 from profiling_bean.db_dto.runtime_op_info_dto import RuntimeOpInfoDto
 
 
@@ -36,10 +37,13 @@ class RTAddInfoCenter:
     def __init__(self: any, project_path: str) -> None:
         self._op_info_dict = {}
         self._capture_info_list = []
+        self._model_id_info_data = {}
         if os.path.exists(PathManager.get_db_path(project_path, DBNameConstant.DB_RTS_TRACK)):
             self.load_runtime_op_info_data(project_path)
         if os.path.exists(PathManager.get_db_path(project_path, DBNameConstant.DB_STREAM_INFO)):
             self.load_capture_stream_info_data(project_path)
+        if os.path.exists(PathManager.get_db_path(project_path, DBNameConstant.DB_RTS_TRACK)):
+            self.load_model_id_info_data(project_path)
         self._capture_info_time_range_dict = self.build_capture_info_time_range_dict()
 
     def load_runtime_op_info_data(self: any, project_path: str) -> None:
@@ -63,6 +67,17 @@ class RTAddInfoCenter:
         except Exception as e:
             logging.error("Failed to load capture stream info data: %s", str(e))
             self._capture_info_list = []
+
+    def load_model_id_info_data(self: any, project_path: str) -> None:
+        """
+        load task track model id info data
+        """
+        try:
+            with TaskTraceV2ViewModel(project_path) as _model:
+                self._model_id_info_data = _model.get_model_id_info_data()
+        except Exception as e:
+            logging.error("load task track model id info data: %s", str(e))
+            self._model_id_info_data = {}
 
     def build_capture_info_time_range_dict(self) -> Dict[Tuple[int, int, int], Tuple[int, int, int]]:
         capture_info_time_range_dict = {}
@@ -92,6 +107,9 @@ class RTAddInfoCenter:
         get type hash dict data
         后续需要增加batchId做唯一id关联，batchId应通过capture stream info数据获取
         """
-        return self.find_matching_model_id(device_id, stream_id, batch_id, timestamp), self._op_info_dict.get(
-            (device_id, stream_id, task_id), RuntimeOpInfoDto()
-        )
+        key = (device_id, stream_id, task_id, batch_id)
+        if key in self._model_id_info_data:
+            model_id = self._model_id_info_data[key]
+        else:
+            model_id = self.find_matching_model_id(device_id, stream_id, batch_id, timestamp)
+        return model_id, self._op_info_dict.get((device_id, stream_id, task_id), RuntimeOpInfoDto())

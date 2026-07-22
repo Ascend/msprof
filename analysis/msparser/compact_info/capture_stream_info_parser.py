@@ -15,8 +15,7 @@
 # -------------------------------------------------------------------------
 
 import logging
-import sqlite3
-from typing import List
+from typing import List, Union
 
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
@@ -25,6 +24,7 @@ from common_func.ms_multi_process import MsMultiProcess
 from msmodel.add_info.mc2_comm_info_model import Mc2CommInfoViewModel, Mc2CommInfoModel
 from msmodel.compact_info.capture_stream_info_model import CaptureStreamInfoModel
 from msparser.compact_info.capture_stream_info_bean import CaptureStreamInfoBean
+from msparser.compact_info.capture_stream_info_bean import CaptureStreamInfoV2Bean
 from msparser.data_struct_size_constant import StructFmt
 from msparser.interface.data_parser import DataParser
 from profiling_bean.prof_enum.data_tag import DataTag
@@ -37,7 +37,7 @@ class CaptureStreamInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        MsMultiProcess.__init__(self, sample_config)
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -48,15 +48,37 @@ class CaptureStreamInfoParser(DataParser, MsMultiProcess):
     def _get_capture_stream_info_data(bean_data: CaptureStreamInfoBean) -> CaptureStreamInfoBean:
         return bean_data
 
+    @staticmethod
+    def _get_capture_stream_info_v2_data(bean_data: CaptureStreamInfoV2Bean) -> CaptureStreamInfoV2Bean:
+        return bean_data
+
     def parse(self: any) -> None:
         """
         parse captrue stream data
         """
-        stream_info_file = self._file_list.get(DataTag.CAPTURE_STREAM_INFO)
-        capture_stream_data = self.parse_bean_data(stream_info_file,
-                                                   StructFmt.CAPTURE_STREAM_INFO_SIZE,
-                                                   CaptureStreamInfoBean,
-                                                   format_func=self._get_capture_stream_info_data)
+        stream_info_files = self._file_list.get(DataTag.CAPTURE_STREAM_INFO, [])
+        if not stream_info_files:
+            return
+        # V1优先：优先使用v1格式数据，v1不存在则使用v2
+        v1_files = [f for f in stream_info_files if "_v2." not in f]
+        v2_files = [f for f in stream_info_files if "_v2." in f]
+
+        if v1_files:
+            capture_stream_data = self.parse_bean_data(
+                v1_files,
+                StructFmt.CAPTURE_STREAM_INFO_SIZE,
+                CaptureStreamInfoBean,
+                format_func=self._get_capture_stream_info_data,
+            )
+        elif v2_files:
+            capture_stream_data = self.parse_bean_data(
+                v2_files,
+                StructFmt.CAPTURE_STREAM_INFO_V2_SIZE,
+                CaptureStreamInfoV2Bean,
+                format_func=self._get_capture_stream_info_v2_data,
+            )
+        else:
+            return
         self._format_stream_data(capture_stream_data)
 
     def format_data(self: any) -> None:
@@ -101,15 +123,22 @@ class CaptureStreamInfoParser(DataParser, MsMultiProcess):
 
         comm_info_data_list = comm_info_view_model.get_kfc_stream(DBNameConstant.TABLE_MC2_COMM_INFO)
         for comm_info_data in comm_info_data_list:
-            if comm_info_data.aicpu_kfc_stream_id not in stream_info_dict.keys():
+            if comm_info_data.aicpu_kfc_stream_id not in stream_info_dict:
                 continue
             # 把capture场景的内容手动补充数据上去 避免后续多处修改
             for models_stream_id in stream_info_dict[comm_info_data.aicpu_kfc_stream_id]:
-                self._capture_mc2_comm_info_data.append([comm_info_data.group_name, comm_info_data.rank_size,
-                                                         comm_info_data.rank_id, comm_info_data.usr_rank_id,
-                                                         models_stream_id, comm_info_data.comm_stream_ids])
+                self._capture_mc2_comm_info_data.append(
+                    [
+                        comm_info_data.group_name,
+                        comm_info_data.rank_size,
+                        comm_info_data.rank_id,
+                        comm_info_data.usr_rank_id,
+                        models_stream_id,
+                        comm_info_data.comm_stream_ids,
+                    ]
+                )
 
-    def _format_stream_data(self, capture_stream_data: List[CaptureStreamInfoBean]):
+    def _format_stream_data(self, capture_stream_data: List[Union[CaptureStreamInfoBean, CaptureStreamInfoV2Bean]]):
         sorted_capture_stream_data = sorted(capture_stream_data, key=lambda x: x.timestamp)
         start_model_set, end_model_set, stream_info_set = set(), set(), set()
         repeated_num = 0
@@ -123,24 +152,40 @@ class CaptureStreamInfoParser(DataParser, MsMultiProcess):
             else:
                 # 已经出现过，递增batch_id
                 batch_id = batch_id_map[device_stream_key]
-            key_without_batch = (bean_data.device_id, bean_data.model_id, bean_data.original_stream_id,
-                                 bean_data.model_stream_id, bean_data.capture_status, bean_data.timestamp)
+            key_without_batch = (
+                bean_data.device_id,
+                bean_data.model_id,
+                bean_data.original_stream_id,
+                bean_data.model_stream_id,
+                bean_data.capture_status,
+                bean_data.timestamp,
+            )
             if key_without_batch in stream_info_set:
                 repeated_num += 1
                 continue
             # 0 start; 1 end: 记录无需落盘,start 和end对不上属于正常情况（prof stop时 capture流还未被销毁）
             if bean_data.capture_status == 0 and bean_data.model_id not in start_model_set:
                 start_model_set.add(bean_data.model_id)
-            if bean_data.capture_status == 1 and bean_data.model_id not in end_model_set:
-                end_model_set.add(bean_data.model_id)
-                continue
+            if bean_data.capture_status == 1:
+                if bean_data.model_id not in end_model_set:
+                    end_model_set.add(bean_data.model_id)
+                else:
+                    continue
             batch_id_map[device_stream_key] = batch_id + 1
             stream_info_set.add(key_without_batch)
-            self._capture_stream_data.append((bean_data.device_id, bean_data.model_id,
-                                              bean_data.original_stream_id, bean_data.model_stream_id, batch_id,
-                                              bean_data.capture_status, bean_data.timestamp))
+            self._capture_stream_data.append(
+                (
+                    bean_data.device_id,
+                    bean_data.model_id,
+                    bean_data.original_stream_id,
+                    bean_data.model_stream_id,
+                    batch_id,
+                    bean_data.capture_status,
+                    bean_data.timestamp,
+                )
+            )
 
         if start_model_set != end_model_set:
-            logging.warning(f"start model ids are {start_model_set}, end model ids are {end_model_set}.")
+            logging.warning("start model ids are %s, end model ids are %s.", start_model_set, end_model_set)
         if repeated_num:
-            logging.warning(f"There are {repeated_num} duplicate records in total.")
+            logging.warning("There are %s duplicate records in total.", repeated_num)

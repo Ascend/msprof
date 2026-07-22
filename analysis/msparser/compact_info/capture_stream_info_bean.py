@@ -14,11 +14,11 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 from msparser.compact_info.compact_info_bean import CompactInfoBean
- 
- 
+
+
 class CaptureStreamInfoBean(CompactInfoBean):
     """
-    capture stream info bean
+    capture stream info bean (V1)
     """
 
     def __init__(self: any, *args) -> None:
@@ -66,5 +66,41 @@ class CaptureStreamInfoBean(CompactInfoBean):
         return self._device_id
 
 
+class CaptureStreamInfoV2Bean(CompactInfoBean):
+    """
+    capture stream info bean (V2): deviceId first, streamId u32, modelId u32
+    """
 
+    def __init__(self: any, *args) -> None:
+        super().__init__(*args)
+        data = args[0]
+        self._device_id = data[6]
+        self._capture_status = data[7]
+        self._stream_id = data[9]
+        self._original_stream_id = data[10]
+        self._model_id = data[11]
 
+    @property
+    def capture_status(self: any) -> int:
+        """capture status: 0=start, 1=end"""
+        return self._capture_status
+
+    @property
+    def model_stream_id(self: any) -> int:
+        """capture stream id (uint32_t in V2)"""
+        return self._stream_id
+
+    @property
+    def original_stream_id(self: any) -> int:
+        """capture ori stream id (uint32_t in V2)"""
+        return self._original_stream_id
+
+    @property
+    def model_id(self: any) -> int:
+        """capture model_id (uint32_t in V2)"""
+        return self._model_id
+
+    @property
+    def device_id(self: any) -> int:
+        """device_id"""
+        return self._device_id
