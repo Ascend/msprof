@@ -16,7 +16,10 @@
 
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 
+#include <cstring>
+
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "securec.h"
 
 namespace Analysis
 {
@@ -136,6 +139,24 @@ int NodeBasicInfoParser::ProduceData()
     return ANALYSIS_OK;
 }
 
+void TaskTrackParser::NormalizeRuntimeTrack(MsprofCompactInfo *compactInfo)
+{
+    // V1数据归一化到V2格式：统一使用runtimeTrackV2，上层不再区分V1/V2
+    MsprofRuntimeTrack v1Track = compactInfo->data.runtimeTrack;
+    compactInfo->data.runtimeTrackV2.deviceId = v1Track.deviceId;
+    compactInfo->data.runtimeTrackV2.streamId = v1Track.streamId;
+    compactInfo->data.runtimeTrackV2.taskId = v1Track.taskId;
+    // v1版本的taskType上报数据不超过uint16_t
+    compactInfo->data.runtimeTrackV2.taskType = static_cast<uint32_t>(v1Track.taskType);
+    compactInfo->data.runtimeTrackV2.kernelName = v1Track.kernelName;
+    errno_t res = memcpy_s(&compactInfo->data.runtimeTrackV2.extInfo, sizeof(compactInfo->data.runtimeTrackV2.extInfo),
+                           &v1Track.extInfo, sizeof(v1Track.extInfo));
+    if (res != EOK)
+    {
+        errorNum_++;
+    }
+}
+
 int TaskTrackParser::ProduceData()
 {
     if (chunkProducer_->Empty())
@@ -149,6 +170,7 @@ int TaskTrackParser::ProduceData()
         ERROR("%: Reserve data failed", parserName_);
         return ANALYSIS_ERROR;
     }
+    auto isV2 = IsRuntimeTrackV2();
     while (!chunkProducer_->Empty())
     {
         auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunkProducer_->Pop());
@@ -163,7 +185,11 @@ int TaskTrackParser::ProduceData()
             delete compactInfo;
             continue;
         }
-        if (compactInfo->data.runtimeTrack.taskType == flipTaskType)
+        if (!isV2)
+        {
+            NormalizeRuntimeTrack(compactInfo);
+        }
+        if (compactInfo->data.runtimeTrackV2.taskType == flipTaskType)
         {
             auto flipTask = Flip::CreateFlipTask(compactInfo);
             delete compactInfo;
@@ -175,22 +201,21 @@ int TaskTrackParser::ProduceData()
             flipTaskData_.emplace_back(flipTask);
             continue;
         }
-        // 因为Maintenance task标记流销毁，device侧并不会上报，也没有更多的含义，所以无需关联和展示
-        // 同时Maintenance task可能会在流销毁的flip task后面，影响batch id的计算，所以过滤掉
-        if (compactInfo->data.runtimeTrack.taskType == maintenanceTaskType)
+
+        if (compactInfo->data.runtimeTrackV2.taskType == maintenanceTaskType)
         {
             delete compactInfo;
             continue;
         }
 
         // Collect DPU kernel name for cross-reference
-        DevType devType = static_cast<DevType>((compactInfo->data.runtimeTrack.deviceId >> 12) & 0xF);
+        DevType devType = static_cast<DevType>((compactInfo->data.runtimeTrackV2.deviceId >> 12) & 0xF);
         if (devType == DevType::DPU)
         {
-            uint16_t devId = compactInfo->data.runtimeTrack.deviceId;
-            uint32_t taskId = compactInfo->data.runtimeTrack.taskId;
+            uint16_t devId = compactInfo->data.runtimeTrackV2.deviceId;
+            uint32_t taskId = compactInfo->data.runtimeTrackV2.taskId;
             uint64_t key = (static_cast<uint64_t>(devId) << 32) | taskId;
-            dpuKernelNameMap_[key] = compactInfo->data.runtimeTrack.kernelName;
+            dpuKernelNameMap_[key] = compactInfo->data.runtimeTrackV2.kernelName;
             delete compactInfo;
             continue;
         }
@@ -201,7 +226,7 @@ int TaskTrackParser::ProduceData()
     if (Context::GetInstance().IsAllExport() &&
         !Environment::Context::GetInstance().IsChipV6(Environment::Context::GetInstance().GetPlatformVersion()))
     {
-        Flip::ComputeBatchId(compactData_, flipTaskData_);
+        Flip::ComputeBatchId(compactData_, flipTaskData_, isV2);
     }
     return ANALYSIS_OK;
 }

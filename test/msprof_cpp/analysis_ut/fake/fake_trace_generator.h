@@ -72,9 +72,9 @@ class FakeEventGenerator
         taskTrack->dataLen = size;
         taskTrack->timeStamp = static_cast<uint64_t>(dot);
 
-        MsprofRuntimeTrack track;
-        track.taskType = taskType;
-        taskTrack->data.runtimeTrack = track;
+        MsprofRuntimeTrackV2 track{};
+        track.taskType = static_cast<uint32_t>(taskType);
+        taskTrack->data.runtimeTrackV2 = track;
         auto eventPtr = std::make_shared<Event>(taskTrack, testInfo);
         eventQueue->Push(eventPtr);
     }

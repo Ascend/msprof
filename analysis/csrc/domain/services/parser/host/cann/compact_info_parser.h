@@ -23,6 +23,7 @@
 
 #include "analysis/csrc/domain/services/adapter/flip.h"
 #include "analysis/csrc/domain/services/parser/host/base_parser.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
 #include "analysis/csrc/infrastructure/utils/prof_common.h"
 
 namespace Analysis
@@ -115,20 +116,50 @@ class TaskTrackParser final : public CompactInfoParser
    public:
     explicit TaskTrackParser(const std::string &path) : CompactInfoParser(path, "TaskTrackParser")
     {
-        Init(filePrefix_);
+        // v1优先：优先使用v1格式数据，v1不存在则使用v2
+        std::vector<std::string> selected = filePrefix_;
+        if (!Analysis::Utils::File::GetFilesWithPrefix(path, filePrefix_[0]).empty() ||
+            !Analysis::Utils::File::GetFilesWithPrefix(path, filePrefix_[1]).empty())
+        {
+            isRuntimeTrackV2_ = false;
+        }
+        else if (!Analysis::Utils::File::GetFilesWithPrefix(path, filePrefixV2_[0]).empty() ||
+                 !Analysis::Utils::File::GetFilesWithPrefix(path, filePrefixV2_[1]).empty())
+        {
+            selected = filePrefixV2_;
+            isRuntimeTrackV2_ = true;
+        }
+        Init(selected);
     }
     // Get DPU kernel name map: key = ((uint64_t)deviceId << 32) | taskId
     const std::unordered_map<uint64_t, uint64_t> &GetDpuKernelNameMap() const;
+    bool IsRuntimeTrackV2() const { return isRuntimeTrackV2_; }
+
+    ~TaskTrackParser()
+    {
+        if (errorNum_ > 0)
+        {
+            ERROR("memcpy runtimeTrack failed!");
+        }
+    }
 
    private:
     int ProduceData() override;
+    void NormalizeRuntimeTrack(MsprofCompactInfo *compactInfo);
 
    private:
     std::vector<std::string> filePrefix_ = {
         "unaging.compact.task_track.slice",
         "aging.compact.task_track.slice",
     };
+
+    std::vector<std::string> filePrefixV2_ = {
+        "unaging.compact.task_track_v2.slice",
+        "aging.compact.task_track_v2.slice",
+    };
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;
+    bool isRuntimeTrackV2_ = false;
+    uint64_t errorNum_ = 0;
 };  // class TaskTrackParser
 
 // 该类的作用是dpu task track数据的解析

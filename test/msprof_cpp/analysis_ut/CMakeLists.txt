@@ -13,6 +13,12 @@ include(${TOP_DIR}/test/cmake/depend.cmake)
 find_package(gtest)
 find_package(mockcpp)
 
+file(GLOB_RECURSE SECUREC_SOURCES
+    ${TOP_DIR}/platform/securec/src/*.c
+)
+
+add_library(securec STATIC ${SECUREC_SOURCES})
+
 # common include
 include_directories(
     ${TOP_DIR}/test/msprof_cpp/analysis_ut/infrastructure/common_stub/ # 写最前面
@@ -76,6 +82,7 @@ function(run_test test_case)
         ${MOCKCPP_STATIC_LIBRARY}
         pthread
         dl
+        securec
     )
 
     set_target_properties(${test_case}

@@ -406,10 +406,11 @@ void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofComp
     {
         return;
     }
-    auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, runtimeTrack->data.runtimeTrack.taskType);
+    auto taskTypeVal = runtimeTrack->data.runtimeTrackV2.taskType;
+    auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
     if (taskType == KERNEL_SIMT_TASK_TYPE)
     {
-        auto &simtInfo = runtimeTrack->data.runtimeTrack.extInfo.simtKernelInfo;
+        auto &simtInfo = runtimeTrack->data.runtimeTrackV2.extInfo.simtKernelInfo;
         gridDim =
             Utils::Join(std::vector<std::string>{std::to_string(simtInfo.gridDim.x), std::to_string(simtInfo.gridDim.y),
                                                  std::to_string(simtInfo.gridDim.z)},
@@ -421,10 +422,9 @@ void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofComp
     }
     else
     {
-        auto ratio = runtimeTrack->data.runtimeTrack.extInfo.kernelInfo.ratio;
-        auto numBlocks = runtimeTrack->data.runtimeTrack.extInfo.kernelInfo.numBlocks;
-        blockNum = numBlocks;
-        mixBlockNum = numBlocks * ratio;
+        auto &kernelInfo = runtimeTrack->data.runtimeTrackV2.extInfo.kernelInfo;
+        blockNum = kernelInfo.numBlocks;
+        mixBlockNum = kernelInfo.numBlocks * kernelInfo.ratio;
     }
 }
 

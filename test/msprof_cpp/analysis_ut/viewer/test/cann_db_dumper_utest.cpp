@@ -123,13 +123,13 @@ protected:
             kernelDesc->nodeDesc->data.nodeAttrInfo = MsprofAttrInfo{};
             auto runtimeTrackDesc = std::make_shared<MsprofCompactInfo>();
             runtimeTrackDesc->dataLen = MSPROF_COMPACT_INFO_DATA_LENGTH;
-            runtimeTrackDesc->data.runtimeTrack.taskType = taskType;
+            runtimeTrackDesc->data.runtimeTrackV2.taskType = static_cast<uint32_t>(taskType);
             if (isSimt) {
-                runtimeTrackDesc->data.runtimeTrack.extInfo.simtKernelInfo.gridDim = {gx, gy, gz};
-                runtimeTrackDesc->data.runtimeTrack.extInfo.simtKernelInfo.blockDim = {bx, by, bz};
+                runtimeTrackDesc->data.runtimeTrackV2.extInfo.simtKernelInfo.gridDim = {gx, gy, gz};
+                runtimeTrackDesc->data.runtimeTrackV2.extInfo.simtKernelInfo.blockDim = {bx, by, bz};
             } else {
-                runtimeTrackDesc->data.runtimeTrack.extInfo.kernelInfo.numBlocks = numBlocks;
-                runtimeTrackDesc->data.runtimeTrack.extInfo.kernelInfo.ratio = ratio;
+                runtimeTrackDesc->data.runtimeTrackV2.extInfo.kernelInfo.numBlocks = numBlocks;
+                runtimeTrackDesc->data.runtimeTrackV2.extInfo.kernelInfo.ratio = ratio;
             }
             kernelDesc->runtimeTrackDesc = runtimeTrackDesc;
             kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});

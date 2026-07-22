@@ -368,6 +368,24 @@ extern "C"
         uint8_t reserved;
     };
 
+    struct MsprofModelInfo
+    {
+        uint32_t modelId;
+        uint8_t rsv[12];
+    };
+
+    struct MsprofEventInfo
+    {
+        uint64_t key;
+        uint8_t rsv[8];
+    };
+
+    struct MsprofNotifyInfo
+    {
+        uint64_t key;
+        uint8_t rsv[8];
+    };
+
     struct MsprofRuntimeTrack
     {  // for MsprofReportCompactInfo buffer data
         uint16_t deviceId;
@@ -379,6 +397,27 @@ extern "C"
         {
             struct MsporfKernelInfo kernelInfo;
             struct MsprofSimtKernelInfo simtKernelInfo;
+            struct MsprofModelInfo modelInfo;
+            struct MsprofEventInfo eventInfo;
+            struct MsprofNotifyInfo notifyInfo;
+        } extInfo;
+    };
+
+    struct MsprofRuntimeTrackV2
+    {  // for MsprofReportCompactInfo buffer data
+        uint16_t deviceId;
+        uint8_t rsv[2];
+        uint32_t streamId;
+        uint32_t taskId;
+        uint32_t taskType;
+        uint64_t kernelName;
+        union
+        {
+            struct MsporfKernelInfo kernelInfo;
+            struct MsprofSimtKernelInfo simtKernelInfo;
+            struct MsprofModelInfo modelInfo;
+            struct MsprofEventInfo eventInfo;
+            struct MsprofNotifyInfo notifyInfo;
         } extInfo;
     };
 
@@ -399,6 +438,16 @@ extern "C"
         uint16_t originalStreamId;  // ori stream id 销毁记录的stream id设置为 UINT16_MAX
         uint16_t modelId;           // capture model id与GE无关
         uint16_t deviceId;
+    };
+
+    struct MsprofCaptureStreamInfoV2
+    {
+        uint16_t deviceId;
+        uint8_t captureStatus;  //  0：创建 1：销毁
+        uint8_t rsv;
+        uint32_t streamId;
+        uint32_t originalStreamId;
+        uint32_t modelId;
     };
 
     enum AlgType
@@ -510,8 +559,10 @@ extern "C"
         {
             uint8_t info[MSPROF_COMPACT_INFO_DATA_LENGTH];
             MsprofRuntimeTrack runtimeTrack;
+            MsprofRuntimeTrackV2 runtimeTrackV2;
             MsprofDpuTrack dpuTrack;
             MsprofCaptureStreamInfo captureStreamInfo;
+            MsprofCaptureStreamInfoV2 captureStreamInfoV2;
             MsprofNodeBasicInfo nodeBasicInfo;
             MsprofAttrInfo nodeAttrInfo;
             MsprofHcclOPInfo hcclopInfo;

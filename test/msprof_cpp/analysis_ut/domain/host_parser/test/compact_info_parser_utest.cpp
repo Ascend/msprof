@@ -247,6 +247,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWh
     auto flipTask = parser->ParseData<Adapter::FlipTask>();
     EXPECT_EQ(0, compactInfo.size());
     EXPECT_EQ(0, flipTask.size());
+    MOCKER_CPP(&ChunkGenerator::Pop).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWhenCreateFlipTaskFailed)

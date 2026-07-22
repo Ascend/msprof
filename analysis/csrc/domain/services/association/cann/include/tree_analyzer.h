@@ -17,9 +17,9 @@
 #ifndef ANALYSIS_ASSOCIATION_CANN_TREE_ANALYZER_H
 #define ANALYSIS_ASSOCIATION_CANN_TREE_ANALYZER_H
 
+#include <map>
 #include <memory>
 #include <queue>
-#include <map>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -29,9 +29,12 @@
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Domain {
-namespace Cann {
+namespace Analysis
+{
+namespace Domain
+{
+namespace Cann
+{
 
 using GeFusionOpInfo = Analysis::Domain::GeFusionOpInfo;
 using GeFusionOpInfos = std::vector<std::shared_ptr<GeFusionOpInfo>>;
@@ -45,16 +48,15 @@ using ComputeOpDescs = std::unordered_map<std::string, std::shared_ptr<Operator>
 // HCCL小算子描述信息，Key为ctxId
 using HCCLSmallOpDescs = std::unordered_map<uint32_t, std::shared_ptr<Operator>>;
 
-class TreeAnalyzer {
-public:
+class TreeAnalyzer
+{
+   public:
     using TypeData = Analysis::Domain::Host::Cann::TypeData;
     using TreeNode = Analysis::Domain::TreeNode;
     using Event = Analysis::Domain::Event;
     using EventType = Analysis::Domain::EventType;
 
-    TreeAnalyzer(const std::shared_ptr<TreeNode> &node, uint32_t threadId)
-        : root_(node), threadId_(threadId)
-    {}
+    TreeAnalyzer(const std::shared_ptr<TreeNode> &node, uint32_t threadId) : root_(node), threadId_(threadId) {}
     // 入口函数
     void Analyze();
     // 获取HCCL相关Tasks数据
@@ -68,27 +70,30 @@ public:
     // 获取ge_model_info的GeFusionOpInfo
     GeFusionOpInfos &GetGeFusionOpInfos();
 
-private:
+   private:
     // 更新计算类算子模板函数
-    template<typename T, std::shared_ptr<T> Domain::OpDesc::*element>
-    void UpdateComputeOpDescs(ComputeOpDescs &opDescs, const std::shared_ptr<T> &trace, uint64_t opName, uint64_t nodeEventId)
+    template <typename T, std::shared_ptr<T> Domain::OpDesc::*element>
+    void UpdateComputeOpDescs(ComputeOpDescs &opDescs, const std::shared_ptr<T> &trace, uint64_t opName,
+                              uint64_t nodeEventId)
     {
         std::string key = std::to_string(nodeEventId);
-        if (opDescs.find(key) == opDescs.end()) {
+        if (opDescs.find(key) == opDescs.end())
+        {
             std::shared_ptr<Domain::OpDesc> desc;
             MAKE_SHARED0_RETURN_VOID(desc, Domain::OpDesc);
             (*desc).*element = trace;
             std::shared_ptr<Operator> op;
-            MAKE_SHARED_RETURN_VOID(op, Operator, desc, opName,
-                                    Domain::OpType::OPTYPE_COMPUTE);
+            MAKE_SHARED_RETURN_VOID(op, Operator, desc, opName, Domain::OpType::OPTYPE_COMPUTE);
             opDescs.insert({key, op});
-        } else {
+        }
+        else
+        {
             auto desc = opDescs[key]->opDesc;
             (*desc).*element = trace;
         }
     }
 
-private:
+   private:
     // DFS遍历整棵树，记录分析树节点信息保存为落盘数据
     void DeepFirstSearch(const std::shared_ptr<TreeNode> &node);
     // 分析TreeNode入口，此函数内根据其所处的level走不同的逻辑
@@ -119,20 +124,16 @@ private:
     // 更新Hccl大算子描述信息
     void UpdateHcclBigOpDescs(const std::shared_ptr<TreeNode> &node);
     // 根据ctxId和hcclinfo更新hccl小算子描述信息
-    bool UpdateHcclSmallOpDescs(HCCLSmallOpDescs &descs,
-                                const std::vector<std::shared_ptr<Event>> &ctxIDRecords,
-                                const std::vector<std::shared_ptr<Event>> &hcclInfoRecords,
-                                uint8_t isMaster);
+    bool UpdateHcclSmallOpDescs(HCCLSmallOpDescs &descs, const std::vector<std::shared_ptr<Event>> &ctxIDRecords,
+                                const std::vector<std::shared_ptr<Event>> &hcclInfoRecords, uint8_t isMaster);
     // 根据hcclinfo更新hccl小算子描述信息
-    bool UpdateHcclSmallOpDescs(HCCLSmallOpDescs &descs,
-                                const std::vector<std::shared_ptr<Event>> &hcclInfoRecords,
+    bool UpdateHcclSmallOpDescs(HCCLSmallOpDescs &descs, const std::vector<std::shared_ptr<Event>> &hcclInfoRecords,
                                 uint8_t isMaster);
 
     // 根据输入参数生成HostTask，该函数纯粹负责HostTask生成
     std::shared_ptr<HostTask> GenHostTask(const std::shared_ptr<MsprofCompactInfo> &track,
                                           const std::shared_ptr<MsprofApi> &modelApi,
-                                          const std::shared_ptr<Operator> &opPtr,
-                                          uint32_t ctxId, uint16_t taskType,
+                                          const std::shared_ptr<Operator> &opPtr, uint32_t ctxId, uint16_t taskType,
                                           int64_t connectionId);
     // 根据输入参数生成HostTask数组
     HostTasks GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<MsprofCompactInfo> &track,
@@ -143,7 +144,7 @@ private:
                                            uint64_t item_id);
     static void UpdateComputeDescForHelperSituation(ComputeOpDescs &descs);
 
-private:
+   private:
     // 树的root节点
     std::shared_ptr<TreeNode> root_;
     // 此对象处理的threadId
@@ -164,7 +165,7 @@ private:
     std::unordered_set<std::string> visitedModel_;
 };
 
-} // namespace Cann
-} // namespace Association
-} // namespace Analysis
-#endif // ANALYSIS_ASSOCIATION_CANN_TREE_ANALYZER_H
+}  // namespace Cann
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_ASSOCIATION_CANN_TREE_ANALYZER_H
