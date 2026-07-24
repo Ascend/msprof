@@ -22,7 +22,7 @@
 
 2、对当前的算子或操作，做同效果算子或操作替换，以更亲和NPU的方式实现相关能力。当前问题我们针对此条做简单介绍。
 
-在[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/performance_tuning/performance_tuning_methods/npu_affinity_opt/README.md)中，已经列举了较多的优化方法和思路，可以从类似方案中进行学习了解。
+在[PyTorch训练模型迁移调优指南 > NPU亲和适配优化](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/npu_affinity_opt/README.md)中，已经列举了较多的优化方法和思路，可以从类似方案中进行学习了解。
 
 针对当前的问题，已有“Nonzero算子替换”案例。我们参考官网资料，构造相关的用例进行简单试验。
 
