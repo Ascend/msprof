@@ -1,7 +1,7 @@
 minimum_pre_commit_version: 4.0.0
 exclude: ^LICENSES/|^test/st/|^\.pre-commit-config\.yaml$|\.(html|csv|svg)$|.*_utest\.cpp$|^test/.*\.cpp$|^test_.*\.py$|.*/test_.*\.py$
 
-default_stages: [pre-commit]
+default_stages: [ pre-commit ]
 ci:
   autofix_prs: false
   autoupdate_schedule: monthly
@@ -14,7 +14,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        args: ["--allow-multiple-documents"]
+        args: [ "--allow-multiple-documents" ]
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: detect-private-key
@@ -26,11 +26,11 @@ repos:
     rev: v0.14.14
     hooks:
       - id: ruff-check
-        args: ["--config", "pre-commit/pyproject.toml", "--output-format", "github", "--fix"]
-        types: [python]
+        args: [ "--config", "pre-commit/pyproject.toml", "--output-format", "github", "--fix" ]
+        types: [ python ]
       - id: ruff-format
-        args: ["--config", "pre-commit/pyproject.toml"]
-        types: [python]
+        args: [ "--config", "pre-commit/pyproject.toml" ]
+        types: [ python ]
 
   # codespell
   - repo: https://gitcode.com/gh_mirrors/co/codespell
@@ -38,11 +38,11 @@ repos:
     hooks:
       - id: codespell
         args: [
-            "-L",
-            "CANN,cann,datas,Cann,eles,fo,ot,subtile,dout,ser,modul,egals,usig,egal,flate,nd,Nd,stap,windo,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
-            "--skip",
-            "*.py,*.cpp,*.hpp,*.c,*.h",
-          ]
+          "-L",
+          "CANN,cann,datas,Cann,eles,fo,ot,subtile,dout,ser,modul,egals,usig,egal,flate,nd,Nd,stap,windo,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
+          "--skip",
+          "*.py,*.cpp,*.hpp,*.c,*.h",
+        ]
 
   # pylint：指定 pre-commit/pyproject.toml
   - repo: https://gitcode.com/gh_mirrors/pyl/pylint
@@ -50,8 +50,8 @@ repos:
     hooks:
       - id: pylint
         name: pylint (Python code quality check)
-        types: [python]
-        args: ["--rcfile=pre-commit/pyproject.toml"]
+        types: [ python ]
+        args: [ "--rcfile=pre-commit/pyproject.toml" ]
         verbose: false
 
   # Bandit：指定 pre-commit/pyproject.toml
@@ -60,7 +60,7 @@ repos:
     hooks:
       - id: bandit
         name: bandit (Python 安全漏洞检查)
-        types: [python]
+        types: [ python ]
         args: [
           "--config=pre-commit/pyproject.toml",
           "--quiet",
@@ -71,7 +71,7 @@ repos:
     rev: v1.32.0
     hooks:
       - id: typos
-        args: ["--force-exclude", "--config", "pre-commit/typos.toml"]
+        args: [ "--force-exclude", "--config", "pre-commit/typos.toml" ]
 
   #--------------- C++ 核心检查 ---------------------------------------------
   - repo: https://gitcode.com/pre-commit-clang/mirrors-clang-format
@@ -84,6 +84,18 @@ repos:
           - "--verbose"
           - "-i"
         exclude: ^build/|tests/third_party/
+
+  # --------------- C++ 静态检查（本地 clang-tidy）------------------
+  - repo: local
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy (本地venv)
+        entry: clang-tidy
+        language: system
+        pass_filenames: true
+        files: ^csrc/.+\.(c|h|cpp|hpp|cc|hh|cxx|hxx)$
+        args:
+          - "--config-file=.clang-tidy"
 
   # -------------------------- Gitleaks 本地离线二进制扫描 --------------------------
   - repo: local
@@ -99,4 +111,4 @@ repos:
           - --verbose
           - --redact
           - --config=pre-commit/.gitleaks.toml
-        stages: [pre-commit]
+        stages: [ pre-commit ]
