@@ -257,7 +257,7 @@ PROF_XXX
 本节操作需在安装了 MindStudio Insight 的本地环境中进行，推荐使用 Windows 或 macOS 图形界面运行。
 
 1. **安装工具**：若尚未安装，请前往昇腾社区 [MindStudio 下载](https://www.hiascend.com/developer/software/mindstudio/download) 页面获取并安装。
-2. **熟悉操作**：如需了解基本使用方法，请参见《[MindStudio Insight 系统调优快速入门](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/quick_start/system_tuning_quick_start.md)》。
+2. **熟悉操作**：如需了解基本使用方法，请参见《[MindStudio Insight 系统调优快速入门](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/quick_start/system_tuning_quick_start.md)》。
 
 #### 2.3.2 加载 msProf 采集数据
 
@@ -295,7 +295,7 @@ MindStudio Insight 的 Timeline 界面主要包含以下三个功能区域：
 - **瓶颈定位**：快速识别耗时异常的 API、算子及任务流。
 - **下发关系分析**：通过 HostToDevice 连线，直观分析 Host 侧任务与 Device 侧任务的调度依赖与时序对齐情况。
 
-更多高级操作与分析方法，请参见《[MindStudio Insight 系统调优指南](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》。
+更多高级操作与分析方法，请参见《[MindStudio Insight 系统调优指南](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/system_tuning.md)》。
 
 ## 3. 内网环境无公网访问权限的应对方案
 
