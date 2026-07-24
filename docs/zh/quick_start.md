@@ -32,7 +32,7 @@
 
    > [!NOTE]
    >
-   > 以上为最基本的采集命令，如有其他采集需求，请参见[性能数据采集和自动解析](https://www.hiascend.com/document/detail/zh/mindstudio/830/T&ITools/Profiling/atlasprofiling_16_0007.html#ZH-CN_TOPIC_0000002536038281)。
+   > 以上为最基本的采集命令，如有其他采集需求，请参见[性能数据采集和自动解析](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html)。
 
    命令执行完成后，在--output指定的目录下生成PROF*_*XXX目录，存放自动解析后的性能数据（以下仅展示性能数据）。
 

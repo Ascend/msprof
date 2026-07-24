@@ -43,8 +43,9 @@ After parsing, msProf generates two types of profile data files:
 
 **Supported Products<a name="en-us_topic_0000001751419248_section5889102116569"></a>**
 
->[!NOTE]
->For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> [!NOTE]
+> 
+> For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 |Product|Supported|
 |--|:-:|

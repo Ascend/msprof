@@ -3,7 +3,7 @@
 <div align="center">
   <p>🚀 <b>Ascend Profile Data Collection Tool</b></p>
 
-[📖 Documentation](https://www.hiascend.com/document/detail/en/canncommercial/850/devaids/profiling/atlasprofiling_16_0010.html) |
+[📖 Documentation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html) |
 [🔥 Ascend Community](https://www.hiascend.com/developer/software/mindstudio)|
 [🌐Release](https://gitcode.com/Ascend/msprof/releases)
 
@@ -23,7 +23,7 @@ msProf is a profile data analysis tool for AI training and inference scenarios. 
 
 | Function     | Description|                                                                Document                                                               |  Source Code Repository|
 |------------| --- |:----------------------------------------------------------------------------------------------------------------------------------:|-----------|
-| **Profile data collection**| Collects software and hardware profile data from the CANN platform and Ascend AI Processors by using `msprof` commands.| [Profile Data Collection](https://www.hiascend.com/document/detail/en/canncommercial/850/devaids/profiling/atlasprofiling_16_0010.html)| [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
+| **Profile data collection**| Collects software and hardware profile data from the CANN platform and Ascend AI Processors by using `msprof` commands.| [Profile Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html)| [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
 | **Profile data parsing**| Parses the collected profile data to generate human-readable analysis results by using the msProf tool.|                                       [Profile Data Parsing](docs/en/user_guide/msprof_parsing_instruct.md)                             | [analysis](https://gitcode.com/Ascend/msprof/tree/master/analysis) |
 
 ### 🛠️ Tool Installation

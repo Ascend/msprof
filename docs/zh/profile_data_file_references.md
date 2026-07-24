@@ -1570,7 +1570,7 @@ step\_trace\_\*.csv文件内容格式示例如下：
 
 数据增强信息仅在训练场景下生成且仅生成summary数据dp\_\*.csv。
 
-在TensorFlow训练场景开启数据预处理下沉（即enable\_data\_pre\_proc开关配置为True）时可生成dp\_\*.csv文件。详情请参见《TensorFlow 1.15模型迁移指南》中的“[训练迭代循环下沉](https://www.hiascend.com/document/detail/zh/TensorFlowCommunity/850/migration/tfmigr1/tfmigr1_000048.html)”章节。
+在TensorFlow训练场景开启数据预处理下沉（即enable\_data\_pre\_proc开关配置为True）时可生成dp\_\*.csv文件。详情请参见《TensorFlow 1.15模型迁移指南》中的“[训练迭代循环下沉](https://www.hiascend.com/document/detail/zh/TensorFlowCommunity/900/migration/tfmigr1/tfmigr1_000048.html)”章节。
 
 **产品支持情况<a name="zh-cn_topic_0000001752181593_section91616487538"></a>**
 

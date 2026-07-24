@@ -3,7 +3,7 @@
 <div align="center">
   <p><b>昇腾性能采集工具</b></p>
 
-[📖工具文档](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/devaids/Profiling/atlasprofiling_16_0010.html) |
+[📖工具文档](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html) |
 [🔥昇腾社区](https://www.hiascend.com/developer/software/mindstudio)|
 [🌐Release](https://gitcode.com/Ascend/msprof/releases)
 
@@ -23,7 +23,7 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 
 | 功能名称      | 功能简介 |                                                                  文档                                                                  | 源码仓库                                                                  |
 |------------| --- |:------------------------------------------------------------------------------------------------------------------------------------:|-----------------------------------------------------------------------|
-| **性能数据采集** | 通过 `msProf` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/devaids/Profiling/atlasprofiling_16_0010.html) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
+| **性能数据采集** | 通过 `msProf` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
 | **性能数据解析** | 使用 `msProf` 工具对采集到的性能数据进行解析，生成可读的分析结果。 |                                             [性能数据解析](docs/zh/msprof_parsing_instruct.md)                                             | [analysis](https://gitcode.com/Ascend/msprof/tree/26.0.0/analysis)    |
 
 ## 🛠️ 安装指南

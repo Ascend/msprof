@@ -36,7 +36,7 @@ This tutorial consists of three parts to help you quickly learn the basic usage 
     > [!NOTE]
     > - --`output`: path for storing the collected profile data.
     > - --`application`: user application whose profile data is to be collected.
-    > - The preceding command is the basic collection command. For other collection requirements, see [Profile Data Collection](https://www.hiascend.com/document/detail/en/mindstudio/830/TITools/Profiling/atlasprofiling_16_0010.html).
+    > - The preceding command is the basic collection command. For other collection requirements, see [Profile Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0010.html).
 
    If the following information is displayed, the execution is successful:
 
