@@ -24,6 +24,15 @@ function change_file_to_unix_format()
     find ${TOP_DIR}/analysis/csrc -type f -exec sed -i 's/\r$//' {} +
 }
 
+# Ensure libsqlite3.so can be found at runtime when sqlite-devel is not installed
+# The system may only have libsqlite3.so.0 (runtime) without the .so symlink (dev)
+LOCAL_LIB_DIR=${TOP_DIR}/test/output/lib
+mkdir -p ${LOCAL_LIB_DIR}
+if [ ! -f "${LOCAL_LIB_DIR}/libsqlite3.so" ] && [ -f /usr/lib64/libsqlite3.so.0 ]; then
+    ln -sf /usr/lib64/libsqlite3.so.0 ${LOCAL_LIB_DIR}/libsqlite3.so
+fi
+export LD_LIBRARY_PATH=${LOCAL_LIB_DIR}:${LD_LIBRARY_PATH}
+
 mkdir -p ${TOP_DIR}/test/build_llt
 cd ${TOP_DIR}/test/build_llt
 if [[ -n "$1" && "$1" == "analysis" ]]; then

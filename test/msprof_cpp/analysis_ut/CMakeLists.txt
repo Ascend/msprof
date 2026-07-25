@@ -9,6 +9,7 @@ set(CMAKE_MODULE_PATH
     ${TOP_DIR}/test/cmake/modules
 )
 include(${TOP_DIR}/test/cmake/depend.cmake)
+set(BOOST_INCLUDE_DIRS "" CACHE PATH "Boost include directory")
 
 find_package(gtest)
 find_package(mockcpp)
@@ -28,6 +29,7 @@ include_directories(
     ${TOP_DIR}/platform/securec/include
     ${GTEST_INCLUDE_DIR}
     ${MOCKCPP_INCLUDE_DIR}
+    ${BOOST_INCLUDE_DIRS}
 )
 
 # common compile option

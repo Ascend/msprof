@@ -1526,6 +1526,7 @@ TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnTrueWhenRoceDataExistButSysIOOr
 
 TEST_F(DBAssemblerUTest, TestRunSysIOShouldReturnFalseWhenGetTimeFailed)
 {
+    IdPool::GetInstance().Clear();
     // deviceId, timestamp, bandwidth, rxPacketRate, rxByteRate, rxPackets, rxBytes, rxErrors, rxDropped
     // txPacketRate, txByteRate, txPackets, txBytes, txErrors, txDropped, funcId
     using SysIODataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, double, double, uint32_t,

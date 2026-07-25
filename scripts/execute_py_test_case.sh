@@ -12,12 +12,6 @@ if [[ ! -d "${test_code}" ]]; then
     exit 1
 fi
 
-# Check if pytest is available
-if ! command -v pytest &> /dev/null; then
-    echo "ERROR: pytest is not installed." >&2
-    exit 1
-fi
-
 export PYTHONPATH=${src_code:-.}:${test_code}:${PYTHONPATH:-}
 
-pytest -sv "${test_code}"
+python3 -m pytest -sv "${test_code}"

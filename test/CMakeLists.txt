@@ -8,7 +8,7 @@ if (CMAKE_INSTALL_PREFIX STREQUAL /usr/local)
     set(CMAKE_INSTALL_PREFIX ${TOP_DIR}/test/output CACHE STRING "path for install()" FORCE)
     message(STATUS "No install prefix selected, default to ${CMAKE_INSTALL_PREFIX}.")
 endif()
- 
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/opensource/googletest.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/opensource/mockcpp.cmake)
 
@@ -20,6 +20,7 @@ ExternalProject_Add(analysis_llt
                 -DPACKAGE=${PACKAGE}
                 -DFULL_COVERAGE=true
                 -DCOVERAGE_RC_CONFIG=true
+                -DBOOST_INCLUDE_DIRS=${TOP_DIR}/test/opensource/boost
                 <SOURCE_DIR>
     BUILD_COMMAND $(MAKE)
     INSTALL_COMMAND "" # llt install

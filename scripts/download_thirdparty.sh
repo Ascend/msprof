@@ -16,15 +16,34 @@ THIRDPARTY_LIST="${OPENSOURCE_DIR}/protobuf    \\
                  ${OPENSOURCE_DIR}/rapidjson    \\
                  ${PLATFORM_DIR}/securec       \\
                  ${LLT_DIR}/googletest         \\
-                 ${LLT_DIR}/mockcpp"
+                 ${LLT_DIR}/mockcpp         \\
+                 ${LLT_DIR}/boost"
 
-if [ -n "$1" ]; then
-    if [ "$1" == "force" ]; then
+isUT=0
+for arg in "$@"; do
+    if [ "${arg}" == "force" ]; then
         echo "force delete origin opensource files"
         echo ${THIRDPARTY_LIST}
         rm -rf ${THIRDPARTY_LIST}
+    elif [ "${arg}" == "ut" ]; then
+        isUT=1
     fi
-fi
+done
+
+function download_boost() {
+    local boost_url="https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/boost_1_81_0.tar.bz2"
+    local boost_archive="boost_1_81_0.tar.bz2"
+    local boost_sha256="71feeed900fbccca04a3b4f2f84a7c217186f28a940ed8b7ed4725986baf99fa"
+
+    cd ${LLT_DIR}
+    [ -d "boost" ] && return 0
+
+    curl -Lfk --retry 5 --retry-delay 2 -o "${boost_archive}" "${boost_url}"
+    echo "${boost_sha256}  ${boost_archive}" | sha256sum -c -
+    tar -xjf "${boost_archive}"
+    mv boost_1_81_0 boost
+    rm -f "${boost_archive}"
+}
 
 function patch_makeself() {
     cd ${OPENSOURCE_DIR}
@@ -46,9 +65,11 @@ mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
 [ ! -d "rapidjson" ] && git clone https://gitcode.com/GitHub_Trending/ra/rapidjson.git rapidjson
 [ ! -d "makeself" ] && patch_makeself
 
-mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
-[ ! -d "googletest" ] && git clone https://gitcode.com/GitHub_Trending/go/googletest.git googletest -b release-1.12.1
-[ ! -d "mockcpp" ] && git clone https://gitcode.com/Ascend/mockcpp.git mockcpp -b ascend_mindstudio_mockcpp_master
-
+if [ "${isUT}" == "1" ]; then
+    mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
+    [ ! -d "googletest" ] && git clone https://gitcode.com/GitHub_Trending/go/googletest.git googletest -b release-1.12.1
+    [ ! -d "mockcpp" ] && git clone https://gitcode.com/Ascend/mockcpp.git mockcpp -b ascend_mindstudio_mockcpp_master
+    download_boost
+fi
 mkdir -p ${PLATFORM_DIR} && cd ${PLATFORM_DIR}
-[ ! -d "securec" ] && git clone https://gitcode.com/openeuler/libboundscheck.git securec
+[ ! -d "securec" ] && git clone https://gitcode.com/openeuler/libboundscheck.git securec || true
