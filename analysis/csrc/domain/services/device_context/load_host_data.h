@@ -21,24 +21,22 @@
 #include "analysis/csrc/domain/valueobject/include/task_id.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 using TaskId2HostTask = std::map<TaskId, std::vector<HostTask>>;
 
-struct StreamIdInfo {
-    // key: taskId, value: streamId
-    std::unordered_map<uint32_t, uint16_t> streamIdMap;
-};
-
-class LoadHostData : public Infra::Process {
-public:
+class LoadHostData : public Infra::Process
+{
+   public:
     static bool ReadHostRuntimeFromDB(std::string& profPath, TaskId2HostTask& hostRuntime,
-        const std::vector<std::string>& deviceIds);
+                                      const std::vector<std::string>& deviceIds);
 
-private:
-    uint32_t ProcessEntry(Infra::DataInventory &dataInventory, const Infra::Context &deviceContext) override;
+   private:
+    uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& deviceContext) override;
 };
-}
-}
-#endif // MSPROF_ANALYSIS_LOAD_HOST_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_LOAD_HOST_DATA_H

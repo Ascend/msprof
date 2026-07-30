@@ -28,8 +28,7 @@ namespace Domain
 using namespace Analysis::Application;
 using namespace Utils;
 using ProcessedDataFormat = std::vector<std::tuple<uint64_t, uint32_t>>;
-
-ProcessedDataFormat FreqPersistence::GenerateFreqData(std::vector<HalFreqLpmData>& freqData)
+ProcessedDataFormat GenerateFreqData(std::vector<HalFreqLpmData>& freqData)
 {
     ProcessedDataFormat processedData;
     for (auto& data : freqData)
@@ -38,6 +37,8 @@ ProcessedDataFormat FreqPersistence::GenerateFreqData(std::vector<HalFreqLpmData
     }
     return processedData;
 }
+
+using namespace Utils;
 
 uint32_t FreqPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
@@ -48,17 +49,17 @@ uint32_t FreqPersistence::ProcessEntry(DataInventory& dataInventory, const Conte
         ERROR("There is no freq data, don't need to persistence");
         return ANALYSIS_ERROR;
     }
-    DBInfo freqDB("freq.db", "FreqParse");
-    MAKE_SHARED0_RETURN_VALUE(freqDB.database, FreqDB, ANALYSIS_ERROR);
-    std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, freqDB.dbName});
-    INFO("Start to process %.", dbPath);
-    MAKE_SHARED_RETURN_VALUE(freqDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
     auto data = GenerateFreqData(*freqData);
     if (data.empty())
     {
         INFO("The freq is default data no need to persistence!");
         return ANALYSIS_OK;
     }
+    DBInfo freqDB("freq.db", "FreqParse");
+    MAKE_SHARED0_RETURN_VALUE(freqDB.database, FreqDB, ANALYSIS_ERROR);
+    std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, freqDB.dbName});
+    INFO("Start to process %.", dbPath);
+    MAKE_SHARED_RETURN_VALUE(freqDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
     auto res = SaveData(data, freqDB, dbPath);
     if (res)
     {

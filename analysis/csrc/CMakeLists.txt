@@ -36,6 +36,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/host/cann SOURCE
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/log SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/parser_item SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/pmu SOURCES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/aicpu SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/track SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/persistence/device SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/persistence/host SOURCES)

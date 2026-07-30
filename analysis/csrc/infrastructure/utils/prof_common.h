@@ -28,144 +28,7 @@ extern "C"
 #define MSPROF_DATA_HEAD_MAGIC_NUM 0x5a5a
 #define MSPROF_EVENT_FLAG 0xFFFFFFFFFFFFFFFFULL
 
-    enum MsprofDataTag
-    {
-        MSPROF_ACL_DATA_TAG = 0,             // acl data tag, range: 0~19
-        MSPROF_GE_DATA_TAG_MODEL_LOAD = 20,  // ge data tag, range: 20~39
-        MSPROF_GE_DATA_TAG_FUSION = 21,
-        MSPROF_GE_DATA_TAG_INFER = 22,
-        MSPROF_GE_DATA_TAG_TASK = 23,
-        MSPROF_GE_DATA_TAG_TENSOR = 24,
-        MSPROF_GE_DATA_TAG_STEP = 25,
-        MSPROF_GE_DATA_TAG_ID_MAP = 26,
-        MSPROF_GE_DATA_TAG_HOST_SCH = 27,
-        MSPROF_RUNTIME_DATA_TAG_API = 40,  // runtime data tag, range: 40~59
-        MSPROF_RUNTIME_DATA_TAG_TRACK = 41,
-        MSPROF_AICPU_DATA_TAG = 60,  // aicpu data tag, range: 60~79
-        MSPROF_AICPU_MODEL_TAG = 61,
-        MSPROF_HCCL_DATA_TAG = 80,       // hccl data tag, range: 80~99
-        MSPROF_DP_DATA_TAG = 100,        // dp data tag, range: 100~119
-        MSPROF_MSPROFTX_DATA_TAG = 120,  // msproftx data tag, range: 120~139
-        MSPROF_DATA_TAG_MAX = 65536,     // data tag value type is uint16_t
-    };
-
-#define PATH_LEN_MAX 1023
-#define PARAM_LEN_MAX 4095
-    struct MsprofCommandHandleParams
-    {
-        uint32_t pathLen;
-        uint32_t storageLimit;  // MB
-        uint32_t profDataLen;
-        char path[PATH_LEN_MAX + 1];
-        char profData[PARAM_LEN_MAX + 1];
-    };
-
-/**
- * @brief profiling command info
- */
-#define MSPROF_MAX_DEV_NUM 64
-    struct MsprofCommandHandle
-    {
-        uint64_t profSwitch;
-        uint64_t profSwitchHi;
-        uint32_t devNums;
-        uint32_t devIdList[MSPROF_MAX_DEV_NUM];
-        uint32_t modelId;
-        uint32_t type;
-        uint32_t cacheFlag;
-        struct MsprofCommandHandleParams params;
-    };
-
-#define MSPROF_GE_TENSOR_DATA_SHAPE_LEN 8
-#define MSPROF_GE_TENSOR_DATA_NUM 5
-#define MSPROF_GE_FUSION_OP_NUM 8
-#define MSPROF_CTX_ID_MAX_NUM 55
 #pragma pack(1)
-    struct MsprofNodeBasicInfo
-    {
-        uint64_t opName;
-        uint32_t taskType;
-        uint64_t opType;
-        uint32_t blockNum;
-        uint32_t opFlag;
-        uint8_t opState;
-    };
-
-    enum AttrType
-    {
-        OP_ATTR = 0,
-    };
-
-    struct MsprofAttrInfo
-    {
-        uint64_t opName;
-        uint32_t attrType;
-        uint64_t hashId;
-    };
-
-    struct MsrofTensorData
-    {
-        uint32_t tensorType;
-        uint32_t format;
-        uint32_t dataType;
-        uint32_t shape[MSPROF_GE_TENSOR_DATA_SHAPE_LEN];
-    };
-
-    struct MsprofTensorInfo
-    {
-        uint64_t opName;
-        uint32_t tensorNum;
-        MsrofTensorData tensorData[MSPROF_GE_TENSOR_DATA_NUM];
-    };
-
-    struct ProfFusionOpInfo
-    {
-        uint64_t opName;
-        uint32_t fusionOpNum;
-        uint64_t inputMemsize;
-        uint64_t outputMemsize;
-        uint64_t weightMemSize;
-        uint64_t workspaceMemSize;
-        uint64_t totalMemSize;
-        uint64_t fusionOpId[MSPROF_GE_FUSION_OP_NUM];
-    };
-
-    struct MsprofContextIdInfo
-    {
-        uint64_t opName;
-        uint32_t ctxIdNum;
-        uint32_t ctxIds[MSPROF_CTX_ID_MAX_NUM];
-    };
-
-    struct MsprofGraphIdInfo
-    {
-        uint64_t modelName;
-        uint32_t graphId;
-        uint32_t modelId;
-    };
-
-    struct MsprofMemoryInfo
-    {
-        uint64_t addr;
-        int64_t size;
-        uint64_t nodeId;
-        uint64_t totalAllocateMemory;
-        uint64_t totalReserveMemory;
-        uint32_t deviceId;
-        uint32_t deviceType;
-    };
-
-    struct MsprofStaticOpMem
-    {
-        int64_t size;                  // op memory size
-        uint64_t opName;               // op name hash id
-        uint64_t lifeStart;            // serial number of op memory used
-        uint64_t lifeEnd;              // serial number of op memory used
-        uint64_t totalAllocateMemory;  // static graph total allocate memory
-        uint64_t dynOpName;            // 0: invalid， other： dynamic op name of root
-        uint32_t graphId;              // multiple model
-    };
-
 /**
  * @name  MsprofStampInfo
  * @brief struct of data reported by msproftx
@@ -211,44 +74,6 @@ extern "C"
         } value;
     };
 
-#pragma pack()
-
-/**
- * @brief struct of data reported by HCCL
- */
-#pragma pack(4)
-    struct MsprofHcclInfo
-    {
-        uint64_t itemId;
-        uint64_t cclTag;
-        uint64_t groupName;
-        uint32_t localRank;
-        uint32_t remoteRank;
-        uint32_t rankSize;
-        uint32_t workFlowMode;
-        uint32_t planeID;
-        uint32_t ctxID;
-        uint64_t notifyID;
-        uint32_t stage;
-        uint32_t role;  // role {0: dst, 1:src}
-        double durationEstimated;
-        uint64_t srcAddr;
-        uint64_t dstAddr;
-        uint64_t dataSize;       // bytes
-        uint32_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
-        uint32_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
-        uint32_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE', 4: 'SIO'}
-        uint32_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
-        uint32_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
-        uint32_t reserve2;
-    };
-
-    const uint16_t MSPROF_MULTI_THREAD_MAX_NUM = 25;
-    struct MsprofMultiThread
-    {
-        uint32_t threadNum;
-        uint32_t threadId[MSPROF_MULTI_THREAD_MAX_NUM];
-    };
 #pragma pack()
 
     /* Msprof report level */
@@ -317,6 +142,7 @@ extern "C"
     const uint32_t MSPROF_REPORT_HCCL_MASTER_TYPE = 0x010001U;
     const uint32_t MSPROF_REPORT_HCCL_SLAVE_TYPE = 0x010002U;
 
+    // =====================API_EVENT=====================
     struct MsprofApi
     {  // for MsprofReportApi
         uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
@@ -340,7 +166,394 @@ extern "C"
         uint64_t reserve = MSPROF_EVENT_FLAG;
         uint64_t itemId;
     };
+    // =====================API_EVENT=====================
 
+    // =====================VARIABLE=====================
+    struct MsprofVariableInfo
+    {  // for MsprofVariableInfo buffer data
+        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        uint16_t level;
+        uint32_t type;
+        uint32_t threadId;
+        uint32_t dataLen;
+        uint64_t timeStamp;
+        uint8_t data[0];
+    };
+    // =====================VARIABLE=====================
+
+    // =====================ADDITIONAL=====================
+    const uint16_t MSPROF_AICPU_DATA_RESERVE_BYTES = 9;
+    struct MsprofAicpuNodeAdditionalData
+    {
+        uint16_t streamId;
+        uint16_t taskId;
+        uint32_t rev;
+        uint64_t runStartTime;
+        uint64_t runStartTick;
+        uint64_t computeStartTime;
+        uint64_t memcpyStartTime;
+        uint64_t memcpyEndTime;
+        uint64_t runEndTime;
+        uint64_t runEndTick;
+        uint32_t threadId;
+        uint32_t deviceId;
+        uint64_t submitTick;
+        uint64_t scheduleTick;
+        uint64_t tickBeforeRun;
+        uint64_t tickAfterRun;
+        uint32_t kernelType;
+        uint32_t dispatchTime;
+        uint32_t totalTime;
+        uint16_t fftsThreadId;
+        uint8_t version;
+        uint8_t reserve[MSPROF_AICPU_DATA_RESERVE_BYTES];
+    };
+
+    const uint16_t MSPROF_DP_DATA_RESERVE_BYTES = 16;
+    const uint16_t MSPROF_DP_DATA_ACTION_LEN = 16;
+    const uint16_t MSPROF_DP_DATA_SOURCE_LEN = 64;
+    struct MsprofAicpuDpAdditionalData
+    {
+        char action[MSPROF_DP_DATA_ACTION_LEN];
+        char source[MSPROF_DP_DATA_SOURCE_LEN];
+        uint64_t index;
+        uint64_t size;
+        uint8_t reserve[MSPROF_DP_DATA_RESERVE_BYTES];
+    };
+
+    const uint16_t MSPROF_AICPU_MODEL_RESERVE_BYTES = 24;
+    struct MsprofAicpuModelAdditionalData
+    {
+        uint64_t indexId;
+        uint32_t modelId;
+        uint16_t tagId;
+        uint16_t rsv1;
+        uint64_t eventId;
+        uint8_t reserve[MSPROF_AICPU_MODEL_RESERVE_BYTES];
+    };
+
+    enum MsprofMindsporeNodeTag
+    {
+        GET_NEXT_DEQUEUE_WAIT = 1,
+    };
+
+    struct MsprofAicpuMiAdditionalData
+    {
+        uint32_t nodeTag;  // MsprofMindsporeNodeTag:1
+        uint32_t reserve;
+        uint64_t queueSize;
+        uint64_t runStartTime;
+        uint64_t runEndTime;
+    };
+
+#pragma pack(1)
+    struct MsprofAicpuHCCLOPInfo
+    {
+        uint8_t relay : 1;   // 借轨通信
+        uint8_t retry : 1;   // 重传标识
+        uint8_t dataType;    // 跟HcclDataType类型保存一致
+        uint64_t algType;    // 通信算子使用的算法,hash的key,其值是以"-"分隔的字符串
+        uint64_t count;      // 发送数据个数
+        uint64_t groupName;  // group hash id
+        uint32_t rankSize;
+        uint16_t streamId;
+        uint32_t taskId;
+    };
+
+    struct MsprofAicpuHcclTaskInfo
+    {
+        uint64_t itemId;
+        uint64_t cclTag;
+        uint64_t groupName;
+        uint32_t localRank;
+        uint32_t remoteRank;
+        uint32_t rankSize;
+        uint32_t stage;
+        uint64_t notifyID;
+        uint64_t timeStamp;
+        double durationEstimated;
+        uint64_t srcAddr;
+        uint64_t dstAddr;
+        uint64_t dataSize;  // bytes
+        uint32_t taskId;
+        uint32_t reserve;
+        uint16_t streamId;
+        uint16_t planeID;
+        uint8_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
+        uint8_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
+        uint8_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE'}
+        uint8_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
+        uint8_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
+        uint8_t role;           // role {0: dst, 1:src}
+        uint8_t workFlowMode;
+        uint8_t reserves[9];
+    };
+#pragma pack()
+
+    struct MsprofKfcInfos
+    {
+        MsprofAicpuHcclTaskInfo infos[2];
+    };
+
+    // AICPU kfc算子执行时间
+    struct AicpuKfcProfCommTurn
+    {
+        uint64_t serverStartTime;     // 进入KFC流程
+        uint64_t waitMsgStartTime;    // 开始等待客户端消息
+        uint64_t kfcAlgExeStartTime;  // 开始通信算法执行
+        uint64_t sendTaskStartTime;   // 开始下发task
+        uint64_t sendSqeFinishTime;   // task下发完成
+        uint64_t rtsqExeEndTime;      // sq执行结束时间
+        uint64_t serverEndTime;       // KFC流程结束时间
+        uint64_t dataLen;             // 本轮通信数据长度
+        uint32_t deviceId;
+        uint16_t streamId;
+        uint16_t taskId;
+        uint8_t version;
+        uint8_t commTurn;  // 总通信轮次
+        uint8_t currentTurn;
+        uint8_t reserve[5];
+    };
+
+    // Aicore算子执行时间
+    struct AicpuKfcProfComputeTurn
+    {
+        uint64_t waitComputeStartTime;  // 开始等待计算
+        uint64_t computeStartTime;      // 开始计算
+        uint64_t computeExeEndTime;     // 计算执行结束
+        uint64_t dataLen;               // 本轮计算数据长度
+        uint32_t deviceId;
+        uint16_t streamId;
+        uint16_t taskId;
+        uint8_t version;
+        uint8_t computeTurn;  // 总计算轮次
+        uint8_t currentTurn;
+        uint8_t reserve[5];
+    };
+
+    // 翻转task的上报
+    struct MsporfAicpuFlipTask
+    {
+        uint16_t streamId;
+        uint16_t taskId;  // 值无特殊要求
+        uint32_t flipNum;
+        uint32_t reserve[2];
+    };
+
+    struct MsprofAicpuHcclMainStreamTask
+    {
+        uint16_t aicpuStreamId;
+        uint16_t aicpuTaskId;
+        uint16_t streamId;
+        uint16_t taskId;
+        uint16_t type;  // 0是头 1是尾
+        uint16_t reserve[3];
+    };
+
+#pragma pack(4)
+    struct MsprofHcclInfo
+    {
+        uint64_t itemId;
+        uint64_t cclTag;
+        uint64_t groupName;
+        uint32_t localRank;
+        uint32_t remoteRank;
+        uint32_t rankSize;
+        uint32_t workFlowMode;
+        uint32_t planeID;
+        uint32_t ctxID;
+        uint64_t notifyID;
+        uint32_t stage;
+        uint32_t role;  // role {0: dst, 1:src}
+        double durationEstimated;
+        uint64_t srcAddr;
+        uint64_t dstAddr;
+        uint64_t dataSize;       // bytes
+        uint32_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
+        uint32_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
+        uint32_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE', 4: 'SIO'}
+        uint32_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
+        uint32_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
+        uint32_t reserve2;
+    };
+
+    const uint16_t MSPROF_MULTI_THREAD_MAX_NUM = 25;
+    struct MsprofMultiThread
+    {
+        uint32_t threadNum;
+        uint32_t threadId[MSPROF_MULTI_THREAD_MAX_NUM];
+    };
+#pragma pack()
+
+#pragma pack(1)
+    struct MsprofNodeBasicInfo
+    {
+        uint64_t opName;
+        uint32_t taskType;
+        uint64_t opType;
+        uint32_t blockNum;
+        uint32_t opFlag;
+        uint8_t opState;
+    };
+
+    enum AttrType
+    {
+        OP_ATTR = 0,
+    };
+
+    struct MsprofAttrInfo
+    {
+        uint64_t opName;
+        uint32_t attrType;
+        uint64_t hashId;
+    };
+
+#define MSPROF_GE_TENSOR_DATA_SHAPE_LEN 8
+    struct MsrofTensorData
+    {
+        uint32_t tensorType;
+        uint32_t format;
+        uint32_t dataType;
+        uint32_t shape[MSPROF_GE_TENSOR_DATA_SHAPE_LEN];
+    };
+
+#define MSPROF_GE_TENSOR_DATA_NUM 5
+    struct MsprofTensorInfo
+    {
+        uint64_t opName;
+        uint32_t tensorNum;
+        MsrofTensorData tensorData[MSPROF_GE_TENSOR_DATA_NUM];
+    };
+
+    struct ConcatTensorInfo
+    {
+        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        uint16_t level = 0;
+        uint32_t type = 0;
+        uint32_t threadId = 0;
+        uint32_t dataLen = 0;
+        uint64_t timeStamp = 0;
+        uint64_t opName = 0;
+        uint32_t tensorNum = 0;
+        std::vector<MsrofTensorData> tensorData{MSPROF_GE_TENSOR_DATA_NUM};
+    };
+
+#define MSPROF_GE_FUSION_OP_NUM 8
+    struct ProfFusionOpInfo
+    {
+        uint64_t opName;
+        uint32_t fusionOpNum;
+        uint64_t inputMemsize;
+        uint64_t outputMemsize;
+        uint64_t weightMemSize;
+        uint64_t workspaceMemSize;
+        uint64_t totalMemSize;
+        uint64_t fusionOpId[MSPROF_GE_FUSION_OP_NUM];
+    };
+
+#define MSPROF_CTX_ID_MAX_NUM 55
+    struct MsprofContextIdInfo
+    {
+        uint64_t opName;
+        uint32_t ctxIdNum;
+        uint32_t ctxIds[MSPROF_CTX_ID_MAX_NUM];
+    };
+
+    struct MsprofGraphIdInfo
+    {
+        uint64_t modelName;
+        uint32_t graphId;
+        uint32_t modelId;
+    };
+
+    struct MsprofMemoryInfo
+    {
+        uint64_t addr;
+        int64_t size;
+        uint64_t nodeId;
+        uint64_t totalAllocateMemory;
+        uint64_t totalReserveMemory;
+        uint32_t deviceId;
+        uint32_t deviceType;
+    };
+
+    struct MsprofStaticOpMem
+    {
+        int64_t size;                  // op memory size
+        uint64_t opName;               // op name hash id
+        uint64_t lifeStart;            // serial number of op memory used
+        uint64_t lifeEnd;              // serial number of op memory used
+        uint64_t totalAllocateMemory;  // static graph total allocate memory
+        uint64_t dynOpName;            // 0: invalid， other： dynamic op name of root
+        uint32_t graphId;              // multiple model
+    };
+
+    struct MsprofDpuHcclTrack
+    {
+        uint64_t itemId;
+        uint64_t cclTag;
+        uint64_t groupName;
+        uint32_t localRank;
+        uint32_t remoteRank;
+        uint32_t rankSize;
+        uint32_t stage;
+        uint64_t notifyID;
+        uint64_t timeStamp;
+        double durationEstimated;
+        uint64_t srcAddr;
+        uint64_t dstAddr;
+        uint64_t dataSize;  // bytes
+        uint32_t taskId;
+        uint32_t aicpu_task_id;
+        uint16_t streamId;
+        uint16_t planeID;
+        uint16_t npuDevId;
+        uint16_t dpuDevId;
+        uint8_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
+        uint8_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
+        uint8_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE'}
+        uint8_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
+        uint8_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
+        uint8_t role;           // role {0: dst, 1:src}
+        uint8_t workFlowMode;
+        uint8_t reserves[1];
+    };
+#pragma pack()
+
+    const uint16_t MSPROF_ADDITIONAL_INFO_DATA_LENGTH = 232;
+    struct MsprofAdditionalInfo
+    {  // for MsprofReportAdditionalInfo buffer data
+        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        uint16_t level;
+        uint32_t type;
+        uint32_t threadId;
+        uint32_t dataLen;
+        uint64_t timeStamp;
+        union
+        {
+            uint8_t data[MSPROF_ADDITIONAL_INFO_DATA_LENGTH];
+            MsprofAicpuNodeAdditionalData aicpuNode;
+            MsprofAicpuDpAdditionalData aicpuDp;
+            MsprofAicpuModelAdditionalData aicpuModel;
+            MsprofAicpuMiAdditionalData aicpuMi;
+            AicpuKfcProfCommTurn commTurn;
+            AicpuKfcProfComputeTurn computeTurn;
+            MsprofAicpuHCCLOPInfo opInfo;
+            MsporfAicpuFlipTask flipTask;
+            MsprofAicpuHcclMainStreamTask mainStreamTask;
+            MsprofKfcInfos kfcInfos;
+            MsprofHcclInfo hcclInfo;
+            MsprofMultiThread multiThread;
+            MsprofNodeBasicInfo nodeBasicInfo;
+            MsprofAttrInfo attrInfo;
+            MsprofTensorInfo tensorInfo;
+            ProfFusionOpInfo fusionOpInfo;
+            MsprofContextIdInfo contextIdInfo;
+        };
+    };
+    // =====================ADDITIONAL=====================
+
+    // =====================COMPACT=====================
     struct MsporfKernelInfo
     {
         uint16_t numBlocks;
@@ -482,70 +695,6 @@ extern "C"
         uint16_t memcpyDirection;  // memcpy的方向
     };
 
-    const uint16_t MSPROF_AICPU_DATA_RESERVE_BYTES = 9;
-    struct MsprofAicpuNodeAdditionalData
-    {
-        uint16_t streamId;
-        uint16_t taskId;
-        uint32_t rev;
-        uint64_t runStartTime;
-        uint64_t runStartTick;
-        uint64_t computeStartTime;
-        uint64_t memcpyStartTime;
-        uint64_t memcpyEndTime;
-        uint64_t runEndTime;
-        uint64_t runEndTick;
-        uint32_t threadId;
-        uint32_t deviceId;
-        uint64_t submitTick;
-        uint64_t scheduleTick;
-        uint64_t tickBeforeRun;
-        uint64_t tickAfterRun;
-        uint32_t kernelType;
-        uint32_t dispatchTime;
-        uint32_t totalTime;
-        uint16_t fftsThreadId;
-        uint8_t version;
-        uint8_t reserve[MSPROF_AICPU_DATA_RESERVE_BYTES];
-    };
-
-    const uint16_t MSPROF_AICPU_MODEL_RESERVE_BYTES = 24;
-    struct MsprofAicpuModelAdditionalData
-    {
-        uint64_t indexId;
-        uint32_t modelId;
-        uint16_t tagId;
-        uint16_t rsv1;
-        uint64_t eventId;
-        uint8_t reserve[MSPROF_AICPU_MODEL_RESERVE_BYTES];
-    };
-
-    const uint16_t MSPROF_DP_DATA_RESERVE_BYTES = 16;
-    const uint16_t MSPROF_DP_DATA_ACTION_LEN = 16;
-    const uint16_t MSPROF_DP_DATA_SOURCE_LEN = 64;
-    struct MsprofAicpuDpAdditionalData
-    {
-        char action[MSPROF_DP_DATA_ACTION_LEN];
-        char source[MSPROF_DP_DATA_SOURCE_LEN];
-        uint64_t index;
-        uint64_t size;
-        uint8_t reserve[MSPROF_DP_DATA_RESERVE_BYTES];
-    };
-
-    enum MsprofMindsporeNodeTag
-    {
-        GET_NEXT_DEQUEUE_WAIT = 1,
-    };
-
-    struct MsprofAicpuMiAdditionalData
-    {
-        uint32_t nodeTag;  // MsprofMindsporeNodeTag:1
-        uint32_t reserve;
-        uint64_t queueSize;
-        uint64_t runStartTime;
-        uint64_t runEndTime;
-    };
-
     const uint16_t MSPROF_COMPACT_INFO_DATA_LENGTH = 40;
     struct MsprofCompactInfo
     {  // for MsprofReportCompactInfo buffer data
@@ -569,101 +718,7 @@ extern "C"
             MsprofMemcpyInfo memcpyInfo;
         } data;
     };
-
-    struct MsprofDpuHcclTrack
-    {
-        uint64_t itemId;
-        uint64_t cclTag;
-        uint64_t groupName;
-        uint32_t localRank;
-        uint32_t remoteRank;
-        uint32_t rankSize;
-        uint32_t stage;
-        uint64_t notifyID;
-        uint64_t timeStamp;
-        double durationEstimated;
-        uint64_t srcAddr;
-        uint64_t dstAddr;
-        uint64_t dataSize;  // bytes
-        uint32_t taskId;
-        uint32_t aicpu_task_id;
-        uint16_t streamId;
-        uint16_t planeID;
-        uint16_t npuDevId;
-        uint16_t dpuDevId;
-        uint8_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
-        uint8_t dataType;       // data type {0: INT8, 1: INT16, 2: INT32, 3: FP16, 4:FP32, 5:INT64, 6:UINT64}
-        uint8_t linkType;       // link type {0: 'OnChip', 1: 'HCCS', 2: 'PCIe', 3: 'RoCE'}
-        uint8_t transportType;  // transport type {0: SDMA, 1: RDMA, 2:LOCAL}
-        uint8_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
-        uint8_t role;           // role {0: dst, 1:src}
-        uint8_t workFlowMode;
-        uint8_t reserves[1];
-    };
-
-    const uint16_t MSPROF_ADDITIONAL_INFO_DATA_LENGTH = 232;
-    struct MsprofAdditionalInfo
-    {  // for MsprofReportAdditionalInfo buffer data
-        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
-        uint16_t level;
-        uint32_t type;
-        uint32_t threadId;
-        uint32_t dataLen;
-        uint64_t timeStamp;
-        union
-        {
-            uint8_t data[MSPROF_ADDITIONAL_INFO_DATA_LENGTH];
-            MsprofAicpuNodeAdditionalData aicpuNode;
-            MsprofAicpuModelAdditionalData aicpuModel;
-            MsprofAicpuDpAdditionalData aicpuDp;
-            MsprofAicpuMiAdditionalData aicpuMi;
-            MsprofDpuHcclTrack dpuHcclTrack;
-        };
-    };
-
-    struct MsprofVariableInfo
-    {  // for MsprofVariableInfo buffer data
-        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
-        uint16_t level;
-        uint32_t type;
-        uint32_t threadId;
-        uint32_t dataLen;
-        uint64_t timeStamp;
-        uint8_t data[0];
-    };
-
-    struct ConcatTensorInfo
-    {
-        uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
-        uint16_t level = 0;
-        uint32_t type = 0;
-        uint32_t threadId = 0;
-        uint32_t dataLen = 0;
-        uint64_t timeStamp = 0;
-        uint64_t opName = 0;
-        uint32_t tensorNum = 0;
-        std::vector<MsrofTensorData> tensorData{MSPROF_GE_TENSOR_DATA_NUM};
-    };
-
-    // AICPU kfc算子执行时间
-    struct AicpuKfcProfCommTurn
-    {
-        uint64_t serverStartTime;     // 进入KFC流程
-        uint64_t waitMsgStartTime;    // 开始等待客户端消息
-        uint64_t kfcAlgExeStartTime;  // 开始通信算法执行
-        uint64_t sendTaskStartTime;   // 开始下发task
-        uint64_t sendSqeFinishTime;   // task下发完成
-        uint64_t rtsqExeEndTime;      // sq执行结束时间
-        uint64_t serverEndTime;       // KFC流程结束时间
-        uint64_t dataLen;             // 本轮通信数据长度
-        uint32_t deviceId;
-        uint16_t streamId;
-        uint16_t taskId;
-        uint8_t version;
-        uint8_t commTurn;  // 总通信轮次
-        uint8_t currentTurn;
-        uint8_t reserve[5];
-    };
+    // =====================COMPACT=====================
 
 #ifdef __cplusplus
 }

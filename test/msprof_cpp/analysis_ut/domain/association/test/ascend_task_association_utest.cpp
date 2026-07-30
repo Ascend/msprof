@@ -40,7 +40,7 @@ protected:
         dataInventory_.Inject(data);
         auto deviceTask = std::make_shared<std::map<TaskId, std::vector<DeviceTask>>>();
         dataInventory_.Inject(deviceTask);
-        auto streamInfo = std::make_shared<StreamIdInfo>();
+        auto streamInfo = std::make_shared<HostStreamInfo>();
         dataInventory_.Inject(streamInfo);
     }
 
@@ -160,7 +160,7 @@ TEST_F(AscendTaskAssociationUTest, TestProcessEntrySetStreamIdSuccessWhenStreamI
     auto deviceDataS = dataInventory_.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
     TaskId taskId = {(uint16_t)1, (uint16_t)1, (uint16_t)1, 1};
     deviceDataS->emplace(taskId, std::vector<DeviceTask>());
-    auto streamIdMap = dataInventory_.GetPtr<StreamIdInfo>();
+    auto streamIdMap = dataInventory_.GetPtr<HostStreamInfo>();
     streamIdMap->streamIdMap.emplace(TEST_ID, 100);
     context.deviceContextInfo.deviceInfo.chipID = 15;
     association.ProcessEntry(dataInventory_, context);

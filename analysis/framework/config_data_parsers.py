@@ -179,6 +179,7 @@ class ConfigDataParsers:
             "HcclCalculator",
             "SubTaskCalculator",
             "FreqParser",
+            "AicpuAddInfoParser",
         ]:
             return True
         return False

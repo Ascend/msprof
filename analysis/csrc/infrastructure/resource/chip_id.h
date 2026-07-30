@@ -18,9 +18,11 @@
 
 #include <cstdint>
 
-namespace Analysis {
+namespace Analysis
+{
 
-enum ChipId : uint32_t {
+enum ChipId : uint32_t
+{
     CHIP_V1_1_0 = 0,
     CHIP_V2_1_0 = 1,
     CHIP_V3_1_0 = 2,
@@ -34,6 +36,7 @@ enum ChipId : uint32_t {
 
     CHIP_V1_1_3 = 11,
     CHIP_V6_1_0 = 15,
+    CHIP_V6_2_0 = 16,
 
     CHIP_ID_ALL = UINT32_MAX  // 所有芯片均有此流程
 };

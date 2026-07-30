@@ -202,12 +202,12 @@ std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTa
     return res;
 }
 
-void FillDeviceTaskStreamId(std::shared_ptr<StreamIdInfo> streamIdInfo,
+void FillDeviceTaskStreamId(std::shared_ptr<HostStreamInfo> streamIdInfo,
                             std::shared_ptr<std::map<TaskId, std::vector<DeviceTask>>> deviceTasks)
 {
-    if (deviceTasks == nullptr || deviceTasks->empty())
+    if (deviceTasks == nullptr || deviceTasks->empty() || streamIdInfo == nullptr)
     {
-        WARN("There is no data in DeviceTask, fill task stream id failed.", deviceTasks);
+        WARN("There is no data in DeviceTask or streamIdInfo is nullptr, fill task stream id failed.");
         return;
     }
     for (auto& task : *deviceTasks)
@@ -229,7 +229,7 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
     auto deviceTasks = dataInventory.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
     if (context.GetChipID() == CHIP_V6_1_0)
     {
-        auto streamIdInfo = dataInventory.GetPtr<StreamIdInfo>();
+        auto streamIdInfo = dataInventory.GetPtr<HostStreamInfo>();
         FillDeviceTaskStreamId(streamIdInfo, deviceTasks);
     }
     std::shared_ptr<std::vector<TopDownTask>> data;
@@ -254,7 +254,7 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
 
 REGISTER_PROCESS_SEQUENCE(AscendTaskAssociation, true, LoadHostData);
 REGISTER_PROCESS_DEPENDENT_DATA(AscendTaskAssociation, std::map<TaskId, std::vector<DeviceTask>>,
-                                std::map<TaskId, std::vector<HostTask>>, StreamIdInfo);
+                                std::map<TaskId, std::vector<HostTask>>, HostStreamInfo);
 REGISTER_PROCESS_SUPPORT_CHIP(AscendTaskAssociation, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

@@ -106,8 +106,8 @@ protected:
 
     static void CreateKfcCommData(std::string dbPath, OriKfcCommData data)
     {
-        std::shared_ptr<KfcInfo> database;
-        MAKE_SHARED0_RETURN_VOID(database, KfcInfo);
+        std::shared_ptr<KfcInfoDB> database;
+        MAKE_SHARED0_RETURN_VOID(database, KfcInfoDB);
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
         auto cols = database->GetTableCols(COMM_TABLE_NAME);
@@ -117,8 +117,8 @@ protected:
 
     static void CreateKfcComputeData(std::string dbPath, OriKfcComputeData data)
     {
-        std::shared_ptr<KfcInfo> database;
-        MAKE_SHARED0_RETURN_VOID(database, KfcInfo);
+        std::shared_ptr<KfcInfoDB> database;
+        MAKE_SHARED0_RETURN_VOID(database, KfcInfoDB);
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
         auto cols = database->GetTableCols(COMPUTE_TABLE_NAME);

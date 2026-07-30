@@ -20,6 +20,7 @@ aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/persistence/t
 
 add_executable(device_persistence_utest
     ${DEVICE_PERSISTENCE_SOURCE}
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/number_mapping.cpp
 )
 target_link_libraries(device_persistence_utest PRIVATE
     c_sec_static

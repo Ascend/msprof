@@ -376,32 +376,6 @@ const TableColumns TsMemcpy = {{"timestamp", SQL_REAL_TYPE},
                                {"task_id", SQL_INTEGER_TYPE},
                                {"task_state", SQL_INTEGER_TYPE}};
 
-const TableColumns KfcCommTurn = {
-    {"device_id", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},
-    {"comm_turn", SQL_INTEGER_TYPE},
-    {"current_turn", SQL_INTEGER_TYPE},
-    {"wait_notify_start_time", SQL_INTEGER_TYPE},
-    {"kfc_alg_exe_start_time", SQL_INTEGER_TYPE},
-    {"send_task_start_time", SQL_INTEGER_TYPE},
-    {"wait_active_start_time", SQL_INTEGER_TYPE},
-    {"active_start_time", SQL_INTEGER_TYPE},
-    {"wait_exe_end_start_time", SQL_INTEGER_TYPE},
-    {"rtsq_exe_end_time", SQL_INTEGER_TYPE},
-};
-
-const TableColumns KfcComputeTurn = {
-    {"device_id", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},
-    {"compute_turn", SQL_INTEGER_TYPE},
-    {"current_turn", SQL_INTEGER_TYPE},
-    {"wait_compute_start_time", SQL_INTEGER_TYPE},
-    {"compute_start_time", SQL_INTEGER_TYPE},
-    {"compute_exe_end_time", SQL_INTEGER_TYPE},
-};
-
 const TableColumns Mc2CommInfo = {
     {"group_name", SQL_TEXT_TYPE},     {"rank_size", SQL_INTEGER_TYPE},           {"rank_id", SQL_INTEGER_TYPE},
     {"usr_rank_id", SQL_INTEGER_TYPE}, {"aicpu_kfc_stream_id", SQL_INTEGER_TYPE}, {"comm_stream_ids", SQL_TEXT_TYPE},
@@ -558,6 +532,79 @@ const TableColumns DPUHcclTrack = {{"npu_device_id", SQL_INTEGER_TYPE},
                                    {"work_flow_mode", SQL_TEXT_TYPE},
                                    {"stage", SQL_TEXT_TYPE}};
 }  // namespace
+
+const TableColumns AiCpuData = {{"stream_id", SQL_INTEGER_TYPE},  {"task_id", SQL_INTEGER_TYPE},
+                                {"sys_start", SQL_NUMERIC_TYPE},  {"sys_end", SQL_NUMERIC_TYPE},
+                                {"node_name", SQL_TEXT_TYPE},     {"compute_time", SQL_REAL_TYPE},
+                                {"memcpy_time", SQL_REAL_TYPE},   {"task_time", SQL_REAL_TYPE},
+                                {"dispatch_time", SQL_REAL_TYPE}, {"total_time", SQL_REAL_TYPE}};
+
+const TableColumns AiCpuDp = {{"timestamp", SQL_NUMERIC_TYPE},
+                              {"action", SQL_TEXT_TYPE},
+                              {"source", SQL_TEXT_TYPE},
+                              {"buffer_size", SQL_INTEGER_TYPE}};
+
+const TableColumns ModelWithQ = {{"index_id", SQL_INTEGER_TYPE},
+                                 {"model_id", SQL_INTEGER_TYPE},
+                                 {"timestamp", SQL_NUMERIC_TYPE},
+                                 {"tag_id", SQL_INTEGER_TYPE},
+                                 {"event_id", SQL_INTEGER_TYPE}};
+
+const TableColumns DataQueue = {{"node_name", SQL_TEXT_TYPE},
+                                {"queue_size", SQL_INTEGER_TYPE},
+                                {"start_time", SQL_REAL_TYPE},
+                                {"end_time", SQL_REAL_TYPE},
+                                {"duration", SQL_REAL_TYPE}};
+
+const TableColumns KfcCommTurn = {{"device_id", SQL_INTEGER_TYPE},
+                                  {"stream_id", SQL_INTEGER_TYPE},
+                                  {"task_id", SQL_INTEGER_TYPE},
+                                  {"comm_turn", SQL_INTEGER_TYPE},
+                                  {"current_turn", SQL_INTEGER_TYPE},
+                                  {"server_start_time", SQL_NUMERIC_TYPE},
+                                  {"wait_msg_start_time", SQL_NUMERIC_TYPE},
+                                  {"kfc_alg_exe_start_time", SQL_NUMERIC_TYPE},
+                                  {"send_task_start_time", SQL_NUMERIC_TYPE},
+                                  {"send_sqe_finish_time", SQL_NUMERIC_TYPE},
+                                  {"rtsq_exe_end_time", SQL_NUMERIC_TYPE},
+                                  {"server_end_time", SQL_NUMERIC_TYPE}};
+
+const TableColumns KfcComputeTurn = {{"device_id", SQL_INTEGER_TYPE},
+                                     {"stream_id", SQL_INTEGER_TYPE},
+                                     {"task_id", SQL_INTEGER_TYPE},
+                                     {"compute_turn", SQL_INTEGER_TYPE},
+                                     {"current_turn", SQL_INTEGER_TYPE},
+                                     {"wait_compute_start_time", SQL_NUMERIC_TYPE},
+                                     {"compute_start_time", SQL_NUMERIC_TYPE},
+                                     {"compute_exe_end_time", SQL_NUMERIC_TYPE}};
+
+const TableColumns AicpuTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
+                                    {"timestamp", SQL_NUMERIC_TYPE},
+                                    {"task_id", SQL_INTEGER_TYPE},
+                                    {"flip_num", SQL_INTEGER_TYPE}};
+
+const TableColumns AicpuMasterStreamHcclTask = {
+    {"timestamp", SQL_NUMERIC_TYPE}, {"aicpu_stream_id", SQL_INTEGER_TYPE}, {"aicpu_task_id", SQL_INTEGER_TYPE},
+    {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},         {"type", SQL_INTEGER_TYPE}};
+
+const TableColumns DeviceHcclOpInfo = {
+    {"timestamp", SQL_NUMERIC_TYPE}, {"relay", SQL_INTEGER_TYPE},     {"retry", SQL_INTEGER_TYPE},
+    {"data_type", SQL_TEXT_TYPE},    {"alg_type", SQL_TEXT_TYPE},     {"count", SQL_NUMERIC_TYPE},
+    {"group_name", SQL_TEXT_TYPE},   {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},
+    {"rank_size", SQL_INTEGER_TYPE}, {"source", SQL_INTEGER_TYPE}};
+
+const TableColumns KfcInfo = {{"timestamp", SQL_NUMERIC_TYPE},   {"op_name", SQL_TEXT_TYPE},
+                              {"ccl_tag", SQL_TEXT_TYPE},        {"group_name", SQL_TEXT_TYPE},
+                              {"local_rank", SQL_INTEGER_TYPE},  {"remote_rank", SQL_INTEGER_TYPE},
+                              {"rank_size", SQL_INTEGER_TYPE},   {"work_flow_mode", SQL_INTEGER_TYPE},
+                              {"plane_id", SQL_INTEGER_TYPE},    {"context_id", SQL_INTEGER_TYPE},
+                              {"notify_id", SQL_TEXT_TYPE},      {"stage", SQL_TEXT_TYPE},
+                              {"role", SQL_TEXT_TYPE},           {"duration_estimated", SQL_INTEGER_TYPE},
+                              {"src_addr", SQL_TEXT_TYPE},       {"dst_addr", SQL_TEXT_TYPE},
+                              {"size", SQL_INTEGER_TYPE},        {"op_type", SQL_TEXT_TYPE},
+                              {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
+                              {"transport_type", SQL_TEXT_TYPE}, {"rdma_type", SQL_TEXT_TYPE},
+                              {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE}};
 
 const TableColumns LowPower = {
     {"timestamp", SQL_INTEGER_TYPE},  {"die_id", SQL_INTEGER_TYPE},     {"data0_hard", SQL_INTEGER_TYPE},
@@ -738,7 +785,7 @@ SocProfilerDB::SocProfilerDB()
 {
     dbName_ = "soc_profiler.db";
     tableColNames_["InterSoc"] = InterSoc;
-};
+}
 
 AicoreDB::AicoreDB()
 {
@@ -794,13 +841,18 @@ StepTraceDB::StepTraceDB()
     tableColNames_["TaskType"] = TaskType;
     tableColNames_["TsMemcpy"] = TsMemcpy;
     tableColNames_["TsBlockNum"] = TsBlockNum;
+    tableColNames_["ModelWithQ"] = ModelWithQ;
 }
 
-KfcInfo::KfcInfo()
+KfcInfoDB::KfcInfoDB()
 {
     dbName_ = "kfc_info.db";
     tableColNames_["KfcCommTurn"] = KfcCommTurn;
     tableColNames_["KfcComputeTurn"] = KfcComputeTurn;
+    tableColNames_["AicpuTaskFlip"] = AicpuTaskFlip;
+    tableColNames_["AicpuMasterStreamHcclTask"] = AicpuMasterStreamHcclTask;
+    tableColNames_["DeviceHcclOpInfo"] = DeviceHcclOpInfo;
+    tableColNames_["KfcInfo"] = KfcInfo;
 }
 
 Mc2CommInfoDB::Mc2CommInfoDB()
@@ -874,6 +926,19 @@ MetricSummaryDB::MetricSummaryDB()
 {
     dbName_ = "metric_summary.db";
     tableColNames_["V6BlockPmu"] = V6BlockPmu;
+}
+
+AicpuDB::AicpuDB()
+{
+    dbName_ = "aicpu.db";
+    tableColNames_["AiCpuData"] = AiCpuData;
+    tableColNames_["AiCpuDp"] = AiCpuDp;
+}
+
+DataPreprocessDB::DataPreprocessDB()
+{
+    dbName_ = "data_preprocess.db";
+    tableColNames_["DataQueue"] = DataQueue;
 }
 
 DPUDB::DPUDB()

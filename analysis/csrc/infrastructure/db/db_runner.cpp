@@ -16,20 +16,20 @@
 
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 
-#include <string>
 #include <algorithm>
+#include <string>
 
-namespace Analysis {
-namespace Infra {
+namespace Analysis
+{
+namespace Infra
+{
 using namespace Analysis::Utils;
 using namespace Analysis;
 
-static std::string GetColumnsString(const std::vector <TableColumn> &cols)
+static std::string GetColumnsString(const std::vector<TableColumn> &cols)
 {
-    std::vector <std::string> result(cols.size());
-    std::transform(cols.begin(), cols.end(), result.begin(), [](const TableColumn &col) {
-        return col.ToString();
-    });
+    std::vector<std::string> result(cols.size());
+    std::transform(cols.begin(), cols.end(), result.begin(), [](const TableColumn &col) { return col.ToString(); });
     return Join(result, ", ");
 }
 
@@ -37,29 +37,33 @@ bool DBRunner::CheckTableExists(const std::string &tableName)
 {
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
     return conn->CheckTableExists(tableName);
 }
 
-bool DBRunner::CreateTable(const std::string &tableName, const std::vector <TableColumn> &cols) const
+bool DBRunner::CreateTable(const std::string &tableName, const std::vector<TableColumn> &cols) const
 {
-    if (tableName.empty()) {
+    if (tableName.empty())
+    {
         ERROR("The tableName is empty string");
         return false;
     }
-    INFO("Start create %", tableName);
     std::string valuesStr = GetColumnsString(cols);
     std::string sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + valuesStr + ");";
+    INFO("Start create %, sql is %.", tableName, sql);
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
-    if (!conn->ExecuteCreateTable(sql)) {
+    if (!conn->ExecuteCreateTable(sql))
+    {
         ERROR("Create % failed", tableName);
         return false;
     }
@@ -70,20 +74,23 @@ bool DBRunner::CreateTable(const std::string &tableName, const std::vector <Tabl
 bool DBRunner::CreateIndex(const std::string &tableName, const std::string &indexName,
                            const std::vector<std::string> &colNames) const
 {
-    if (tableName.empty()) {
+    if (tableName.empty())
+    {
         ERROR("The tableName is empty string");
         return false;
     }
-    INFO("Start create % index.", tableName);
     std::string valuesStr = Join(colNames, ",");
     std::string sql = "CREATE INDEX IF NOT EXISTS " + indexName + " ON " + tableName + " (" + valuesStr + ");";
+    INFO("Start create % index， sql is %.", tableName, sql);
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
-    if (!conn->ExecuteCreateIndex(sql)) {
+    if (!conn->ExecuteCreateIndex(sql))
+    {
         ERROR("Create % index failed", tableName);
         return false;
     }
@@ -93,7 +100,8 @@ bool DBRunner::CreateIndex(const std::string &tableName, const std::string &inde
 
 bool DBRunner::DropTable(const std::string &tableName) const
 {
-    if (tableName.empty()) {
+    if (tableName.empty())
+    {
         ERROR("The tableName is empty string");
         return false;
     }
@@ -101,11 +109,13 @@ bool DBRunner::DropTable(const std::string &tableName) const
     std::string sql = "DROP TABLE " + tableName + ";";
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
-    if (!conn->ExecuteDropTable(sql)) {
+    if (!conn->ExecuteDropTable(sql))
+    {
         ERROR("Drop % failed", tableName);
         return false;
     }
@@ -118,11 +128,13 @@ bool DBRunner::DeleteData(const std::string &sql) const
     INFO("Start delete data");
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
-    if (!conn->ExecuteDelete(sql)) {
+    if (!conn->ExecuteDelete(sql))
+    {
         ERROR("Delete data failed: %", sql);
         return false;
     }
@@ -135,11 +147,13 @@ bool DBRunner::UpdateData(const std::string &sql) const
     INFO("Start update data");
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, path is %d", path_);
         return false;
     }
-    if (!conn->ExecuteUpdate(sql)) {
+    if (!conn->ExecuteUpdate(sql))
+    {
         ERROR("Update data failed: %", sql);
         return false;
     }
@@ -153,17 +167,19 @@ std::vector<TableColumn> DBRunner::GetTableColumns(const std::string &tableName)
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, {}, path_);
     std::vector<TableColumn> cols;
-    if (!conn->IsDBOpened()) {
+    if (!conn->IsDBOpened())
+    {
         ERROR("Create Connection failed, tableName is %d", tableName);
         return cols;
     }
     cols = conn->ExecuteGetTableColumns(tableName);
-    if (cols.empty()) {
+    if (cols.empty())
+    {
         ERROR("Get % columns failed", tableName);
         return cols;
     }
     INFO("Get % columns success", tableName);
     return cols;
 }
-}
-}
+}  // namespace Infra
+}  // namespace Analysis

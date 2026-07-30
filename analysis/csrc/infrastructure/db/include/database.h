@@ -241,10 +241,10 @@ class StepTraceDB : public Database
     StepTraceDB();
 };
 
-class KfcInfo : public Database
+class KfcInfoDB : public Database
 {
    public:
-    KfcInfo();
+    KfcInfoDB();
 };
 
 class Mc2CommInfoDB : public Database
@@ -317,6 +317,18 @@ class MetricSummaryDB : public Database
 {
    public:
     MetricSummaryDB();
+};
+
+class AicpuDB : public Database
+{
+   public:
+    AicpuDB();
+};
+
+class DataPreprocessDB : public Database
+{
+   public:
+    DataPreprocessDB();
 };
 
 class DPUDB : public Database

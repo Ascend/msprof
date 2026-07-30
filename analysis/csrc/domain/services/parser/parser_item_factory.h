@@ -21,28 +21,36 @@
 #include <functional>
 #include <unordered_map>
 
-namespace Analysis {
-namespace Domain {
-enum ParserType {
+namespace Analysis
+{
+namespace Domain
+{
+enum ParserType
+{
     LOG_PARSER,
     LOG_PARSER_V6,
     PMU_PARSER,
     TRACK_PARSER,
-    FREQ_PARSER
+    FREQ_PARSER,
+    AICPU_PARSER
 };
 const int MIN_COUNT = 2;
 const int VALID_CNT = 15;
 const int DEFAULT_CNT = -1;
 
-class ParserItemFactory {
+class ParserItemFactory
+{
     using ItemFunc = std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)>;
     using ItemFuncMap = std::unordered_map<uint32_t, ItemFunc>;
-public:
+
+   public:
     ParserItemFactory(ParserType parserType, uint32_t itemType,
                       std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)> parserItemFunc);
-    static std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)> GetParseItem(ParserType parserType, uint32_t itemType);
-private:
-    static std::unordered_map<ParserType, ItemFuncMap>& GetContainer();
+    static std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)> GetParseItem(ParserType parserType,
+                                                                                     uint32_t itemType);
+
+   private:
+    static std::unordered_map<ParserType, ItemFuncMap> &GetContainer();
 };
 
 #define PARSER_FACTORY_LINENAME(name, line) name##line
@@ -54,9 +62,9 @@ private:
  * @param itemType：可解析数据的类型(通常为FuncType)
  * @param Func: 实际解析数据函数
  */
-#define REGISTER_PARSER_ITEM(parserType, itemType, Func) \
-static Analysis::Domain::ParserItemFactory               \
-    PARSER_FACTORY_LINENAME_HELPER(parserType, __LINE__)(parserType, itemType, Func)
-}
-}
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_FACTORY_H
+#define REGISTER_PARSER_ITEM(parserType, itemType, Func)                                                        \
+    static Analysis::Domain::ParserItemFactory PARSER_FACTORY_LINENAME_HELPER(parserType, __LINE__)(parserType, \
+                                                                                                    itemType, Func)
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_FACTORY_H

@@ -41,6 +41,7 @@ const std::string HOST_TASK_TABLE = "HostTask";
 const std::string TASK_INFO_TABLE = "TaskInfo";
 const std::string HCCL_OP_TABLE = "HCCLOP";
 const std::string HCCL_TASK_TABLE = "HCCLTask";
+const std::string GE_HASH_INFO_TABLE = "GeHashInfo";
 using OriDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
 using RuntimeOriDataFormat = std::vector<std::tuple<uint32_t, int32_t, uint16_t, uint32_t, std::string, uint64_t,
                                                     std::string, std::string, int64_t, uint16_t>>;
@@ -48,6 +49,7 @@ using HcclTaskOriDataFormat =
     std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t, double, uint32_t, uint16_t,
                            uint32_t, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint32_t, std::string, double,
                            std::string, std::string, std::string, std::string, int32_t>>;
+using GeHashFormat = std::vector<std::tuple<std::string, std::string>>;
 using HcclOpOriDataFormat = std::vector<
     std::tuple<uint16_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, uint64_t, uint64_t,
                std::string, int64_t, int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
@@ -72,7 +74,7 @@ uint32_t ReadHostGEInfo(DataInventory& dataInventory, const DeviceContext& devic
     DeviceInfo deviceInfo{};
     deviceContext.Getter(deviceInfo);
     auto hostPath = deviceContext.GetDeviceFilePath();
-    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "../", "/host", "/sqlite", geInfoDb.GetDBName()});
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, geInfoDb.GetDBName()});
     DBRunner hostGeInfoDBRunner(hostDbDirectory);
     if (!CheckPathAndTableExists(hostDbDirectory, hostGeInfoDBRunner, TASK_INFO_TABLE))
     {
@@ -123,7 +125,7 @@ bool LoadHostData::ReadHostRuntimeFromDB(std::string& profPath, TaskId2HostTask&
                                          const std::vector<std::string>& deviceIds)
 {
     RuntimeDB runtimeDb;
-    std::string hostDbDirectory = File::PathJoin({profPath, "/", HOST, "/", SQLITE, runtimeDb.GetDBName()});
+    std::string hostDbDirectory = File::PathJoin({profPath, HOST, SQLITE, runtimeDb.GetDBName()});
     DBRunner hostRuntimeDBRunner(hostDbDirectory);
 
     if (!CheckPathAndTableExists(hostDbDirectory, hostRuntimeDBRunner, HOST_TASK_TABLE))
@@ -166,21 +168,21 @@ uint32_t ReadHostRuntime(DataInventory& dataInventory, const DeviceContext& devi
     TaskId2HostTask hostRuntime;
     DeviceInfo deviceInfo{};
     deviceContext.Getter(deviceInfo);
-    std::string profPath = File::PathJoin({deviceContext.GetDeviceFilePath(), "../"});
+    std::string profPath = File::PathJoin({deviceContext.GetDeviceFilePath(), ".."});
     if (!LoadHostData::ReadHostRuntimeFromDB(profPath, hostRuntime, {std::to_string(deviceInfo.deviceId)}))
     {
         return ANALYSIS_ERROR;
     }
-    if (deviceContext.GetChipID() == CHIP_V6_1_0)
+    std::shared_ptr<HostStreamInfo> streamIdInfo;
+    MAKE_SHARED_RETURN_VALUE(streamIdInfo, HostStreamInfo, ANALYSIS_ERROR);
+    if (deviceContext.GetChipID() == CHIP_V6_1_0 || deviceContext.GetChipID() == CHIP_V6_2_0)
     {
-        std::shared_ptr<StreamIdInfo> streamIdInfo;
-        MAKE_SHARED_RETURN_VALUE(streamIdInfo, StreamIdInfo, ANALYSIS_ERROR);
         for (auto& task : hostRuntime)
         {
             streamIdInfo->streamIdMap.emplace(task.first.taskId, task.first.streamId);
         }
-        dataInventory.Inject(streamIdInfo);
     }
+    dataInventory.Inject(streamIdInfo);
     std::shared_ptr<TaskId2HostTask> data;
     MAKE_SHARED_RETURN_VALUE(data, TaskId2HostTask, ANALYSIS_ERROR, std::move(hostRuntime));
     dataInventory.Inject(data);
@@ -193,7 +195,7 @@ uint32_t ReadHcclOp(DataInventory& dataInventory, const DeviceContext& deviceCon
     DeviceInfo deviceInfo{};
     deviceContext.Getter(deviceInfo);
     auto hostPath = deviceContext.GetDeviceFilePath();
-    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "../", "/host", "/sqlite", hcclDb.GetDBName()});
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, hcclDb.GetDBName()});
     DBRunner hostHcclDBRunner(hostDbDirectory);
     std::string sql{
         "SELECT device_id, model_id, index_id, thread_id, op_name, task_type, op_type, begin, "
@@ -240,7 +242,7 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
     DeviceInfo deviceInfo{};
     deviceContext.Getter(deviceInfo);
     auto hostPath = deviceContext.GetDeviceFilePath();
-    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "../", "/host", "/sqlite", hcclDb.GetDBName()});
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, hcclDb.GetDBName()});
     DBRunner hostHcclDBRunner(hostDbDirectory);
     std::string sql{
         "SELECT model_id, index_id, name, group_name, plane_id, timestamp , duration, stream_id, task_id, "
@@ -283,6 +285,38 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
     return ANALYSIS_OK;
 }
 
+uint32_t ReadHash(DataInventory& dataInventory, const DeviceContext& deviceContext)
+{
+    HashDB hashDb;
+    DeviceInfo deviceInfo{};
+    deviceContext.Getter(deviceInfo);
+    auto hostPath = deviceContext.GetDeviceFilePath();
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, hashDb.GetDBName()});
+    DBRunner hostHashDBRunner(hostDbDirectory);
+    std::string sql{"SELECT hash_key, hash_value FROM " + GE_HASH_INFO_TABLE};
+    GeHashMap hashMap;
+    std::shared_ptr<GeHashMap> res;
+    if (!CheckPathAndTableExists(hostDbDirectory, hostHashDBRunner, GE_HASH_INFO_TABLE))
+    {
+        MAKE_SHARED_RETURN_VALUE(res, GeHashMap, ANALYSIS_ERROR, std::move(hashMap));
+        dataInventory.Inject(res);
+        return ANALYSIS_OK;
+    }
+    GeHashFormat hashData;
+    if (!hostHashDBRunner.QueryData(sql, hashData))
+    {
+        ERROR("Failed to obtain data from the % table.", hashDb.GetDBName());
+        return ANALYSIS_ERROR;
+    }
+    for (auto& item : hashData)
+    {
+        hashMap[std::get<0>(item)] = std::get<1>(item);
+    }
+    MAKE_SHARED_RETURN_VALUE(res, GeHashMap, ANALYSIS_ERROR, std::move(hashMap));
+    dataInventory.Inject(res);
+    return ANALYSIS_OK;
+}
+
 uint32_t LoadHostData::ProcessEntry(DataInventory& dataInventory, const Infra::Context& context)
 {
     auto devTaskSummary = dataInventory.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
@@ -293,7 +327,8 @@ uint32_t LoadHostData::ProcessEntry(DataInventory& dataInventory, const Infra::C
     }
     const auto& deviceContext = dynamic_cast<const DeviceContext&>(context);
     return ReadHostRuntime(dataInventory, deviceContext) | ReadHostGEInfo(dataInventory, deviceContext) |
-           ReadHcclTask(dataInventory, deviceContext) | ReadHcclOp(dataInventory, deviceContext);
+           ReadHcclTask(dataInventory, deviceContext) | ReadHcclOp(dataInventory, deviceContext) |
+           ReadHash(dataInventory, deviceContext);
 }
 
 REGISTER_PROCESS_SEQUENCE(LoadHostData, false, Analysis::Domain::LogModeling, Analysis::Domain::LogModelingV6);

@@ -311,7 +311,7 @@ TEST_F(LoadHostDataUtest, TestProcessEntryReadHostRuntimeSuccess)
     deviceContext.deviceContextInfo.deviceFilePath = HOST_PATH;
     LoadHostData loadHostData;
     loadHostData.ProcessEntry(dataInventory_, deviceContext);
-    auto streamInfo_ = dataInventory_.GetPtr<StreamIdInfo>();
+    auto streamInfo_ = dataInventory_.GetPtr<HostStreamInfo>();
     ASSERT_EQ(1u, streamInfo_->streamIdMap.size());
 }
 }
