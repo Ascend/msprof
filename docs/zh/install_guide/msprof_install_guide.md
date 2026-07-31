@@ -1,4 +1,4 @@
-# msProf工具安装指南
+# msProf 安装指南
 
 ## 1. 安装说明
 
@@ -20,96 +20,70 @@
 
 ### 2.3 源码安装
 
-如需使用最新代码的功能，可下载本仓库代码，自行编译、打包并完成安装。
+如需使用最新代码的功能，或对源码进行修改以增强功能，可下载本仓库代码，自行编译、打包工具并完成安装。
 
-> [!NOTE]
->
-> 编译出的msProf run包需要在已安装CANN的环境中进行覆盖安装才能使用。
+#### 2.3.1 环境准备
 
-#### 2.3.1 编译环境准备
+源码编译统一使用 MindStudio 标准构建环境。
 
-1. 安装依赖。
+- 日常开发或使用已发布镜像，请参考《[MindStudio工具开发环境安装指导](https://gitcode.com/Ascend/msot/blob/master/docs/zh/common/dev_env_setup.md)》。
+- 需要从基础操作系统复现环境、执行源码构建验证或单元测试验证时，必须参考《[MindStudio统一构建镜像制作指南](https://gitcode.com/Ascend/msot/blob/master/docs/zh/common/docker_image_build_guide.md)》，从openEuler基础镜像现场构建环境镜像。
 
-   msProf工具源码编译依赖SQLite3，请执行以下命令完成安装，或确保当前环境已满足该依赖。
+本文档后续的源码编译和单元测试命令，均在上述指定镜像容器或现场构建的环境镜像的容器中执行，CANN 软件包版本、GCC 版本和 Python 版本以统一镜像制作指南为准，本仓库不重复维护。
 
-   - Ubuntu系统上安装SQLite3：
+镜像构建完成后，必须使用统一镜像制作指南第 7 章给出的 `ctr_in.py` 命令，在交互式终端中启动并进入容器。不得使用普通 `docker run` 创建容器，也不得使用 `docker exec <容器名> bash -c '<命令>'` 替代交互式环境；否则可能跳过 Python、GCC 和 CANN 环境初始化。
 
-     ```shell
-      sudo apt update
-      sudo apt install sqlite3 libsqlite3-dev
-     ```
+进入 `ctr_in.py` 打开的交互式容器 Shell 后，执行如下命令克隆本仓库：
 
-   - openEuler/CentOS系统上安装SQLite3：
-
-     ```shell
-     sudo yum install sqlite sqlite-devel
-     ```
-
-2. 克隆本仓库。
-
-   ```shell
-   git clone https://gitcode.com/Ascend/msprof.git
-   ```
-
-3. 下载第三方依赖。
-
-   ```shell
-   cd msprof
-   # 下载三方依赖包
-   bash scripts/download_thirdparty.sh
-   ```
-
-#### 2.3.2 执行编译打包
-
-`build/build.sh`编译脚本支持通过--mode参数指定编译类型：
-
-- all：编译全量run包（包含采集与解析功能）
-- analysis：编译解析run包（仅包含解析功能）
-
-更多参数说明请参见[编译run包参数说明](#61-编译run包参数说明)。
-
-编译完成后，会在当前路径`output`目录下生成run包，名称格式为`mindstudio-profiler_{version}_{arch}.run`。其中，`version`为版本号，`arch`为系统架构（根据实际运行系统自动适配）。
-
-##### 2.3.2.1 方式一：编译msProf全量run包（推荐）
-
-```shell
-# 编译全量run包，包含msProf的采集和解析功能
-bash build/build.sh --mode=all --version=26.1.0
+```bash
+cd ~
+git clone https://gitcode.com/Ascend/msprof.git
 ```
 
-##### 2.3.2.2 方式二：编译msProf解析run包
+#### 2.3.2 执行编译
 
-```shell
-# 单独编译解析包
-bash build/build.sh --mode=analysis --version=26.1.0
+保持在 `ctr_in.py` 打开的同一个交互式容器 Shell 中，在仓库根目录执行以下命令，自动完成依赖下载与构建：
+
+```bash
+cd ~/msprof
+python3 build.py
 ```
 
-#### 2.3.3 安装run包
+构建成功后，安装包将生成在 `artifacts/` 目录下。
 
-1. run包将生成在`output`目录下，执行以下命令为其添加可执行权限：
+#### 2.3.3 执行单元测试（可选）
+
+此步骤非安装必需。如需验证代码基本功能，可执行单元测试：
+
+```bash
+cd ~/msprof
+python3 build.py test
+```
+
+命令返回码为 0，且测试用例均无失败，表示单元测试通过。
+
+#### 2.3.4 安装run包
+
+同时生成的 whl 包会打入 run 包中，直接安装 run 包即可：
+
+1. 执行以下命令为 run 包添加可执行权限：
 
    ```shell
-   cd output
-   chmod +x mindstudio-profiler_26.1.0_{arch}.run
+   cd ~/msprof/artifacts
+   chmod +x mindstudio-profiler_<version>_{arch}.run
    ```
 
 2. 执行安装命令。
 
    ```shell
-   ./mindstudio-profiler_26.1.0_{arch}.run --install
+   ./mindstudio-profiler_<version>_{arch}.run --install
    ```
 
-   安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#62-安装run包参数说明)。
-
-   执行安装命令时，会自动执行`--check`参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
-
-   ```ColdFusion
-   Verifying archive integrity...  100%   SHA256 checksums are OK. All good.
-   ```
+   安装命令支持`--install-path`等参数，具体请参见[安装run包参数说明](#61-安装run包参数说明)。
 
    安装完成后，若显示如下信息，则说明软件安装成功。
 
-   ```ColdFusion
+   ```text
    mindstudio-profiler package install success.
    ```
 
@@ -150,7 +124,7 @@ msprof --help
 
    卸载成功打印如下信息：
 
-   ```ColdFusion
+   ```text
    Successfully uninstalled 1 tool ({tools_name})
    ```
 
@@ -162,17 +136,7 @@ msprof --help
 
 ## 6. 附录
 
-### 6.1 编译run包参数说明
-
-msProf工具run包的编译命令可配置如下参数。
-
-| 参数         | 可选/必选 | 说明                                                                                                                       |
-| ------------ | --------- |--------------------------------------------------------------------------------------------------------------------------|
-| --build_type | 可选      | 编译run包类型，可取值：<br>&#8226; Release：编译出用于生产环境部署的软件包。<br>&#8226; Debug：编译出用于开发调试的软件包（只支持编译**解析**部分的Debug软件包）。<br>默认值为Release。 |
-| --mode       | 可选      | 编译run包方式。可取值：<br>&#8226; all：编译出包含msProf采集和解析功能的软件包。<br>&#8226; analysis：编译出仅包含msProf解析功能的软件包。<br>默认值为analysis。          |
-| --version    | 可选      | 配置run包的版本号，用户自定义。<br>默认值为none。                                                                                           |
-
-### 6.2 安装run包参数说明
+### 6.1 安装run包参数说明
 
 msProf工具run包的安装命令可配置如下参数。
 

@@ -1,10 +1,10 @@
-﻿# 开发指南
+﻿# msProf 开发指南
 
-本文面向 MindStudio Profiler 的开发和维护人员，介绍源码目录、构建方式、采集与解析链路、功能改动后的验证方法，以及资料联动更新要求。本文重点结合 MindStudio Profiler 当前仓库和现有文档内容编写，适用于新增命令参数、扩展解析能力、增加交付件或维护 run 包安装方式等场景。
+本文面向 msProf 的开发和维护人员，介绍源码目录、构建方式、采集与解析链路、功能改动后的验证方法，以及资料联动更新要求。本文重点结合 msProf 当前仓库和现有文档内容编写，适用于新增命令参数、扩展解析能力、增加交付件或维护 run 包安装方式等场景。
 
-## 1. MindStudio Profiler 开发概述
+## 1. msProf 开发概述
 
-MindStudio Profiler 提供 AI 任务运行性能数据和昇腾 AI 处理器系统数据的采集、解析与导出能力。围绕开发工作，通常可以分为以下几类：
+msProf 提供 AI 任务运行性能数据和昇腾 AI 处理器系统数据的采集、解析与导出能力。围绕开发工作，通常可以分为以下几类：
 
 | 开发对象 | 典型内容 |
 | --- | --- |
@@ -43,37 +43,15 @@ MindStudio Profiler 提供 AI 任务运行性能数据和昇腾 AI 处理器系�
 
 ## 3. 开发环境配置
 
-### 3.1 基础软件
+按照《[msProf 安装指南 — 源码安装](../install_guide/msprof_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
 
-| 软件名 | 版本要求 | 用途 |
-| --- | --- | --- |
-| Git | 无硬性要求 | 代码拉取与提交 |
-| Python | 3.7.5 及以上 | 解析脚本运行 |
-| SQLite3 | 编译时依赖 | 解析相关能力 |
-| Bash | Linux 环境下建议具备 | 构建与脚本执行 |
-
-### 3.2 前置条件
-
-1. 已安装配套版本的 CANN 环境。
-2. 具备可用的 `cann` 安装目录。
-3. 具备源码编译所需的 SQLite3 依赖。
-
-示例：
-
-```bash
-sudo apt update
-sudo apt install sqlite3 libsqlite3-dev
-```
-
-或：
-
-```bash
-sudo yum install sqlite sqlite-devel
-```
+> **说明：** 环境镜像的构建方法及配套软件版本由 MindStudio 统一镜像制作指南维护，本仓库不重复定义。
 
 ## 4. 获取代码与构建
 
 ### 4.1 获取代码
+
+在上面编译容器中，执行如下命令获取代码：
 
 ```bash
 git clone https://gitcode.com/Ascend/msprof.git
@@ -88,13 +66,13 @@ bash scripts/download_thirdparty.sh
 
 ### 4.3 编译 run 包
 
-`build/build.sh` 支持通过 `--mode` 指定编译内容：
+msProf 工具 run 包的编译命令可配置如下参数。
 
-| 模式 | 说明 |
-| --- | --- |
-| `all` | 编译包含采集和解析能力的全量 run 包 |
-| `collector` | 编译仅包含采集能力的 run 包 |
-| `analysis` | 编译仅包含解析能力的 run 包 |
+| 参数 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| `--build_type` | 可选 | 编译 run 包类型，可取值：<br>&#8226; Release：编译出用于生产环境部署的软件包。<br>&#8226; Debug：编译出用于开发调试的软件包（只支持编译**解析**部分的 Debug 软件包）。<br>默认值为 Release。 |
+| `--mode` | 可选 | 编译 run 包方式，可取值：<br>&#8226; all：编译出包含 msProf 采集和解析功能的软件包。<br>&#8226; collector：编译出仅包含 msProf 采集功能的软件包。<br>&#8226; analysis：编译出仅包含 msProf 解析功能的软件包。<br>默认值为 analysis。 |
+| `--version` | 可选 | 配置 run 包的版本号，用户自定义。<br>默认值为 none。 |
 
 示例：
 
@@ -236,7 +214,7 @@ python3 msprof.py export db -dir /home/profiler_data/PROF_XXX
 
 ## 7. 资料联动更新要求
 
-MindStudio Profiler 的开发改动通常会直接影响资料，禁止只改代码不改文档。建议按下表同步核对：
+msProf 的开发改动通常会直接影响资料，禁止只改代码不改文档。建议按下表同步核对：
 
 | 改动内容 | 必查文档 |
 | --- | --- |

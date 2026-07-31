@@ -48,9 +48,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 📦 安装指南
 
-msProf 工具内置在 CANN Toolkit 开发套件中，推荐直接下载 CANN 包进行安装，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
-
-如需通过源码编译方式安装，请参见 《[msProf 工具安装指南](docs/zh/install_guide/msprof_install_guide.md)》。
+工具的环境依赖与安装方法，请参见《[msProf 安装指南](docs/zh/install_guide/msprof_install_guide.md)》。
 
 ## 📘 使用指南
 
