@@ -11,9 +11,9 @@
    ```ColdFusion 
     PROF_XXX
     ├── host   // Host侧性能原始数据，用户无需关注
-    │    └── data
+    │   └── data
     ├── device_{id}   // Device侧性能原始数据，用户无需关注
-    │       └── data
+    │   └── data
     ├── msprof_{timestamp}.db  // DB类型的性能数据
     ├── mindstudio_profiler_output   // Text类型的性能数据
         ├── msprof_{timestamp}.json
@@ -429,7 +429,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。|
 |*_icache_miss_rate|icache是为instruction预留的L2 Cache，icache_miss_rate数值高代表AI Core读取指令的效率低。|
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
-|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization=total_cycles / (freq *core_num* task_duration)。|
+|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization = total_cycles / (freq * core_num * task_duration)。|
 
 > [!NOTE]
 >
@@ -580,7 +580,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |fixpipe_exe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。|
 |fixpipe_exe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
-|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization=total_cycles / (freq *core_num* task_duration)。|
+|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization = total_cycles / (freq * core_num * task_duration)。|
 
 仅支持产品：Atlas 200I/500 A2 推理产品
 
@@ -2794,7 +2794,7 @@ process\_mem\_\*.csv文件内容格式示例如下：
 
 TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录页表缓存命中情况。
 
-**产品支持情况<a name="section156885801410"></a>**
+**产品支持情况<a name="section1568858014"></a>**
 
 | 产品                                        | 是否支持 |
 | ------------------------------------------- | :------: |
@@ -2807,7 +2807,7 @@ TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录�
 
 **文件说明<a name="section13876175514481"></a>**
 
-**图 1**  soc\_pmu\_\*.csv文件<a name="fig1844571018213"></a>  
+**图 1**  soc\_pmu\_\*.csv文件<a name="fig1844571018216"></a>  
 ![](../figures/soc_pmu_-csv文件.png "soc_pmu_-csv文件")
 
 **表 1**  字段说明
@@ -2825,11 +2825,43 @@ TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录�
 >
 > 算子任务大量下发时，每个算子的执行时间为2~3us，此时TLB Miss Rate + TLB Hit Rate的值可能不为1。
 
+#### page\_fault（SMMU错误数据）<a name="ZH-CN_TOPIC_0000002416100683"></a>
+
+SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU进行地址翻译、页表权限校验以及PTW过程中发生错误的情况。
+
+**PTW**：（Page Table Walk，页表遍历），当CPU要访问一个虚拟地址时，会先在TLB查找对应的物理地址。如果TLB miss，SMMU就需要去内存中逐级查询页表，把虚拟地址翻译成物理地址，该过程称为PTW。
+
+**产品支持情况<a name="section156885801410"></a>**
+
+| 产品                                        | 是否支持 |
+| ------------------------------------------- | :------: |
+| Ascend 950 系列产品                         |    √     |
+| Atlas A3 训练系列产品/Atlas A3 推理系列产品 |    √     |
+| Atlas A2 训练系列产品/Atlas A2 推理系列产品 |    √     |
+| Atlas 200I/500 A2 推理产品                  |    x     |
+| Atlas 推理系列产品                          |    x     |
+| Atlas 训练系列产品                          |    x     |
+
+**文件说明<a name="section13876175514482"></a>**
+
+**图 1**  page\_fault\_\*.csv文件<a name="fig1844571018213"></a>  
+![](../figures/page_fault.png "page_fault")
+
+**表 1**  字段说明
+
+| 字段名         | 字段含义                                                    |
+| -------------- | ----------------------------------------------------------- |
+| Device_id      | 设备ID。                                                    |
+| Stream Id      | 该Task所处的Stream ID。                                     |
+| Task Id        | Task任务的ID。                                              |
+| Page Fault Num | SMMU进行地址翻译、页表权限校验以及PTW过程中发生错误的次数。 |
+| Op Name        | 算子名称。                                                  |
+
 #### ccu\_mission（集合通信指令信息）<a name="ZH-CN_TOPIC_0000002344234016"></a>
 
 集合通信指令timeline信息在msprof\_\*.json文件的CCU层级展示，summary信息在ccu\_mission\_\*.csv文件汇总。
 
-**产品支持情况<a name="section156885801410"></a>**
+**产品支持情况<a name="section156885801411"></a>**
 
 | 产品                                        | 是否支持 |
 | ------------------------------------------- | :------: |
@@ -2849,7 +2881,7 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 
 **ccu\_mission\_\*.csv文件说明<a name="section13876175514481"></a>**
 
-**图 1**  ccu\_mission\_\*.csv<a name="fig1844571018213"></a>  
+**图 1**  ccu\_mission\_\*.csv<a name="fig1844571018214"></a>  
 
 ![](../figures/zh-cn_image_0000002378234113.png)
 
@@ -2871,7 +2903,7 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 
 集合通信硬件加速单元（CCU）带宽无timeline信息，summary信息在ccu\_channel\_\*.csv文件汇总。
 
-**产品支持情况<a name="section156885801410"></a>**
+**产品支持情况<a name="section156885801412"></a>**
 
 | 产品                                        | 是否支持 |
 | ------------------------------------------- | :------: |
@@ -2884,7 +2916,7 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 
 **文件说明<a name="section13876175514481"></a>**
 
-**图 1**  ccu\_channel\_\*.csv<a name="fig1844571018213"></a>  
+**图 1**  ccu\_channel\_\*.csv<a name="fig1844571018215"></a>  
 
 ![](../figures/zh-cn_image_0000002386383444.png)
 
@@ -2903,7 +2935,7 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 
 UB带宽数据timeline信息在msprof\_\*.json文件的UB层级展示，summary信息在ub\_\*.csv文件汇总。
 
-**产品支持情况<a name="section156885801410"></a>**
+**产品支持情况<a name="section156885801414"></a>**
 
 | 产品                                        | 是否支持 |
 | ------------------------------------------- | :------: |
