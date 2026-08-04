@@ -1526,6 +1526,7 @@ class TablesConfig(MetaConfig):
             ('aicpu_task_id', 'INTEGER,null'),
             ('stream_id', 'INTEGER,null'),
             ('task_id', 'INTEGER,null'),
+            ('batch_id', 'INTEGER,null'),
             ('type', 'INTEGER,null'),
         ],
         'QosBwDataMap': [
@@ -1599,6 +1600,7 @@ class TablesConfig(MetaConfig):
             ('rdma_type', 'TEXT,null'),
             ('stream_id', 'INTEGER,null'),
             ('task_id', 'INTEGER,null'),
+            ('batch_id', 'INTEGER,null'),
         ],
         'KfcOPMap': [
             ('model_id', 'INT,null'),

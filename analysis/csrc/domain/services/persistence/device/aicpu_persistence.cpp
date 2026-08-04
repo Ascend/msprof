@@ -16,7 +16,11 @@
 
 #include "analysis/csrc/domain/services/persistence/device/aicpu_persistence.h"
 
+#include <algorithm>
+#include <unordered_map>
+
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
+#include "analysis/csrc/domain/services/modeling/batch_id/batch_id.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -74,7 +78,8 @@ using ComputeTurnFormat =
 
 using FlipTaskFormat = std::vector<std::tuple<uint16_t, double, uint32_t, uint32_t>>;
 
-using MainStreamTaskFormat = std::vector<std::tuple<double, uint16_t, uint32_t, uint16_t, uint32_t, uint16_t>>;
+using MainStreamTaskFormat =
+    std::vector<std::tuple<double, uint16_t, uint32_t, uint16_t, uint32_t, uint32_t, uint16_t>>;
 
 using OpInfoFormat = std::vector<std::tuple<double, uint16_t, uint16_t, std::string, std::string, uint64_t, std::string,
                                             uint16_t, uint32_t, uint32_t, uint16_t>>;
@@ -82,7 +87,7 @@ using OpInfoFormat = std::vector<std::tuple<double, uint16_t, uint16_t, std::str
 using KfcInfosFormat = std::vector<
     std::tuple<double, std::string, std::string, std::string, uint32_t, uint32_t, uint32_t, std::string, uint16_t,
                uint32_t, std::string, std::string, std::string, double, std::string, std::string, uint64_t, std::string,
-               std::string, std::string, std::string, std::string, uint16_t, uint32_t>>;
+               std::string, std::string, std::string, std::string, uint16_t, uint32_t, uint32_t>>;
 }  // namespace
 
 uint32_t AicpuPersistence::GenerateAndSaveNode(const std::string& deviceFilePath)
@@ -356,7 +361,8 @@ uint32_t AicpuPersistence::GenerateAndSaveMainStreamTask(const std::string& devi
         auto timeStamp = GetTimeFromSyscnt(mainStreamTask.timeStamp, params_);
         data.emplace_back(timeStamp.Double(), mainStreamTask.mainStreamTask.aicpuStreamId,
                           mainStreamTask.mainStreamTask.aicpuTaskId, mainStreamTask.mainStreamTask.streamId,
-                          mainStreamTask.mainStreamTask.taskId, mainStreamTask.mainStreamTask.type);
+                          mainStreamTask.mainStreamTask.taskId, mainStreamTask.taskId.batchId,
+                          mainStreamTask.mainStreamTask.type);
     }
 
     DBInfo dbInfo("kfc_info.db", "AicpuMasterStreamHcclTask");
@@ -429,14 +435,15 @@ uint32_t AicpuPersistence::GenerateAndSaveKfcInfos(const std::string& deviceFile
             data.emplace_back(timeStamp.Double(), geHashMap_[std::to_string(info.itemId)], std::to_string(info.cclTag),
                               std::to_string(info.groupName), info.localRank, info.remoteRank, info.rankSize,
                               std::to_string(info.workFlowMode), info.planeID, UINT32_MAX,
-                              std::to_string(info.notifyID), std::to_string(info.stage), std::to_string(info.role),
+                              std::to_string(info.notifyID), std::to_string(info.stage),
+                              std::to_string(info.role),  // role暂时用不上，未转换为枚举内容
                               info.durationEstimated, std::to_string(info.srcAddr), std::to_string(info.dstAddr),
                               info.dataSize, NumberMapping::Get(NumberMapping::MappingType::HCCL_OP_TYPE, info.opType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_DATA_TYPE, info.dataType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_LINK_TYPE, info.linkType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_TRANSPORT_TYPE, info.transportType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_RDMA_TYPE, info.rdmaType),
-                              info.streamId, info.taskId);
+                              info.streamId, info.taskId, aicpuData.taskId.batchId);
         }
     }
 
@@ -529,6 +536,95 @@ uint32_t AicpuPersistence::GenerateAndSaveData(const std::string& deviceFilePath
     return result;
 }
 
+void AicpuPersistence::ComputeAicpuBatchId()
+{
+    if (flipTaskData_.empty() || (mainStreamTaskData_.empty() && kfcInfosData_.empty()))
+    {
+        return;
+    }
+
+    using BatchTaskData = HalUniData;
+    struct TaskEntry
+    {
+        BatchTaskData task;
+        uint16_t* batchIdDest;  // 指向原始 AicpuData::taskId.batchId (uint16_t)
+    };
+
+    // 1. 按 stream_id 收集 flip 数据
+    std::unordered_map<uint32_t, std::vector<BatchTaskData*>> flipByStream;
+    std::vector<BatchTaskData> flipStorage;
+    flipStorage.reserve(flipTaskData_.size());
+    for (auto& flip : flipTaskData_)
+    {
+        BatchTaskData tmp;
+        tmp.taskId = flip.taskId;
+        tmp.timestamp = flip.timeStamp;
+        flipStorage.push_back(tmp);
+        flipByStream[flip.taskId.streamId].push_back(&flipStorage.back());
+    }
+
+    // 2. 按 stream_id 收集 task 数据
+    std::unordered_map<uint32_t, std::vector<TaskEntry>> taskByStream;
+
+    for (auto& mainStream : mainStreamTaskData_)
+    {
+        TaskEntry entry;
+        entry.task.taskId = mainStream.taskId;
+        entry.task.timestamp = mainStream.timeStamp;
+        entry.batchIdDest = &mainStream.taskId.batchId;
+        taskByStream[mainStream.taskId.streamId].push_back(entry);
+    }
+    for (auto& kfc : kfcInfosData_)
+    {
+        for (auto& info : kfc.KfcInfos.infos)
+        {
+            if (info.groupName == 0) continue;
+            TaskEntry entry;
+            entry.task.taskId = kfc.taskId;
+            entry.task.timestamp = info.timeStamp;
+            entry.batchIdDest = &kfc.taskId.batchId;
+            taskByStream[info.streamId].push_back(entry);
+        }
+    }
+
+    // 3. 按 stream_id 分组计算
+    for (auto& pair : taskByStream)
+    {
+        uint32_t streamId = pair.first;
+        auto flipIt = flipByStream.find(streamId);
+        if (flipIt == flipByStream.end())
+        {
+            continue;  // 该 stream 没有 flip 数据，无法计算 batchId
+        }
+
+        auto& taskEntries = pair.second;
+        auto& flipPtrs = flipIt->second;
+
+        // 按 timestamp 排序
+        std::sort(taskEntries.begin(), taskEntries.end(),
+                  [](const TaskEntry& a, const TaskEntry& b) { return a.task.timestamp < b.task.timestamp; });
+        std::sort(flipPtrs.begin(), flipPtrs.end(),
+                  [](const BatchTaskData* a, const BatchTaskData* b) { return a->timestamp < b->timestamp; });
+
+        // 构造 HalUniData* 指针数组
+        std::vector<HalUniData*> taskPtrs;
+        taskPtrs.reserve(taskEntries.size());
+        for (auto& entry : taskEntries)
+        {
+            taskPtrs.push_back(&entry.task);
+        }
+
+        ModelingComputeBatchIdBinary(taskPtrs.data(), static_cast<uint32_t>(taskPtrs.size()), flipPtrs.data(),
+                                     static_cast<uint16_t>(flipPtrs.size()));
+
+        // 回写 batchId
+        for (auto& entry : taskEntries)
+        {
+            *entry.batchIdDest = entry.task.taskId.batchId;
+        }
+    }
+}
+
 uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
@@ -550,6 +646,7 @@ uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Cont
         ERROR("Process aicpu data failed");
         return ANALYSIS_ERROR;
     }
+    ComputeAicpuBatchId();
     return GenerateAndSaveData(deviceContext.GetDeviceFilePath());
 }
 REGISTER_PROCESS_SEQUENCE(AicpuPersistence, true, AicpuParser, LoadHostData);

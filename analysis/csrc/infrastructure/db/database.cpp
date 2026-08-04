@@ -585,7 +585,8 @@ const TableColumns AicpuTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
 
 const TableColumns AicpuMasterStreamHcclTask = {
     {"timestamp", SQL_NUMERIC_TYPE}, {"aicpu_stream_id", SQL_INTEGER_TYPE}, {"aicpu_task_id", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},         {"type", SQL_INTEGER_TYPE}};
+    {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},         {"batch_id", SQL_INTEGER_TYPE},
+    {"type", SQL_INTEGER_TYPE}};
 
 const TableColumns DeviceHcclOpInfo = {
     {"timestamp", SQL_NUMERIC_TYPE}, {"relay", SQL_INTEGER_TYPE},     {"retry", SQL_INTEGER_TYPE},
@@ -604,7 +605,8 @@ const TableColumns KfcInfo = {{"timestamp", SQL_NUMERIC_TYPE},   {"op_name", SQL
                               {"size", SQL_INTEGER_TYPE},        {"op_type", SQL_TEXT_TYPE},
                               {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
                               {"transport_type", SQL_TEXT_TYPE}, {"rdma_type", SQL_TEXT_TYPE},
-                              {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE}};
+                              {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE},
+                              {"batch_id", SQL_INTEGER_TYPE}};
 
 const TableColumns LowPower = {
     {"timestamp", SQL_INTEGER_TYPE},  {"die_id", SQL_INTEGER_TYPE},     {"data0_hard", SQL_INTEGER_TYPE},

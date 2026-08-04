@@ -3,6 +3,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/data_inventory DEVI
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/hal DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/step_trace DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/step_trace DEVICE_PERSISTENCE_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/batch_id DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/metric DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/process DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db DEVICE_PERSISTENCE_SOURCE)

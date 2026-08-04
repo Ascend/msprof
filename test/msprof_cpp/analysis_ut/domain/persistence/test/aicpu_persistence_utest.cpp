@@ -376,6 +376,189 @@ TEST_F(AicpuPersistenceProcessDataUtest, ShouldHandleHcclOpInfoEnumGap)
 }
 
 
+class AicpuPersistenceComputeBatchIdUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        persistence_ = std::make_shared<AicpuPersistence>();
+    }
+
+    // 创建一个 timestamp=ts, streamId=s, taskId=0 的 AicpuData
+    AicpuData MakeTaskData(AicpuType type, uint64_t timestamp, uint16_t streamId, uint32_t taskId = 0)
+    {
+        AicpuData data;
+        data.timeStamp = timestamp;
+        data.type = type;
+        data.taskId.streamId = streamId;
+        data.taskId.taskId = taskId;
+        data.taskId.batchId = 0;
+        return data;
+    }
+
+    // 创建 flip 数据：timestamp + streamId + flipNum
+    AicpuData MakeFlipData(uint64_t timestamp, uint16_t streamId, uint32_t flipNum)
+    {
+        AicpuData data;
+        data.timeStamp = timestamp;
+        data.type = AicpuType::AICPU_FLIP_TASK;
+        data.taskId.streamId = streamId;
+        data.flipTask.flipNum = flipNum;
+        return data;
+    }
+
+protected:
+    std::shared_ptr<AicpuPersistence> persistence_;
+};
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldReturnImmediatelyWhenFlipDataIsEmpty)
+{
+    persistence_->mainStreamTaskData_ = {MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 100, 1)};
+    // flipTaskData_ 为空
+
+    persistence_->ComputeAicpuBatchId();
+
+    // batchId 应保持默认值 0
+    EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldReturnImmediatelyWhenTaskDataIsEmpty)
+{
+    persistence_->flipTaskData_ = {MakeFlipData(100, 1, 0)};
+    // mainStreamTaskData_ 和 kfcInfosData_ 为空
+
+    persistence_->ComputeAicpuBatchId();
+
+    EXPECT_EQ(persistence_->flipTaskData_[0].taskId.batchId, 0);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldNotComputeBatchIdWhenStreamHasNoFlip)
+{
+    // stream 1 有 tasks 但没有 flip
+    persistence_->mainStreamTaskData_ = {MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 200, 1)};
+    // flip 在 stream 2
+    persistence_->flipTaskData_ = {MakeFlipData(100, 2, 0)};
+
+    persistence_->ComputeAicpuBatchId();
+
+    // stream 1 没有对应的 flip，batchId 不计算
+    EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeCorrectBatchIdForMainStreamTasks)
+{
+    // stream 1: 3 个 task，2 个 flip → batchId 应被分为 2 组
+    // flip1@100: tasks before here → batch 0
+    // flip2@300: tasks between 100-300 → batch 1
+    // tasks after 300 → batch 2
+    persistence_->mainStreamTaskData_ = {
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 50, 1),   // before flip1
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 200, 1),  // between flip1-flip2
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 400, 1),  // after flip2
+    };
+    persistence_->flipTaskData_ = {
+        MakeFlipData(100, 1, 0),
+        MakeFlipData(300, 1, 0),
+    };
+
+    persistence_->ComputeAicpuBatchId();
+
+    EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);  // ts=50  < flip@100
+    EXPECT_EQ(persistence_->mainStreamTaskData_[1].taskId.batchId, 1);  // ts=200 between flips
+    EXPECT_EQ(persistence_->mainStreamTaskData_[2].taskId.batchId, 2);  // ts=400 > flip@300
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBatchIdIndependentlyPerStream)
+{
+    // stream 1: 1 flip@100, 2 tasks (50, 200)
+    // stream 2: 1 flip@500, 2 tasks (300, 600)
+    persistence_->mainStreamTaskData_ = {
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 50, 1),
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 200, 1),
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 300, 2),
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 600, 2),
+    };
+    persistence_->flipTaskData_ = {
+        MakeFlipData(100, 1, 0),
+        MakeFlipData(500, 2, 0),
+    };
+
+    persistence_->ComputeAicpuBatchId();
+
+    // stream 1: ts=50<100(batch0), ts=200>100(batch1)
+    EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
+    EXPECT_EQ(persistence_->mainStreamTaskData_[1].taskId.batchId, 1);
+    // stream 2: ts=300<500(batch0), ts=600>500(batch1)
+    EXPECT_EQ(persistence_->mainStreamTaskData_[2].taskId.batchId, 0);
+    EXPECT_EQ(persistence_->mainStreamTaskData_[3].taskId.batchId, 1);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBatchIdForKfcInfos)
+{
+    // stream 1: 1 flip@200, 2 kfc infos entries in 1 AicpuData
+    persistence_->flipTaskData_ = {MakeFlipData(200, 1, 0)};
+
+    AicpuData kfc = MakeTaskData(AicpuType::KFC_HCCL_INFO, 100, 1);
+    kfc.KfcInfos.infos[0].timeStamp = 100;
+    kfc.KfcInfos.infos[0].streamId = 1;
+    kfc.KfcInfos.infos[0].groupName = 1;
+    kfc.KfcInfos.infos[0].taskId = 10;
+    kfc.KfcInfos.infos[1].timeStamp = 300;
+    kfc.KfcInfos.infos[1].streamId = 1;
+    kfc.KfcInfos.infos[1].groupName = 1;
+    kfc.KfcInfos.infos[1].taskId = 20;
+    persistence_->kfcInfosData_ = {kfc};
+
+    persistence_->ComputeAicpuBatchId();
+
+    // 两条 info 共享 AicpuData.taskId.batchId，timestamp 大的(300)后写入
+    // info[0]@100 → flip@200 → batch 0，info[1]@300 → batch 1
+    // 最终 kfc.taskId.batchId = 1（后写入覆盖）
+    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldSkipKfcInfoWithZeroGroupName)
+{
+    persistence_->flipTaskData_ = {MakeFlipData(200, 1, 0)};
+
+    AicpuData kfc = MakeTaskData(AicpuType::KFC_HCCL_INFO, 100, 1);
+    kfc.KfcInfos.infos[0].timeStamp = 100;
+    kfc.KfcInfos.infos[0].streamId = 1;
+    kfc.KfcInfos.infos[0].groupName = 0;  // 无效，应跳过
+    kfc.KfcInfos.infos[1].timeStamp = 300;
+    kfc.KfcInfos.infos[1].streamId = 1;
+    kfc.KfcInfos.infos[1].groupName = 1;
+    persistence_->kfcInfosData_ = {kfc};
+
+    persistence_->ComputeAicpuBatchId();
+
+    // 只有 info[1] 参与计算，ts=300 > flip@200 → batch 1
+    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+}
+
+TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBothMainStreamAndKfcTogether)
+{
+    // 同 stream 1: 1 flip@200, 1 mainStream task@100, 1 kfc info@300
+    persistence_->flipTaskData_ = {MakeFlipData(200, 1, 0)};
+
+    persistence_->mainStreamTaskData_ = {
+        MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 100, 1),
+    };
+
+    AicpuData kfc = MakeTaskData(AicpuType::KFC_HCCL_INFO, 300, 1);
+    kfc.KfcInfos.infos[0].timeStamp = 300;
+    kfc.KfcInfos.infos[0].streamId = 1;
+    kfc.KfcInfos.infos[0].groupName = 1;
+    persistence_->kfcInfosData_ = {kfc};
+
+    persistence_->ComputeAicpuBatchId();
+
+    // mainStream@100 < flip@200 → batch 0
+    EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
+    // kfc@300 > flip@200 → batch 1
+    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+}
+
+
 }  // namespace
 }  // namespace Domain
 }  // namespace Analysis

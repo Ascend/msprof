@@ -18,43 +18,45 @@ import logging
 from typing import List
 
 from common_func.db_name_constant import DBNameConstant
-from common_func.ms_multi_process import MsMultiProcess
-from common_func.ms_constant.str_constant import StrConstant
-from common_func.info_conf_reader import InfoConfReader
 from common_func.hash_dict_constant import HashDictData
-from common_func.singleton import singleton
-from common_func.hccl_info_common import trans_enum_name
-from common_func.hccl_info_common import RoleType
-from common_func.hccl_info_common import OpType
-from common_func.hccl_info_common import DataType
-from common_func.hccl_info_common import LinkType
-from common_func.hccl_info_common import TransPortType
-from common_func.hccl_info_common import RdmaType
-from common_func.hccl_info_common import DeviceHcclSource
-from mscalculate.ascend_task.host_task_collector import HostTaskCollector
+from common_func.hccl_info_common import (
+    DataType,
+    DeviceHcclSource,
+    LinkType,
+    OpType,
+    RdmaType,
+    RoleType,
+    TransPortType,
+    trans_enum_name,
+)
+from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.str_constant import StrConstant
+from common_func.ms_multi_process import MsMultiProcess
 from common_func.platform.chip_manager import ChipManager
-from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
-from msmodel.step_trace.ts_track_model import TsTrackModel
-from msmodel.ai_cpu.data_preparation_model import DataPreparationModel
+from mscalculate.ascend_task.host_task_collector import HostTaskCollector
+from mscalculate.flip.flip_calculator import FlipCalculator
 from msmodel.add_info.kfc_info_model import KfcInfoModel
-from msparser.add_info.aicpu_add_info_bean import AicpuAddInfoBean
-from msparser.add_info.aicpu_add_info_bean import KfcHcclInfoBean
+from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
+from msmodel.ai_cpu.data_preparation_model import DataPreparationModel
+from msmodel.step_trace.ts_track_model import TsTrackModel
+from msparser.add_info.aicpu_add_info_bean import AicpuAddInfoBean, KfcHcclInfoBean
 from msparser.data_struct_size_constant import StructFmt
 from msparser.interface.data_parser import DataParser
+from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 from profiling_bean.prof_enum.data_tag import DataTag
-
 
 
 class AicpuAddInfoParser(DataParser, MsMultiProcess):
     """
     aicpu data parser
     """
+
     NONE_NODE_NAME = ''
     INVALID_CONTEXT_ID = 4294967295
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=E1003
         self._file_list = file_list
         self.project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self.hash_data = {}
@@ -98,7 +100,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 aicpu_info.data.memory_copy_time,
                 aicpu_info.data.ai_cpu_task_time,
                 aicpu_info.data.dispatch_time,
-                aicpu_info.data.total_time
+                aicpu_info.data.total_time,
             ]
             for aicpu_info in aicpu_info_list
         ]
@@ -129,8 +131,9 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
             ]
             for aicpu_info in aicpu_info_list
         ]
-        with TsTrackModel(self.project_path,
-                          DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_MODEL_WITH_Q]) as model:
+        with TsTrackModel(
+            self.project_path, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_MODEL_WITH_Q]
+        ) as model:
             model.create_table(DBNameConstant.TABLE_MODEL_WITH_Q)
             model.flush(DBNameConstant.TABLE_MODEL_WITH_Q, result)
 
@@ -207,6 +210,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 aicpu_info.data.aicpu_task_id,
                 self.unique_id_map.get(aicpu_info.data.task_id, aicpu_info.data.stream_id),
                 aicpu_info.data.task_id,
+                aicpu_info.data.batch_id,
                 aicpu_info.data.type,
             ]
             for aicpu_info in aicpu_info_list
@@ -261,6 +265,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 trans_enum_name(RdmaType, aicpu_info.rdma_type),
                 aicpu_info.stream_id,
                 aicpu_info.task_id,
+                aicpu_info.batch_id,
             ]
             for aicpu_info in aicpu_info_list
         ]
@@ -273,10 +278,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         """
         aicpu_files = self._file_list.get(DataTag.AICPU_ADD_INFO, [])
         aicpu_info = self.parse_bean_data(
-            aicpu_files,
-            StructFmt.AI_CPU_ADD_FMT_SIZE,
-            AicpuAddInfoBean,
-            check_func=self.check_magic_num
+            aicpu_files, StructFmt.AI_CPU_ADD_FMT_SIZE, AicpuAddInfoBean, check_func=self.check_magic_num
         )
         self.hash_data = HashDictData(self._project_path).get_ge_hash_dict()
         self.set_aicpu_data(aicpu_info)
@@ -305,13 +307,15 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         logging.info("start parsing aicpu data, files: %s", str(self._file_list.get(DataTag.AICPU_ADD_INFO)))
         self.parse()
         self._pre_process_host_info()
+        self._compute_batch_id()
         self.save()
 
     def set_aicpu_data(self: any, aicpu_data: list) -> None:
         for aicpu_info in aicpu_data:
             struct_type = int(aicpu_info.struct_type)
-            if struct_type == AicpuAddInfoBean.AICPU_NODE and \
-                    (aicpu_info.data.ai_cpu_task_start_time == 0 or aicpu_info.data.ai_cpu_task_end_time == 0):
+            if struct_type == AicpuAddInfoBean.AICPU_NODE and (
+                aicpu_info.data.ai_cpu_task_start_time == 0 or aicpu_info.data.ai_cpu_task_end_time == 0
+            ):
                 continue
             if struct_type == AicpuAddInfoBean.KFC_HCCL_INFO:
                 self._aicpu_data.get(struct_type).extend(self._pre_process_kfc_info(aicpu_info))
@@ -340,3 +344,30 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 self.unique_id_map[kfc_hccl_info.task_id] = kfc_hccl_info.stream_id
             result_list.append(kfc_hccl_info)
         return result_list
+
+    def _compute_batch_id(self: any) -> None:
+        """用aicpu flip task预计算kfc_info和mainStreamTask的batchId，避免后续再从DB读取计算"""
+        flip_task_list = self._aicpu_data.get(AicpuAddInfoBean.AICPU_FLIP_TASK, [])
+        if not flip_task_list:
+            return
+
+        # 将flip数据转为TaskFlip（FlipCalculator原生接受的类型）
+        flip_items = [
+            TaskFlip(
+                timestamp=flip.timestamp,
+                stream_id=flip.data.stream_id,
+                task_id=flip.data.task_id,
+                flip_num=flip.data.flip_num,
+            )
+            for flip in flip_task_list
+        ]
+
+        # KfcHcclInfoBean已有timestamp/stream_id/task_id/batch_id，可直接传入
+        kfc_info_list = self._aicpu_data.get(AicpuAddInfoBean.KFC_HCCL_INFO, [])
+        if kfc_info_list:
+            FlipCalculator.compute_batch_id(kfc_info_list, flip_items, is_flip_num=False)
+
+        # 对mainStreamTask也同样预计算batchId
+        master_stream_list = self._aicpu_data.get(AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK, [])
+        if master_stream_list:
+            FlipCalculator.compute_batch_id([item.data for item in master_stream_list], flip_items, is_flip_num=False)

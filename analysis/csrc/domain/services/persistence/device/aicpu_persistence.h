@@ -45,6 +45,8 @@ class AicpuPersistence : public Process
     uint32_t GenerateAndSaveMainStreamTask(const std::string& deviceFilePath);
     uint32_t GenerateAndSaveKfcInfos(const std::string& deviceFilePath);
 
+    void ComputeAicpuBatchId();
+
    private:
     std::vector<AicpuData> nodeData_;
     std::vector<AicpuData> dpData_;

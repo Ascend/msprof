@@ -15,10 +15,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-"""
-function:
-Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
-"""
 import os
 import struct
 import shutil
@@ -29,6 +25,7 @@ from common_func.info_conf_reader import InfoConfReader
 from msparser.add_info.aicpu_add_info_bean import AicpuAddInfoBean
 from msparser.add_info.aicpu_add_info_parser import AicpuAddInfoParser
 from msparser.data_struct_size_constant import StructFmt
+from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.prof_enum.data_tag import DataTag
 
@@ -224,6 +221,288 @@ class TestAicpuAddInfoParser(unittest.TestCase):
         self.assertEqual(1, len(data))
         self.assertEqual("0", data[0].data.data_type)  # data type
         InfoConfReader()._info_json = {}
+
+
+def _pack_aicpu_bean(struct_type, fmt, inner_fields, timestamp=0):
+    """构造 aicpu bean 二进制数据：
+       header: magic(23130) level(6000) struct_type thread_id(1) data_len(128) timestamp
+       inner_fields 填在 header 之后，不足的字段用 0 补齐"""
+    import re
+    # 计算 fmt 中的总字段数（单个字母 = 1 字段，N+字母 = N 字段）
+    total_fields = sum(int(m.group(1) or 1) for m in re.finditer(r'(\d*)([HIQBd])', fmt))
+    header = [23130, 6000, struct_type, 1, 128, timestamp]
+    full = header + list(inner_fields)
+    if len(full) < total_fields:
+        full += [0] * (total_fields - len(full))
+    return struct.pack(fmt, *full)
+
+
+def _make_flip_bean(timestamp, stream_id, task_id, flip_num):
+    """通过二进制构造 AICPU_FLIP_TASK (type=11) 真 bean"""
+    inner = [stream_id, task_id, flip_num]  # data[6]=streamId, data[7]=taskId, data[8]=flipNum
+    raw = _pack_aicpu_bean(11, StructFmt.AICPU_FLIP_TASK_FMT, inner, timestamp=timestamp)
+    return AicpuAddInfoBean.decode(raw)
+
+
+def _make_main_stream_bean(timestamp, aicpu_stream_id, aicpu_task_id, stream_id, task_id, task_type):
+    """通过二进制构造 AICPU_MASTER_STREAM_HCCL_TASK (type=12) 真 bean"""
+    inner = [aicpu_stream_id, aicpu_task_id, stream_id, task_id, task_type]
+    raw = _pack_aicpu_bean(12, StructFmt.AICPU_MASTER_STREAM_HCCL_TASK_FMT, inner, timestamp=timestamp)
+    return AicpuAddInfoBean.decode(raw)
+
+
+def _make_kfc_bean(timestamp, stream_id, task_id):
+    """通过二进制构造 KFC_HCCL_INFO (type=13) 真 bean，走 _pre_process_kfc_info 得到 KfcHcclInfoBean"""
+    inner = (
+        # first info (33 fields): 3Q4I2Qd3Q2I2H16B
+        # KfcHcclInfoBean: data[0]=item_id(3Q[0]), data[1]=ccl_tag(3Q[1]), data[2]=group_name(3Q[2]),
+        # data[3..6]=4I, data[7]=notify_id(2Q[0]), data[8]=timestamp(2Q[1])
+        0, 0, 1,      # 3Q: item_id=0, ccl_tag=0, group_name=1
+        0, 0, 0, 0,   # 4I: local_rank, remote_rank, rank_size, stage
+        0, timestamp, # 2Q: notify_id=0, timestamp
+        0.0,          # d: duration_estimated
+        0, 0, 0,      # 3Q: src_addr, dst_addr, data_size
+        task_id, 0,    # 2I: data[13]=task_id(用于set_task_id), data[14]=unused
+        stream_id, 0,  # 2H: data[15]=stream_id(用于set_stream_id), data[16]=plane_id
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # 16B
+        # second info (33 fields): group_name=0 会被 _pre_process_kfc_info 过滤
+        0, 0, 0,
+        0, 0, 0, 0,
+        0, 0,
+        0.0,
+        0, 0, 0,
+        0, 0,
+        0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    )
+    raw = _pack_aicpu_bean(13, StructFmt.KFC_HCCL_INFO_FMT, inner, timestamp=timestamp)
+    return AicpuAddInfoBean.decode(raw)
+
+
+class TestAicpuComputeBatchId(unittest.TestCase):
+    """测试 _compute_batch_id 逻辑"""
+
+    FILE_LIST = {DataTag.AICPU_ADD_INFO: []}
+    CONFIG = {'result_dir': '/tmp', 'device_id': '0'}
+
+    def setUp(self) -> None:
+        # get_freq 内部会 hwts_frequency * 1e6，设 1000 使 time_from_syscnt 近似恒等，
+        # 保证测试中 flip 和 task 的 timestamp 处于同一量级
+        InfoConfReader()._info_json = {
+            "DeviceInfo": [{'hwts_frequency': 1000}], "devices": "0"}
+
+    def _make_parser(self):
+        return AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+
+    def test_compute_batch_id_should_return_when_flip_data_empty(self):
+        parser = self._make_parser()
+        parser._aicpu_data = {
+            AicpuAddInfoBean.AICPU_FLIP_TASK: [],
+            AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK: [
+                _make_main_stream_bean(100, 0, 0, 1, 100, 0),
+            ],
+            AicpuAddInfoBean.KFC_HCCL_INFO: [],
+        }
+        parser._compute_batch_id()
+        ms = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(0, ms.data.batch_id)
+
+    def test_compute_batch_id_should_set_batch_id_on_kfc_info(self):
+        parser = self._make_parser()
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_FLIP_TASK] = [
+            _make_flip_bean(200, 1, 0, 0),
+        ]
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK] = []
+        kfc_bean = _make_kfc_bean(100, 1, 10)
+        parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO] = \
+            parser._pre_process_kfc_info(kfc_bean)
+        parser._compute_batch_id()
+        kfc = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
+        self.assertEqual(0, kfc.batch_id)
+
+    def test_compute_batch_id_should_set_batch_id_on_main_stream(self):
+        parser = self._make_parser()
+        parser._aicpu_data = {
+            AicpuAddInfoBean.AICPU_FLIP_TASK: [
+                _make_flip_bean(200, 1, 0, 0),
+            ],
+            AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK: [
+                _make_main_stream_bean(100, 0, 0, 1, 100, 0),
+            ],
+            AicpuAddInfoBean.KFC_HCCL_INFO: [],
+        }
+        parser._compute_batch_id()
+        ms = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(0, ms.data.batch_id)
+
+    def test_compute_batch_id_should_use_sequential_batch_id(self):
+        parser = self._make_parser()
+        parser._aicpu_data = {
+            AicpuAddInfoBean.AICPU_FLIP_TASK: [
+                _make_flip_bean(100, 1, 0, 0),
+                _make_flip_bean(300, 1, 0, 5),
+            ],
+            AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK: [
+                _make_main_stream_bean(50, 0, 0, 1, 10, 0),
+                _make_main_stream_bean(200, 0, 0, 1, 20, 0),
+                _make_main_stream_bean(400, 0, 0, 1, 30, 0),
+            ],
+            AicpuAddInfoBean.KFC_HCCL_INFO: [],
+        }
+        parser._compute_batch_id()
+        tasks = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK]
+        self.assertEqual(0, tasks[0].data.batch_id)
+        self.assertEqual(1, tasks[1].data.batch_id)
+        self.assertEqual(2, tasks[2].data.batch_id)
+
+    def test_compute_batch_id_should_skip_stream_without_flip(self):
+        parser = self._make_parser()
+        parser._aicpu_data = {
+            AicpuAddInfoBean.AICPU_FLIP_TASK: [
+                _make_flip_bean(100, 1, 0, 0),
+            ],
+            AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK: [
+                _make_main_stream_bean(50, 0, 0, 2, 10, 0),
+            ],
+            AicpuAddInfoBean.KFC_HCCL_INFO: [],
+        }
+        parser._compute_batch_id()
+        ms = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(0, ms.data.batch_id)
+
+    def test_compute_batch_id_should_work_with_both_kfc_and_main_stream(self):
+        parser = self._make_parser()
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_FLIP_TASK] = [
+            _make_flip_bean(200, 1, 0, 1),
+        ]
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK] = [
+            _make_main_stream_bean(100, 0, 0, 1, 10, 0),
+        ]
+        kfc_bean = _make_kfc_bean(300, 1, 20)
+        parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO] = \
+            parser._pre_process_kfc_info(kfc_bean)
+        parser._compute_batch_id()
+        ms = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(0, ms.data.batch_id)
+        kfc = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
+        self.assertEqual(1, kfc.batch_id)
+
+    def test_compute_batch_id_should_be_independent_per_stream(self):
+        parser = self._make_parser()
+        parser._aicpu_data = {
+            AicpuAddInfoBean.AICPU_FLIP_TASK: [
+                _make_flip_bean(100, 1, 0, 1),
+                _make_flip_bean(300, 2, 0, 5),
+            ],
+            AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK: [
+                _make_main_stream_bean(50, 0, 0, 1, 10, 0),
+                _make_main_stream_bean(150, 0, 0, 1, 11, 0),
+                _make_main_stream_bean(200, 0, 0, 2, 20, 0),
+                _make_main_stream_bean(500, 0, 0, 2, 21, 0),
+            ],
+            AicpuAddInfoBean.KFC_HCCL_INFO: [],
+        }
+        parser._compute_batch_id()
+        tasks = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK]
+        self.assertEqual(0, tasks[0].data.batch_id)
+        self.assertEqual(1, tasks[1].data.batch_id)
+        self.assertEqual(0, tasks[2].data.batch_id)
+        self.assertEqual(1, tasks[3].data.batch_id)
+
+
+class TestAicpuSetAicpuData(unittest.TestCase):
+    """测试 set_aicpu_data 中的零时间戳过滤，复用已有 struct 格式构造真 bean"""
+
+    FILE_LIST = {DataTag.AICPU_ADD_INFO: []}
+    CONFIG = {'result_dir': '/tmp', 'device_id': '0'}
+
+    def _make_node_bean(self, start_time, end_time):
+        """用 AICPU_NODE (type=0) 格式构造真 bean，start_time/end_time 填在 data[10]/data[15] 位置"""
+        inner = [0] * 36  # AI_CPU_NODE_ADD_FMT(42) - header(6) = 36
+        inner[4] = start_time   # data[10] = ai_cpu_task_start_time
+        inner[9] = end_time     # data[15] = ai_cpu_task_end_time
+        raw = _pack_aicpu_bean(0, StructFmt.AI_CPU_NODE_ADD_FMT, inner)
+        return AicpuAddInfoBean.decode(raw)
+
+    def test_set_aicpu_data_should_skip_node_with_zero_start_time(self):
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser.set_aicpu_data([self._make_node_bean(start_time=0, end_time=100)])
+        self.assertEqual(0, len(parser._aicpu_data[AicpuAddInfoBean.AICPU_NODE]))
+
+    def test_set_aicpu_data_should_skip_node_with_zero_end_time(self):
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser.set_aicpu_data([self._make_node_bean(start_time=100, end_time=0)])
+        self.assertEqual(0, len(parser._aicpu_data[AicpuAddInfoBean.AICPU_NODE]))
+
+    def test_set_aicpu_data_should_keep_node_with_nonzero_times(self):
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser.set_aicpu_data([self._make_node_bean(start_time=100, end_time=200)])
+        self.assertEqual(1, len(parser._aicpu_data[AicpuAddInfoBean.AICPU_NODE]))
+
+
+    def test_kfc_batch_id_should_be_set_after_compute(self):
+        """kfc_info 对象上 batch_id 应在 _compute_batch_id 后被正确设置"""
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_FLIP_TASK] = [
+            _make_flip_bean(200, 1, 0, 5),
+        ]
+        kfc_raw = _make_kfc_bean(300, 1, 20)
+        parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO] = \
+            parser._pre_process_kfc_info(kfc_raw)
+
+        # 检查 compute 前 batch_id 初始值
+        kfc_before = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
+        self.assertEqual(0, kfc_before.batch_id)
+
+        parser._compute_batch_id()
+
+        # 检查 compute 后 batch_id 应被刷新
+        kfc_after = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
+        self.assertEqual(1, kfc_after.batch_id,
+                         "kfc@300 >= flip@200(flip_num=5) → batch_id should be 5")
+
+    def test_main_stream_batch_id_should_be_set_after_compute(self):
+        """mainStream data 上 batch_id 应在 _compute_batch_id 后被正确设置"""
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_FLIP_TASK] = [
+            _make_flip_bean(200, 1, 0, 5),
+        ]
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK] = [
+            _make_main_stream_bean(300, 0, 0, 1, 10, 0),
+        ]
+
+        # 检查 compute 前 batch_id 初始值
+        ms_before = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(0, ms_before.data.batch_id)
+
+        parser._compute_batch_id()
+
+        # 检查 compute 后 batch_id 应被刷新
+        ms_after = parser._aicpu_data[AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK][0]
+        self.assertEqual(1, ms_after.data.batch_id,
+                         "mainStream@300 >= flip@200(flip_num=5) → batch_id should be 5")
+
+    def test_kfc_batch_id_should_be_zero_before_flip(self):
+        """kfc task timestamp 小于 flip timestamp 时 batch_id 应为 0"""
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser._aicpu_data[AicpuAddInfoBean.AICPU_FLIP_TASK] = [
+            _make_flip_bean(200, 1, 0, 5),
+        ]
+        kfc_raw = _make_kfc_bean(100, 1, 10)
+        parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO] = \
+            parser._pre_process_kfc_info(kfc_raw)
+
+        parser._compute_batch_id()
+
+        kfc = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
+        self.assertEqual(0, kfc.batch_id,
+                         "kfc@100 < flip@200 → batch_id should be 0")
 
 
 if __name__ == '__main__':

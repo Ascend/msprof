@@ -15,14 +15,14 @@
 # -------------------------------------------------------------------------
 import struct
 
-from common_func.utils import Utils
-from msparser.add_info.add_info_bean import AddInfoBean
-from msparser.data_struct_size_constant import StructFmt
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
-from profiling_bean.stars.stars_common import StarsCommon
+from common_func.utils import Utils
+from msparser.add_info.add_info_bean import AddInfoBean
 from msparser.compact_info.hccl_op_info_bean import HcclOpInfoBean
+from msparser.data_struct_size_constant import StructFmt
 from msmodel.sqe_type_map import SqeType
+from profiling_bean.stars.stars_common import StarsCommon
 
 
 class AicpuNodeBean:
@@ -132,8 +132,9 @@ class AicpuNodeBean:
         ai cpu total time
         :return: ai cpu total time
         """
-        return InfoConfReader().duration_from_syscnt(self._after_run_tick - self._submit_tick,
-                                                     time_fmt=NumberConstant.MILLI_SECOND)
+        return InfoConfReader().duration_from_syscnt(
+            self._after_run_tick - self._submit_tick, time_fmt=NumberConstant.MILLI_SECOND
+        )
 
 
 class AicpuDPBean:
@@ -241,6 +242,7 @@ class KfcHcclInfoBean:
         self._rdma_type = data[21]
         self._role = data[22]
         self._work_flow_mode = data[23]
+        self._batch_id = 0  # 由AicpuAddInfoParser预计算填充
 
     @property
     def item_id(self: any) -> str:
@@ -333,6 +335,14 @@ class KfcHcclInfoBean:
     @property
     def timestamp(self: any) -> int:
         return Utils.get_valid_int_data(self._timestamp)
+
+    @property
+    def batch_id(self: any) -> int:
+        return self._batch_id
+
+    @batch_id.setter
+    def batch_id(self: any, value: int) -> None:
+        self._batch_id = value
 
 
 class MergedKfcHcclInfoBean:
@@ -465,7 +475,6 @@ class KfcComputeTurnBean:
 
 
 class DeviceHcclOpInfoBean(HcclOpInfoBean):
-
     def __init__(self: any, *args) -> None:
         data = args[0]
         self._relay = (data[6] >> self.RELAY_FLAG_BIT) & 0x1
@@ -515,6 +524,8 @@ class AicpuMasterStreamHcclTaskBean:
         self._stream_id = StarsCommon.set_stream_id(data[8], data[9], SqeType.StarsSqeType.AI_CPU)
         self._task_id = StarsCommon.set_task_id(data[8], data[9], SqeType.StarsSqeType.AI_CPU)
         self._type = data[10]
+        self._batch_id = 0  # 由AicpuAddInfoParser预计算填充
+        self._timestamp = data[5]
 
     @property
     def aicpu_stream_id(self: any) -> int:
@@ -536,11 +547,24 @@ class AicpuMasterStreamHcclTaskBean:
     def type(self: any) -> int:
         return self._type
 
+    @property
+    def batch_id(self: any) -> int:
+        return self._batch_id
+
+    @batch_id.setter
+    def batch_id(self: any, value: int) -> None:
+        self._batch_id = value
+
+    @property
+    def timestamp(self: any) -> int:
+        return self._timestamp
+
 
 class AicpuAddInfoBean(AddInfoBean):
     """
     aicpu data info bean
     """
+
     AICPU_NODE = 0
     AICPU_DP = 1
     AICPU_MODEL = 2  # helper: MODEL_WITH_Q
