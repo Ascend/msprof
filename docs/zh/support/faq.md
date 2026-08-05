@@ -20,7 +20,7 @@
 
 - 可通过环境变量调整日志等级和输出路径：`export ASCEND_GLOBAL_LOG_LEVEL=0`（设置日志等级），`export ASCEND_PROCESS_LOG_PATH=/path/to/plog`（自定义输出路径）。
 - 当遇到数据采集失败、host目录为空等问题时，建议优先查看PLOG中的ERROR/WARNING日志以快速定位原因。
-- 参考文档：[昇腾环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0122.html)。
+- 参考文档：[昇腾环境变量参考](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/envvar/envref_07_0001.html)。
 
 - **Q：使用msprof采集算子数据，host目录为空没有数据？**
 - A：优先检查Plog报错，可能存在的情况如下：

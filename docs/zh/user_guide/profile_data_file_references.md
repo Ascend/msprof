@@ -429,7 +429,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。|
 |*_icache_miss_rate|icache是为instruction预留的L2 Cache，icache_miss_rate数值高代表AI Core读取指令的效率低。|
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
-|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization = total_cycles / (freq * core_num * task_duration)。|
+|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：`cube_utilization = total_cycles / (freq * core_num * task_duration)`。|
 
 > [!NOTE]
 >
@@ -580,7 +580,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |fixpipe_exe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。|
 |fixpipe_exe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
-|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：cube_utilization = total_cycles / (freq * core_num * task_duration)。|
+|cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：`cube_utilization = total_cycles / (freq * core_num * task_duration)`。|
 
 仅支持产品：Atlas 200I/500 A2 推理产品
 
@@ -1180,7 +1180,7 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 
 数据增强信息仅在训练场景下生成且仅生成summary数据dp\_\*.csv。
 
-在TensorFlow训练场景开启数据预处理下沉（即enable\_data\_pre\_proc开关配置为True）时可生成dp\_\*.csv文件。详情请参见《TensorFlow 1.15模型迁移指南》中的“[训练迭代循环下沉](https://www.hiascend.com/document/detail/zh/TensorFlowCommercial/900/migration/tfmigr1/tfmigr1_000048.html)”章节。
+在TensorFlow训练场景开启数据预处理下沉（即enable\_data\_pre\_proc开关配置为True）时可生成dp\_\*.csv文件。详情请参见《TensorFlow 1.15模型迁移指南》中的“[训练迭代循环下沉](https://gitcode.com/cann/tensorflow/blob/master/docs/zh/tfadapter_1/migration/performance_tuning/iteration_offload.md)”章节。
 
 **产品支持情况<a name="zh-cn_topic_0000001752181593_section91616487538"></a>**
 

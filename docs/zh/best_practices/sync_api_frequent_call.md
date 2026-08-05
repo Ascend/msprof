@@ -31,7 +31,7 @@
 
 2、除此以外，部分流同步业务可能是环境变量引入，例如
 
-[ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/environment_variable_reference/ASCEND_LAUNCH_BLOCKING.md)
+[ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/api/environment_variable/op_execution/ASCEND_LAUNCH_BLOCKING.md)
 就会对每个算子进行流同步，用以定位问题。
 
 # 六、定位方法总结
