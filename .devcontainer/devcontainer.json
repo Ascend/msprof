@@ -1,0 +1,57 @@
+{
+  "name": "msprof-devcontainer",
+  "image": "swr.cn-north-4.myhuaweicloud.com/mindstudio-image/mindstudio-build:26.1.0-0701",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "remoteUser": "mindstudio",
+  "updateRemoteUserUID": true,
+  "_privileged_comment": "privileged and seccomp=unconfined are required for Ascend NPU hardware access, only for internal dev environments",
+  "runArgs": [
+    "--network=host",
+    "--privileged",
+    "--ipc=host",
+    "--ulimit=nproc=65535:65535",
+    "--security-opt=seccomp=unconfined"
+  ],
+  "mounts": [
+    "source=/usr/local/sbin,target=/usr/local/sbin,type=bind,ro"
+  ],
+  "containerEnv": {
+    "GCC11_NO_RPATH": "1",
+    "NPM_CONFIG_PREFIX": "/home/mindstudio/.local"
+  },
+  "remoteEnv": {
+    "PATH": "/home/mindstudio/.local/bin:${containerEnv:PATH}"
+  },
+  "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "llvm-vs-code-extensions.vscode-clang-format",
+        "bierner.markdown-preview-github-styles"
+      ],
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "args": ["-l"]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "clangd.serverArgs": [
+          "--query-driver=*",
+          "--header-insertion=iwyu",
+          "--completion-style=detailed"
+        ],
+        "clangd.pathToCompdb": "build"
+      }
+    }
+  }
+}

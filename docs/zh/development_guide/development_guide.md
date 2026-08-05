@@ -1,4 +1,4 @@
-﻿# msProf 开发指南
+# msProf 开发指南
 
 本文面向 msProf 的开发和维护人员，介绍源码目录、构建方式、采集与解析链路、功能改动后的验证方法，以及资料联动更新要求。本文重点结合 msProf 当前仓库和现有文档内容编写，适用于新增命令参数、扩展解析能力、增加交付件或维护 run 包安装方式等场景。
 
@@ -43,7 +43,54 @@ msProf 提供 AI 任务运行性能数据和昇腾 AI 处理器系统数据的�
 
 ## 3. 开发环境配置
 
-按照《[msProf 安装指南 — 源码安装](../install_guide/msprof_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
+### 3.1 方式一：devcontainer 一键开发环境（推荐）
+
+msprof 已内置 [devcontainer](https://containers.dev/) 开发环境配置，开发者通过 VS Code 打开仓库后可一键进入标准化容器，无需手工安装任何依赖。容器自动完成以下准备：
+
+- Python 3 环境与编译工具链（GCC 11.2.0、CMake 3.14+）
+- 系统依赖安装（python3-devel、pip 包含 pytest/coverage）
+- 三方依赖预下载（googletest、mockcpp、boost、protobuf、json、rapidjson、securec）
+- pre-commit 自动启用（含 gitleaks 密钥扫描）
+- clangd C++ 语言服务就绪
+- Git 身份同步
+
+**前置条件：**
+
+| 环境 | 要求 |
+|------|------|
+| PC | VS Code，安装 Dev Containers 插件 和 Remote-SSH 插件 |
+| Linux 服务器 | Docker 服务运行中 |
+
+**使用步骤：**
+
+1. 将 msprof 仓库 clone 到 Linux 服务器
+2. VS Code 通过 Remote-SSH 连接服务器，打开仓库目录
+3. VS Code 自动检测到 `.devcontainer` 配置，点击左下角 **"Reopen in Container"**
+4. 容器启动后自动执行 `post-create.sh` 完成初始化（约 1-2 分钟）
+5. 按 `Ctrl+Shift+P` → `Tasks: Run Task` 选择构建任务
+
+**VS Code 内置任务：**
+
+| 任务 | 快捷键 | 说明 |
+|------|--------|------|
+| `Build: Release Mode` | `Ctrl+Shift+B` | 一键 Release 构建（等同 `bash build/build.sh`） |
+| `Build: Debug Mode` | — | Debug 编译（带调试符号） |
+| `Test: Run Unit Tests` | — | 运行 C++ 和 Python 单元测试 |
+| `Clean: All Workspace` | — | 清理所有构建产物（build/CMakeFiles、prefix/、output/、test/build_llt/ 等） |
+
+**代码智能跳转：**
+
+- C++：构建后通过 clangd 实现跨文件跳转（F12）、查找引用（Shift+F12）、代码补全
+- Python：Pylance 提供语义跳转和类型推导
+
+**图形化调试：**
+
+- 打开 Python 源文件，按 `F5` 选择 `Python: Debug Active File` 进入 debugpy 调试
+- 断点、变量查看、调用栈等功能均可正常使用
+
+### 3.2 方式二：手动环境配置
+
+如果不能使用 devcontainer，请按按照《[msProf 安装指南 — 源码安装](../install_guide/msprof_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
 
 > **说明：** 环境镜像的构建方法及配套软件版本由 MindStudio 统一镜像制作指南维护，本仓库不重复定义。
 

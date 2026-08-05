@@ -8,7 +8,7 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#           http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -95,20 +95,29 @@ class BuildManager:
 
         if 'test' in self.args.command:
             # -------------------- 单元测试 --------------------
-            # 在非 local 场景下按需更新依赖；在 local 场景下仅使用本地已有代码，不更新依赖。
             if 'local' not in self.args.command:
                 self._execute_command(["bash", "scripts/download_thirdparty.sh", "ut"])
+        else:
+            # -------------------- 产品构建 --------------------
+            if 'local' not in self.args.command:
+                self._execute_command(["bash", "scripts/download_thirdparty.sh"])
 
+        # only_down_deps 在依赖下载后、编译/测试前统一检查，test 和产品构建分支均生效
+        extra_options = {}
+        for opt in self.args.extra:
+            key, _, val = opt.partition('=')
+            extra_options[key] = val
+        if extra_options.get('only_down_deps') == 'true':
+            logging.info("only_down_deps=true, exiting after dependency download.")
+            return
+
+        if 'test' in self.args.command:
             self._execute_command(["bash", "scripts/execute_cpp_test_case.sh"])
             self._execute_command(["bash", "scripts/execute_py_test_case.sh"])
             # self._execute_command(["bash", "scripts/generate_coverage_py.sh"])
             # self._execute_command(["bash", "scripts/generate_coverage_cpp.sh"])
         else:
             # -------------------- 产品构建 --------------------
-            # 在非 local 场景下按需更新依赖；在 local 场景下仅使用本地已有代码，不更新依赖。
-            if 'local' not in self.args.command:
-                self._execute_command(["bash", "scripts/download_thirdparty.sh"])
-
             logging.info("--version: %s", self.args.version)
             for opt in self.args.extra:
                 key, _, val = opt.partition('=')

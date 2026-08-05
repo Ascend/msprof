@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Debug Active File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/build/analysis:${workspaceFolder}:${env:PYTHONPATH}",
+        "LD_LIBRARY_PATH": "${workspaceFolder}/build/analysis/lib64:${workspaceFolder}/prefix:${env:LD_LIBRARY_PATH}"
+      }
+    },
+    {
+      "name": "Python: Pytest Case Debugging",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/build/analysis:${workspaceFolder}:${env:PYTHONPATH}",
+        "LD_LIBRARY_PATH": "${workspaceFolder}/build/analysis/lib64:${workspaceFolder}/prefix:${env:LD_LIBRARY_PATH}"
+      }
+    }
+  ]
+}

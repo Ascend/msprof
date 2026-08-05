@@ -22,7 +22,7 @@ inc_coverage_result.html
 *.profdata
 
 # IDE and local tooling
-.vscode/
+.vscode/settings.json
 .vs/
 .idea/
 .codex
@@ -72,3 +72,15 @@ inc_coverage_result.html
 db_assembler/
 PROF/
 *.slice*
+
+# Build artifacts
+/artifacts/
+/dist/
+.venv/
+
+# Cache directories
+.cache/
+.ruff_cache/
+
+# Devcontainer generated
+.devcontainer/.host-gitconfig

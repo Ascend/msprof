@@ -43,7 +43,56 @@ Before starting development, identify the specific layer that your changes will 
 
 ## 3. Development Environment Settings
 
-### 3.1 Foundational Software
+### 3.1 Option 1: One-Click devcontainer Setup (Recommended)
+
+msprof includes a pre-configured [devcontainer](https://containers.dev/) environment. Open the repository in VS Code and enter a fully standardized container with a single click — no manual dependency installation required. The container automatically handles:
+
+- Python 3 environment and build toolchain (GCC 11.2.0, CMake 3.14+)
+- System dependencies (python3-devel, pip packages including pytest/coverage)
+- Third-party dependency pre-download (googletest, mockcpp, boost, protobuf, json, rapidjson, securec)
+- pre-commit auto-installation (including gitleaks secret scanning)
+- clangd C++ language server
+- Git identity sync
+
+**Prerequisites:**
+
+| Environment | Requirement |
+|------|------|
+| PC | VS Code with Dev Containers and Remote-SSH extensions installed |
+| Linux Server | Docker service running |
+
+**Steps:**
+
+1. Clone the msprof repository to a Linux server
+2. Connect VS Code to the server via Remote-SSH and open the repository folder
+3. VS Code will auto-detect the `.devcontainer` configuration; click **"Reopen in Container"** in the bottom-left corner
+4. The container starts and runs `post-create.sh` automatically (~1-2 minutes)
+5. Press `Ctrl+Shift+P` → `Tasks: Run Task` to select a build task
+
+**Built-in VS Code Tasks:**
+
+| Task | Shortcut | Description |
+|------|--------|------|
+| `Build: Release Mode` | `Ctrl+Shift+B` | One-click Release build (equivalent to `bash build/build.sh`) |
+| `Build: Debug Mode` | — | Debug build (with debug symbols) |
+| `Test: Run Unit Tests` | — | Run C++ and Python unit tests |
+| `Clean: All Workspace` | — | Clean all build artifacts (build/CMakeFiles, prefix, output, test/build_llt, etc.) |
+
+**Code Navigation:**
+
+- C++: Cross-file jump-to-definition (F12), find references (Shift+F12), and code completion via clangd after building
+- Python: Semantic navigation and type inference via Pylance
+
+**Graphical Debugging:**
+
+- Open a Python source file, press `F5`, select `Python: Debug Active File` to start debugpy debugging
+- Breakpoints, variable inspection, and call stacks work as expected
+
+### 3.2 Option 2: Manual Environment Setup
+
+If devcontainer is not available, follow the manual setup steps below.
+
+#### 3.2.1 Foundational Software
 
 | Software| Version Requirement| Purpose|
 | --- | --- | --- |
@@ -52,7 +101,7 @@ Before starting development, identify the specific layer that your changes will 
 | SQLite3 | Building dependency| Parsing-related capabilities|
 | Bash | Recommended for Linux environments| Build and script execution|
 
-### 3.2 Prerequisites
+#### 3.2.2 Prerequisites
 
 1. A compatible version of the CANN environment has been installed.
 2. The `cann` installation directory is available.

@@ -67,7 +67,17 @@ mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
 
 if [ "${isUT}" == "1" ]; then
     mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
-    [ ! -d "googletest" ] && git clone https://gitcode.com/GitHub_Trending/go/googletest.git googletest -b release-1.12.1
+    if [ ! -d "googletest" ]; then
+        git clone https://gitcode.com/GitHub_Trending/go/googletest.git googletest -b release-1.10.0
+    fi
+    # 对已存在的 googletest 目录同样移除 -Werror，保证 CI 缓存和存量环境兼容。
+    # 使用 \b 边界匹配移除所有 -Werror 出现（同时处理不同格式），并校验结果。
+    if [ -f "googletest/googletest/cmake/internal_utils.cmake" ]; then
+        sed -i 's/-Werror\b//g' googletest/googletest/cmake/internal_utils.cmake
+        if grep -q -- '-Werror\b' googletest/googletest/cmake/internal_utils.cmake 2>/dev/null; then
+            echo "[WARN] -Werror removal from googletest may be incomplete"
+        fi
+    fi
     [ ! -d "mockcpp" ] && git clone https://gitcode.com/Ascend/mockcpp.git mockcpp -b ascend_mindstudio_mockcpp_master
     download_boost
 fi

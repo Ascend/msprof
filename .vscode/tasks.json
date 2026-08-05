@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build: Release Mode",
+      "type": "shell",
+      "command": "python3 build.py local",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: Debug Mode",
+      "type": "shell",
+      "command": "python3 build.py -e only_down_deps=true && cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && make -C build -j$(nproc)",
+      "group": {
+        "kind": "build"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: Run Unit Tests",
+      "type": "shell",
+      "command": "python3 build.py test local",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean: All Workspace",
+      "type": "shell",
+      "command": "find build -depth -type d -name CMakeFiles -exec rm -rf {} + ; find build -depth -type d -name Testing -exec rm -rf {} + ; find build -depth -type d -name CTestTestfile.cmake -exec rm -rf {} + ; find build -depth -type f -name cmake_install.cmake -delete ; find build -depth -type d -name analysis-prefix -exec rm -rf {} + ; rm -rf prefix output artifacts test/build_llt test/output test/opensource opensource platform",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

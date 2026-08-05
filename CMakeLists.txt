@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14.1)
 project(msprof)
 
 set(CMAKE_SKIP_RPATH TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(TOP_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(CMAKE_MODULE_PATH

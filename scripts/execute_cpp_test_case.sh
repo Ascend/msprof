@@ -40,8 +40,26 @@ if [[ -n "$1" && "$1" == "analysis" ]]; then
 elif [[ -n "$1" && "$1" == "all" ]]; then
     cmake ../ -DPACKAGE=ut -DMODE=all
 else
-    change_file_to_unix_format # change file from dos to unix format, so that gcov exclude comment can be added
-    add_gcov_excl_line # add gcov exclude comment for macro definition code lines to raise branch coverage
+    # gcov 覆盖率统计需要给日志宏加 LCOV_EXCL_LINE 注释，且需要 Unix 换行。
+    # 为避免污染源文件，先备份 analysis/csrc，修改后编译测试，最后恢复。
+    BACKUP_DIR=$(mktemp -d)
+    cp -a ${TOP_DIR}/analysis/csrc ${BACKUP_DIR}/csrc_bak || { echo "[execute_cpp_test_case] WARN: failed to backup csrc, aborting"; exit 1; }
+
+    # trap 必须在 csrc 被修改之前注册，包含 EXIT/INT/TERM 信号
+    cleanup_and_restore() {
+        echo "[execute_cpp_test_case] Restoring analysis/csrc from backup..."
+        rm -rf ${TOP_DIR}/analysis/csrc
+        if cp -a ${BACKUP_DIR}/csrc_bak ${TOP_DIR}/analysis/csrc; then
+            rm -rf ${BACKUP_DIR}
+        else
+            echo "[execute_cpp_test_case] ERROR: restore failed, backup kept at ${BACKUP_DIR}"
+        fi
+    }
+    trap cleanup_and_restore EXIT INT TERM
+
+    change_file_to_unix_format
+    add_gcov_excl_line
+
     cmake ../ -DPACKAGE=ut -DMODE=all
 fi
 make -j$(nproc)
