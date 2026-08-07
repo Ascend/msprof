@@ -188,7 +188,7 @@ class MetaDataEvent : public TraceEvent
 class MetaDataNameEvent : public MetaDataEvent
 {
    public:
-    MetaDataNameEvent(uint32_t pid, int tid, const std::string &name, const std::string &argName);
+    MetaDataNameEvent(uint32_t pid, uint32_t tid, const std::string &name, const std::string &argName);
 
    private:
     void ProcessArgs(JsonWriter &ostream) override;
@@ -201,7 +201,7 @@ class MetaDataNameEvent : public MetaDataEvent
 class MetaDataLabelEvent : public MetaDataEvent
 {
    public:
-    MetaDataLabelEvent(uint32_t pid, int tid, const std::string &name, const std::string &label);
+    MetaDataLabelEvent(uint32_t pid, uint32_t tid, const std::string &name, const std::string &label);
 
    private:
     void ProcessArgs(JsonWriter &ostream) override;
@@ -214,7 +214,7 @@ class MetaDataLabelEvent : public MetaDataEvent
 class MetaDataIndexEvent : public MetaDataEvent
 {
    public:
-    MetaDataIndexEvent(uint32_t pid, int tid, const std::string &name, int index);
+    MetaDataIndexEvent(uint32_t pid, uint32_t tid, const std::string &name, uint32_t index);
 
    private:
     void ProcessArgs(JsonWriter &ostream) override;

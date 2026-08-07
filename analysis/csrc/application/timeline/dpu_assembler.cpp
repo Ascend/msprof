@@ -67,7 +67,7 @@ void DPUHcclTraceEvent::ProcessArgs(JsonWriter &ostream)
 
 void DPUAssembler::GenerateMetaData(const std::vector<DPUData> &dpuData, uint32_t pid)
 {
-    std::map<uint16_t, std::set<uint16_t>> deviceStreamMap;
+    std::map<uint16_t, std::set<uint32_t>> deviceStreamMap;
     for (const auto &data : dpuData)
     {
         deviceStreamMap[data.dpuDeviceId].insert(data.streamId);
@@ -98,13 +98,13 @@ void DPUAssembler::GenerateMetaData(const std::vector<DPUData> &dpuData, uint32_
         {
             std::string streamName = "Stream " + std::to_string(streamId);
             std::shared_ptr<MetaDataNameEvent> threadName;
-            MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, formatPid, static_cast<int>(streamId),
-                                    META_DATA_THREAD_NAME, streamName);
+            MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, formatPid, streamId, META_DATA_THREAD_NAME,
+                                    streamName);
             res_.push_back(threadName);
 
             std::shared_ptr<MetaDataIndexEvent> threadIndex;
-            MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, formatPid, static_cast<int>(streamId),
-                                    META_DATA_THREAD_INDEX, streamId);
+            MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, formatPid, streamId, META_DATA_THREAD_INDEX,
+                                    streamId);
             res_.push_back(threadIndex);
         }
     }
@@ -118,7 +118,7 @@ void DPUAssembler::GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_
         auto formatPid = JsonAssembler::GetFormatPid(pid, layer.sortIndex, data.dpuDeviceId);
         double dur = static_cast<double>(data.endTime - data.timestamp) / Analysis::Common::NS_TO_US;
         std::string ts = DivideByPowersOfTenWithPrecision(data.timestamp);
-        int tid = static_cast<int>(data.streamId);
+        auto tid = data.streamId;
 
         if (!data.isHccl)
         {

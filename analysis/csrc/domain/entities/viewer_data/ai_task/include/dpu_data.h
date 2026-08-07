@@ -33,7 +33,7 @@ struct DPUData : public BasicData
     uint16_t localRank = UINT16_MAX;
     uint16_t remoteRank = UINT16_MAX;
     uint16_t planeId = UINT16_MAX;
-    uint16_t streamId = UINT16_MAX;
+    uint32_t streamId = UINT32_MAX;
     uint32_t aicpuTaskId = UINT32_MAX;
     uint32_t taskId = UINT32_MAX;
     uint32_t threadId = UINT32_MAX;

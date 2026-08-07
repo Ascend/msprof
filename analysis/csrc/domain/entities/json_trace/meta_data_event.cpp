@@ -15,10 +15,13 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/entities/json_trace/include/meta_data_event.h"
+
 #include <unordered_map>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 MetaDataEvent::MetaDataEvent(uint32_t pid, int tid, const std::string &name) : TraceEvent(pid, tid, name) {}
 
@@ -33,33 +36,27 @@ void MetaDataEvent::ToJson(JsonWriter &ostream)
     ostream.EndObject();
 }
 
-MetaDataNameEvent::MetaDataNameEvent(uint32_t pid, int tid, const std::string &name, const std::string &argName)
-    : MetaDataEvent(pid, tid, name), argsName_(argName) {}
-
-void MetaDataNameEvent::ProcessArgs(JsonWriter &ostream)
+MetaDataNameEvent::MetaDataNameEvent(uint32_t pid, uint32_t tid, const std::string &name, const std::string &argName)
+    : MetaDataEvent(pid, tid, name), argsName_(argName)
 {
-    ostream["name"] << argsName_;
 }
 
-MetaDataLabelEvent::MetaDataLabelEvent(uint32_t pid, int tid, const std::string &name, const std::string &label)
-    : MetaDataEvent(pid, tid, name), argsLabel_(label) {}
+void MetaDataNameEvent::ProcessArgs(JsonWriter &ostream) { ostream["name"] << argsName_; }
 
-void MetaDataLabelEvent::ProcessArgs(JsonWriter &ostream)
+MetaDataLabelEvent::MetaDataLabelEvent(uint32_t pid, uint32_t tid, const std::string &name, const std::string &label)
+    : MetaDataEvent(pid, tid, name), argsLabel_(label)
 {
-    ostream["labels"] << argsLabel_;
 }
 
-MetaDataIndexEvent::MetaDataIndexEvent(uint32_t pid, int tid, const std::string &name, int index)
-    : MetaDataEvent(pid, tid, name), argsSortIndex_(index) {}
+void MetaDataLabelEvent::ProcessArgs(JsonWriter &ostream) { ostream["labels"] << argsLabel_; }
 
-void MetaDataIndexEvent::ProcessArgs(JsonWriter &ostream)
+MetaDataIndexEvent::MetaDataIndexEvent(uint32_t pid, uint32_t tid, const std::string &name, uint32_t index)
+    : MetaDataEvent(pid, tid, name), argsSortIndex_(index)
 {
-    ostream["sort_index"] << argsSortIndex_;
 }
 
-LayerInfo GetLayerInfo(std::string processName)
-{
-    return LAYER_INFO.at(processName);
-}
-}
-}
+void MetaDataIndexEvent::ProcessArgs(JsonWriter &ostream) { ostream["sort_index"] << argsSortIndex_; }
+
+LayerInfo GetLayerInfo(std::string processName) { return LAYER_INFO.at(processName); }
+}  // namespace Domain
+}  // namespace Analysis

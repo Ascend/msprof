@@ -55,7 +55,7 @@ struct HcclGroup
 class HcclOpTraceEvent : public DurationEvent
 {
    public:
-    HcclOpTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name,
+    HcclOpTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                      uint32_t modelId, uint32_t count, uint64_t connectionId, const std::string &dataType,
                      const std::string &algType, const std::string &relay, const std::string &retry, uint32_t rankSize)
         : DurationEvent(pid, tid, dur, ts, name),
@@ -87,10 +87,11 @@ class HcclOpTraceEvent : public DurationEvent
 class HcclTaskTraceEvent : public DurationEvent
 {
    public:
-    HcclTaskTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name, uint32_t src,
-                       uint32_t dst, uint32_t streamId, uint32_t taskId, uint32_t contextId, uint32_t modelId,
-                       uint64_t size, double esDur, double bw, const std::string notifyId, const std::string &tsType,
-                       const std::string &taskType, const std::string &dataType, const std::string &linkType)
+    HcclTaskTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
+                       uint32_t src, uint32_t dst, uint32_t streamId, uint32_t taskId, uint32_t contextId,
+                       uint32_t modelId, uint64_t size, double esDur, double bw, const std::string notifyId,
+                       const std::string &tsType, const std::string &taskType, const std::string &dataType,
+                       const std::string &linkType)
         : DurationEvent(pid, tid, dur, ts, name),
           srcRank_(src),
           dstRank_(dst),

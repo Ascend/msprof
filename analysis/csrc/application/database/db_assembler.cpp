@@ -869,7 +869,7 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
     // start, end, deviceId, connectionId, globalTaskId, globalPid, taskType, contextId, streamId, taskId,
     // modelId
     using ascendTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, int64_t, uint64_t, uint32_t,
-                                                        uint32_t, uint32_t, int32_t, uint32_t, uint32_t>>;
+                                                        uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
     auto ascendTaskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
     auto deviceTxData = dataInventory.GetPtr<std::vector<MsprofTxDeviceData>>();
     if (ascendTaskData == nullptr && deviceTxData == nullptr)
@@ -1290,7 +1290,7 @@ bool SaveDPUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
     }
 
     using DPUTaskFormat = std::vector<
-        std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
+        std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
 
     DPUTaskFormat res;
     if (!Reserve(res, dpuData->size()))

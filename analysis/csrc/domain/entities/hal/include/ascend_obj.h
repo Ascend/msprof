@@ -145,7 +145,7 @@ struct Operator
 struct HostTask
 {
     uint32_t taskId = 0;  // 和采集侧的数据类型不一致，采集侧的高低16位会被分别用作batchId和TaskId
-    uint16_t batchId = 0;
+    uint32_t batchId = 0;
     uint16_t deviceId = 0;
     int32_t requestId = 0;
     uint32_t thread_id = 0;
@@ -177,7 +177,7 @@ struct RuntimeOpInfo
 {
     bool isValid = false;
     uint16_t deviceId = 0;
-    uint16_t taskId = 0;
+    uint32_t taskId = 0;
     uint16_t blockNum = 0;
     uint16_t mixBlockNum = 0;
     uint16_t opFlag = 0;
@@ -197,7 +197,7 @@ struct RuntimeOpInfo
     std::string outputShapes{"N/A"};
 
     RuntimeOpInfo() = default;
-    RuntimeOpInfo(uint16_t deviceId, uint16_t taskId, uint16_t blockNum, uint16_t mixBlockNum, uint16_t opFlag,
+    RuntimeOpInfo(uint16_t deviceId, uint32_t taskId, uint16_t blockNum, uint16_t mixBlockNum, uint16_t opFlag,
                   uint16_t tensorNum, uint32_t streamId, uint64_t modelId, std::string taskType, std::string opType,
                   std::string opName, std::string hashId, std::string isDynamic, std::string inputFormats,
                   std::string inputDataTypes, std::string inputShapes, std::string outputFormats,
@@ -232,14 +232,14 @@ struct CaptureStreamInfo
     uint64_t modelId = UINT32_MAX;
     uint64_t timeStamp = 0;
     uint32_t streamId = 0;
-    uint16_t originalStreamId = 0;
+    uint32_t originalStreamId = 0;
     uint16_t deviceId = 0;
-    uint16_t batchId = 0;
+    uint32_t batchId = 0;
     uint16_t captureStatus = 0;
 
     CaptureStreamInfo() = default;
-    CaptureStreamInfo(uint64_t modelId, uint64_t timeStamp, uint32_t streamId, uint16_t originalStreamId,
-                      uint16_t deviceId, uint16_t batchId, uint16_t captureStatus)
+    CaptureStreamInfo(uint64_t modelId, uint64_t timeStamp, uint32_t streamId, uint32_t originalStreamId,
+                      uint16_t deviceId, uint32_t batchId, uint16_t captureStatus)
         : modelId(modelId),
           timeStamp(timeStamp),
           streamId(streamId),

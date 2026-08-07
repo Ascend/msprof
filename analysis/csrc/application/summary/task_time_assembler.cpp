@@ -89,8 +89,8 @@ void TaskTimeAssembler::FormatTaskInfoData(const std::vector<TaskInfoData>& task
     }
     for (const auto& taskInfoDatum : taskInfoData)
     {
-        TaskId taskId{static_cast<uint16_t>(taskInfoDatum.streamId), static_cast<uint16_t>(taskInfoDatum.batchId),
-                      taskInfoDatum.taskId, taskInfoDatum.contextId, taskInfoDatum.deviceId};
+        TaskId taskId{taskInfoDatum.streamId, taskInfoDatum.batchId, taskInfoDatum.taskId, taskInfoDatum.contextId,
+                      taskInfoDatum.deviceId};
         formatedTaskInfo_.insert({taskId, {taskInfoDatum.opName, taskInfoDatum.taskType}});
     }
 }
@@ -104,8 +104,8 @@ void TaskTimeAssembler::FormatHostTaskData(const std::vector<HostTask>& hostTask
     }
     for (const auto& taskInfoDatum : hostTaskData)
     {
-        TaskId taskId{static_cast<uint16_t>(taskInfoDatum.streamId), taskInfoDatum.batchId, taskInfoDatum.taskId,
-                      taskInfoDatum.contextId, taskInfoDatum.deviceId};
+        TaskId taskId{taskInfoDatum.streamId, taskInfoDatum.batchId, taskInfoDatum.taskId, taskInfoDatum.contextId,
+                      taskInfoDatum.deviceId};
         opNameMap.insert({taskId, taskInfoDatum.kernelNameStr});
     }
 }
@@ -196,8 +196,8 @@ void TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& asce
     const std::string DIVIDE_CHAR = "\t";
     for (auto& ascendTaskDatum : FilterAscendTaskData(ascendTaskData))
     {
-        TaskId taskId{static_cast<uint16_t>(ascendTaskDatum.streamId), static_cast<uint16_t>(ascendTaskDatum.batchId),
-                      ascendTaskDatum.taskId, ascendTaskDatum.contextId, ascendTaskDatum.deviceId};
+        TaskId taskId{ascendTaskDatum.streamId, ascendTaskDatum.batchId, ascendTaskDatum.taskId,
+                      ascendTaskDatum.contextId, ascendTaskDatum.deviceId};
         auto taskInfoIt = formatedTaskInfo_.find(taskId);
         const std::string opName = [&]() -> std::string
         {

@@ -39,9 +39,9 @@ using HcclOpDataFormat =
 // size, dataType, linkType, bandwidth, contextId, notifyId, batchId, rdmaType, rank_szie
 using HcclTaskDataFormat =
     std::vector<std::tuple<uint64_t, int32_t, std::string, uint16_t, std::string, std::string, uint64_t, int32_t,
-                           double, double, std::string, std::string, std::string, int64_t, uint16_t, uint32_t, uint16_t,
+                           double, double, std::string, std::string, std::string, int64_t, uint16_t, uint32_t, uint32_t,
                            double, uint32_t, uint32_t, std::string, double, std::string, std::string, double, uint32_t,
-                           std::string, uint16_t, std::string, int32_t>>;
+                           std::string, uint32_t, std::string, int32_t>>;
 
 // opType, count, totalTime, min, avg, max, ratio
 using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double, double>>;

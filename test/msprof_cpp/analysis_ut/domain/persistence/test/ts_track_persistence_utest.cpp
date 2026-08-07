@@ -33,13 +33,13 @@ using namespace Analysis::Utils;
 
 namespace {
 // timestamp stream_id task_id task_type task_state
-using TaskTypeDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint64_t, uint16_t>;
+using TaskTypeDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t, uint16_t>;
 // index_id model_id timestamp stream_id task_id tag_id
-using StepTraceDataFormat = std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint16_t, uint16_t>;
+using StepTraceDataFormat = std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint32_t, uint16_t>;
 // timestamp stream_id task_id task_state
-using TaskMemcpyDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint64_t>;
+using TaskMemcpyDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t>;
 // timestamp stream_id task_id block_num
-using BlockNumDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint32_t>;
+using BlockNumDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint32_t>;
 const std::vector<TaskTypeDataFormat> TASK_TYPE_DATA{};
 const std::vector<StepTraceDataFormat> STEP_TRACE_DATA{};
 const std::vector<TaskMemcpyDataFormat> TS_MEMCPY_DATA{};

@@ -76,7 +76,7 @@ const std::set<std::string> KERNEL_COMPUTE_WHITE_LIST = {
     KERNEL_MIX_AIC_TASK_TYPE, KERNEL_MIX_AIV_TASK_TYPE};
 
 uint64_t GetModelId(const std::shared_ptr<MsprofCompactInfo> &track, const std::shared_ptr<MsprofApi> &api,
-                    uint16_t deviceId, uint32_t streamId, uint16_t batchId, uint64_t timestamp)
+                    uint16_t deviceId, uint32_t streamId, uint32_t batchId, uint64_t timestamp)
 {
     if (track->level == MSPROF_REPORT_RUNTIME_LEVEL)
     {

@@ -40,7 +40,7 @@ struct CCUMissionInfo
     uint64_t endTime = 0;
     uint32_t taskId = UINT32_MAX;
     uint32_t relId = UINT32_MAX;
-    uint16_t streamId = UINT16_MAX;
+    uint32_t streamId = UINT32_MAX;
     uint16_t lpInstrId = UINT16_MAX;
     uint16_t setCkeBitInstrId = UINT16_MAX;
     std::string timeType;
@@ -50,7 +50,7 @@ struct CCUWaitSignalInfo
 {
     uint32_t taskId = UINT32_MAX;
     uint32_t mask = UINT32_MAX;
-    uint16_t streamId = UINT16_MAX;
+    uint32_t streamId = UINT32_MAX;
     uint16_t instrId = UINT16_MAX;
     uint16_t channelId = UINT16_MAX;
     uint16_t dieId = UINT16_MAX;
@@ -60,7 +60,7 @@ struct CCUGroupInfo
 {
     uint64_t dataSize = UINT64_MAX;
     uint32_t taskId = UINT32_MAX;
-    uint16_t streamId = UINT16_MAX;
+    uint32_t streamId = UINT32_MAX;
     uint16_t instrId = UINT16_MAX;
     uint16_t dieId = UINT16_MAX;
     std::string reduceOpType;

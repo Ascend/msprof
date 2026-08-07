@@ -35,7 +35,7 @@ namespace
 const std::set<std::string> FILTER_TYPE = {"KERNEL_AICORE",  "KERNEL_AIVEC",     "FFTS_PLUS",        "KERNEL_MIX_AIC",
                                            "KERNEL_MIX_AIV", "PROFILING_ENABLE", "PROFILING_DISABLE"};
 
-void SepOneTask(std::vector<TimeDuration> &times, std::set<uint16_t> &mc2StreamsTable, TaskInfoData &task,
+void SepOneTask(std::vector<TimeDuration> &times, std::set<uint32_t> &mc2StreamsTable, TaskInfoData &task,
                 std::unordered_map<uint16_t, std::vector<TimeDuration>> &compSections)
 {
     if (mc2StreamsTable.find(task.streamId) != mc2StreamsTable.end() || EndsWith(task.opName, AICPU_KERNEL) ||
@@ -104,8 +104,7 @@ void OverlapAnalysisProcessor::RecordCompAndCommTaskTime(
     {
         for (auto &task : *ascendTasks)
         {
-            TaskId id{static_cast<uint16_t>(task.streamId), static_cast<uint16_t>(task.batchId), task.taskId,
-                      task.contextId, task.deviceId};
+            TaskId id{task.streamId, task.batchId, task.taskId, task.contextId, task.deviceId};
             TimeDuration timePair{task.timestamp, task.timestamp + static_cast<uint64_t>(task.duration)};
             if (allTaskPool.find(id) != allTaskPool.end())
             {
@@ -151,7 +150,7 @@ void OverlapAnalysisProcessor::SepCompTaskAndKFCCommSections(
     {
         return;
     }
-    std::set<uint16_t> mc2StreamsTable;
+    std::set<uint32_t> mc2StreamsTable;
     if (mc2CommInfos)
     {
         for (auto &mc2CommInfo : *mc2CommInfos)
@@ -163,8 +162,7 @@ void OverlapAnalysisProcessor::SepCompTaskAndKFCCommSections(
     std::set<TaskId> usedTaskIds;
     for (auto &task : *compTasks)
     {
-        TaskId id{static_cast<uint16_t>(task.streamId), static_cast<uint16_t>(task.batchId), task.taskId,
-                  task.contextId, task.deviceId};
+        TaskId id{task.streamId, task.batchId, task.taskId, task.contextId, task.deviceId};
         if (usedTaskIds.find(id) != usedTaskIds.end())
         {
             continue;

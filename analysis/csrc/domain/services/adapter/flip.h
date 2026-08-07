@@ -33,7 +33,7 @@ struct FlipTask
 {
     uint16_t deviceId;
     uint32_t streamId;
-    uint16_t taskId;
+    uint32_t taskId;
     uint32_t flipNum;
     uint64_t timeStamp;
 };

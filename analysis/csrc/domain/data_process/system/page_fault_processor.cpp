@@ -158,7 +158,7 @@ bool PageFaultProcessor::LoadTaskOpMap(std::map<TaskId, std::string>& taskOpMap)
         uint32_t taskId;
         uint16_t deviceId;
         std::tie(opName, streamId, taskId, deviceId) = row;
-        TaskId key(static_cast<uint16_t>(streamId), INVALID_BATCH_ID, taskId, INVALID_CONTEXT_ID, deviceId);
+        TaskId key(streamId, INVALID_BATCH_ID, taskId, INVALID_CONTEXT_ID, deviceId);
         taskOpMap.insert({key, opName});
     }
     return true;
@@ -180,7 +180,7 @@ std::vector<PageFaultData> PageFaultProcessor::FormatData(const OriPageFaultData
         std::tie(data.taskType, data.streamId, data.taskId, eventLists) = row;
         data.deviceId = deviceId;
         data.pageFaultNum = ParsePageFaultNum(eventLists);
-        TaskId key(static_cast<uint16_t>(data.streamId), INVALID_BATCH_ID, data.taskId, INVALID_CONTEXT_ID, deviceId);
+        TaskId key(data.streamId, INVALID_BATCH_ID, data.taskId, INVALID_CONTEXT_ID, deviceId);
         auto it = taskOpMap.find(key);
         data.opName = it == taskOpMap.end() ? NA : it->second;
         processedData.emplace_back(data);

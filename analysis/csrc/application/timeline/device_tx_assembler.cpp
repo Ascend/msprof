@@ -53,7 +53,7 @@ void DeviceTxAssembler::GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceDa
             traceName = it->second;
         }
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
-        int tid = static_cast<int>(data.streamId);
+        auto tid = data.streamId;
         // 存储pid，tid组合的最小集
         dPidTidSet_.insert({formatPid, tid});
         std::shared_ptr<DeviceTxTraceEvent> event;
@@ -70,7 +70,7 @@ void DeviceTxAssembler::GenerateTxConnectionTrace(const MsprofTxDeviceData &data
     auto connId = ConnectionIdPool::GetConnectionId(data.connectionId, ConnectionCategory::MSPROF_TX);
     auto name = MS_TX;
     name.append("_").append(connId);
-    int tid = static_cast<int>(data.streamId);
+    auto tid = data.streamId;
     std::shared_ptr<FlowEvent> end;
     MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp), MS_TX,
                             connId, name, FLOW_END, FLOW_BP);

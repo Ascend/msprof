@@ -13,21 +13,25 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
-#include <vector>
-#include <unordered_map>
 #include "analysis/csrc/application/timeline/block_detail_assembler.h"
 
-namespace Analysis {
-namespace Application {
+#include <unordered_map>
+#include <vector>
+
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Utils;
-namespace {
-    const std::string AIC_EARLIEST = "AIC Earliest";
-    const std::string AIC_LATEST = "AIC Latest";
-    const std::string AIV_EARLIEST = "AIV Earliest";
-    const std::string AIV_LATEST = "AIV Latest";
-    const std::vector<std::string> THREAD_ARGS_NAMES = {AIC_EARLIEST, AIC_LATEST, AIV_EARLIEST, AIV_LATEST};
-    const size_t THREAD_ARGS_NAMES_SIZE = 4;
-}
+namespace
+{
+const std::string AIC_EARLIEST = "AIC Earliest";
+const std::string AIC_LATEST = "AIC Latest";
+const std::string AIV_EARLIEST = "AIV Earliest";
+const std::string AIV_LATEST = "AIV Latest";
+const std::vector<std::string> THREAD_ARGS_NAMES = {AIC_EARLIEST, AIC_LATEST, AIV_EARLIEST, AIV_LATEST};
+const size_t THREAD_ARGS_NAMES_SIZE = 4;
+}  // namespace
 
 void BlockDetailEvent::ProcessArgs(JsonWriter& ostream)
 {
@@ -38,43 +42,55 @@ void BlockDetailEvent::ProcessArgs(JsonWriter& ostream)
     ostream["Core Id"] << coreId_;
 }
 
-BlockDetailAssembler::BlockDetailAssembler() : JsonAssembler(PROCESS_BLOCK_DETAIL, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
+BlockDetailAssembler::BlockDetailAssembler()
+    : JsonAssembler(PROCESS_BLOCK_DETAIL, {{MSPROF_JSON_FILE, FileCategory::MSPROF}})
+{
+}
 
-uint8_t BlockDetailAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t BlockDetailAssembler::AssembleData(DataInventory& dataInventory, JsonWriter& ostream,
+                                           const std::string& profPath)
 {
     auto blockDetailData = dataInventory.GetPtr<std::vector<BlockDetailData>>();
     auto taskInfoData = dataInventory.GetPtr<std::vector<TaskInfoData>>();
     auto ascendTaskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
-    if (blockDetailData == nullptr) {
+    if (blockDetailData == nullptr)
+    {
         WARN("Can't get blockDetailData from dataInventory.");
         return DATA_NOT_EXIST;
     }
-    if (ascendTaskData == nullptr) {
+    if (ascendTaskData == nullptr)
+    {
         WARN("AscendTask not exists, can't export task time data.");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint32_t, std::vector<BlockDetailData>> blockDetailDataMap;
-    if (!Reserve(*blockDetailData, blockDetailData->size())) {
+    if (!Reserve(*blockDetailData, blockDetailData->size()))
+    {
         ERROR("Reserve for block detail data failed.");
         return ASSEMBLE_FAILED;
     }
-    for (const auto& data : *blockDetailData) {
+    for (const auto& data : *blockDetailData)
+    {
         blockDetailDataMap[data.taskId].emplace_back(std::move(data));
     }
-    if (taskInfoData == nullptr) {
+    if (taskInfoData == nullptr)
+    {
         WARN("No ge data collected, maybe the TaskInfo table is not created, now try to export data with no ge data.");
-    } else {
+    }
+    else
+    {
         FormatTaskInfoData(*taskInfoData);
     }
     auto layerInfo = GetLayerInfo(PROCESS_BLOCK_DETAIL);
-    auto pidMap = GenerateBlockDetailTrace(*ascendTaskData, blockDetailDataMap,
-                                           layerInfo.sortIndex, profPath, res_);
-    if (res_.empty()) {
+    auto pidMap = GenerateBlockDetailTrace(*ascendTaskData, blockDetailDataMap, layerInfo.sortIndex, profPath, res_);
+    if (res_.empty())
+    {
         ERROR("Can't Generate any block detail process data.");
         return ASSEMBLE_FAILED;
     }
     GenerateHWMetaData(pidMap, layerInfo, res_);
-    for (const auto &node : res_) {
+    for (const auto& node : res_)
+    {
         node->DumpJson(ostream);
     }
     ostream << ",";
@@ -82,30 +98,33 @@ uint8_t BlockDetailAssembler::AssembleData(DataInventory &dataInventory, JsonWri
 }
 
 std::unordered_map<uint16_t, uint32_t> BlockDetailAssembler::GenerateBlockDetailTrace(
-        std::vector<AscendTaskData> &ascendTaskData,
-        std::unordered_map<uint32_t, std::vector<BlockDetailData>> &blockDetailDataMap,
-        uint32_t sortIndex,
-        const std::string &profPath,
-        std::vector<std::shared_ptr<TraceEvent>> &res)
+    std::vector<AscendTaskData>& ascendTaskData,
+    std::unordered_map<uint32_t, std::vector<BlockDetailData>>& blockDetailDataMap, uint32_t sortIndex,
+    const std::string& profPath, std::vector<std::shared_ptr<TraceEvent>>& res)
 {
     std::unordered_map<uint16_t, uint32_t> pidMap;
-    for (const auto& taskData : ascendTaskData) {
+    for (const auto& taskData : ascendTaskData)
+    {
         auto blockDetailIt = blockDetailDataMap.find(taskData.taskId);
-        if (blockDetailIt == blockDetailDataMap.end()) {
+        if (blockDetailIt == blockDetailDataMap.end())
+        {
             continue;
         }
         const auto& pmuDataList = blockDetailIt->second;
         auto pmuGroup = GetBlockPmuGroup(pmuDataList, taskData);
-        if (pmuGroup.empty()) {
+        if (pmuGroup.empty())
+        {
             continue;
         }
         std::string opName;
-        TaskId taskId{static_cast<uint16_t>(taskData.streamId), static_cast<uint16_t>(taskData.batchId),
-                      taskData.taskId, taskData.contextId, taskData.deviceId};
+        TaskId taskId{taskData.streamId, taskData.batchId, taskData.taskId, taskData.contextId, taskData.deviceId};
         auto taskDataIt = formatedTaskInfo_.find(taskId);
-        if (taskDataIt != formatedTaskInfo_.end()) {
+        if (taskDataIt != formatedTaskInfo_.end())
+        {
             opName = taskDataIt->second.first;
-        } else {
+        }
+        else
+        {
             WARN("Failed to find opName for deviceId[%u], taskId[%u]", taskData.deviceId, taskData.taskId);
         }
         auto pid = GetDevicePid(pidMap, taskData.deviceId, profPath, sortIndex);
@@ -117,59 +136,66 @@ std::unordered_map<uint16_t, uint32_t> BlockDetailAssembler::GenerateBlockDetail
 }
 
 std::vector<const BlockDetailData*> BlockDetailAssembler::GetBlockPmuGroup(
-        const std::vector<BlockDetailData>& pmuDataList,
-        const AscendTaskData& taskData) {
+    const std::vector<BlockDetailData>& pmuDataList, const AscendTaskData& taskData)
+{
     std::vector<const BlockDetailData*> result;
-    if (!Reserve(result, (pmuDataList.size() / THREAD_ARGS_NAMES_SIZE))) {
+    if (!Reserve(result, (pmuDataList.size() / THREAD_ARGS_NAMES_SIZE)))
+    {
         ERROR("Reserve for pmu data list failed.");
         return result;
     }
     uint64_t taskStart = taskData.timestamp;
     uint64_t taskEnd = taskData.timestamp + taskData.duration;
-    for (const auto& pmuData : pmuDataList) {
+    for (const auto& pmuData : pmuDataList)
+    {
         uint64_t pmuStart = pmuData.timestamp;
         uint64_t pmuEnd = pmuData.timestamp + pmuData.duration;
         // 判断是否有交集：!(taskEnd < pmuStart || pmuEnd < taskStart)
-        if (!(taskEnd < pmuStart || pmuEnd < taskStart)) {
+        if (!(taskEnd < pmuStart || pmuEnd < taskStart))
+        {
             result.push_back(&pmuData);
         }
     }
     return result;
 }
 
-void BlockDetailAssembler::FormatTaskInfoData(const std::vector<TaskInfoData> &taskInfoData)
+void BlockDetailAssembler::FormatTaskInfoData(const std::vector<TaskInfoData>& taskInfoData)
 {
-    if (taskInfoData.empty()) {
+    if (taskInfoData.empty())
+    {
         WARN("task info data is empty, no task info data for task time, check ge info please.");
         return;
     }
-    for (const auto &taskInfoDatum : taskInfoData) {
-        TaskId taskId{static_cast<uint16_t>(taskInfoDatum.streamId), static_cast<uint16_t>(taskInfoDatum.batchId),
-                      taskInfoDatum.taskId, taskInfoDatum.contextId, taskInfoDatum.deviceId};
+    for (const auto& taskInfoDatum : taskInfoData)
+    {
+        TaskId taskId{taskInfoDatum.streamId, taskInfoDatum.batchId, taskInfoDatum.taskId, taskInfoDatum.contextId,
+                      taskInfoDatum.deviceId};
         formatedTaskInfo_.insert({taskId, {taskInfoDatum.opName, taskInfoDatum.taskType}});
     }
 }
 
-void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailData*>& datas,
-                                             uint32_t pid,
-                                             std::vector<PmuTimelineRow>& block_pmu_timeline_data,
-                                             const std::string& opName,
-                                             std::vector<std::shared_ptr<TraceEvent>> &res) {
+void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailData*>& datas, uint32_t pid,
+                                            std::vector<PmuTimelineRow>& block_pmu_timeline_data,
+                                            const std::string& opName, std::vector<std::shared_ptr<TraceEvent>>& res)
+{
     // 分离并排序 aic (core_type == 0) 和 aiv (core_type == 1)
     std::vector<const BlockDetailData*> aic_datas;
     std::vector<const BlockDetailData*> aiv_datas;
-    for (const auto* data : datas) {
+    for (const auto* data : datas)
+    {
         if (!data) continue;
-        if (data->coreType == 0) {
+        if (data->coreType == 0)
+        {
             aic_datas.push_back(data);
-        } else if (data->coreType == 1) {
+        }
+        else if (data->coreType == 1)
+        {
             aiv_datas.push_back(data);
         }
     }
     // 按 timestamp 排序
-    auto sortByTimeStamp = [](const BlockDetailData* a, const BlockDetailData* b) {
-        return a->timestamp < b->timestamp;
-    };
+    auto sortByTimeStamp = [](const BlockDetailData* a, const BlockDetailData* b)
+    { return a->timestamp < b->timestamp; };
     std::sort(aic_datas.begin(), aic_datas.end(), sortByTimeStamp);
     std::sort(aiv_datas.begin(), aiv_datas.end(), sortByTimeStamp);
     // 获取最早和最晚的数据
@@ -179,7 +205,8 @@ void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailD
     const BlockDetailData* aiv_latest = aiv_datas.empty() ? nullptr : aiv_datas.back();
     // 处理四个数据
     const BlockDetailData* data_list[THREAD_ARGS_NAMES_SIZE] = {aic_earliest, aic_latest, aiv_earliest, aiv_latest};
-    for (size_t i = 0; i < THREAD_ARGS_NAMES_SIZE; ++i) {
+    for (size_t i = 0; i < THREAD_ARGS_NAMES_SIZE; ++i)
+    {
         const auto* data = data_list[i];
         if (!data) continue;
         PmuTimelineRow row;
@@ -194,24 +221,24 @@ void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailD
         row.subtaskId = data->subtaskId;
         row.coreId = data->coreId;
         std::shared_ptr<MetaDataNameEvent> threadNameEvent;
-        MAKE_SHARED_RETURN_VOID(threadNameEvent, MetaDataNameEvent, pid, row.tid,
-                                META_DATA_THREAD_NAME, THREAD_ARGS_NAMES[i]);
+        MAKE_SHARED_RETURN_VOID(threadNameEvent, MetaDataNameEvent, pid, row.tid, META_DATA_THREAD_NAME,
+                                THREAD_ARGS_NAMES[i]);
         res.push_back(std::shared_ptr<TraceEvent>(std::move(threadNameEvent)));
         block_pmu_timeline_data.push_back(std::move(row));
     }
 }
 
-void BlockDetailAssembler::GenerateBlockPmuTimelineData(
-        const std::vector<PmuTimelineRow>& block_pmu_timeline_data,
-        std::vector<std::shared_ptr<TraceEvent>> &res)
+void BlockDetailAssembler::GenerateBlockPmuTimelineData(const std::vector<PmuTimelineRow>& block_pmu_timeline_data,
+                                                        std::vector<std::shared_ptr<TraceEvent>>& res)
 {
-    for (const auto &data : block_pmu_timeline_data) {
+    for (const auto& data : block_pmu_timeline_data)
+    {
         std::shared_ptr<BlockDetailEvent> event;
         MAKE_SHARED_RETURN_VOID(event, BlockDetailEvent, data.pid, data.tid, data.duration,
-                                DivideByPowersOfTenWithPrecision(data.timestamp), data.name,
-                                data.streamId, data.taskId, data.batchId, data.subtaskId, data.coreId);
+                                DivideByPowersOfTenWithPrecision(data.timestamp), data.name, data.streamId, data.taskId,
+                                data.batchId, data.subtaskId, data.coreId);
         res.push_back(event);
     }
 }
-}
-}
+}  // namespace Application
+}  // namespace Analysis

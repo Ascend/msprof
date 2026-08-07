@@ -16,9 +16,11 @@
 
 #include "analysis/csrc/domain/entities/json_trace/include/trace_event.h"
 
-namespace Analysis {
-namespace Domain {
-TraceEvent::TraceEvent(uint32_t pid, int tid, const std::string &name) : pid_(pid), tid_(tid), name_(name) {}
+namespace Analysis
+{
+namespace Domain
+{
+TraceEvent::TraceEvent(uint32_t pid, uint32_t tid, const std::string &name) : pid_(pid), tid_(tid), name_(name) {}
 
 void TraceEvent::ToJson(JsonWriter &ostream)
 {
@@ -27,16 +29,19 @@ void TraceEvent::ToJson(JsonWriter &ostream)
     ostream["tid"] << tid_;
 }
 
-DurationEvent::DurationEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name,
+DurationEvent::DurationEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                              const std::string &cat)
-    : TraceEvent(pid, tid, name), dur_(dur), ts_(ts), cat_(cat) {}
+    : TraceEvent(pid, tid, name), dur_(dur), ts_(ts), cat_(cat)
+{
+}
 void DurationEvent::ToJson(JsonWriter &ostream)
 {
     TraceEvent::ToJson(ostream);
     ostream["ts"] << ts_;
     ostream["dur"] << dur_;
     ostream["ph"] << ph_;
-    if (cat_ != " ") {
+    if (cat_ != " ")
+    {
         ostream["cat"] << cat_;
     }
     ostream["args"];
@@ -46,8 +51,10 @@ void DurationEvent::ToJson(JsonWriter &ostream)
     ostream.EndObject();
 }
 
-CounterEvent::CounterEvent(uint32_t pid, int tid, const std::string &ts, const std::string &name)
-    : TraceEvent(pid, tid, name), ts_(ts) {}
+CounterEvent::CounterEvent(uint32_t pid, uint32_t tid, const std::string &ts, const std::string &name)
+    : TraceEvent(pid, tid, name), ts_(ts)
+{
+}
 void CounterEvent::ToJson(JsonWriter &ostream)
 {
     TraceEvent::ToJson(ostream);
@@ -61,27 +68,25 @@ void CounterEvent::ToJson(JsonWriter &ostream)
 
 void CounterEvent::ProcessArgs(JsonWriter &ostream)
 {
-    for (const auto &kv: seriesDValue_) {
+    for (const auto &kv : seriesDValue_)
+    {
         ostream[kv.first.c_str()] << kv.second;
     }
-    for (const auto &kv: seriesIValue_) {
+    for (const auto &kv : seriesIValue_)
+    {
         ostream[kv.first.c_str()] << kv.second;
     }
 }
 
-void CounterEvent::SetSeriesDValue(const std::string &key, const double &value)
-{
-    seriesDValue_[key] = value;
-}
+void CounterEvent::SetSeriesDValue(const std::string &key, const double &value) { seriesDValue_[key] = value; }
 
-void CounterEvent::SetSeriesIValue(const std::string &key, const uint64_t &value)
-{
-    seriesIValue_[key] = value;
-}
+void CounterEvent::SetSeriesIValue(const std::string &key, const uint64_t &value) { seriesIValue_[key] = value; }
 
-FlowEvent::FlowEvent(uint32_t pid, int tid, const std::string &ts, const std::string &cat, const std::string &id,
+FlowEvent::FlowEvent(uint32_t pid, uint32_t tid, const std::string &ts, const std::string &cat, const std::string &id,
                      const std::string &name, const std::string &ph, const std::string &bp)
-    : TraceEvent(pid, tid, name), ts_(ts), cat_(cat), id_(id), ph_(ph), bp_(bp) {}
+    : TraceEvent(pid, tid, name), ts_(ts), cat_(cat), id_(id), ph_(ph), bp_(bp)
+{
+}
 void FlowEvent::ToJson(JsonWriter &ostream)
 {
     TraceEvent::ToJson(ostream);
@@ -89,9 +94,10 @@ void FlowEvent::ToJson(JsonWriter &ostream)
     ostream["cat"] << cat_;
     ostream["id"] << id_;
     ostream["ts"] << ts_;
-    if (bp_ != " ") {
+    if (bp_ != " ")
+    {
         ostream["bp"] << bp_;
     }
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

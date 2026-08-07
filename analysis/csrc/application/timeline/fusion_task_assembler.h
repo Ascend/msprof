@@ -28,7 +28,8 @@ namespace Application
 class FusionTaskTraceEvent : public DurationEvent
 {
    public:
-    FusionTaskTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const FusionTaskTimelineData &data)
+    FusionTaskTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts,
+                         const FusionTaskTimelineData &data)
         : DurationEvent(pid, tid, dur, ts, "Fusion " + data.fusionTaskType), data_(data)
     {
     }

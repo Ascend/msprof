@@ -34,9 +34,9 @@ namespace Application
 class TaskTraceEvent : public DurationEvent
 {
    public:
-    TaskTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name, uint32_t modelId,
-                   uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId, uint64_t connectionId,
-                   const std::string taskType)
+    TaskTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
+                   uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
+                   uint64_t connectionId, const std::string taskType)
         : DurationEvent(pid, tid, dur, ts, name),
           modelId_(modelId),
           streamId_(streamId),
@@ -64,7 +64,7 @@ class TaskTraceEvent : public DurationEvent
 class MemcpyAsyncEvent : public TaskTraceEvent
 {
    public:
-    MemcpyAsyncEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name,
+    MemcpyAsyncEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                      uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
                      uint64_t connectionId, const std::string taskType, uint64_t dataSize, double bandwidth,
                      std::string memcpyDirection, bool showFlag)
@@ -90,9 +90,9 @@ class MemcpyAsyncEvent : public TaskTraceEvent
 class SimtTaskEvent : public TaskTraceEvent
 {
    public:
-    SimtTaskEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name, uint32_t modelId,
-                  uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId, uint64_t connectionId,
-                  const std::string taskType, std::string gridDim, std::string blockDim)
+    SimtTaskEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
+                  uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
+                  uint64_t connectionId, const std::string taskType, std::string gridDim, std::string blockDim)
         : TaskTraceEvent(pid, tid, dur, ts, name, modelId, streamId, taskId, batchId, contextId, connectionId,
                          taskType),
           gridDim_(std::move(gridDim)),
@@ -111,8 +111,8 @@ class SimtTaskEvent : public TaskTraceEvent
 class KfcTurnTraceEvent : public DurationEvent
 {
    public:
-    KfcTurnTraceEvent(int pid, int tid, double dur, const std::string &ts, const std::string &name, uint32_t streamId,
-                      uint32_t taskId)
+    KfcTurnTraceEvent(int pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
+                      uint32_t streamId, uint32_t taskId)
         : DurationEvent(pid, tid, dur, ts, name), streamId_(streamId), taskId_(taskId)
     {
     }
@@ -151,7 +151,7 @@ class AscendHardwareAssembler : public JsonAssembler
     std::map<TaskId, std::string> opName_;
     std::map<TaskId, std::string> taskType_;
     std::map<TaskId, std::pair<std::string, std::string>> simtInfoMap_;
-    std::set<std::pair<uint32_t, int>> pidTidSet_;
+    std::set<std::pair<uint32_t, uint32_t>> pidTidSet_;
     std::set<TaskId> ffts_;
     std::set<uint64_t> aclEvent_;
     std::vector<AscendTaskData> memcpyAsyncDeviceTasks_;

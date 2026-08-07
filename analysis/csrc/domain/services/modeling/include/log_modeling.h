@@ -18,49 +18,60 @@
 
 #include <map>
 #include <vector>
-#include "analysis/csrc/infrastructure/process/include/process.h"
+
+#include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_track.h"
-#include "analysis/csrc/domain/entities/hal/include/device_task.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Domain {
+namespace Domain
+{
 
-class LogModeling : public Infra::Process {
-private:
+struct MergeTaskKeyData
+{
+    uint32_t contextId;
+    uint32_t taskId;
+    uint32_t streamId;
+    bool operator<(const MergeTaskKeyData& other) const
+    {
+        if (contextId != other.contextId) return contextId < other.contextId;
+        if (taskId != other.taskId) return taskId < other.taskId;
+        return streamId < other.streamId;
+    }
+};
+
+class LogModeling : public Infra::Process
+{
+   private:
     uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
 
     void SplitLogGroups(std::vector<HalLogData>& logData, std::shared_ptr<std::vector<HalTrackData>>& flipTrack);
     void OutputLogCounts(const std::vector<HalLogData>& logData) const;
     void AddToDeviceTask(std::unordered_map<uint32_t, std::vector<HalLogData*>>& startTask,
                          std::unordered_map<uint32_t, std::vector<HalLogData*>>& endTask,
-                         std::unordered_map<uint16_t, std::vector<HalTrackData*>>& flipGroups,
+                         std::unordered_map<uint32_t, std::vector<HalTrackData*>>& flipGroups,
                          std::map<TaskId, std::vector<DeviceTask>>& deviceTaskMap,
                          std::function<void(Domain::DeviceTask&, const HalLogData&, const HalLogData&)> mergeFunc);
 
     virtual uint32_t GenGroupKey(const HalLogData& logData);
-    virtual uint64_t GenMergeTaskKey(const HalLogData& logData);
+    virtual MergeTaskKeyData GenMergeTaskKey(const HalLogData& logData);
 
-private:
+   private:
     std::unordered_map<uint32_t, std::vector<HalLogData*>> acsqStart_, acsqEnd_, fftsStart_, fftsEnd_;
-    std::unordered_map<uint16_t, std::vector<HalTrackData*>> flipData_;
+    std::unordered_map<uint32_t, std::vector<HalTrackData*>> flipData_;
 };
 
-class LogModelingV6 final : public LogModeling {
-private:
-    uint32_t GenGroupKey(const HalLogData& logData) override
-    {
-        return logData.hd.taskId.taskId;
-    }
-    uint64_t GenMergeTaskKey(const HalLogData& logData) override
-    {
-        return GenGroupKey(logData);
-    }
+class LogModelingV6 final : public LogModeling
+{
+   private:
+    uint32_t GenGroupKey(const HalLogData& logData) override { return logData.hd.taskId.taskId; }
 };
 
-}
+}  // namespace Domain
 
-}
+}  // namespace Analysis
 
 #endif

@@ -15,22 +15,28 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/entities/hal/include/hal_track.h"
+
 #include <algorithm>
 #include <map>
 
-namespace Analysis {
-namespace Domain {
-namespace {
+namespace Analysis
+{
+namespace Domain
+{
+namespace
+{
 const uint16_t STEP_START_TAG = 60000;
 const uint16_t STEP_END_TAG = 60001;
 const uint16_t PAIR = 2;
-}
+}  // namespace
 
-std::unordered_map<uint16_t, std::vector<HalTrackData*>> GetFlipData(std::vector<HalTrackData>& trackData)
+std::unordered_map<uint32_t, std::vector<HalTrackData*>> GetFlipData(std::vector<HalTrackData>& trackData)
 {
-    std::unordered_map<uint16_t, std::vector<HalTrackData*>> trackDataMap;
-    for (auto& data : trackData) {
-        if (data.type == TS_TASK_FLIP) {
+    std::unordered_map<uint32_t, std::vector<HalTrackData*>> trackDataMap;
+    for (auto& data : trackData)
+    {
+        if (data.type == TS_TASK_FLIP)
+        {
             trackDataMap[data.hd.taskId.streamId].push_back(&data);
         }
     }
@@ -40,8 +46,10 @@ std::unordered_map<uint16_t, std::vector<HalTrackData*>> GetFlipData(std::vector
 std::vector<HalTrackData> GetTrackDataByType(std::vector<HalTrackData>& trackData, HalTrackType type)
 {
     std::vector<HalTrackData> trackDataRefer;
-    for (auto& data : trackData) {
-        if (data.type == type) {
+    for (auto& data : trackData)
+    {
+        if (data.type == type)
+        {
             trackDataRefer.push_back(data);
         }
     }
@@ -53,17 +61,19 @@ StepTraceDataVectorFormat GenerateStepTime(std::vector<HalTrackData>& halTraceTa
     StepTraceDataVectorFormat processedData;
     std::map<uint32_t, std::vector<HalTrackData>> stepTime;
     std::vector<HalTrackData> halTraceTasksBackup = halTraceTasks;
-    std::sort(halTraceTasksBackup.begin(), halTraceTasksBackup.end(),
-              [](const HalTrackData& t1, const HalTrackData& t2) {
-        return t1.stepTrace.timestamp < t2.stepTrace.timestamp;
-    });
-    for (auto trackData : halTraceTasksBackup) {
-        if (trackData.stepTrace.tagId == STEP_START_TAG || trackData.stepTrace.tagId == STEP_END_TAG) {
+    std::sort(halTraceTasksBackup.begin(), halTraceTasksBackup.end(), [](const HalTrackData& t1, const HalTrackData& t2)
+              { return t1.stepTrace.timestamp < t2.stepTrace.timestamp; });
+    for (auto trackData : halTraceTasksBackup)
+    {
+        if (trackData.stepTrace.tagId == STEP_START_TAG || trackData.stepTrace.tagId == STEP_END_TAG)
+        {
             stepTime[trackData.stepTrace.indexId].emplace_back(trackData);
         }
     }
-    for (auto &it : stepTime) {
-        if (it.second.size() != PAIR) {
+    for (auto& it : stepTime)
+    {
+        if (it.second.size() != PAIR)
+        {
             continue;
         }
         processedData.emplace_back(it.first, it.second[0].stepTrace.modelId, it.second[0].stepTrace.timestamp,
@@ -71,5 +81,5 @@ StepTraceDataVectorFormat GenerateStepTime(std::vector<HalTrackData>& halTraceTa
     }
     return processedData;
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

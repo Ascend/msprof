@@ -547,7 +547,7 @@ void AicpuPersistence::ComputeAicpuBatchId()
     struct TaskEntry
     {
         BatchTaskData task;
-        uint16_t* batchIdDest;  // 指向原始 AicpuData::taskId.batchId (uint16_t)
+        uint32_t* batchIdDest;  // 指向原始 AicpuData::taskId.batchId (uint16_t),以uint32_t保存
     };
 
     // 1. 按 stream_id 收集 flip 数据

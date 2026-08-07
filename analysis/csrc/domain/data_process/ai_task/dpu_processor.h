@@ -28,14 +28,14 @@ class DPUProcessor : public DataProcessor
 {
     // dpu_device_id, thread_id, start_time, end_time, task_type, stream_id, task_id, kernel_name(op_name)
     using TrackFormat =
-        std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, std::string, uint16_t, uint32_t, std::string>>;
+        std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, std::string, uint32_t, uint32_t, std::string>>;
     // npu_device_id, dpu_device_id, thread_id, start_time, end_time, op_name, group_name, group_name_id
     // local_rank, remote_rank, rank_size, duration_estimated, src_addr, dst_addr, data_size
     // stream_id, task_id, aicpu_task_id, plane_id, op_type, data_type, link_type, transport_type
     // rdma_type, notify_id
     using HcclTrackFormat = std::vector<
         std::tuple<uint16_t, uint16_t, uint32_t, uint64_t, uint64_t, std::string, std::string, std::string, uint16_t,
-                   uint16_t, uint32_t, double, std::string, std::string, uint64_t, uint16_t, uint32_t, uint32_t,
+                   uint16_t, uint32_t, double, std::string, std::string, uint64_t, uint32_t, uint32_t, uint32_t,
                    uint16_t, std::string, std::string, std::string, std::string, std::string, std::string>>;
 
    public:

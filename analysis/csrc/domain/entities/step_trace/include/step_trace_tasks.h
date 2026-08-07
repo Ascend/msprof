@@ -17,28 +17,33 @@
 #ifndef MSPROF_ANALYSIS_STEP_TRACE_TASKS_H
 #define MSPROF_ANALYSIS_STEP_TRACE_TASKS_H
 
-#include <vector>
-#include <map>
 #include <stdint.h>
 
-namespace Analysis {
-namespace Domain {
-struct TimePair {
+#include <map>
+#include <vector>
+
+namespace Analysis
+{
+namespace Domain
+{
+struct TimePair
+{
     uint64_t start = 0;
     uint64_t end = 0;
 };
 
 // 记录一个完整迭代内事件信息
-struct StepTraceTasks {
+struct StepTraceTasks
+{
     uint32_t indexId = 0;
     uint32_t iterId = 0;
     TimePair stepTrace;
-    std::map<uint16_t, std::vector<TimePair>> allReduceTable;  // key 为 streamId
-    std::map<uint16_t, std::vector<TimePair>> getNextTable; // key 为 streamId
+    std::map<uint32_t, std::vector<TimePair>> allReduceTable;  // key 为 streamId
+    std::map<uint32_t, std::vector<TimePair>> getNextTable;    // key 为 streamId
     std::vector<TimePair> trainingTrace;
 };
 
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // MSPROF_ANALYSIS_STEP_TRACE_TASKS_H
+#endif  // MSPROF_ANALYSIS_STEP_TRACE_TASKS_H

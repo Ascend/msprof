@@ -36,8 +36,8 @@ struct DeviceHcclTask
     std::string notifyId;
     std::string rdmaType;
     uint16_t iteration = 0;
-    uint16_t batchId = 0;
-    uint16_t taskId = 0;
+    uint32_t batchId = 0;
+    uint32_t taskId = 0;
     uint16_t isMaster = 0;
     int32_t indexId = 0;
     int32_t planeId = 0;

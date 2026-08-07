@@ -19,30 +19,41 @@
 #include "analysis/csrc/domain/services/persistence/host/base_dumper.h"
 #include "analysis/csrc/infrastructure/utils/prof_common.h"
 
-namespace Analysis {
-namespace Domain {
-using MemcpyInfoData = std::vector<std::tuple<uint32_t, uint16_t, uint16_t, uint32_t, uint16_t, int64_t, uint16_t>>;
+namespace Analysis
+{
+namespace Domain
+{
+using MemcpyInfoData = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint16_t, int64_t, uint16_t>>;
 using MemcpyInfos = std::vector<std::shared_ptr<MsprofCompactInfo>>;
-struct MemcpyAsyncTask {
+struct MemcpyAsyncTask
+{
     uint32_t threadId;
     uint64_t timestamp;
     uint32_t streamId;
-    uint16_t taskId;
-    uint16_t batchId;
+    uint32_t taskId;
+    uint32_t batchId;
     uint16_t deviceId;
-    MemcpyAsyncTask() : threadId(UINT32_MAX), timestamp(0), streamId(UINT32_MAX), taskId(UINT16_MAX),
-        batchId(UINT16_MAX), deviceId(UINT16_MAX)
-    {}
+    MemcpyAsyncTask()
+        : threadId(UINT32_MAX),
+          timestamp(0),
+          streamId(UINT32_MAX),
+          taskId(UINT32_MAX),
+          batchId(UINT32_MAX),
+          deviceId(UINT16_MAX)
+    {
+    }
 };
 
-class MemcpyInfoDumper : public BaseDumper<MemcpyInfoDumper> {
-public:
+class MemcpyInfoDumper : public BaseDumper<MemcpyInfoDumper>
+{
+   public:
     explicit MemcpyInfoDumper(const std::string &hostPath);
     MemcpyInfoData GenerateData(const MemcpyInfos &memcpyInfos);
-private:
+
+   private:
     std::vector<MemcpyAsyncTask> GetMemcpyAsyncTasks();
 };
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_CSRC_VIEWER_DATABASE_MEMCPY_INFO_DUMPER_H
+#endif  // ANALYSIS_CSRC_VIEWER_DATABASE_MEMCPY_INFO_DUMPER_H

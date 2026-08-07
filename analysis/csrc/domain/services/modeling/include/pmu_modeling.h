@@ -18,27 +18,32 @@
 #define ANALYSIS_DOMAIN_SERVICES_MODELING_PMU_MODELING_H
 
 #include <unordered_map>
+
 #include "analysis/csrc/domain/entities/hal/include/hal_pmu.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_track.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
-namespace Domain {
-class PmuModeling : public Infra::Process {
-private:
+namespace Analysis
+{
+namespace Domain
+{
+class PmuModeling : public Infra::Process
+{
+   private:
     uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
 
-    template<typename T>
+    template <typename T>
     static bool cmp(T* lData, T* rData)
     {
         return lData->hd.timestamp < rData->hd.timestamp;
     }
     void GenerateBatchId();
     void GroupDataByStream(std::vector<HalPmuData>& pmuData, std::vector<HalTrackData>& flipTrack);
-private:
-    std::unordered_map<uint16_t, std::vector<HalPmuData*>> pmu_;
-    std::unordered_map<uint16_t, std::vector<HalTrackData*>> flipGroup_;
+
+   private:
+    std::unordered_map<uint32_t, std::vector<HalPmuData*>> pmu_;
+    std::unordered_map<uint32_t, std::vector<HalTrackData*>> flipGroup_;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_MODELING_PMU_MODELING_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_MODELING_PMU_MODELING_H

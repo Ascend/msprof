@@ -35,14 +35,14 @@ struct TaskId
 {
     TaskId() = default;
 
-    TaskId(uint16_t _streamId, uint16_t _batchId, uint32_t _taskId, uint32_t _contextId, uint16_t _deviceId = 0)
+    TaskId(uint32_t _streamId, uint32_t _batchId, uint32_t _taskId, uint32_t _contextId, uint16_t _deviceId = 0)
         : streamId(_streamId), batchId(_batchId), taskId(_taskId), contextId(_contextId), deviceId(_deviceId)
     {
     }
 
     uint16_t deviceId = 0;
-    mutable uint16_t streamId = 0;
-    uint16_t batchId = 0;
+    mutable uint32_t streamId = 0;
+    uint32_t batchId = 0;
     uint32_t taskId = 0;
     uint32_t contextId = INVALID_CONTEXT_ID;  // 有效值：0~65535，无效值：INVALID_CONTEXT_ID/UINT32_MAX/全f/-1
 
@@ -67,8 +67,8 @@ struct IDHasher
     std::size_t operator()(const TaskId &id) const
     {
         using std::hash;
-        return ((hash<uint16_t>()(id.deviceId) ^ (hash<uint16_t>()(id.streamId) << 1)) >> 1) ^
-               ((hash<uint16_t>()(id.taskId) << 1) ^ (hash<uint16_t>()(id.batchId) << 1)) ^
+        return ((hash<uint16_t>()(id.deviceId) ^ (hash<uint32_t>()(id.streamId) << 1)) >> 1) ^
+               ((hash<uint32_t>()(id.taskId) << 1) ^ (hash<uint32_t>()(id.batchId) << 1)) ^
                (hash<uint32_t>()(id.contextId) << 1);
     }
 };
@@ -76,7 +76,7 @@ struct IDHasher
 struct StreamIdInfo
 {
     // key: taskId, value: streamId
-    std::unordered_map<uint32_t, uint16_t> streamIdMap;
+    std::unordered_map<uint32_t, uint32_t> streamIdMap;
 };
 struct HostStreamInfo : StreamIdInfo
 {

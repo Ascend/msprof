@@ -41,7 +41,7 @@ class DPUAssembler : public JsonAssembler
 class DPUTrackTraceEvent : public DurationEvent
 {
    public:
-    DPUTrackTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name,
+    DPUTrackTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                        uint32_t threadId, uint32_t streamId, uint32_t taskId, const std::string &taskType)
         : DurationEvent(pid, tid, dur, ts, name),
           threadId_(threadId),
@@ -64,7 +64,7 @@ class DPUTrackTraceEvent : public DurationEvent
 class DPUHcclTraceEvent : public DurationEvent
 {
    public:
-    DPUHcclTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const std::string &name,
+    DPUHcclTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                       uint32_t threadId, uint32_t streamId, uint32_t taskId, const std::string &opType,
                       uint16_t npuDeviceId, uint32_t aicpuTaskId, const std::string &groupName,
                       const std::string &groupNameId, uint16_t planeId, const std::string &notifyId, uint32_t rankSize,
@@ -102,7 +102,7 @@ class DPUHcclTraceEvent : public DurationEvent
     uint16_t localRank_;
     uint16_t remoteRank_;
     uint16_t planeId_;
-    uint16_t streamId_;
+    uint32_t streamId_;
     uint16_t npuDeviceId_;
     uint32_t threadId_;
     uint32_t taskId_;

@@ -19,13 +19,16 @@
 
 #include <stdint.h>
 
-namespace Analysis {
-namespace Domain {
-struct MC2CommInfoData {
-    uint16_t aiCpuKfcStreamId = UINT16_MAX;   // 通信大算子所在stream
-    std::string commStreamIds;    // 通信小算子所在stream
+namespace Analysis
+{
+namespace Domain
+{
+struct MC2CommInfoData
+{
+    uint32_t aiCpuKfcStreamId = UINT32_MAX;  // 通信大算子所在stream
+    std::string commStreamIds;               // 通信小算子所在stream
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_MC2_COMM_INFO_H
+#endif  // ANALYSIS_DOMAIN_MC2_COMM_INFO_H

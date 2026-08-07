@@ -123,7 +123,7 @@ void JsonAssembler::GenerateHWMetaData(const std::unordered_map<uint16_t, uint32
 
 void JsonAssembler::GenerateTaskMetaData(const std::unordered_map<uint16_t, uint32_t> &pidMap,
                                          const struct LayerInfo &layer, std::vector<std::shared_ptr<TraceEvent>> &res,
-                                         std::set<std::pair<uint32_t, int>> &pidTidSet)
+                                         std::set<std::pair<uint32_t, uint32_t>> &pidTidSet)
 {
     GenerateHWMetaData(pidMap, layer, res);
 

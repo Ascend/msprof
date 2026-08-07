@@ -43,11 +43,11 @@ const std::string HCCL_OP_TABLE = "HCCLOP";
 const std::string HCCL_TASK_TABLE = "HCCLTask";
 const std::string GE_HASH_INFO_TABLE = "GeHashInfo";
 using OriDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
-using RuntimeOriDataFormat = std::vector<std::tuple<uint32_t, int32_t, uint16_t, uint32_t, std::string, uint64_t,
+using RuntimeOriDataFormat = std::vector<std::tuple<uint32_t, int32_t, uint32_t, uint32_t, std::string, uint64_t,
                                                     std::string, std::string, int64_t, uint16_t>>;
 using HcclTaskOriDataFormat =
-    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t, double, uint32_t, uint16_t,
-                           uint32_t, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint32_t, std::string, double,
+    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t, double, uint32_t, uint32_t,
+                           uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint32_t, uint32_t, std::string, double,
                            std::string, std::string, std::string, std::string, int32_t>>;
 using GeHashFormat = std::vector<std::tuple<std::string, std::string>>;
 using HcclOpOriDataFormat = std::vector<
@@ -101,7 +101,7 @@ uint32_t ReadHostGEInfo(DataInventory& dataInventory, const DeviceContext& devic
     {
         uint32_t stream_id, batch_id, task_id, context_id, blockNum, mixBlockNum;
         std::tie(stream_id, batch_id, task_id, context_id, blockNum, mixBlockNum) = row;
-        TaskId id = {(uint16_t)stream_id, (uint16_t)batch_id, task_id, context_id};
+        TaskId id = {stream_id, batch_id, task_id, context_id};
         auto item = deviceTaskMap->find(id);
         if (item != deviceTaskMap->end())
         {
@@ -156,7 +156,7 @@ bool LoadHostData::ReadHostRuntimeFromDB(std::string& profPath, TaskId2HostTask&
         std::tie(hostTask.streamId, hostTask.requestId, hostTask.batchId, hostTask.taskId, context_id, hostTask.modelId,
                  hostTask.taskTypeStr, hostTask.kernelNameStr, hostTask.connection_id, hostTask.deviceId) = row;
         StrToU32(context_id_u32, context_id);
-        TaskId id = {static_cast<uint16_t>(hostTask.streamId), hostTask.batchId, hostTask.taskId, context_id_u32};
+        TaskId id = {hostTask.streamId, hostTask.batchId, hostTask.taskId, context_id_u32};
         hostTask.contextId = context_id_u32;
         hostRuntime[id].push_back(hostTask);
     }
@@ -270,8 +270,8 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
         int32_t indexId, planeId;
         std::string name, groupName, transportType, dataType, linkType, rdmaType, notifyId;
         double duration, size;
-        uint32_t streamId, contextId, localRank, remoteRank, threadId, rankSize;
-        uint16_t taskId, batchId, deviceId, isMaster;
+        uint32_t streamId, contextId, localRank, remoteRank, threadId, rankSize, taskId, batchId;
+        uint16_t deviceId, isMaster;
         std::tie(modelId, indexId, name, groupName, planeId, timestamp, duration, streamId, taskId, contextId, batchId,
                  deviceId, isMaster, localRank, remoteRank, threadId, transportType, size, dataType, linkType, notifyId,
                  rdmaType, rankSize) = row;

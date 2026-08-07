@@ -112,7 +112,7 @@ void StepTraceAssembler::GenerateTrainTrace(const std::vector<TrainTraceData>& t
         bpEnd = data.bpEnd == 0 ? NA : DivideByPowersOfTenWithPrecision(data.bpEnd);
         traceName = "Iteration " + std::to_string(data.indexId);
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
-        int tid = static_cast<int>(data.modelId) + SORT_INDEX_OFFSET;
+        uint32_t tid = data.modelId + SORT_INDEX_OFFSET;
         pidTidSet_.insert({formatPid, tid});
         std::shared_ptr<StepTraceEvent> event;
         MAKE_SHARED_RETURN_VOID(event, StepTraceEvent, formatPid, tid,

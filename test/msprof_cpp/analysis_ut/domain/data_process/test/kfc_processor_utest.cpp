@@ -37,13 +37,12 @@ const std::string COMM_TABLE_NAME = "KfcCommTurn";
 const std::string COMPUTE_TABLE_NAME = "KfcComputeTurn";
 const std::set<std::string> PROF_PATHS = {PROF_PATH_A, PROF_PATH_B};
 
-using OriKfcCommData = std::vector<std::tuple<uint16_t, uint16_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
-uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-// "device_id", "stream_id", "task_id", "compute_turn", "current_turn", "wait_compute_start_time",
-// "compute_start_time", "compute_exe_end_time"
-using OriKfcComputeData = std::vector<std::tuple<uint16_t, uint16_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
-uint64_t>>;
 
+
+using OriKfcCommData = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
+uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+using OriKfcComputeData = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
+uint64_t>>;
 
 const OriKfcCommData KFC_COMM_DATA = {
     {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505, 2955608937462, 2955608924950, 2955609324419,

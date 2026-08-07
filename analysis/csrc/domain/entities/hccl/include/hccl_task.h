@@ -57,9 +57,9 @@ struct HcclTask
     uint64_t timestamp;
     double duration;
     uint32_t streamId;
-    uint16_t taskId;
+    uint32_t taskId;
     uint32_t contextId;
-    uint16_t batchId;
+    uint32_t batchId;
     uint16_t deviceId;
     uint16_t isMaster;
     uint32_t localRank;

@@ -29,7 +29,8 @@ using namespace Analysis::Application;
 class CCUMissionTraceEvent : public DurationEvent
 {
    public:
-    CCUMissionTraceEvent(uint32_t pid, int tid, double dur, const std::string &ts, const CCUMissionTimelineData &data)
+    CCUMissionTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts,
+                         const CCUMissionTimelineData &data)
         : DurationEvent(pid, tid, dur, ts, data.timeType), data_(data)
     {
     }

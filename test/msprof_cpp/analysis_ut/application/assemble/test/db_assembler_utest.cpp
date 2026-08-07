@@ -1688,7 +1688,7 @@ TEST_F(DBAssemblerUTest, TestSaveAscendTaskDataShouldReturnFalseWhenReserveFaile
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     using ascendTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, int64_t, uint64_t,
-                                                       uint32_t, uint32_t, uint32_t, int32_t, uint32_t, uint32_t>>;
+                                                       uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
     std::vector<AscendTaskData> res;
     AscendTaskData data;
     res.push_back(data);
@@ -1998,7 +1998,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
 
     // dpuDeviceId, globalTid, startNs, endNs, globalTaskId, streamId, taskId, opName, args
     using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
-        uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
+        uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
     DPUDataFormat dpuResult;
     std::shared_ptr<DBRunner> msprofDBRunner;
     MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
@@ -2043,7 +2043,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnFalseWhenReserveFailed)
 {
     using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
-        uint64_t, uint16_t, uint32_t, uint64_t, uint64_t>>;
+        uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateDPUData();

@@ -14,12 +14,16 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 #include "batch_id.h"
+
 #include <climits>
+
 #include "analysis/csrc/infrastructure/dfx/log.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Domain {
+namespace Domain
+{
 
 /*!
  * 计算任务中没有反转/翻转的下标
@@ -34,17 +38,22 @@ int ModelingComputeBatchIdBinaryAlgo(HalUniData **task, uint32_t num, uint64_t f
     int left = 0;
     int right = static_cast<int>(num - 1);
     int mid = 0;
-    while (left <= right) {
+    while (left <= right)
+    {
         mid = (left + right) / 2;  // 2分查找
-        
-        if (task[mid] == nullptr) {
+
+        if (task[mid] == nullptr)
+        {
             ERROR("task[%] null!", mid);
             return INT_MIN;
         }
 
-        if (task[mid]->timestamp <= flipTimestamp) {
+        if (task[mid]->timestamp <= flipTimestamp)
+        {
             left = mid + 1;
-        } else {
+        }
+        else
+        {
             right = mid - 1;
         }
     }
@@ -62,15 +71,19 @@ int ModelingComputeBatchIdBinaryAlgo(HalUniData **task, uint32_t num, uint64_t f
  **/
 int ModelingCalibrateBatchId(HalUniData **task, uint32_t taskNum, int cursor, uint16_t flipTaskId)
 {
-    if (static_cast<uint32_t>(cursor) >= taskNum) {
+    if (static_cast<uint32_t>(cursor) >= taskNum)
+    {
         return 0;
     }
     // 如果taskId为0xffff表示流正常结束销毁，可以不用往前找了。
-    if (flipTaskId == 0 || flipTaskId == 0xffff) {
+    if (flipTaskId == 0 || flipTaskId == 0xffff)
+    {
         return cursor;
     }
-    while (cursor > 0) {
-        if (task[cursor]->taskId.taskId > flipTaskId) {
+    while (cursor > 0)
+    {
+        if (task[cursor]->taskId.taskId > flipTaskId)
+        {
             return cursor;
         }
         cursor--;
@@ -80,36 +93,43 @@ int ModelingCalibrateBatchId(HalUniData **task, uint32_t taskNum, int cursor, ui
 
 void ModelingComputeBatchIdBinary(HalUniData **task, uint32_t taskNum, HalUniData **flip, uint16_t flipNum)
 {
-    if (task == nullptr || taskNum == 0 || flip == nullptr || flipNum == 0) {
+    if (task == nullptr || taskNum == 0 || flip == nullptr || flipNum == 0)
+    {
         ERROR("input error!");
         return;
     }
 
-    uint16_t batchId;
+    uint32_t batchId;
     HalUniData **taskTmp = task;
     uint32_t taskTmpNum = taskNum;
     int cursor = 0;
     std::vector<int> cursorArray(flipNum + 1);
     int cursorNum = 0;
 
-    for (batchId = 0; batchId < flipNum; batchId++) {
-        if (taskTmpNum == 0) {
+    for (batchId = 0; batchId < flipNum; batchId++)
+    {
+        if (taskTmpNum == 0)
+        {
             break;
         }
 
         cursor = ModelingComputeBatchIdBinaryAlgo(taskTmp, taskTmpNum, flip[batchId]->timestamp);
-        if (cursor == INT_MIN) {
+        if (cursor == INT_MIN)
+        {
             ERROR("error: null pointer!");
             return;
         }
 
-        if (cursor >= 0) {
+        if (cursor >= 0)
+        {
             int tmpCursor = cursor + taskTmp - task;
             // 修正往前找一找，如果task的taskId小于flip的taskId的也是翻转的
             tmpCursor = ModelingCalibrateBatchId(task, taskNum, tmpCursor, flip[batchId]->taskId.taskId);
             cursorArray[cursorNum] = tmpCursor;
             cursorNum++;
-        } else {
+        }
+        else
+        {
             cursorArray[cursorNum] = cursor;
             cursorNum++;
         }
@@ -118,20 +138,23 @@ void ModelingComputeBatchIdBinary(HalUniData **task, uint32_t taskNum, HalUniDat
         taskTmpNum = static_cast<uint32_t>(static_cast<int>(taskTmpNum) - cursor - 1);
     }
 
-    if (taskTmpNum > 0) {
+    if (taskTmpNum > 0)
+    {
         cursorArray[cursorNum] = static_cast<int>(taskNum - 1);
         cursorNum++;
     }
 
     // 批量设置batch id
     int j = 0;
-    for (int i = 0; i < cursorNum; i++) {
-        for (; j <= cursorArray[i]; j++) {
+    for (int i = 0; i < cursorNum; i++)
+    {
+        for (; j <= cursorArray[i]; j++)
+        {
             task[j]->taskId.batchId = i;
         }
     }
 }
 
-}
+}  // namespace Domain
 
-}
+}  // namespace Analysis

@@ -25,7 +25,7 @@ struct TopDownTask
 {
     bool isFirst = false;  // taskId-streamId-batchId-contextId都相同的任务中的第一个
 
-    uint16_t batchId = 0;
+    uint32_t batchId = 0;
     uint32_t taskId = 0;
     uint32_t streamId = 0;
     uint32_t contextId = 0;
@@ -38,7 +38,7 @@ struct TopDownTask
     double endTime = 0;
 
     TopDownTask() = default;
-    TopDownTask(bool isFirst, uint32_t taskId, uint16_t batchId, uint32_t streamId, uint32_t contextId, int32_t indexId,
+    TopDownTask(bool isFirst, uint32_t taskId, uint32_t batchId, uint32_t streamId, uint32_t contextId, int32_t indexId,
                 std::string deviceType, std::string hostType, uint64_t modelId, int64_t connectionId, double startTime,
                 double endTime)
         : taskId(taskId),

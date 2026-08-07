@@ -26,13 +26,13 @@ namespace Domain
 {
 using namespace Analysis::Application;
 // timestamp stream_id task_id task_type task_state
-using TaskTypeDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint64_t, uint16_t>;
+using TaskTypeDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t, uint16_t>;
 // index_id model_id timestamp stream_id task_id tag_id
-using StepTraceDataFormat = std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint16_t, uint16_t>;
+using StepTraceDataFormat = std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint32_t, uint16_t>;
 // timestamp stream_id task_id task_state
-using TaskMemcpyDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint64_t>;
+using TaskMemcpyDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t>;
 // timestamp stream_id task_id block_num
-using BlockNumDataFormat = std::tuple<uint64_t, uint16_t, uint16_t, uint32_t>;
+using BlockNumDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint32_t>;
 
 bool SaveTaskTypeData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
 {

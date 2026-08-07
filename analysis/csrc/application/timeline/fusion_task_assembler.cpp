@@ -88,7 +88,7 @@ uint8_t FusionTaskAssembler::AssembleData(DataInventory &dataInventory, JsonWrit
     {
         auto pid = GetDevicePid(devicePid, data.deviceId, profPath, layer.sortIndex);
         std::shared_ptr<FusionTaskTraceEvent> event;
-        MAKE_SHARED_RETURN_VALUE(event, FusionTaskTraceEvent, ASSEMBLE_FAILED, pid, static_cast<int>(data.streamId),
+        MAKE_SHARED_RETURN_VALUE(event, FusionTaskTraceEvent, ASSEMBLE_FAILED, pid, data.streamId,
                                  data.duration / NS_TO_US, DivideByPowersOfTenWithPrecision(data.startTime), data);
         res_.emplace_back(std::move(event));
     }
