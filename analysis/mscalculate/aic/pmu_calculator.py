@@ -34,6 +34,7 @@ class PmuCalculator(ICalculator):
     """
     class used to parse aicore data
     """
+
     AICORE_LOG_SIZE = 128
     STREAM_TASK_KEY_FMT = "{0}-{1}"
 
@@ -93,6 +94,19 @@ class PmuCalculator(ICalculator):
                 self._core_num_dict['aiv'] = InfoConfReader().get_data_under_device('aiv_num')
                 self._freq = InfoConfReader().get_freq(StrConstant.AIC)
 
+    def _get_current_freq(self: any, task_time) -> int:
+        """
+        根据task时间从freq_data中查找对应时间点的频率，子类各自填充freq_data
+        :param task_time: 任务时间值（需与freq_data中时间格式一致）
+        :return: 频率值(Hz)
+        """
+        freq_curr = self._freq
+        for time_point, freq_mhz in self.freq_data:
+            if task_time < time_point:
+                break
+            freq_curr = freq_mhz * 1000000  # convert MHz to Hz
+        return freq_curr if freq_curr != 0 else self._freq
+
     def _get_current_block(self: any, block_type: str, ai_core_data: any) -> int:
         """
         get the current block num when stream id and task id occurs again
@@ -100,15 +114,21 @@ class PmuCalculator(ICalculator):
         :return: block num
         """
         block = self._block_num.get(block_type, {}).get(
-            self.STREAM_TASK_KEY_FMT.format(ai_core_data.task_id, ai_core_data.stream_id))
+            self.STREAM_TASK_KEY_FMT.format(ai_core_data.task_id, ai_core_data.stream_id)
+        )
         if not block:
             return 0
         return block.pop(0) if len(block) > 1 else block[0]
 
     def _format_ge_data(self: any, ge_data: list) -> None:
         for data in ge_data:
-            if data.task_type not in (Constant.TASK_TYPE_AI_CORE, Constant.TASK_TYPE_AIV, Constant.TASK_TYPE_COMMUNICATION,
-                                      Constant.TASK_TYPE_MIX_AIC, Constant.TASK_TYPE_MIX_AIV):
+            if data.task_type not in (
+                Constant.TASK_TYPE_AI_CORE,
+                Constant.TASK_TYPE_AIV,
+                Constant.TASK_TYPE_COMMUNICATION,
+                Constant.TASK_TYPE_MIX_AIC,
+                Constant.TASK_TYPE_MIX_AIV,
+            ):
                 continue
             _key = self.STREAM_TASK_KEY_FMT.format(data.task_id, data.stream_id)
             self._block_num.get('block_num', {}).setdefault(_key, []).append(int(data.block_num))
@@ -123,24 +143,31 @@ class PmuCalculator(ICalculator):
         host_start_cnt = InfoConfReader().trans_from_start_info_raw_time_into_host_cnt()
         ge_data = []
         if ProfilingScene().is_all_export() or ProfilingScene().is_step_export():
-            sql = "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} " \
-                  "where device_id={1} and timestamp >= {2} and model_id = {3} " \
-                  "order by timestamp".format(DBNameConstant.TABLE_GE_TASK, device_id, host_start_cnt,
-                                              NumberConstant.INVALID_MODEL_ID)
+            sql = (
+                "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} "
+                "where device_id={1} and timestamp >= {2} and model_id = {3} "
+                "order by timestamp".format(
+                    DBNameConstant.TABLE_GE_TASK, device_id, host_start_cnt, NumberConstant.INVALID_MODEL_ID
+                )
+            )
             ge_data.extend(DBManager.fetch_all_data(ge_curs, sql, dto_class=GeTaskDto))
 
-            sql = "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} " \
-                  "where device_id={1} and model_id != {2} " \
-                  "order by timestamp".format(DBNameConstant.TABLE_GE_TASK, device_id,
-                                              NumberConstant.INVALID_MODEL_ID)
+            sql = (
+                "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} "
+                "where device_id={1} and model_id != {2} "
+                "order by timestamp".format(DBNameConstant.TABLE_GE_TASK, device_id, NumberConstant.INVALID_MODEL_ID)
+            )
             ge_data.extend(DBManager.fetch_all_data(ge_curs, sql, dto_class=GeTaskDto))
             return ge_data
 
         iter_list = MsprofIteration(self._project_path).get_index_id_list_with_index_and_model(self._iter_range)
-        sql = "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} " \
-              "where model_id=? and (index_id=0 or index_id=?) and device_id={1} ? " \
-              "order by timestamp".format(DBNameConstant.TABLE_GE_TASK, device_id)
+        base_sql = (
+            "select task_id, stream_id, context_id, task_type, block_num, mix_block_num from {0} "
+            "where model_id=? and (index_id=0 or index_id=?) and device_id={1} {2} "
+            "order by timestamp"
+        )
         for iter_id, model_id in iter_list:
             condition = f"and timestamp >= {host_start_cnt} " if model_id == NumberConstant.INVALID_MODEL_ID else " "
-            ge_data.extend(DBManager.fetch_all_data(ge_curs, sql, (model_id, iter_id, condition), dto_class=GeTaskDto))
+            sql = base_sql.format(DBNameConstant.TABLE_GE_TASK, device_id, condition)
+            ge_data.extend(DBManager.fetch_all_data(ge_curs, sql, (model_id, iter_id), dto_class=GeTaskDto))
         return ge_data

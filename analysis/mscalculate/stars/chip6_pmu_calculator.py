@@ -14,6 +14,9 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+# chip6从ffts分叉而来，框架层(ms_run/parse/_parse_by_iter/_parse_binary_file)存在天然结构重复
+
 import itertools
 import logging
 import os
@@ -46,6 +49,7 @@ from mscalculate.calculate_ai_core_data import CalculateAiCoreData
 from mscalculate.stars.ffts_pmu_calculator import PmuMetrics
 from msmodel.iter_rec.iter_rec_model import HwtsIterModel
 from msmodel.stars.ffts_pmu_model import V6PmuModel
+from msmodel.stars.low_power_model import LowPowerViewModel
 from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.stars.pmu_bean_v6 import PmuBeanV6
@@ -88,6 +92,7 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         self.pmu_data = []
         self.block_pmu_data = []  # for chip v6
         self._logged_func_types: set = set()
+        self.freq_data = []
 
     @staticmethod
     def _get_total_cycle_and_pmu_data(data: any, use_actual_data: bool) -> tuple:
@@ -98,8 +103,11 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
 
     def ms_run(self: any) -> None:
         config = ConfigMgr.read_sample_config(self.sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH))
-        if not self._file_list or config.get(StrConstant.AICORE_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE \
-                or config.get(StrConstant.AIV_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE:
+        if (
+            not self._file_list
+            or config.get(StrConstant.AICORE_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE
+            or config.get(StrConstant.AIV_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE
+        ):
             return
         self.init_params()
         self.parse()
@@ -110,8 +118,11 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         if ProfilingScene().is_all_export():
             db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_METRICS_SUMMARY)
             if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_METRIC_SUMMARY):
-                logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                             DBNameConstant.TABLE_METRIC_SUMMARY, DBNameConstant.DB_METRICS_SUMMARY)
+                logging.info(
+                    "The Table %s already exists in the %s, and won't be calculate again.",
+                    DBNameConstant.TABLE_METRIC_SUMMARY,
+                    DBNameConstant.DB_METRICS_SUMMARY,
+                )
                 return
             self._parse_all_file()
         else:
@@ -122,7 +133,9 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
                 "An operator overflow has been detected. The first operator is "
                 "(stream id = %d, task id = %d), with a total of %d overflowed operators."
                 "Total_cycle value is invalid!",
-                self._first_ov_task[0], self._first_ov_task[1], self._overflow_count
+                self._first_ov_task[0],
+                self._first_ov_task[1],
+                self._overflow_count,
             )
 
     def calculate(self: any) -> None:
@@ -137,6 +150,7 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
             logging.warning("Some PMU data fails to be parsed, err count: %s", self._wrong_func_type_count)
         self.get_block_pmu_data()
         self._set_table_name_list()
+        self.freq_data = self._get_low_power_freq_data()
         self.pmu_data = self.calculate_mix_pmu_list()
 
     def save(self: any) -> None:
@@ -166,12 +180,14 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
             slave_core_data_list = slave_core_data_dict.get(data_key, [])
             if data.is_mix_data() and slave_core_data_list:
                 slave_core_data = slave_core_data_list.popleft()
-                aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle = (
-                    self.add_ctx_mix_pmu_to_context_pmu(data, slave_core_data))
+                aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle = self.add_ctx_mix_pmu_to_context_pmu(
+                    data, slave_core_data
+                )
                 aic_total_time, aiv_total_time = self._calculate_total_time_for_mix(data, slave_core_data)
             else:
                 aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle = (
-                    self.get_pmu_value_and_total_cycle_for_no_mix(data))
+                    self.get_pmu_value_and_total_cycle_for_no_mix(data)
+                )
                 aic_total_time, aiv_total_time = self._calculate_total_time(data)
             metrics_type = self._sample_json.get('ai_core_metrics')
             aic_pmu_value = self._aic_calculator.add_pipe_time(aic_pmu_value, aic_total_time, metrics_type)
@@ -182,19 +198,40 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
                 aic_pmu_name = [f"aic_{i}" for i in range(len(aic_pmu_value_list))]
                 aiv_pmu_name = [f"aiv_{i}" for i in range(len(aiv_pmu_value_list))]
                 self._data_name = [
-                    "aic_total_time", "aic_total_cycle", *aic_pmu_name,
-                    "aiv_total_time", "aiv_total_cycle", *aiv_pmu_name,
-                    "task_id", "stream_id", "subtask_id", "subtask_type",
-                    "start_time", "timestamp", "ffts_type", "task_type", "batch_id"
+                    "aic_total_time",
+                    "aic_total_cycle",
+                    *aic_pmu_name,
+                    "aiv_total_time",
+                    "aiv_total_cycle",
+                    *aiv_pmu_name,
+                    "task_id",
+                    "stream_id",
+                    "subtask_id",
+                    "subtask_type",
+                    "start_time",
+                    "timestamp",
+                    "ffts_type",
+                    "task_type",
+                    "batch_id",
                 ]
                 pmu_data_type = CustomizedNamedtupleFactory.enhance_namedtuple(
-                    namedtuple("PmuData", self._data_name), {})
+                    namedtuple("PmuData", self._data_name), {}
+                )
             pmu_data = pmu_data_type(
-                aic_total_time, aic_total_cycle, *aic_pmu_value_list,
-                aiv_total_time, aiv_total_cycle, *aiv_pmu_value_list,
-                data.task_id, data.stream_id, data.subtask_id, data.subtask_type,
+                aic_total_time,
+                aic_total_cycle,
+                *aic_pmu_value_list,
+                aiv_total_time,
+                aiv_total_cycle,
+                *aiv_pmu_value_list,
+                data.task_id,
+                data.stream_id,
+                data.subtask_id,
+                data.subtask_type,
                 InfoConfReader().time_from_syscnt(data.start_time),
-                InfoConfReader().time_from_syscnt(data.end_time), data.ffts_type, task_type,
+                InfoConfReader().time_from_syscnt(data.end_time),
+                data.ffts_type,
+                task_type,
                 0,  # default batch_id
             )
             pmu_data_list.append(pmu_data)
@@ -222,24 +259,32 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         """
         v6芯片中， mix算子在有一条context从核数据，从context中添加从核数据
         """
-        main_pmu_value = self._get_pmu_value(*self._get_total_cycle_and_pmu_data(data, data.is_mst_data()),
-                                             self._aic_pmu_events)
+        main_pmu_value = self._get_pmu_value(
+            *self._get_total_cycle_and_pmu_data(data, data.is_mst_data()), self._aic_pmu_events
+        )
         main_core_total_cycle = data.total_cycle
         slave_core_total_cycle = slave_core_data.total_cycle
         slave_pmu_value = self._get_pmu_value(
             *self._get_total_cycle_and_pmu_data(slave_core_data, not slave_core_data.is_mst_data()),
-            self._aiv_pmu_events)
-        aic_pmu_value, aiv_pmu_value = (main_pmu_value, slave_pmu_value) if (
-            data.is_aic_data()) else (slave_pmu_value, main_pmu_value)
-        aic_total_cycle, aiv_total_cycle = (main_core_total_cycle, slave_core_total_cycle) if (
-            data.is_aic_data()) else (slave_core_total_cycle, main_core_total_cycle)
+            self._aiv_pmu_events,
+        )
+        aic_pmu_value, aiv_pmu_value = (
+            (main_pmu_value, slave_pmu_value) if (data.is_aic_data()) else (slave_pmu_value, main_pmu_value)
+        )
+        aic_total_cycle, aiv_total_cycle = (
+            (main_core_total_cycle, slave_core_total_cycle)
+            if (data.is_aic_data())
+            else (slave_core_total_cycle, main_core_total_cycle)
+        )
         return aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle
 
     def get_pmu_value_and_total_cycle_for_no_mix(self, data) -> tuple:
-        aic_pmu_value = \
-            self._get_pmu_value(*self._get_total_cycle_and_pmu_data(data, data.is_aic_data()), self._aic_pmu_events)
-        aiv_pmu_value = \
-            self._get_pmu_value(*self._get_total_cycle_and_pmu_data(data, not data.is_aic_data()), self._aiv_pmu_events)
+        aic_pmu_value = self._get_pmu_value(
+            *self._get_total_cycle_and_pmu_data(data, data.is_aic_data()), self._aic_pmu_events
+        )
+        aiv_pmu_value = self._get_pmu_value(
+            *self._get_total_cycle_and_pmu_data(data, not data.is_aic_data()), self._aiv_pmu_events
+        )
         aic_total_cycle = data.total_cycle if data.is_aic_data() else 0
         aiv_total_cycle = data.total_cycle if not data.is_aic_data() else 0
         return aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle
@@ -248,16 +293,7 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         block_pmu_data_type = CustomizedNamedtupleFactory.enhance_namedtuple(
             namedtuple(
                 "PmuBlockData",
-                [
-                    "stream_id",
-                    "task_id",
-                    "subtask_id",
-                    "batch_id",
-                    "start_time",
-                    "duration",
-                    "core_type",
-                    "core_id"
-                ],
+                ["stream_id", "task_id", "subtask_id", "batch_id", "start_time", "duration", "core_type", "core_id"],
             ),
             {},
         )
@@ -268,11 +304,9 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
                 data.subtask_id,
                 None,
                 InfoConfReader().time_from_syscnt(data.start_time),
-                InfoConfReader().duration_from_syscnt(
-                    data.end_time - data.start_time
-                ),
+                InfoConfReader().duration_from_syscnt(data.end_time - data.start_time),
                 data.core_type,  # aic还是aiv看self.AIC_CORE_TYPE
-                data.core_id
+                data.core_id,
             )
             for data in self._data_list_dict.get(StrConstant.BLOCK_PMU_TYPE, [])
         ]
@@ -295,13 +329,15 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         with self._iter_model as iter_model:
             if not iter_model.check_db() or not iter_model.check_table():
                 return
-            pmu_offset, pmu_count = self._iter_model.get_task_offset_and_sum(self._iter_range,
-                                                                             HwtsIterModel.AI_CORE_TYPE)
+            pmu_offset, pmu_count = self._iter_model.get_task_offset_and_sum(
+                self._iter_range, HwtsIterModel.AI_CORE_TYPE
+            )
             if pmu_count <= 0:
                 logging.warning("The ffts pmu data that is not satisfied by the specified iteration!")
                 return
-            _file_calculator = FileCalculator(self._file_list, self.FFTS_PMU_SIZE, self._project_path,
-                                              pmu_offset, pmu_count)
+            _file_calculator = FileCalculator(
+                self._file_list, self.FFTS_PMU_SIZE, self._project_path, pmu_offset, pmu_count
+            )
             for chunk in Utils.chunks(_file_calculator.prepare_process(), self.FFTS_PMU_SIZE):
                 self._get_pmu_decode_data(chunk)
 
@@ -332,8 +368,9 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
             context_pmu = PmuBeanV6.decode(bin_data)
             # 仅处理context级别数据 block数据不受ov影响
             if context_pmu.ov_flag:
-                self._first_ov_task = (context_pmu.stream_id, context_pmu.task_id) \
-                    if not self._first_ov_task else self._first_ov_task
+                self._first_ov_task = (
+                    (context_pmu.stream_id, context_pmu.task_id) if not self._first_ov_task else self._first_ov_task
+                )
                 self._overflow_count += 1
                 return
             self._data_list_dict.setdefault(StrConstant.CONTEXT_PMU_TYPE, []).append(context_pmu)
@@ -356,8 +393,9 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
 
     def _need_to_analyse(self: any) -> bool:
         db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_METRICS_SUMMARY)
-        if (not os.path.exists(db_path) or
-                not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_METRIC_SUMMARY)):
+        if not os.path.exists(db_path) or not DBManager.check_tables_in_db(
+            db_path, DBNameConstant.TABLE_METRIC_SUMMARY
+        ):
             return True
         return False
 
@@ -368,35 +406,53 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
     def _set_pmu_events(self):
         if judge_custom_pmu_scene(self._sample_json):
             self._aic_pmu_events = AicPmuUtils.get_custom_pmu_events(
-                self._sample_json.get(StrConstant.AI_CORE_PMU_EVENTS))
+                self._sample_json.get(StrConstant.AI_CORE_PMU_EVENTS)
+            )
             self._aiv_pmu_events = AicPmuUtils.get_custom_pmu_events(
-                self._sample_json.get(StrConstant.AI_VECTOR_CORE_PMU_EVENTS))
+                self._sample_json.get(StrConstant.AI_VECTOR_CORE_PMU_EVENTS)
+            )
         else:
-            self._aic_pmu_events = AicPmuUtils.get_pmu_events(
-                self._sample_json.get(StrConstant.AI_CORE_PMU_EVENTS))
+            self._aic_pmu_events = AicPmuUtils.get_pmu_events(self._sample_json.get(StrConstant.AI_CORE_PMU_EVENTS))
             self._aiv_pmu_events = AicPmuUtils.get_pmu_events(
-                self._sample_json.get(StrConstant.AI_VECTOR_CORE_PMU_EVENTS))
+                self._sample_json.get(StrConstant.AI_VECTOR_CORE_PMU_EVENTS)
+            )
 
     def _set_table_name_list(self):
         self._aic_table_name_list = get_metrics_from_sample_config(
-            self._project_path, StrConstant.AI_CORE_PROFILING_METRICS)[2:]
+            self._project_path, StrConstant.AI_CORE_PROFILING_METRICS
+        )[2:]
         self._aiv_table_name_list = get_metrics_from_sample_config(
-            self._project_path, StrConstant.AIV_PROFILING_METRICS)[2:]
+            self._project_path, StrConstant.AIV_PROFILING_METRICS
+        )[2:]
+
+    def _get_low_power_freq_data(self: any) -> list:
+        """
+        从lowPower表中获取AIC频率数据
+        :return: [(sys_time, avg_freq_MHz), ...] 按时间排序的列表
+        """
+        with LowPowerViewModel(
+            self._project_path, DBNameConstant.DB_LOW_POWER, [DBNameConstant.TABLE_LOWPOWER]
+        ) as model:
+            return model.get_aicore_avg_freq_data()
 
     def _calculate_total_time_for_mix(self: any, data, slave_core_data):
         """
-        计算mix类型的总时间
+        计算mix类型的总时间：主核使用end_time-start_time，从核使用total_cycle计算
         """
         if data.is_aic_data():
-            aic_total_time = InfoConfReader().duration_from_syscnt(
-                data.end_time - data.start_time)
-            aiv_total_time = InfoConfReader().duration_from_syscnt(
-                slave_core_data.end_time - slave_core_data.start_time)
+            # 主核(AIC)：保持原有时间差逻辑
+            aic_total_time = InfoConfReader().duration_from_syscnt(data.end_time - data.start_time)
+            # 从核(AIV)：使用total_cycle计算
+            slave_block_num = self._get_current_block('mix_block_num', data)
+            slave_core_num = self._core_num_dict.get('aiv', 0)
+            slave_freq = self._get_current_freq(InfoConfReader().time_from_syscnt(slave_core_data.end_time))
+            aiv_total_time = Utils.cal_total_time(
+                slave_core_data.total_cycle, slave_freq, slave_block_num, slave_core_num
+            )
         else:
-            aiv_total_time = InfoConfReader().duration_from_syscnt(
-                data.end_time - data.start_time)
-            aic_total_time = InfoConfReader().duration_from_syscnt(
-                slave_core_data.end_time - slave_core_data.start_time)
+            # 主核(AIV)：保持原有时间差逻辑；从核(AIC)无数据，归零
+            aiv_total_time = InfoConfReader().duration_from_syscnt(data.end_time - data.start_time)
+            aic_total_time = 0
         aic_total_time = round(aic_total_time, NumberConstant.ROUND_TWO_DECIMAL)
         aiv_total_time = round(aiv_total_time, NumberConstant.ROUND_TWO_DECIMAL)
         return aic_total_time, aiv_total_time
@@ -406,12 +462,10 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         计算非mix类型（仅主核或仅从核）的总时间
         """
         if data.is_aic_data():
-            aic_total_time = InfoConfReader().duration_from_syscnt(
-                data.end_time - data.start_time)
+            aic_total_time = InfoConfReader().duration_from_syscnt(data.end_time - data.start_time)
             aiv_total_time = 0
         else:
-            aiv_total_time = InfoConfReader().duration_from_syscnt(
-                data.end_time - data.start_time)
+            aiv_total_time = InfoConfReader().duration_from_syscnt(data.end_time - data.start_time)
             aic_total_time = 0
         aic_total_time = round(aic_total_time, NumberConstant.ROUND_TWO_DECIMAL)
         aiv_total_time = round(aiv_total_time, NumberConstant.ROUND_TWO_DECIMAL)

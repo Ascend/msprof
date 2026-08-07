@@ -297,6 +297,128 @@ class TestChip6PmuCalculator(TestCase):
             self.assertEqual(1111, pmu_data_list[0].aic_total_cycle)
             self.assertEqual(4, len(check.block_pmu_data))
 
+    def test_calculate_mix_aic_slave_use_total_cycle(self):
+        """MIX_AIC: 主核AIC用start-end，从核AIV用total_cycle计算，且两者不一样"""
+        context_task = [
+            # main: AIC(core_type=0), mst=1, mix=1, total_cycle=1000
+            PmuBeanV6([0, 0, 3, 0, 1000, 6, 3, 0, 128, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000000, 1020000]),
+            # slave: AIV(core_type=1), mst=0, mix=1, total_cycle=5000
+            PmuBeanV6([0, 0, 3, 0, 5000, 6, 2, 0, 129, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000000, 3000000]),
+        ]
+        with mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value={}), \
+                mock.patch(NAMESPACE + '.Chip6PmuCalculator.get_config_params', return_value=None), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=25.0) as mock_dur, \
+                mock.patch(NAMESPACE + '.Utils.cal_total_time', return_value=99.99) as mock_cal:
+            check = Chip6PmuCalculator(self.file_list, CONFIG)
+            check.init_params()
+            check._data_list_dict['context_task'] = context_task
+            check._freq = 1000
+            check._block_num = {'block_num': {}, 'mix_block_num': {'3-3': [4]}, 'block_num_group': {}}
+            check._core_num_dict = {'aic': 30, 'aiv': 3}
+            pmu_data_list = check.calculate_mix_pmu_list()
+
+            self.assertEqual(1, len(pmu_data_list))
+            # 主核AIC: 使用duration_from_syscnt → 25.0
+            self.assertAlmostEqual(25.0, pmu_data_list[0].aic_total_time)
+            self.assertEqual(1000, pmu_data_list[0].aic_total_cycle)
+            # 从核AIV: 使用total_cycle计算 → mocked为99.99, 与duration_from_syscnt结果25.0不同
+            self.assertAlmostEqual(99.99, pmu_data_list[0].aiv_total_time)
+            self.assertEqual(5000, pmu_data_list[0].aiv_total_cycle)
+            # 从核调用cal_total_time(cycle, freq, block_num, core_num)
+            mock_cal.assert_called_once_with(5000, 1000, 4, 3)
+            # 主核调用duration_from_syscnt(delta)
+            mock_dur.assert_called_once_with(20000)
+
+    def test_calculate_mix_aiv_slave_aic_zero(self):
+        """MIX_AIV: 主核AIV用start-end，从核AIC数据归零"""
+        context_task = [
+            # main: AIV(core_type=1), mst=1, mix=1, total_cycle=1000
+            PmuBeanV6([0, 0, 4, 0, 1000, 6, 3, 0, 129, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2000000, 2020000]),
+            # slave: AIC(core_type=0), mst=0, mix=1, total_cycle=5000
+            PmuBeanV6([0, 0, 4, 0, 5000, 6, 2, 0, 128, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2000000, 5000000]),
+        ]
+        with mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value={}), \
+                mock.patch(NAMESPACE + '.Chip6PmuCalculator.get_config_params', return_value=None), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=30.0) as mock_dur, \
+                mock.patch(NAMESPACE + '.Utils.cal_total_time') as mock_cal:
+            check = Chip6PmuCalculator(self.file_list, CONFIG)
+            check.init_params()
+            check._data_list_dict['context_task'] = context_task
+            check._freq = 1000
+            check._block_num = {'block_num': {}, 'mix_block_num': {'4-4': [4]}, 'block_num_group': {}}
+            check._core_num_dict = {'aic': 30, 'aiv': 3}
+            pmu_data_list = check.calculate_mix_pmu_list()
+
+            self.assertEqual(1, len(pmu_data_list))
+            # 主核AIV: 使用duration_from_syscnt → 30.0
+            self.assertAlmostEqual(30.0, pmu_data_list[0].aiv_total_time)
+            self.assertEqual(1000, pmu_data_list[0].aiv_total_cycle)
+            # 从核AIC: AIV主核场景下归零
+            self.assertEqual(0, pmu_data_list[0].aic_total_time)
+            self.assertEqual(5000, pmu_data_list[0].aic_total_cycle)
+            # 从核不走total_cycle计算
+            mock_cal.assert_not_called()
+            mock_dur.assert_called_once_with(20000)
+
+    def test_calculate_no_mix_aic_only(self):
+        """非mix: 仅AIC数据，total_time来自start-end，AIV归零"""
+        context_task = [
+            # AIC(core_type=0), mst=1, mix=0
+            PmuBeanV6([0, 0, 5, 0, 800, 6, 1, 0, 128, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000000, 1015000]),
+        ]
+        with mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value={}), \
+                mock.patch(NAMESPACE + '.Chip6PmuCalculator.get_config_params', return_value=None), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=15.0) as mock_dur:
+            check = Chip6PmuCalculator(self.file_list, CONFIG)
+            check.init_params()
+            check._data_list_dict['context_task'] = context_task
+            check._freq = 1000
+            check._block_num = {'block_num': {'5-5': [1]}, 'mix_block_num': {}, 'block_num_group': {}}
+            check._core_num_dict = {'aic': 30, 'aiv': 3}
+            pmu_data_list = check.calculate_mix_pmu_list()
+
+            self.assertEqual(1, len(pmu_data_list))
+            # AIC: 使用duration_from_syscnt → 15.0
+            self.assertAlmostEqual(15.0, pmu_data_list[0].aic_total_time)
+            self.assertEqual(800, pmu_data_list[0].aic_total_cycle)
+            # 非mix无AIV数据
+            self.assertEqual(0, pmu_data_list[0].aiv_total_time)
+            self.assertEqual(0, pmu_data_list[0].aiv_total_cycle)
+            mock_dur.assert_called_once_with(15000)
+
+    def test_calculate_no_mix_aiv_only(self):
+        """非mix: 仅AIV数据，total_time来自start-end，AIC归零"""
+        context_task = [
+            # AIV(core_type=1), mst=1, mix=0
+            PmuBeanV6([0, 0, 6, 0, 600, 6, 1, 0, 129, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2000000, 2030000]),
+        ]
+        with mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value={}), \
+                mock.patch(NAMESPACE + '.Chip6PmuCalculator.get_config_params', return_value=None), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=30.0) as mock_dur:
+            check = Chip6PmuCalculator(self.file_list, CONFIG)
+            check.init_params()
+            check._data_list_dict['context_task'] = context_task
+            check._freq = 1000
+            check._block_num = {'block_num': {'6-6': [1]}, 'mix_block_num': {}, 'block_num_group': {}}
+            check._core_num_dict = {'aic': 30, 'aiv': 3}
+            pmu_data_list = check.calculate_mix_pmu_list()
+
+            self.assertEqual(1, len(pmu_data_list))
+            # AIV: 使用duration_from_syscnt → 30.0
+            self.assertAlmostEqual(30.0, pmu_data_list[0].aiv_total_time)
+            self.assertEqual(600, pmu_data_list[0].aiv_total_cycle)
+            # 非mix无AIC数据
+            self.assertEqual(0, pmu_data_list[0].aic_total_time)
+            self.assertEqual(0, pmu_data_list[0].aic_total_cycle)
+            mock_dur.assert_called_once_with(30000)
+            self.assertEqual(600, pmu_data_list[0].aiv_total_cycle)
+
 
 if __name__ == '__main__':
     unittest.main()
