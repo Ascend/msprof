@@ -110,6 +110,10 @@ bool ExportManager::CheckProfDirsValid()
     if (profPath_.find("PROF") == std::string::npos)
     {
         ERROR("The path: % is not contains PROF, please check", profPath_);
+        PRINT_ERROR(
+            "There are no directories whose names contain 'PROF' under this path: %. Please verify the file "
+            "correctness.",
+            profPath_);
         return false;
     }
     return true;
