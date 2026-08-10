@@ -217,6 +217,8 @@ const std::string PROCESSOR_NAME_BLOCK_DETAIL = "BLOCK_DETAIL";
 
 const std::string PROCESSOR_NAME_DPU = "DPU";
 const std::string TABLE_NAME_DPU_TASK = "DPU_TASK";
+
+const std::string PROCESSOR_NAME_PAGE_FAULT = "PAGE_FAULT";
 // mstx event type
 const std::unordered_map<std::string, uint16_t> MSTX_EVENT_TYPE_TABLE = {
     {"marker", 0}, {"push/pop", 1}, {"start/end", 2}, {"marker_ex", 3}};

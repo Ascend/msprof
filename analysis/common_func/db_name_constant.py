@@ -205,6 +205,7 @@ class DBNameConstant(metaclass=ABCMeta):
     TABLE_L2CACHE_SUMMARY = 'L2CacheSummary'
     TABLE_BLOCK_LOG = "BlockLog"
     TABLE_SOC_PMU = "SocPmu"
+    TABLE_PAGE_FAULT = "PageFault"
     TABLE_SOC_PMU_SUMMARY = "SocPmuSummary"
 
     # dvpp

@@ -1754,6 +1754,12 @@ class TablesConfig(MetaConfig):
             ('task_id', 'NUMERIC,null'),
             ('event_lists', 'TEXT,null'),
         ],
+        'PageFaultMap': [
+            ('task_type', 'NUMERIC,null'),
+            ('stream_id', 'NUMERIC,null'),
+            ('task_id', 'NUMERIC,null'),
+            ('event_lists', 'TEXT,null'),
+        ],
         'SocPmuSummaryMap': [
             ('task_type', 'NUMERIC,null'),
             ('stream_id', 'NUMERIC,null'),
