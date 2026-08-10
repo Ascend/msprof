@@ -52,7 +52,7 @@ class LowPowerViewModel(ViewModel):
         """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_LOWPOWER):
             return []
-        sql = "SELECT col_0, AVG(col_12) FROM {} WHERE col_1 IN (0, 1) GROUP BY col_0 ORDER BY col_0".format(
+        sql = "SELECT timestamp, AVG(data0_soft) FROM {} WHERE die_id IN (0, 1) GROUP BY timestamp ORDER BY timestamp".format(
             DBNameConstant.TABLE_LOWPOWER
         )
         rows = DBManager.fetch_all_data(self.cur, sql)
