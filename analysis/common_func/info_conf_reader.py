@@ -488,9 +488,12 @@ class InfoConfReader:
         return: host cnt
         """
         start_info_raw_time, _ = self.get_collect_raw_time()
+        host_freq = self.get_host_freq()
+        if host_freq == self.HOST_DEFAULT_FREQ:
+            return start_info_raw_time
         res = (
             (Decimal(int(start_info_raw_time)) - Decimal(self._host_mon * NumberConstant.NANO_SECOND))
-            * Decimal(self.get_host_freq() / NumberConstant.NANO_SECOND)
+            * Decimal(host_freq / NumberConstant.NANO_SECOND)
         ) + Decimal(self._host_cnt * NumberConstant.NANO_SECOND)
         return int(res)
 

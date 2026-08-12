@@ -31,7 +31,10 @@ class TestInfoConfReader(unittest.TestCase):
         info_reader._host_freq = None
         info_reader._local_time_offset = 0
         info_reader._start_info = {}
+        info_reader._end_info = {}
         info_reader._dev_cnt = 0.0
+        info_reader._host_mon = 0
+        info_reader._host_cnt = 0
 
     def test_time_from_host_syscnt_should_return_original_time_when_host_freq_is_default(self):
         InfoConfReader()._info_json = {'CPU': [{'Frequency': "1000"}]}
@@ -56,6 +59,22 @@ class TestInfoConfReader(unittest.TestCase):
     def test_syscnt_from_dev_time_should_return_sys_count_duration_when_host_freq_is_normal(self):
         InfoConfReader()._info_json = {'CPU': [{'Frequency': "3000"}]}
         self.assertEqual(InfoConfReader().get_host_syscnt_from_dev_time(15000000000), 45000000000.0)
+
+    def test_trans_from_start_info_raw_time_into_host_cnt_should_return_raw_time_when_host_freq_is_default(self):
+        InfoConfReader()._info_json = {'CPU': [{'Frequency': "1000"}]}
+        InfoConfReader()._start_info = {"clockMonotonicRaw": 15000000000}
+        InfoConfReader()._end_info = {}
+        self.assertEqual(InfoConfReader().trans_from_start_info_raw_time_into_host_cnt(), 15000000000)
+
+    def test_trans_from_start_info_raw_time_into_host_cnt_should_return_computed_cnt_when_host_freq_is_normal(self):
+        InfoConfReader()._info_json = {'CPU': [{'Frequency': "3000"}]}
+        InfoConfReader()._start_info = {"clockMonotonicRaw": 15000000000}
+        InfoConfReader()._end_info = {}
+        InfoConfReader()._host_mon = 5.0
+        InfoConfReader()._host_cnt = 3.0
+        # host_freq = 3000 * 1e6 = 3e9, host_freq / NANO = 3.0
+        # res = (15e9 - 5e9) * 3.0 + 3e9 = 10e9 * 3 + 3e9 = 33e9
+        self.assertEqual(InfoConfReader().trans_from_start_info_raw_time_into_host_cnt(), 33000000000)
 
     def test_get_host_freq_should_return_host_freq_when_host_freq_not_None(self):
         InfoConfReader()._host_freq = 1000000000
