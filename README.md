@@ -56,7 +56,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 💡 典型案例
 
-通过典型问题场景帮助用户理解并掌握工具使用，请参见《[msProf 典型案例](docs/zh/best_practices/basic_cases.md)》。
+通过典型问题场景帮助用户理解并掌握工具使用，请参见《[msProf 典型案例](docs/zh/best_practices/README.md)》。
 
 ## ❓ FAQ
 

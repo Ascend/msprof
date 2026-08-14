@@ -1,6 +1,6 @@
-# 内存泄漏问题分析
+# 内存泄漏
 
-## 问题背景
+## 1. 问题背景
 
 【问题来源】
 CANN 包版本升级（A版本 → B版本），推理场景。
@@ -8,7 +8,7 @@ CANN 包版本升级（A版本 → B版本），推理场景。
 【问题现象】
 稳定复现。B版本运行约 12 小时后，在第 471 个 step 出现 OOM。该问题在 A 版本上未复现，且在 GPU 上同样未出现，仅在 NPU B 版本上复现。已确认开启了虚拟内存。
 
-## 定位过程
+## 2. 定位过程
 
 ### 第一步：对比两个版本单 step 的 profiling 内存数据
 
@@ -83,13 +83,13 @@ with torch_npu.profiler.profile(
 
 进一步代码审查发现，B版本中 `custom_attention_forward` 的 KV-cache 实现存在引用计数问题：中间 tensor 被 cache 内部引用后，Python 侧引用计数未正确递减，导致 step 结束后 tensor 不会被 GC 回收，累积在内存池中。
 
-## 问题根因
+## 3. 问题根因
 
 B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数错误，导致每 step 产生的中间 tensor（约 47MB）无法被垃圾回收，持续累积在显存中。经过 471 个 step 后，累积泄漏量达到 ~22GB，触发 OOM。
 
 该问题属于算子 bug：KV-cache 内部对中间 tensor 的引用管理不当。该故障模式需补充至故障模式库。
 
-## 定位方法论总结
+## 4. 定位方法论总结
 
 <div align="center"><img src="../figures/profiler_case_leak_methodology.png" /></div>
 <div align="center"><b>图3：内存泄漏问题定位方法论</b></div>
@@ -98,7 +98,7 @@ B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数�
 2. 确认单 step 存在泄漏后，扩大 profiling 范围验证跨 step 累积趋势，排除单次异常。
 3. 利用 `operator_memory.csv` 筛选申请/释放不匹配的算子，结合 `with_stack` 调用栈定位到具体代码路径。
 
-## 对工具的改进建议
+## 5. 对工具的改进建议
 
 - `operator_memory.csv` 目前需要手动对比申请和释放记录来识别泄漏算子，建议增加"未释放算子"的自动标注能力
 - profiling 工具可增加跨 step 的 `allocated` 趋势图自动生成，降低泄漏累积的识别门槛
