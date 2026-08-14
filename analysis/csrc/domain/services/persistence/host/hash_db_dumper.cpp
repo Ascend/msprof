@@ -15,8 +15,10 @@
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/services/persistence/host/hash_db_dumper.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 HashDBDumper::HashDBDumper(const std::string &hostFilePath) : BaseDumper<HashDBDumper>(hostFilePath, "GeHashInfo")
 {
     MAKE_SHARED0_NO_OPERATION(database_, HashDB);
@@ -25,14 +27,16 @@ HashDBDumper::HashDBDumper(const std::string &hostFilePath) : BaseDumper<HashDBD
 std::vector<std::tuple<std::string, std::string>> HashDBDumper::GenerateData(const HashDataMap &hashData)
 {
     std::vector<std::tuple<std::string, std::string>> data;
-    if (!Utils::Reserve(data, hashData.size())) {
+    if (!Utils::Reserve(data, hashData.size()))
+    {
         ERROR("Can't reserve vector");
         return data;
     }
-    for (auto &pair: hashData) {
+    for (auto &pair : hashData)
+    {
         data.emplace_back(std::to_string(pair.first), pair.second);
     }
     return data;
 }
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
