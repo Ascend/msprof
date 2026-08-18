@@ -9,6 +9,8 @@
 
 </div>
 
+English | [简体中文](./README.md)
+
 ## 📢 What's New
 
 * [2025.12.30]: Initial release of the MindStudio Profiler (msProf) project.
