@@ -269,7 +269,7 @@ void CANNTraceDBDumper::DumpOpDesc(const HostTasks &computeTasks)
 
 void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInfo> &tensorDesc,
                                            MsprofNodeBasicInfo nodeBasicInfo, TaskInfoData &data,
-                                           const std::shared_ptr<HostTask> &task)
+                                           const std::shared_ptr<HostTask> &task, bool isLevel0)
 {
     auto tensorNum = tensorDesc->tensorNum;
     std::vector<std::string> inputFormat;
@@ -320,6 +320,15 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInf
     auto outputFormatStr = outputFormat.empty() ? NA : Utils::Join(outputFormat, ";");
     auto outputDataTypeStr = outputDataType.empty() ? NA : Utils::Join(outputDataType, ";");
     auto outputShapeStr = outputShape.empty() ? NA : Utils::AddQuotation(Utils::Join(outputShape, ";"));
+    if (isLevel0)
+    {
+        auto name = HashData::GetInstance().Get(task->op->name);
+        data.emplace_back(task->modelId, name, task->streamId, task->taskId, blockNum, mixBlockNum, NA, NA, NA,
+                          task->requestId, task->thread_id, task->timeStamp, task->batchId, tensorNum, inputFormatStr,
+                          inputDataTypeStr, inputShapeStr, outputFormatStr, outputDataTypeStr, outputShapeStr,
+                          task->deviceId, task->contextId, NA, NA, gridDim, blockDim);
+        return;
+    }
     data.emplace_back(
         task->modelId, HashData::GetInstance().Get(nodeBasicInfo.opName), task->streamId, task->taskId, blockNum,
         mixBlockNum, opState, NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeBasicInfo.taskType),
@@ -441,6 +450,12 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
     }
     if (isLevel0)
     {
+        auto desc = task->op->opDesc;
+        if (desc->tensorDesc)
+        {
+            AddTensorShapeInfo(desc->tensorDesc, MsprofNodeBasicInfo{}, data, task, true);
+            return;
+        }
         uint32_t blockNum = 0;
         uint32_t mixBlockNum = 0;
         std::string gridDim = NA;

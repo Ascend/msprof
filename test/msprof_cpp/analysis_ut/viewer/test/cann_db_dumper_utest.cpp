@@ -33,7 +33,10 @@ using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain::Cann;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
+const uint32_t TENSOR_NUM_POSITION = 13;
 const uint32_t INPUT_DATA_TYPE_POSITION = 15;
+const uint32_t INPUT_SHAPE_POSITION = 16;
+const uint32_t OUTPUT_SHAPE_POSITION = 19;
 const uint32_t GROUP_NAME_POSITION = 3;
 const uint32_t THREAD_ID = 1;
 
@@ -95,13 +98,13 @@ protected:
     static void MockGetL0ComputeTasks()
     {
         auto kernelTask = std::make_shared<HostTask>();
-        MsprofNodeBasicInfo msprofNodeBasicInfo{};
-        MsprofAttrInfo msprofNodeAttrInfo{};
-        auto ctx = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
-        ctx->threadId = 0;
         auto tensorDesc = std::make_shared<ConcatTensorInfo>();
-        tensorDesc->tensorNum = 1;
+        tensorDesc->tensorNum = 2;
+        MsrofTensorData tensorInput = {0, 1, 1, {1, 2, 3, 0}};
+        MsrofTensorData tensorOutput = {1, 1, 1, {4, 5, 6, 0}};
+        tensorDesc->tensorData = {tensorInput, tensorOutput};
         auto kernelDesc = std::make_shared<OpDesc>();
+        kernelDesc->tensorDesc = tensorDesc;
         auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
         kernelTask->op = kernelOp;
         std::shared_ptr<HostTask> computeTaskPointer = kernelTask;
@@ -260,7 +263,9 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
     CANNTraceDBDumper::TaskInfoData taskInfoData;
     opDescDBRunner.QueryData("select * from TaskInfo", taskInfoData);
     EXPECT_EQ(taskInfoData.size(), 1);
-    EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<TENSOR_NUM_POSITION>(taskInfoData[0]), 2);
+    EXPECT_EQ(std::get<INPUT_SHAPE_POSITION>(taskInfoData[0]), "\"1,2,3\"");
+    EXPECT_EQ(std::get<OUTPUT_SHAPE_POSITION>(taskInfoData[0]), "\"4,5,6\"");
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,

@@ -393,6 +393,15 @@ class TestCANNAnalysisGear(unittest.TestCase):
         task_dto.task_type = "KERNEL_AICORE"
         event1.additional_record = [self.create_addition_record(task_dto, 125, record_db)]
         event2: Event = self.create_api_event(self.event_col(Constant.NODE_LEVEL, 1, 110, 140, "launch", "op"), api_db)
+        tensor_info_dto = TensorInfoDto()
+        tensor_info_dto.tensor_num = 2
+        tensor_info_dto.input_formats = "NCHW"
+        tensor_info_dto.input_data_types = "FLOAT16"
+        tensor_info_dto.input_shapes = '"1,2"'
+        tensor_info_dto.output_formats = "ND"
+        tensor_info_dto.output_data_types = "FLOAT32"
+        tensor_info_dto.output_shapes = '"3,4"'
+        event2.additional_record = [self.create_addition_record(tensor_info_dto, 126, record_db)]
 
         RTAddInfoCenter("./test")
 
@@ -402,6 +411,13 @@ class TestCANNAnalysisGear(unittest.TestCase):
         self.assertEqual(
             DBManager.get_table_data_count(PathManager.get_db_path(self.PROF_HOST_DIR, DBNameConstant.DB_GE_INFO),
                                            DBNameConstant.TABLE_GE_TASK), 1)
+        ge_info_db = PathManager.get_db_path(self.PROF_HOST_DIR, DBNameConstant.DB_GE_INFO)
+        self.assertTrue(DBManager.check_item_in_table(
+            ge_info_db, DBNameConstant.TABLE_GE_TASK, 'tensor_num', 2))
+        self.assertTrue(DBManager.check_item_in_table(
+            ge_info_db, DBNameConstant.TABLE_GE_TASK, 'input_shapes', '"1,2"'))
+        self.assertTrue(DBManager.check_item_in_table(
+            ge_info_db, DBNameConstant.TABLE_GE_TASK, 'output_shapes', '"3,4"'))
         del InfoConfReader()._sample_json["profLevel"]
 
     def test_task_gear_should_save_one_op_when_one_traditional_mode_node_event_FROM_PROF_LEVEL1(self):

@@ -649,9 +649,9 @@ class TaskGear(CANNGear):
         if is_level0:
             # this happens when prof data is collected in level 0,
             # or hccl (reduce TBE op) op which is not same thread with node launch. 此场景在当前分支下失效 待具体数据验证
-            self.add_kernel_task_l0(
-                [node_dto, self.NodeDesc()], add_dto, [hccl_event, hccl_dto], [model_id, request_id]
-            )
+            node_descs = self.get_node_descs(node_event)
+            node_desc = next(iter(node_descs.values()), self.NodeDesc())
+            self.add_kernel_task_l0([node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id])
             return
 
         node_descs = self.get_node_descs(node_event)
@@ -680,6 +680,7 @@ class TaskGear(CANNGear):
         hccl_dto = hccl_info[1]
         model_id = model_info[0]
         request_id = model_info[1]
+        tensor_info_dto: TensorInfoDto = node_desc.tensor_info
         ctx_id_dto: CtxIdDto = node_desc.ctx_info
         cxt_ids = str(ctx_id_dto.ctx_id).split(',')
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
@@ -703,13 +704,13 @@ class TaskGear(CANNGear):
                     add_dto.thread_id,
                     add_dto.timestamp,
                     add_dto.batch_id,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
+                    tensor_info_dto.tensor_num,
+                    tensor_info_dto.input_formats,
+                    tensor_info_dto.input_data_types,
+                    tensor_info_dto.input_shapes,
+                    tensor_info_dto.output_formats,
+                    tensor_info_dto.output_data_types,
+                    tensor_info_dto.output_shapes,
                     add_dto.device_id,
                     int(cxt_id),
                     Constant.NA,
