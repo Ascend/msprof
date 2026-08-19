@@ -598,7 +598,7 @@ Control options:
 - `aic_metrics` of Ascend PyTorch Profiler
 - `aic_metrics` of MindSpore Profiler
 
-Only Atlas 200I/500 A2 inference products, Atlas A2 training products, and Atlas A2 inference products support the collection of such data.
+Only Ascend 310B Products and Ascend A2 Products support the collection of such data.
 
 **Table 33** Format
 

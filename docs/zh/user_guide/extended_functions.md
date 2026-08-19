@@ -6,12 +6,12 @@
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 **功能说明<a name="zh-cn_topic_0000001276273570_section4362143220451"></a>**
 
@@ -117,12 +117,12 @@ python3 get_msprof_info.py -dir <dir> [--help]
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 **功能说明<a name="zh-cn_topic_0000001265229666_section1598625522114"></a>**
 
@@ -173,7 +173,7 @@ msprof.py脚本需要执行如下步骤才能完成性能数据的最终导出�
 
 >[!NOTE]
 >
->- Atlas 200I/500 A2 推理产品的Ascend RC场景不支持在设备上直接解析、查询和导出，需要将采集到的PROF\_XXX目录拷贝到安装了Toolkit包的环境下进行操作。
+>- 昇腾310B系列产品的Ascend RC场景不支持在设备上直接解析、查询和导出，需要将采集到的PROF\_XXX目录拷贝到安装了Toolkit包的环境下进行操作。
 >
 >- msprof.py工具使用安装时创建的用户运行。
 
@@ -183,12 +183,12 @@ msprof.py脚本需要执行如下步骤才能完成性能数据的最终导出�
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 **功能说明<a name="zh-cn_topic_0000001265229758_section14143165719292"></a>**
 
@@ -240,12 +240,12 @@ python3 msprof.py import -dir <dir>
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 **功能说明<a name="zh-cn_topic_0000001312709849_section2149245124116"></a>**
 
@@ -312,12 +312,12 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 **功能说明<a name="zh-cn_topic_0000001265069834_section4946111125919"></a>**
 
@@ -355,8 +355,8 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 |--|--|--|
 |-dir或--collection-dir|必选|收集到的性能数据目录。须指定为PROF\_XXX目录或PROF\_XXX目录的父目录，例如：/home/HwHiAiUser/profiler_data/PROF_XXX。|
 |-reports|可选|传入用户自定义的reports_sample_config.json配置文件，会根据配置文件中指定的范围导出相应的性能数据文件。参数实现与msprof --reports一致，详细介绍请参见[使用示例（--reports参数）](msprof_parsing_instruct.md#zh-cn_topic_0000001265229686_section1128153151819)。|
-|--model-id|可选|模型ID。需配置为正整数。与--iteration-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品，支持--model-id 4294967295，为Step模式，即--iteration-id配置的值以Step为粒度解析。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226;--model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
-|--iteration-id|可选|迭代ID。需配置为正整数。与--model-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br>&#8226; 对于Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品，支持--model-id 4294967295，表示指定以Step为粒度统计的迭代ID（每执行完成一个Step，Iteration ID加1）。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226; --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
+|--model-id|可选|模型ID。需配置为正整数。与--iteration-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于昇腾A2系列产品和昇腾A3系列产品，支持--model-id 4294967295，为Step模式，即--iteration-id配置的值以Step为粒度解析。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226;--model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
+|--iteration-id|可选|迭代ID。需配置为正整数。与--model-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br>&#8226; 对于昇腾A2系列产品和昇腾A3系列产品，支持--model-id 4294967295，表示指定以Step为粒度统计的迭代ID（每执行完成一个Step，Iteration ID加1）。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226; --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
 |--iteration-count|可选|导出连续迭代的个数，取值范围为1~5的整数，根据--iteration-id配置的值为起始Step，导出连续数量的Step，比如配置--iteration-count为3，--iteration-id为1，则导出Step为1、2、3。|
 |--format|可选|summary数据文件的导出格式，支持csv和json两种格式，默认值为csv。仅配置summary参数时支持。<br/>本文中summary文件介绍均以csv文件为例。|
 |--clear|可选|数据精简模式，开启后将在导出性能数据后删除PROF_XXX/device_{id}下的sqlite目录，以节省存储空间。配置该参数时表示开启数据精简模式，未配置表示关闭，默认关闭。|
@@ -469,12 +469,12 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 
 |产品|是否支持|
 |--|:-:|
-|Ascend 950 系列产品|√|
-|Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
-|Atlas 200I/500 A2 推理产品|√|
-|Atlas 推理系列产品|√|
-|Atlas 训练系列产品|√|
+|昇腾950PR&950DT系列产品|√|
+|昇腾A3系列产品|√|
+|昇腾A2系列产品|√|
+|昇腾310B系列产品|√|
+|昇腾310P系列产品|√|
+|昇腾910系列产品|√|
 
 集群或多卡通信场景下，在执行完性能数据export导出命令后，会在屏幕打印相关性能调优建议，具体如下：
 

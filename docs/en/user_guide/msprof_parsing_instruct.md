@@ -73,12 +73,12 @@ Before using this tool, understand the following constraints:
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+|Ascend 950PR&950DT Products|√|
+|Ascend A3 Products|√|
+|Ascend A2 Products|√|
+|Ascend 310B Products|√|
+|Ascend 310P Products|√|
+|Ascend 910 Products|√|
 
 **Function**
 
@@ -89,7 +89,7 @@ Parses and exports profile data.
 - Complete [preparations](#preparations) first.
 - Complete profile data collection first.
 - Direct parsing on the device is not supported for the following products. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
-    - Ascend RC scenario for Atlas 200I/500 A2 inference products
+    - Ascend RC scenario for Ascend 310B Products
 
 **Syntax**
 
@@ -106,9 +106,9 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 |--export|Yes|Parses and exports profile data. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.<br>To export data of a specific model (model ID) or iteration (iteration ID), run the `msprof --export` command again to configure the `--model-id` and `--iteration-id` options after msProf profile data collection.<br>For unparsed `PROF_XXX` files, this option performs automatic parsing before exporting.<br>Example: `msprof --export=on --output=/home/HwHiAiUser`|
 |--output|Yes|Specifies the profile data directory. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`.|
 |--type|No|Sets the format of profile data parsing result files to be exported. This option determines the format of automatic parsing result files generated after the execution of the `msprof` command. Valid values:<br>&#8226; `text`: parses data into JSON/CSV timeline and summary files plus a DB file (`msprof_timestamp.db`). For details, see [Profile Data File References](profile_data_file_references.md). It supports profile data parsing with CANN 7.0.0 and later.<br>&#8226; `db`: parses data into a single DB file (`msprof_timestamp.db`) for display in MindStudio Insight. Currently, this format differs in information volume from `text`, so `text` is recommended. When the type is set to `db`, only the `--output` option of the `msprof --export` command is supported. Other options of the command are invalid.<br>Default value: `text`.|
-|--reports|No|Specifies a custom `reports_sample_config.json` configuration file to export the corresponding profile data based on the scope specified in the file. For details, see [Example (`--reports` Option)](#en-us_topic_0000001265229686_section1128153151819).<br>Currently, the Ascend 950 Products does not support this option.|
-|--model-id|No|Specifies the model ID. The value must be a positive integer. This option must be specified in combination with `--iteration-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the step mode. That is, the value of `--iteration-id` specifies parsing by step. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.|
-|--iteration-id|No|Specifies the iteration ID. The value must be a positive integer. This option must be specified in combination with `--model-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products, as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the iteration ID for step-based statistics collection. The iteration ID is incremented by 1 each time a step is executed. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.|
+|--reports|No|Specifies a custom `reports_sample_config.json` configuration file to export the corresponding profile data based on the scope specified in the file. For details, see [Example (`--reports` Option)](#en-us_topic_0000001265229686_section1128153151819).<br>Currently, the Ascend 950PR&950DT Products does not support this option.|
+|--model-id|No|Specifies the model ID. The value must be a positive integer. This option must be specified in combination with `--iteration-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Ascend A2 Products as well as Ascend A3 Products, `--model-id` can be set to `4294967295`, which specifies the step mode. That is, the value of `--iteration-id` specifies parsing by step. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.|
+|--iteration-id|No|Specifies the iteration ID. The value must be a positive integer. This option must be specified in combination with `--model-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Ascend A2 Products, as well as Ascend A3 Products, `--model-id` can be set to `4294967295`, which specifies the iteration ID for step-based statistics collection. The iteration ID is incremented by 1 each time a step is executed. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.|
 |--summary-format|No|Specifies the summary data file export format. Valid values:<br>&#8226; `json`: exports the summary data file is in JSON format.<br>&#8226; `csv` (default): exports the summary data file in CSV format.<br>This option is supported only when `--type` is set to `text`.|
 |--python-path|No|Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later.|
 |--clear|No| Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default).|
@@ -252,12 +252,12 @@ The structure of the generated profile data directory is as follows:
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+|Ascend 950PR&950DT Products|√|
+|Ascend A3 Products|√|
+|Ascend A2 Products|√|
+|Ascend 310B Products|√|
+|Ascend 310P Products|√|
+|Ascend 910 Products|√|
 
 **Function<a name="en-us_topic_0000001265069802_section145530158016"></a>**
 
@@ -270,7 +270,7 @@ During profile data parsing, the profile data file information is automatically 
 - Complete [preparations](#preparations) first.
 - Complete profile data collection first.
 - Direct parsing on the device is not supported for the following products. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
-    - Ascend RC scenario for Atlas 200I/500 A2 inference products
+    - Ascend RC scenario for Ascend 310B Products
 
 **Syntax<a name="en-us__topic_0000001265069802_section427441453914"></a>**
 
@@ -318,12 +318,12 @@ The following table describes information obtained by the query feature (`msprof
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+|Ascend 950PR&950DT Products|√|
+|Ascend A3 Products|√|
+|Ascend A2 Products|√|
+|Ascend 310B Products|√|
+|Ascend 310P Products|√|
+|Ascend 910 Products|√|
 
 **Function<a name="en-us_topic_0000001265229730_section180511375811"></a>**
 
@@ -339,7 +339,7 @@ Generally, the profile data parsing option does not need to be used independentl
 - Complete [preparations](#preparations) first.
 - Complete profile data collection first.
 - Direct parsing on the device is not supported for the following products. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
-    - Ascend RC scenario for Atlas 200I/500 A2 inference products
+    - Ascend RC scenario for Ascend 310B Products
 
 **Syntax<a name="en-us_topic_0000001265229730_section242218915115"></a>**
 
@@ -377,12 +377,12 @@ To export the final result timeline data or `db` files, see [Parsing and Exporti
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|x|
-|Atlas inference products|√|
-|Atlas training products|√|
+|Ascend 950PR&950DT Products|√|
+|Ascend A3 Products|√|
+|Ascend A2 Products|√|
+|Ascend 310B Products|x|
+|Ascend 310P Products|√|
+|Ascend 910 Products|√|
 
 **Function<a name="en-us_topic_0000001631250206_section38498221045"></a>**
 
@@ -399,7 +399,7 @@ Parses communication profile data into statistics on segment duration, copy oper
 
 - Direct parsing on the device is not supported for the following products. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
   
-    - Ascend RC scenario for Atlas 200I/500 A2 inference products
+    - Ascend RC scenario for Ascend 310B Products
 
 **Syntax<a name="en-us_topic_0000001631250206_section916018568431"></a>**
 
