@@ -14,6 +14,9 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=too-many-lines
+# pylint: disable=useless-parent-delegation
+
 from msconfig.meta_config import MetaConfig
 from profiling_bean.prof_enum.chip_model import ChipModel
 
@@ -175,7 +178,7 @@ class AICoreConfig(MetaConfig):
             ('0x50a', 'r1_read_cache_miss_allocate'),
             ('0x50c', 'write_main_memory_datas'),
             ('0x50d', 'read_main_memory'),
-            ('0x50e', 'read_main_memory_datas')
+            ('0x50e', 'read_main_memory_datas'),
         ],
         'metrics': [
             ('total_time(ms)', '(task_cyc*1000000/(freq))/block_num*((block_num+core_num-1)/core_num)'),
@@ -240,78 +243,122 @@ class AICoreConfig(MetaConfig):
             ('mte3_waitflag_ratio', '1.0*r5c/task_cyc'),
             ('cube_fops', '1.0*r49*16*16*16*2+1.0*r4a*16*16*32*2'),
             ('vector_fops', '1.0*r4b*32.0+1.0*r4c*128.0+1.0*r4d*64.0+1.0*r4e*64.0+1.0*r4f*32.0'),
-            ('ub_read_bw(GB/s)',
-             '1.0*r15*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw(GB/s)',
-             '1.0*r16*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_read_bw(GB/s)',
-             '1.0*r31*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_write_bw(GB/s)',
-             '1.0*r32*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l2_read_bw(GB/s)',
-             '1.0*rf*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l2_write_bw(GB/s)',
-             '1.0*r10*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_read_bw(GB/s)',
-             '1.0*r12*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_write_bw(GB/s)',
-             '1.0*r13*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_read_bw(GB/s)',
-             '1.0*r1b*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_write_bw(GB/s)',
-             '1.0*r1c*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_read_bw(GB/s)',
-             '1.0*r21*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_write_bw(GB/s)',
-             '1.0*r22*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw(GB/s)',
-             '1.0*r27*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_write_bw(GB/s)',
-             '1.0*r29*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw_cube(GB/s)',
-             '1.0*r28*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_write_bw_cube(GB/s)',
-             '1.0*r2a*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_vector(GB/s)',
-             '1.0*r43*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_vector(GB/s)',
-             '1.0*r44*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_scalar(GB/s)',
-             '1.0*r37*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_scalar(GB/s)',
-             '1.0*r38*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_mte(GB/s)',
-             '(r3d*128.0*8.0)/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_mte(GB/s)',
-             '(r3e*128.0*8.0)/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
+            (
+                'ub_read_bw(GB/s)',
+                '1.0*r15*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw(GB/s)',
+                '1.0*r16*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_read_bw(GB/s)',
+                '1.0*r31*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_write_bw(GB/s)',
+                '1.0*r32*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l2_read_bw(GB/s)',
+                '1.0*rf*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l2_write_bw(GB/s)',
+                '1.0*r10*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_read_bw(GB/s)',
+                '1.0*r12*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_write_bw(GB/s)',
+                '1.0*r13*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_read_bw(GB/s)',
+                '1.0*r1b*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_write_bw(GB/s)',
+                '1.0*r1c*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_read_bw(GB/s)',
+                '1.0*r21*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_write_bw(GB/s)',
+                '1.0*r22*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw(GB/s)',
+                '1.0*r27*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_write_bw(GB/s)',
+                '1.0*r29*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw_cube(GB/s)',
+                '1.0*r28*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_write_bw_cube(GB/s)',
+                '1.0*r2a*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_vector(GB/s)',
+                '1.0*r43*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_vector(GB/s)',
+                '1.0*r44*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_scalar(GB/s)',
+                '1.0*r37*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_scalar(GB/s)',
+                '1.0*r38*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_mte(GB/s)',
+                '(r3d*128.0*8.0)/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_mte(GB/s)',
+                '(r3e*128.0*8.0)/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
             ('write_cache_hit', '1.0 * r500'),
             ('write_cache_miss_allocate', '1.0 * r502'),
             ('r0_read_cache_hit', '1.0 * r504'),
             ('r0_read_cache_miss_allocate', '1.0 * r506'),
             ('r1_read_cache_hit', '1.0 * r508'),
-            ('r1_read_cache_miss_allocate', '1.0 * r50a')
+            ('r1_read_cache_miss_allocate', '1.0 * r50a'),
         ],
         'formula': [
             ('total_time(ms)', 'SUM((task_cyc*1000000/(freq))/block_num*((block_num+core_num-1)/core_num))'),
@@ -358,74 +405,120 @@ class AICoreConfig(MetaConfig):
             ('mte2_waitflag_ratio', '1.0*SUM(r5b)/SUM(task_cyc)'),
             ('mte3_waitflag_ratio', '1.0*SUM(r5c)/SUM(task_cyc)'),
             ('cube_fops', '1.0*SUM(r49)*16*16*16*2+1.0*SUM(r4a)*16*16*32*2'),
-            ('vector_fops',
-             '1.0*SUM(r4b)*r4b_num+1.0*SUM(r4c)*128.0+1.0*SUM(r4d)*64.0+1.0*SUM(r4e)*r4e_num+1.0*SUM(r4f)*r4f_num'),
-            ('ub_read_bw(GB/s)',
-             '1.0*SUM(r15)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw(GB/s)',
-             '1.0*SUM(r16)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_read_bw(GB/s)',
-             '1.0*SUM(r31)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_write_bw(GB/s)',
-             '1.0*SUM(r32)*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l2_read_bw(GB/s)',
-             '1.0*SUM(rf)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l2_write_bw(GB/s)',
-             '1.0*SUM(r10)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_read_bw(GB/s)',
-             '1.0*SUM(r12)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_write_bw(GB/s)',
-             '1.0*SUM(r13)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_read_bw(GB/s)',
-             '1.0*SUM(r1b)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_write_bw(GB/s)',
-             '1.0*SUM(r1c)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_read_bw(GB/s)',
-             '1.0*SUM(r21)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_write_bw(GB/s)',
-             '1.0*SUM(r22)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw(GB/s)',
-             '1.0*SUM(r27)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_write_bw(GB/s)',
-             '1.0*SUM(r29)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw_cube(GB/s)',
-             '1.0*SUM(r28)*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_write_bw_cube(GB/s)',
-             '1.0*SUM(r2a)*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_vector(GB/s)',
-             '1.0*SUM(r43)*128.0*2.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_vector(GB/s)',
-             '1.0*SUM(r44)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_scalar(GB/s)',
-             '1.0*SUM(r37)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_scalar(GB/s)',
-             '1.0*SUM(r38)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_mte(GB/s)',
-             '1.0*SUM(r3d)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_mte(GB/s)',
-             '1.0*SUM(r3e)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
+            (
+                'vector_fops',
+                '1.0*SUM(r4b)*r4b_num+1.0*SUM(r4c)*128.0+1.0*SUM(r4d)*64.0+1.0*SUM(r4e)*r4e_num+1.0*SUM(r4f)*r4f_num',
+            ),
+            (
+                'ub_read_bw(GB/s)',
+                '1.0*SUM(r15)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw(GB/s)',
+                '1.0*SUM(r16)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_read_bw(GB/s)',
+                '1.0*SUM(r31)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_write_bw(GB/s)',
+                '1.0*SUM(r32)*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l2_read_bw(GB/s)',
+                '1.0*SUM(rf)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l2_write_bw(GB/s)',
+                '1.0*SUM(r10)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_read_bw(GB/s)',
+                '1.0*SUM(r12)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_write_bw(GB/s)',
+                '1.0*SUM(r13)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_read_bw(GB/s)',
+                '1.0*SUM(r1b)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_write_bw(GB/s)',
+                '1.0*SUM(r1c)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_read_bw(GB/s)',
+                '1.0*SUM(r21)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_write_bw(GB/s)',
+                '1.0*SUM(r22)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw(GB/s)',
+                '1.0*SUM(r27)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_write_bw(GB/s)',
+                '1.0*SUM(r29)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw_cube(GB/s)',
+                '1.0*SUM(r28)*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_write_bw_cube(GB/s)',
+                '1.0*SUM(r2a)*256.0*32.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_vector(GB/s)',
+                '1.0*SUM(r43)*128.0*2.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_vector(GB/s)',
+                '1.0*SUM(r44)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_scalar(GB/s)',
+                '1.0*SUM(r37)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_scalar(GB/s)',
+                '1.0*SUM(r38)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_mte(GB/s)',
+                '1.0*SUM(r3d)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_mte(GB/s)',
+                '1.0*SUM(r3e)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
             ('write_cache_hit', '1.0 * SUM(r500)'),
             ('write_cache_miss_allocate', '1.0 * SUM(r502)'),
             ('r0_read_cache_hit', '1.0 * SUM(r504)'),
@@ -438,7 +531,7 @@ class AICoreConfig(MetaConfig):
             ('l0c_to_l1_datas(KB)', '128.0/1024*SUM(r206)'),
             ('l0c_to_gm_datas(KB)', '128.0/1024*(SUM(r20c)-SUM(r206))'),
             ('gm_to_ub_datas(KB)', '128.0/1024*SUM(r3e)'),
-            ('ub_to_gm_datas(KB)', '128.0/1024*SUM(r3d)')
+            ('ub_to_gm_datas(KB)', '128.0/1024*SUM(r3d)'),
         ],
         'event2metric': [
             ('0x8', 'vec_ratio'),
@@ -509,7 +602,7 @@ class AICoreConfig(MetaConfig):
             ('0x504', 'r0_read_cache_hit'),
             ('0x506', 'r0_read_cache_miss_allocate'),
             ('0x508', 'r1_read_cache_hit'),
-            ('0x50a', 'r1_read_cache_miss_allocate')
+            ('0x50a', 'r1_read_cache_miss_allocate'),
         ],
         'custom': [
             ('0x1', 'vec_instr_exec'),
@@ -626,7 +719,7 @@ class AICoreConfig(MetaConfig):
             ('0x180', 'ub_read_bw_vector(GB/s)'),
             ('0x191', 'ub_write_bw_vector(GB/s)'),
             ('0x1a5', 'ub_read_bw_mte(GB/s)'),
-            ('0x1a6', 'ub_write_bw_mte(GB/s)')
+            ('0x1a6', 'ub_write_bw_mte(GB/s)'),
         ],
     }
 
@@ -704,7 +797,7 @@ class AICoreConfig(MetaConfig):
             ('0x606', 'mte1_mte2_stall_cycles'),
             ('0x607', 'mte1_mte3_stall_cycles'),
         ],
-        'custom': []
+        'custom': [],
     }
 
     CHIP_V6_MAP = {
@@ -727,6 +820,8 @@ class AICoreConfig(MetaConfig):
             ('0x30a', 'l0c_read_bw_cube(GB/s)'),
             ('0x400', 'main_mem_read_bw(GB/s)'),
             ('0x401', 'main_mem_write_bw(GB/s)'),
+            ('0x422', 'main_mem_read_bw(GB/s)'),
+            ('0x423', 'main_mem_write_bw(GB/s)'),
             ('0x424', 'read_local_l2_hit'),
             ('0x425', 'read_local_l2_miss'),
             ('0x426', 'read_local_l2_victim'),
@@ -749,7 +844,7 @@ class AICoreConfig(MetaConfig):
             ('0x709', 'l1_write_bw(GB/s)'),
             ('0x70c', 'fixp2ub_write_bw(GB/s)'),
             ('0x712', 'l0c_read_bw(GB/s)'),
-            ('0x714', 'fixpipe_ratio')
+            ('0x714', 'fixpipe_ratio'),
         ],
         'metrics': [
             ('vec_ratio', ''),
@@ -795,7 +890,7 @@ class AICoreConfig(MetaConfig):
             ('pmu_idc_aic_vec_instr_vf_busy_o', ''),
             ('vec_resc_cflt_ratio', ''),
             ('vec_bank_cflt_ratio', ''),
-            ('stu_pmu_wctl_ub_cflt', '')
+            ('stu_pmu_wctl_ub_cflt', ''),
         ],
         'formula': [
             ('total_time(ms)', 'SUM((task_cyc*1000000/(freq))/block_num*((block_num+core_num-1)/core_num))'),
@@ -809,66 +904,106 @@ class AICoreConfig(MetaConfig):
             # icache_req_ratio不需要计算，其寄存器的值会用于icache_miss_rate的计算
             ('icache_miss_rate', '1.0*SUM(r35)/SUM(r34)'),
             ('fixpipe_ratio', '1.0*SUM(r714)/SUM(task_cyc)'),
-            ('ub_read_bw(GB/s)',
-             '1.0*(r56f+r571)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw(GB/s)',
-             '1.0*SUM(r570+r572)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_read_bw(GB/s)',
-             '1.0*SUM(r707)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l1_write_bw(GB/s)',
-             '1.0*SUM(r709)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_read_bw(GB/s)',
-             '1.0*SUM(r400)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('main_mem_write_bw(GB/s)',
-             '1.0*SUM(r401)*8.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_read_bw(GB/s)',
-             '1.0*SUM(r304)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0a_write_bw(GB/s)',
-             '1.0*SUM(r703)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_read_bw(GB/s)',
-             '1.0*SUM(r306)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0b_write_bw(GB/s)',
-             '1.0*SUM(r705)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw(GB/s)',
-             '1.0*SUM(r712)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_read_bw_cube(GB/s)',
-             '1.0*SUM(r30a)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('l0c_write_bw_cube(GB/s)',
-             '1.0*SUM(r308)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('fixp2ub_write_bw(GB/s)',
-             '1.0*SUM(r70c)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_mte(GB/s)',
-             '1.0*SUM(r206)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_mte(GB/s)',
-             '1.0*SUM(r204)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_vector(GB/s)',
-             '1.0*SUM(r571)*128.0*2.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_vector(GB/s)',
-             '1.0*SUM(r572)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_read_bw_scalar(GB/s)',
-             '1.0*SUM(r3)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
-            ('ub_write_bw_scalar(GB/s)',
-             '1.0*SUM(r5)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
-             'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)'),
+            (
+                'ub_read_bw(GB/s)',
+                '1.0*(r56f+r571)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw(GB/s)',
+                '1.0*SUM(r570+r572)*256.0*4.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_read_bw(GB/s)',
+                '1.0*SUM(r707)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l1_write_bw(GB/s)',
+                '1.0*SUM(r709)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_read_bw(GB/s)',
+                '1.0*SUM(r422)*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'main_mem_write_bw(GB/s)',
+                '1.0*SUM(r423)*128.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_read_bw(GB/s)',
+                '1.0*SUM(r304)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0a_write_bw(GB/s)',
+                '1.0*SUM(r703)*256.0*16.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_read_bw(GB/s)',
+                '1.0*SUM(r306)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0b_write_bw(GB/s)',
+                '1.0*SUM(r705)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw(GB/s)',
+                '1.0*SUM(r712)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_read_bw_cube(GB/s)',
+                '1.0*SUM(r30a)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'l0c_write_bw_cube(GB/s)',
+                '1.0*SUM(r308)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'fixp2ub_write_bw(GB/s)',
+                '1.0*SUM(r70c)*256.0*8.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_mte(GB/s)',
+                '1.0*SUM(r206)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_mte(GB/s)',
+                '1.0*SUM(r204)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_vector(GB/s)',
+                '1.0*SUM(r571)*128.0*2.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_vector(GB/s)',
+                '1.0*SUM(r572)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_read_bw_scalar(GB/s)',
+                '1.0*SUM(r3)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
+            (
+                'ub_write_bw_scalar(GB/s)',
+                '1.0*SUM(r5)*128.0*1.0/((task_cyc*1000/(freq*1000.0))/'
+                'block_num*((block_num+core_num-1)/core_num))/(8589934592.0)',
+            ),
             # # ArithmeticUtilization
             ('mac_fp16_ratio', '1.0*r323/task_cyc'),
             ('mac_int8_ratio', '1.0*r324/task_cyc'),
@@ -882,7 +1017,7 @@ class AICoreConfig(MetaConfig):
             ('write_local_l2_victim', '1.0 * r42c'),
             # ResourceConflictRatio
             ('vec_bank_cflt_ratio', '1.0*(r540+r556)/(task_cyc)'),
-            ('vec_resc_cflt_ratio', '1.0*(r528)/(r502)')
+            ('vec_resc_cflt_ratio', '1.0*(r528)/(r502)'),
         ],
         'event2metric': [
             ('0x1', 'scalar_ratio'),
@@ -903,6 +1038,8 @@ class AICoreConfig(MetaConfig):
             ('0x30a', 'l0c_read_bw_cube(GB/s)'),
             ('0x400', 'main_mem_read_bw(GB/s)'),
             ('0x401', 'main_mem_write_bw(GB/s)'),
+            ('0x422', 'main_mem_read_bw(GB/s)'),
+            ('0x423', 'main_mem_write_bw(GB/s)'),
             ('0x424', 'read_local_l2_hit'),
             ('0x425', 'read_local_l2_miss'),
             ('0x426', 'read_local_l2_victim'),
@@ -925,7 +1062,7 @@ class AICoreConfig(MetaConfig):
             ('0x709', 'l1_write_bw(GB/s)'),
             ('0x70c', 'fixp2ub_write_bw(GB/s)'),
             ('0x712', 'l0c_read_bw(GB/s)'),
-            ('0x714', 'fixpipe_ratio')
+            ('0x714', 'fixpipe_ratio'),
         ],
         'custom': [
             ('0x1', 'scalar_ratio'),
@@ -944,8 +1081,8 @@ class AICoreConfig(MetaConfig):
             ('0x306', 'l0b_read_bw(GB/s)'),
             ('0x308', 'l0c_write_bw_cube(GB/s)'),
             ('0x30a', 'l0c_read_bw_cube(GB/s)'),
-            ('0x400', 'main_mem_read_bw(GB/s)'),
-            ('0x401', 'main_mem_write_bw(GB/s)'),
+            ('0x422', 'main_mem_read_bw(GB/s)'),
+            ('0x423', 'main_mem_write_bw(GB/s)'),
             ('0x424', 'read_local_l2_hit'),
             ('0x425', 'read_local_l2_miss'),
             ('0x426', 'read_local_l2_victim'),
@@ -974,8 +1111,8 @@ class AICoreConfig(MetaConfig):
             ('0x709', 'l1_write_bw(GB/s)'),
             ('0x70c', 'fixp2ub_write_bw(GB/s)'),
             ('0x712', 'l0c_read_bw(GB/s)'),
-            ('0x714', 'fixpipe_ratio')
-        ]
+            ('0x714', 'fixpipe_ratio'),
+        ],
     }
     DATA_MAP = {
         ChipModel.CHIP_V5_1_0: CHIP_V5_MAP,

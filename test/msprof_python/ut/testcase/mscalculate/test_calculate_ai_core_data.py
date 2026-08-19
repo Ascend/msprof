@@ -315,8 +315,27 @@ class TestCalculateAiCoreData(unittest.TestCase):
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
+        expect_res = {'main_mem_read_bw(GB/s)': [0.07818426714935553],
+                      'main_mem_write_bw(GB/s)': [0.019546066787338882], 'ub_read_bw(GB/s)': [0.04886516696834721],
+                      'ub_read_bw_vector(GB/s)': [0.009773033393669441], 'ub_write_bw(GB/s)': [0.039092133574677765],
+                      'ub_write_bw_vector(GB/s)': [0.009773033393669441], 'l1_read_bw(GB/s)': [0.3127370685974221],
+                      'l1_write_bw(GB/s)': [0.15636853429871106]}
+        self.assertEqual(ai_core_profiling_events_res, expect_res)
+
+    def test_non_chip_v6_calculate_pmu_group_memory_should_keep_old_coefficient(self):
+        events_name_list = ['main_mem_read_bw(GB/s)', 'main_mem_write_bw(GB/s)', 'ub_read_bw(GB/s)',
+                            'ub_read_bw_vector(GB/s)', 'ub_write_bw(GB/s)', 'ub_write_bw_vector(GB/s)',
+                            'l1_read_bw(GB/s)', 'l1_write_bw(GB/s)']
+        ai_core_profiling_events = {}
+        task_cyc = 10978
+        pmu_data = (4, 1, 2, 2, 2, 2, 4, 4, 28, 28)
+        ChipManager().chip_id = ChipModel.CHIP_V5_1_0
+        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        check = CalculateAiCoreData('114514')
+        events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
+            events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
         expect_res = {'main_mem_read_bw(GB/s)': [0.004886516696834721],
-                      'main_mem_write_bw(GB/s)': [0.0012216291742086802], 'ub_read_bw(GB/s)': [0.04886516696834721],
+                      'main_mem_write_bw(GB/s)': [0.0012216291742086802], 'ub_read_bw(GB/s)': [0.039092133574677765],
                       'ub_read_bw_vector(GB/s)': [0.009773033393669441], 'ub_write_bw(GB/s)': [0.039092133574677765],
                       'ub_write_bw_vector(GB/s)': [0.009773033393669441], 'l1_read_bw(GB/s)': [0.3127370685974221],
                       'l1_write_bw(GB/s)': [0.15636853429871106]}
