@@ -33,3 +33,10 @@ class BlockLogParser(LogBaseParser):
         self._mismatch_task = []
         self._start_functype = StarsConstant.BLOCK_LOG_START_FUNCTYPE
         self._end_functype = StarsConstant.BLOCK_LOG_END_FUNCTYPE
+
+    def flush(self: any) -> None:
+        """
+        flush data to model
+        :return: NA for block log data is now disabled
+        """
+        return
