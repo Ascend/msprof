@@ -23,6 +23,7 @@
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 
 
 using namespace Analysis::Utils;
@@ -266,6 +267,11 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
     EXPECT_EQ(std::get<TENSOR_NUM_POSITION>(taskInfoData[0]), 2);
     EXPECT_EQ(std::get<INPUT_SHAPE_POSITION>(taskInfoData[0]), "\"1,2,3\"");
     EXPECT_EQ(std::get<OUTPUT_SHAPE_POSITION>(taskInfoData[0]), "\"4,5,6\"");
+    EXPECT_EQ(std::get<6>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<22>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<23>(taskInfoData[0]), NA);
 
     std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
             double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
@@ -387,7 +393,7 @@ TEST_F(CannDBDumperUtest, TestAddTensorShapeInfoSuccess)
     auto kernelDesc = std::make_shared<OpDesc>();
     auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
     hostTaskPtr->op = kernelOp;
-    cannTraceDbDumper.AddTensorShapeInfo(tensorDescPtr, nodeBasicInfo, data, hostTaskPtr);
+    cannTraceDbDumper.AddTensorShapeInfo(tensorDescPtr, &nodeBasicInfo, data, hostTaskPtr);
     EXPECT_EQ(std::get<13>(data[0]), 2); // 13 2
     EXPECT_EQ(std::get<16>(data[0]), "\"1,2,3\"");
     EXPECT_EQ(std::get<19>(data[0]), "\"5,6,7\"");
@@ -432,6 +438,28 @@ TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel0)
     hostTaskPtr->kernelName = 1;
     cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, isLevel0);
     EXPECT_EQ(taskInfoData.size(), 1ul);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel0WithTensorInfo)
+{
+    RuntimeOpInfo info{0, 2, 0, 0, 0, 2, 1, 4, NA, NA, "aclgraph_op", NA, NA, "NCHW", "FLOAT16", "\"1,2\"",
+                       "ND", "FLOAT32", "\"3,4\""};
+    MOCKER_CPP(&Analysis::Domain::Host::Cann::RTAddInfoCenter::Get).stubs().will(returnValue(info));
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto hostTaskPtr = std::make_shared<HostTask>();
+    auto kernelDesc = std::make_shared<OpDesc>();
+    hostTaskPtr->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_RESERVED);
+    hostTaskPtr->kernelName = 1;
+    hostTaskPtr->streamId = 1;
+    hostTaskPtr->taskId = 2;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+
+    cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, true);
+
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<TENSOR_NUM_POSITION>(taskInfoData[0]), 2);
+    EXPECT_EQ(std::get<INPUT_SHAPE_POSITION>(taskInfoData[0]), "\"1,2\"");
+    EXPECT_EQ(std::get<OUTPUT_SHAPE_POSITION>(taskInfoData[0]), "\"3,4\"");
 }
 
 TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel1)

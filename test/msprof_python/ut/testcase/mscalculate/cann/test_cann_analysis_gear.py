@@ -50,6 +50,7 @@ from profiling_bean.db_dto.hccl_op_info_dto import HCCLOpInfoDto
 from profiling_bean.db_dto.mem_copy_info_dto import MemCopyInfoDto
 from profiling_bean.db_dto.node_attr_info_dto import NodeAttrInfoDto
 from profiling_bean.db_dto.node_basic_info_dto import NodeBasicInfoDto
+from profiling_bean.db_dto.runtime_op_info_dto import RuntimeOpInfoDto
 from profiling_bean.db_dto.task_track_dto import TaskTrackDto
 from profiling_bean.db_dto.tensor_info_dto import TensorInfoDto
 
@@ -419,6 +420,34 @@ class TestCANNAnalysisGear(unittest.TestCase):
         self.assertTrue(DBManager.check_item_in_table(
             ge_info_db, DBNameConstant.TABLE_GE_TASK, 'output_shapes', '"3,4"'))
         del InfoConfReader()._sample_json["profLevel"]
+
+    def test_task_gear_should_save_runtime_tensor_info_for_aclgraph_in_prof_level0(self):
+        gear = TaskGear(self.PROF_HOST_DIR)
+        task_dto = TaskTrackDto()
+        task_dto.device_id = 0
+        task_dto.stream_id = 1
+        task_dto.task_id = 2
+        task_dto.batch_id = 0
+        task_dto.thread_id = 3
+        task_dto.timestamp = 100
+        op_info = RuntimeOpInfoDto(
+            is_valid=True,
+            model_id=4,
+            op_name="aclgraph_op",
+            tensor_num=2,
+            input_formats="NCHW",
+            input_data_types="FLOAT16",
+            input_shapes='"1,2"',
+            output_formats="ND",
+            output_data_types="FLOAT32",
+            output_shapes='"3,4"',
+        )
+        rt_add_info_center = RTAddInfoCenter("./test")
+
+        with mock.patch.object(rt_add_info_center, "get_op_info_by_id", return_value=(4, op_info)):
+            gear.add_kernel_task_only_task_track(task_dto, True)
+
+        self.assertEqual(gear.task_info[0][13:20], [2, "NCHW", "FLOAT16", '"1,2"', "ND", "FLOAT32", '"3,4"'])
 
     def test_task_gear_should_save_one_op_when_one_traditional_mode_node_event_FROM_PROF_LEVEL1(self):
         gear = TaskGear(self.PROF_HOST_DIR)

@@ -681,6 +681,7 @@ class TaskGear(CANNGear):
         model_id = model_info[0]
         request_id = model_info[1]
         tensor_info_dto: TensorInfoDto = node_desc.tensor_info
+        has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0
         ctx_id_dto: CtxIdDto = node_desc.ctx_info
         cxt_ids = str(ctx_id_dto.ctx_id).split(',')
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
@@ -704,13 +705,13 @@ class TaskGear(CANNGear):
                     add_dto.thread_id,
                     add_dto.timestamp,
                     add_dto.batch_id,
-                    tensor_info_dto.tensor_num,
-                    tensor_info_dto.input_formats,
-                    tensor_info_dto.input_data_types,
-                    tensor_info_dto.input_shapes,
-                    tensor_info_dto.output_formats,
-                    tensor_info_dto.output_data_types,
-                    tensor_info_dto.output_shapes,
+                    tensor_info_dto.tensor_num if has_tensor_info else None,
+                    tensor_info_dto.input_formats if has_tensor_info else None,
+                    tensor_info_dto.input_data_types if has_tensor_info else None,
+                    tensor_info_dto.input_shapes if has_tensor_info else None,
+                    tensor_info_dto.output_formats if has_tensor_info else None,
+                    tensor_info_dto.output_data_types if has_tensor_info else None,
+                    tensor_info_dto.output_shapes if has_tensor_info else None,
                     add_dto.device_id,
                     int(cxt_id),
                     Constant.NA,
@@ -798,6 +799,7 @@ class TaskGear(CANNGear):
         op_flag = Constant.NA if (is_level0 or not op_info.is_valid) else ("YES" if op_info.op_flag else "NO")
 
         if is_level0:
+            has_tensor_info = op_info.is_valid and op_info.tensor_num is not None and op_info.tensor_num > 0
             self.task_info.append(
                 [
                     op_info.model_id,
@@ -813,13 +815,13 @@ class TaskGear(CANNGear):
                     rts_trk.thread_id,
                     rts_trk.timestamp,
                     rts_trk.batch_id,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
+                    op_info.tensor_num if has_tensor_info else None,
+                    op_info.input_formats if has_tensor_info else None,
+                    op_info.input_data_types if has_tensor_info else None,
+                    op_info.input_shapes if has_tensor_info else None,
+                    op_info.output_formats if has_tensor_info else None,
+                    op_info.output_data_types if has_tensor_info else None,
+                    op_info.output_shapes if has_tensor_info else None,
                     rts_trk.device_id,
                     context_id,
                     op_flag,
