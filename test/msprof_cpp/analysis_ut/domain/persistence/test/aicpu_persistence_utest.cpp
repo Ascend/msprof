@@ -16,7 +16,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
 #include <set>
+#include <tuple>
 #include <vector>
 
 #define private public
@@ -25,13 +27,16 @@
 
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
 
 using namespace testing;
 
 namespace Analysis {
 namespace Domain {
 namespace {
+const std::string AICPU_DEVICE_PATH = "./aicpu_device_0";
 
 // =========================================================================
 // ProcessAicpuDataByDataType — 数据按类型分发测试
@@ -556,6 +561,140 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBothMainStreamAndKfcTog
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
     // kfc@300 > flip@200 → batch 1
     EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+}
+
+// =========================================================================
+// GenerateAndSaveNode / GenerateAndSaveDp — 落盘 db 文件名与表名测试
+// 校验 AiCpuData/AiCpuDp 数据落到 ai_cpu.db（而非 aicpu.db），与 Python 侧对齐
+// =========================================================================
+
+class AicpuPersistenceSaveUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        EXPECT_TRUE(File::CreateDir(AICPU_DEVICE_PATH));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({AICPU_DEVICE_PATH, "sqlite"})));
+        persistence_ = std::make_shared<AicpuPersistence>();
+        // freq=1000, sysCnt=1000, hostMonotonic=1000，时间换算结果确定无溢出
+        persistence_->params_ = SyscntConversionParams(1000.0, 1000, 1000);
+    }
+    void TearDown() override
+    {
+        EXPECT_TRUE(File::RemoveDir(AICPU_DEVICE_PATH, 0));
+    }
+
+    AicpuData CreateNodeData()
+    {
+        AicpuData data;
+        data.type = AicpuType::AICPU_NODE;
+        data.taskId.streamId = 1;
+        data.taskId.taskId = 10;
+        data.node.runStartTick = 1000;
+        data.node.runEndTick = 2000;
+        data.node.computeStartTime = 1000;
+        data.node.memcpyStartTime = 1200;
+        data.node.memcpyEndTime = 1500;
+        data.node.dispatchTime = 300;
+        data.node.submitTick = 900;
+        data.node.tickAfterRun = 2100;
+        return data;
+    }
+
+    AicpuData CreateDpData()
+    {
+        AicpuData data;
+        data.type = AicpuType::AICPU_DP;
+        data.timeStamp = 500;
+        memcpy(data.dp.action, "MALLOC", sizeof("MALLOC"));
+        memcpy(data.dp.source, "HOST", sizeof("HOST"));
+        data.dp.size = 1024;
+        return data;
+    }
+
+    std::string GetSqliteDbPath() const
+    {
+        return File::PathJoin({AICPU_DEVICE_PATH, "sqlite", "ai_cpu.db"});
+    }
+
+    std::string GetOldSqliteDbPath() const
+    {
+        return File::PathJoin({AICPU_DEVICE_PATH, "sqlite", "aicpu.db"});
+    }
+
+protected:
+    std::shared_ptr<AicpuPersistence> persistence_;
+};
+
+TEST_F(AicpuPersistenceSaveUtest, ShouldSaveNodeToAiCpuDb)
+{
+    persistence_->nodeData_.emplace_back(CreateNodeData());
+
+    ASSERT_EQ(ANALYSIS_OK, persistence_->GenerateAndSaveNode(AICPU_DEVICE_PATH));
+
+    // 落盘文件名应为 ai_cpu.db，而不是旧的 aicpu.db
+    std::string dbPath = GetSqliteDbPath();
+    EXPECT_TRUE(File::Exist(dbPath));
+    EXPECT_FALSE(File::Exist(GetOldSqliteDbPath()));
+
+    DBRunner dbRunner(dbPath);
+    EXPECT_TRUE(dbRunner.CheckTableExists("AiCpuData"));
+    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, uint64_t, uint64_t, double, uint64_t,
+                               double>;
+    std::vector<NodeRow> rows;
+    EXPECT_TRUE(dbRunner.QueryData("SELECT * FROM AiCpuData", rows));
+    ASSERT_EQ(rows.size(), 1);
+    EXPECT_EQ(std::get<0>(rows[0]), 1);   // stream_id
+    EXPECT_EQ(std::get<1>(rows[0]), 10);  // task_id
+    EXPECT_EQ(std::get<4>(rows[0]), "");  // node_name
+}
+
+TEST_F(AicpuPersistenceSaveUtest, ShouldSaveDpToAiCpuDb)
+{
+    persistence_->dpData_.emplace_back(CreateDpData());
+
+    ASSERT_EQ(ANALYSIS_OK, persistence_->GenerateAndSaveDp(AICPU_DEVICE_PATH));
+
+    // 落盘文件名应为 ai_cpu.db，而不是旧的 aicpu.db
+    std::string dbPath = GetSqliteDbPath();
+    EXPECT_TRUE(File::Exist(dbPath));
+    EXPECT_FALSE(File::Exist(GetOldSqliteDbPath()));
+
+    // 表名应与 Python 侧 TABLE_AI_CPU_DP("AiCpuDP") 完全对齐
+    DBRunner dbRunner(dbPath);
+    std::vector<std::tuple<std::string>> tableNames;
+    EXPECT_TRUE(dbRunner.QueryData("SELECT name FROM sqlite_master WHERE type='table'", tableNames));
+    bool foundAiCpuDP = false;
+    for (const auto& name : tableNames) {
+        if (std::get<0>(name) == "AiCpuDP") {
+            foundAiCpuDP = true;
+        }
+    }
+    EXPECT_TRUE(foundAiCpuDP);
+
+    using DpRow = std::tuple<double, std::string, std::string, uint64_t>;
+    std::vector<DpRow> rows;
+    EXPECT_TRUE(dbRunner.QueryData("SELECT * FROM AiCpuDP", rows));
+    ASSERT_EQ(rows.size(), 1);
+    EXPECT_EQ(std::get<1>(rows[0]), "MALLOC");  // action
+    EXPECT_EQ(std::get<2>(rows[0]), "HOST");    // source
+    EXPECT_EQ(std::get<3>(rows[0]), 1024);      // buffer_size
+}
+
+TEST_F(AicpuPersistenceSaveUtest, ShouldOnlyWriteAiCpuDbFileWhenSaveBothNodeAndDp)
+{
+    persistence_->nodeData_.emplace_back(CreateNodeData());
+    persistence_->dpData_.emplace_back(CreateDpData());
+
+    ASSERT_EQ(ANALYSIS_OK, persistence_->GenerateAndSaveNode(AICPU_DEVICE_PATH));
+    ASSERT_EQ(ANALYSIS_OK, persistence_->GenerateAndSaveDp(AICPU_DEVICE_PATH));
+
+    // Node 和 Dp 共用同一个 ai_cpu.db，且不残留 aicpu.db
+    EXPECT_TRUE(File::Exist(GetSqliteDbPath()));
+    EXPECT_FALSE(File::Exist(GetOldSqliteDbPath()));
+
+    DBRunner dbRunner(GetSqliteDbPath());
+    EXPECT_TRUE(dbRunner.CheckTableExists("AiCpuData"));
+    EXPECT_TRUE(dbRunner.CheckTableExists("AiCpuDP"));
 }
 
 

@@ -118,7 +118,7 @@ uint32_t AicpuPersistence::GenerateAndSaveNode(const std::string& deviceFilePath
                           total_time.Double());
     }
 
-    DBInfo dbInfo("aicpu.db", "AiCpuData");
+    DBInfo dbInfo("ai_cpu.db", "AiCpuData");
     MAKE_SHARED0_RETURN_VALUE(dbInfo.database, AicpuDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceFilePath, SQLITE, dbInfo.dbName});
     INFO("Start to process %.", dbPath);
@@ -149,7 +149,7 @@ uint32_t AicpuPersistence::GenerateAndSaveDp(const std::string& deviceFilePath)
         data.emplace_back(timeStamp.Double(), std::string(dp.dp.action), std::string(dp.dp.source), dp.dp.size);
     }
 
-    DBInfo dbInfo("aicpu.db", "AiCpuDp");
+    DBInfo dbInfo("ai_cpu.db", "AiCpuDP");
     MAKE_SHARED0_RETURN_VALUE(dbInfo.database, AicpuDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceFilePath, SQLITE, dbInfo.dbName});
     INFO("Start to process %.", dbPath);

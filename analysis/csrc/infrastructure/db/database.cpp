@@ -932,9 +932,9 @@ MetricSummaryDB::MetricSummaryDB()
 
 AicpuDB::AicpuDB()
 {
-    dbName_ = "aicpu.db";
+    dbName_ = "ai_cpu.db";
     tableColNames_["AiCpuData"] = AiCpuData;
-    tableColNames_["AiCpuDp"] = AiCpuDp;
+    tableColNames_["AiCpuDP"] = AiCpuDp;
 }
 
 DataPreprocessDB::DataPreprocessDB()
