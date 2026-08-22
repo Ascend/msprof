@@ -496,7 +496,8 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario1L0)
                                                    "null 9 256 null 0 null null null ";
     const uint64_t expectbigOPsNum = 4;
     std::vector<uint64_t> expectbigOPsCount{420, 506, 660, 2080};
-    std::vector<int64_t> expectKfcConnectionId{29, -1, -1, -1};
+    std::vector<std::string> expectKfcConnectionIds{"28,29", "9223372036854775807", "9223372036854775807",
+                                                    "9223372036854775807"};
     std::vector<std::string> expectbigOPsAlgType{"HD-MESH-NB-RING", "NHR-STAR-NB-HD", "MESH-RING-HD-PIPELINE", "NA"};
     // 先检查个数正确
     ASSERT_EQ(hcclTasks.size(), expectHcclTaskTimes.size());
@@ -518,7 +519,7 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario1L0)
 
     for (uint16_t i = 0; i < bigOPs.size(); i++) {
         EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->opInfoDesc->data.hcclopInfo.count, expectbigOPsCount[i]);
-        EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->kfcConnectionId, expectKfcConnectionId[i]);
+        EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->kfcConnectionIds, expectKfcConnectionIds[i]);
     }
 }
 
@@ -629,7 +630,8 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario1L2)
     std::string expectHcclComputeTaskTaskTypeStr = "null null 0 0 0 0 1 1 1 1 null null 1 9 256 1 9 null ";
     const uint64_t expectbigOPsNum = 4;
     std::vector<uint64_t> expectbigOPsCount{422, 504, 660, 2080};
-    std::vector<int64_t> expectKfcConnectionId{83, -1, -1, -1};
+    std::vector<std::string> expectKfcConnectionIds{"82,83", "9223372036854775807", "9223372036854775807",
+                                                    "9223372036854775807"};
     std::vector<std::string> expectbigOPsAlgType{"PAIRWISE-NB-HD-RING", "STAR-NHR-PIPELINE-NB", "MESH-NB-HD-STAR",
                                                  "NA"};
     std::string expectOpTypeStr = "null null 1 1 2 2 1 1 0 0 null null 6 7 8 8 8 null ";
@@ -641,7 +643,7 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario1L2)
 
     for (uint16_t i = 0; i < bigOPs.size(); i++) {
         EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->opInfoDesc->data.hcclopInfo.count, expectbigOPsCount[i]);
-        EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->kfcConnectionId, expectKfcConnectionId[i]);
+        EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->kfcConnectionIds, expectKfcConnectionIds[i]);
     }
 }
 

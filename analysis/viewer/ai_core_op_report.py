@@ -38,32 +38,78 @@ from viewer.ge_info_report import get_ge_hash_dict
 from viewer.ge_info_report import get_ge_model_name_dict
 from viewer.chip_model_function.chip_model_decorators import format_pmu_data_by_headers
 
+
 class AiCoreOpReport:
     """
     report ai core op data
     """
+
     AI_CORE_UNUSED_COLS = [
-        "job_id", "host_id", "device_id", "task_id", "stream_id", "index_id",
-        "model_id", "overflow", "overflowed_cycles", "device_id", "batch_id",
-        "task_type", "core_type", "subtask_id", "start_time", "end_time", "ffts_type"
+        "job_id",
+        "host_id",
+        "device_id",
+        "task_id",
+        "stream_id",
+        "index_id",
+        "model_id",
+        "overflow",
+        "overflowed_cycles",
+        "device_id",
+        "batch_id",
+        "task_type",
+        "core_type",
+        "subtask_id",
+        "start_time",
+        "end_time",
+        "ffts_type",
     ]
     UNSUPPORTED_HEADER = {
-        "aic_vec_ratio", "aic_vec_time", "aiv_mac_ratio", "aiv_mac_time", "aiv_mte1_ratio",
-        "aic_ub_read_bw", "aiv_mte1_time",
-        "aic_ub_write_bw", "aiv_l1_read_bw", "aiv_l1_write_bw",
-        "aic_l0c_read_bw", "aic_l0c_write_bw", "aiv_l0a_read_bw",
-        "aiv_l0a_write_bw", "aiv_l0b_read_bw", "aiv_l0b_write_bw",
-        "aiv_l0c_read_bw_cube", "aiv_l0c_write_bw_cube",
-        "aic_ub_read_bw_mte", "aic_ub_write_bw_mte", "aic_ub_read_bw_vector",
-        "aic_ub_write_bw_vector", "aiv_mac_fp16_ratio", 'aiv_mac_int8_ratio',
-        "aic_vec_fp32_ratio", "aic_vec_fp16_ratio", "aic_vec_int32_ratio",
-        "aic_vec_misc_ratio", "aic_vec_fp16_128lane_ratio", "aic_vec_fp16_64lane_ratio",
-        "aic_vec_bankgroup_cflt_ratio", "aic_vec_bank_cflt_ratio", "aic_vec_resc_cflt_ratio",
-        "aic_vector_fops", "aiv_cube_fops", "aiv_fixpipe_ratio", "aiv_fixpipe_time",
+        "aic_vec_ratio",
+        "aic_vec_time",
+        "aiv_mac_ratio",
+        "aiv_mac_time",
+        "aiv_mte1_ratio",
+        "aic_ub_read_bw",
+        "aiv_mte1_time",
+        "aic_ub_write_bw",
+        "aiv_l1_read_bw",
+        "aiv_l1_write_bw",
+        "aic_l0c_read_bw",
+        "aic_l0c_write_bw",
+        "aiv_l0a_read_bw",
+        "aiv_l0a_write_bw",
+        "aiv_l0b_read_bw",
+        "aiv_l0b_write_bw",
+        "aiv_l0c_read_bw_cube",
+        "aiv_l0c_write_bw_cube",
+        "aic_ub_read_bw_mte",
+        "aic_ub_write_bw_mte",
+        "aic_ub_read_bw_vector",
+        "aic_ub_write_bw_vector",
+        "aiv_mac_fp16_ratio",
+        'aiv_mac_int8_ratio',
+        "aic_vec_fp32_ratio",
+        "aic_vec_fp16_ratio",
+        "aic_vec_int32_ratio",
+        "aic_vec_misc_ratio",
+        "aic_vec_fp16_128lane_ratio",
+        "aic_vec_fp16_64lane_ratio",
+        "aic_vec_bankgroup_cflt_ratio",
+        "aic_vec_bank_cflt_ratio",
+        "aic_vec_resc_cflt_ratio",
+        "aic_vector_fops",
+        "aiv_cube_fops",
+        "aiv_fixpipe_ratio",
+        "aiv_fixpipe_time",
     }
     ADDITION_HEADER = ["Context ID", "Mix Block Num", "aiv_time", "aiv_total_time"]
     TENSOR_HEADERS = [
-        "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes", "Output Data Types", "Output Formats"
+        "Input Shapes",
+        "Input Data Types",
+        "Input Formats",
+        "Output Shapes",
+        "Output Data Types",
+        "Output Formats",
     ]
     SPECIAL_AI_CORE_HEAD = ("_extra",)
 
@@ -110,8 +156,9 @@ class AiCoreOpReport:
                 union_data.append(datum + (Constant.NA,) * ai_core_data_len)
                 continue
             ai_core_datum = ai_core_queue.popleft()
-            if datum[task_type_idx] == Constant.TASK_TYPE_COMMUNICATION and not \
-                    datum[op_name_idx].endswith(StrConstant.AIV_KERNEL):
+            if datum[task_type_idx] == Constant.TASK_TYPE_COMMUNICATION and not datum[op_name_idx].endswith(
+                StrConstant.AIV_KERNEL
+            ):
                 # 去除运行在AI_CORE的HCCL小算子
                 logging.info("Found ai core hccl small op of stream %d, task %d", datum[2], datum[1])
                 continue
@@ -129,8 +176,9 @@ class AiCoreOpReport:
         # 全导和按step导，task type的索引是6; 按子图导，task type的索引是7
         task_type_idx, op_name_idx = (7, 4) if ProfilingScene().is_graph_export() else (6, 3)
         for datum in data:
-            if datum[task_type_idx] in (Constant.TASK_TYPE_HCCL_AI_CPU, Constant.TASK_TYPE_COMMUNICATION) and not \
-                    datum[op_name_idx].endswith(StrConstant.AIV_KERNEL):
+            if datum[task_type_idx] in (Constant.TASK_TYPE_HCCL_AI_CPU, Constant.TASK_TYPE_COMMUNICATION) and not datum[
+                op_name_idx
+            ].endswith(StrConstant.AIV_KERNEL):
                 logging.info("Found hccl small op of stream %d, task %d", datum[2], datum[1])
                 continue
             datum = datum[:-1]  # 去除batch_id, 不在交付件中展现
@@ -164,16 +212,16 @@ class AiCoreOpReport:
 
         for index, header in enumerate(ai_core_used_headers):
             if header in AiCoreOpReport.UNSUPPORTED_HEADER:
-                ai_core_used_headers[index] = "\'N/A\'"
+                ai_core_used_headers[index] = "'N/A'"
         used_headers = ",".join(ai_core_used_headers)
-        subtask_id = ",(case when subtask_id={} then 'N/A' else subtask_id end) ". \
-            format(NumberConstant.DEFAULT_GE_CONTEXT_ID)
+        subtask_id = ",(case when subtask_id={} then 'N/A' else subtask_id end) ".format(
+            NumberConstant.DEFAULT_GE_CONTEXT_ID
+        )
         if not ChipManager().is_chip_v4():
             subtask_id = ",'N/A'"
         return "select {1}, batch_id, task_id, stream_id {subtask_id} from {0}".format(
-            DBNameConstant.TABLE_SUMMARY_METRICS,
-            used_headers,
-            subtask_id=subtask_id)
+            DBNameConstant.TABLE_SUMMARY_METRICS, used_headers, subtask_id=subtask_id
+        )
 
     @staticmethod
     def _get_ai_core_float_cols(columns: list) -> list:
@@ -214,10 +262,14 @@ class AiCoreOpReport:
         start_ts, _ = InfoConfReader().get_collect_time()
         task_start_index = headers.index(cls.TASK_START_TIME)
         task_duration_index = headers.index(cls.TASK_DURATION)
-        logging.info("There are %d records before op_summary data filtering, timestamp is %s.",
-                     len(task_data), start_ts)
-        filtered_data = Utils.filter_data_by_start_time_condition(task_data, start_ts,
-            lambda d: (d[task_start_index], float_calculate([d[task_start_index], d[task_duration_index]])))
+        logging.info(
+            "There are %d records before op_summary data filtering, timestamp is %s.", len(task_data), start_ts
+        )
+        filtered_data = Utils.filter_data_by_start_time_condition(
+            task_data,
+            start_ts,
+            lambda d: (d[task_start_index], float_calculate([d[task_start_index], d[task_duration_index]])),
+        )
         if 0 < len(filtered_data) != len(task_data):
             filtered_data[0][headers.index(cls.TASK_WAIT_TIME)] = 0
         logging.info("There are %d records after op_summary data filtering.", len(filtered_data))
@@ -237,8 +289,9 @@ class AiCoreOpReport:
         """
         if not os.path.exists(PathManager.get_db_path(project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE)):
             return []
-        with HcclViewModel(project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE,
-                           [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]) as hccl_model:
+        with HcclViewModel(
+            project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]
+        ) as hccl_model:
             if not hccl_model.check_table():
                 return []
             hccl_communication_data = hccl_model.get_hccl_op_data_by_group()
@@ -254,12 +307,21 @@ class AiCoreOpReport:
             if ProfilingScene().is_graph_export():
                 model_name = [model_name_and_id_dict.get(_hccl_op.model_id, Constant.NA)]
                 index_id = [_hccl_op.index_id]
-            hccl_data[index] = model_name + [_hccl_op.model_id, Constant.NA, Constant.NA] + index_id + \
-                               [
-                                   _hccl_op.op_name, _hccl_op.op_type, 'N/A', _hccl_op.task_type,
-                                   int(_hccl_op.timestamp), int(_hccl_op.duration),
-                                   Constant.DEFAULT_VALUE, Constant.DEFAULT_VALUE
-                               ]
+            hccl_data[index] = (
+                model_name
+                + [_hccl_op.model_id, Constant.NA, Constant.NA]
+                + index_id
+                + [
+                    _hccl_op.op_name,
+                    _hccl_op.op_type,
+                    Constant.NA,
+                    _hccl_op.task_type,
+                    int(_hccl_op.timestamp),
+                    int(_hccl_op.duration),
+                    Constant.DEFAULT_VALUE,
+                    Constant.DEFAULT_VALUE,
+                ]
+            )
             hccl_data[index].extend([Constant.NA] * (header_length - len(hccl_data[index])))
         return hccl_data
 
@@ -335,8 +397,9 @@ class AiCoreOpReport:
 
     @classmethod
     def _format_summary_data(cls, headers: list, device_tasks: list) -> list:
-        result = filter(lambda x: x not in headers,
-                        [StrConstant.TASK_START_TIME, cls.TASK_DURATION, cls.TASK_WAIT_TIME])
+        result = filter(
+            lambda x: x not in headers, [StrConstant.TASK_START_TIME, cls.TASK_DURATION, cls.TASK_WAIT_TIME]
+        )
         if list(result):
             logging.error("Op_summary_data don't have start time or duration")
         else:
@@ -352,14 +415,17 @@ class AiCoreOpReport:
                     prev_duration = task[task_duration_index]
                 else:
                     task[task_wait_time_index] = max(task[task_start_index] - prev_start_time - prev_duration, 0)
-                    task[task_wait_time_index] = round(task[task_wait_time_index] / NumberConstant.NS_TO_US,
-                                                       NumberConstant.ROUND_THREE_DECIMAL)
+                    task[task_wait_time_index] = round(
+                        task[task_wait_time_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+                    )
                     prev_start_time = task[task_start_index]
                     prev_duration = task[task_duration_index]
                 task[task_start_index] = format_high_precision_for_csv(
-                    InfoConfReader().trans_into_local_time(task[task_start_index]))
-                task[task_duration_index] = round(task[task_duration_index] / NumberConstant.NS_TO_US,
-                                                  NumberConstant.ROUND_THREE_DECIMAL)
+                    InfoConfReader().trans_into_local_time(task[task_start_index])
+                )
+                task[task_duration_index] = round(
+                    task[task_duration_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+                )
         return device_tasks
 
     @classmethod
@@ -385,8 +451,9 @@ class AiCoreOpReport:
         """
         if not (conn and curs):
             return False
-        if not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_SUMMARY_TASK_TIME) or \
-                not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_SUMMARY_GE):
+        if not DBManager.judge_table_exist(
+            curs, DBNameConstant.TABLE_SUMMARY_TASK_TIME
+        ) or not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_SUMMARY_GE):
             logging.warning("No device task info or op desc found.")
             return False
         return True
@@ -396,9 +463,7 @@ class AiCoreOpReport:
         union_sql, headers = cls._get_sql_and_headers(headers)
         headers.append(cls.ADDITION_HEADER[0])
         ai_core_group_dict, headers = cls._get_aicore_data(curs, headers)
-        filter_params = (
-            Constant.TASK_TYPE_WRITE_BACK, Constant.TASK_TYPE_INVALID
-        )
+        filter_params = (Constant.TASK_TYPE_WRITE_BACK, Constant.TASK_TYPE_INVALID)
         data = DBManager.fetch_all_data(curs, union_sql, filter_params)
         if not data:
             return [], headers
@@ -452,11 +517,10 @@ class AiCoreOpReport:
 
     @classmethod
     def _get_aicore_data(cls: any, curs: any, headers: list) -> tuple:
-        if DBManager.judge_table_exist(curs, DBNameConstant.TABLE_SUMMARY_METRICS) \
-                and cls._count_num(DBNameConstant.TABLE_SUMMARY_METRICS, curs):
-            ai_core_headers = cls._get_used_headers(curs,
-                                                    DBNameConstant.TABLE_SUMMARY_METRICS,
-                                                    cls.AI_CORE_UNUSED_COLS)
+        if DBManager.judge_table_exist(curs, DBNameConstant.TABLE_SUMMARY_METRICS) and cls._count_num(
+            DBNameConstant.TABLE_SUMMARY_METRICS, curs
+        ):
+            ai_core_headers = cls._get_used_headers(curs, DBNameConstant.TABLE_SUMMARY_METRICS, cls.AI_CORE_UNUSED_COLS)
             ai_core_used_cols = cls._get_ai_core_float_cols(ai_core_headers)
             ai_core_data = DBManager.fetch_all_data(curs, cls._get_ai_core_table_sql(ai_core_used_cols))
             ai_core_group_dict = cls._group_by_stream_task(ai_core_data)
@@ -467,32 +531,35 @@ class AiCoreOpReport:
     @classmethod
     def _get_tensor_table_sql_and_headers(cls: any, headers: list) -> tuple:
         # ge or subtask need modify the context_id or subtask_id so that it should be same.
-        sql = "select {1}.model_id, {0}.task_id, {0}.stream_id, {index_info}" \
-              "{1}.op_name, {1}.op_type, " \
-              "(case when {1}.op_state is 'N/A' then 'N/A' " \
-              "when {1}.op_state is '1' then 'dynamic'" \
-              "when {1}.op_state is '0' then 'static' end), " \
-              "{1}.task_type," \
-              "{0}.start_time, {0}.duration_time," \
-              "{0}.wait_time, {1}.block_num, {1}.mix_block_num, {1}.op_flag," \
-              "(case when {1}.input_shapes is NULL then 'N/A' else {1}.input_shapes end), " \
-              "(case when {1}.input_data_types is NULL then 'N/A' else {1}.input_data_types end), " \
-              "(case when {1}.input_formats is NULL then 'N/A' else {1}.input_formats end), " \
-              "(case when {1}.output_shapes is NULL then 'N/A' else {1}.output_shapes end), " \
-              "(case when {1}.output_data_types is NULL then 'N/A' else {1}.output_data_types end), " \
-              "(case when {1}.output_formats is NULL then 'N/A' else {1}.output_formats end), " \
-              "(case when {1}.context_id={context_id} then 'N/A' else {1}.context_id end), " \
-              "{0}.batch_id " \
-              "from {0} inner join {1} on {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id " \
-              "and {1}.task_type != ? and {1}.task_type != ? " \
-              "and {0}.batch_id={1}.batch_id " \
-              "and {1}.context_id={0}.subtask_id and {0}.start_time != {2} " \
-              "order by start_time" \
-            .format(DBNameConstant.TABLE_SUMMARY_TASK_TIME,
-                    DBNameConstant.TABLE_SUMMARY_GE,
-                    NumberConstant.INVALID_TASK_TIME,
-                    context_id=NumberConstant.DEFAULT_GE_CONTEXT_ID,
-                    index_info=cls._get_index_id_sql_condition())
+        sql = (
+            "select {1}.model_id, {0}.task_id, {0}.stream_id, {index_info}"
+            "{1}.op_name, {1}.op_type, "
+            "(case when {1}.op_state is 'N/A' then 'N/A' "
+            "when {1}.op_state is '1' then 'dynamic'"
+            "when {1}.op_state is '0' then 'static' end), "
+            "{1}.task_type,"
+            "{0}.start_time, {0}.duration_time,"
+            "{0}.wait_time, {1}.block_num, {1}.mix_block_num, {1}.op_flag,"
+            "(case when {1}.input_shapes is NULL then 'N/A' else {1}.input_shapes end), "
+            "(case when {1}.input_data_types is NULL then 'N/A' else {1}.input_data_types end), "
+            "(case when {1}.input_formats is NULL then 'N/A' else {1}.input_formats end), "
+            "(case when {1}.output_shapes is NULL then 'N/A' else {1}.output_shapes end), "
+            "(case when {1}.output_data_types is NULL then 'N/A' else {1}.output_data_types end), "
+            "(case when {1}.output_formats is NULL then 'N/A' else {1}.output_formats end), "
+            "(case when {1}.context_id={context_id} then 'N/A' else {1}.context_id end), "
+            "{0}.batch_id "
+            "from {0} inner join {1} on {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id "
+            "and {1}.task_type != ? and {1}.task_type != ? "
+            "and {0}.batch_id={1}.batch_id "
+            "and {1}.context_id={0}.subtask_id and {0}.start_time != {2} "
+            "order by start_time".format(
+                DBNameConstant.TABLE_SUMMARY_TASK_TIME,
+                DBNameConstant.TABLE_SUMMARY_GE,
+                NumberConstant.INVALID_TASK_TIME,
+                context_id=NumberConstant.DEFAULT_GE_CONTEXT_ID,
+                index_info=cls._get_index_id_sql_condition(),
+            )
+        )
         headers += cls.TENSOR_HEADERS
         return sql, headers
 
@@ -515,6 +582,7 @@ class ReportOPCounter:
     """
     class to report op counter data
     """
+
     OPERATOR_UNUSED_HEADERS = ["Model Name", "Infer ID"]
 
     @staticmethod
@@ -522,25 +590,29 @@ class ReportOPCounter:
         """
         check exist of db table
         """
-        if not (conn and curs) or \
-                not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_OP_COUNTER_OP_REPORT):
+        if not (conn and curs) or not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_OP_COUNTER_OP_REPORT):
             return False
         return True
 
     @staticmethod
     def _get_op_report_sql_operator_scene() -> str:
-        sql = "select op_type, core_type, occurrences, total_time, " \
-              "min, avg, max, ratio from {0} " \
-              "where op_type != 'N/A' and core_type!=? and core_type!=? order by total_time desc" \
-            .format(DBNameConstant.TABLE_OP_COUNTER_OP_REPORT, NS_TO_US=NumberConstant.NS_TO_US)
+        sql = (
+            "select op_type, core_type, occurrences, total_time, "
+            "min, avg, max, ratio from {0} "
+            "where op_type != 'N/A' and core_type!=? and core_type!=? order by total_time desc".format(
+                DBNameConstant.TABLE_OP_COUNTER_OP_REPORT,
+            )
+        )
         return sql
 
     @staticmethod
     def _get_op_report_sql_network_scene() -> str:
-        sql = "select model_name, op_type, core_type, occurrences, total_time, " \
-              "min, avg, max, ratio from {0} " \
-              "where op_type != 'N/A' and core_type!=? and core_type!=? order by model_name asc, " \
-              "total_time desc".format(DBNameConstant.TABLE_OP_COUNTER_OP_REPORT)
+        sql = (
+            "select model_name, op_type, core_type, occurrences, total_time, "
+            "min, avg, max, ratio from {0} "
+            "where op_type != 'N/A' and core_type!=? and core_type!=? order by model_name asc, "
+            "total_time desc".format(DBNameConstant.TABLE_OP_COUNTER_OP_REPORT)
+        )
         return sql
 
     @classmethod
@@ -559,9 +631,7 @@ class ReportOPCounter:
         if ProfilingScene().is_all_export() or ProfilingScene().is_step_export():
             sql = cls._get_op_report_sql_operator_scene()
             cls._clear_unused_headers(headers)
-        filter_params = (
-            Constant.TASK_TYPE_WRITE_BACK, Constant.TASK_TYPE_INVALID
-        )
+        filter_params = (Constant.TASK_TYPE_WRITE_BACK, Constant.TASK_TYPE_INVALID)
         data = DBManager.fetch_all_data(curs, sql, filter_params)
         data = cls._format_statistic_data(data, headers)
         DBManager.destroy_db_connect(conn, curs)
@@ -586,14 +656,18 @@ class ReportOPCounter:
             return statistic_data
         for i, data in enumerate(statistic_data):
             data = list(data)
-            data[total_time_index] = round(data[total_time_index] / NumberConstant.NS_TO_US,
-                                           NumberConstant.ROUND_THREE_DECIMAL)
-            data[min_time_index] = round(data[min_time_index] / NumberConstant.NS_TO_US,
-                                         NumberConstant.ROUND_THREE_DECIMAL)
-            data[avg_time_index] = round(data[avg_time_index] / NumberConstant.NS_TO_US,
-                                         NumberConstant.ROUND_THREE_DECIMAL)
-            data[max_time_index] = round(data[max_time_index] / NumberConstant.NS_TO_US,
-                                         NumberConstant.ROUND_THREE_DECIMAL)
+            data[total_time_index] = round(
+                data[total_time_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+            )
+            data[min_time_index] = round(
+                data[min_time_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+            )
+            data[avg_time_index] = round(
+                data[avg_time_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+            )
+            data[max_time_index] = round(
+                data[max_time_index] / NumberConstant.NS_TO_US, NumberConstant.ROUND_THREE_DECIMAL
+            )
             data[ratio_index] = round(float(data[ratio_index]), NumberConstant.ROUND_THREE_DECIMAL)
             statistic_data[i] = data
         return statistic_data

@@ -73,7 +73,7 @@ static std::map<TaskId, std::vector<HostTask>> GeneratorHostTask()
     auto &res1 = hostTask[{1, 1, 1, 1}];
     res1.emplace_back();
     res1.back().modelId = TEST_ID;
-    res1.back().connection_id = 1234;  // 测试connection_id 1234
+    res1.back().connectionId = 1234;  // 测试connectionId 1234
     res1.back().taskTypeStr = "KERNEL_AICPU";
     res1.back().streamId = TEST_ID;
     res1.back().contextId = TEST_ID;
@@ -83,7 +83,7 @@ static std::map<TaskId, std::vector<HostTask>> GeneratorHostTask()
     auto &res2 = hostTask[{1, 3, 1, 1}];
     res2.emplace_back();
     res2.back().modelId = TEST_ID;
-    res2.back().connection_id = 2345;  // 测试connection_id 2345
+    res2.back().connectionId = 2345;  // 测试connectionId 2345
     res2.back().taskTypeStr = "AI_CORE";
     res2.back().streamId = TEST_ID;
     res2.back().contextId = TEST_ID;

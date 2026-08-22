@@ -25,7 +25,6 @@
 #include "analysis/csrc/domain/entities/time/time_duration.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/mc2_comm_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/overlap_analysis_data.h"
@@ -46,7 +45,6 @@ class OverlapAnalysisProcessor : public DataProcessor
     void RecordCompAndCommTaskTime(const std::shared_ptr<std::vector<AscendTaskData>> &ascendTasks,
                                    const std::shared_ptr<std::vector<TaskInfoData>> &compTasks,
                                    const std::shared_ptr<std::vector<CommunicationOpData>> &commOps,
-                                   const std::shared_ptr<std::vector<KfcOpData>> &kfcOps,
                                    const std::shared_ptr<std::vector<MC2CommInfoData>> &mc2CommInfos);
     static void SepCompTaskAndKFCCommSections(std::map<TaskId, std::vector<TimeDuration>> &allTaskPool,
                                               const std::shared_ptr<std::vector<TaskInfoData>> &compTasks,

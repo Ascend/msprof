@@ -30,7 +30,6 @@ from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.trace_view_manager import TraceViewManager
 from common_func.path_manager import PathManager
 from common_func.hccl_info_common import DeviceHcclSource
-from mscalculate.hccl.hccl_task import HcclOps
 from mscalculate.hccl.hccl_task import HcclTask
 from msmodel.hccl.hccl_model import HcclViewModel
 from common_func.hash_dict_constant import HashDictData
@@ -68,7 +67,7 @@ class HCCLExport:
         return OrderedDict(
             {
                 'notify_id': hccl_task.notify_id,
-                'duration estimated(us)': hccl_task.duration_estimated,
+                'duration estimated(us)': 0,  # 原始数据无效，此处默认置0
                 'stream id': hccl_task.stream_id,
                 'task id': hccl_task.task_id,
                 'context id': hccl_task.context_id,
@@ -80,6 +79,7 @@ class HCCLExport:
                 'data type': hccl_task.data_type,
                 'link type': hccl_task.link_type,
                 "bandwidth(GB/s)": hccl_task.bandwidth,
+                "model id": hccl_task.model_id,
             }
         )
 
@@ -193,35 +193,39 @@ class HCCLExport:
             [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE, DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE],
         ) as hccl_model:
             if group_type == DeviceHcclSource.HCCL.value:
-                hccl_op_data_from_group = hccl_model.get_hccl_op_data_by_group()
                 hccl_op_info_from_table = hccl_model.get_hccl_op_info_from_table()
             else:
-                hccl_op_data_from_group = hccl_model.get_kfc_op_data_by_group()
                 hccl_op_info_from_table = hccl_model.get_hccl_op_info_from_table(DBNameConstant.TABLE_KFC_OP)
-            hccl_format_op_data = [None] * len(hccl_op_data_from_group)
-            for idx, hccl_op in enumerate(hccl_op_data_from_group):
-                if hccl_op.group_name not in self.hccl_groups:
-                    logging.error("The group name %s not exists", hccl_op.group_name)
-                    continue
-                hccl_op_info = hccl_op_info_from_table.get(hccl_op.connection_id, HcclOps())
-                args = {
-                    "rank_size": hccl_op_info.rank_size,
-                    "connection_id": hccl_op.connection_id,
-                    "model id": hccl_op.model_id,
-                    "data_type": hccl_op_info.data_type,
-                    "alg_type": hccl_op_info.alg_type,
-                    "count": hccl_op_info.count,
-                }
 
-                hccl_format_op_data[idx] = [
-                    hccl_op.op_name,
-                    self.pid_value,
-                    self.hccl_groups.get(hccl_op.group_name)[group_type].start_index,
-                    InfoConfReader().trans_into_local_time(raw_timestamp=hccl_op.timestamp),
-                    hccl_op.duration / NumberConstant.NS_TO_US,
-                    args,
-                ]
-        return hccl_format_op_data
+        op_data = [None] * len(hccl_op_info_from_table)
+        idx = 0
+        for op in hccl_op_info_from_table:
+            if op.group_name not in self.hccl_groups:
+                logging.error("The group name %s not exists", op.group_name)
+                continue
+
+            args = {
+                "rank_size": op.rank_size,
+                "connection_id": op.connection_id,
+                "model id": op.model_id,
+                "data_type": op.data_type,
+                "alg_type": op.alg_type,
+                "count": op.count,
+                "relay": "yes" if op.relay else "no",
+                "retry": "yes" if op.retry else "no",
+            }
+
+            op_data[idx] = [
+                op.op_name,
+                self.pid_value,
+                self.hccl_groups.get(op.group_name)[group_type].start_index,
+                InfoConfReader().trans_into_local_time(raw_timestamp=op.start),
+                (op.end - op.start) / NumberConstant.NS_TO_US,
+                args,
+            ]
+            idx += 1
+
+        return op_data[:idx]
 
     def _format_hccl_communication_data(self, hccl_data: List[HcclTask], group_type: int = 0):
         # check level0 by sample.json
@@ -231,7 +235,6 @@ class HCCLExport:
         index = 0
         for _, _hccl_data in enumerate(hccl_data):
             hccl_args = HCCLExport.get_hccl_arg(_hccl_data)
-            hccl_args["model id"] = _hccl_data.model_id
             if _hccl_data.group_name not in self.hccl_groups:
                 logging.error("The group name %s not exists: group idx: %d", _hccl_data.group_name, group_type)
                 continue

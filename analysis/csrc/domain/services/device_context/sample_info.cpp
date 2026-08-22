@@ -15,90 +15,111 @@
  * -------------------------------------------------------------------------*/
 #include <iostream>
 #include <sstream>
-#include "nlohmann/json.hpp"
-#include "analysis/csrc/infrastructure/utils/utils.h"
+
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 #include "device_context.h"
 #include "device_context_error_code.h"
+#include "nlohmann/json.hpp"
 
 using namespace Analysis;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Domain {
-namespace {
+namespace Domain
+{
+namespace
+{
 const std::string SAMPLE_JSON = "sample.json";
 const char EVENT_SEPARATOR = ',';
-}
+}  // namespace
 
 // 分割字符串，提取十六进制数
-void HexStrToInt(std::string &jsonStr, std::vector<uint32_t>& intValues)
+void HexStrToInt(std::string& jsonStr, std::vector<uint32_t>& intValues)
 {
     std::stringstream ss(jsonStr);
     int index = 0;
-    while (!ss.eof()) {
+    while (!ss.eof())
+    {
         char comma;
         uint32_t value;
         ss >> std::hex >> value;
-        if (ss.fail()) {
+        if (ss.fail())
+        {
             ERROR("The MetricEventsStr error, please check!");
             break;
         }
-        if (ss.peek() == EVENT_SEPARATOR) {
+        if (ss.peek() == EVENT_SEPARATOR)
+        {
             ss >> comma;
         }
-        if (index < DEFAULT_PMU_LENGTH) {
+        if (index < DEFAULT_PMU_LENGTH)
+        {
             intValues[index] = value;
-        } else {
+        }
+        else
+        {
             intValues.push_back(value);
         }
         ++index;
     }
 }
 
-AivMetricsEventsType GetAivMetricsEventsTypeFromStr(const std::string &aivMetrics)
+AivMetricsEventsType GetAivMetricsEventsTypeFromStr(const std::string& aivMetrics)
 {
     auto it = aivMetricsMap.find(aivMetrics);
-    if (it != aivMetricsMap.end()) {
+    if (it != aivMetricsMap.end())
+    {
         return it->second;
-    } else {
+    }
+    else
+    {
         // 如果找不到对应的枚举值，返回AicMetricsUnknown
         return AivMetricsEventsType::AIV_METRICS_UNKNOWN;
     }
 }
 
-AicMetricsEventsType GetAicMetricsEventsTypeFromStr(const std::string &aicMetrics)
+AicMetricsEventsType GetAicMetricsEventsTypeFromStr(const std::string& aicMetrics)
 {
     auto it = aicMetricsMap.find(aicMetrics);
-    if (it != aicMetricsMap.end()) {
+    if (it != aicMetricsMap.end())
+    {
         return it->second;
-    } else {
+    }
+    else
+    {
         // 如果找不到对应的枚举值，返回AicMetricsUnknown
         return AicMetricsEventsType::AIC_METRICS_UNKNOWN;
     }
 }
 
-ProfilingMode GetProfilingModeFromStr(const std::string &profilingStr)
+ProfilingMode GetProfilingModeFromStr(const std::string& profilingStr)
 {
     auto it = profilingMap.find(profilingStr);
-    if (it != profilingMap.end()) {
+    if (it != profilingMap.end())
+    {
         return it->second;
-    } else {
+    }
+    else
+    {
         // 如果找不到对应的枚举值，PROFILING_UNKNOWN
         return ProfilingMode::PROFILING_UNKNOWN;
     }
 }
 
-}
+}  // namespace Domain
 
-}
+}  // namespace Analysis
 
-namespace nlohmann {
+namespace nlohmann
+{
 
 template <>
-struct adl_serializer<SampleInfo> {
+struct adl_serializer<SampleInfo>
+{
     static void to_json(json& jsonData, const SampleInfo& infoData)
     {
         jsonData = json{{"ai_core_profiling", infoData.aiCoreProfiling}, {"ai_core_metrics", infoData.aiCoreMetrics}};
@@ -112,7 +133,8 @@ struct adl_serializer<SampleInfo> {
         infoData.aiCoreMetrics = GetAicMetricsEventsTypeFromStr(aiCoreMetricsStr);
 
         jsonData.at("ai_core_profiling_events").get_to(infoData.aiCoreProfilingEventsStr);
-        if (infoData.aiCoreProfilingEventsStr != "") {
+        if (infoData.aiCoreProfilingEventsStr != "")
+        {
             HexStrToInt(infoData.aiCoreProfilingEventsStr, infoData.aiCoreProfilingEvents);
         }
 
@@ -128,7 +150,8 @@ struct adl_serializer<SampleInfo> {
         infoData.aivMetrics = GetAivMetricsEventsTypeFromStr(aivMetricsStr);
 
         jsonData.at("aiv_profiling_events").get_to(infoData.aivProfilingEventsStr);
-        if (infoData.aivProfilingEventsStr != "") {
+        if (infoData.aivProfilingEventsStr != "")
+        {
             HexStrToInt(infoData.aivProfilingEventsStr, infoData.aivProfilingEvents);
         }
 
@@ -138,30 +161,38 @@ struct adl_serializer<SampleInfo> {
         jsonData.at("aiv_sampling_interval").get_to(infoData.aivSamplingInterval);
         std::string dynamicStr = jsonData.value("dynamic", "off");
         infoData.dynamic = (dynamicStr == "on");
+
+        std::string profLevel = jsonData.value("profLevel", "l0");
+        std::string profLevelHisi = jsonData.value("prof_level", "level0");
+        infoData.isLevel0 = (profLevel == "l0" && profLevelHisi == "level0");  // 同时为level0时说明是level0
     }
 };
 
-}
+}  // namespace nlohmann
 
 bool DeviceContext::GetSampleJson()
 {
-    std::vector <std::string> files = File::GetOriginData(deviceContextInfo.deviceFilePath,
-                                                          {SAMPLE_JSON}, {"done"});
-    if (files.size() != 1) {
+    std::vector<std::string> files = File::GetOriginData(deviceContextInfo.deviceFilePath, {SAMPLE_JSON}, {"done"});
+    if (files.size() != 1)
+    {
         ERROR("The number of % in % is invalid.", SAMPLE_JSON, deviceContextInfo.deviceFilePath);
         return false;
     }
 
     FileReader fd(files.back());
     nlohmann::json info;
-    if (fd.ReadJson(info) != ANALYSIS_OK) {
+    if (fd.ReadJson(info) != ANALYSIS_OK)
+    {
         ERROR("Load json context failed: '%'.", files.back());
         return false;
     }
 
-    try {
+    try
+    {
         deviceContextInfo.sampleInfo = info;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         ERROR("Error parsing JSON: '%'.", e.what());
         return false;
     }

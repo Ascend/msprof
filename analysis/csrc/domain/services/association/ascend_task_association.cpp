@@ -123,7 +123,7 @@ void MergeByHostAndDeviceTask(std::vector<TopDownTask>& res, HostTask& hostTask,
         // 有多个deviceTask且是第一个算子，标记记为true
         res.emplace_back((count == 0 && deviceTask.size() > 1), hostTask.taskId, hostTask.batchId, hostTask.streamId,
                          hostTask.contextId, hostTask.requestId, GetDeviceTaskTypeStr(task), hostTask.taskTypeStr,
-                         hostTask.modelId, hostTask.connection_id, start.Double(), end.Double());
+                         hostTask.modelId, hostTask.connectionId, start.Double(), end.Double());
         count++;
     }
 }
@@ -133,7 +133,7 @@ void MergeByOnlyHostTask(std::vector<TopDownTask>& res, std::vector<HostTask>& h
     for (auto& task : hostTask)
     {
         res.emplace_back(false, task.taskId, task.batchId, task.streamId, task.contextId, task.requestId, UNKNOWN,
-                         task.taskTypeStr, task.modelId, task.connection_id, INVALID_TIME, INVALID_TIME);
+                         task.taskTypeStr, task.modelId, task.connectionId, INVALID_TIME, INVALID_TIME);
     }
 }
 

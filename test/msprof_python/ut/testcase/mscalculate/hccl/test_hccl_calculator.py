@@ -20,6 +20,7 @@ import unittest
 from unittest import mock
 
 from common_func.constant import Constant
+from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.msprof_object import CustomizedNamedtupleFactory
 from common_func.profiling_scene import ProfilingScene
@@ -32,6 +33,7 @@ from mscalculate.hccl.hccl_task import HcclTask
 
 NAMESPACE = 'mscalculate.hccl.hccl_calculator'
 
+# 生产代码中 DBManager.fetch_all_data 会将 dataclass 转为增强型 namedtuple（含 replace 方法）
 HcclTask = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(HcclTask, [])
 HcclOps = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(HcclOps, [])
 
@@ -39,19 +41,20 @@ HcclOps = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(HcclOps, [])
 class TestHcclCalculator(unittest.TestCase):
     DIR_PATH = os.path.join(os.path.dirname(__file__), 'DT_HcclCalculator')
 
-    @staticmethod
-    def construct_hccl_dto(op_name, is_master, timestamp=123456, duration=0, op_type="HCCL_OP_TYPE"):
-        hccl_data = HcclTask()
-        hccl_data.op_name, hccl_data.iteration, hccl_data.duration, hccl_data.first_timestamp, hccl_data.is_dynamic, \
-            hccl_data.model_id, hccl_data.index_id, hccl_data.task_type, hccl_data.op_type, hccl_data.is_master = \
-            (op_name, 1, duration, timestamp, 0, 1, 1, "HCCL", op_type, is_master)
-        return hccl_data
-
     def setUp(self) -> None:
         os.makedirs(os.path.join(self.DIR_PATH, 'PROF1', 'device_0'))
+        InfoConfReader()._sample_json = {"profLevel": "level1"}
+        InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
+        InfoConfReader()._end_info = {}
 
     def tearDown(self) -> None:
         clear_dt_project(self.DIR_PATH)
+        InfoConfReader()._sample_json = None
+        InfoConfReader()._start_info.clear()
+
+    # ============================================================
+    # calculate / ms_run
+    # ============================================================
 
     def test_calculate_should_return_none_when_table_not_in_db(self):
         InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
@@ -62,171 +65,18 @@ class TestHcclCalculator(unittest.TestCase):
             self.assertIsNone(ret)
         InfoConfReader()._start_info.clear()
 
-    def test_calculate_should_update_both_hccl_data_and_hccl_op_report_data_when_op_type_valid(self):
-        with mock.patch(NAMESPACE + ".DBManager.check_tables_in_db", return_value=True), \
-                mock.patch(NAMESPACE + '.HcclCalculator._merge_hccl_ops_and_tasks', return_value=[
-                    HcclTask(op_name="hccl_op", timestamp=1, duration=1, op_type="all_reduce")]):
-            InfoConfReader()._info_json = {"devices": "0"}
-            InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-            InfoConfReader()._end_info = {}
+    def test_ms_run(self):
+        with mock.patch("os.path.exists", return_value=True), \
+                mock.patch(NAMESPACE + ".HcclCalculator._judge_calculate_again", return_value=True), \
+                mock.patch(NAMESPACE + ".HcclCalculator._drop_table"), \
+                mock.patch(NAMESPACE + ".HcclCalculator.calculate"), \
+                mock.patch(NAMESPACE + ".HcclCalculator.save"):
             check = HcclCalculator([], CONFIG)
-            check.calculate()
-            hccl_task_data = check._hccl_task_data
-            hccl_op_report_data = check._hccl_op_report_data
-            hccl_op_data = check._hccl_op_data
-            self.assertEqual(30, len(hccl_task_data[0]))
-            self.assertEqual([("all_reduce", 1.0, 1.0, 1.0, 1.0, 1.0, 100.0)], hccl_op_report_data)
-            self.assertEqual([], hccl_op_data)
+            check.ms_run()
 
-    def test_calculate_should_update_both_hccl_data_and_hccl_op_report_data_when_op_type_invalid(self):
-        with mock.patch(NAMESPACE + ".DBManager.check_tables_in_db", return_value=True), \
-                mock.patch(NAMESPACE + '.HcclCalculator._merge_hccl_ops_and_tasks', return_value=[
-                    HcclTask(op_name="hccl_op", timestamp=1, duration=1, op_type=Constant.NA)]):
-            InfoConfReader()._info_json = {"devices": "0"}
-            InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-            InfoConfReader()._end_info = {}
-            check = HcclCalculator([], CONFIG)
-            check.calculate()
-            hccl_task_data = check._hccl_task_data
-            hccl_op_report_data = check._hccl_op_report_data
-            hccl_op_data = check._hccl_op_data
-            self.assertEqual(30, len(hccl_task_data[0]))
-            self.assertEqual([], hccl_op_report_data)
-            self.assertEqual([], hccl_op_data)
-
-    def test_generate_hccl_op_info_should_return_three_data_when_the_input_len_is_three(self):
-        InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-        InfoConfReader()._end_info = {}
-        hccl_data = [
-            HcclTask(op_name="hccl_op1", is_master=1),
-            HcclTask(op_name="hccl_op1", timestamp=123457, is_master=1),
-            HcclTask(op_name="hccl_op2", timestamp=123458, is_master=1)
-        ]
-        check = HcclCalculator([], CONFIG)
-        check._generate_hccl_op_info(hccl_data)
-        self.assertEqual(3, len(check._hccl_task_data))
-        InfoConfReader()._start_info.clear()
-
-    def test_cal_total_should_return_5_when_input_is_the_following_task_time(self):
-        InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-        InfoConfReader()._end_info = {}
-        task_time = {
-            '1': {'count': 2, 'total_time': 4, 'min': 1, 'max': 3, 'avg': 2},
-            '2': {'count': 1, 'total_time': 1, 'min': 1, 'max': 1, 'avg': 1}
-        }
-        check = HcclCalculator([], CONFIG)
-        _cal_total = getattr(check, "_cal_total")
-        result = _cal_total(task_time)
-        self.assertEqual(result, 5)
-        InfoConfReader()._start_info.clear()
-
-    def test_create_report_should_return_list_data_when_input_is_not_empty(self):
-        InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-        InfoConfReader()._end_info = {}
-        task_data = {
-            '1': {'count': 2, 'total_time': 4, 'min': 1, 'max': 3, 'avg': 2},
-            '2': {'count': 1, 'total_time': 1, 'min': 1, 'max': 1, 'avg': 1}
-        }
-        check = HcclCalculator([], CONFIG)
-        check._create_report(task_data)
-        hccl_op_report_data = check._hccl_op_report_data
-        self.assertEqual(hccl_op_report_data, [("1", 2, 4.0, 1.0, 2.0, 3.0, 80.0),
-                                               ("2", 1, 1.0, 1.0, 1.0, 1.0, 20.0)])
-        InfoConfReader()._start_info.clear()
-
-    def test_get_hccl_op_report_data_should_return_dict_data_when_input_is_hccldto_list(self):
-        args = {'stream id': 2, 'task id': 0, 'context id': 4294967295, 'is_master': '1'}
-        hccl_data = [
-            HcclTask(op_name="hccl_op1", is_master=1, timestamp=-1, duration=2, op_type="all_reduce"),
-            HcclTask(op_name="hccl_op1", is_master=1, timestamp=1, duration=2, op_type="all_reduce"),
-            HcclTask(op_name="hccl_op2", is_master=1, timestamp=5, duration=3, op_type="all_reduce"),
-            HcclTask(op_name="hccl_op3", is_master=1, timestamp=10, duration=2, op_type="all_gather"),
-            HcclTask(op_name="hccl_op4", is_master=1, timestamp=15, duration=3, op_type="all_gather")
-        ]
-        InfoConfReader()._start_info = {"collectionTimeBegin": "0"}
-        InfoConfReader()._end_info = {}
-        check = HcclCalculator([], CONFIG)
-        hccl_op_report_data = check._get_hccl_op_report_data(hccl_data)
-        self.assertEqual(hccl_op_report_data,
-                         {"all_reduce": {"count": 2, "total_time": 5, "max": 3, "min": 2, "avg": 2.5},
-                          "all_gather": {"count": 2, "total_time": 5, "max": 3, "min": 2, "avg": 2.5}
-                          })
-
-    def test_merge_hccl_ops_and_tasks_should_return_five_matched_res_when_input_not_empty(self):
-        hccl_ops = [
-            HcclOps(timestamp=1, duration=2),
-            HcclOps(timestamp=2, duration=2),
-            HcclOps(timestamp=3, duration=2),
-            HcclOps(timestamp=4, duration=2),
-            HcclOps(timestamp=5, duration=2),
-            HcclOps(timestamp=6, duration=2),
-            HcclOps(timestamp=7, duration=2),
-            HcclOps(timestamp=8, duration=2),
-            HcclOps(timestamp=9, duration=2, thread_id=111)
-        ]
-
-        hccl_tasks = [
-            # corner case 1
-            HcclTask(host_timestamp=1),
-            HcclTask(host_timestamp=3),
-            HcclTask(host_timestamp=4),
-            HcclTask(host_timestamp=5),
-            # corner case 2
-            HcclTask(host_timestamp=10),
-            # mismatch case 3
-            HcclTask(host_timestamp=20)
-        ]
-        check = HcclCalculator([], CONFIG)
-        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
-        self.assertEqual(len(communication_data), 5)
-        self.assertEqual(len(check._hccl_op_data), 8)
-
-    def test_merge_hccl_ops_and_tasks_should_return_empty_list_when_input_hcclops_empty(self):
-        hccl_ops = []
-        hccl_tasks = [HcclTask(model_id=4294967295), HcclTask(model_id=4294967296)]
-        check = HcclCalculator([], CONFIG)
-        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
-        self.assertEqual(communication_data, [])
-        self.assertEqual(check._hccl_op_data, [])
-
-    def test_merge_hccl_ops_and_tasks_should_return_empty_list_when_input_hccltasks_empty(self):
-        hccl_ops = [HcclOps(model_id=4294967295), HcclOps(model_id=4294967296)]
-        hccl_tasks = []
-        check = HcclCalculator([], CONFIG)
-        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
-        self.assertEqual(communication_data, [])
-        self.assertEqual(check._hccl_op_data, [])
-
-    def test_merge_hccl_ops_and_tasks_should_return_2_data_when_step_export_and_ops_queue_not_empty(self):
-        hccl_ops = [HcclOps(model_id=4294967295), HcclOps(model_id=4294967296)]
-        hccl_tasks = [HcclTask(model_id=4294967295), HcclTask(model_id=4294967296)]
-        ProfilingScene().set_mode(ExportMode.STEP_EXPORT)
-        check = HcclCalculator([], CONFIG)
-        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
-        self.assertEqual(2, len(communication_data))
-        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
-        self.assertEqual(len(check._hccl_op_data), 1)
-
-    def test_merge_hccl_ops_and_tasks_should_return_2_data_when_all_export_and_ops_queue_not_empty(self):
-        hccl_ops = [HcclOps(model_id=4294967295), HcclOps(model_id=4294967296)]
-        hccl_tasks = [HcclTask(model_id=4294967295), HcclTask(model_id=4294967296)]
-        check = HcclCalculator([], CONFIG)
-        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
-        self.assertEqual(2, len(communication_data))
-        self.assertEqual(len(check._hccl_op_data), 1)
-
-    def test_get_hccl_op_report_data_should_return_empty_data_when_input_empty(self):
-        hccl_data = []
-        check = HcclCalculator([], CONFIG)
-        hccl_op_report_data = check._get_hccl_op_report_data(hccl_data)
-        self.assertEqual(hccl_op_report_data, {})
-
-    def test_create_report_should_return_empty_when_input_is_empty(self):
-        task_data = []
-        check = HcclCalculator([], CONFIG)
-        check._create_report(task_data)
-        hccl_op_report_data = check._hccl_op_report_data
-        self.assertEqual(hccl_op_report_data, [])
+    # ============================================================
+    # _judge_calculate_again
+    # ============================================================
 
     def test_judge_calculate_again_should_return_true_when_not_all_export(self):
         ProfilingScene().set_mode(ExportMode.GRAPH_EXPORT)
@@ -252,48 +102,248 @@ class TestHcclCalculator(unittest.TestCase):
         scene._scene = None
         ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
 
-    def test_ms_run(self):
-        with mock.patch("os.path.exists", return_value=True), \
-                mock.patch(NAMESPACE + ".HcclCalculator._judge_calculate_again", return_value=True), \
-                mock.patch(NAMESPACE + ".HcclCalculator._drop_table"), \
-                mock.patch(NAMESPACE + ".HcclCalculator.calculate"), \
-                mock.patch(NAMESPACE + ".HcclCalculator.save"):
-            check = HcclCalculator([], CONFIG)
-            check.ms_run()
+    # ============================================================
+    # save
+    # ============================================================
 
     def test_save_should_return_none_when_hccl_data_empty(self):
         check = HcclCalculator([], CONFIG)
         check._hccl_task_data = []
         self.assertIsNone(check.save())
 
-    def test_save_should_return_none_when_hccl_data_not_empty_and_hccl_op_data_empty(self):
-        with mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_task_table"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.insert_data_to_db"):
-            check = HcclCalculator([], CONFIG)
+    def test_save_should_skip_op_table_when_op_data_empty(self):
+        """op_data 为空时只写 task 表，不写 op 和 report"""
+        with mock.patch.object(check := HcclCalculator([], CONFIG), '_model') as mock_model:
+            mock_model.__enter__.return_value = mock_model
             check._hccl_task_data = [HcclOps(model_id=4294967295)]
             check._hccl_op_data = []
-            self.assertIsNone(check.save())
+            check.save()
+            mock_model.rebuild_hccl_task_table.assert_called_once()
+            mock_model.insert_data_to_db.assert_any_call(
+                DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE, check._hccl_task_data
+            )
+            # op_data 为空，不调用第二次 insert，也不调用 rebuild_hccl_op_table
+            self.assertEqual(1, mock_model.insert_data_to_db.call_count)
+            mock_model.rebuild_hccl_op_table.assert_not_called()
 
-    def test_save_should_return_none_when_hccl_data_and_hccl_op_data_not_empty_and_hccl_op_report_data_empty(self):
-        with mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_task_table"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.insert_data_to_db"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_op_table"):
-            check = HcclCalculator([], CONFIG)
+    def test_save_should_skip_report_table_when_report_data_empty(self):
+        """report_data 为空时写 task 和 op，不写 report"""
+        with mock.patch.object(check := HcclCalculator([], CONFIG), '_model') as mock_model:
+            mock_model.__enter__.return_value = mock_model
             check._hccl_task_data = [HcclOps(model_id=4294967295)]
             check._hccl_op_data = [HcclOps(model_id=4294967295, data_type="INT32")]
             check._hccl_op_report_data = []
-            self.assertIsNone(check.save())
+            check.save()
+            mock_model.rebuild_hccl_task_table.assert_called_once()
+            mock_model.rebuild_hccl_op_table.assert_called_once()
+            mock_model.rebuild_hccl_op_report_table.assert_not_called()
+            self.assertEqual(2, mock_model.insert_data_to_db.call_count)
+            mock_model.insert_data_to_db.assert_any_call(
+                DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE, check._hccl_task_data
+            )
+            mock_model.insert_data_to_db.assert_any_call(
+                DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE, check._hccl_op_data
+            )
 
-    def test_save_should_not_return_none_when_hccl_data_and_hccl_op_data_and_hccl_op_report_data_not_empty(self):
-        with mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_task_table"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.insert_data_to_db"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_op_table"), \
-                mock.patch("msmodel.hccl.hccl_model.HcclViewModel.rebuild_hccl_op_report_table"):
-            check = HcclCalculator([], CONFIG)
+    def test_save_should_write_all_tables_when_all_data_present(self):
+        """三类数据都有时写全部三张表，且每张表写入前调用对应的 rebuild"""
+        with mock.patch.object(check := HcclCalculator([], CONFIG), '_model') as mock_model:
+            mock_model.__enter__.return_value = mock_model
             check._hccl_task_data = [HcclOps(model_id=4294967295)]
             check._hccl_op_data = [HcclOps(model_id=4294967841, data_type="INT32")]
             check._hccl_op_report_data = [("all_reduce", 1.0, 1.0, 1.0, 1.0, 1.0, 100.0)]
             check.save()
+            mock_model.rebuild_hccl_task_table.assert_called_once()
+            mock_model.rebuild_hccl_op_table.assert_called_once()
+            mock_model.rebuild_hccl_op_report_table.assert_called_once()
+            self.assertEqual(3, mock_model.insert_data_to_db.call_count)
+            mock_model.insert_data_to_db.assert_any_call(
+                DBNameConstant.TABLE_HCCL_OP_REPORT, check._hccl_op_report_data
+            )
+
+    # ============================================================
+    # _merge_hccl_ops_and_tasks
+    # ============================================================
+
+    def test_merge_hccl_ops_and_tasks_should_return_empty_list_when_input_hcclops_empty(self):
+        hccl_ops = []
+        hccl_tasks = [HcclTask(model_id=4294967295), HcclTask(model_id=4294967296)]
+        check = HcclCalculator([], CONFIG)
+        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+        self.assertEqual(communication_data, [])
+
+    def test_merge_hccl_ops_and_tasks_should_return_empty_list_when_input_hccltasks_empty(self):
+        hccl_ops = [HcclOps(model_id=4294967295), HcclOps(model_id=4294967296)]
+        hccl_tasks = []
+        check = HcclCalculator([], CONFIG)
+        communication_data = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+        self.assertEqual(communication_data, [])
+
+    def test_merge_hccl_ops_and_tasks_should_match_by_thread_and_op_id(self):
+        """同 thread_id 下按 task.op_id ↔ op.connection_id 将 master task 时间窗合并到 op 的 start/end"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+            HcclOps(thread_id=200, connection_id=2),
+        ]
+        hccl_tasks = [
+            # 同一 op 内的两个 task 四元组不同（task_id 不同），不触发 iter_id 递增
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=2, context_id=1, batch_id=1,
+                     is_master=1, timestamp=120, duration=5, rank_size=8),
+            HcclTask(thread_id=200, op_id=2, stream_id=2, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=300, duration=20, rank_size=4),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        self.assertEqual(2, len(result))
+        # op1(thread=100): start=100, end=125 (从两个 master task 合并)
+        self.assertEqual(100, result[0].start)
+        self.assertEqual(125, result[0].end)
+        self.assertEqual(8, result[0].rank_size)
+        self.assertEqual(1, result[0].connection_id)
+        # op2(thread=200): start=300, end=320
+        self.assertEqual(300, result[1].start)
+        self.assertEqual(320, result[1].end)
+        self.assertEqual(4, result[1].rank_size)
+
+    def test_merge_hccl_ops_and_tasks_should_assign_iter_id_for_same_thread_op_pair(self):
+        """同一 op 反复执行时，靠 task 四元组 (stream_id, task_id, context_id, batch_id) 重复识别 iter_id 递增（从 1 开始）"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+        ]
+        hccl_tasks = [
+            # 第一轮执行：四元组 (1, 1, 1, 1)
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+            # 第二轮执行：同一四元组重复 → iter_id 递增为 2
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=300, duration=10, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        # 同一 op 反复执行 → 2 个结果，iter_id 依次 1、2
+        self.assertEqual(2, len(result))
+        self.assertEqual(1, result[0].connection_id)
+        self.assertEqual(1, result[0].iter_id)
+        self.assertEqual(100, result[0].start)
+        self.assertEqual(1, result[1].connection_id)
+        self.assertEqual(2, result[1].iter_id)
+        self.assertEqual(300, result[1].start)
+
+    def test_merge_hccl_ops_and_tasks_should_skip_non_master_tasks(self):
+        """is_master=0 的 task 不参与合并"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+        ]
+        hccl_tasks = [
+            # non-master 与 master 是同一 op 内的两个不同 task，四元组不同，不触发 iter_id 递增
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=0, timestamp=100, duration=10, rank_size=8),
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=2, context_id=1, batch_id=1,
+                     is_master=1, timestamp=200, duration=20, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        self.assertEqual(1, len(result))
+        self.assertEqual(200, result[0].start)
+
+    def test_merge_hccl_ops_and_tasks_should_group_by_op_id_and_refresh_group_name(self):
+        """同一线程多个 op 的 task 时间戳交错时，应按 op_id 聚拢避免单个 op 被拆成多次迭代；
+        并把所属 op 的 group_name 回填给 task（task 侧 group_name 与 op 侧不同源，以 op 侧为准）"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1, group_name="domain_a"),
+            HcclOps(thread_id=100, connection_id=2, group_name="domain_b"),
+        ]
+        hccl_tasks = [
+            # op1 的两个 master task 被 op2 从时间戳上交错开；若只按 timestamp 排序，op1 会被 op2 打断、错误拆成两次迭代
+            # op1 的两个 task 四元组不同（task_id 不同），是同一 op 单次执行的两个 task，不触发 iter_id 递增
+            # task 的 group_name 故意设为与所属 op 不一致的旧值，验证会被 op 的 group_name 回填
+            HcclTask(thread_id=100, op_id=1, group_name="stale", stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+            HcclTask(thread_id=100, op_id=2, group_name="stale", stream_id=2, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=200, duration=10, rank_size=4),
+            HcclTask(thread_id=100, op_id=1, group_name="stale", stream_id=1, task_id=2, context_id=1, batch_id=1,
+                     is_master=1, timestamp=300, duration=10, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        # 按 op_id 聚拢后：op1 两个 task 连续合并为一个窗口，op2 独立
+        self.assertEqual(2, len(result))
+        self.assertEqual(1, result[0].connection_id)
+        self.assertEqual(1, result[0].iter_id)
+        self.assertEqual(100, result[0].start)
+        self.assertEqual(310, result[0].end)
+        self.assertEqual(2, result[1].connection_id)
+        self.assertEqual(1, result[1].iter_id)
+        self.assertEqual(200, result[1].start)
+        self.assertEqual(210, result[1].end)
+
+        # group_name 回填：task 侧 group_name 应被刷新为所属 op 的 group_name
+        self.assertEqual("domain_a", hccl_tasks[0].group_name)
+        self.assertEqual("domain_b", hccl_tasks[1].group_name)
+        self.assertEqual("domain_a", hccl_tasks[2].group_name)
+
+    # ============================================================
+    # _generate_hccl_data
+    # ============================================================
+
+    def test_generate_hccl_data_should_serialize_task_to_24_columns(self):
+        """_generate_hccl_data 将 HcclTask 序列化为 HCCLTaskSingleDeviceMap 的 24 列"""
+        check = HcclCalculator([], CONFIG)
+        hccl_ops = []
+        hccl_tasks = [
+            HcclTask(
+                model_id=1, index_id=2, hccl_name="Memcpy", group_name="grp",
+                plane_id=3, timestamp=100, duration=50,
+                op_id=5, is_master=1, stream_id=6, task_id=7, context_id=8,
+                batch_id=9, size=1024, bandwidth=10.5, local_rank=0,
+                remote_rank=1, rank_size=8, transport_type="SDMA",
+                data_type="INT8", link_type="LINK", rdma_type="RDMA",
+                notify_id=99,
+            ),
+        ]
+        check._generate_hccl_data(hccl_ops, hccl_tasks)
+
+        self.assertEqual(1, len(check._hccl_task_data))
+        row = check._hccl_task_data[0]
+        self.assertEqual(24, len(row))
+        self.assertEqual(
+            [1, 2, "Memcpy", "grp", 3, 100, 50, 5, 1, 6, 7, 8, 9,
+             1024, 10.5, 0, 1, 8, "SDMA", "INT8", "LINK", "RDMA", 99, 0],
+            row,
+        )
+
+    def test_generate_hccl_data_should_serialize_op_to_16_columns(self):
+        """_generate_hccl_data 将 HcclOps 序列化为 HCCLOpSingleDeviceMap 的 16 列"""
+        check = HcclCalculator([], CONFIG)
+        hccl_tasks = []
+        hccl_ops = [
+            HcclOps(
+                model_id=1, index_id=2, op_name="allreduce", task_type="HCCL",
+                op_type="all_reduce", start=100, end=200,
+                relay=1, retry=0, data_type="FP16", alg_type="HD",
+                count=8, group_name="group_a", connection_id=42, rank_size=4,
+            ),
+        ]
+        check._generate_hccl_data(hccl_ops, hccl_tasks)
+
+        self.assertEqual(1, len(check._hccl_op_data))
+        row = check._hccl_op_data[0]
+        self.assertEqual(16, len(row))
+        self.assertEqual(
+            [1, 2, "allreduce", "HCCL", "all_reduce", 100, 200,
+             1, 0, "FP16", "HD", 8, "group_a", 42, 4, 0],
+            row,
+        )
+
+    # ============================================================
+    # 带宽计算
+    # ============================================================
 
     def test_calculate_bandwidth_gb_s_should_return_correct_bandwidth_in_GB_S(self):
         ret = HcclCalculator._calculate_bandwidth_gb_s(duration=319959.1875, size=209715200)
@@ -442,52 +492,74 @@ class TestHcclCalculator(unittest.TestCase):
         for idx, _ in enumerate(events):
             self.assertAlmostEqual(ans[idx][1].bandwidth, events[idx][1].bandwidth)
 
-    def test_get_hccl_op_report_data_should_return_filter_data_when_input_is_hccldto_list(self):
-        args = {'stream id': 2, 'task id': 0, 'context id': 4294967295, 'is_master': '1'}
-        all_gather = "all_gather"
-        all_reduce = "all_reduce"
-        hccl_data = [
-            HcclTask(op_name="hccl_op1", is_master=1, timestamp=1, duration=2, op_type=all_reduce),
-            HcclTask(op_name="hccl_op2", is_master=1, timestamp=5, duration=3, op_type=all_reduce),
-            HcclTask(op_name="hccl_op3", is_master=1, timestamp=10, duration=2, op_type=all_gather),
-            HcclTask(op_name="hccl_op4", is_master=1, timestamp=15, duration=3, op_type=all_gather),
-            HcclTask(op_name="hccl_op5", is_master=0, timestamp=15, duration=3, op_type=all_gather)
+    def test_find_consecutive_payload_tasks_should_count(self):
+        """find_consecutive_payload_tasks 统计连续 RDMA_SEND_PAYLOAD 任务数"""
+        events = [
+            [0, HcclTask(rdma_type='RDMA_SEND_PAYLOAD')],
+            [1, HcclTask(rdma_type='RDMA_SEND_PAYLOAD')],
+            [2, HcclTask(rdma_type='RDMA_SEND_PAYLOAD')],
+            [3, HcclTask(rdma_type='OTHER')],
         ]
-        check = HcclCalculator([], CONFIG)
-        hccl_op_report_data = check._get_hccl_op_report_data(hccl_data)
-        self.assertEqual(hccl_op_report_data,
-                         {all_reduce: {"count": 2, "total_time": 5, "max": 3, "min": 2, "avg": 2.5},
-                          all_gather: {"count": 2, "total_time": 5, "max": 3, "min": 2, "avg": 2.5}
-                          })
+        count = HcclCalculator.find_consecutive_payload_tasks(events, 0)
+        self.assertEqual(3, count)
+        # 从非 PAYLOAD 位置开始应返回 0
+        count_from_mid = HcclCalculator.find_consecutive_payload_tasks(events, 3)
+        self.assertEqual(0, count_from_mid)
 
-    def test_update_op_name_by_group_name_should_set_correct_op_name_by_timestamp(self):
-        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
-        InfoConfReader()._end_info = {}
-        hcom_allreduce = "hcom_allreduce"
-        hcom_allgather = "hcom_allgather"
-        allreduce_aicpu = "hcom_allreduce_AicpuKernel"
-        expect_op_name_list = ["hcom_allreduce_321_-1_0", "hcom_allreduce_321_-1_0", "hcom_allreduce_321_-1_0",
-                               "hcom_allreduce_321_0_0", "hcom_allreduce_321_1_0", "hcom_allgather_321_2_0",
-                               "hcom_allreduce_AicpuKernel_321_-1_0", "hcom_allreduce_AicpuKernel_321_0_0",
-                               "hcom_allreduce_AicpuKernel_321_1_0"]
-        hccl_data = [
-            HcclTask(op_name=hcom_allreduce, group_name="45321", timestamp=100, duration=30, first_timestamp=50),
-            HcclTask(op_name=hcom_allreduce, group_name="45321", timestamp=140, duration=10, first_timestamp=60),
-            HcclTask(op_name=hcom_allreduce, group_name="45321", timestamp=180, duration=10, first_timestamp=70),
-            HcclTask(op_name=hcom_allreduce, group_name="45321", timestamp=220, duration=70, first_timestamp=80),
-            HcclTask(op_name=hcom_allreduce, group_name="45321", timestamp=330, duration=40, first_timestamp=90),
-            HcclTask(op_name=hcom_allgather, group_name="45321", timestamp=380, duration=10, first_timestamp=95),
-            HcclTask(op_name=allreduce_aicpu, group_name="45321", timestamp=150, duration=20, first_timestamp=65),
-            HcclTask(op_name=allreduce_aicpu, group_name="45321", timestamp=400, duration=70, first_timestamp=100),
-            HcclTask(op_name=allreduce_aicpu, group_name="45321", timestamp=500, duration=40, first_timestamp=110)
+    # ============================================================
+    # update_op_name_by_group_name
+    # ============================================================
+
+    def test_update_op_name_by_group_name_should_use_iter_id_suffix(self: any) -> None:
+        """op_name 格式: {name}_{group[-3:]}_{index}_{iter_id}"""
+        hccl_ops = [
+            HcclOps(op_name="hcom_allreduce", group_name="12345", start=100, end=200, iter_id=1),
+            HcclOps(op_name="hcom_allreduce", group_name="12345", start=300, end=400, iter_id=2),
         ]
-        check = HcclCalculator([], CONFIG)
-        check.start_time_raw_timestamp = 200
-        check.update_op_name_by_group_name(hccl_data)
-        op_name_list = []
-        for data in hccl_data:
-            op_name_list.append(data.op_name)
-        self.assertEqual(op_name_list, expect_op_name_list)
-        InfoConfReader()._start_info.clear()
+        HcclCalculator.update_op_name_by_group_name(hccl_ops, start_time_raw_timestamp=50)
+        self.assertEqual("hcom_allreduce_345_0_1", hccl_ops[0].op_name)
+        self.assertEqual("hcom_allreduce_345_1_2", hccl_ops[1].op_name)
 
+    def test_update_op_name_by_group_name_should_skip_ops_before_threshold(self: any) -> None:
+        """end <= threshold 的 op 不递增 group 索引（保持 -1）"""
+        hccl_ops = [
+            HcclOps(op_name="op_a", group_name="12345", start=10, end=50, iter_id=1),
+            HcclOps(op_name="op_a", group_name="12345", start=100, end=200, iter_id=1),
+        ]
+        HcclCalculator.update_op_name_by_group_name(hccl_ops, start_time_raw_timestamp=60)
+        self.assertEqual("op_a_345_-1_1", hccl_ops[0].op_name)
+        self.assertEqual("op_a_345_0_1", hccl_ops[1].op_name)
 
+    # ============================================================
+    # generate_op_report_data
+    # ============================================================
+
+    def test_generate_op_report_data_should_aggregate_by_op_type(self: any) -> None:
+        """按 op_type 聚合 count / total / min / avg / max"""
+        op1 = mock.Mock(op_type="all_reduce", start=0, end=10)
+        op2 = mock.Mock(op_type="all_reduce", start=5, end=25)
+        op3 = mock.Mock(op_type="all_gather", start=0, end=30)
+        report_list = []
+        HcclCalculator.generate_op_report_data([op1, op2, op3], report_list)
+        self.assertEqual(2, len(report_list))
+        self.assertEqual("all_reduce", report_list[0][0])
+        self.assertEqual(2, report_list[0][1])
+        self.assertEqual("all_gather", report_list[1][0])
+        self.assertEqual(1, report_list[1][1])
+
+    def test_generate_op_report_data_should_filter_ops_before_start_time(self: any) -> None:
+        """end < start_time_raw_timestamp 的 op 不参与统计"""
+        op_before = mock.Mock(op_type="old_op", start=0, end=50)
+        op_after = mock.Mock(op_type="new_op", start=100, end=200)
+        report_list = []
+        HcclCalculator.generate_op_report_data([op_before, op_after], report_list, start_time_raw_timestamp=60)
+        self.assertEqual(1, len(report_list))
+        self.assertEqual("new_op", report_list[0][0])
+
+    def test_generate_op_report_data_should_return_empty_when_all_filtered(self: any) -> None:
+        """所有 op 都被过滤时 report_list 为空"""
+        op1 = mock.Mock(op_type="old", start=0, end=10)
+        op2 = mock.Mock(op_type="old2", start=0, end=0)
+        report_list = []
+        HcclCalculator.generate_op_report_data([op1, op2], report_list, start_time_raw_timestamp=100)
+        self.assertEqual([], report_list)

@@ -320,19 +320,21 @@ void TreeAnalyzer::UpdateHcclBigOpDescs(const std::shared_ptr<TreeNode> &node)
     {
         ERROR("Not report hccl op info for api: %", modelId);
     }
-    int64_t kfcConnectionId = INVALID_VALUE;
+    std::string kfcConnectionIds;
     for (const auto &child : nodeNode->children)
     {
         if (child->event->info.level == MSPROF_REPORT_NODE_LEVEL)
         {
-            kfcConnectionId = child->event->id;
+            if (!kfcConnectionIds.empty()) kfcConnectionIds.append(",");
+            kfcConnectionIds.append(std::to_string(child->event->id));
         }
     }
+    if (kfcConnectionIds.empty()) kfcConnectionIds = std::to_string(INT64_MAX);
 
     auto nodeApi = nodeNode->event->apiPtr;
     std::shared_ptr<HcclBigOpDesc> desc;
     MAKE_SHARED_RETURN_VOID(desc, HcclBigOpDesc, nodeApi->beginTime, nodeApi->endTime, deviceId, modelId, indexId,
-                            connectionId, track->threadId, nodeDesc, hcclOpDesc, kfcConnectionId);
+                            connectionId, track->threadId, nodeDesc, hcclOpDesc, kfcConnectionIds);
     std::shared_ptr<Operator> op;
     MAKE_SHARED_RETURN_VOID(op, Operator, desc, nodeApi->itemId, OpType::OPTYPE_HCCL_BIG);
     hcclBigOpDescs_.emplace_back(op);
@@ -360,11 +362,11 @@ std::shared_ptr<HostTask> TreeAnalyzer::GenHostTask(const std::shared_ptr<Msprof
     std::shared_ptr<HostTask> task;
     MAKE_SHARED0_RETURN_VALUE(task, HostTask, nullptr);
 
-    task->connection_id = connectionId;
+    task->connectionId = connectionId;
     task->contextId = ctxId;
     task->op = opPtr;
     task->timeStamp = track->timeStamp;
-    task->thread_id = track->threadId;
+    task->threadId = track->threadId;
     task->taskType = taskType;
     task->requestId = modelApi != nullptr ? modelApi->reserve : INVALID_VALUE;
     task->streamId = track->data.runtimeTrackV2.streamId;
@@ -377,7 +379,7 @@ std::shared_ptr<HostTask> TreeAnalyzer::GenHostTask(const std::shared_ptr<Msprof
 }
 
 HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<MsprofCompactInfo> &track,
-                                            int64_t connection_id)
+                                            int64_t connectionId)
 {
     auto modelNode = path_.find(MSPROF_REPORT_MODEL_LEVEL) != path_.end() ? path_[MSPROF_REPORT_MODEL_LEVEL] : nullptr;
     auto modelApi = modelNode == nullptr ? nullptr : modelNode->event->apiPtr;
@@ -397,7 +399,7 @@ HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shar
         MAKE_SHARED_RETURN_VALUE(op, Operator, {}, desc, nodeNode->event->apiPtr->itemId, OpType::OPTYPE_COMPUTE);
         auto taskTypeVal = track->data.runtimeTrackV2.taskType;
         auto task =
-            GenHostTask(track, modelApi, op, DEFAULT_CONTEXT_ID, static_cast<uint16_t>(taskTypeVal), connection_id);
+            GenHostTask(track, modelApi, op, DEFAULT_CONTEXT_ID, static_cast<uint16_t>(taskTypeVal), connectionId);
         return (task != nullptr) ? HostTasks{task} : HostTasks{};
     }
 
@@ -428,7 +430,7 @@ HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shar
         for (const auto &ctxId : ctxIds)
         {
             auto task =
-                GenHostTask(track, modelApi, pair.second, ctxId, static_cast<uint16_t>(taskTypeVal), connection_id);
+                GenHostTask(track, modelApi, pair.second, ctxId, static_cast<uint16_t>(taskTypeVal), connectionId);
             if (task)
             {
                 results.emplace_back(task);

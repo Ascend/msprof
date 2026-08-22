@@ -476,12 +476,17 @@ class TaskGear(CANNGear):
             return False
         return True
 
-    def add_hccl_task(self, model_event: Event, hccl_event: Event, task_track_dto: TaskTrackDto):
+    def add_hccl_task(self, call_stack: dict, hccl_event: Event, task_track_dto: TaskTrackDto):
         hccl_descs = self.get_hccl_descs(hccl_event)
+        model_event: Event = call_stack.get(Constant.MODEL_LEVEL)
         model_dto: ApiDataDto = self.db.get_api(model_event)
+
+        node_event: Event = call_stack.get(Constant.NODE_LEVEL)
+        node_dto: ApiDataDto = self.db.get_api(node_event)
 
         model_id = self.get_model_id(task_track_dto, model_dto)
         request_id = model_dto.request_id if model_dto.request_id is not None else -1
+        op_id = node_dto.connection_id if node_dto.connection_id is not None else Constant.DEFAULT_INVALID_VALUE
 
         hccl_tasks = [0] * len(hccl_descs)
         for i, hccl_desc in enumerate(hccl_descs.values()):
@@ -496,7 +501,6 @@ class TaskGear(CANNGear):
                 hccl_info_dto.group_name,
                 hccl_info_dto.plane_id,
                 task_track_dto.timestamp,
-                hccl_info_dto.duration_estimated,
                 task_track_dto.stream_id,
                 task_track_dto.task_id,
                 context_id,
@@ -513,16 +517,19 @@ class TaskGear(CANNGear):
                 hccl_info_dto.rdma_type,
                 task_track_dto.thread_id,
                 hccl_info_dto.rank_size,
+                op_id,
             ]
         self.hccl_task_info.extend(hccl_tasks)
 
     def get_kfc_connection_id(self: any, node_event: Event):
-        if node_event is None:
-            return Constant.DEFAULT_INVALID_VALUE
-        kfc_node_event = node_event.kfc_node_event
-        node_dto: ApiDataDto = self.db.get_api(kfc_node_event)
-        connection_id = node_dto.connection_id if node_dto.connection_id is not None else Constant.DEFAULT_INVALID_VALUE
-        return connection_id
+        if node_event is None or not node_event.kfc_node_event:
+            return str(Constant.DEFAULT_INVALID_VALUE)
+        connection_ids = []
+        for kfc_event in node_event.kfc_node_event:
+            node_dto: ApiDataDto = self.db.get_api(kfc_event)
+            cid = node_dto.connection_id if node_dto.connection_id is not None else Constant.DEFAULT_INVALID_VALUE
+            connection_ids.append(str(cid))
+        return ",".join(connection_ids)
 
     def add_hccl_op(self, call_stack: dict, task_track_dto: TaskTrackDto):
         node_event: Event = call_stack.get(Constant.NODE_LEVEL)
@@ -539,7 +546,7 @@ class TaskGear(CANNGear):
 
         model_event: Event = call_stack.get(Constant.MODEL_LEVEL)
         model_dto: ApiDataDto = self.db.get_api(model_event)
-        request_id = model_dto.request_id if model_dto.request_id is not None else -1
+        index_id = model_dto.request_id if model_dto.request_id is not None else Constant.DEFAULT_INVALID_VALUE
         model_id = self.get_model_id(task_track_dto, model_dto)
         connection_id = node_dto.connection_id if node_dto.connection_id is not None else Constant.DEFAULT_INVALID_VALUE
         kfc_connection_id = self.get_kfc_connection_id(node_event)
@@ -547,13 +554,10 @@ class TaskGear(CANNGear):
         node_basic_info = [
             task_track_dto.device_id,
             model_id,
-            request_id,
+            index_id,
             task_track_dto.thread_id,
             node_dto.item_id,
             self.HCCL_TASK_TYPE,
-            Constant.NA,
-            node_dto.start,
-            node_dto.end,
             Constant.NA,
             connection_id,
             kfc_connection_id,
@@ -577,14 +581,11 @@ class TaskGear(CANNGear):
                 node_basic_info = [
                     task_track_dto.device_id,
                     model_id,
-                    request_id,
+                    index_id,
                     node_dto.thread_id,
                     node_dto.item_id,
                     self.HCCL_TASK_TYPE,
                     record.dto.op_type,
-                    node_dto.start,
-                    node_dto.end,
-                    record.dto.is_dynamic,
                     connection_id,
                     kfc_connection_id,
                 ]
@@ -871,7 +872,7 @@ class TaskGear(CANNGear):
 
             hccl_event: Event = call_stack.get(Constant.HCCL_LEVEL)
             if self.is_hccl_task(hccl_event, task_track_dto):
-                self.add_hccl_task(call_stack.get(Constant.MODEL_LEVEL), hccl_event, task_track_dto)
+                self.add_hccl_task(call_stack, hccl_event, task_track_dto)
                 self.add_hccl_op(call_stack, task_track_dto)
             if self.is_kernel_task(task_track_dto, hccl_event.is_invalid()):
                 self.add_kernel_task(call_stack, task_track_dto, is_level0)

@@ -17,7 +17,6 @@
 import logging
 import os
 from abc import abstractmethod
-from collections import defaultdict
 
 from common_func.common import print_msg
 from common_func.constant import Constant
@@ -34,6 +33,7 @@ from msparser.cluster.communication_matrix_parser import CommunicationMatrixPars
 from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.critical_path_parser import CriticalPathParser
 from msparser.cluster.meta_parser import MetaParser
+from msparser.cluster.meta_parser import OpTaskBundle, merge_op_task
 
 
 class ClusterParserFactory:
@@ -70,8 +70,7 @@ class ClusterParserFactory:
         LoadInfoManager.load_info(os.path.join(self.collection_path, rank_dirnames[0][1]))
         for rank_dir in rank_dirnames:
             if len(rank_dir) < 2:
-                logging.error("no info enough in %s, hccl parser is interrupted",
-                              DBNameConstant.DB_CLUSTER_RANK)
+                logging.error("no info enough in %s, hccl parser is interrupted", DBNameConstant.DB_CLUSTER_RANK)
                 raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB)
             self.rank_dir_dict[rank_dir[0]] = rank_dir[1]
         self.get_conditions_from_db(top_hccl_ops)
@@ -86,24 +85,28 @@ class ClusterParserFactory:
             iter_start_end = self.get_step_info_from_db(rank_id)
             self.get_hccl_events_from_db(rank_id, rank_path, iter_start_end, top_hccl_ops)
 
-    def get_hccl_events_from_db(self: any, rank_id: int, rank_path: str, iter_start_end: list,
-                                top_hccl_ops: tuple = None) -> None:
+    def get_hccl_events_from_db(
+        self: any, rank_id: int, rank_path: str, iter_start_end: list, top_hccl_ops: tuple = None
+    ) -> None:
         """
         get op events of all rank by iteration start and end time
         """
         with CommunicationModel(rank_path) as _model:
             conditions = {
                 'iter_start': iter_start_end[0][0] * NumberConstant.NS_TO_US,
-                'iter_end': iter_start_end[0][1] * NumberConstant.NS_TO_US
+                'iter_end': iter_start_end[0][1] * NumberConstant.NS_TO_US,
             }
-            events_all = _model.get_all_events_from_db(conditions, top_hccl_ops)
-            if not events_all:
+            op_task_map = _model.get_all_events_from_db(conditions, top_hccl_ops)
+            if not op_task_map:
                 logging.warning("Fail to get no.%d's hccl events, please check hccl.db", rank_id)
-                print_msg(f"Fail to get no.{rank_id}'s hccl events, "
-                          f"please check hccl.db from {PathManager.get_host_result_dir(rank_path)}")
-            op_name_dict = defaultdict(list)
-            for event in events_all:
-                op_name_dict[event.op_name].append(event)
+                print_msg(
+                    f"Fail to get no.{rank_id}'s hccl events, "
+                    f"please check hccl.db from {PathManager.get_host_result_dir(rank_path)}"
+                )
+            op_name_dict = {}
+            for op_task in op_task_map.values():
+                op_name = op_task.op_name
+                merge_op_task(op_name_dict, op_name, op_task)
             self.update_data(op_name_dict, rank_id)
 
     def get_step_info_from_db(self, rank_id: int) -> list:
@@ -143,16 +146,18 @@ class ClusterParserFactory:
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, message)
 
         if rank_id is None or dirname is None:
-            logging.error("no valid information in %s, hccl parser is interrupted",
-                          DBNameConstant.DB_CLUSTER_RANK)
+            logging.error("no valid information in %s, hccl parser is interrupted", DBNameConstant.DB_CLUSTER_RANK)
             raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB)
 
         if rank_id == Constant.DEFAULT_INVALID_VALUE:
             logging.error('Not Device id or rank id!')
             raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB)
         if rank_id >= NumberConstant.MAX_RANK_NUMS:
-            logging.error("Number of ranks is %s !, exceeds the limited upper bound:%s ",
-                          str(rank_id), NumberConstant.MAX_RANK_NUMS)
+            logging.error(
+                "Number of ranks is %s !, exceeds the limited upper bound:%s ",
+                str(rank_id),
+                NumberConstant.MAX_RANK_NUMS,
+            )
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
 
 
@@ -187,10 +192,7 @@ class ClusterCommunicationParserFactory(ClusterParserFactory):
         for hccl_name in op_name_dict:
             if hccl_name not in self.rank_hccl_data_dict:
                 self.rank_hccl_data_dict[hccl_name] = {}
-            # only get hccl data with first iter
-            events_data = op_name_dict.get(hccl_name, [])
-            events_data = [event for event in events_data if event.iteration == events_data[0].iteration]
-            self.rank_hccl_data_dict[hccl_name][rank_id] = events_data
+            self.rank_hccl_data_dict[hccl_name][rank_id] = op_name_dict.get(hccl_name, [])
 
 
 class CommunicationMatrixParserFactory(ClusterParserFactory):
@@ -206,7 +208,7 @@ class CommunicationMatrixParserFactory(ClusterParserFactory):
         self.iteration_id = params.get("iteration_id", -1)
         self.max_iters_model_id = NumberConstant.INVALID_MODEL_ID
         self.collection_path = os.path.realpath(params.get("collection_path"))
-        self.op_hccl_events = defaultdict(list)
+        self.op_hccl_events = {}
 
     def generate_parser(self: any, top_hccl_ops: tuple = False) -> CommunicationMatrixParser:
         self.get_hccl_ops_by_iter(top_hccl_ops)
@@ -220,8 +222,15 @@ class CommunicationMatrixParserFactory(ClusterParserFactory):
         """
         update self data
         """
-        for hccl_name in op_name_dict:
-            self.op_hccl_events[hccl_name].extend(op_name_dict.get(hccl_name, []))
+        for hccl_name, bundle in op_name_dict.items():
+            aggregate = self.op_hccl_events.get(hccl_name)
+            if aggregate is None:
+                aggregate = OpTaskBundle(op_name=bundle.op_name, start=bundle.start, end=bundle.end)
+                self.op_hccl_events[hccl_name] = aggregate
+            else:
+                aggregate.start = min(aggregate.start, bundle.start)
+                aggregate.end = max(aggregate.end, bundle.end)
+            aggregate.tasks.extend(bundle.tasks)
 
 
 class CriticalPathAnalysisParserFactory(ClusterParserFactory):
@@ -229,8 +238,9 @@ class CriticalPathAnalysisParserFactory(ClusterParserFactory):
     factory which creates  critical path analysis parser
     provide data preparation for created parser
     """
+
     def __init__(self: any, params: dict) -> None:
-        super(CriticalPathAnalysisParserFactory, self).__init__()
+        super().__init__()
         self.iteration_id = params.get("iteration_id", -1)
         self.model_id = params.get('model_id', NumberConstant.INVALID_MODEL_ID)
         self.collection_path = os.path.realpath(params.get("collection_path"))
@@ -271,14 +281,14 @@ class CriticalPathAnalysisParserFactory(ClusterParserFactory):
             self.compute_op_events = op_model.get_operator_data_by_task_type()
 
     def update_data(self: any, op_name_dict: dict, rank_id: int) -> None:
-        for hccl_name in op_name_dict:
-            events_data = op_name_dict.get(hccl_name, [])
-            # Get the first iteration data
-            events_data = [event for event in events_data if event.iteration == events_data[0].iteration]
-            # Get mainstream data of the first iteration
-            main_events = [event for event in events_data if event.plane_id == NumberConstant.MAIN_STREAM_THREAD_ID]
+        for hccl_name, bundle in op_name_dict.items():
+            # Get mainstream data
+            main_events = [event for event in bundle.tasks if event.plane_id == NumberConstant.MAIN_STREAM_THREAD_ID]
             if not main_events:
-                logging.error("Fail to get no.%s rank main events info, critical path parser is interrupted",
-                              str(rank_id))
+                logging.error(
+                    "Fail to get no.%s rank main events info, critical path parser is interrupted", str(rank_id)
+                )
                 raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
-            self.hccl_op_events[hccl_name] = main_events
+            self.hccl_op_events[hccl_name] = OpTaskBundle(
+                op_name=bundle.op_name, start=bundle.start, end=bundle.end, tasks=main_events
+            )

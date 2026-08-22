@@ -26,6 +26,7 @@ from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
 from msparser.cluster.communication_matrix_parser import CommunicationMatrixParser
 from msparser.cluster.communication_matrix_parser import MatrixDataType
+from msparser.cluster.meta_parser import OpTaskBundle
 
 NAMESPACE = 'msparser.cluster.communication_matrix_parser'
 
@@ -104,7 +105,7 @@ class TestCommunicationMatrixParser(unittest.TestCase):
     def test_parse_sdma(self):
         events = [Event(StrConstant.SDMA, 'Memcpy')]
         parser = CommunicationMatrixParser({})
-        parser.parse_ops(events, 'op_name')
+        parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
         self.assertEqual(parser.op_info[0][StrConstant.LINK_INFO]['0-1'][1], 1)
 
     def test_parse_rdma(self):
@@ -120,7 +121,7 @@ class TestCommunicationMatrixParser(unittest.TestCase):
                       Event(StrConstant.RDMA, StrConstant.NOTIFY_WAIT)]
             events[0].rdma_type = 'RDMA_SEND_PAYLOAD'
             parser = CommunicationMatrixParser({})
-            parser.parse_ops(events, 'op_name')
+            parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
             self.assertEqual(parser.op_info[0][StrConstant.LINK_INFO]['0-1'][2], 1)
 
     def test_combine(self):

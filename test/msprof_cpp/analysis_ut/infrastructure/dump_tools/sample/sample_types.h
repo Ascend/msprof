@@ -16,26 +16,30 @@
 #ifndef ANALYSIS_UT_INFRASTRUCTURE_DUMP_TOOLS_SAMPLE_TYPES_H
 #define ANALYSIS_UT_INFRASTRUCTURE_DUMP_TOOLS_SAMPLE_TYPES_H
 
-#include <tuple>
+#include <cstdint>
 #include <string>
+#include <tuple>
 #include <vector>
 
 // 如下的例子，是Json嵌套的情况，定义的结构中， DumpToolSampleStruct 中嵌套了 NestStructure
 using NestStructTp = std::tuple<std::string>;
-struct NestStructure {
+struct NestStructure
+{
     std::vector<std::string> columns;
     std::vector<NestStructTp> data;
 };
 
 using DumpToolSampleTp = std::tuple<uint64_t, int64_t, std::string, double, float, NestStructure, int, bool>;
-struct DumpToolSampleStruct {
+struct DumpToolSampleStruct
+{
     std::vector<std::string> columns;
     std::vector<DumpToolSampleTp> data;
 };
 
 // 与Json不同在于，Csv不支持嵌套
 using DumpToolSampleCsvTp = std::tuple<uint64_t, int64_t, std::string, double, float, int, bool>;
-struct DumpToolSampleCsvStruct {
+struct DumpToolSampleCsvStruct
+{
     std::vector<std::string> columns;
     std::vector<DumpToolSampleCsvTp> data;
 };

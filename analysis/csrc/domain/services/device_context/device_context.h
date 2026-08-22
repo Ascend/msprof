@@ -18,15 +18,19 @@
 #define ANALYSIS_DOMAIN_SERVICES_DEVICE_CONTEXT_DEVICE_CONTEXT_H
 #include <cstdint>
 #include <unordered_map>
+
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Infra;
 constexpr int DEFAULT_PMU_LENGTH = 8;
 
-enum class AicMetricsEventsType {
+enum class AicMetricsEventsType
+{
     AIC_ARITHMETIC_UTILIZATION = 0,
     AIC_PIPE_UTILIZATION,
     AIC_PIPE_UTILIZATION_EXCT,
@@ -49,10 +53,10 @@ const std::unordered_map<std::string, AicMetricsEventsType> aicMetricsMap = {
     {"MemoryUB", AicMetricsEventsType::AIC_MEMORY_UB},
     {"L2Cache", AicMetricsEventsType::AIC_L2_CACHE},
     {"PipelineExecuteUtilization", AicMetricsEventsType::AIC_PIPELINE_EXECUTE_UTILIZATION},
-    {"MemoryAccess", AicMetricsEventsType::AIC_MEMORY_ACCESS}
-};
+    {"MemoryAccess", AicMetricsEventsType::AIC_MEMORY_ACCESS}};
 
-enum class AivMetricsEventsType {
+enum class AivMetricsEventsType
+{
     AIV_ARITHMETIC_UTILIZATION = 0,
     AIV_PIPE_UTILIZATION,
     AIV_MEMORY,
@@ -73,20 +77,20 @@ const std::unordered_map<std::string, AivMetricsEventsType> aivMetricsMap = {
     {"MemoryUB", AivMetricsEventsType::AIV_MEMORY_UB},
     {"L2Cache", AivMetricsEventsType::AIV_L2_CACHE},
     {"PipelineExecuteUtilization", AivMetricsEventsType::AIV_PIPELINE_EXECUTE_UTILIZATION},
-    {"MemoryAccess", AivMetricsEventsType::AIV_MEMORY_ACCESS}
-};
+    {"MemoryAccess", AivMetricsEventsType::AIV_MEMORY_ACCESS}};
 
-enum class ProfilingMode {
-    PROFILING_MODE_SAMPLE_BASED = 0, // "sample-based"
-    PROFILING_MODE_TASK_BASED,  // "task-based"
+enum class ProfilingMode
+{
+    PROFILING_MODE_SAMPLE_BASED = 0,  // "sample-based"
+    PROFILING_MODE_TASK_BASED,        // "task-based"
     PROFILING_UNKNOWN
 };
 const std::unordered_map<std::string, ProfilingMode> profilingMap = {
     {"sample-based", ProfilingMode::PROFILING_MODE_SAMPLE_BASED},
-    {"task-based",   ProfilingMode::PROFILING_MODE_TASK_BASED}
-};
+    {"task-based", ProfilingMode::PROFILING_MODE_TASK_BASED}};
 
-struct DeviceInfo {
+struct DeviceInfo
+{
     uint32_t chipID;
     uint32_t deviceId;
     uint32_t aicFrequency;
@@ -96,11 +100,13 @@ struct DeviceInfo {
     double hwtsFrequency;
 };
 
-struct CpuInfo {
+struct CpuInfo
+{
     double frequency{1000};
 };
 
-struct SampleInfo {
+struct SampleInfo
+{
     // aic sample info
     bool aiCoreProfiling = false;
     AicMetricsEventsType aiCoreMetrics = AicMetricsEventsType::AIC_METRICS_UNKNOWN;
@@ -120,32 +126,38 @@ struct SampleInfo {
 
     // dynamic
     bool dynamic = false;
+    bool isLevel0 = false;
 
     SampleInfo() : aiCoreProfilingEvents(DEFAULT_PMU_LENGTH), aivProfilingEvents(DEFAULT_PMU_LENGTH) {}
 };
 
-struct DfxInfo {
+struct DfxInfo
+{
     std::string stopAt;
 };
 
-struct HostStartLog {
+struct HostStartLog
+{
     uint64_t clockMonotonicRaw{0};
     uint64_t cntVct{0};
     uint64_t cntVctDiff{0};
 };
 
-struct DeviceStartLog {
+struct DeviceStartLog
+{
     uint64_t clockMonotonicRaw{0};
     uint64_t cntVct{0};
     uint64_t cntVctDiff{0};  // device.start.log没有该字段，填充值
 };
 
-struct DeviceStartInfo {
+struct DeviceStartInfo
+{
     uint64_t collectionTimeBegin{0};
     uint64_t clockMonotonicRaw{0};
 };
 
-struct DeviceContextInfo {
+struct DeviceContextInfo
+{
     std::string deviceFilePath;
     DeviceInfo deviceInfo;
     SampleInfo sampleInfo;
@@ -156,9 +168,10 @@ struct DeviceContextInfo {
     DeviceStartInfo startInfo;
 };
 
-class DeviceContext : public Infra::Context {
-public:
-    static DeviceContext& Instance();
+class DeviceContext : public Infra::Context
+{
+   public:
+    static DeviceContext &Instance();
 
     // getters
     void Getter(std::string &deviceFilePath) const { deviceFilePath = this->deviceContextInfo.deviceFilePath; };
@@ -184,10 +197,11 @@ public:
 
     bool Init(const std::string &devicePath);
 
-    void SetStopAt(const std::string & stopAt) { deviceContextInfo.dfxInfo.stopAt = stopAt; }
-private:
+    void SetStopAt(const std::string &stopAt) { deviceContextInfo.dfxInfo.stopAt = stopAt; }
+
+   private:
     DeviceContextInfo deviceContextInfo;
-    bool isInitialized_; // 标记是否已初始化
+    bool isInitialized_;  // 标记是否已初始化
     DeviceContext() : isInitialized_(false) { deviceContextInfo.deviceInfo = {0, 0, 0, 0, 0, 0, 0}; };
     ~DeviceContext() = default;
     bool GetInfoJson();
@@ -199,7 +213,7 @@ private:
 };
 std::vector<DataInventory> DeviceContextEntry(const char *targetDir, const char *stopAt);
 std::vector<std::string> GetDeviceDirectories(const std::string &path);
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_SERVICES_DEVICE_CONTEXT_DEVICE_CONTEXT_H
+#endif  // ANALYSIS_DOMAIN_SERVICES_DEVICE_CONTEXT_DEVICE_CONTEXT_H

@@ -190,12 +190,11 @@ static std::vector<CommunicationOpData> GenerateOpData()
     data.opName = "hcom_broadcast__674_0_1";
     data.groupName = "16898834563344171674";
     data.connectionId = 2762; // connectionId 2762
-    data.opKey = "16898834563344171674-1-1-1-1";
     data.timestamp = 1717575960213957957; // start 1717575960213957957
     data.end = 1717575960214957957; // end 1717575960214957957
     data.relay = 0; // relay 0
     data.retry = 0; // retry 0
-    data.dataType = 1; // dataType 1
+    data.dataType = "FP16"; // dataType FP16
     data.algType = "MESH-RING";
     data.count = 5; // count 5
     data.opType = "hcom_broadcast_";
@@ -239,17 +238,16 @@ static std::vector<CommunicationTaskData> GenerateTaskData()
     data.batchId = 1; // batchId 1
     data.srcRank = 0; // src 0
     data.dstRank = 1; // dst 1
-    data.opKey = "16898834563344171674-1-1-1-1";
     data.deviceId = 0; // device 0
-    data.opName = "hcom_broadcast__674_0_1";
+    data.hcclName = "hcom_broadcast__674_0_1";
     data.taskType = "Notify_Wait";
     data.groupName = "16898834563344171674";
-    data.transportType = 2; // transport 2
+    data.transportType = "SDMA"; // transport SDMA
     data.size = 3200; // size 3200
-    data.dataType = UINT16_MAX;
-    data.linkType = UINT16_MAX;
-    data.notifyId = 456; // notifyId 456
-    data.rdmaType = UINT16_MAX;
+    data.dataType = "FP16";
+    data.linkType = "HCCS";
+    data.notifyId = "456"; // notifyId 456
+    data.rdmaType = "INVALID_TYPE";
     data.timestamp = 1717575960213957957; // start 1717575960213957957
     data.duration = 1000000.0; // dur 1000000.0
     data.durationEstimated = 20.0; // es_dur 20.0
@@ -279,7 +277,7 @@ static std::vector<KfcTaskData> GenerateKfcTaskData()
     data.size = 3200; // size 3200
     data.dataType = UINT16_MAX;
     data.linkType = UINT16_MAX;
-    data.notifyId = 456; // notifyId 456
+    data.notifyId = "456"; // notifyId 456
     data.rdmaType = UINT16_MAX;
     data.timestamp = 1717575960213957958; // start 1717575960213957958
     data.duration = 1000000.0; // dur 1000000.0
@@ -951,7 +949,7 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
     // name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
     // size, dataType, linkType, opId, isMaster, bandwidth
     using CommunicationTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t,
-            uint64_t, uint64_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint16_t,
+            uint64_t, uint64_t, int64_t, int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t,
             double>>;
     CommunicationTaskDataFormat taskResult;
     std::string sql{"SELECT * FROM " + TABLE_NAME_COMMUNICATION_TASK_INFO};
@@ -964,7 +962,7 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
     // 大算子数据
     // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId, rank_size
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-        int32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t, uint32_t>>;
+        int64_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t, int64_t>>;
     CommunicationOpDataFormat opResult;
     sql = "SELECT * FROM " + TABLE_NAME_COMMUNICATION_OP;
     msprofDBRunner->QueryData(sql, opResult);
@@ -978,12 +976,13 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnFalseWhenReserveFailed)
     // name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
     // size, dataType, linkType, opId, isMaster, bandwidth
     using CommunicationTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t,
-            uint64_t, uint64_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint16_t,
+            uint64_t, uint64_t, int64_t, int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t,
             double>>;
     // 大算子数据
-    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type
+    // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId,
+    // rank_size
     using CommunicationOpDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-        uint32_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
+        int64_t, int32_t, int32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint16_t, int64_t>>;
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     InjectHcclData(dataInventory);

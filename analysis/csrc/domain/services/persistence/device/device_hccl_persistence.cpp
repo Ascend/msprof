@@ -28,28 +28,27 @@ namespace Domain
 using namespace Analysis::Application;
 namespace
 {
-// modelId, opName, taskType, opType, timestamp, relay, retry, dataType, algType, count, groupName, connectionId,
-// rank_size
+// modelId, indexId, opName, taskType, opType, start, end, relay, retry, dataType, algType, count, groupName,
+// connectionId, rankSize, iterId
 using HcclOpDataFormat =
-    std::vector<std::tuple<uint64_t, std::string, std::string, std::string, uint64_t, int32_t, int32_t, std::string,
-                           std::string, int32_t, std::string, int64_t, int32_t>>;
+    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, std::string, uint64_t, uint64_t, int32_t,
+                           int32_t, std::string, std::string, int32_t, std::string, int64_t, int64_t, uint32_t>>;
 
-// modelId, indexId, opName, iteration, hcclName, groupName, firstTimestamp, planeId, timestamp, duration, isDynamic,
-// taskType, opType, connectionId, isMaster, streamId, taskId, durationEstimated, localRank, remoteRank, transportType,
-// size, dataType, linkType, bandwidth, contextId, notifyId, batchId, rdmaType, rank_szie
+// modelId, indexId, hcclName, groupName, planeId, timestamp, duration,
+// opId, isMaster, streamId, taskId, contextId, batchId, size, bandwidth,
+// localRank, remoteRank, rankSize, transportType, dataType, linkType, rdmaType, notifyId, iterId,
 using HcclTaskDataFormat =
-    std::vector<std::tuple<uint64_t, int32_t, std::string, uint16_t, std::string, std::string, uint64_t, int32_t,
-                           double, double, std::string, std::string, std::string, int64_t, uint16_t, uint32_t, uint32_t,
-                           double, uint32_t, uint32_t, std::string, double, std::string, std::string, double, uint32_t,
-                           std::string, uint32_t, std::string, int32_t>>;
+    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, double, double, int64_t, uint16_t,
+                           uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t, int64_t,
+                           std::string, std::string, std::string, std::string, std::string, uint32_t>>;
 
-// opType, count, totalTime, min, avg, max, ratio
-using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double, double>>;
+// opType, count, totalTime, min, avg, max
+using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double>>;
 }  // namespace
 
 bool SaveHcclOpData(DataInventory& dataInventory, const std::string& devicePath)
 {
-    auto opData = dataInventory.GetPtr<std::vector<HcclOp>>();
+    auto opData = dataInventory.GetPtr<std::vector<DeviceHcclOp>>();
     if (opData == nullptr)
     {
         ERROR("hccl op data pointer is nullptr.");
@@ -73,9 +72,9 @@ bool SaveHcclOpData(DataInventory& dataInventory, const std::string& devicePath)
     }
     for (const auto& data : *opData)
     {
-        saveData.emplace_back(data.modelId, data.opName, data.taskType, data.opType, data.timestamp, data.relay,
-                              data.retry, data.dataType, data.algType, data.count, data.groupName, data.connectionId,
-                              data.rankSize);
+        saveData.emplace_back(data.modelId, data.indexId, data.opName, data.taskType, data.opType, data.start, data.end,
+                              data.relay, data.retry, data.dataType, data.algType, data.count, data.groupName,
+                              data.connectionId, data.rankSize, data.iterId);
     }
     return SaveData(saveData, hcclDB, dbPath);
 }
@@ -106,12 +105,11 @@ bool SaveHcclTaskData(DataInventory& dataInventory, const std::string& devicePat
     }
     for (const auto& data : *taskData)
     {
-        saveData.emplace_back(data.modelId, data.indexId, data.opName, data.iteration, data.hcclName, data.groupName,
-                              data.firstTimestamp, data.planeId, data.timestamp, data.duration, data.isDynamic,
-                              data.taskType, data.opType, data.connectionId, data.isMaster, data.streamId, data.taskId,
-                              data.durationEstimated, data.localRank, data.remoteRank, data.transportType, data.size,
-                              data.dataType, data.linkType, data.bandwidth, data.contextId, data.notifyId, data.batchId,
-                              data.rdmaType, data.rankSize);
+        saveData.emplace_back(data.modelId, data.indexId, data.hcclName, data.groupName, data.planeId, data.timestamp,
+                              data.duration, data.opId, data.isMaster, data.streamId, data.taskId, data.contextId,
+                              data.batchId, data.size, data.bandwidth, data.localRank, data.remoteRank, data.rankSize,
+                              data.transportType, data.dataType, data.linkType, data.rdmaType, data.notifyId,
+                              data.iterId);
     }
     return SaveData(saveData, hcclDB, dbPath);
 }
@@ -142,7 +140,7 @@ bool SaveHcclStatisticsData(DataInventory& dataInventory, const std::string& dev
     }
     for (auto& data : *statisticsData)
     {
-        saveData.emplace_back(data.opType, data.count, data.totalTime, data.min, data.avg, data.max, data.ratio);
+        saveData.emplace_back(data.opType, data.count, data.totalTime, data.min, data.avg, data.max);
     }
     return SaveData(saveData, hcclDB, dbPath);
 }
@@ -170,7 +168,7 @@ uint32_t DeviceHcclPersistence::ProcessEntry(DataInventory& dataInventory, const
     return (flag) ? ANALYSIS_OK : ANALYSIS_ERROR;
 }
 REGISTER_PROCESS_SEQUENCE(DeviceHcclPersistence, true, HcclCalculator);
-REGISTER_PROCESS_DEPENDENT_DATA(DeviceHcclPersistence, std::vector<HcclOp>, std::vector<DeviceHcclTask>,
+REGISTER_PROCESS_DEPENDENT_DATA(DeviceHcclPersistence, std::vector<DeviceHcclOp>, std::vector<DeviceHcclTask>,
                                 std::vector<HcclStatistics>);
 REGISTER_PROCESS_SUPPORT_CHIP(DeviceHcclPersistence, CHIP_ID_ALL);
 }  // namespace Domain

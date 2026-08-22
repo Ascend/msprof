@@ -27,9 +27,7 @@ from common_func.profiling_scene import ExportMode
 from model.test_dir_cr_base_model import TestDirCRBaseModel
 from msmodel.hccl.hccl_model import HCCLModel
 from msmodel.hccl.hccl_model import HcclViewModel
-from mscalculate.hccl.hccl_task import HcclTask
 from profiling_bean.prof_enum.data_tag import DataTag
-from sqlite.db_manager import DBOpen
 
 NAMESPACE = 'msmodel.hccl.hccl_model'
 
@@ -50,28 +48,28 @@ class TestHCCLModel(TestDirCRBaseModel):
         with mock.patch(NAMESPACE + '.HCCLModel.insert_data_to_db'):
             HCCLModel("", [" "]).flush([])
 
-    def test_get_hccl_data(self):
-        data = [1, 2, 3, 4,
-                "{'notify id': 4294967840, 'duration estimated': 0.8800048828125, 'stage': 4294967295, "
-                "'step': 4294967385, 'bandwidth': 'NULL', 'stream id': 8, 'task id': 34, 'task type': 'Notify Record',"
-                " 'src rank': 2, 'dst rank': 1, 'transport type': 'SDMA', 'size': None, 'tag': 'all2allvc_1_5'}"]
-        col = ["hccl_name", "plane_id", "timestamp", "duration", "args"]
-        create_sql = "create table IF NOT EXISTS {0} " \
-                     "(name TEXT, " \
-                     "plane_id INTEGER, " \
-                     "timestamp REAL, " \
-                     "duration REAL, " \
-                     "args TEXT)".format(DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE)
-        test = HcclTask()
-        for index, i in enumerate(data):
-            if hasattr(test, col[index]):
-                setattr(test, col[index], i)
-        with DBOpen(DBNameConstant.DB_HCCL) as db_open:
-            db_open.create_table(create_sql)
-            with mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[test]):
-                check = HCCLModel("", [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE])
-                check.cur = db_open.db_curs
-                check.get_hccl_data()
+    # def test_get_hccl_data(self):
+    #     data = [1, 2, 3, 4,
+    #             "{'notify id': 4294967840, 'duration estimated': 0.8800048828125, 'stage': 4294967295, "
+    #             "'step': 4294967385, 'bandwidth': 'NULL', 'stream id': 8, 'task id': 34, 'task type': 'Notify Record',"
+    #             " 'src rank': 2, 'dst rank': 1, 'transport type': 'SDMA', 'size': None, 'tag': 'all2allvc_1_5'}"]
+    #     col = ["hccl_name", "plane_id", "timestamp", "duration", "args"]
+    #     create_sql = "create table IF NOT EXISTS {0} " \
+    #                  "(name TEXT, " \
+    #                  "plane_id INTEGER, " \
+    #                  "timestamp REAL, " \
+    #                  "duration REAL, " \
+    #                  "args TEXT)".format(DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE)
+    #     test = HcclTask()
+    #     for index, i in enumerate(data):
+    #         if hasattr(test, col[index]):
+    #             setattr(test, col[index], i)
+    #     with DBOpen(DBNameConstant.DB_HCCL) as db_open:
+    #         db_open.create_table(create_sql)
+    #         with mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[test]):
+    #             check = HCCLModel("", [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE])
+    #             check.cur = db_open.db_curs
+    #             check.get_hccl_data()
 
     def test_get_hccl_task_data_should_return_empty_when_attach_db_failed(self):
         with mock.patch(NAMESPACE + '.HcclViewModel.attach_to_db', return_value=False):
@@ -87,16 +85,18 @@ class TestHCCLModel(TestDirCRBaseModel):
             self.assertEqual([], ret)
 
     def test_get_hccl_task_data_should_return_diff_result_when_query_diff_deviceid(self):
-        # model_id, index_id, name, group_name, plane_id, timestamp, duration,
-        # stream_id, task_id, context_id, batch_id, device_id, args, rank_szie
+        # model_id, index_id, name, group_name, plane_id, timestamp,
+        # stream_id, task_id, context_id, batch_id, device_id, is_master,
+        # local_rank, remote_rank, transport_type, size, data_type, link_type,
+        # notify_id, rdma_type, thread_id, rank_size, op_id
         hccl_task_data = [
-            (1, -1, "Memcpy", "1", 1, 1, 1, 100, 200, 300, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "RDMA_SEND", 123, 8),
-            (1, -1, "Notify_Wait", "1", 1, 1, 1, 102, 202, 302, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 124, 8),
-            (1, -1, "Notify_Record", "1", 1, 1, 1, 103, 203, 303, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2",
-             "INVALID", 123, 8),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 204, 304, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 125, 8),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 105, 205, 305, 0, 1, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 123, 8),
-            (1, -1, "Memcpy", "1", 1, 1, 1, 999, 206, 306, 0, 2, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 132, 8),
+            (1, -1, "Memcpy", "1", 1, 1, 100, 200, 300, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "RDMA_SEND", 123, 8, -1),
+            (1, -1, "Notify_Wait", "1", 1, 1, 102, 202, 302, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 124, 8, -1),
+            (1, -1, "Notify_Record", "1", 1, 1, 103, 203, 303, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2",
+             "INVALID", 123, 8, -1),
+            (1, -1, "Memcpy", "1", 1, 1, 999, 204, 304, 0, 0, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 125, 8, -1),
+            (1, -1, "Memcpy", "1", 1, 1, 105, 205, 305, 0, 1, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 123, 8, -1),
+            (1, -1, "Memcpy", "1", 1, 1, 999, 206, 306, 0, 2, 0, 1, 1, "1", 20, "a", "b", "2", "INVALID", 132, 8, -1),
         ]
 
         # model_id, index_id, stream_id, task_id, context_id, batch_id, start_time,
@@ -151,19 +151,14 @@ class TestHCCLModel(TestDirCRBaseModel):
         task_type = "HCCL"
         group_name = "728400854065026987"
         alg_type = "HD-MESH"
-        # device_id, model_id, index_id, thread_id, op_name, task_type, op_type, begin, end, is_dynamic, connection_id
+        # device_id, model_id, index_id, thread_id, op_name, task_type, op_type, connection_id, kfc_connection_ids,
         # relay, retry, data_type, alg_type, count, group_name
         hccl_op_data = [
-            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 1,
-             1, 0, "INT8", alg_type, 123, group_name, -1),
-            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 2, 1, 1, 1,
-             1, 0, "INT16", alg_type, 489, group_name, -1),
-            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 3, 1, 1, 1,
-             1, 0, "INT32", alg_type, 984, group_name, -1),
-            (1, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 3, 1, 1, 1,
-             1, 0, "INT64", alg_type, 892, group_name, -1),
-            (2, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 4, 1, 1, 1,
-             1, 0, "FP16", alg_type, 369, group_name, -1),
+            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT8", alg_type, 123, group_name),
+            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT16", alg_type, 489, group_name),
+            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT32", alg_type, 984, group_name),
+            (1, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT64", alg_type, 892, group_name),
+            (2, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "FP16", alg_type, 369, group_name),
         ]
 
         model = HcclViewModel(self.PROF_DEVICE_DIR, DBNameConstant.DB_HCCL, [DBNameConstant.TABLE_HCCL_OP])
@@ -195,19 +190,14 @@ class TestHCCLModel(TestDirCRBaseModel):
         task_type = "HCCL"
         group_name = "728400854065026987"
         alg_type = "HD-MESH"
-        # device_id, model_id, index_id, thread_id, op_name, task_type, op_type, begin, end, is_dynamic, connection_id
+        # device_id, model_id, index_id, thread_id, op_name, task_type, op_type, connection_id, kfc_connection_ids,
         # relay, retry, data_type, alg_type, count, group_name
         hccl_op_data = [
-            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 1,
-             1, 0, "INT8", alg_type, 123, group_name, -1),
-            (0, 2, 2, 1, broadcast_op_name, task_type, broadcast_op_name, 2, 1, 1, 1,
-             1, 0, "INT16", alg_type, 146, group_name, -1),
-            (0, 2, 2, 1, broadcast_op_name, task_type, broadcast_op_name, 3, 1, 1, 1,
-             1, 0, "INT32", alg_type, 692, group_name, -1),
-            (1, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 3, 1, 1, 1,
-             1, 0, "INT64", alg_type, 437, group_name, -1),
-            (2, 3, 3, 1, broadcast_op_name, task_type, broadcast_op_name, 4, 1, 1, 1,
-             1, 0, "FP16", alg_type, 831, group_name, -1),
+            (0, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT8", alg_type, 123, group_name),
+            (0, 2, 2, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT16", alg_type, 146, group_name),
+            (0, 2, 2, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT32", alg_type, 692, group_name),
+            (1, 1, 1, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "INT64", alg_type, 437, group_name),
+            (2, 3, 3, 1, broadcast_op_name, task_type, broadcast_op_name, 1, 1, 1, 0, "FP16", alg_type, 831, group_name),
         ]
 
         model = HcclViewModel(self.PROF_DEVICE_DIR, DBNameConstant.DB_HCCL, [DBNameConstant.TABLE_HCCL_OP])
@@ -234,12 +224,6 @@ class TestHCCLModel(TestDirCRBaseModel):
             scene._scene = None
 
         model.finalize()
-
-    def test_get_task_time_sql(self):
-        with mock.patch(NAMESPACE + '.DBManager.fetch_all_data'):
-            check = HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,
-                                  [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE])
-            check.get_task_time_sql()
 
     def test_get_hccl_op_data_by_group_sql(self):
         with mock.patch(NAMESPACE + '.DBManager.fetch_all_data'):
@@ -293,3 +277,27 @@ class TestHCCLModel(TestDirCRBaseModel):
             check = HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,
                                   [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE])
             check.create_table_by_name(table_name='test_name')
+
+    def test_rebuild_hccl_task_table_should_delegate_to_create_table_by_name(self):
+        """rebuild_hccl_task_table 委托调用 create_table_by_name(HCCL_TASK_SINGLE_DEVICE)"""
+        with mock.patch.object(check := HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+                                                       [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]),
+                               'create_table_by_name') as mock_create:
+            check.rebuild_hccl_task_table()
+            mock_create.assert_called_once_with(DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE)
+
+    def test_rebuild_hccl_op_table_should_delegate_to_create_table_by_name(self):
+        """rebuild_hccl_op_table 委托调用 create_table_by_name(HCCL_OP_SINGLE_DEVICE)"""
+        with mock.patch.object(check := HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+                                                       [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]),
+                               'create_table_by_name') as mock_create:
+            check.rebuild_hccl_op_table()
+            mock_create.assert_called_once_with(DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE)
+
+    def test_rebuild_hccl_op_report_table_should_delegate_to_create_table_by_name(self):
+        """rebuild_hccl_op_report_table 委托调用 create_table_by_name(HCCL_OP_REPORT)"""
+        with mock.patch.object(check := HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+                                                       [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]),
+                               'create_table_by_name') as mock_create:
+            check.rebuild_hccl_op_report_table()
+            mock_create.assert_called_once_with(DBNameConstant.TABLE_HCCL_OP_REPORT)

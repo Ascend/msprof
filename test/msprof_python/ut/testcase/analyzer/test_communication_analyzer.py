@@ -22,6 +22,8 @@ import pytest
 from analyzer.communication_analyzer import CommunicationAnalyzer
 from common_func.info_conf_reader import InfoConfReader
 from msparser.cluster.communication_parser import CommunicationParser
+from msparser.cluster.meta_parser import OpTaskBundle
+from msmodel.cluster_info.communication_model import OpTaskData
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
 from common_func.path_manager import PathManager
@@ -148,13 +150,15 @@ class TestCommunicationAnalyzer(unittest.TestCase):
         ]
         expected_result = {
             'hcom_allReduce__1@group_name': {
-                -1: events
+                -1: OpTaskBundle(op_name='hcom_allReduce__1', tasks=events)
             }
         }
         InfoConfReader()._start_info = {'collectionTimeBegin': 0}
         InfoConfReader()._end_info = {}
         with mock.patch(NAMESPACE + ".CommunicationModel.check_table", return_value=True), \
-                mock.patch(NAMESPACE + ".CommunicationModel.get_all_events_from_db", return_value=events):
+                mock.patch(NAMESPACE + ".CommunicationModel.get_all_events_from_db",
+                           return_value={(1, 0): OpTaskData(
+                               op_name='hcom_allReduce__1', group_name='group_name', tasks=events)}):
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
             analyzer._get_hccl_data_from_db(os.path.join(self.collection_path, "device_1"))
 

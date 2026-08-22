@@ -28,6 +28,7 @@ from constant.constant import clear_dt_project
 from msparser.cluster.communication_matrix_parser import CommunicationMatrixParser
 from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.critical_path_parser import CriticalPathParser
+from msparser.cluster.meta_parser import OpTaskBundle
 from tuning.cluster.cluster_tuning_facade import ClusterTuningFacade
 
 NAMESPACE = 'tuning.cluster.cluster_tuning_facade'
@@ -201,7 +202,7 @@ class TestClusterTuningFacade(unittest.TestCase):
             ClusterTuningFacade(self.params).communication_matrix()
 
     def test_critical_path_analysis_should_return_success_when_enable_critical_path(self):
-        hccl_op_events = {'all_Reduce': [HcclOp()]}
+        hccl_op_events = {'all_Reduce': OpTaskBundle(op_name='all_Reduce', start=1, end=3, tasks=[HcclOp()])}
         compute_op_events = [GeOp()]
         with mock.patch(NAMESPACE + '.CriticalPathAnalysisParserFactory.generate_parser',
                         return_value=CriticalPathParser(compute_op_events, hccl_op_events)):

@@ -36,17 +36,17 @@ using MappingType = NumberMapping::MappingType;
 using namespace Infra;
 using namespace Analysis::Common;
 
-using HCCLOpsDumpData = std::vector<
-    std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, uint64_t, uint64_t,
-               std::string, int64_t, int64_t, int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
+using HCCLOpsDumpData =
+    std::vector<std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, int64_t,
+                           std::string, int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
 
 using HostTasksDumpData = std::vector<std::tuple<uint32_t, int64_t, uint32_t, uint32_t, std::string, uint32_t,
                                                  std::string, std::string, uint32_t, std::string, int64_t, uint32_t>>;
 
 using HcclTasksDumpData =
-    std::vector<std::tuple<uint32_t, int64_t, std::string, std::string, int64_t, std::string, double, uint32_t,
-                           uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string, double,
-                           std::string, std::string, std::string, std::string, uint32_t, uint32_t>>;
+    std::vector<std::tuple<uint32_t, int64_t, std::string, std::string, int64_t, std::string, uint32_t, uint32_t,
+                           uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string, double, std::string,
+                           std::string, std::string, std::string, uint32_t, uint32_t, int64_t>>;
 
 using GeFusionOpsDumpData = std::vector<std::tuple<uint64_t, std::string, uint32_t, std::string, std::string,
                                                    std::string, std::string, std::string, std::string>>;
@@ -73,17 +73,15 @@ void AddHcclOpDumpData(HCCLOpsDumpData &data, const std::shared_ptr<Analysis::Do
     // several attributes can not get currently, use default value
     uint64_t modelId = bigOpDesc->modelId;
     int32_t indexId = bigOpDesc->indexId;
-    std::string isDynamic = NA;
     int64_t connectionId = bigOpDesc->connectionId;
-    int64_t kfcConnectionId = bigOpDesc->kfcConnectionId;
-    uint32_t thread_id = bigOpDesc->thread_id;
+    std::string kfcConnectionIds = bigOpDesc->kfcConnectionIds;
+    uint32_t threadId = bigOpDesc->threadId;
     std::string taskType = "COMMUNICATION";
     std::string opType = NA;
     auto nodeDesc = bigOpDesc->nodeDesc;
     if (nodeDesc != nullptr)
     {
         opType = HashData::GetInstance().Get(nodeDesc->data.nodeBasicInfo.opType);
-        isDynamic = std::to_string(nodeDesc->data.nodeBasicInfo.opState);
     }
     int32_t relay = -1;
     int32_t retry = -1;
@@ -101,9 +99,8 @@ void AddHcclOpDumpData(HCCLOpsDumpData &data, const std::shared_ptr<Analysis::Do
         count = opInfoDesc->data.hcclopInfo.count;
         groupName = std::to_string(opInfoDesc->data.hcclopInfo.groupName);
     }
-    data.emplace_back(bigOpDesc->deviceId, modelId, indexId, thread_id, HashData::GetInstance().Get(op->name), taskType,
-                      opType, bigOpDesc->beginTime, bigOpDesc->endTime, isDynamic, connectionId, kfcConnectionId, relay,
-                      retry, dataType, algType, count, groupName);
+    data.emplace_back(bigOpDesc->deviceId, modelId, indexId, threadId, HashData::GetInstance().Get(op->name), taskType,
+                      opType, connectionId, kfcConnectionIds, relay, retry, dataType, algType, count, groupName);
 }
 }  // namespace
 CANNTraceDBDumper::CANNTraceDBDumper(std::string hostFilePath) : hostFilePath_(std::move(hostFilePath)), result_(true)
@@ -220,7 +217,7 @@ void CANNTraceDBDumper::DumpHostTasks(const HostTasks &hostTasks)
         auto kernelName = task->kernelName == 0 ? NA : HashData::GetInstance().Get(task->kernelName);
         data.emplace_back(task->modelId, task->requestId, task->streamId, task->taskId, std::to_string(task->contextId),
                           task->batchId, taskType, kernelName, task->deviceId, std::to_string(task->timeStamp),
-                          task->connection_id, task->thread_id);
+                          task->connectionId, task->threadId);
     }
     if (!hostTaskDBRunner.InsertData("HostTask", data))
     {
@@ -325,7 +322,7 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInf
     auto outputDataTypeStr = outputDataType.empty() ? NA : Utils::Join(outputDataType, ";");
     auto outputShapeStr = outputShape.empty() ? NA : Utils::AddQuotation(Utils::Join(outputShape, ";"));
     data.emplace_back(task->modelId, opName, task->streamId, task->taskId, blockNum, mixBlockNum, opState, taskType,
-                      opType, task->requestId, task->thread_id, task->timeStamp, task->batchId, tensorNum,
+                      opType, task->requestId, task->threadId, task->timeStamp, task->batchId, tensorNum,
                       inputFormatStr, inputDataTypeStr, inputShapeStr, outputFormatStr, outputDataTypeStr,
                       outputShapeStr, task->deviceId, task->contextId, opFlag, hashId, gridDim, blockDim);
 }
@@ -385,7 +382,7 @@ void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTa
         uint32_t mixBlockNum = 0;
         ProcessRuntimeTrackInfo(runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
         data.emplace_back(info.modelId, opName, task->streamId, task->taskId, blockNum, mixBlockNum, NA, taskType,
-                          opType, task->requestId, task->thread_id, task->timeStamp, task->batchId,
+                          opType, task->requestId, task->threadId, task->timeStamp, task->batchId,
                           hasTensorInfo ? info.tensorNum : 0, hasTensorInfo ? info.inputFormats : NA,
                           hasTensorInfo ? info.inputDataTypes : NA, hasTensorInfo ? info.inputShapes : NA,
                           hasTensorInfo ? info.outputFormats : NA, hasTensorInfo ? info.outputDataTypes : NA,
@@ -398,7 +395,7 @@ void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTa
         uint32_t mixBlockNum = info.mixBlockNum;
         ProcessRuntimeTrackInfo(runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
         data.emplace_back(info.modelId, opName, task->streamId, task->taskId, blockNum, mixBlockNum, info.isDynamic,
-                          taskType, opType, task->requestId, task->thread_id, task->timeStamp, task->batchId,
+                          taskType, opType, task->requestId, task->threadId, task->timeStamp, task->batchId,
                           info.tensorNum, info.inputFormats, info.inputDataTypes, info.inputShapes, info.outputFormats,
                           info.outputDataTypes, info.outputShapes, task->deviceId, task->contextId, opFlag, info.hashId,
                           gridDim, blockDim);
@@ -461,7 +458,7 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
         auto name = HashData::GetInstance().Get(task->op->name);
         ProcessRuntimeTrackInfo(task->op->opDesc->runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
         data.emplace_back(task->modelId, name, task->streamId, task->taskId, blockNum, mixBlockNum, NA, NA, NA,
-                          task->requestId, task->thread_id, task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA,
+                          task->requestId, task->threadId, task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA,
                           task->deviceId, task->contextId, NA, NA, gridDim, blockDim);
         return;
     }
@@ -490,7 +487,7 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
         data.emplace_back(task->modelId, HashData::GetInstance().Get(nodeBasicInfo.opName), task->streamId,
                           task->taskId, blockNum, mixBlockNum, opState,
                           NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeBasicInfo.taskType),
-                          HashData::GetInstance().Get(nodeBasicInfo.opType), task->requestId, task->thread_id,
+                          HashData::GetInstance().Get(nodeBasicInfo.opType), task->requestId, task->threadId,
                           task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA, task->deviceId, task->contextId,
                           opFlag, hashId, gridDim, blockDim);
         return;
@@ -532,22 +529,22 @@ void CANNTraceDBDumper::DumpHcclTasks(const HostTasks &hcclTasks)
         if (!desc->hcclInfo || !desc->hcclInfo->data)
         {
             data.emplace_back(task->modelId, task->requestId, NA, NA, INVALID_VALUE, std::to_string(task->timeStamp),
-                              INVALID_VALUE, task->streamId, task->taskId, task->contextId, task->batchId,
-                              task->deviceId, desc->isMaster, INVALID_VALUE, INVALID_VALUE, NA, INVALID_VALUE, NA, NA,
-                              NA, NA, task->thread_id, 0);
+                              task->streamId, task->taskId, task->contextId, task->batchId, task->deviceId,
+                              desc->isMaster, INVALID_VALUE, INVALID_VALUE, NA, INVALID_VALUE, NA, NA, NA, NA,
+                              task->threadId, 0, task->connectionId);
             continue;
         }
         auto hcclTrace = Utils::ReinterpretConvert<MsprofHcclInfo *>(desc->hcclInfo->data);
         data.emplace_back(
             task->modelId, task->requestId, HashData::GetInstance().Get(hcclTrace->itemId),
-            std::to_string(hcclTrace->groupName), hcclTrace->planeID, std::to_string(task->timeStamp),
-            hcclTrace->durationEstimated, task->streamId, task->taskId, task->contextId, task->batchId, task->deviceId,
-            desc->isMaster, hcclTrace->localRank, hcclTrace->remoteRank,
-            NumberMapping::Get(MappingType::HCCL_TRANSPORT_TYPE, hcclTrace->transportType),
+            std::to_string(hcclTrace->groupName), hcclTrace->planeID, std::to_string(task->timeStamp), task->streamId,
+            task->taskId, task->contextId, task->batchId, task->deviceId, desc->isMaster, hcclTrace->localRank,
+            hcclTrace->remoteRank, NumberMapping::Get(MappingType::HCCL_TRANSPORT_TYPE, hcclTrace->transportType),
             static_cast<double>(hcclTrace->dataSize),
             NumberMapping::Get(MappingType::HCCL_DATA_TYPE, hcclTrace->dataType),
             NumberMapping::Get(MappingType::HCCL_LINK_TYPE, hcclTrace->linkType), std::to_string(hcclTrace->notifyID),
-            NumberMapping::Get(MappingType::HCCL_RDMA_TYPE, hcclTrace->rdmaType), task->thread_id, hcclTrace->rankSize);
+            NumberMapping::Get(MappingType::HCCL_RDMA_TYPE, hcclTrace->rdmaType), task->threadId, hcclTrace->rankSize,
+            task->connectionId);
     }
     if (!hcclTaskDBRunner.InsertData("HCCLTask", data))
     {

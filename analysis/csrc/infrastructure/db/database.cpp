@@ -76,34 +76,22 @@ const TableColumns GeFusionOPInfo = {
 const TableColumns ModelName = {{"model_id", SQL_INTEGER_TYPE}, {"model_name", SQL_TEXT_TYPE}};
 
 const TableColumns HCCLTask = {
-    {"model_id", SQL_INTEGER_TYPE},    {"index_id", SQL_INTEGER_TYPE},   {"name", SQL_TEXT_TYPE},
-    {"group_name", SQL_TEXT_TYPE},     {"plane_id", SQL_INTEGER_TYPE},   {"timestamp", SQL_NUMERIC_TYPE},
-    {"duration", SQL_REAL_TYPE},       {"stream_id", SQL_INTEGER_TYPE},  {"task_id", SQL_INTEGER_TYPE},
-    {"context_id", SQL_INTEGER_TYPE},  {"batch_id", SQL_INTEGER_TYPE},   {"device_id", SQL_INTEGER_TYPE},
-    {"is_master", SQL_INTEGER_TYPE},   {"local_rank", SQL_INTEGER_TYPE}, {"remote_rank", SQL_INTEGER_TYPE},
-    {"transport_type", SQL_TEXT_TYPE}, {"size", SQL_REAL_TYPE},          {"data_type", SQL_TEXT_TYPE},
-    {"link_type", SQL_TEXT_TYPE},      {"notify_id", SQL_TEXT_TYPE},     {"rdma_type", SQL_TEXT_TYPE},
-    {"thread_id", SQL_INTEGER_TYPE},   {"rank_size", SQL_INTEGER_TYPE},
+    {"model_id", SQL_INTEGER_TYPE},   {"index_id", SQL_INTEGER_TYPE},    {"name", SQL_TEXT_TYPE},
+    {"group_name", SQL_TEXT_TYPE},    {"plane_id", SQL_INTEGER_TYPE},    {"timestamp", SQL_NUMERIC_TYPE},
+    {"stream_id", SQL_INTEGER_TYPE},  {"task_id", SQL_INTEGER_TYPE},     {"context_id", SQL_INTEGER_TYPE},
+    {"batch_id", SQL_INTEGER_TYPE},   {"device_id", SQL_INTEGER_TYPE},   {"is_master", SQL_INTEGER_TYPE},
+    {"local_rank", SQL_INTEGER_TYPE}, {"remote_rank", SQL_INTEGER_TYPE}, {"transport_type", SQL_TEXT_TYPE},
+    {"size", SQL_REAL_TYPE},          {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
+    {"notify_id", SQL_TEXT_TYPE},     {"rdma_type", SQL_TEXT_TYPE},      {"thread_id", SQL_INTEGER_TYPE},
+    {"rank_size", SQL_INTEGER_TYPE},  {"op_id", SQL_INTEGER_TYPE},
 };
 
-const TableColumns HCCLOP = {{"device_id", SQL_INTEGER_TYPE},
-                             {"model_id", SQL_INTEGER_TYPE},
-                             {"index_id", SQL_INTEGER_TYPE},
-                             {"thread_id", SQL_INTEGER_TYPE},
-                             {"op_name", SQL_TEXT_TYPE},
-                             {"task_type", SQL_TEXT_TYPE},
-                             {"op_type", SQL_TEXT_TYPE},
-                             {"begin", SQL_REAL_TYPE},
-                             {"end", SQL_REAL_TYPE},
-                             {"is_dynamic", SQL_TEXT_TYPE},
-                             {"connection_id", SQL_INTEGER_TYPE},
-                             {"kfc_connection_id", SQL_INTEGER_TYPE},
-                             {"relay", SQL_INTEGER_TYPE},
-                             {"retry", SQL_INTEGER_TYPE},
-                             {"data_type", SQL_TEXT_TYPE},
-                             {"alg_type", SQL_TEXT_TYPE},
-                             {"count", SQL_NUMERIC_TYPE},
-                             {"group_name", SQL_TEXT_TYPE}};
+const TableColumns HCCLOP = {
+    {"device_id", SQL_INTEGER_TYPE}, {"model_id", SQL_INTEGER_TYPE},      {"index_id", SQL_INTEGER_TYPE},
+    {"thread_id", SQL_INTEGER_TYPE}, {"op_name", SQL_TEXT_TYPE},          {"task_type", SQL_TEXT_TYPE},
+    {"op_type", SQL_TEXT_TYPE},      {"connection_id", SQL_INTEGER_TYPE}, {"kfc_connection_ids", SQL_TEXT_TYPE},
+    {"relay", SQL_INTEGER_TYPE},     {"retry", SQL_INTEGER_TYPE},         {"data_type", SQL_TEXT_TYPE},
+    {"alg_type", SQL_TEXT_TYPE},     {"count", SQL_NUMERIC_TYPE},         {"group_name", SQL_TEXT_TYPE}};
 
 const TableColumns HostTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
                                    {"timestamp", SQL_NUMERIC_TYPE},
@@ -143,7 +131,11 @@ const TableColumns AscendTask = {
 const TableColumns HcclOpReport = {
     {"op_type", SQL_TEXT_TYPE}, {"occurrences", SQL_TEXT_TYPE}, {"total_time", SQL_NUMERIC_TYPE},
     {"min", SQL_NUMERIC_TYPE},  {"avg", SQL_NUMERIC_TYPE},      {"max", SQL_NUMERIC_TYPE},
-    {"ratio", SQL_TEXT_TYPE},
+};
+
+const TableColumns KfcOpReport = {
+    {"op_type", SQL_TEXT_TYPE}, {"occurrences", SQL_TEXT_TYPE}, {"total_time", SQL_NUMERIC_TYPE},
+    {"min", SQL_NUMERIC_TYPE},  {"avg", SQL_NUMERIC_TYPE},      {"max", SQL_NUMERIC_TYPE},
 };
 
 const TableColumns StepTraceData = {{"index_id", SQL_INTEGER_TYPE},
@@ -175,44 +167,23 @@ const TableColumns TrainingTrace = {
 };
 
 const TableColumns HCCLTaskSingleDevice = {
-    {"model_id", SQL_INTEGER_TYPE},
-    {"index_id", SQL_INTEGER_TYPE},
-    {"op_name", SQL_TEXT_TYPE},
-    {"iteration", SQL_INTEGER_TYPE},
-    {"hccl_name", SQL_TEXT_TYPE},
-    {"group_name", SQL_TEXT_TYPE},
-    {"first_timestamp", SQL_NUMERIC_TYPE},
-    {"plane_id", SQL_INTEGER_TYPE},
-    {"timestamp", SQL_NUMERIC_TYPE},
-    {"duration", SQL_REAL_TYPE},
-    {"is_dynamic", SQL_NUMERIC_TYPE},
-    {"task_type", SQL_TEXT_TYPE},
-    {"op_type", SQL_TEXT_TYPE},
-    {"connection_id", SQL_INTEGER_TYPE},
-    {"is_master", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},
-    {"duration_estimated", SQL_INTEGER_TYPE},
-    {"local_rank", SQL_INTEGER_TYPE},
-    {"remote_rank", SQL_INTEGER_TYPE},
-    {"transport_type", SQL_TEXT_TYPE},
-    {"size", SQL_INTEGER_TYPE},
-    {"data_type", SQL_TEXT_TYPE},
-    {"link_type", SQL_TEXT_TYPE},
-    {"bandwidth", SQL_REAL_TYPE},
-    {"context_id", SQL_INTEGER_TYPE},
-    {"notify_id", SQL_TEXT_TYPE},
-    {"batch_id", SQL_INTEGER_TYPE},
-    {"rdma_type", SQL_TEXT_TYPE},
-    {"rank_size", SQL_INTEGER_TYPE},
+    {"model_id", SQL_INTEGER_TYPE},    {"index_id", SQL_INTEGER_TYPE},    {"hccl_name", SQL_TEXT_TYPE},
+    {"group_name", SQL_TEXT_TYPE},     {"plane_id", SQL_INTEGER_TYPE},    {"timestamp", SQL_NUMERIC_TYPE},
+    {"duration", SQL_REAL_TYPE},       {"op_id", SQL_INTEGER_TYPE},       {"is_master", SQL_INTEGER_TYPE},
+    {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE},     {"context_id", SQL_INTEGER_TYPE},
+    {"batch_id", SQL_INTEGER_TYPE},    {"size", SQL_INTEGER_TYPE},        {"bandwidth", SQL_REAL_TYPE},
+    {"local_rank", SQL_INTEGER_TYPE},  {"remote_rank", SQL_INTEGER_TYPE}, {"rank_size", SQL_INTEGER_TYPE},
+    {"transport_type", SQL_TEXT_TYPE}, {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
+    {"rdma_type", SQL_TEXT_TYPE},      {"notify_id", SQL_TEXT_TYPE},      {"iter_id", SQL_INTEGER_TYPE},
 };
 
 const TableColumns HCCLOpSingleDevice = {
-    {"model_id", SQL_INTEGER_TYPE},  {"op_name", SQL_TEXT_TYPE},      {"task_type", SQL_TEXT_TYPE},
-    {"op_type", SQL_TEXT_TYPE},      {"timestamp", SQL_NUMERIC_TYPE}, {"relay", SQL_INTEGER_TYPE},
-    {"retry", SQL_INTEGER_TYPE},     {"data_type", SQL_TEXT_TYPE},    {"alg_type", SQL_TEXT_TYPE},
-    {"count", SQL_NUMERIC_TYPE},     {"group_name", SQL_TEXT_TYPE},   {"connection_id", SQL_INTEGER_TYPE},
-    {"rank_size", SQL_INTEGER_TYPE},
+    {"model_id", SQL_INTEGER_TYPE}, {"index_id", SQL_INTEGER_TYPE},      {"op_name", SQL_TEXT_TYPE},
+    {"task_type", SQL_TEXT_TYPE},   {"op_type", SQL_TEXT_TYPE},          {"start", SQL_NUMERIC_TYPE},
+    {"end", SQL_NUMERIC_TYPE},      {"relay", SQL_INTEGER_TYPE},         {"retry", SQL_INTEGER_TYPE},
+    {"data_type", SQL_TEXT_TYPE},   {"alg_type", SQL_TEXT_TYPE},         {"count", SQL_NUMERIC_TYPE},
+    {"group_name", SQL_TEXT_TYPE},  {"connection_id", SQL_INTEGER_TYPE}, {"rank_size", SQL_INTEGER_TYPE},
+    {"iter_id", SQL_INTEGER_TYPE},
 };
 
 const TableColumns NpuMem = {{"event", SQL_TEXT_TYPE},
@@ -420,26 +391,22 @@ const TableColumns GeLogicStreamInfo = {
 
 const TableColumns KfcOP = {
     {"model_id", SQL_INTEGER_TYPE},      {"index_id", SQL_INTEGER_TYPE},  {"op_name", SQL_TEXT_TYPE},
-    {"timestamp", SQL_NUMERIC_TYPE},     {"duration", SQL_NUMERIC_TYPE},  {"group_name", SQL_TEXT_TYPE},
+    {"start", SQL_NUMERIC_TYPE},         {"end", SQL_NUMERIC_TYPE},       {"group_name", SQL_TEXT_TYPE},
     {"connection_id", SQL_INTEGER_TYPE}, {"op_type", SQL_TEXT_TYPE},      {"relay", SQL_INTEGER_TYPE},
     {"retry", SQL_INTEGER_TYPE},         {"data_type", SQL_TEXT_TYPE},    {"alg_type", SQL_TEXT_TYPE},
-    {"count", SQL_NUMERIC_TYPE},         {"rank_size", SQL_INTEGER_TYPE}, {"source", SQL_INTEGER_TYPE},
+    {"count", SQL_NUMERIC_TYPE},         {"rank_size", SQL_INTEGER_TYPE}, {"iter_id", SQL_INTEGER_TYPE},
+    {"source", SQL_INTEGER_TYPE},
 };
 
 const TableColumns KfcTask = {
-    {"model_id", SQL_INTEGER_TYPE},    {"index_id", SQL_INTEGER_TYPE},
-    {"op_name", SQL_TEXT_TYPE},        {"first_timestamp", SQL_NUMERIC_TYPE},
-    {"iteration", SQL_INTEGER_TYPE},   {"hccl_name", SQL_TEXT_TYPE},
-    {"group_name", SQL_TEXT_TYPE},     {"plane_id", SQL_INTEGER_TYPE},
-    {"timestamp", SQL_NUMERIC_TYPE},   {"duration", SQL_REAL_TYPE},
-    {"is_master", SQL_INTEGER_TYPE},   {"stream_id", SQL_INTEGER_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},     {"duration_estimated", SQL_INTEGER_TYPE},
-    {"local_rank", SQL_INTEGER_TYPE},  {"remote_rank", SQL_INTEGER_TYPE},
-    {"transport_type", SQL_TEXT_TYPE}, {"size", SQL_INTEGER_TYPE},
-    {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
-    {"bandwidth", SQL_REAL_TYPE},      {"context_id", SQL_INTEGER_TYPE},
-    {"notify_id", SQL_TEXT_TYPE},      {"batch_id", SQL_INTEGER_TYPE},
-    {"rdma_type", SQL_TEXT_TYPE},      {"connection_id", SQL_INTEGER_TYPE},
+    {"model_id", SQL_INTEGER_TYPE},    {"index_id", SQL_INTEGER_TYPE},    {"hccl_name", SQL_TEXT_TYPE},
+    {"group_name", SQL_TEXT_TYPE},     {"plane_id", SQL_INTEGER_TYPE},    {"timestamp", SQL_NUMERIC_TYPE},
+    {"duration", SQL_REAL_TYPE},       {"op_id", SQL_INTEGER_TYPE},       {"is_master", SQL_INTEGER_TYPE},
+    {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE},     {"context_id", SQL_INTEGER_TYPE},
+    {"batch_id", SQL_INTEGER_TYPE},    {"size", SQL_INTEGER_TYPE},        {"bandwidth", SQL_REAL_TYPE},
+    {"local_rank", SQL_INTEGER_TYPE},  {"remote_rank", SQL_INTEGER_TYPE}, {"rank_size", SQL_INTEGER_TYPE},
+    {"transport_type", SQL_TEXT_TYPE}, {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
+    {"rdma_type", SQL_TEXT_TYPE},      {"notify_id", SQL_TEXT_TYPE},      {"iter_id", SQL_INTEGER_TYPE},
     {"source", SQL_INTEGER_TYPE},
 };
 
@@ -710,6 +677,7 @@ HCCLSingleDeviceDB::HCCLSingleDeviceDB()
 {
     dbName_ = "hccl_single_device.db";
     tableColNames_["HcclOpReport"] = HcclOpReport;
+    tableColNames_["KfcOpReport"] = KfcOpReport;
     tableColNames_["HCCLOpSingleDevice"] = HCCLOpSingleDevice;
     tableColNames_["HCCLTaskSingleDevice"] = HCCLTaskSingleDevice;
     tableColNames_["KfcOP"] = KfcOP;

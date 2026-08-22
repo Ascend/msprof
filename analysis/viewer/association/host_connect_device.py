@@ -22,15 +22,16 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msvp_common import path_check, is_number
 from common_func.path_manager import PathManager
-from msmodel.interface.view_model import ViewModel
 from common_func.info_conf_reader import InfoConfReader
 from common_func.trace_view_manager import TraceViewManager
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
+from msmodel.interface.view_model import ViewModel
 
 
 class HostToDevice:
     """Connect CANN Node@launch api to corresponding device tasks/HCCL OP."""
+
     API_TYPE = 'api'
     MODULE_MSPROFTX = 'msprof_tx'
     MODULE_TASK_TIME = 'task_time'
@@ -62,8 +63,9 @@ class HostToDevice:
     def get_cann_pid():
         pid = InfoConfReader().get_json_pid_data()
         # Connection 字段实际未用到
-        layer_info = TraceViewHeaderConstant.LayerInfo("Connection", TraceViewHeaderConstant.GENERAL_LAYER_CPU,
-                                                       TraceViewHeaderConstant.LAYER_CANN_SORT)
+        layer_info = TraceViewHeaderConstant.LayerInfo(
+            "Connection", TraceViewHeaderConstant.GENERAL_LAYER_CPU, TraceViewHeaderConstant.LAYER_CANN_SORT
+        )
         format_pid = TraceViewManager.get_format_pid(pid, layer_info)
         return format_pid
 
@@ -86,15 +88,19 @@ class HostToDevice:
                 TraceViewHeaderConstant.TRACE_HEADER_ID: str((connection_id << 32) + ctx_id),
                 TraceViewHeaderConstant.TRACE_HEADER_PID: api_trace.get(TraceViewHeaderConstant.TRACE_HEADER_PID),
                 TraceViewHeaderConstant.TRACE_HEADER_TID: api_trace.get(TraceViewHeaderConstant.TRACE_HEADER_TID),
-                TraceViewHeaderConstant.TRACE_HEADER_TS: start_time
+                TraceViewHeaderConstant.TRACE_HEADER_TS: start_time,
             }
             for ctx_id in context_ids
         ]
 
     @staticmethod
-    def add_task_connection_data(traces: List[Dict[str, Any]], cann_pid: int,
-                                 node_tasks: Dict[Tuple[int, int, int, int], Tuple[int, int]],
-                                 device_id: int, acl_event_apis: Dict[str, Any]) -> None:
+    def add_task_connection_data(
+        traces: List[Dict[str, Any]],
+        cann_pid: int,
+        node_tasks: Dict[Tuple[int, int, int, int], Tuple[int, int]],
+        device_id: int,
+        acl_event_apis: Dict[str, Any],
+    ) -> None:
         if not isinstance(traces, list):
             return
         tmp_list = []
@@ -110,7 +116,9 @@ class HostToDevice:
                 host_task_tid, host_task_ts = task_data
                 host_task_ts = InfoConfReader().trans_into_local_time(
                     InfoConfReader().time_from_host_syscnt(host_task_ts, NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True)
+                    use_us=True,
+                    is_host=True,
+                )
             elif connection_id in acl_event_apis:
                 api_trace = acl_event_apis[connection_id]
                 host_task_tid = api_trace.get(TraceViewHeaderConstant.TRACE_HEADER_TID)
@@ -131,7 +139,7 @@ class HostToDevice:
                 TraceViewHeaderConstant.TRACE_HEADER_ID: str(connection_id),
                 TraceViewHeaderConstant.TRACE_HEADER_PID: cann_pid,
                 TraceViewHeaderConstant.TRACE_HEADER_TID: host_task_tid,
-                TraceViewHeaderConstant.TRACE_HEADER_TS: host_task_ts
+                TraceViewHeaderConstant.TRACE_HEADER_TS: host_task_ts,
             }
             connect_end = {
                 TraceViewHeaderConstant.TRACE_HEADER_NAME: f'HostToDevice{connection_id}',
@@ -205,8 +213,7 @@ class HostToDevice:
         traces.extend(tmp_list)
 
     @staticmethod
-    def add_memcpy_async_start_points(api_traces: List[Dict[str, Any]],
-                          memcpy_async_ids: Dict[int, List[int]]) -> None:
+    def add_memcpy_async_start_points(api_traces: List[Dict[str, Any]], memcpy_async_ids: Dict[int, List[int]]) -> None:
         if not isinstance(api_traces, list):
             return
         tmp_list = []
@@ -215,18 +222,24 @@ class HostToDevice:
                 start_time = api_trace.get('ts', '0')
                 connection_id = api_trace.get("args", {}).get("connection_id", Constant.DEFAULT_INVALID_VALUE)
                 context_ids = memcpy_async_ids.get(connection_id, [Constant.DEFAULT_INVALID_VALUE])
-                tmp_list.extend([
-                    {
-                        TraceViewHeaderConstant.TRACE_HEADER_NAME: f'HostToDevice{(connection_id << 32) + ctx_id}',
-                        TraceViewHeaderConstant.TRACE_HEADER_PH: 's',
-                        TraceViewHeaderConstant.TRACE_HEADER_CAT: StrConstant.HOST_TO_DEVICE,
-                        TraceViewHeaderConstant.TRACE_HEADER_ID: str((connection_id << 32) + ctx_id),
-                        TraceViewHeaderConstant.TRACE_HEADER_PID: api_trace.get(TraceViewHeaderConstant.TRACE_HEADER_PID),
-                        TraceViewHeaderConstant.TRACE_HEADER_TID: api_trace.get(TraceViewHeaderConstant.TRACE_HEADER_TID),
-                        TraceViewHeaderConstant.TRACE_HEADER_TS: start_time
-                    }
-                    for ctx_id in context_ids
-                ])
+                tmp_list.extend(
+                    [
+                        {
+                            TraceViewHeaderConstant.TRACE_HEADER_NAME: f'HostToDevice{(connection_id << 32) + ctx_id}',
+                            TraceViewHeaderConstant.TRACE_HEADER_PH: 's',
+                            TraceViewHeaderConstant.TRACE_HEADER_CAT: StrConstant.HOST_TO_DEVICE,
+                            TraceViewHeaderConstant.TRACE_HEADER_ID: str((connection_id << 32) + ctx_id),
+                            TraceViewHeaderConstant.TRACE_HEADER_PID: api_trace.get(
+                                TraceViewHeaderConstant.TRACE_HEADER_PID
+                            ),
+                            TraceViewHeaderConstant.TRACE_HEADER_TID: api_trace.get(
+                                TraceViewHeaderConstant.TRACE_HEADER_TID
+                            ),
+                            TraceViewHeaderConstant.TRACE_HEADER_TS: start_time,
+                        }
+                        for ctx_id in context_ids
+                    ]
+                )
         api_traces.extend(tmp_list)
 
     @staticmethod
@@ -256,16 +269,19 @@ class HostToDevice:
                 }
                 tmp_list.append(connect_dict)
         traces.extend(tmp_list)
-    
+
     def get_acl_event_trace(self, api_traces: List[Dict[str, Any]]) -> None:
         for api_trace in api_traces:
-            if api_trace.get("name") == StrConstant.ACL_RECORD_EVENT or \
-                    api_trace.get("name") == StrConstant.ACL_WAIT_EVENT:
+            if (
+                api_trace.get("name") == StrConstant.ACL_RECORD_EVENT
+                or api_trace.get("name") == StrConstant.ACL_WAIT_EVENT
+            ):
                 connection_id = api_trace.get("args", {}).get("connection_id")
                 self._acl_event_apis[connection_id] = api_trace
 
-    def add_hccl_start_points(self, api_traces: List[Dict[str, Any]],
-                              conn_to_ctxes: Dict[int, List[int]], hccl_conn_ids: Set[int]) -> None:
+    def add_hccl_start_points(
+        self, api_traces: List[Dict[str, Any]], conn_to_ctxes: Dict[int, List[int]], hccl_conn_ids: Set[int]
+    ) -> None:
         """
         add start points to api traces for host to device connection
         to do this, we need task info from host side
@@ -280,8 +296,7 @@ class HostToDevice:
         tmp_list = []
         for api_trace in api_traces:
             # only add start point for hccl op
-            if HostToDevice.is_node_launch(api_trace) and \
-                    HostToDevice.is_hccl_trace(api_trace, hccl_conn_ids):
+            if HostToDevice.is_node_launch(api_trace) and HostToDevice.is_hccl_trace(api_trace, hccl_conn_ids):
                 start_point = self.get_start_points(api_trace, conn_to_ctxes)
                 tmp_list.extend(start_point)
         api_traces.extend(tmp_list)
@@ -325,23 +340,26 @@ class HostToDevice:
         """
         if not path_check(PathManager.get_db_path(self._result_dir, DBNameConstant.DB_GE_INFO)):
             return {}
-        with ViewModel(self._result_dir, DBNameConstant.DB_GE_INFO,
-                       [DBNameConstant.TABLE_GE_TASK]) as task_info_model:
-            sql = f'select device_id, stream_id, task_id, batch_id, thread_id, timestamp ' \
-                  f'from {DBNameConstant.TABLE_GE_TASK}'
+        with ViewModel(self._result_dir, DBNameConstant.DB_GE_INFO, [DBNameConstant.TABLE_GE_TASK]) as task_info_model:
+            sql = (
+                f'select device_id, stream_id, task_id, batch_id, thread_id, timestamp '
+                f'from {DBNameConstant.TABLE_GE_TASK}'
+            )
             tasks = task_info_model.get_sql_data(sql)
         return {task[:4]: task[-2:] for task in tasks}
 
-    def get_connection_id_to_context_ids_mapping(self, node_tasks: Dict[Tuple[int, int, int, int], Tuple[int, int]],
-                                                 device_id: int):
+    def get_connection_id_to_context_ids_mapping(
+        self, node_tasks: Dict[Tuple[int, int, int, int], Tuple[int, int]], device_id: int
+    ):
         """
         get device tasks
         :return: device tasks
         """
         if not path_check(PathManager.get_db_path(self._result_dir, DBNameConstant.DB_ASCEND_TASK)):
             return {}
-        ascend_task_model = ViewModel(self._result_dir, DBNameConstant.DB_ASCEND_TASK,
-                                      [DBNameConstant.TABLE_ASCEND_TASK])
+        ascend_task_model = ViewModel(
+            self._result_dir, DBNameConstant.DB_ASCEND_TASK, [DBNameConstant.TABLE_ASCEND_TASK]
+        )
         ascend_task_model.init()
         sql = 'select stream_id, task_id, batch_id, context_id, connection_id, host_task_type from AscendTask'
         ascend_tasks = ascend_task_model.get_sql_data(sql)
@@ -357,11 +375,12 @@ class HostToDevice:
     def get_hccl_op_connection_ids(self):
         if not path_check(PathManager.get_db_path(self._result_dir, DBNameConstant.DB_HCCL_SINGLE_DEVICE)):
             return set()
-        with ViewModel(self._result_dir, DBNameConstant.DB_HCCL_SINGLE_DEVICE,
-                       [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]) as hccl_model:
+        with ViewModel(
+            self._result_dir, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]
+        ) as hccl_model:
             if not hccl_model.check_table():
                 return set()
-            sql = f"select distinct connection_id from {DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE}"
+            sql = f"select distinct op_id from {DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE}"
             connection_ids = hccl_model.get_sql_data(sql)
 
         return set(conn_id[0] for conn_id in connection_ids)

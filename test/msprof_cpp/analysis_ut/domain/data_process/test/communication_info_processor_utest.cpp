@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -33,12 +33,10 @@ using namespace Domain::Environment;
 using namespace Analysis::Test;
 namespace {
 const int DEPTH = 0;
-const uint16_t OP_NUM = 4;
-const uint16_t OP_NAME_NUM = 3;
-const uint16_t CONNECTION_ID_NUM = 2;
-const uint16_t OP_ID_NUM = 3;
-const uint16_t OP_DATATYPE_NUM = 3;
-const uint16_t OP_TYPE_NUM = 2;
+const size_t TASK_NUM = 5;
+const size_t TASK_NAME_NUM = 4;
+const size_t OP_NUM = 3;
+const size_t CONNECTION_ID_NUM = 3;
 const std::string COMMUNICATION_TASK_PATH = "./task_path";
 const std::string DB_PATH = File::PathJoin({COMMUNICATION_TASK_PATH, "msprof.db"});
 const std::string DEVICE_SUFFIX = "device_0";
@@ -53,66 +51,57 @@ const std::string OP_TABLE_NAME = "HCCLOpSingleDevice";
 const std::string KFC_TASK_TABLE_NAME = "KfcTask";
 const std::string KFC_OP_TABLE_NAME = "KfcOP";
 
-using HcclTaskSingleDeviceFormat = std::vector<std::tuple<uint32_t, int32_t, std::string, uint32_t, std::string,
-    std::string, double, int32_t, double, double, double,
-    std::string, std::string, uint64_t, int32_t, uint64_t, uint32_t,
-    double, uint32_t, uint32_t, std::string, uint64_t, std::string,
-    std::string, double, uint32_t, uint64_t, uint32_t, std::string, uint32_t>>;
+// 与 device_hccl_persistence.cpp 中 SaveHcclTaskData 写入顺序一致：
+// modelId, indexId, hcclName, groupName, planeId, timestamp, duration,
+// opId, isMaster, streamId, taskId, contextId, batchId, size, bandwidth,
+// localRank, remoteRank, rankSize, transportType, dataType, linkType, rdmaType, notifyId, iterId
+using HcclTaskSingleDeviceFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t,
+    double, double, int64_t, uint16_t, uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t,
+    int64_t, std::string, std::string, std::string, std::string, std::string, uint32_t>>;
 
-using HcclOpSingleDeviceFormat = std::vector<std::tuple<uint32_t, std::string, std::string, std::string,
-    double, int32_t, int32_t, std::string, std::string,
-    uint64_t, std::string, uint32_t, uint32_t>>;
+// 与 device_hccl_persistence.cpp 中 SaveHcclOpData 写入顺序一致：
+// modelId, indexId, opName, taskType, opType, start, end, relay, retry, dataType, algType, count, groupName,
+// connectionId, rankSize, iterId
+using HcclOpSingleDeviceFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, std::string,
+    uint64_t, uint64_t, int32_t, int32_t, std::string, std::string, int32_t, std::string, int64_t, int64_t, uint32_t>>;
 
-using KfcTaskFormat = std::vector<std::tuple<uint32_t, int32_t, std::string, uint64_t, uint32_t, std::string,
-    std::string, uint32_t, uint64_t, double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string,
-    uint32_t, std::string, std::string, double, uint32_t, std::string, uint32_t, std::string, uint32_t, uint32_t>>;
+// KfcTask 与 HCCLTaskSingleDevice 结构一致，末尾多一列 source
+using KfcTaskFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t,
+    double, double, int64_t, uint16_t, uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t,
+    int64_t, std::string, std::string, std::string, std::string, std::string, uint32_t, uint32_t>>;
 
-using KfcOpFormat = std::vector<std::tuple<uint32_t, uint32_t, std::string, double, double,
-                                           std::string, uint32_t, std::string, uint32_t, uint32_t,
-                                           std::string, std::string, uint64_t, uint32_t, uint32_t>>;
+// KfcOP 列序与 HCCLOpSingleDevice 不同：无 task_type，group_name 靠前，末尾有 source
+using KfcOpFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, uint64_t, uint64_t, std::string,
+    int64_t, std::string, int32_t, int32_t, std::string, std::string, int32_t, int64_t, uint32_t, uint32_t>>;
 
 const HcclTaskSingleDeviceFormat DATA_A{
-    {4294967295, -1, "hcom_allReduce__360_0_1", 0, "Memcpy",   "10652832407468360",
-        78180470736653, 0, 781687236999151, 2994.875, 1, "HCCL", "hcom_allReduce_", 125,
-        1, 11, 1, 14.1825906735751, 0, 0, "SDMA", 262144, "INVALID_TYPE",
-        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE", 4},
-    {4294967295, -1, "hcom_allReduce__360_0_1", 0, "Reduce23", "10652832407468360",
-        78180470736653, 0, 781687236999152, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
-        1, 11, 2, 14.1825906735751, 0, 0, "SDMA", 262144, "FP16",
-        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE", 4},
-    // 用于测试无主流通信算子的场景
-    {4294967295, -1, "hcom_allReduce__360_888_1", 0, "Reduce23", "10652832407468360",
-        2000026362976, 0, 2000026362976, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
-        0, 11, 2, 14.1825906735751, 0, 0, "SDMA", 262144, "FP16",
-        "HCCS",    87.530865228098, 4294967295, 8,          1, "INVALID_TYPE", 4}
+    {4294967295, -1, "hcom_allReduce_360", "group_1", 0, 781687236999151.0, 2994.875, 100, 1, 11, 1, 0, 1,
+        262144.0, 87.53, 0, 1, 8, "SDMA", "FP16", "HCCS", "INVALID_TYPE", "4294967692", 1},
+    {4294967295, -1, "hcom_allReduce_832", "group_1", 0, 781687236999152.0, 2994.875, 100, 0, 11, 2, 0, 1,
+        262144.0, 87.53, 1, 0, 8, "SDMA", "FP32", "HCCS", "INVALID_TYPE", "4294967692", 2},
 };
 const HcclOpSingleDeviceFormat DATA_OP_A{
-    {4294967295, "hcom_allReduce_", "HCCL", "hcom_allReduce_",
-        821026362976, 0, 1, "INT16", "HD-NB", 3021, "10652832407468360", 125, 4},
+    {4294967295, -1, "hcom_allReduce_", "HCCL", "hcom_allReduce_", 781687236999151, 781687237000000, 0, 1,
+        "FP16", "HD-NB", 3021, "group_1", 100, 8, 1},
 };
 const HcclTaskSingleDeviceFormat DATA_B{
-    {4294967295, -1, "hcom_allReduce__233_0_2", 0, "Memcpy23", "10653832407468233",
-        78180470736653, 0, 781687236999153, 2994.875, 3, "HCCL", "hcom_allReduce_", 125,
-        1, 11, 3, 14.1825906735751, 1, 4, "SDMA", 262144, "INVALID_TYPE",
-        "ON_CHIP", 87.530865228098, 4294967295, 4294967296, 1, "INVALID_TYPE", 4},
-    {4294967295, -1, "hcom_allReduce__832_0_1", 0, "Memcpy",   "10652853832407468832",
-        78180470736653, 0, 781687236999154, 2994.875, 1, "HCCL", "hcom_allReduce_", 126,
-        1, 21, 4, 14.1825906735751, 4, 2, "SDMA", 262144, "FP32",
-        "HCCS",    87.530865228098, 4294967295, 8,          2, "INVALID_TYPE", 4}
+    {4294967295, -1, "hcom_allReduce_233", "group_1", 0, 781687236999153.0, 2994.875, 300, 1, 11, 3, 0, 1,
+        262144.0, 87.53, 2, 3, 8, "SDMA", "FP16", "HCCS", "INVALID_TYPE", "4294967693", 3},
+    {4294967295, -1, "hcom_allReduce_832", "group_1", 0, 781687236999154.0, 2994.875, 300, 0, 11, 4, 0, 1,
+        262144.0, 87.53, 3, 2, 8, "SDMA", "FP32", "HCCS", "INVALID_TYPE", "4294967693", 4},
 };
 const HcclOpSingleDeviceFormat DATA_OP_B{
-    {4294967295, "hcom_allReduce_", "HCCL", "hcom_allReduce_",
-        821026362976, 1, 1, "INT32", "HD-NHR", 4921, "10652853832407468832", 126, 4}
+    {4294967295, -1, "hcom_allReduce_", "HCCL", "hcom_allReduce_", 781687236999155, 781687237000000, 1, 1,
+        "FP32", "HD-NHR", 4921, "group_1", 300, 8, 2},
 };
 
 const KfcTaskFormat DATA_KFC_A{
-    {4294967295, -1, "allreduceAicpuKernel_360_1_1", 41683029923680, 0, "Notify_Wait", "10652832407468360",
-     1, 41683029923680, 20, 0, 69, 0, 0, 5, 6, "SDMA", 4, "INT8", "HCCS", 3.12, 4294967295, "102", 0,
-     "INVALID_TYPE", 405, 0}
+    {4294967295, -1, "allreduceAicpuKernel_360", "group_1", 0, 781687236999156.0, 20.0, 200, 1, 69, 0, 0, 0,
+        1024.0, 3.12, 5, 6, 8, "SDMA", "INT8", "HCCS", "INVALID_TYPE", "102", 0, 1},
 };
 const KfcOpFormat DATA_KFC_OP_A{
-    {4294967295, -1, "hcom_allReduce__360_0_1", 781687236999151, 35092402526.203125, "10652832407468360", 125,
-     "AicpuKernel", 0, 1, "INT16", "HD-NB", 3021, 2, 0}
+    {4294967295, -1, "hcom_allReduce_360", 781687236999151, 35092402526, "group_1",
+        200, "AicpuKernel", 0, 1, "INT8", "HD-NB", 3021, 8, 0, 1},
 };
 }
 
@@ -192,57 +181,47 @@ protected:
         dbRunner->CreateTable(KFC_OP_TABLE_NAME, cols);
         dbRunner->InsertData(KFC_OP_TABLE_NAME, data);
     }
+    // 建一张 0 行的空表（表存在但无数据），用于验证"无数据即跳过"而非"报失败"
+    static void CreateEmptyTable(const std::string& dbPath, const std::string& tableName)
+    {
+        std::shared_ptr<HCCLSingleDeviceDB> database;
+        MAKE_SHARED0_RETURN_VOID(database, HCCLSingleDeviceDB);
+        std::shared_ptr<DBRunner> dbRunner;
+        MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
+        auto cols = database->GetTableCols(tableName);
+        dbRunner->CreateTable(tableName, cols);
+    }
 };
 
-static void CheckStringId(std::vector<CommunicationTaskData> data)
+static void CheckTaskInfo(std::vector<CommunicationTaskData> data)
 {
-    const std::set<std::string> nameSet = {"hcom_allReduce__360_0_1", "hcom_allReduce__233_0_2",
-        "hcom_allReduce__832_0_1", "allreduceAicpuKernel_360_1_1"};
-    const std::set<std::string> taskTypeSet = {"Memcpy", "Memcpy23", "Reduce23", "Notify_Wait"};
-    const uint64_t rdmaTypeHashId = HCCL_RDMA_TYPE_TABLE.find("INVALID_TYPE")->second;
-    const std::set<uint64_t> srcRankSet = {0, 1, 4, 5};
-    const std::set<uint64_t> dstRankSet = {0, 2, 4, 6};
-    const uint64_t transportTypeHashId = HCCL_TRANSPORT_TYPE_TABLE.find("SDMA")->second;
-    const std::set<uint64_t> dataTypeSet = {HCCL_DATA_TYPE_TABLE.find("FP16")->second,
-        HCCL_DATA_TYPE_TABLE.find("FP32")->second,
-        HCCL_DATA_TYPE_TABLE.find("INVALID_TYPE")->second, HCCL_DATA_TYPE_TABLE.find("INT8")->second};
-    const std::set<uint64_t> linkTypeSet = {HCCL_LINK_TYPE_TABLE.find("HCCS")->second,
-        HCCL_LINK_TYPE_TABLE.find("ON_CHIP")->second};
-    std::set<uint64_t> stringIdsSet;
-    std::vector<uint64_t> stringIds;
+    // 通信 task 处理后：taskType 与 hcclName 相同；transportType/dataType/linkType/rdmaType 均为字符串
+    EXPECT_EQ(data.size(), TASK_NUM);
+    std::set<std::string> hcclNameSet;
+    std::set<std::string> dataTypeSet;
     for (auto item : data) {
-        EXPECT_NE(nameSet.find(item.opName), nameSet.end());
-        EXPECT_NE(taskTypeSet.find(item.taskType), taskTypeSet.end());
-        EXPECT_EQ(item.rdmaType, rdmaTypeHashId);
-        EXPECT_NE(srcRankSet.find(item.srcRank), srcRankSet.end());
-        EXPECT_NE(dstRankSet.find(item.dstRank), dstRankSet.end());
-        EXPECT_EQ(item.transportType, transportTypeHashId);
-        EXPECT_NE(dataTypeSet.find(item.dataType), dataTypeSet.end());
-        EXPECT_NE(linkTypeSet.find(item.linkType), linkTypeSet.end());
+        hcclNameSet.insert(item.hcclName);
+        dataTypeSet.insert(item.dataType);
+        EXPECT_EQ(item.taskType, item.hcclName);
+        EXPECT_EQ(item.transportType, "SDMA");
+        EXPECT_EQ(item.linkType, "HCCS");
+        EXPECT_EQ(item.rdmaType, "INVALID_TYPE");
     }
+    EXPECT_EQ(hcclNameSet.size(), TASK_NAME_NUM);
+    EXPECT_EQ(dataTypeSet.size(), static_cast<size_t>(3));  // FP16 / FP32 / INT8
 }
+
 static void CheckOpInfo(std::vector<CommunicationOpData> data)
 {
+    EXPECT_EQ(data.size(), OP_NUM);
+    std::set<int64_t> connectionIdSet;
     std::set<std::string> opNameSet;
-    std::set<uint64_t> connectionIdSet;
-    std::set<std::string> opKeySet;
-    std::set<uint64_t> opDataTypeSet;
-    std::set<std::string> opTypeSet;
     for (auto item : data) {
-        opNameSet.insert(item.opName);
         connectionIdSet.insert(item.connectionId);
-        opKeySet.insert(item.opKey);
-        opDataTypeSet.insert(item.dataType);
-        opTypeSet.insert(item.opType);
-        if (item.opName == "hcom_allReduce__360_0_1") {
-            EXPECT_EQ(item.retry, 1);  // 重执行
-        }
+        opNameSet.insert(item.opName);
     }
-    EXPECT_EQ(opNameSet.size(), OP_NAME_NUM);
     EXPECT_EQ(connectionIdSet.size(), CONNECTION_ID_NUM);
-    EXPECT_EQ(opKeySet.size(), OP_ID_NUM);
-    EXPECT_EQ(opDataTypeSet.size(), OP_DATATYPE_NUM);
-    EXPECT_EQ(opTypeSet.size(), OP_TYPE_NUM);
+    EXPECT_EQ(opNameSet.size(), static_cast<size_t>(2));  // hcom_allReduce_ / hcom_allReduce_360
 }
 
 TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
@@ -266,7 +245,7 @@ TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunS
         opRes.insert(opRes.end(), opResult.begin(), opResult.end());
     }
     CheckOpInfo(opRes);
-    CheckStringId(taskRes);
+    CheckTaskInfo(taskRes);
 }
 
 TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenSourceTableNotExist)
@@ -287,6 +266,44 @@ TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenSourceTableNo
         auto dataInventory = DataInventory();
         dataInventory.Inject(geHashMapPtr);
         EXPECT_TRUE(processor.Run(dataInventory, processorName));
+    }
+}
+
+TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenTableEmpty)
+{
+    // 表存在但 0 行：HCCL/KFC 均应"跳过"而非"报失败"，Run 返回 true 且不产生任何数据
+    // HCCL 表在 SetUp 中 A/B 均已创建，统一清空；KFC 表仅在 A 创建，B 走 NOT_EXIST 跳过
+    auto dbPathA = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    std::shared_ptr<DBRunner> dbRunnerA;
+    MAKE_SHARED0_NO_OPERATION(dbRunnerA, DBRunner, dbPathA);
+    dbRunnerA->DropTable(TASK_TABLE_NAME);
+    dbRunnerA->DropTable(OP_TABLE_NAME);
+    dbRunnerA->DropTable(KFC_TASK_TABLE_NAME);
+    dbRunnerA->DropTable(KFC_OP_TABLE_NAME);
+    CreateEmptyTable(dbPathA, TASK_TABLE_NAME);
+    CreateEmptyTable(dbPathA, OP_TABLE_NAME);
+    CreateEmptyTable(dbPathA, KFC_TASK_TABLE_NAME);
+    CreateEmptyTable(dbPathA, KFC_OP_TABLE_NAME);
+
+    auto dbPathB = File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    std::shared_ptr<DBRunner> dbRunnerB;
+    MAKE_SHARED0_NO_OPERATION(dbRunnerB, DBRunner, dbPathB);
+    dbRunnerB->DropTable(TASK_TABLE_NAME);
+    dbRunnerB->DropTable(OP_TABLE_NAME);
+    CreateEmptyTable(dbPathB, TASK_TABLE_NAME);
+    CreateEmptyTable(dbPathB, OP_TABLE_NAME);
+
+    std::string processorName = "COMMUNICATION_TASK_INFO";
+    GeHashMap geHashMap = {{"key1", "value1"}};
+    std::shared_ptr<GeHashMap> geHashMapPtr;
+    MAKE_SHARED0_NO_OPERATION(geHashMapPtr, GeHashMap, std::move(geHashMap));
+    for (auto path : PROF_PATHS) {
+        auto processor = CommunicationInfoProcessor(path);
+        auto dataInventory = DataInventory();
+        dataInventory.Inject(geHashMapPtr);
+        EXPECT_TRUE(processor.Run(dataInventory, processorName));
+        EXPECT_TRUE(dataInventory.GetPtr<std::vector<CommunicationTaskData>>() == nullptr);
+        EXPECT_TRUE(dataInventory.GetPtr<std::vector<CommunicationOpData>>() == nullptr);
     }
 }
 
@@ -350,17 +367,6 @@ TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
     MOCKER_CPP(&Utils::File::GetFilesWithPrefix).reset();
 }
 
-TEST_F(CommunicationInfoProcessorUTest, TestFormatKfcDataShouldReturnFalseWhenReserveFailed)
-{
-    std::vector<CommunicationTaskData> taskData;
-    std::vector<CommunicationOpData> opData;
-    CommunicationInfoProcessor::CommunicationData communicationData;
-    auto processor = CommunicationInfoProcessor({File::PathJoin({COMMUNICATION_TASK_PATH, "test"})});
-    MOCKER_CPP(&Utils::Reserve<CommunicationTaskData>).stubs().will(returnValue(false));
-    EXPECT_FALSE(processor.FormatKfcData(taskData, opData, communicationData));
-    MOCKER_CPP(&Utils::Reserve<CommunicationTaskData>).reset();
-}
-
 TEST_F(CommunicationInfoProcessorUTest, TestShouldReturnFalseWhenHashMapIsNullptr)
 {
     std::vector<std::string> deviceList = {File::PathJoin({COMMUNICATION_TASK_PATH, "test", "device_1"})};
@@ -374,17 +380,6 @@ TEST_F(CommunicationInfoProcessorUTest, TestShouldReturnFalseWhenHashMapIsNullpt
     std::string processorName = "COMMUNICATION_TASK_INFO";
     EXPECT_FALSE(processor.Run(dataInventory, processorName));
     MOCKER_CPP(&Utils::File::GetFilesWithPrefix).reset();
-}
-
-TEST_F(CommunicationInfoProcessorUTest, TestShouldReturnFalseWhenReserveTaskFormatDataFailed)
-{
-    std::vector<CommunicationTaskData> taskData;
-    CommunicationInfoProcessor::CommunicationData communicationData;
-    std::vector<CommunicationOpData> communicationOpData;
-    auto processor = CommunicationInfoProcessor({File::PathJoin({COMMUNICATION_TASK_PATH, "test"})});
-    MOCKER_CPP(&Utils::Reserve<CommunicationTaskData>).stubs().will(returnValue(false));
-    EXPECT_FALSE(processor.FormatData(taskData, communicationOpData, communicationData));
-    MOCKER_CPP(&Utils::Reserve<CommunicationTaskData>).reset();
 }
 
 TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenSaveCommunicationTaskDataFailed)

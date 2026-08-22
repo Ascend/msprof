@@ -70,18 +70,13 @@ bool OverlapAnalysisProcessor::Process(DataInventory &dataInventory)
     {
         WARN("No comm task data found");
     }
-    auto kfcOpData = dataInventory.GetPtr<std::vector<KfcOpData>>();
-    if (!kfcOpData)
-    {
-        WARN("No kfc op data found");
-    }
     auto mc2CommInfoData = dataInventory.GetPtr<std::vector<MC2CommInfoData>>();
     if (!mc2CommInfoData)
     {
         WARN("No kfc comm info found");
     }
 
-    RecordCompAndCommTaskTime(taskData, computeTaskData, commOpData, kfcOpData, mc2CommInfoData);
+    RecordCompAndCommTaskTime(taskData, computeTaskData, commOpData, mc2CommInfoData);
     auto overlapData = BuildOverlapAnalysisData();
     if (overlapData.empty())
     {
@@ -96,7 +91,6 @@ void OverlapAnalysisProcessor::RecordCompAndCommTaskTime(
     const std::shared_ptr<std::vector<AscendTaskData>> &ascendTasks,
     const std::shared_ptr<std::vector<TaskInfoData>> &compTasks,
     const std::shared_ptr<std::vector<CommunicationOpData>> &commOps,
-    const std::shared_ptr<std::vector<KfcOpData>> &kfcOps,
     const std::shared_ptr<std::vector<MC2CommInfoData>> &mc2CommInfos)
 {
     std::map<TaskId, std::vector<TimeDuration>> allTaskPool;
@@ -122,7 +116,6 @@ void OverlapAnalysisProcessor::RecordCompAndCommTaskTime(
     SepCompTaskAndKFCCommSections(allTaskPool, compTasks, mc2CommInfos, compSections);
     std::unordered_map<uint16_t, std::vector<TimeDuration>> tradCommSections;
     GetCommTaskSections(tradCommSections, commOps);
-    GetCommTaskSections(tradCommSections, kfcOps);
     UpdateTaskTimeExtremes(ascendTasks);
 
     for (auto &pair : tradCommSections)

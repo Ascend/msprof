@@ -25,6 +25,7 @@ class Event:
     1. An API is invoked to start and end (including event reporting in pairs).
     2. Start and end the same additional data.
     """
+
     INVALID_EVENT_LEVEL = -1
     INVALID_THREAD_ID = -1
     _ID = 0
@@ -36,14 +37,15 @@ class Event:
         self.bound = bound  # end
         self.struct_type = struct_type
         # additional record
-        self.additional_record: List[AdditionalRecord] = list()
+        self.additional_record: List[AdditionalRecord] = []
         self.id = self._ID
-        self.kfc_node_event = None
+        self.kfc_node_event: list[Event] = []
         Event._ID += 1
 
     def __lt__(self, other):
-        return self.timestamp < other.timestamp or \
-            (self.timestamp == other.timestamp and self.cann_level < other.cann_level)
+        return self.timestamp < other.timestamp or (
+            self.timestamp == other.timestamp and self.cann_level < other.cann_level
+        )
 
     def __hash__(self):
         return hash(self.id)
@@ -68,5 +70,6 @@ class Event:
         self.additional_record.append(record)
 
     def to_string(self):
-        return "level: {}, thread_id: {}, timestamp: {}, type: {}".format(self.cann_level, self.thread_id,
-                                                                          self.timestamp, self.struct_type)
+        return "level: {}, thread_id: {}, timestamp: {}, type: {}".format(
+            self.cann_level, self.thread_id, self.timestamp, self.struct_type
+        )

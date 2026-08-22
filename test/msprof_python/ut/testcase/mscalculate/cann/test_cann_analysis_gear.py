@@ -87,6 +87,7 @@ class TestCANNAnalysisGear(unittest.TestCase):
         clear_dt_project(self.DIR_PATH)
         path = os.path.join(self.PROF_HOST_DIR, 'sqlite')
         os.makedirs(path)
+        InfoConfReader()._sample_json = {}
 
     def tearDown(self) -> None:
         clear_dt_project(self.DIR_PATH)
@@ -624,10 +625,11 @@ class TestTaskGear(TestCANNAnalysisGear):
         hccl_event = Event.invalid_event()
         model_event = Event.invalid_event()
         task_track_dto: TaskTrackDto = TaskTrackDto()
+        call_stack = {Constant.MODEL_LEVEL: model_event, Constant.NODE_LEVEL: Event.invalid_event()}
 
         RTAddInfoCenter("./test")
 
-        gear.add_hccl_task(hccl_event, model_event, task_track_dto)
+        gear.add_hccl_task(call_stack, hccl_event, task_track_dto)
         self.assertEqual(len(gear.hccl_task_info), 1)
 
     def test_add_hccl_task_should_add_3_task_when_get_3_hccl_descs(self):
@@ -639,12 +641,13 @@ class TestTaskGear(TestCANNAnalysisGear):
         hccl_event = Event.invalid_event()
         model_event = Event.invalid_event()
         task_track_dto: TaskTrackDto = TaskTrackDto()
+        call_stack = {Constant.MODEL_LEVEL: model_event, Constant.NODE_LEVEL: Event.invalid_event()}
         hccl_descs = collections.OrderedDict([("1", gear.HcclDesc()), ("2", gear.HcclDesc()), ("3", gear.HcclDesc())])
 
         RTAddInfoCenter("./test")
 
         with mock.patch(NAMESPACE + '.TaskGear.get_hccl_descs', return_value=hccl_descs):
-            gear.add_hccl_task(model_event, hccl_event, task_track_dto)
+            gear.add_hccl_task(call_stack, hccl_event, task_track_dto)
             self.assertEqual(len(gear.hccl_task_info), 3)
 
     def test_is_kernel_task_should_return_false_when_invalid_dto(self):

@@ -16,22 +16,12 @@
 
 #include "analysis/csrc/application/timeline/hccl_assembler.h"
 
+#include <map>
+
 namespace Analysis
 {
 namespace Application
 {
-
-std::string HcclAssembler::TransEnumToType(uint64_t key, const std::unordered_map<std::string, uint16_t> &enumTable)
-{
-    for (const auto &node : enumTable)
-    {
-        if (node.second == key)
-        {
-            return node.first;
-        }
-    }
-    return "";
-}
 
 HcclAssembler::HcclAssembler() : JsonAssembler(PROCESS_HCCL, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
@@ -143,40 +133,29 @@ int32_t HcclAssembler::GetTid(const std::string groupName, const uint16_t device
 }
 
 std::unordered_map<uint16_t, std::unordered_map<std::string, std::vector<HcclGroup>>> HcclAssembler::InitHcclGroup(
-    std::shared_ptr<std::vector<CommunicationTaskData>> &hcclData, std::shared_ptr<std::vector<KfcTaskData>> &kfcData)
+    std::shared_ptr<std::vector<CommunicationTaskData>> &hcclData)
 {
     std::unordered_map<uint16_t, std::unordered_map<std::string, std::vector<HcclGroup>>> groupTable;
-    std::unordered_map<uint16_t, std::unordered_map<std::string, std::set<int32_t>>> planesTable;
+    // 内层用 std::map 而非 unordered_map：按 HcclType 升序（HCCL=0 < MC2=1）遍历，
+    // 保证 GenerateTMetaDataEvent 分配 startIndex 时 HCCL 先于 MC2，GetTid 返回给 HCCL 的 tid 更小
+    std::unordered_map<uint16_t, std::unordered_map<std::string, std::map<HcclType, std::set<int32_t>>>> planesTable;
     int32_t plainId;
-    if (hcclData != nullptr)
+
+    if (hcclData == nullptr) return groupTable;
+    for (const auto &it : *hcclData)
     {
-        for (const auto &it : *hcclData)
-        {
-            plainId = it.planeId == INVALID_PLANE ? 0 : it.planeId;
-            planesTable[it.deviceId][it.groupName].emplace(plainId);
-        }
+        plainId = it.planeId == INVALID_PLANE ? 0 : it.planeId;
+        planesTable[it.deviceId][it.groupName][it.source].emplace(plainId);
     }
+
     for (const auto &item : planesTable)
     {
         for (const auto &groupInfo : item.second)
         {
-            groupTable[item.first][groupInfo.first].emplace_back(groupInfo.first, HcclType::HCCL, groupInfo.second);
-        }
-    }
-    planesTable.clear();
-    if (kfcData != nullptr)
-    {
-        for (const auto &it : *kfcData)
-        {
-            plainId = it.planeId == INVALID_PLANE ? 0 : it.planeId;
-            planesTable[it.deviceId][it.groupName].emplace(plainId);
-        }
-    }
-    for (const auto &item : planesTable)
-    {
-        for (const auto &groupInfo : item.second)
-        {
-            groupTable[item.first][groupInfo.first].emplace_back(groupInfo.first, HcclType::MC2, groupInfo.second);
+            for (const auto &typeInfo : groupInfo.second)
+            {
+                groupTable[item.first][groupInfo.first].emplace_back(groupInfo.first, typeInfo.first, typeInfo.second);
+            }
         }
     }
     return groupTable;
@@ -186,32 +165,22 @@ uint8_t HcclAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
 {
     auto taskData = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
     auto opData = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
-    auto kfcTask = dataInventory.GetPtr<std::vector<KfcTaskData>>();
-    auto kfcOp = dataInventory.GetPtr<std::vector<KfcOpData>>();
-    if (taskData == nullptr && opData == nullptr && kfcTask == nullptr && kfcOp == nullptr)
+    if (taskData == nullptr && opData == nullptr)
     {
-        WARN("Can't get hccl(kfc) task data and hccl(kfc) op data from dataInventory");
+        WARN("Can't get hccl task data and hccl op data from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> devicePid;
     auto layerInfo = GetLayerInfo(PROCESS_HCCL);
-    groupIndex_ = InitHcclGroup(taskData, kfcTask);
+    groupIndex_ = InitHcclGroup(taskData);
     GenerateMetaDataEvent(devicePid, layerInfo, profPath);
     if (taskData != nullptr)
     {
-        GenerateCommTaskTrace<CommunicationTaskData>(*taskData, profPath, HcclType::HCCL, devicePid, layerInfo);
+        GenerateCommTaskTrace<CommunicationTaskData>(*taskData, profPath, devicePid, layerInfo);
     }
     if (opData != nullptr)
     {
-        GenerateCommOpTrace<CommunicationOpData>(*opData, profPath, HcclType::HCCL, devicePid, layerInfo);
-    }
-    if (kfcTask != nullptr)
-    {
-        GenerateCommTaskTrace<KfcTaskData>(*kfcTask, profPath, HcclType::MC2, devicePid, layerInfo);
-    }
-    if (kfcOp != nullptr)
-    {
-        GenerateCommOpTrace<KfcOpData>(*kfcOp, profPath, HcclType::MC2, devicePid, layerInfo);
+        GenerateCommOpTrace<CommunicationOpData>(*opData, profPath, devicePid, layerInfo);
     }
     if (res_.empty())
     {

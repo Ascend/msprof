@@ -24,6 +24,8 @@ from unittest import mock
 import pytest
 
 from common_func.msprof_exception import ProfException
+from msparser.cluster.meta_parser import OpTaskBundle
+from msmodel.cluster_info.communication_model import OpTaskData
 from tuning.cluster.cluster_parser_factory import ClusterCommunicationParserFactory
 from tuning.cluster.cluster_parser_factory import CommunicationMatrixParserFactory
 from tuning.cluster.cluster_parser_factory import CriticalPathAnalysisParserFactory
@@ -153,12 +155,15 @@ class TestClusterCommunicationParserFactory(unittest.TestCase):
              mock.patch('msmodel.step_trace.cluster_step_trace_model.ClusterStepTraceViewModel.get_iter_start_end',
                         return_value=iter_start_end), \
              mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db',
-                        return_value=[test_hccl_op]), \
+                        return_value={(0, 0): OpTaskData(op_name='all_reduce', tasks=[test_hccl_op])}), \
                 mock.patch(NAMESPACE + '.CommunicationModel.check_db', return_value=True):
             test_parser = ClusterCommunicationParserFactory(self.params)
             test_parser.rank_dir_dict = {0: 'dir0'}
             test_parser.get_conditions_from_db()
-            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [test_hccl_op]}})
+            self.assertEqual(
+                test_parser.rank_hccl_data_dict,
+                {'all_reduce': {0: OpTaskBundle(op_name='all_reduce', tasks=[test_hccl_op])}}
+            )
 
     def test_get_hccl_events_from_db_invalid_connect(self):
         with pytest.raises(ProfException) as err:
@@ -168,27 +173,35 @@ class TestClusterCommunicationParserFactory(unittest.TestCase):
     def test_get_hccl_events_from_db_return_none(self):
         model_space = 'msmodel.cluster_info.communication_model.CommunicationModel'
         with mock.patch(model_space + '.check_db', return_value=True), \
-                mock.patch(model_space + '.get_all_events_from_db', return_value=[]):
+                mock.patch(model_space + '.get_all_events_from_db', return_value={}):
             ClusterCommunicationParserFactory(self.params).get_hccl_events_from_db(0, '', [(0, 100)])
 
     def test_get_hccl_events_from_db(self):
-        hccl_task = HcclTask(op_name='all_reduce')
+        hccl_task = HcclTask(op_name='all_reduce', op_id=100)
         model_space = 'msmodel.cluster_info.communication_model.CommunicationModel'
         with mock.patch(model_space + '.check_db', return_value=True), \
                 mock.patch('common_func.db_manager.DBManager.judge_table_exist', return_value=True), \
-                mock.patch('common_func.db_manager.DBManager.fetch_all_data', side_effect=[[hccl_task], []]):
+                mock.patch('common_func.db_manager.DBManager.fetch_all_data',
+                           side_effect=[[hccl_task], [], [(100, 0, 'all_reduce', 'N/A', 0, 0)], []]):
             test_parser = ClusterCommunicationParserFactory(self.params)
             test_parser.get_hccl_events_from_db(0, '', [(0, 100)])
-            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hccl_task]}})
+            self.assertEqual(
+                test_parser.rank_hccl_data_dict,
+                {'all_reduce': {0: OpTaskBundle(op_name='all_reduce', tasks=[hccl_task])}}
+            )
 
     def test_get_hccl_events_from_db_with_cpa(self):
         hccl_task = HcclTask(op_name='all_reduce')
         top_hccl_ops = tuple(('allReduce_1_1', 'allReduce_2_2', 'allReduce_3_3', 'allReduce_4_4', 'allReduce_5_5'))
         with mock.patch(NAMESPACE + '.CommunicationModel.check_db', return_value=True), \
-                mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db', return_value=[hccl_task]):
+                mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db',
+                           return_value={(0, 0): OpTaskData(op_name='all_reduce', tasks=[hccl_task])}):
             test_parser = ClusterCommunicationParserFactory(self.params)
             test_parser.get_hccl_events_from_db(0, '', [(0, 100)], top_hccl_ops)
-            self.assertEqual(test_parser.rank_hccl_data_dict, {'all_reduce': {0: [hccl_task]}})
+            self.assertEqual(
+                test_parser.rank_hccl_data_dict,
+                {'all_reduce': {0: OpTaskBundle(op_name='all_reduce', tasks=[hccl_task])}}
+            )
 
 
 class TestCommunicationMatrixParserFactory(unittest.TestCase):
@@ -221,7 +234,8 @@ class TestCriticalPathAnalysisParserFactory(unittest.TestCase):
         iter_start_end = [(44444444, 111)]
         test_hccl_op = HcclOp()
         test_compute_op = GeOp()
-        with mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db', return_value=[test_hccl_op]), \
+        with mock.patch(NAMESPACE + '.CommunicationModel.get_all_events_from_db',
+                        return_value={(0, 0): OpTaskData(op_name='all_reduce', tasks=[test_hccl_op])}), \
                 mock.patch(NAMESPACE + '.OpSummaryModel.get_operator_data_by_task_type',
                            return_value=[test_compute_op]), \
                 mock.patch(NAMESPACE + '.CriticalPathAnalysisParserFactory.get_step_info_from_db',
@@ -230,7 +244,10 @@ class TestCriticalPathAnalysisParserFactory(unittest.TestCase):
             critical_analysis_parser_factory = CriticalPathAnalysisParserFactory(self.params)
             critical_analysis_parser_factory.rank_dir_dict = {1: 'dir_1'}
             critical_analysis_parser_factory.get_conditions_from_db()
-            self.assertEqual(critical_analysis_parser_factory.hccl_op_events, {'all_reduce': [test_hccl_op]})
+            self.assertEqual(
+                critical_analysis_parser_factory.hccl_op_events,
+                {'all_reduce': OpTaskBundle(op_name='all_reduce', tasks=[test_hccl_op])}
+            )
             self.assertEqual(critical_analysis_parser_factory.compute_op_events, [test_compute_op])
 
     def test_get_conditions_from_db_should_return_exception_when_check_rank_info_fail(self):
@@ -243,18 +260,19 @@ class TestCriticalPathAnalysisParserFactory(unittest.TestCase):
 
     def test_update_data_should_success_when_get_hccl_events_ok(self):
         hccl_op = HcclOp()
-        op_name_dict = defaultdict(list)
-        op_name_dict[hccl_op.op_name].append(hccl_op)
+        op_name_dict = {'all_reduce': OpTaskBundle(op_name='all_reduce', tasks=[hccl_op])}
         critical_analysis_parser_factory = CriticalPathAnalysisParserFactory(self.params)
         critical_analysis_parser_factory.update_data(op_name_dict, 1)
-        self.assertEqual(critical_analysis_parser_factory.hccl_op_events, {'all_reduce': [hccl_op]})
+        self.assertEqual(
+            critical_analysis_parser_factory.hccl_op_events,
+            {'all_reduce': OpTaskBundle(op_name='all_reduce', tasks=[hccl_op])}
+        )
 
     def test_update_data_should_return_exception_when_no_main_events(self):
         with pytest.raises(ProfException) as err:
             hccl_op = HcclOp()
             hccl_op.plane_id = 1
-            op_name_dict = defaultdict(list)
-            op_name_dict[hccl_op.op_name].append(hccl_op)
+            op_name_dict = {'all_reduce': OpTaskBundle(op_name='all_reduce', tasks=[hccl_op])}
             critical_analysis_parser_factory = CriticalPathAnalysisParserFactory(self.params)
             critical_analysis_parser_factory.update_data(op_name_dict, 1)
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)

@@ -39,10 +39,10 @@ const std::string TABLE_NAME = "HcclOpReport";
 const std::set<std::string> PROF_PATHS = {PROF_PATH_A, PROF_PATH_B};
 
 const OriHcclDataFormat HCCL_DATA = {
-    {"hcom_allReduce_",     "842",   1227513040,  13420,   1457853.966746, 483539540, 3.937677},
-    {"hcom_allGather_",     "15969", 15251797640, 29880,   955087.835181,  8417640,   48.925465},
-    {"hcom_broadcast_",     "801",   109981840,   52120,   137305.667915,  2484120,   0.352805},
-    {"hcom_reduceScatter_", "13480", 14584244120, 1000920, 1081917.219585, 1763860,   46.784054}
+    {"hcom_allReduce_",     "842",   1227513040,  13420,   1457853.966746, 483539540},
+    {"hcom_allGather_",     "15969", 15251797640, 29880,   955087.835181,  8417640},
+    {"hcom_broadcast_",     "801",   109981840,   52120,   137305.667915,  2484120},
+    {"hcom_reduceScatter_", "13480", 14584244120, 1000920, 1081917.219585, 1763860}
 };
 
 class HcclStatisticProcessorUTest : public testing::Test {
@@ -61,9 +61,11 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX})));
         CreateHcclMetricData(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), HCCL_DATA);
         CreateHcclMetricData(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), HCCL_DATA);
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(false));
     }
     virtual void TearDown()
     {
+        GlobalMockObject::verify();
         EXPECT_TRUE(File::RemoveDir(BASE_PATH, 0));
     }
     static void CreateHcclMetricData(const std::string& dbPath, OriHcclDataFormat data)
@@ -170,15 +172,3 @@ TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenSaveToDataInvent
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<HcclStatisticData>).reset();
 }
 
-TEST_F(HcclStatisticProcessorUTest, TestRunShouldReturnFalseWhenLoadDataFailed)
-{
-    OriHcclDataFormat oriData;
-    MOCKER_CPP(&HcclStatisticProcessor::LoadData)
-    .stubs().will(returnValue(oriData));
-    for (auto path: PROF_PATHS) {
-        auto processor = HcclStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));
-    }
-    MOCKER_CPP(&HcclStatisticProcessor::LoadData).reset();
-}

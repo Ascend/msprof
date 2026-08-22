@@ -17,7 +17,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <map>
+#include <set>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 
 #include "analysis/csrc/domain/services/association/include/ascend_task_association.h"
@@ -34,7 +37,6 @@ namespace
 {
 struct GroupData
 {
-    uint64_t firstTimestamp = 0;
     int64_t count = -1;
 };
 
@@ -49,12 +51,8 @@ struct OpTypeInfo
 
 const uint16_t RDMA_NO_BARRIER_TASK_NUM = 3;
 const uint16_t RDMA_WITH_BARRIER_TASK_NUM = 5;
-const uint16_t PERCENTAGE = 100;
 const std::string RDMA_SEND_PAYLOAD = "RDMA_SEND_PAYLOAD";
-const std::string NA = "N/A";
 const int POS_COMPARE_BASE = 3;
-const std::string AICPU_KERNEL = "AicpuKernel";
-const std::string NORMAL = "Normal";
 }  // namespace
 
 uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Context& context)
@@ -67,21 +65,25 @@ uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Contex
     }
 
     // 前面多线程数据处理 此处的task可能不保序 重新排序
-    std::sort(
-        taskData_.begin(), taskData_.end(), [](const DeviceHcclTask& task1, const DeviceHcclTask& task2)
-        { return std::tie(task1.hostTimestamp, task1.timestamp) < std::tie(task2.hostTimestamp, task2.timestamp); });
+    std::sort(taskData_.begin(), taskData_.end(), [](const DeviceHcclTask& task1, const DeviceHcclTask& task2)
+              { return task1.timestamp < task2.timestamp; });
+    std::sort(opData_.begin(), opData_.end(), [](const DeviceHcclOp& op1, const DeviceHcclOp& op2)
+              { return std::tie(op1.start, op1.end) < std::tie(op2.start, op2.end); });
 
     const auto& deviceContext = dynamic_cast<const DeviceContext&>(context);
     DeviceStartInfo startInfo;
+    SampleInfo sampleInfo;
     deviceContext.Getter(startInfo);
+    deviceContext.Getter(sampleInfo);
 
     UpdateHcclOpNameByGroupName(startInfo.clockMonotonicRaw);
     UpdateHcclBandwidth();
-    if (!GetHcclStatisticsData(startInfo.clockMonotonicRaw))
+    if (!GetHcclStatisticsData(startInfo.clockMonotonicRaw, sampleInfo))
     {
         ERROR("Failed to Get hccl statistics data.");
         return ANALYSIS_ERROR;
     }
+
     if (!InjectData(dataInventory))
     {
         ERROR("Failed to inject hccl data.");
@@ -168,64 +170,165 @@ DeviceHcclTask HcclCalculator::InitHcclTaskData(const TopDownTask& topDownTask, 
     task.indexId = hcclTask.indexId;
     task.hcclName = hcclTask.name;
     task.planeId = hcclTask.planeId;
-    task.hostTimestamp = hcclTask.timestamp;
     task.groupName = hcclTask.groupName;
     task.isMaster = hcclTask.isMaster;
     task.streamId = hcclTask.streamId;
     task.taskId = hcclTask.taskId;
-    task.durationEstimated = hcclTask.duration;
+    task.contextId = hcclTask.contextId;
+    task.batchId = hcclTask.batchId;
     task.localRank = hcclTask.localRank;
     task.remoteRank = hcclTask.remoteRank;
     task.transportType = hcclTask.transportType;
     task.size = hcclTask.size;
     task.dataType = hcclTask.dataType;
     task.linkType = hcclTask.linkType;
-    task.contextId = hcclTask.contextId;
     task.threadId = hcclTask.threadId;
     task.notifyId = hcclTask.notifyId;
-    task.batchId = hcclTask.batchId;
     task.rdmaType = hcclTask.rdmaType;
     task.timestamp = topDownTask.startTime;
-    task.connectionId = topDownTask.connectionId;
     task.duration = topDownTask.endTime - topDownTask.startTime;
     task.rankSize = hcclTask.rankSize;
+    task.opId = hcclTask.opId;
     return task;
 }
 
-void HcclCalculator::MergeOpDataByThreadId(std::vector<HcclOp>& hcclOps, std::vector<DeviceHcclTask>& hcclTasks,
-                                           std::map<TaskId, uint16_t>& opCount)
+void HcclCalculator::MergeOpDataByThreadId(std::vector<HcclOp>& hcclOps, std::vector<DeviceHcclTask>& hcclTasks)
 {
-    std::sort(hcclOps.begin(), hcclOps.end(),
-              [](const HcclOp& op1, const HcclOp& op2) { return op1.timestamp < op2.timestamp; });
-    std::sort(
-        hcclTasks.begin(), hcclTasks.end(), [](const DeviceHcclTask& task1, const DeviceHcclTask& task2)
-        { return std::tie(task1.hostTimestamp, task1.timestamp) < std::tie(task2.hostTimestamp, task2.timestamp); });
-    size_t taskIdx = 0;
+    // 对齐 Python _merge_hccl_ops_and_tasks: 按 op_id 精确匹配，不再使用时间窗口
+    // 1. tasks 先按 op_id 分组、组内按 timestamp (ASCEND_TASK start_time) 排序。
+    //    同一线程可能下发到多个 op，不同 op 的 task 时间戳会交错；
+    //    若只按 timestamp 排序，同一 op 的 task 会被其他 op 的 task 打断，导致按 op_id 切分窗口时
+    //    把单个 op 错误拆成多次迭代。先按 op_id 聚拢，才能保证同一 op 的 task 连续。
+    std::sort(hcclTasks.begin(), hcclTasks.end(),
+              [](const DeviceHcclTask& a, const DeviceHcclTask& b)
+              {
+                  if (a.opId != b.opId)
+                  {
+                      return a.opId < b.opId;
+                  }
+                  return a.timestamp < b.timestamp;
+              });
+
+    // 2. 构建 connection_id → HcclOp* 索引 (Python: op_thread_map[thread_id][connection_id] = op)
+    std::unordered_map<int64_t, HcclOp*> opMap;
     for (auto& op : hcclOps)
     {
-        while (taskIdx < hcclTasks.size() && hcclTasks[taskIdx].hostTimestamp < op.timestamp)
+        opMap[op.connectionId] = &op;
+    }
+
+    // 3. 以四元组 (streamId, taskId, contextId, batchId) 作为 task 的唯一标识，
+    //    记录当前 op 已出现的 task 四元组：同一静态 op 反复执行时四元组会重复，据此递增 iter_id；
+    //    不同 op 的 task 四元组不同，不会误判，通信域交错的 task 仍能正确合并到各自 op。
+    std::set<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>> seenTaskIds;
+    // 记录无法匹配的 op_id 用于日志
+    std::set<int64_t> mismatchOpIds;
+
+    int64_t currentOpId = -1;
+    uint32_t currentIterId = 1;
+    double groupStart = 0;
+    double groupEnd = 0;
+    int64_t lastRankSize = 0;
+    bool hasGroup = false;  // 是否已有 master 聚合出窗口起点
+
+    for (auto& task : hcclTasks)
+    {
+        // Python: if task.op_id not in op_id_map: mismatch, continue
+        auto opIt = opMap.find(task.opId);
+        if (opIt == opMap.end())
         {
-            ERROR("Hccl task time not in ops time range, streamId is: %, taskId is: %, contextId is: %, batchId is: %",
-                  hcclTasks[taskIdx].streamId, hcclTasks[taskIdx].taskId, hcclTasks[taskIdx].contextId,
-                  hcclTasks[taskIdx].batchId);
-            taskIdx++;
+            mismatchOpIds.insert(task.opId);
+            continue;
         }
 
-        while ((taskIdx < hcclTasks.size()) && (hcclTasks[taskIdx].hostTimestamp <= (op.timestamp + op.duration)))
+        // task 侧 groupName 来自 hcclTrace，与 op 侧（hcclopInfo）不同源，level0 下 task 侧残缺/不一致；
+        // 统一用所属 op 的 groupName 刷新 task，保证后续按 groupName 分组/渲染以 op 侧为准。
+        task.groupName = opIt->second->groupName;
+
+        // 是否开始新一轮：op_id 变动，或同一 op 内 task 四元组重复（静态算子反复执行）
+        auto taskKey = std::make_tuple(task.streamId, task.taskId, task.contextId, task.batchId);
+        bool newRound = (task.opId != currentOpId) || (seenTaskIds.find(taskKey) != seenTaskIds.end());
+
+        if (newRound)
         {
-            TaskId tempId(hcclTasks[taskIdx].streamId, hcclTasks[taskIdx].batchId, hcclTasks[taskIdx].taskId,
-                          hcclTasks[taskIdx].contextId);
-            uint16_t count = (opCount.find(tempId) == opCount.end()) ? 1 : (opCount[tempId] + 1);
-            opCount[tempId] = count;
-            taskData_.emplace_back(GetCompleteHcclTaskData(op, hcclTasks[taskIdx], count));
-            op.rankSize = hcclTasks[taskIdx].rankSize;
-            taskIdx++;
+            // 上一组 op 结束，emit 上一组的 enriched op
+            if (currentOpId != -1 && opMap.find(currentOpId) != opMap.end())
+            {
+                // 无 master task 的 op 无法聚合出有效 [start, end] 窗口，报错并跳过，避免落全 0 数据
+                if (!hasGroup)
+                {
+                    ERROR("Hccl op has no master task, op_id(connection_id) is: %.", currentOpId);
+                }
+                else
+                {
+                    HcclOp* prevOp = opMap[currentOpId];
+                    opData_.emplace_back(
+                        GetCompleteHcclOpData(*prevOp, groupStart, groupEnd, lastRankSize, currentIterId));
+                }
+            }
+
+            if (task.opId != currentOpId)
+            {
+                // 新的 op_id 分组，iter_id 从 1 开始
+                currentOpId = task.opId;
+                currentIterId = 1;
+            }
+            else
+            {
+                // 同一 op 反复执行，iter_id 递增
+                currentIterId++;
+            }
+            seenTaskIds.clear();
+            groupStart = 0;
+            groupEnd = 0;
+            lastRankSize = 0;
+            hasGroup = false;
         }
-        opData_.emplace_back(GetCompleteHcclOpData(op));
+
+        seenTaskIds.insert(taskKey);
+
+        // 所有 task（含 non-master）统一携带 iter_id 落盘
+        taskData_.emplace_back(GetCompleteHcclTaskData(*opMap[currentOpId], task, currentIterId));
+
+        // 再取主流：只 master 聚合 [start, end] 窗口
+        if (!task.isMaster) continue;
+        lastRankSize = task.rankSize;
+        if (!hasGroup)
+        {
+            groupStart = task.timestamp;
+            groupEnd = task.timestamp + task.duration;
+            hasGroup = true;
+        }
+        else
+        {
+            // Python: group_end = max(group_end, task.timestamp + task.duration)
+            double newEnd = task.timestamp + task.duration;
+            groupEnd = (newEnd > groupEnd) ? newEnd : groupEnd;
+        }
     }
-    if (taskIdx != 0 && taskIdx < hcclTasks.size() - 1)
+
+    if (currentOpId != -1 && opMap.find(currentOpId) != opMap.end())
     {
-        ERROR("Task_queue is not empty, len is: %", hcclTasks.size());
+        // 无 master task 的 op 无法聚合出有效 [start, end] 窗口，报错并跳过，避免落全 0 数据
+        if (!hasGroup)
+        {
+            ERROR("Hccl op has no master task, op_id(connection_id) is: %.", currentOpId);
+        }
+        else
+        {
+            HcclOp* lastOp = opMap[currentOpId];
+            // TODO: 同上，timing 暂存于 DeviceHcclTask
+            opData_.emplace_back(GetCompleteHcclOpData(*lastOp, groupStart, groupEnd, lastRankSize, currentIterId));
+        }
+    }
+
+    if (!mismatchOpIds.empty())
+    {
+        std::string ids;
+        for (auto id : mismatchOpIds)
+        {
+            ids += std::to_string(id) + ",";
+        }
+        ERROR("Some op_id can't match any task, size: %, op_ids: %", mismatchOpIds.size(), ids);
     }
 }
 
@@ -256,7 +359,6 @@ bool HcclCalculator::MergeHcclOpData(const std::shared_ptr<std::vector<HcclOp>>&
         hcclTaskThreadMap[task.threadId].emplace_back(task);
     }
 
-    std::map<TaskId, uint16_t> opCount;
     for (auto& pair : hcclOpThreadMap)
     {
         if (hcclTaskThreadMap.find(pair.first) == hcclTaskThreadMap.end())
@@ -265,47 +367,42 @@ bool HcclCalculator::MergeHcclOpData(const std::shared_ptr<std::vector<HcclOp>>&
         }
         else
         {
-            MergeOpDataByThreadId(pair.second, hcclTaskThreadMap[pair.first], opCount);
+            MergeOpDataByThreadId(pair.second, hcclTaskThreadMap[pair.first]);
         }
     }
     return true;
 }
 
-DeviceHcclTask HcclCalculator::GetCompleteHcclTaskData(const HcclOp& op, const DeviceHcclTask& hcclTask, uint16_t count)
+DeviceHcclTask HcclCalculator::GetCompleteHcclTaskData(const HcclOp& op, const DeviceHcclTask& hcclTask, uint32_t count)
 {
     DeviceHcclTask task = hcclTask;
+    task.iterId = count;
+    // 回填 op 的原始 opName，供带宽计算判定 send/receive（op 名 ≠ task 的 hcclName）
     task.opName = op.opName;
-    task.groupName = (hcclTask.groupName == NA) ? op.groupName : hcclTask.groupName;
-    task.taskType = op.taskType;
-    task.opType = op.opType;
-    task.firstTimestamp = op.timestamp;
-    task.iterationId = count;
-    task.isDynamic = op.isDynamic;
-    task.modelId = op.modelId;
-    task.connectionId = op.connectionId;
-    if (!isValidData_ && task.opType != NA)
-    {
-        isValidData_ = true;
-    }
     return task;
 }
 
-HcclOp HcclCalculator::GetCompleteHcclOpData(const HcclOp& op)
+DeviceHcclOp HcclCalculator::GetCompleteHcclOpData(const HcclOp& op, double groupStart, double groupEnd,
+                                                   int64_t rankSize, uint32_t iterId)
 {
-    HcclOp hcclOp;
+    DeviceHcclOp hcclOp;
     hcclOp.modelId = op.modelId;
+    hcclOp.indexId = op.indexId;
+    hcclOp.threadId = op.threadId;
     hcclOp.opName = op.opName;
     hcclOp.taskType = op.taskType;
     hcclOp.opType = op.opType;
-    hcclOp.timestamp = op.timestamp;
+    hcclOp.connectionId = op.connectionId;
     hcclOp.relay = op.relay;
     hcclOp.retry = op.retry;
     hcclOp.dataType = op.dataType;
     hcclOp.algType = op.algType;
     hcclOp.count = op.count;
     hcclOp.groupName = op.groupName;
-    hcclOp.connectionId = op.connectionId;
-    hcclOp.rankSize = op.rankSize;
+    hcclOp.rankSize = rankSize;
+    hcclOp.iterId = iterId;
+    hcclOp.start = groupStart;
+    hcclOp.end = groupEnd;
     return hcclOp;
 }
 
@@ -314,25 +411,19 @@ void HcclCalculator::UpdateHcclOpNameByGroupName(uint64_t clockMonotonicRaw)
     INFO("Start UpdateHcclOpNameByGroupName.");
     std::unordered_map<std::string, GroupData> hcclGroup;
     //  if data start in warmup, index will be set -1
-    //  else index++ when groupName and taskType in group_dict or group name set first
-    for (auto& data : taskData_)
+    //  else index++ when groupName in group_dict or group name set first
+    for (auto& data : opData_)
     {
-        auto taskType = (data.opName.find(AICPU_KERNEL) != std::string::npos) ? AICPU_KERNEL : NORMAL;
-        auto key = Utils::Join("_", taskType, data.groupName);
-        auto& groupEntry = hcclGroup[key];
-        if (data.timestamp > clockMonotonicRaw && data.firstTimestamp > groupEntry.firstTimestamp)
-        {
-            groupEntry.firstTimestamp = data.firstTimestamp;
-            groupEntry.count++;
-        }
+        auto& groupEntry = hcclGroup[data.groupName];
+        if (data.end > clockMonotonicRaw) groupEntry.count++;
         int subPoint = 0;
         if (static_cast<int>(data.groupName.size()) > POS_COMPARE_BASE)
         {
             subPoint = static_cast<int>(data.groupName.size()) - POS_COMPARE_BASE;
         }
         auto subGroupName = data.groupName.substr(subPoint);
-        data.opName = Utils::Join("_", data.opName, subGroupName, std::to_string(groupEntry.count),
-                                  std::to_string(data.iterationId));
+        data.opName =
+            Utils::Join("_", data.opName, subGroupName, std::to_string(groupEntry.count), std::to_string(data.iterId));
     }
 }
 
@@ -342,11 +433,12 @@ void HcclCalculator::UpdateHcclBandwidth()
     // 按时间升序排序，确保后续payload遍历时数据顺序正确
     std::sort(taskData_.begin(), taskData_.end(), [](const DeviceHcclTask& task1, const DeviceHcclTask& task2)
               { return task1.timestamp < task2.timestamp; });
-    std::unordered_map<std::string, std::unordered_map<int32_t, std::vector<DeviceHcclTask*>>> taskTable;
+    // 按 (opId, iterId) 精确区分每个算子实例，替代原先的 hcclName 分组
+    std::map<std::pair<int64_t, uint32_t>, std::map<int32_t, std::vector<DeviceHcclTask*>>> taskTable;
     for (auto& data : taskData_)
     {
         // 没有提前reserve，这里可能很耗时
-        taskTable[data.opName][data.planeId].push_back(&data);
+        taskTable[std::make_pair(data.opId, data.iterId)][data.planeId].push_back(&data);
     }
     for (auto& planeTable : taskTable)
     {
@@ -423,46 +515,26 @@ uint16_t HcclCalculator::FindConsecutivePayloadTask(std::vector<DeviceHcclTask*>
     return count;
 }
 
-bool HcclCalculator::GetHcclStatisticsData(uint64_t clockMonotonicRaw)
+bool HcclCalculator::GetHcclStatisticsData(uint64_t clockMonotonicRaw, SampleInfo sampleInfo)
 {
     INFO("Start GetHcclStatisticsData.");
-    if (!isValidData_)
+    if (sampleInfo.isLevel0)
     {
         WARN("No op type in hccl data.");
         return true;
     }
-    std::unordered_map<std::string, OpTypeInfo> groupedData;
-    for (const auto& task : taskData_)
-    {
-        if (task.isMaster == 0 || task.timestamp < clockMonotonicRaw)
-        {
-            continue;
-        }
-        auto key = Utils::Join("-", task.opName, std::to_string(task.firstTimestamp), task.opType);
-        if (groupedData.find(key) == groupedData.end())
-        {
-            OpTypeInfo info(task.timestamp + task.duration, task.timestamp, task.opType);
-            groupedData[key] = info;
-        }
-        else
-        {
-            auto& temp = groupedData[key];
-            temp.max = std::max(task.timestamp + task.duration, temp.max);
-            temp.min = std::min(task.timestamp, temp.min);
-        }
-    }
     std::unordered_map<std::string, HcclStatistics> statisticsTable;
-    double allTaskTime = 0;
-    for (const auto& data : groupedData)
+    for (const auto& op : opData_)
     {
-        auto& record = statisticsTable[data.second.opType];
-        double duration = data.second.max - data.second.min;
-        record.opType = data.second.opType;
+        // 对齐 Python generate_op_report_data: 过滤 warmup 算子（end 早于采集起始时间）
+        if (op.end < clockMonotonicRaw) continue;
+        auto& record = statisticsTable[op.opType];
+        double duration = op.end - op.start;
+        record.opType = op.opType;
         record.count++;
         record.totalTime += duration;
         record.max = std::max(duration, record.max);
         record.min = std::min(duration, record.min);
-        allTaskTime += duration;
     }
     if (!Utils::Reserve(statisticsData_, statisticsTable.size()))
     {
@@ -471,28 +543,25 @@ bool HcclCalculator::GetHcclStatisticsData(uint64_t clockMonotonicRaw)
     }
     for (auto& data : statisticsTable)
     {
-        if ((data.second.count == 0) || Utils::IsDoubleEqual(allTaskTime, 0))
-        {
-            ERROR("Division by zero, and data.second.count: %  or allTaskTime: %.", data.second.count, allTaskTime);
-            continue;
-        }
+        // 业务保证count非零
         data.second.avg = static_cast<double>(data.second.totalTime) / data.second.count;
-        data.second.ratio = static_cast<double>(data.second.totalTime) / allTaskTime * PERCENTAGE;
         statisticsData_.emplace_back(data.second);
     }
-    std::sort(statisticsData_.begin(), statisticsData_.end(),
-              [](const HcclStatistics& task1, const HcclStatistics& task2) { return task1.ratio > task2.ratio; });
     return true;
 }
 
 bool HcclCalculator::InjectData(DataInventory& inventory)
 {
     INFO("Start inject hccl data.");
-    auto hcclOpData = inventory.GetPtr<std::vector<HcclOp>>();
-    // 直接替换原有的HcclOp数据
-    hcclOpData->swap(opData_);
-
     bool flag = true;
+    std::shared_ptr<std::vector<DeviceHcclOp>> hcclOpData;
+    MAKE_SHARED0_NO_OPERATION(hcclOpData, std::vector<DeviceHcclOp>, std::move(opData_));
+    if (!inventory.Inject(hcclOpData))
+    {
+        ERROR("Inject hccl op data failed.");
+        flag = false;
+    }
+
     std::shared_ptr<std::vector<DeviceHcclTask>> hcclTaskData;
     MAKE_SHARED0_NO_OPERATION(hcclTaskData, std::vector<DeviceHcclTask>, std::move(taskData_));
     if (!inventory.Inject(hcclTaskData))

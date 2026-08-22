@@ -15,40 +15,26 @@
 # -------------------------------------------------------------------------
 import os
 import logging
-from collections import namedtuple
 from collections import defaultdict
 
 from common_func.constant import Constant
+from common_func.db_name_constant import DBNameConstant
+from common_func.db_manager import DBManager
+from common_func.hccl_info_common import DeviceHcclSource
+from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
-from common_func.db_name_constant import DBNameConstant
 from common_func.path_manager import PathManager
 from common_func.profiling_scene import ProfilingScene
-from common_func.db_manager import DBManager
-from common_func.ms_constant.number_constant import NumberConstant
-from common_func.info_conf_reader import InfoConfReader
-from common_func.msprof_object import CustomizedNamedtupleFactory
-from common_func.hccl_info_common import DeviceHcclSource
-from msmodel.task_time.ascend_task_model import AscendTaskViewModel
-from msmodel.ge.ge_info_model import GeInfoViewModel
+from mscalculate.hccl.hccl_calculator import HcclCalculator
+from mscalculate.interface.icalculator import ICalculator
 from msmodel.add_info.kfc_info_model import KfcInfoViewModel
 from msmodel.add_info.mc2_comm_info_model import Mc2CommInfoViewModel
-from msmodel.hccl.hccl_model import HCCLModel
-from mscalculate.interface.icalculator import ICalculator
-from mscalculate.flip.flip_calculator import FlipCalculator
-from mscalculate.hccl.hccl_calculator import HcclCalculator
-from msmodel.hccl.hccl_model import HcclViewModel
+from msmodel.hccl.hccl_model import HCCLModel, HcclViewModel
 
 
 class KfcCalculator(ICalculator, MsMultiProcess):
-    KFC_OP_DATA = CustomizedNamedtupleFactory.enhance_namedtuple(
-        namedtuple("KfcOpData",
-                   ["ascend_data", "group_name", "op_name", "first_timestamp", "iter_id", "op_type",
-                    "relay", "retry", "data_type", "alg_type", "count", "rank_size", "source"]),
-        {})
-    BLACK_KFC_OP_TYPE = ["NOTIFY_WAIT", "MEMCPY_ASYNC"]
-    BLACK_KFC_OP_NAME = ["hcomAicpuInit"]
-    MC2_MASTER_STREAM_TASK_TYPE = "C_CORE_SQE"
     FIRST_TASK_TYPE = 0
     LAST_TASK_TYPE = 1
 
@@ -56,167 +42,365 @@ class KfcCalculator(ICalculator, MsMultiProcess):
         super().__init__(sample_config)
         self._file_list = file_list
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
-        self._kfc_op_data = {}
-        self._kfc_task_data = {}
-        self._kfc_small_task = {}
-        self._plane_id = {}
-        self._master_stream = {}
-        self._master_stream_first_task = set()
-        self._source = {}
+        self._kfc_op_data = []
+        self._kfc_task_data = []
+        self._mc2_op_report_data = []
         start_ts, _ = InfoConfReader().get_collect_time()
         self.start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
 
-    @staticmethod
-    def make_default_kfc_info() -> KfcInfoViewModel.KFC_HCCL_INFO_TYPE:
-        default_kfc_info = KfcInfoViewModel.KFC_HCCL_INFO_TYPE(
-            0, "N/A", 'N/A', 'N/A', 4294967295, 4294967295, -1, 0, -1, 4294967295, 'N/A', 'N/A', 'N/A', -1,
-            'N/A', 'N/A', -1, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', -1, -1, 0, 0, 0, 0, 'N/A', -1
-        )
-        return default_kfc_info
+    def get_hccl_and_mc2_op(self: any) -> tuple:
+        # 获取符合条件的aicpuKernel（SQL已按start_time排序）
+        with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_KFC_INFO]) as kfc_info_model:
+            aicpu_kernel_list = kfc_info_model.get_kfc_op_data()
+
+        # 按四元组出现次数标记iter_id（从1开始），区分同一kernel的多次执行（如task flip/重执行）
+        counter = defaultdict(lambda: 0)
+        for i, kfc_op in enumerate(aicpu_kernel_list):
+            key = (kfc_op.stream_id, kfc_op.task_id, kfc_op.context_id, kfc_op.batch_id)
+            counter[key] += 1
+            aicpu_kernel_list[i] = kfc_op.replace(iter_id=counter[key])
+
+        # 从HCCL_OP里取数据，以kfc_connectionId进行分组
+        kfc_hccl_op_map = self.get_kfc_host_hccl_op()
+
+        # 依照kfc_connection_id来判定是hccl还是mc2
+        hccl_kernel_list = []
+        mc2_kernel_list = []
+        for kfc_op in aicpu_kernel_list:
+            hccl_op = kfc_hccl_op_map.get(kfc_op.kfc_connection_id)
+            if hccl_op:
+                # 匹配到HCCL_OP，说明是HCCL
+                hccl_kernel_list.append(
+                    kfc_op.replace(
+                        connection_id=hccl_op.connection_id, op_name=hccl_op.op_name, group_name=hccl_op.group_name
+                    )
+                )
+            else:
+                # 未匹配到，说明是MC2
+                mc2_kernel_list.append(kfc_op.replace(connection_id=kfc_op.kfc_connection_id))
+        return hccl_kernel_list, mc2_kernel_list
+
+    def _refine_kernel_times_with_master_stream(self: any, hccl_kernels: list, kfc_task_data: list) -> None:
+        """用mainStreamTask修正aicpu kernel的start/end，依赖kfcTask数据做匹配
+        batchId已在parser阶段预计算并持久化到DB，无需重复计算
+        iter_id用于区分同一aicpu kernel的多次执行（如task flip），确保每个副本的start/end独立
+        """
+        with KfcInfoViewModel(
+            self._project_path, [DBNameConstant.TABLE_AICPU_MASTER_STREAM_HCCL_TASK]
+        ) as kfc_info_model:
+            master_stream_hccl_task = kfc_info_model.get_aicpu_master_stream_hccl_task()
+        if not master_stream_hccl_task:
+            return
+
+        # 用kfcTask数据构建小task索引 (unique_id → task)
+        hccl_small_task = {}
+        for data in kfc_task_data:
+            uid = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
+            hccl_small_task[uid] = data
+
+        # 构建 kernel_key → [first_start, last_end]，key中加入iter_id区分多次执行
+        kernel_times = {}
+        aicpu_iter = defaultdict(lambda: 0)  # (aicpu_stream_id, aicpu_task_id, context_id, batch_id) → 当前执行次数
+        mismatch = set()
+        missing_first = set()  # 有 LAST 但无对应 FIRST 的异常 key
+        for data in master_stream_hccl_task:
+            if data.task_type not in (self.FIRST_TASK_TYPE, self.LAST_TASK_TYPE):
+                continue
+            uid = "{0}-{1}-{2}-{3}".format(
+                data.stream_id, data.task_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id
+            )
+            small_task = hccl_small_task.get(uid)
+            if not small_task:
+                mismatch.add(uid)
+                continue
+            aicpu_key = (
+                data.aicpu_stream_id,
+                data.aicpu_task_id,
+                NumberConstant.DEFAULT_GE_CONTEXT_ID,
+                data.aicpu_batch_id,
+            )
+            # FIRST表示新一轮执行开始，递增iter_id（从1开始）
+            if data.task_type == self.FIRST_TASK_TYPE:
+                aicpu_iter[aicpu_key] += 1
+            iter_id = aicpu_iter[aicpu_key]
+            key = (*aicpu_key, iter_id)
+            task_end = small_task.timestamp + small_task.duration
+            if data.task_type == self.FIRST_TASK_TYPE:
+                kernel_times[key] = (small_task.timestamp, task_end)
+            elif key not in kernel_times:
+                # LAST 无对应 FIRST（如 FIRST 因 uid mismatch 被跳过），记录异常 key，不做时间修正
+                missing_first.add(key)
+            else:
+                kernel_times[key] = (kernel_times[key][0], task_end)
+        if mismatch:
+            logging.error("Can not match any master task for these unique id: %s", mismatch)
+        if missing_first:
+            logging.error("LAST task has no matching FIRST task, abnormal keys: %s", missing_first)
+
+        # 修正hccl_kernels的start/end，key中加入iter_id匹配对应次数的执行
+        for i, kernel in enumerate(hccl_kernels):
+            key = self._make_kernel_key(kernel)
+            if key not in kernel_times:
+                continue
+            start, end = kernel_times[key]
+            hccl_kernels[i] = kernel.replace(start=start, end=end)
 
     @staticmethod
-    def get_hccl_op_info(op_data, idx, hccl_op_info):
-        while idx < len(hccl_op_info) and hccl_op_info[idx].timestamp < op_data.ascend_data.timestamp:
-            idx += 1
-        curr_hccl_op_info = None
-        if idx < len(hccl_op_info) and \
-                op_data.ascend_data.timestamp <= hccl_op_info[idx].timestamp <= \
-                op_data.ascend_data.timestamp + op_data.ascend_data.duration:
-            curr_hccl_op_info = hccl_op_info[idx]
-            idx += 1
-        return curr_hccl_op_info, idx
+    def _group_kernels_by_name(kernels: list) -> dict:
+        """按group_name分组并排序kernels"""
+        kb = defaultdict(list)
+        for k in kernels:
+            kb[k.group_name].append(k)
+        for v in kb.values():
+            v.sort(key=lambda k: k.start)
+        return kb
 
     @staticmethod
-    def update_op_data_time(op_data, time_idx, timestamp_master_stream_task_table):
-        timestamp_list = list(timestamp_master_stream_task_table.keys())
-        while time_idx < len(timestamp_list) and timestamp_list[time_idx] < op_data.ascend_data.timestamp:
-            time_idx += 1
-        aicpu_timestamp = op_data.ascend_data.timestamp
-        aicpu_duration = op_data.ascend_data.duration
-        while time_idx < len(timestamp_list) and \
-                aicpu_timestamp <= timestamp_list[time_idx] <= aicpu_timestamp + aicpu_duration:
-            data_type, task = timestamp_master_stream_task_table.get(timestamp_list[time_idx])
-            if data_type == KfcCalculator.FIRST_TASK_TYPE:
-                # first task
-                ascend_data = op_data.ascend_data.replace(timestamp=task.start_time)
-                op_data = op_data.replace(ascend_data=ascend_data)
-            # last task
-            duration = task.start_time + task.duration - op_data.ascend_data.timestamp
-            ascend_data = op_data.ascend_data.replace(duration=duration)
-            op_data = op_data.replace(ascend_data=ascend_data)
-            time_idx += 1
-        return op_data, time_idx
+    def _make_kernel_key(kernel) -> tuple:
+        """构造 kernel 唯一标识(含iter_id以区分同一kernel的多次执行):
+        (stream_id, task_id, context_id, batch_id, iter_id)
+        """
+        return (kernel.stream_id, kernel.task_id, kernel.context_id, kernel.batch_id, kernel.iter_id)
 
-    def update_op_name_by_group(self, kfc_op_data: KFC_OP_DATA):
-        group_dict = defaultdict(lambda: {"first_timestamp": 0, "count": -1})
-        for num, data in enumerate(kfc_op_data):
-            # if data start in warmup, index will be set -1
-            # else index++ when group_name and task_type in group_dict or group name set first
-            task_type = StrConstant.AICPU_KERNEL if StrConstant.AICPU_KERNEL in data.op_name else StrConstant.NORMAL
-            key = (data.group_name, task_type)
-            if (data.ascend_data.timestamp > self.start_time_raw_timestamp and
-                    data.first_timestamp > group_dict[key]["first_timestamp"]):
-                group_dict[key]["first_timestamp"] = data.first_timestamp
-                group_dict[key]["count"] += 1
+    def _assign_op_and_plane(self: any, grouped_tasks: dict, kernel_by_group: dict, plane_id_base: int = 0) -> dict:
+        """双指针匹配op_id并分配plane_id，标记is_master（op时间范围内=1，外=0），原地修改tasks，返回kernel_times"""
+        kernel_times: dict = {}  # _make_kernel_key → (min_start, max_end)
+        for gname, tasks in grouped_tasks.items():
+            kernels = kernel_by_group.get(gname, [])
+            if not kernels:
+                continue
+            stream_plane: dict = {}
+            op_index = 0
+            op_len = len(kernels)
 
-            index = group_dict[key]["count"]
-            kfc_op_data[num] = data.replace(
-                op_name=f"{data.op_name}_{data.group_name[-3:]}_{str(index)}_{str(data.iter_id)}")
+            for i, data in enumerate(tasks):
+                while op_index < op_len and kernels[op_index].end < data.timestamp:
+                    op_index += 1
+                if op_index < op_len and kernels[op_index].start <= data.timestamp:
+                    key = self._make_kernel_key(kernels[op_index])
+                    # 用op的opId和groupName，并同步kernel的iter_id给task；
+                    # 落在 op 时间范围内的 task 标记为主流
+                    data = data.replace(
+                        op_id=kernels[op_index].connection_id,
+                        group_name=kernels[op_index].group_name,
+                        model_id=kernels[op_index].model_id,
+                        index_id=kernels[op_index].index_id,
+                        iter_id=kernels[op_index].iter_id,
+                        op_name=kernels[op_index].op_name,
+                        is_master=1,
+                    )
+                    start = data.timestamp
+                    end = data.timestamp + data.duration
+                    prev = kernel_times.get(key)
+                    if prev:
+                        kernel_times[key] = (min(start, prev[0]), max(end, prev[1]))
+                    else:
+                        kernel_times[key] = (start, end)
+                else:
+                    # 时间范围外的 task 不算主流
+                    data = data.replace(is_master=0)
+
+                sid = data.stream_id
+                if sid not in stream_plane:
+                    stream_plane[sid] = len(stream_plane) + plane_id_base
+                data = data.replace(plane_id=stream_plane[sid])
+                tasks[i] = data
+
+        # 仅用于mc2算子 op算子时间刷新（mc2无mainStreamTask）
+        return kernel_times
+
+    def generate_hccl_kernels(self, hccl_kernels: list, is_level0: bool) -> None:
+        if is_level0 or not hccl_kernels:
+            return
+
+        # task 数据与 mc2 流程一致：按 mc2Info 展开流(comm_stream_ids)过滤，再按 stream→group 分组
+        _, comm_stream_id_group_table = self.get_mc2_comm_info_data()
+        comm_stream_ids = tuple(comm_stream_id_group_table.keys())
+        if not comm_stream_ids:
+            return
+
+        with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_KFC_INFO]) as model:
+            kfc_task_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids)
+        if not kfc_task_data:
+            return
+
+        self._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
+
+        kernel_by_group = self._group_kernels_by_name(hccl_kernels)
+        grouped_tasks = self._group_tasks_by_comm_stream(kfc_task_data, comm_stream_id_group_table)
+        self._assign_op_and_plane(grouped_tasks, kernel_by_group, plane_id_base=1)
+
+        # op_id/iter_id 已在 _assign_op_and_plane 中赋值，逐组按 (op_id, iter_id) 计算带宽；
+        # 主从流 task 都落库，仅按 op 时间剔除归属其他 op 的 task
+        for gname, tasks in grouped_tasks.items():
+            if gname in kernel_by_group:
+                matched_tasks = self._filter_matched_tasks(tasks)
+                HcclCalculator.update_bandwidth(matched_tasks)
+                self._kfc_task_data.extend(
+                    self._serialize_kfc_task(t, DeviceHcclSource.HCCL.value) for t in matched_tasks
+                )
+
+    @staticmethod
+    def _group_tasks_by_comm_stream(task_data: list, comm_stream_id_group_table: dict) -> dict:
+        """按 mc2Info 展开流信息(stream_id → {group_name}) 分组 task，非 comm 流的 task 自然被排除"""
+        gt = defaultdict(list)
+        for data in task_data:
+            for gname in comm_stream_id_group_table.get(data.stream_id, set()):
+                gt[gname].append(data)
+        return gt
+
+    @staticmethod
+    def _filter_matched_tasks(tasks: list) -> list:
+        """按 op 时间筛选：只保留匹配到某个 op 时间范围内的 task（op_id 已赋值）；
+        op_id 仍为默认 -1 的 task 落在所有 op 时间窗之外（归属其他 op），不落库
+        """
+        return [t for t in tasks if t.op_id != Constant.DEFAULT_INVALID_VALUE]
+
+    @staticmethod
+    def _serialize_kfc_task(data: any, source: int) -> list:
+        """序列化HcclTask namedtuple为KfcTaskMap的25列格式（对齐HCCLTaskSingleDeviceMap + source）"""
+        return [
+            data.model_id,
+            data.index_id,
+            data.hccl_name,
+            data.group_name,
+            data.plane_id,
+            data.timestamp,
+            data.duration,
+            data.op_id,
+            data.is_master,
+            data.stream_id,
+            data.task_id,
+            data.context_id,
+            data.batch_id,
+            data.size,
+            data.bandwidth,
+            data.local_rank,
+            data.remote_rank,
+            data.rank_size,
+            data.transport_type,
+            data.data_type,
+            data.link_type,
+            data.rdma_type,
+            data.notify_id,
+            data.iter_id,
+            source,
+        ]
+
+    @staticmethod
+    def _serialize_kfc_op(kernel) -> list:
+        """序列化MC2 kernel为KfcOPMap的15列格式:
+        model_id, index_id, op_name, start, end, group_name,
+        connection_id(kfc_connection_id), op_type, relay, retry, data_type, alg_type, count, rank_size, source
+        """
+        return [
+            kernel.model_id,
+            kernel.index_id,
+            kernel.op_name,
+            kernel.start,
+            kernel.end,
+            kernel.group_name,
+            kernel.kfc_connection_id,
+            kernel.op_type,
+            kernel.relay,
+            kernel.retry,
+            kernel.data_type,
+            kernel.alg_type,
+            kernel.count,
+            kernel.rank_size,
+            kernel.iter_id,
+            DeviceHcclSource.MC2.value,
+        ]
+
+    def generate_mc2_kernels(self, mc2_kernels: list, is_level0: bool) -> None:
+        if not mc2_kernels:
+            return
+
+        aicpu_info, comm_stream_id_group_table = self.get_mc2_comm_info_data()
+
+        for i, kernel in enumerate(mc2_kernels):
+            info = aicpu_info.get(kernel.stream_id)
+            if info:
+                mc2_kernels[i] = kernel.replace(group_name=info[0], rank_size=info[1], op_type=kernel.op_name)
+            else:
+                mc2_kernels[i] = kernel.replace(op_type=kernel.op_name)
+
+        comm_stream_ids = tuple(comm_stream_id_group_table.keys())
+        if not comm_stream_ids:
+            return
+
+        with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_KFC_INFO]) as model:
+            if is_level0:
+                comm_data = model.get_ascend_task_with_kfc_defaults(comm_stream_ids)
+            else:
+                comm_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids)
+        if not comm_data:
+            return
+
+        grouped_tasks = self._group_tasks_by_comm_stream(comm_data, comm_stream_id_group_table)
+
+        kernel_by_group = self._group_kernels_by_name(mc2_kernels)
+        kernel_times = self._assign_op_and_plane(grouped_tasks, kernel_by_group, plane_id_base=0)
+
+        # op_id/iter_id 已在 _assign_op_and_plane 中赋值，逐组按 (op_id, iter_id) 计算带宽；
+        # 主从流 task 都落库，仅按 op 时间剔除归属其他 op 的 task
+        for gname, tasks in grouped_tasks.items():
+            if gname in kernel_by_group:
+                matched_tasks = self._filter_matched_tasks(tasks)
+                HcclCalculator.update_bandwidth(matched_tasks)
+                self._kfc_task_data.extend(
+                    self._serialize_kfc_task(t, DeviceHcclSource.MC2.value) for t in matched_tasks
+                )
+
+        # 用task首尾时间刷新kernel的start/end，更新op_name后序列化写入KfcOPMap
+        for i, kernel in enumerate(mc2_kernels):
+            times = kernel_times.get(self._make_kernel_key(kernel))
+            if times:
+                mc2_kernels[i] = kernel.replace(start=times[0], end=times[1])
+
+        HcclCalculator.update_op_name_by_group_name(mc2_kernels, self.start_time_raw_timestamp)
+        self._kfc_op_data = [self._serialize_kfc_op(k) for k in mc2_kernels]
 
     def calculate(self: any) -> None:
-        self.calculate_kfc_op()
-        self.calculate_kfc_task()
+        is_level0 = InfoConfReader().is_level0()
+        hccl_kernels, mc2_kernels = self.get_hccl_and_mc2_op()
+        self.generate_hccl_kernels(hccl_kernels, is_level0)
+        self.generate_mc2_kernels(mc2_kernels, is_level0)
+        if is_level0:
+            logging.warning("Profiling level is level0, no need to export statistics data.")
+            return
+        HcclCalculator.generate_op_report_data(mc2_kernels, self._mc2_op_report_data, self.start_time_raw_timestamp)
 
     def save(self: any) -> None:
-        if self._kfc_op_data:
-            kfc_op_data = []
-            for data in self._kfc_op_data.values():
-                kfc_op_data.extend(data)
-            with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_OP]) as model:
-                model.flush(kfc_op_data, DBNameConstant.TABLE_KFC_OP)
-        if self._kfc_task_data:
-            kfc_task_data = []
-            for data in self._kfc_task_data.values():
-                kfc_task_data.extend(data)
-            with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_TASK]) as model:
-                model.flush(kfc_task_data, DBNameConstant.TABLE_KFC_TASK)
+        with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_OP]) as model:
+            if self._kfc_op_data:
+                model.flush(self._kfc_op_data, DBNameConstant.TABLE_KFC_OP)
+        with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_TASK]) as model:
+            if self._kfc_task_data:
+                model.flush(self._kfc_task_data, DBNameConstant.TABLE_KFC_TASK)
+        with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_OP_REPORT]) as model:
+            if self._mc2_op_report_data:
+                model.flush(self._mc2_op_report_data, DBNameConstant.TABLE_KFC_OP_REPORT)
 
     def get_mc2_comm_info_data(self: any) -> tuple:
+        """返回:
+        aicpu_info: {aicpu_stream_id: (group_name, rank_size)}
+        comm_stream_id_group_table: {comm_stream_id: {group_names}}
+        """
         with Mc2CommInfoViewModel(self._project_path, [DBNameConstant.TABLE_MC2_COMM_INFO]) as model:
             comm_info = model.get_kfc_stream(DBNameConstant.TABLE_MC2_COMM_INFO)
-        kfc_stream_id_group_table = {}
+        aicpu_info = {}  # aicpu_stream_id → (group_name, rank_size)
         comm_stream_id_group_table = {}
         for info in comm_info:
-            kfc_stream_id_group_table[info.aicpu_kfc_stream_id] = info.group_name
-            comm_stream_list = []
+            aicpu_info[info.aicpu_kfc_stream_id] = (info.group_name, info.rank_size)
             try:
                 comm_stream_list = list(map(int, info.comm_stream_ids.split(",")))
             except Exception:
-                logging.error("The comm_stream_ids is not number")
+                logging.error("The comm_stream_ids is not number, str is %s", info.comm_stream_ids)
+                continue
             for stream_id in comm_stream_list:
                 comm_stream_id_group_table.setdefault(stream_id, set()).add(info.group_name)
-        return kfc_stream_id_group_table, comm_stream_id_group_table
-
-    def get_kfc_data(self: any, kfc_stream_id: dict, comm_stream_ids: dict) -> tuple:
-        kfc_op_data = []
-        kfc_comm_task_data = []
-        conn, curs = DBManager.check_connect_db(self._project_path, DBNameConstant.DB_ASCEND_TASK)
-        if conn and curs:
-            DBManager.destroy_db_connect(conn, curs)
-            with AscendTaskViewModel(self._project_path, [DBNameConstant.TABLE_ASCEND_TASK]) as model:
-                # 由于图模式下，aicpu kernel不在aicpu流上，所以约定aicpu的通信下发算子名以AicpuKernel结尾
-                # 通过算子名和aicpu流筛选aicpu算子
-                kfc_op_data = model.get_ascend_task_data_with_op_name_pattern_and_stream_id(
-                    InfoConfReader().get_device_id(),
-                    StrConstant.AICPU_KERNEL,
-                    tuple(kfc_stream_id.keys())
-                )
-                kfc_comm_task_data = model.get_ascend_task_data_with_stream_id(tuple(comm_stream_ids.keys()))
-        return kfc_op_data, kfc_comm_task_data
-
-    def get_kfc_op_data(self: any) -> tuple:
-        kfc_stream_id_group_table, comm_stream_id_group_table = self.get_mc2_comm_info_data()
-        kfc_op_data, kfc_comm_task_data = self.get_kfc_data(kfc_stream_id_group_table, comm_stream_id_group_table)
-        kfc_comm_task_data = FlipCalculator.set_device_batch_id(kfc_comm_task_data,
-                                                                self._project_path, is_flip_num=True)
-        with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_AICPU_TASK_FLIP]) as kfc_info_model:
-            aicpu_task_flip = kfc_info_model.get_aicpu_task_flip()
-        with KfcInfoViewModel(self._project_path,
-                              [DBNameConstant.TABLE_KFC_INFO]) as kfc_info_model:
-            kfc_info = kfc_info_model.get_kfc_info_data()
-            kfc_info = FlipCalculator.compute_batch_id(kfc_info, aicpu_task_flip, is_flip_num=True)
-        kfc_comm_task_data = self.process_kfc_info_data(kfc_comm_task_data, kfc_info)
-        kfc_comm_task_data.sort(key=lambda x: x.start_time + x.duration)
-        kfc_op_data_stream_id_table = {}
-        for data in kfc_op_data:
-            # kfc大算子流
-            if data.host_task_type in self.BLACK_KFC_OP_TYPE or data.op_name in self.BLACK_KFC_OP_NAME:
-                continue
-            # 图模式下拿不到对应的streamId，这里代码实际功能废弃 无效代码
-            group_name = kfc_stream_id_group_table.get(data.stream_id, "N/A")
-            kfc_op_data_stream_id_table.setdefault(data.stream_id, []).append(
-                self.KFC_OP_DATA(data, group_name, "N/A", 0, 1, "N/A",
-                                 -1, -1, "N/A", "N/A", -1, -1, DeviceHcclSource.INVALID.value)
-            )
-        master_stream_task = self.get_master_stream_task_in_hccl_op(kfc_comm_task_data, aicpu_task_flip)
-        for data in kfc_comm_task_data:
-            # kfc小算子流
-            group_name_set = comm_stream_id_group_table.get(data.stream_id, set())
-            for group_name in group_name_set:
-                self._kfc_small_task.setdefault(group_name, []).append(data)
-        return kfc_op_data_stream_id_table, master_stream_task
-
-    def get_host_task_info(self: any, kfc_op_data) -> dict:
-        with GeInfoViewModel(self._project_path, [DBNameConstant.TABLE_GE_TASK]) as model:
-            ge_data = model.get_ge_info_by_device_id(DBNameConstant.TABLE_GE_TASK, InfoConfReader().get_device_id(),
-                                                     (Constant.TASK_TYPE_COMMUNICATION, Constant.TASK_TYPE_HCCL_AI_CPU))
-        node_info = {}
-        for data in ge_data:
-            if data.stream_id not in kfc_op_data:
-                continue
-            node_key = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-            node_info[node_key] = [data.op_name, data.op_type, data.timestamp]
-        return node_info
+        return aicpu_info, comm_stream_id_group_table
 
     def get_kfc_host_hccl_op(self: any) -> dict:
         iter_range = self.sample_config.get(StrConstant.PARAM_ITER_ID)
@@ -226,207 +410,19 @@ class KfcCalculator(ICalculator, MsMultiProcess):
             hccl_ops = model.get_hccl_ops(iter_range.model_id, iter_range.iteration_id)
         kfc_hccl_op_map = {}
         for data in hccl_ops:
-            kfc_hccl_op_map[data.kfc_connection_id] = data
+            for kfc_connection_id in data.kfc_connection_ids.split(","):
+                kfc_hccl_op_map[int(kfc_connection_id)] = data
         return kfc_hccl_op_map
-
-    def get_hccl_op_info_data(self: any) -> dict:
-        with KfcInfoViewModel(self._project_path,
-                              [DBNameConstant.TABLE_DEVICE_HCCL_OP_INFO]) as kfc_info_model:
-            hccl_op_info = kfc_info_model.get_hccl_op_info_data()
-        hccl_op_info_dict = {}
-        for hccl_op in hccl_op_info:
-            hccl_op_info_dict.setdefault(hccl_op.stream_id, []).append(hccl_op)
-            self._source[hccl_op.stream_id] = hccl_op.source
-        return hccl_op_info_dict
-
-    def get_master_stream_task_in_hccl_op(self: any, comm_task_data: list, aicpu_task_flip: list) -> dict:
-        '''
-        1. hccl aicpu场景下，通过唯一Id关联每个通信大算子的主流首尾task
-        2. 将主流放入_master_stream中
-        3. 每个通信大算子的主流首task不作为master，将其唯一Id放入_master_stream_first_task中
-        '''
-        with KfcInfoViewModel(self._project_path,
-                              [DBNameConstant.TABLE_AICPU_MASTER_STREAM_HCCL_TASK]) as kfc_info_model:
-            master_stream_hccl_task = kfc_info_model.get_aicpu_master_stream_hccl_task()
-        if not master_stream_hccl_task:
-            return {}
-        master_stream_hccl_task = FlipCalculator.compute_batch_id(master_stream_hccl_task,
-                                                                  aicpu_task_flip, is_flip_num=True)
-        hccl_small_task = {}
-        for data in comm_task_data:
-            unique_id = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-            hccl_small_task[unique_id] = data
-        master_stream_task = {}
-        mismatch_master_task_set = set()
-        for data in master_stream_hccl_task:
-            if data.task_type != self.FIRST_TASK_TYPE and data.task_type != self.LAST_TASK_TYPE:
-                logging.warning('The main stream task type is invalid, type is %d', data.task_type)
-                continue
-            unique_id = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id,
-                                                 NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id)
-            if data.task_type == self.FIRST_TASK_TYPE:
-                # 第一个通信子任务（notify wait）可能会从通信算子实际执行时间之前开始等待,
-                # 为了避免通信时间计算不准,所以第一个通信子任务不作为主流算子,is_master字段设置为0
-                self._master_stream_first_task.add(unique_id)
-            small_task = hccl_small_task.get(unique_id)
-            if not small_task:
-                mismatch_master_task_set.add(unique_id)
-                continue
-            master_stream_task.setdefault(data.aicpu_stream_id, {})
-            master_stream_task[data.aicpu_stream_id][data.timestamp] = [data.task_type, small_task]
-        if mismatch_master_task_set:
-            logging.error(f"Can not match any master task for these unique id: {mismatch_master_task_set}")
-        return master_stream_task
-
-    def calculate_kfc_op(self: any) -> None:
-        kfc_op_data_stream_id_table, master_stream_task = self.get_kfc_op_data()
-        node_info = self.get_host_task_info(kfc_op_data_stream_id_table)
-        kfc_hccl_op_map = self.get_kfc_host_hccl_op()
-        hccl_op_info_data = self.get_hccl_op_info_data()
-        # 考虑到不同流可能出现并行，所以在每条流上卡时间关联DeviceHcclOpInfo
-        for stream_id, kfc_op_data in kfc_op_data_stream_id_table.items():
-            idx = 0
-            time_idx = 0
-            hccl_op_info = hccl_op_info_data.get(stream_id, [])
-            timestamp_master_stream_task_table = master_stream_task.get(stream_id, {})
-            kfc_op_with_task = set()
-            kfc_op_with_task_index = {}
-            for i, op_data in enumerate(kfc_op_data):
-                curr_hccl_op_info, idx = self.get_hccl_op_info(op_data, idx, hccl_op_info)
-                # op 大算子的起始结束时间将设置为主流首尾小算子时间
-                op_data, time_idx = self.update_op_data_time(op_data, time_idx, timestamp_master_stream_task_table)
-                data = op_data.ascend_data
-                iter_id = 1
-                node_key = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-                if node_key in kfc_op_with_task:
-                    iter_id = kfc_op_with_task_index.get(node_key, 1) + 1
-                    kfc_op_with_task_index[node_key] = iter_id
-                kfc_op_with_task.add(node_key)
-                op_name, op_type, first_timestamp = node_info.get(node_key, [None, None, None])
-                if not op_name:
-                    logging.error("The kfc op name is None with task type %s", data.host_task_type)
-                    continue
-                source = self._source.get(stream_id, DeviceHcclSource.INVALID.value)
-                host_hccl_op = kfc_hccl_op_map.get(data.connection_id, None)
-
-                # 实际的kfc op 在这里从host拿到对应的op算子，然后做数据替换
-                # 当前aicpu展开算子的streamId匹配不上，取用host数据
-                # mc2算子的streamId能正常匹配，取用device数据。但是在chip 5 场景中， device kfc op数据未上报，保持默认值，始终无数据
-                if source == DeviceHcclSource.HCCL.value and host_hccl_op:
-                    op_name = host_hccl_op.op_name
-
-                if curr_hccl_op_info:
-                    kfc_op_data[i] = op_data.replace(op_name=op_name, first_timestamp=first_timestamp,
-                                                     iter_id=iter_id, op_type=op_type,
-                                                     relay=curr_hccl_op_info.relay, retry=curr_hccl_op_info.retry,
-                                                     data_type=curr_hccl_op_info.data_type,
-                                                     alg_type=curr_hccl_op_info.alg_type, count=curr_hccl_op_info.count,
-                                                     rank_size=curr_hccl_op_info.rank_size,
-                                                     source=source, group_name=curr_hccl_op_info.group_name)
-                else:
-                    kfc_op_data[i] = op_data.replace(op_name=op_name, group_name=op_data.group_name, source=source,
-                                                     first_timestamp=first_timestamp, iter_id=iter_id, op_type=op_type)
-            self.update_op_name_by_group(kfc_op_data)
-            for data in kfc_op_data:
-                self._kfc_op_data.setdefault(data.group_name, []).append(
-                    [data.ascend_data.model_id, data.ascend_data.index_id, data.op_name,
-                     data.ascend_data.timestamp, data.ascend_data.duration, data.group_name,
-                     data.ascend_data.connection_id, data.op_type, data.relay, data.retry,
-                     data.data_type, data.alg_type, data.count, data.rank_size, data.source])
-
-    def process_kfc_info_data(self: any, kfc_task: list, kfc_info_data: list) -> list:
-        '''
-        通过唯一Id关联hccl info和通信小task
-        '''
-        if not kfc_info_data:
-            # L0场景
-            kfc_info_data = [None] * len(kfc_task)
-            for idx, data in enumerate(kfc_task):
-                kfc_info_data[idx] = self.make_default_kfc_info()
-                kfc_info_data[idx] = kfc_info_data[idx].replace(start_time=data.timestamp, duration=data.duration,
-                                                                stream_id=data.stream_id, task_id=data.task_id,
-                                                                context_id=data.context_id, batch_id=data.batch_id,
-                                                                device_task_type=data.device_task_type,
-                                                                ts_virtual_batch_id=data.ts_virtual_batch_id)
-            return kfc_info_data
-        task_time = {}
-        for data in kfc_task:
-            node_key = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-            task_time[node_key] = data
-        for idx, data in enumerate(kfc_info_data):
-            unique_id = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-            task_data = task_time.get(unique_id)
-            if not task_data:
-                continue
-            kfc_info_data[idx] = data.replace(start_time=task_data.timestamp, duration=task_data.duration,
-                                              device_task_type=task_data.device_task_type,
-                                              ts_virtual_batch_id=task_data.ts_virtual_batch_id)
-        HcclCalculator.update_bandwidth(kfc_info_data)
-        return kfc_info_data
-
-    def get_plane_id(self: any, data: KfcInfoViewModel.KFC_HCCL_INFO_TYPE,
-                     group_name: str, stream_id: int, source: int, is_master: bool):
-        if data.plane_id == -1:
-            return -1
-        unique_id = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-        if is_master or unique_id in self._master_stream_first_task:
-            plane_id = 1 if source == DeviceHcclSource.HCCL.value else 0
-            return plane_id
-        if stream_id not in self._plane_id.get(group_name, {}):
-            self._plane_id.setdefault(group_name, {})
-            self._plane_id[group_name][stream_id] = len(self._plane_id[group_name]) + 1
-        plane_id = self._plane_id.get(group_name, {}).get(stream_id, 1)
-        if source == DeviceHcclSource.HCCL.value:
-            plane_id += 1  # hccl aicpu场景, 由于plane 0是控制流的task, aicpu展开的通信task是从1开始,所以需要+1
-        return plane_id
-
-    def get_task_is_master(self: any, data: KfcInfoViewModel.KFC_HCCL_INFO_TYPE, group_name: str, source: int):
-        unique_id = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-        if data.device_task_type == self.MC2_MASTER_STREAM_TASK_TYPE or unique_id in self._master_stream_first_task:
-            self._master_stream[group_name] = data.stream_id
-            return source != DeviceHcclSource.HCCL.value
-        return self._master_stream.get(group_name) == data.stream_id
-
-    def calculate_kfc_task(self: any) -> None:
-        for group_name, hccl_small_task in self._kfc_small_task.items():
-            idx = 0
-            match_num = 0
-            kfc_op_data = self._kfc_op_data.get(group_name, [])
-            kfc_op_data.sort(key=lambda x: x[3])
-            self._kfc_task_data[group_name] = [None] * len(hccl_small_task)
-            for kfc_op in kfc_op_data:
-                # kfc_op[3]: kfc op start time
-                while idx < len(hccl_small_task) and \
-                        hccl_small_task[idx].start_time + hccl_small_task[idx].duration < kfc_op[3]:
-                    idx += 1
-                # kfc_op[3]: kfc op start time; kfc_op[4]: kfc op duration
-                while idx < len(hccl_small_task) and \
-                        hccl_small_task[idx].start_time + hccl_small_task[idx].duration <= kfc_op[3] + kfc_op[4]:
-                    data = hccl_small_task[idx]
-                    # kfc_op[14]是source
-                    source = kfc_op[14]
-                    is_master = int(self.get_task_is_master(data, group_name, source))
-                    plane_id = self.get_plane_id(data, group_name, data.stream_id, source, is_master)
-                    self._kfc_task_data[group_name][match_num] = [
-                        *kfc_op[:4], 0, data.op_name, group_name, plane_id, data.start_time, data.duration, is_master,
-                        data.stream_id, data.task_id, data.duration_estimated, data.local_rank, data.remote_rank,
-                        data.transport_type, data.size, data.data_type, data.link_type, data.bandwidth, data.context_id,
-                        # kfc_op[6]是connection_id
-                        data.notify_id, data.ts_virtual_batch_id, data.rdma_type, kfc_op[6], source
-                    ]
-                    match_num += 1
-                    idx += 1
-            if idx > match_num:
-                logging.warning("The kfc info is mismatched with kfc op, mismatch num is %d", idx - match_num)
-            self._kfc_task_data[group_name] = self._kfc_task_data[group_name][:match_num]
 
     def ms_run(self: any) -> None:
         """
         entry
         :return: None`
         """
-        if not os.path.exists(PathManager.get_db_path(self._project_path, DBNameConstant.DB_MC2_COMM_INFO)) \
-                or not self._judge_calculate_again():
+        if (
+            not os.path.exists(PathManager.get_db_path(self._project_path, DBNameConstant.DB_MC2_COMM_INFO))
+            or not self._judge_calculate_again()
+        ):
             return
         self._drop_table()
         self.calculate()
@@ -436,6 +432,7 @@ class KfcCalculator(ICalculator, MsMultiProcess):
         with HCCLModel(self._project_path, [DBNameConstant.TABLE_KFC_OP, DBNameConstant.TABLE_KFC_TASK]) as model:
             model.drop_table(DBNameConstant.TABLE_KFC_OP)
             model.drop_table(DBNameConstant.TABLE_KFC_TASK)
+            model.drop_table(DBNameConstant.TABLE_KFC_OP_REPORT)
 
     def _judge_calculate_again(self):
         if not ProfilingScene().is_all_export():
@@ -443,9 +440,14 @@ class KfcCalculator(ICalculator, MsMultiProcess):
             return True
         else:
             hccl_db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE)
-            if DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_KFC_OP):
-                logging.info("Found table %s in operator scene, no need to generate again",
-                             DBNameConstant.TABLE_KFC_OP)
+            if DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_KFC_OP) or DBManager.check_tables_in_db(
+                hccl_db_path, DBNameConstant.TABLE_KFC_TASK
+            ):
+                logging.info(
+                    "Found table %s  and %s in operator scene, no need to generate again",
+                    DBNameConstant.TABLE_KFC_OP,
+                    DBNameConstant.TABLE_KFC_TASK,
+                )
                 return False
-            logging.info("No table %s found, to generate it", DBNameConstant.TABLE_KFC_OP)
+            logging.info("No kfc table found, to generate it")
             return True

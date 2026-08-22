@@ -46,11 +46,11 @@ class DataProcessor
     explicit DataProcessor(const std::string& profPath);
     bool Run(DataInventory&, const std::string& processorName);
     virtual ~DataProcessor() = default;
+    static uint16_t GetEnumTypeValue(const std::string& key, const std::string& tableName,
+                                     const std::unordered_map<std::string, uint16_t>& enumTable);
 
    protected:
     static uint8_t CheckPathAndTable(const std::string& path, const DBInfo& dbInfo, bool enableStrictCheck = true);
-    static uint16_t GetEnumTypeValue(const std::string& key, const std::string& tableName,
-                                     const std::unordered_map<std::string, uint16_t>& enumTable);
     template <typename Tp>
     void FilterDataByStartTime(std::vector<Tp>& data, uint64_t startTimeNs, const std::string& processorName,
                                std::function<bool(const Tp&, uint64_t)> condition = nullptr);

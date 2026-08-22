@@ -43,19 +43,18 @@ class CANNAnalysisChain:
             Constant.MODEL_LEVEL: Event.invalid_event(),
             Constant.NODE_LEVEL: Event.invalid_event(),
             Constant.TASK_LEVEL: Event.invalid_event(),
-            Constant.HCCL_LEVEL: Event.invalid_event()
+            Constant.HCCL_LEVEL: Event.invalid_event(),
         }
         self.now_stack = {
             Constant.ACL_LEVEL: Event.invalid_event(),
             Constant.MODEL_LEVEL: Event.invalid_event(),
             Constant.NODE_LEVEL: Event.invalid_event(),
             Constant.TASK_LEVEL: Event.invalid_event(),
-            Constant.HCCL_LEVEL: Event.invalid_event()
+            Constant.HCCL_LEVEL: Event.invalid_event(),
         }
 
     def start(self):
-        root_dto = invalid_dto(Constant.ROOT_LEVEL, self.thread_id, 0,
-                               self.db.get_time_bound() + 1, "root")
+        root_dto = invalid_dto(Constant.ROOT_LEVEL, self.thread_id, 0, self.db.get_time_bound() + 1, "root")
         root_event = self.db.add_api(root_dto)
         # Associate the upper-level and lower-level relationships of events
         # based on timestamp points to build a callstack tree.
@@ -114,7 +113,6 @@ class CANNAnalysisChain:
                     # Events are sorted by timestamp. Therefore, this information is recorded in the last
                     # processed event.
                     last_event.add_additional_record(self.db.get_record(event))
-                    continue
                 else:
                     # This scenario indicates that the event corresponding to the additional information is not
                     # reported. Hanging on a tree as an empty node
@@ -124,7 +122,7 @@ class CANNAnalysisChain:
                     empty_event: Event = self.db.add_api(empty_dto)
                     empty_event.add_additional_record(self.db.get_record(event))
                     parent.add_child(TreeNode(empty_event))
-                    continue
+                continue
 
             self.last_event_record[event.cann_level] = event
             child_node = TreeNode(event)
@@ -134,5 +132,5 @@ class CANNAnalysisChain:
                 # [=======================Node(hcom_allReduce_)==============================]
                 #      [===Node(hcomAicpuInit)==]     [===Node(allreduceAicpuKernel)==]
                 self.last_event_record[event.cann_level] = parent.event
-                parent.event.kfc_node_event = event
+                parent.event.kfc_node_event.append(event)
             parent.add_child(child_tree)

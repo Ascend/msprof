@@ -173,7 +173,7 @@ protected:
         hcclOpCompactInfo->data.hcclopInfo = *hcclOp;
 
         auto desc = std::make_shared<HcclBigOpDesc>(1, 1, 1, 1, 1, 1, 1, std::shared_ptr<MsprofCompactInfo>(trace),
-                                                    std::shared_ptr<MsprofCompactInfo>(hcclOpCompactInfo), -1);
+                                                    std::shared_ptr<MsprofCompactInfo>(hcclOpCompactInfo), "");
         auto op = std::make_shared<Operator>(desc, 0, OpType::OPTYPE_HCCL_BIG);
         auto hcclBigOps = std::make_shared<HCCLBigOpDescs>();
         hcclBigOps->emplace_back(op);
@@ -197,17 +197,17 @@ TEST_F(CannDBDumperUtest,
     HCCLDB hcclDB;
     std::string hcclTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, hcclDB.GetDBName()});
     DBRunner hcclOpDBRunner(hcclTaskDBPath);
-    std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            uint32_t, std::string, std::string, uint32_t, std::string>> hcclOpData;
+    std::vector<std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string,
+            std::string, int64_t, std::string, int32_t, int32_t, std::string, std::string, uint64_t,
+            std::string>> hcclOpData;
     hcclOpDBRunner.QueryData("select * from HCCLOP", hcclOpData);
     EXPECT_EQ(hcclOpData.size(), 1);
 
     RuntimeDB runtimeDB;
     std::string hostTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, runtimeDB.GetDBName()});
     DBRunner hostTaskDBRunner(hostTaskDBPath);
-    std::vector<std::tuple<uint32_t,
-            uint32_t, uint32_t, uint32_t, std::string, uint32_t, std::string, uint32_t,
-            std::string, std::string>> hostTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, uint32_t, uint32_t, std::string, uint32_t,
+            std::string, std::string, uint32_t, std::string, int64_t, uint32_t>> hostTaskData;
     hostTaskDBRunner.QueryData("select * from HostTask", hostTaskData);
     EXPECT_EQ(hostTaskData.size(), 1);
 
@@ -221,9 +221,9 @@ TEST_F(CannDBDumperUtest,
     EXPECT_EQ(std::get<24>(taskInfoData[0]), NA);
     EXPECT_EQ(std::get<25>(taskInfoData[0]), NA);
 
-    std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
-            double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string, uint32_t>> HCCLTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, std::string, std::string, int64_t, std::string, uint32_t,
+            uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string, double,
+            std::string, std::string, std::string, std::string, uint32_t, uint32_t, int64_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -244,17 +244,17 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
     HCCLDB hcclDB;
     std::string hcclTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, hcclDB.GetDBName()});
     DBRunner hcclOpDBRunner(hcclTaskDBPath);
-    std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            uint32_t, std::string, std::string, uint32_t, std::string>> hcclOpData;
+    std::vector<std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string,
+            std::string, int64_t, std::string, int32_t, int32_t, std::string, std::string, uint64_t,
+            std::string>> hcclOpData;
     hcclOpDBRunner.QueryData("select * from HCCLOP", hcclOpData);
     EXPECT_EQ(hcclOpData.size(), 1);
 
     RuntimeDB runtimeDB;
     std::string hostTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, runtimeDB.GetDBName()});
     DBRunner hostTaskDBRunner(hostTaskDBPath);
-    std::vector<std::tuple<uint32_t,
-            uint32_t, uint32_t, uint32_t, std::string, uint32_t, std::string, uint32_t,
-            std::string, std::string>> hostTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, uint32_t, uint32_t, std::string, uint32_t,
+            std::string, std::string, uint32_t, std::string, int64_t, uint32_t>> hostTaskData;
     hostTaskDBRunner.QueryData("select * from HostTask", hostTaskData);
     EXPECT_EQ(hostTaskData.size(), 1);
 
@@ -273,9 +273,9 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0T
     EXPECT_EQ(std::get<22>(taskInfoData[0]), NA);
     EXPECT_EQ(std::get<23>(taskInfoData[0]), NA);
 
-    std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
-            double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, std::string, std::string, int64_t, std::string, uint32_t,
+            uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string, double,
+            std::string, std::string, std::string, std::string, uint32_t, uint32_t, int64_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
@@ -303,17 +303,17 @@ TEST_F(CannDBDumperUtest,
     HCCLDB hcclDB;
     std::string hcclTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, hcclDB.GetDBName()});
     DBRunner hcclOpDBRunner(hcclTaskDBPath);
-    std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, std::string, uint32_t,
-            uint32_t, std::string, std::string, uint32_t, std::string>> hcclOpData;
+    std::vector<std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string,
+            std::string, int64_t, std::string, int32_t, int32_t, std::string, std::string, uint64_t,
+            std::string>> hcclOpData;
     hcclOpDBRunner.QueryData("select * from HCCLOP", hcclOpData);
     EXPECT_EQ(hcclOpData.size(), 1);
 
     RuntimeDB runtimeDB;
     std::string hostTaskDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, runtimeDB.GetDBName()});
     DBRunner hostTaskDBRunner(hostTaskDBPath);
-    std::vector<std::tuple<uint32_t,
-            uint32_t, uint32_t, uint32_t, std::string, uint32_t, std::string, uint32_t,
-            std::string, std::string>> hostTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, uint32_t, uint32_t, std::string, uint32_t,
+            std::string, std::string, uint32_t, std::string, int64_t, uint32_t>> hostTaskData;
     hostTaskDBRunner.QueryData("select * from HostTask", hostTaskData);
     EXPECT_EQ(hostTaskData.size(), 1);
 
@@ -325,9 +325,9 @@ TEST_F(CannDBDumperUtest,
     EXPECT_EQ(taskInfoData.size(), 1);
     EXPECT_EQ(std::get<INPUT_DATA_TYPE_POSITION>(taskInfoData[0]), NA);
 
-    std::vector<std::tuple<uint32_t, uint32_t, std::string, std::string, uint32_t, std::string,
-            double, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-            std::string, double, std::string, std::string, uint64_t, std::string, int32_t>> HCCLTaskData;
+    std::vector<std::tuple<uint32_t, int64_t, std::string, std::string, int64_t, std::string, uint32_t,
+            uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string, double,
+            std::string, std::string, std::string, std::string, uint32_t, uint32_t, int64_t>> HCCLTaskData;
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), NA);

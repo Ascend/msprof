@@ -27,7 +27,6 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ccu_mission_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/dpu_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/mc2_comm_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/memcpy_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
@@ -79,14 +78,14 @@ using ComputeTaskInfoFormat =
 // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId,
 // rank_size
 using CommunicationOpDataFormat =
-    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, int32_t, int32_t, uint64_t,
-                           uint64_t, uint64_t, uint64_t, uint16_t, uint32_t>>;
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, int32_t, int32_t, uint64_t,
+                           uint64_t, uint64_t, uint64_t, uint16_t, int64_t>>;
 // 小算子数据
 // name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
 // size, dataType, linkType, opId, isMaster, bandwidth
 using CommunicationTaskDataFormat =
-    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, uint32_t, uint32_t,
-                           uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint16_t, double>>;
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, int64_t, int64_t,
+                           uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t, double>>;
 
 enum class DevType
 {
@@ -215,11 +214,14 @@ void ConvertOpData(CommunicationOpDataFormat& processedOpData, const std::vector
     {
         uint64_t groupName = IdPool::GetInstance().GetUint64Id(item.groupName);
         uint64_t opName = IdPool::GetInstance().GetUint64Id(item.opName);
-        uint32_t opId = IdPool::GetInstance().GetUint32Id(item.opKey);
         uint64_t algType = IdPool::GetInstance().GetUint64Id(item.algType);
         uint64_t opType = IdPool::GetInstance().GetUint64Id(item.opType);
-        processedOpData.emplace_back(opName, item.timestamp, item.end, item.connectionId, groupName, opId, item.relay,
-                                     item.retry, item.dataType, algType, item.count, opType, item.deviceId,
+        uint64_t dataType =
+            DataProcessor::GetEnumTypeValue(item.dataType, NAME_STR(HCCL_DATA_TYPE_TABLE), HCCL_DATA_TYPE_TABLE);
+        uint32_t assocId =
+            IdPool::GetInstance().GetUint32Id(std::to_string(item.connectionId) + "_" + std::to_string(item.iterId));
+        processedOpData.emplace_back(opName, item.timestamp, item.end, item.connectionId, groupName, assocId,
+                                     item.relay, item.retry, dataType, algType, item.count, opType, item.deviceId,
                                      item.rankSize);
     }
 }
@@ -227,27 +229,18 @@ void ConvertOpData(CommunicationOpDataFormat& processedOpData, const std::vector
 bool SaveCommOpData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
     auto opData = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
-    auto kfcData = dataInventory.GetPtr<std::vector<KfcOpData>>();
-    if (opData == nullptr && kfcData == nullptr)
+    if (opData == nullptr)
     {
         WARN("Communication op data not exist.");
         return true;
     }
     CommunicationOpDataFormat processedOpData;
-    auto dataSize = (opData ? opData->size() : 0) + (kfcData ? kfcData->size() : 0);
-    if (!Reserve(processedOpData, dataSize))
+    if (!Reserve(processedOpData, opData->size()))
     {
         ERROR("Reserved for communication op data failed.");
         return false;
     }
-    if (opData)
-    {
-        ConvertOpData<CommunicationOpData>(processedOpData, *opData);
-    }
-    if (kfcData)
-    {
-        ConvertOpData<KfcOpData>(processedOpData, *kfcData);
-    }
+    ConvertOpData<CommunicationOpData>(processedOpData, *opData);
     return SaveData(processedOpData, TABLE_NAME_COMMUNICATION_OP, msprofDB);
 }
 
@@ -258,19 +251,28 @@ void ConvertTaskData(CommunicationTaskDataFormat& processedTaskData, const std::
     for (const T& item : taskData)
     {
         uint64_t groupName = IdPool::GetInstance().GetUint64Id(item.groupName);
-        uint64_t opName = IdPool::GetInstance().GetUint64Id(item.opName);
+        uint64_t opName = IdPool::GetInstance().GetUint64Id(item.hcclName);
         uint64_t taskType = IdPool::GetInstance().GetUint64Id(item.taskType);
         uint64_t globalTaskId =
             IdPool::GetInstance().GetId(std::make_tuple(item.deviceId, item.streamId, item.taskId, item.contextId,
                                                         item.batchId, static_cast<uint32_t>(DevType::NPU)));
-        uint32_t opId = IdPool::GetInstance().GetUint32Id(item.opKey);
         if (!IsNumber(item.notifyId) || StrToU64(notifyId, item.notifyId) != ANALYSIS_OK)
         {
             notifyId = UINT64_MAX;  // UINT64_MAX在db的INTEGER字段中为 -1
         }
-        processedTaskData.emplace_back(opName, globalTaskId, taskType, item.planeId, groupName, notifyId, item.rdmaType,
-                                       item.srcRank, item.dstRank, item.transportType, item.size, item.dataType,
-                                       item.linkType, opId, item.isMaster,
+        uint64_t rdmaType =
+            DataProcessor::GetEnumTypeValue(item.rdmaType, NAME_STR(HCCL_RDMA_TYPE_TABLE), HCCL_RDMA_TYPE_TABLE);
+        uint64_t transportType = DataProcessor::GetEnumTypeValue(
+            item.transportType, NAME_STR(HCCL_TRANSPORT_TYPE_TABLE), HCCL_TRANSPORT_TYPE_TABLE);
+        uint64_t dataType =
+            DataProcessor::GetEnumTypeValue(item.dataType, NAME_STR(HCCL_DATA_TYPE_TABLE), HCCL_DATA_TYPE_TABLE);
+        uint64_t linkType =
+            DataProcessor::GetEnumTypeValue(item.linkType, NAME_STR(HCCL_LINK_TYPE_TABLE), HCCL_LINK_TYPE_TABLE);
+        uint32_t assocId =
+            IdPool::GetInstance().GetUint32Id(std::to_string(item.opId) + "_" + std::to_string(item.iterId));
+        processedTaskData.emplace_back(opName, globalTaskId, taskType, item.planeId, groupName, notifyId, rdmaType,
+                                       item.srcRank, item.dstRank, transportType, item.size, dataType, linkType,
+                                       assocId, item.isMaster,
                                        item.bandwidth * 1000 * 1000 * 1000);  // 对齐calculator中带宽计算
     }
 }
@@ -278,27 +280,18 @@ void ConvertTaskData(CommunicationTaskDataFormat& processedTaskData, const std::
 bool SaveCommTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
     auto taskData = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
-    auto kfcTask = dataInventory.GetPtr<std::vector<KfcTaskData>>();
-    if (taskData == nullptr && kfcTask == nullptr)
+    if (taskData == nullptr)
     {
         WARN("Communication task data not exist.");
         return true;
     }
     CommunicationTaskDataFormat processedTaskData;
-    auto dataSize = (taskData ? taskData->size() : 0) + (kfcTask ? kfcTask->size() : 0);
-    if (!Reserve(processedTaskData, dataSize))
+    if (!Reserve(processedTaskData, taskData->size()))
     {
         ERROR("Reserved for communication task failed.");
         return false;
     }
-    if (taskData)
-    {
-        ConvertTaskData<CommunicationTaskData>(processedTaskData, *taskData);
-    }
-    if (kfcTask)
-    {
-        ConvertTaskData<KfcTaskData>(processedTaskData, *kfcTask);
-    }
+    ConvertTaskData<CommunicationTaskData>(processedTaskData, *taskData);
     return SaveData(processedTaskData, TABLE_NAME_COMMUNICATION_TASK_INFO, msprofDB) &&
            CreateTableIndex(TABLE_NAME_COMMUNICATION_TASK_INFO, COMM_INDEX_NAME, msprofDB, COMM_TASK_INDEX_COLS);
 }
@@ -1601,18 +1594,41 @@ std::string GetDBPath(const std::string& outputDir)
 }
 
 const std::set<std::string> DB_DATA_PROCESS_LIST{
-    PROCESSOR_NAME_API,          PROCESSOR_NAME_COMMUNICATION, PROCESSOR_NAME_COMPUTE_TASK_INFO,
-    PROCESSOR_NAME_KFC_TASK,     PROCESSOR_NAME_KFC_COMM,      PROCESSOR_NAME_DEVICE_TX,
-    PROCESSOR_NAME_MSTX,         PROCESSOR_NAME_STEP_TRACE,    PROCESSOR_NAME_TASK,
-    PROCESSOR_NAME_ACC_PMU,      PROCESSOR_NAME_AICORE_FREQ,   PROCESSOR_NAME_LOW_POWER,
-    PROCESSOR_NAME_DDR,          PROCESSOR_NAME_HBM,           PROCESSOR_NAME_HCCS,
-    PROCESSOR_NAME_NETDEV_STATS, PROCESSOR_NAME_CPU_USAGE,     PROCESSOR_NAME_MEM_USAGE,
-    PROCESSOR_NAME_DISK_USAGE,   PROCESSOR_NAME_NETWORK_USAGE, PROCESSOR_NAME_OSRT_API,
-    PROCESSOR_NAME_LLC,          PROCESSOR_NAME_NPU_MEM,       PROCESSOR_NAME_PCIE,
-    PROCESSOR_NAME_DPU,          PROCESSOR_NAME_SIO,           PROCESSOR_NAME_UB,
-    PROCESSOR_NAME_SOC,          PROCESSOR_NAME_NIC,           PROCESSOR_NAME_ROCE,
-    PROCESSOR_NAME_QOS,          PROCESSOR_NAME_CCU_MISSION,   PROCESSOR_MC2_COMM_INFO,
-    PROCESSOR_NAME_MEMCPY_INFO,  PROCESSOR_NAME_NPU_OP_MEM,    PROCESSOR_NAME_NPU_MODULE_MEM,
+    PROCESSOR_NAME_API,
+    PROCESSOR_NAME_COMMUNICATION,
+    PROCESSOR_NAME_COMPUTE_TASK_INFO,
+    PROCESSOR_NAME_KFC_TASK,
+    PROCESSOR_NAME_DEVICE_TX,
+    PROCESSOR_NAME_MSTX,
+    PROCESSOR_NAME_STEP_TRACE,
+    PROCESSOR_NAME_TASK,
+    PROCESSOR_NAME_ACC_PMU,
+    PROCESSOR_NAME_AICORE_FREQ,
+    PROCESSOR_NAME_LOW_POWER,
+    PROCESSOR_NAME_DDR,
+    PROCESSOR_NAME_HBM,
+    PROCESSOR_NAME_HCCS,
+    PROCESSOR_NAME_NETDEV_STATS,
+    PROCESSOR_NAME_CPU_USAGE,
+    PROCESSOR_NAME_MEM_USAGE,
+    PROCESSOR_NAME_DISK_USAGE,
+    PROCESSOR_NAME_NETWORK_USAGE,
+    PROCESSOR_NAME_OSRT_API,
+    PROCESSOR_NAME_LLC,
+    PROCESSOR_NAME_NPU_MEM,
+    PROCESSOR_NAME_PCIE,
+    PROCESSOR_NAME_DPU,
+    PROCESSOR_NAME_SIO,
+    PROCESSOR_NAME_UB,
+    PROCESSOR_NAME_SOC,
+    PROCESSOR_NAME_NIC,
+    PROCESSOR_NAME_ROCE,
+    PROCESSOR_NAME_QOS,
+    PROCESSOR_NAME_CCU_MISSION,
+    PROCESSOR_MC2_COMM_INFO,
+    PROCESSOR_NAME_MEMCPY_INFO,
+    PROCESSOR_NAME_NPU_OP_MEM,
+    PROCESSOR_NAME_NPU_MODULE_MEM,
     PROCESSOR_NAME_UNIFIED_PMU,
 };
 }  // namespace

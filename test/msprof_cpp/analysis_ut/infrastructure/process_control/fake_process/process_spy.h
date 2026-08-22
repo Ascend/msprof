@@ -16,14 +16,17 @@
 
 #ifndef ANALYSIS_UT_INFRASTRUCTURE_PROCESS_CONTROL_TEST_SPY_H
 #define ANALYSIS_UT_INFRASTRUCTURE_PROCESS_CONTROL_TEST_SPY_H
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <string>
 
-namespace Analysis {
+namespace Analysis
+{
 
-class ProcessSpy final {
-public:
+class ProcessSpy final
+{
+   public:
     explicit ProcessSpy(const std::string& processName) : processName_(processName)
     {
         // 可以通过打印定位问题，例如：std::cout << processName_ << " Enter!" << std::endl
@@ -36,15 +39,14 @@ public:
     static void SetResult(const std::string& processName, uint32_t result);
     static void ClearResult();
 
-private:
+   private:
     static std::map<std::string, uint32_t>& GetResultMap();
 
-private:
+   private:
     std::string processName_;
 };
 
-#define PROCESS_TRACE(processName) \
-ProcessSpy processTrace(#processName)
+#define PROCESS_TRACE(processName) ProcessSpy processTrace(#processName)
 
-}
+}  // namespace Analysis
 #endif

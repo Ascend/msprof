@@ -34,9 +34,6 @@ struct HcclOp
     std::string opName;
     std::string taskType;
     std::string opType;
-    uint64_t timestamp;
-    uint64_t duration;
-    std::string isDynamic;
     int64_t connectionId;
     int32_t relay;
     int32_t retry;
@@ -44,7 +41,6 @@ struct HcclOp
     std::string algType;
     uint64_t count;
     std::string groupName;
-    uint32_t rankSize;
 };
 
 struct HcclTask
@@ -55,15 +51,14 @@ struct HcclTask
     std::string groupName;
     int32_t planeId;
     uint64_t timestamp;
-    double duration;
     uint32_t streamId;
     uint32_t taskId;
     uint32_t contextId;
     uint32_t batchId;
     uint16_t deviceId;
     uint16_t isMaster;
-    uint32_t localRank;
-    uint32_t remoteRank;
+    int64_t localRank;
+    int64_t remoteRank;
     uint32_t threadId;
     std::string transportType;
     double size;
@@ -71,7 +66,8 @@ struct HcclTask
     std::string linkType;
     std::string notifyId;
     std::string rdmaType;
-    uint32_t rankSize;
+    int64_t rankSize;
+    int64_t opId;
 };
 }  // namespace Domain
 }  // namespace Analysis

@@ -21,7 +21,6 @@ from collections import defaultdict
 from collections import deque
 from typing import List
 from typing import Union
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
@@ -64,18 +63,20 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         self._hccl_op_report_data = []
         start_ts, _ = InfoConfReader().get_collect_time()
         self.start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
+        self.is_level0 = InfoConfReader().is_level0()
 
     @staticmethod
     def update_bandwidth(communication_data: List[HcclTask]):
         task_dict = defaultdict(lambda: defaultdict(list))
         idx = 0
         for task in communication_data:
-            task_dict[task.op_name][task.plane_id].append([idx, task])
+            # op_name 已从 task 表移除，用 (op_id, iter_id) 精确区分每个算子实例
+            task_dict[(task.op_id, task.iter_id)][task.plane_id].append([idx, task])
             idx += 1
 
-        for op_name in task_dict:
-            for planeid in task_dict[op_name]:
-                planeid_tasks = task_dict[op_name][planeid]
+        for op_key in task_dict:
+            for planeid in task_dict[op_key]:
+                planeid_tasks = task_dict[op_key][planeid]
                 HcclCalculator.calc_bandwidth(planeid_tasks)
                 for i, _ in enumerate(planeid_tasks):
                     communication_data[planeid_tasks[i][0]] = communication_data[planeid_tasks[i][0]].replace(
@@ -165,70 +166,49 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         return bandwidth
 
     @staticmethod
-    def _cal_total(type_time: dict) -> int:
-        """
-        calculate total time for each device
-        :param type_time: {"op_type":{'count': 0,'duration': 0, 'min': 0,'avg': 0,max': 0}}
-        :return: total time
-        """
-        total_time = 0
-        for ops in type_time.values():
-            total_time += ops.get("total_time", 0)
-        return total_time
+    def update_op_name_by_group_name(hccl_ops: List[HcclOps], start_time_raw_timestamp: int) -> None:
+        # 前面多线程数据处理 此处的task可能不保序 重新排序
+        hccl_ops.sort(key=lambda x: (x.start, x.end))
+        group_dict = defaultdict(lambda: -1)
+        for i, op in enumerate(hccl_ops):
+            if op.end > start_time_raw_timestamp:
+                group_dict[op.group_name] += 1
+            index = group_dict[op.group_name]
+            hccl_ops[i] = op.replace(op_name=f"{op.op_name}_{op.group_name[-3:]}_{str(index)}_{str(op.iter_id)}")
 
-    def update_op_name_by_group_name(self: any, communication_data: List[HcclTask]):
-        group_dict = defaultdict(lambda: {"first_timestamp": 0, "count": -1})
-        for num, data in enumerate(communication_data):
-            # if data start in warmup, index will be set -1
-            # else index++ when group_name and task_type in group_dict or group name set first
-            task_type = StrConstant.AICPU_KERNEL if StrConstant.AICPU_KERNEL in data.op_name else StrConstant.NORMAL
-            key = (data.group_name, task_type)
-            if (
-                data.timestamp > self.start_time_raw_timestamp
-                and data.first_timestamp > group_dict[key]["first_timestamp"]
-            ):
-                group_dict[key]["first_timestamp"] = data.first_timestamp
-                group_dict[key]["count"] += 1
-
-            index = group_dict[key]["count"]
-            communication_data[num] = data.replace(
-                op_name=f"{data.op_name}_{data.group_name[-3:]}_{str(index)}_{str(data.iter_id)}"
-            )
-
-    def _get_hccl_op_report_data(self: any, communication_data: List[HcclTask]) -> any:
+    @staticmethod
+    def generate_op_report_data(ops: list, report_list: list, start_time_raw_timestamp: int = 0) -> None:
+        """按op_type聚合统计 op 数据，结果追加到 report_list
+        ops需有 op_type, start, end 属性
         """
-        Calculate the hccl op report data by communication data
-        return：{"op_type":{'count': 0,'duration': 0, min': 0,'avg': 0,max': 0}}
-        """
-        if not communication_data:
-            return {}
-        grouped_data = defaultdict(lambda: {"min_timestamp": float("inf"), "max_timestamp": -float("inf")})
-        for data in communication_data:
-            if data.is_master == 0 or data.timestamp < self.start_time_raw_timestamp:
+        op_type_group = defaultdict(lambda: {"count": 0, "total_time": 0, "min": float("inf"), "max": -float("inf")})
+        for data in ops:
+            if data.end < start_time_raw_timestamp:
                 continue
-            key = (data.op_name, data.first_timestamp, data.op_type)
-            grouped_data[key]["min_timestamp"] = min(grouped_data[key]["min_timestamp"], data.timestamp)
-            grouped_data[key]["max_timestamp"] = max(grouped_data[key]["max_timestamp"], data.timestamp + data.duration)
-            grouped_data[key]["op_type"] = data.op_type
-        for value in grouped_data.values():
-            value["duration"] = value["max_timestamp"] - value["min_timestamp"]
+            duration = data.end - data.start
+            op_type_group[data.op_type]["count"] += 1
+            op_type_group[data.op_type]["total_time"] += duration
+            op_type_group[data.op_type]["min"] = min(op_type_group[data.op_type]["min"], duration)
+            op_type_group[data.op_type]["max"] = max(op_type_group[data.op_type]["max"], duration)
 
-        min_key = "min"
-        max_key = "max"
-        op_type_group = defaultdict(
-            lambda: {"count": 0, "total_time": 0, min_key: float("inf"), max_key: -float("inf")}
-        )
-        for entry in grouped_data.values():
-            op_type_status = op_type_group[entry["op_type"]]
-            op_type_status["count"] += 1
-            op_type_status["total_time"] += entry["duration"]
-            op_type_status[min_key] = min(op_type_status[min_key], entry["duration"])
-            op_type_status[max_key] = max(op_type_status[max_key], entry["duration"])
+        if not any(s["total_time"] for s in op_type_group.values()):
+            return
+
         for status in op_type_group.values():
-            status["avg"] = 0
-            if status["count"] != 0:
-                status["avg"] = status["total_time"] / status["count"]
-        return op_type_group
+            status["avg"] = status["total_time"] / status["count"] if status["count"] else 0
+
+        for op_type, status in op_type_group.items():
+            report_list.append(
+                [
+                    op_type,
+                    status["count"],
+                    round(float(status["total_time"]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(status["min"]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(status["avg"]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(status["max"]), NumberConstant.DECIMAL_ACCURACY),
+                ]
+            )
+        report_list.sort(key=lambda x: x[2], reverse=True)
 
     def calculate(self: any) -> None:
         """
@@ -245,24 +225,21 @@ class HcclCalculator(ICalculator, MsMultiProcess):
 
             iter_range: IterationRange = self.sample_config.get(StrConstant.PARAM_ITER_ID)
             hccl_tasks = hccl_model.get_hccl_task_data()
-            hccl_ops = hccl_model.get_hccl_ops(model_id=iter_range.model_id, index_id=iter_range.iteration_id)
-            communication_data = self._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+            host_ops = hccl_model.get_hccl_ops(model_id=iter_range.model_id, index_id=iter_range.iteration_id)
+            hccl_ops = self._merge_hccl_ops_and_tasks(host_ops, hccl_tasks)
 
-            if not communication_data:
-                logging.error("communication data is empty")
-                return
+        if not hccl_ops:
+            logging.error("communication data is empty")
+            return
 
-            # 前面多线程数据处理 此处的task可能不保序 重新排序
-            communication_data.sort(key=lambda x: (x.host_timestamp, x.timestamp))
+        self.update_op_name_by_group_name(hccl_ops, self.start_time_raw_timestamp)
+        self.update_bandwidth(hccl_tasks)
 
-            self.update_op_name_by_group_name(communication_data)
-            self.update_bandwidth(communication_data)
-            is_hccl_op_type_valid = self._generate_hccl_op_info(communication_data)
-            if is_hccl_op_type_valid:
-                hccl_op_report_data = self._get_hccl_op_report_data(communication_data)
-                self._create_report(hccl_op_report_data)
-            else:
-                logging.warning("No valid hccl op type exists, therefore not calculate hccl op report data")
+        self._generate_hccl_data(hccl_ops, hccl_tasks)
+        if self.is_level0:
+            logging.warning("Profiling level is level0, no need to export statistics data.")
+            return
+        self.generate_op_report_data(hccl_ops, self._hccl_op_report_data, self.start_time_raw_timestamp)
 
     def save(self: any) -> None:
         with self._model as hccl_model:
@@ -303,180 +280,180 @@ class HcclCalculator(ICalculator, MsMultiProcess):
             logging.info(
                 "In graph scene, to generate table %s and %s",
                 DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE,
-                DBNameConstant.TABLE_HCCL_OP_REPORT,
+                DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE,
             )
             return True
         else:
             hccl_db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE)
-            if DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE):
+            if DBManager.check_tables_in_db(
+                hccl_db_path, DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE
+            ) or DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE):
                 logging.info(
-                    "Found table %s in operator scene, no need to generate again",
+                    "Found table %s  and %s in operator scene, no need to generate again",
+                    DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE,
                     DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE,
                 )
                 return False
-            logging.info(
-                "No table %s or %s found, to generate it",
-                DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE,
-                DBNameConstant.TABLE_HCCL_OP_REPORT,
-            )
+            logging.info("No hccl table found, to generate it")
             return True
 
-    def _generate_hccl_op_info(self, hccl_data: List[HcclTask]) -> bool:
-        is_hccl_op_type_valid = False
-        for data in hccl_data:
+    def _generate_hccl_data(self, hccl_ops: List[HcclOps], hccl_tasks: List[HcclTask]) -> None:
+        for task in hccl_tasks:
             self._hccl_task_data.append(
                 [
-                    data.model_id,
-                    data.index_id,
-                    data.op_name,
-                    data.iteration,
-                    data.hccl_name,
-                    data.group_name,
-                    data.first_timestamp,
-                    data.plane_id,
-                    data.timestamp,
-                    data.duration,
-                    data.is_dynamic,
-                    data.task_type,
-                    data.op_type,
-                    data.connection_id,
-                    data.is_master,
-                    data.stream_id,
-                    data.task_id,
-                    data.duration_estimated,
-                    data.local_rank,
-                    data.remote_rank,
-                    data.transport_type,
-                    data.size,
-                    data.data_type,
-                    data.link_type,
-                    data.bandwidth,
-                    data.context_id,
-                    data.notify_id,
-                    data.batch_id,
-                    data.rdma_type,
-                    data.rank_size,
+                    task.model_id,
+                    task.index_id,
+                    task.hccl_name,
+                    task.group_name,
+                    task.plane_id,
+                    task.timestamp,
+                    task.duration,
+                    task.op_id,
+                    task.is_master,
+                    task.stream_id,
+                    task.task_id,
+                    task.context_id,
+                    task.batch_id,
+                    task.size,
+                    task.bandwidth,
+                    task.local_rank,
+                    task.remote_rank,
+                    task.rank_size,
+                    task.transport_type,
+                    task.data_type,
+                    task.link_type,
+                    task.rdma_type,
+                    task.notify_id,
+                    task.iter_id,
                 ]
             )
-            if data.op_type != Constant.NA:
-                is_hccl_op_type_valid = True
-        return is_hccl_op_type_valid
 
-    def _create_report(self, hccl_op_report_data) -> None:
-        """
-        calculate report data
-        :return: None
-        """
-        task_data = hccl_op_report_data
-        if not task_data:
-            return
-        hccl_op_total_time = self._cal_total(task_data)
-        total_data = []
-        for op_type in task_data:
-            statistic_data = task_data.get(op_type, {})
-            if not statistic_data:
-                continue
-            if hccl_op_total_time != 0:
-                task_duration_ratio = round(
-                    float(statistic_data["total_time"] / hccl_op_total_time * 100), NumberConstant.DECIMAL_ACCURACY
-                )
-            else:
-                task_duration_ratio = 0
-            total_data.append(
-                (
-                    op_type,
-                    statistic_data["count"],
-                    round(float(statistic_data["total_time"]), NumberConstant.DECIMAL_ACCURACY),
-                    round(float(statistic_data["min"]), NumberConstant.DECIMAL_ACCURACY),
-                    round(float(statistic_data["avg"]), NumberConstant.DECIMAL_ACCURACY),
-                    round(float(statistic_data["max"]), NumberConstant.DECIMAL_ACCURACY),
-                    task_duration_ratio,
-                )
-            )
-        if total_data:
-            self._hccl_op_report_data = sorted(total_data, key=lambda x: x[5], reverse=True)
-        else:
-            logging.warning("There is no hccl op report data. Maybe an error occurs during the calculation")
-
-    def _merge_hccl_ops_and_tasks(self, hccl_ops: List[HcclOps], hccl_tasks: List[HcclTask]) -> List[HcclTask]:
-        def update_task_desc_with_hccl_op(op_desc: HcclOps, task_desc: any, times_for_hccl_op: int) -> HcclTask:
-            group_name = op_desc.group_name if task_desc.group_name == Constant.NA else task_desc.group_name
-            return task_desc.replace(
-                op_name=op_desc.op_name,
-                group_name=group_name,
-                task_type=op_desc.task_type,
-                op_type=op_desc.op_type,
-                first_timestamp=op_desc.timestamp,
-                iter_id=times_for_hccl_op,
-                is_dynamic=op_desc.is_dynamic,
-                model_id=op_desc.model_id,
-                connection_id=op_desc.connection_id,
+        for op in hccl_ops:
+            self._hccl_op_data.append(
+                [
+                    op.model_id,
+                    op.index_id,
+                    op.op_name,
+                    op.task_type,
+                    op.op_type,
+                    op.start,
+                    op.end,
+                    op.relay,
+                    op.retry,
+                    op.data_type,
+                    op.alg_type,
+                    op.count,
+                    op.group_name,
+                    op.connection_id,
+                    op.rank_size,
+                    op.iter_id,
+                ]
             )
 
+    def _merge_hccl_ops_and_tasks(self, hccl_ops: List[HcclOps], hccl_tasks: List[HcclTask]) -> List[HcclOps]:
         if not hccl_ops or not hccl_tasks:
             logging.error("No Hccl ops or Hccl tasks found")
             return []
 
+        # 存 (原始索引, task)，便于原地回写 hccl_tasks 的 iter_id
         task_thread_map = defaultdict(lambda: deque())
-        for task in hccl_tasks:
-            task_thread_map[task.thread_id].append(task)
+        for idx, task in enumerate(hccl_tasks):
+            task_thread_map[task.thread_id].append((idx, task))
+        # 同一线程可能下发到多个 op，不同 op 的 task 时间戳会交错；
+        # 先按 op_id 分组、组内按 timestamp 排序，保证同一 op 的 task 连续，避免按 op_id 切分窗口时
+        # 把单个 op 错误拆成多次迭代。
+        for thread_id in task_thread_map:
+            task_thread_map[thread_id] = deque(
+                sorted(task_thread_map[thread_id], key=lambda item: (item[1].op_id, item[1].timestamp))
+            )
 
-        op_thread_map = defaultdict(lambda: deque())
+        op_thread_map = defaultdict(dict)
         for op in hccl_ops:
-            op_thread_map[op.thread_id].append(op)
+            op_thread_map[op.thread_id][op.connection_id] = op
 
-        idx = 0
-        res = [None] * len(hccl_tasks)
-        hccl_op_with_task_index = defaultdict(lambda: 0)
-        # 取数的sql语句已经order by过了
-        for thread_id, ops_queue in op_thread_map.items():
-            if thread_id not in task_thread_map.keys():
+        res = []
+        mismatch_op_ids = set()
+
+        for thread_id, task_queue in task_thread_map.items():
+            if thread_id not in op_thread_map:
                 logging.error("Op data can't match any task, thread id is %d.", thread_id)
                 continue
-            task_queue = task_thread_map[thread_id]
+            op_id_map = op_thread_map[thread_id]
 
-            while ops_queue and task_queue:
-                op = ops_queue.popleft()
-                # check corner case: task time between last op end time and next op start time
-                if task_queue and task_queue[0].host_timestamp < op.timestamp:
-                    logging.error(
-                        'Hccl Task (context_id=%d, stream_id=%d, task_id=%d) timestamp not in Ops time range',
-                        task_queue[0].context_id,
-                        task_queue[0].stream_id,
-                        task_queue[0].task_id,
-                    )
+            current_op_id = None
+            current_iter_id = 1
+            # 以四元组 (stream_id, task_id, context_id, batch_id) 作为 task 的唯一标识：
+            # 同一静态 op 反复执行时四元组会重复，据此递增 iter_id；不同 op 的 task 四元组不同，不会误判，
+            # 通信域交错的 task 仍能正确合并到各自 op。
+            seen_task_ids = set()
+            group_start = None
+            group_end = None
+            last_rank_size = None
 
-                while task_queue and task_queue[0].host_timestamp <= (op.timestamp + op.duration):
-                    task = task_queue.popleft()
-                    key = f'{task.stream_id}-{task.task_id}-{task.context_id}-{task.batch_id}'
-                    hccl_op_with_task_index[key] += 1
-                    res[idx] = update_task_desc_with_hccl_op(op, task, hccl_op_with_task_index[key])
-                    idx += 1
+            for idx, task in task_queue:
+                if task.op_id not in op_id_map:
+                    mismatch_op_ids.add(task.op_id)
+                    continue
 
-                self._hccl_op_data.append(
-                    [
-                        op.model_id,
-                        op.op_name,
-                        op.task_type,
-                        op.op_type,
-                        op.timestamp,
-                        op.relay,
-                        op.retry,
-                        op.data_type,
-                        op.alg_type,
-                        op.count,
-                        op.group_name,
-                        op.connection_id,
-                        task.rank_size,
-                    ]
+                task_key = (task.stream_id, task.task_id, task.context_id, task.batch_id)
+                # 是否开始新一轮：op_id 变动，或同一 op 内 task 四元组重复（静态算子反复执行）
+                new_round = (task.op_id != current_op_id) or (task_key in seen_task_ids)
+
+                if new_round:
+                    if current_op_id is not None:
+                        op = op_id_map[current_op_id]
+                        res.append(
+                            op.replace(
+                                start=group_start,
+                                end=group_end,
+                                rank_size=last_rank_size,
+                                iter_id=current_iter_id,
+                            )
+                        )
+
+                    if task.op_id != current_op_id:
+                        current_op_id = task.op_id
+                        current_iter_id = 1
+                    else:
+                        current_iter_id += 1
+                    seen_task_ids.clear()
+                    group_start = None
+                    group_end = None
+                    last_rank_size = None
+
+                seen_task_ids.add(task_key)
+
+                # 所有 task（含 non-master）统一打 iter_id，落盘时写入
+                # 同时回填 op 的原始 op_name，供带宽计算判定 send/receive（op 名 ≠ task 的 hccl_name）；
+                # task 侧 group_name 与 op 侧不同源，level0 下 task 侧残缺，统一用所属 op 的 group_name 刷新
+                hccl_tasks[idx] = task.replace(
+                    iter_id=current_iter_id,
+                    op_name=op_id_map[current_op_id].op_name,
+                    group_name=op_id_map[current_op_id].group_name,
                 )
 
-            if ops_queue:
-                if ProfilingScene().is_step_export():
-                    logging.warning('ops_queue is not empty (len=%d)', len(ops_queue))
+                # 再取主流：只 master 聚合 [start, end] 窗口
+                if not task.is_master:
+                    continue
+                last_rank_size = task.rank_size
+                if group_start is None:
+                    group_start = task.timestamp
+                    group_end = task.timestamp + task.duration
                 else:
-                    logging.error('ops_queue is not empty (len=%d)', len(ops_queue))
-            if task_queue:
-                logging.error('task_queue is not empty (len=%d)', len(task_queue))
+                    new_end = task.timestamp + task.duration
+                    group_end = new_end if new_end > group_end else group_end
 
-        return res[:idx]
+            if current_op_id is not None:
+                op = op_id_map[current_op_id]
+                res.append(
+                    op.replace(
+                        start=group_start,
+                        end=group_end,
+                        rank_size=last_rank_size,
+                        iter_id=current_iter_id,
+                    )
+                )
+
+        if mismatch_op_ids:
+            logging.error("Some op_id can't match any task, op_id is %s", mismatch_op_ids)
+        return res

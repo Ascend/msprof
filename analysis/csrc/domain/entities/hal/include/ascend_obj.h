@@ -74,24 +74,24 @@ struct HcclBigOpDesc
     uint64_t modelId = 0;
     int32_t indexId = 0;
     int64_t connectionId = 0;
-    uint32_t thread_id = 0;
+    uint32_t threadId = 0;
     std::shared_ptr<MsprofCompactInfo> nodeDesc = nullptr;
     std::shared_ptr<MsprofCompactInfo> opInfoDesc = nullptr;
-    int64_t kfcConnectionId = 0;
+    std::string kfcConnectionIds;
 
     HcclBigOpDesc(uint64_t begin, uint64_t end, uint16_t deviceId, uint64_t modelId, int32_t indexId,
                   int64_t connectionId, uint32_t threadId, const std::shared_ptr<MsprofCompactInfo> &node,
-                  const std::shared_ptr<MsprofCompactInfo> &hcclOpDesc, int64_t kfcConnectionId)
+                  const std::shared_ptr<MsprofCompactInfo> &hcclOpDesc, std::string ids)
         : beginTime(begin),
           endTime(end),
           deviceId(deviceId),
           modelId(modelId),
           indexId(indexId),
           connectionId(connectionId),
-          thread_id(threadId),
+          threadId(threadId),
           nodeDesc(node),
           opInfoDesc(hcclOpDesc),
-          kfcConnectionId(kfcConnectionId)
+          kfcConnectionIds(std::move(ids))
     {
     }
 };
@@ -148,10 +148,10 @@ struct HostTask
     uint32_t batchId = 0;
     uint16_t deviceId = 0;
     int32_t requestId = 0;
-    uint32_t thread_id = 0;
+    uint32_t threadId = 0;
     uint32_t streamId = 0;
     uint32_t contextId = 0;
-    int64_t connection_id = 0;  // -1 表示该任务无node直连
+    int64_t connectionId = 0;  // -1 表示该任务无node直连
     uint64_t modelId = 0;
     uint64_t taskType = 0;
     uint64_t timeStamp = 0;

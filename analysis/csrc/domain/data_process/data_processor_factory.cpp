@@ -26,7 +26,6 @@
 #include "analysis/csrc/domain/data_process/ai_task/fusion_task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/hccl_statistic_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/host_task_processor.h"
-#include "analysis/csrc/domain/data_process/ai_task/kfc_comm_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/kfc_task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/mc2_comm_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/memcpy_info_processor.h"
@@ -79,8 +78,6 @@ std::unordered_map<std::string, ProcessorCreator> DataProcessorFactory::processo
      { MAKE_SHARED_RETURN_VOID(processor, ComputeTaskInfoProcessor, profPath); }},
     {PROCESSOR_NAME_KFC_TASK, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, KfcTaskProcessor, profPath); }},
-    {PROCESSOR_NAME_KFC_COMM, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
-     { MAKE_SHARED_RETURN_VOID(processor, KfcCommProcessor, profPath); }},
     {PROCESSOR_NAME_DEVICE_TX, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)
      { MAKE_SHARED_RETURN_VOID(processor, MsprofTxDeviceProcessor, profPath); }},
     {PROCESSOR_NAME_MSTX, [](const std::string &profPath, std::shared_ptr<DataProcessor> &processor)

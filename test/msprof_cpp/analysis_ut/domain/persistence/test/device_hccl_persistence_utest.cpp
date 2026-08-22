@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -32,49 +32,40 @@ const std::string DEVICE_DIR = File::PathJoin({LOCAL_DIR, "device_0"});
 const std::string SQLITE_DIR = File::PathJoin({DEVICE_DIR, "sqlite"});
 const std::string DB_PATH = File::PathJoin({SQLITE_DIR, "hccl_single_device.db"});
 
-// modelId, opName, taskType, opType, timestamp, relay, retry, dataType, algType, count, groupName, connectionId, rankSize
-using HcclOpDataFormat = std::vector<std::tuple<uint64_t, std::string, std::string, std::string, uint64_t, int32_t,
-        int32_t, std::string, std::string, int32_t, std::string, int64_t, uint32_t>>;
+// 与 device_hccl_persistence.cpp 中 SaveHcclOpData 写入顺序一致：
+// modelId, indexId, opName, taskType, opType, start, end, relay, retry, dataType, algType, count, groupName,
+// connectionId, rankSize, iterId
+using HcclOpDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, std::string, uint64_t,
+        uint64_t, int32_t, int32_t, std::string, std::string, int32_t, std::string, int64_t, int64_t, uint32_t>>;
 const HcclOpDataFormat HCCL_OP_DATA = {
-    {4294967295, "hcom_batchSendRecv_", "HCCL", "hcom_batchSendRecv_", 2825926938915, 0, 0, "FP16", "MESH-HD",
-        6291456, "15733047711421650659", 8, 8},
-    {4294967295, "hcom_allGather_", "HCCL", "hcom_allGather_", 2825937580155, 0, 0, "FP16", "MESH-RING",
-        6291456, "4401039741324296475", 19, 8},
+    {4294967295, 0, "hcom_allReduce_", "HCCL", "hcom_allReduce_", 1000, 2000, 0, 0, "FP16", "HD",
+        6291456, "group_1", 8, 8, 1},
+    {4294967295, 0, "hcom_allGather_", "HCCL", "hcom_allGather_", 3000, 4000, 0, 0, "FP16", "RING",
+        6291456, "group_2", 19, 8, 1},
 };
 
-// modelId, indexId, opName, iteration, hcclName, groupName, firstTimestamp, planeId, timestamp, duration, isDynamic,
-// taskType, opType, connectionId, isMaster, streamId, taskId, durationEstimated, localRank, remoteRank, transportType,
-// size, dataType, linkType, bandwidth, contextId, notifyId, batchId, rdmaType, rankSize
-using HcclTaskDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, uint16_t, std::string, std::string,
-        uint64_t, int32_t, double, double, std::string, std::string, std::string, int64_t, uint16_t, uint32_t,
-        uint16_t, double, uint32_t, uint32_t, std::string, double, std::string, std::string, double, uint32_t,
-        std::string, uint16_t, std::string, uint32_t>>;
+// 与 device_hccl_persistence.cpp 中 SaveHcclTaskData 写入顺序一致：
+// modelId, indexId, hcclName, groupName, planeId, timestamp, duration,
+// opId, isMaster, streamId, taskId, contextId, batchId, size, bandwidth,
+// localRank, remoteRank, rankSize, transportType, dataType, linkType, rdmaType, notifyId, iterId
+using HcclTaskDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, double,
+        double, int64_t, uint16_t, uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t,
+        int64_t, std::string, std::string, std::string, std::string, std::string, uint32_t>>;
 const HcclTaskDataFormat HCCL_TASK_DATA = {
-    {4294967295, -1, "hcom_batchSendRecv__360_0_1", 0, "RDMASend", "10652853832407468360", 2825926938915, 0,
-        28121259851740, 320, "1", "HCCL", "hcom_batchSendRecv_", 8, 1, 4, 285, 7.00033333333333, 9, 1, "RDMA",
-        4, "INVALID_TYPE", "ROCE", 0.0125, 1, "4294967692", 0, "RDMA_SEND_NOTIFY", 8},
-    {4294967295, -1, "hcom_batchSendRecv__360_0_1", 0, "Notify_Wait", "10652853832407468360", 2825926938915, 0,
-        28121259853580, 105169600, "1", "HCCL", "hcom_batchSendRecv_", 8, 1, 4, 285, 0.02, 9, 1, "LOCAL",
-        0, "INVALID_TYPE", "INVALID_TYPE", 0, 2, "38654705788", 0, "INVALID_TYPE", 8},
-    {4294967295, -1, "hcom_batchSendRecv__360_0_1", 0, "RDMASend", "10652853832407468360", 2825926938915, 0,
-        28121365023760, 320, "1", "HCCL", "hcom_batchSendRecv_", 8, 1, 4, 285, 7.00033333333333, 9, 1, "RDMA",
-        4, "INVALID_TYPE", "ROCE", 0.0125, 3, "4294967696", 0, "RDMA_SEND_NOTIFY", 8},
-    {4294967295, -1, "hcom_batchSendRecv__360_0_1", 0, "Memcpy", "10652853832407468360", 2825926938915, 0,
-        28121365025360, 18100, "1", "HCCL", "hcom_batchSendRecv_", 8, 1, 4, 285, 653.4643523316062, 9, 9, "SDMA",
-        12582912, "INVALID_TYPE", "ON_CHIP", 695.188508287293, 4, "18446744073709551615", 0, "INVALID_TYPE", 8},
-    {4294967295, -1, "hcom_allGather__475_0_1", 0, "Memcpy", "4401039741324296475", 2825937580155, 0,
-        28121366180000, 17620, "1", "HCCL", "hcom_allGather_", 19, 1, 6, 5958, 653.4643523316062, 1, 1, "SDMA",
-        12582912, "INVALID_TYPE", "ON_CHIP", 714.1266742338253, 0, "18446744073709551615", 0, "INVALID_TYPE", 8},
+    {4294967295, -1, "RDMASend", "group_1", 0, 1000.0, 320.0, 8, 1, 4, 285, 1, 0, 1024.0, 0.0125,
+        9, 1, 8, "RDMA", "FP16", "ROCE", "RDMA_SEND_NOTIFY", "4294967692", 1},
+    {4294967295, -1, "Memcpy", "group_1", 0, 2000.0, 100.0, 8, 0, 4, 286, 1, 0, 2048.0, 0.01,
+        9, 9, 8, "SDMA", "FP16", "ON_CHIP", "INVALID_TYPE", "38654705788", 1},
 };
 
-
-// opType, count, totalTime, min, avg, max, ratio
-using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double, double>>;
+// 与 device_hccl_persistence.cpp 中 SaveHcclStatisticsData 写入顺序一致：
+// opType, count, totalTime, min, avg, max
+using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double>>;
 const HcclStatisticsFormat HCCL_STATISTICS_DATA = {
-    {"hcom_allReduce_", 1352, 5852671300, 211920, 4328898.890533, 133867780, 94.10197},
-    {"hcom_batchSendRecv_", 96, 243562100, 542100, 2537105.208333, 105191720, 3.916105},
-    {"hcom_broadcast_", 96, 70865740, 236820, 738184.791667, 3929660, 1.139412},
-    {"hcom_allGather_", 50, 52400100, 530920, 1048002, 1810800, 0.842513},
+    {"hcom_allReduce_", 1352, 5852671300, 211920, 4328898.890533, 133867780},
+    {"hcom_batchSendRecv_", 96, 243562100, 542100, 2537105.208333, 105191720},
+    {"hcom_broadcast_", 96, 70865740, 236820, 738184.791667, 3929660},
+    {"hcom_allGather_", 50, 52400100, 530920, 1048002, 1810800},
 };
 
 class DeviceHcclPersistenceUTest : public testing::Test {
@@ -99,8 +90,8 @@ protected:
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
         auto hcclOp = GenerateHcclOpData();
-        std::shared_ptr<std::vector<Analysis::Domain::HcclOp>> opData;
-        MAKE_SHARED0_NO_OPERATION(opData, std::vector<Analysis::Domain::HcclOp>, std::move(hcclOp));
+        std::shared_ptr<std::vector<Analysis::Domain::DeviceHcclOp>> opData;
+        MAKE_SHARED0_NO_OPERATION(opData, std::vector<Analysis::Domain::DeviceHcclOp>, std::move(hcclOp));
         dataInventory_.Inject(opData);
 
         auto hcclTask = GenerateHcclTaskData();
@@ -123,14 +114,15 @@ protected:
         }
     }
 
-    static std::vector<Analysis::Domain::HcclOp> GenerateHcclOpData()
+    static std::vector<Analysis::Domain::DeviceHcclOp> GenerateHcclOpData()
     {
-        std::vector<Analysis::Domain::HcclOp> opData;
+        std::vector<Analysis::Domain::DeviceHcclOp> opData;
         EXPECT_TRUE(Reserve(opData, HCCL_OP_DATA.size()));
         for (const auto& data : HCCL_OP_DATA) {
-            Analysis::Domain::HcclOp op;
-            std::tie(op.modelId, op.opName, op.taskType, op.opType, op.timestamp, op.relay, op.retry, op.dataType,
-                     op.algType, op.count, op.groupName, op.connectionId, op.rankSize) = data;
+            Analysis::Domain::DeviceHcclOp op{};
+            std::tie(op.modelId, op.indexId, op.opName, op.taskType, op.opType, op.start, op.end,
+                     op.relay, op.retry, op.dataType, op.algType, op.count, op.groupName,
+                     op.connectionId, op.rankSize, op.iterId) = data;
             opData.emplace_back(op);
         }
         return opData;
@@ -141,12 +133,12 @@ protected:
         std::vector<Analysis::Domain::DeviceHcclTask> taskData;
         EXPECT_TRUE(Reserve(taskData, HCCL_TASK_DATA.size()));
         for (const auto& data : HCCL_TASK_DATA) {
-            Analysis::Domain::DeviceHcclTask task;
-            std::tie(task.modelId, task.indexId, task.opName, task.iteration, task.hcclName, task.groupName,
-                     task.firstTimestamp, task.planeId, task.timestamp, task.duration, task.isDynamic, task.taskType,
-                     task.opType, task.connectionId, task.isMaster, task.streamId, task.taskId, task.durationEstimated,
-                     task.localRank, task.remoteRank, task.transportType, task.size, task.dataType, task.linkType,
-                     task.bandwidth, task.contextId, task.notifyId, task.batchId, task.rdmaType, task.rankSize) = data;
+            Analysis::Domain::DeviceHcclTask task{};
+            std::tie(task.modelId, task.indexId, task.hcclName, task.groupName, task.planeId, task.timestamp,
+                     task.duration, task.opId, task.isMaster, task.streamId, task.taskId, task.contextId,
+                     task.batchId, task.size, task.bandwidth, task.localRank, task.remoteRank, task.rankSize,
+                     task.transportType, task.dataType, task.linkType, task.rdmaType, task.notifyId,
+                     task.iterId) = data;
             taskData.emplace_back(task);
         }
         return taskData;
@@ -158,7 +150,7 @@ protected:
         EXPECT_TRUE(Reserve(taskData, HCCL_STATISTICS_DATA.size()));
         for (const auto& data : HCCL_STATISTICS_DATA) {
             Analysis::Domain::HcclStatistics task;
-            std::tie(task.opType, task.count, task.totalTime, task.min, task.avg, task.max, task.ratio) = data;
+            std::tie(task.opType, task.count, task.totalTime, task.min, task.avg, task.max) = data;
             taskData.emplace_back(task);
         }
         return taskData;
@@ -214,9 +206,9 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
     Analysis::Domain::DeviceContext context;
     Analysis::Infra::DataInventory tempDataInventory;
 
-    std::vector<Analysis::Domain::HcclOp> hcclOp;
-    std::shared_ptr<std::vector<Analysis::Domain::HcclOp>> opData;
-    MAKE_SHARED0_NO_OPERATION(opData, std::vector<Analysis::Domain::HcclOp>, std::move(hcclOp));
+    std::vector<Analysis::Domain::DeviceHcclOp> hcclOp;
+    std::shared_ptr<std::vector<Analysis::Domain::DeviceHcclOp>> opData;
+    MAKE_SHARED0_NO_OPERATION(opData, std::vector<Analysis::Domain::DeviceHcclOp>, std::move(hcclOp));
     tempDataInventory.Inject(opData);
 
     std::vector<Analysis::Domain::DeviceHcclTask> hcclTask;

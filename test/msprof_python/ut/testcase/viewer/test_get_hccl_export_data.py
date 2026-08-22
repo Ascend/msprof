@@ -81,8 +81,10 @@ class TestHCCLExport(unittest.TestCase):
                              ['op_name', 'timestamp', 'args', 'duration',
                               "group_name", "connection_id", "model_id"])
         op_data = [op_data('test_1', 0, [1, 2, 3], 0, "1", 0, 10)]
-        op_info_data = {0: HcclOps(op_name='test', data_type='INT64', connection_id=0, model_id=10, alg_type='HD-NB')}
+        op_info_data = [HcclOps(op_name='test', data_type='INT64', connection_id=0, model_id=10,
+                                alg_type='HD-NB', group_name="1")]
         InfoConfReader()._info_json = {"pid": 1}
+        InfoConfReader()._sample_json = {}
         with mock.patch('msmodel.hccl.hccl_model.HcclViewModel.get_hccl_op_data_by_group', return_value=op_data), \
                 mock.patch('msmodel.hccl.hccl_model.HcclViewModel.get_hccl_op_info_from_table',
                            return_value=op_info_data), \
@@ -176,9 +178,8 @@ class TestHCCLExport(unittest.TestCase):
     def test_get_hccl_arg_should_show_normal_size_when_size_valid(self):
         task = HcclTaskTuple(size=1024, notify_id=1, local_rank=0,
                             remote_rank=1, transport_type="RDMA", data_type="FP16",
-                            link_type="PIX", bandwidth=100.0,
-                            duration_estimated=10, stream_id=1,
-                             task_id=1, task_type="HCCL")
+                            link_type="PIX", bandwidth=100.0, stream_id=1,
+                            task_id=1, task_type="HCCL")
         result = HCCLExport.get_hccl_arg(task)
         self.assertEqual(result['size(Byte)'], 1024)
 

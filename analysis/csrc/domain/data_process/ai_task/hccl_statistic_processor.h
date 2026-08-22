@@ -20,21 +20,24 @@
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/hccl_statistic_data.h"
 
+namespace Analysis
+{
+namespace Domain
+{
+// op_type, occurrences, total_time, min, avg, max
+using OriHcclDataFormat = std::vector<std::tuple<std::string, std::string, double, double, double, double>>;
 
-namespace Analysis {
-namespace Domain {
-// op_type, occurrences, total_time, min, avg, max, ratio
-using OriHcclDataFormat = std::vector<std::tuple<std::string, std::string, double, double, double, double, double>>;
-
-class HcclStatisticProcessor : public DataProcessor {
-public:
-    HcclStatisticProcessor() = default;
+class HcclStatisticProcessor : public DataProcessor
+{
+   public:
     explicit HcclStatisticProcessor(const std::string& profPaths);
-private:
+
+   private:
     bool Process(DataInventory& dataInventory) override;
     OriHcclDataFormat LoadData(const DBInfo& dbInfo, const std::string& dbPath);
+    OriHcclDataFormat LoadReportData(const std::string& devicePath, const std::string& tableName, bool& flag);
     std::vector<HcclStatisticData> FormatData(const OriHcclDataFormat& oriData, const uint16_t deviceId);
 };
-} // namespace Domain
-} // namespace Analysis
-#endif // ANALYSIS_DOMAIN_HCCL_STATISTIC_PROCESSOR_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_HCCL_STATISTIC_PROCESSOR_H

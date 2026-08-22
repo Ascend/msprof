@@ -21,7 +21,6 @@
 #include "analysis/csrc/application/timeline/connection_id_pool.h"
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
@@ -32,12 +31,7 @@ namespace Application
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 const int32_t INVALID_PLANE = -1;
-enum class HcclType
-{
-    HCCL = 0,
-    MC2,
-    INVALID
-};
+using Analysis::Domain::HcclType;
 
 struct HcclGroup
 {
@@ -46,7 +40,7 @@ struct HcclGroup
     HcclType type;
     std::set<int32_t> planes;
     HcclGroup() = default;
-    HcclGroup(const std::string &groupName_, HcclType &&type_, const std::set<int32_t> &planes_)
+    HcclGroup(const std::string &groupName_, HcclType type_, const std::set<int32_t> &planes_)
         : groupName(groupName_), type(type_), planes(planes_)
     {
     }
@@ -57,7 +51,7 @@ class HcclOpTraceEvent : public DurationEvent
    public:
     HcclOpTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                      uint32_t modelId, uint32_t count, uint64_t connectionId, const std::string &dataType,
-                     const std::string &algType, const std::string &relay, const std::string &retry, uint32_t rankSize)
+                     const std::string &algType, const std::string &relay, const std::string &retry, int64_t rankSize)
         : DurationEvent(pid, tid, dur, ts, name),
           modelId_(modelId),
           count_(count),
@@ -74,7 +68,7 @@ class HcclOpTraceEvent : public DurationEvent
     void ProcessArgs(JsonWriter &ostream) override;
 
    private:
-    uint32_t rankSize_;
+    int64_t rankSize_;
     uint32_t modelId_;
     uint32_t count_;
     uint64_t connectionId_;
@@ -88,7 +82,7 @@ class HcclTaskTraceEvent : public DurationEvent
 {
    public:
     HcclTaskTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
-                       uint32_t src, uint32_t dst, uint32_t streamId, uint32_t taskId, uint32_t contextId,
+                       int64_t src, int64_t dst, uint32_t streamId, uint32_t taskId, uint32_t contextId,
                        uint32_t modelId, uint64_t size, double esDur, double bw, const std::string notifyId,
                        const std::string &tsType, const std::string &taskType, const std::string &dataType,
                        const std::string &linkType)
@@ -114,8 +108,8 @@ class HcclTaskTraceEvent : public DurationEvent
     void ProcessArgs(JsonWriter &ostream) override;
 
    private:
-    uint32_t srcRank_;
-    uint32_t dstRank_;
+    int64_t srcRank_;
+    int64_t dstRank_;
     uint32_t streamId_;
     uint32_t taskId_;
     uint32_t contextId_;
@@ -136,17 +130,15 @@ class HcclAssembler : public JsonAssembler
 
    private:
     uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
-    std::string TransEnumToType(uint64_t key, const std::unordered_map<std::string, uint16_t> &enumTable);
     void GenerateMetaDataEvent(std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layerInfo,
                                const std::string &profPath);
     void GenerateTMetaDataEvent(std::vector<HcclGroup> &group, int32_t &index, uint32_t formatPid);
     int32_t GetTid(const std::string groupName, const uint16_t deviceId, const HcclType &type);
     std::unordered_map<uint16_t, std::unordered_map<std::string, std::vector<HcclGroup>>> InitHcclGroup(
-        std::shared_ptr<std::vector<CommunicationTaskData>> &hcclData,
-        std::shared_ptr<std::vector<KfcTaskData>> &kfcData);
+        std::shared_ptr<std::vector<CommunicationTaskData>> &hcclData);
 
     template <typename T>
-    void GenerateCommTaskTrace(const std::vector<T> &task, const std::string &profPath, HcclType &&type,
+    void GenerateCommTaskTrace(const std::vector<T> &task, const std::string &profPath,
                                std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layerInfo)
     {
         INFO("Start GenerateCommTaskTrace");
@@ -167,15 +159,15 @@ class HcclAssembler : public JsonAssembler
                 continue;
             }
             formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layerInfo.sortIndex);
-            tid = GetTid(data.groupName, data.deviceId, type);
+            tid = GetTid(data.groupName, data.deviceId, data.source);
             if (tid == -1)
             {
                 continue;
             }
             tid += (data.planeId + 1);
-            transport = TransEnumToType(data.transportType, HCCL_TRANSPORT_TYPE_TABLE);
-            dataType = TransEnumToType(data.dataType, HCCL_DATA_TYPE_TABLE);
-            linkType = TransEnumToType(data.linkType, HCCL_LINK_TYPE_TABLE);
+            transport = data.transportType;
+            dataType = data.dataType;
+            linkType = data.linkType;
             std::shared_ptr<HcclTaskTraceEvent> event;
             MAKE_SHARED_RETURN_VOID(event, HcclTaskTraceEvent, formatPid, tid,
                                     static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
@@ -199,7 +191,7 @@ class HcclAssembler : public JsonAssembler
     }
 
     template <typename T>
-    void GenerateCommOpTrace(const std::vector<T> &opData, const std::string &profPath, HcclType &&type,
+    void GenerateCommOpTrace(const std::vector<T> &opData, const std::string &profPath,
                              std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layerInfo)
     {
         INFO("Start GenerateCommOpTrace");
@@ -211,12 +203,12 @@ class HcclAssembler : public JsonAssembler
         for (auto &data : opData)
         {
             formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layerInfo.sortIndex);
-            tid = GetTid(data.groupName, data.deviceId, type);
+            tid = GetTid(data.groupName, data.deviceId, data.source);
             if (tid == -1)
             {
                 continue;
             }
-            dataType = TransEnumToType(data.dataType, HCCL_DATA_TYPE_TABLE);
+            dataType = data.dataType;
             std::shared_ptr<HcclOpTraceEvent> event;
             retry = (data.retry == 1) ? "yes" : "no";
             relay = (data.relay == 1) ? "yes" : "no";

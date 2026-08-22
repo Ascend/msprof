@@ -19,15 +19,40 @@ import unittest
 from unittest import mock
 
 from constant.constant import CONFIG
+from common_func.hccl_info_common import DeviceHcclSource
 from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from common_func.info_conf_reader import InfoConfReader
+from mscalculate.hccl.hccl_task import HcclOps
+from mscalculate.hccl.hccl_task import HcclTask
+from mscalculate.hccl.hccl_task import KfcOps
 from mscalculate.hccl.kfc_calculator import KfcCalculator
-from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
-from msmodel.add_info.mc2_comm_info_model import Mc2CommInfoViewModel
-from msmodel.task_time.ascend_task_model import AscendTaskViewModel
+from common_func.msprof_object import CustomizedNamedtupleFactory
+from msmodel.add_info.kfc_info_model import KfcInfoViewModel
 
 NAMESPACE = 'mscalculate.hccl.kfc_calculator'
+
+# KfcOps 在 get_kfc_op_data() 返回前被 DBManager.fetch_all_data 转换为增强型 namedtuple，
+# 该 namedtuple 通过 enhance_namedtuple 将 _replace 重命名为 replace。
+# 测试中需要模拟相同类型，否则 .replace() 调用会失败。
+_KFC_OP_SQL_DESC = [
+    ("model_id",), ("index_id",), ("stream_id",), ("task_id",),
+    ("context_id",), ("batch_id",), ("start",), ("end",),
+    ("kfc_connection_id",), ("op_name",),
+]
+_KFC_OP_NT = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(KfcOps, _KFC_OP_SQL_DESC)
+
+
+def _make_kfc_op(**kwargs: any) -> any:
+    """创建增强型 namedtuple KfcOps（模拟 get_kfc_op_data 的实际返回类型），具备 replace() 方法"""
+    defaults = KfcOps()
+    args = []
+    for field_name in _KFC_OP_NT._fields:
+        val = kwargs.get(field_name)
+        if val is None:
+            val = getattr(defaults, field_name)
+        args.append(val)
+    return _KFC_OP_NT(*args)
 
 
 class TestKfcCalculator(unittest.TestCase):
@@ -60,6 +85,7 @@ class TestKfcCalculator(unittest.TestCase):
     def test_judge_calculate_again_should_return_true_when_all_export_and_not_have_kfc_op_table(self: any) -> None:
         InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
         InfoConfReader()._end_info = {}
+        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
         with mock.patch(NAMESPACE + ".DBManager.check_tables_in_db", return_value=False):
             check = KfcCalculator([], CONFIG)
             self.assertTrue(check._judge_calculate_again())
@@ -68,214 +94,262 @@ class TestKfcCalculator(unittest.TestCase):
     def test_judge_calculate_again_should_return_false_when_all_export_and_have_kfc_op_table(self: any) -> None:
         InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
         InfoConfReader()._end_info = {}
+        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
         with mock.patch(NAMESPACE + ".DBManager.check_tables_in_db", return_value=True):
             check = KfcCalculator([], CONFIG)
             self.assertFalse(check._judge_calculate_again())
         InfoConfReader()._start_info.clear()
 
-    def test_calculate_should_return_2_kfc_op_and_11_kfc_task_when_2_kfc_stream(self: any) -> None:
-        group_name = "group"
-        InfoConfReader()._info_json = {
-            "devices": 0
-        }
+    # ============================================================
+    # 新增 UT — 当前修改引入的方法
+    # ============================================================
+
+    def test_make_kernel_key_should_return_5_tuple_with_iter_id(self: any) -> None:
+        """_make_kernel_key 返回含 iter_id 的5元组"""
+        kernel = KfcOps(stream_id=1, task_id=2, context_id=3, batch_id=4, iter_id=5)
+        result = KfcCalculator._make_kernel_key(kernel)
+        self.assertEqual((1, 2, 3, 4, 5), result)
+
+    def test_make_kernel_key_should_return_default_iter_id_for_new_kernel(self: any) -> None:
+        """iter_id 使用 dataclass 默认值 0 时，key 包含 0"""
+        kernel = KfcOps(stream_id=10, task_id=20, context_id=30, batch_id=40)
+        result = KfcCalculator._make_kernel_key(kernel)
+        self.assertEqual((10, 20, 30, 40, 0), result)
+
+    def test_serialize_kfc_op_should_return_16_elements(self: any) -> None:
+        """_serialize_kfc_op 序列化为16列，source 固定为 MC2"""
+        kernel = KfcOps(
+            model_id=1, index_id=2, op_name="test_op", start=100, end=200,
+            group_name="group1", kfc_connection_id=42, op_type="all_reduce",
+            relay=1, retry=0, data_type="FP16", alg_type="HD", count=8, rank_size=4,
+        )
+        result = KfcCalculator._serialize_kfc_op(kernel)
+        self.assertEqual(16, len(result))
+        self.assertEqual(
+            [1, 2, "test_op", 100, 200, "group1", 42, "all_reduce", 1, 0, "FP16", "HD", 8, 4, 0, DeviceHcclSource.MC2.value],
+            result,
+        )
+
+    def test_serialize_kfc_task_should_return_25_elements_with_source_last(self: any) -> None:
+        """_serialize_kfc_task 序列化为25列，最后一列为 source"""
+        task = HcclTask(
+            model_id=0, index_id=1, hccl_name="Memcpy", group_name="g",
+            plane_id=2, timestamp=100, duration=50, op_id=4,
+            is_master=1, stream_id=5, task_id=6, context_id=7, batch_id=8,
+            size=1024, bandwidth=10.5, local_rank=0, remote_rank=1, rank_size=8,
+            transport_type="SDMA", data_type="INT8", link_type="LINK",
+            rdma_type="RDMA", notify_id="99",
+        )
+        result = KfcCalculator._serialize_kfc_task(task, DeviceHcclSource.HCCL.value)
+        self.assertEqual(25, len(result))
+        self.assertEqual(DeviceHcclSource.HCCL.value, result[-1])
+
+    def test_group_kernels_by_name_should_group_and_sort_by_start(self: any) -> None:
+        """_group_kernels_by_name 按 group_name 分组，组内按 start 升序"""
+        k1 = KfcOps(group_name="g1", start=300)
+        k2 = KfcOps(group_name="g1", start=100)
+        k3 = KfcOps(group_name="g2", start=200)
+        result = KfcCalculator._group_kernels_by_name([k1, k2, k3])
+        self.assertEqual({"g1", "g2"}, set(result.keys()))
+        self.assertEqual([100, 300], [k.start for k in result["g1"]])
+        self.assertEqual([200], [k.start for k in result["g2"]])
+
+    def test_group_tasks_by_comm_stream_should_group_and_exclude_non_comm_stream(self: any) -> None:
+        """_group_tasks_by_comm_stream 按 comm_stream_id → {group_name} 表分组，非 comm 流的 task 被排除"""
+        t1 = HcclTask(stream_id=1)
+        t2 = HcclTask(stream_id=1)
+        t3 = HcclTask(stream_id=2)
+        t4 = HcclTask(stream_id=99)  # 非 comm 流，应被排除
+        comm_stream_id_group_table = {1: {"g1"}, 2: {"g2"}}
+        result = KfcCalculator._group_tasks_by_comm_stream([t1, t2, t3, t4], comm_stream_id_group_table)
+        self.assertEqual(2, len(result["g1"]))
+        self.assertEqual(1, len(result["g2"]))
+        self.assertEqual(["g1", "g2"], sorted(result.keys()))
+
+    def test_group_tasks_by_comm_stream_should_append_task_to_each_group_of_stream(self: any) -> None:
+        """一个 comm 流可归属多个 group_name，task 会被加入每个 group"""
+        t1 = HcclTask(stream_id=1)
+        comm_stream_id_group_table = {1: {"g1", "g2"}}
+        result = KfcCalculator._group_tasks_by_comm_stream([t1], comm_stream_id_group_table)
+        self.assertEqual(1, len(result["g1"]))
+        self.assertEqual(1, len(result["g2"]))
+
+    def test_get_hccl_and_mc2_op_should_assign_iter_id_from_1(self: any) -> None:
+        """iter_id 从 1 开始，同一四元组首个 kernel 为 1"""
         InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
         InfoConfReader()._end_info = {}
-        kfc_op_data = [
-            # hccl aicpu kernel, 异步
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 19, 0, 4294967295, 0, 38140478700000,
-                                                 100000, "KERNEL_AICPU", "AI_CPU", 0, "allgatherAicpuKernel", -1),
-            # hccl aicpu kernel, 异步 stream 29 异常数据,和host数据无法对齐
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 29, 0, 4294967295, 0, 38140478700000,
-                                                 100000, "KERNEL_AICPU", "AI_CPU", 0, "allgatherAicpuKernel", -1),
-
-            # mc2 aicpu kernel, 同步
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 19, 2, 4294967295, 0, 38140478900000,
-                                                 200000, "KERNEL_AICPU", "AI_CPU", 0, "MatmulAllReduceAicpu", -1),
-        ]
-        kfc_task_data = [
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 0, 4294967295, 0, 38140478800000,  # stream 52,hccl aicpu主流
-                                                 1000, "UNKNOWN", "NOTIFY_WAIT_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 1, 4294967295, 0, 38140478802000,
-                                                 1000, "UNKNOWN", "SDMA_SQE", 0, "", -1),
-            # 发生重执行, task将不被执行 ===============================================================================
-            # AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 2, 4294967295, 0, 38140478803000,
-            #                                      1000, "UNKNOWN", "NOTIFY_RECORD_SQE", 0, ""),
-            # AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 1, 4294967295, 0, 38140478805000,  # task id 翻转
-            #                                      1000, "UNKNOWN", "NOTIFY_WAIT_SQE", 0, ""),
-            # AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 2, 4294967295, 0, 38140478810000,
-            #                                      1000, "UNKNOWN", "SDMA_SQE", 0, ""),
-            # AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 1, 4294967295, 0, 38140478830000,  # task id 翻转
-            #                                      1000, "UNKNOWN", "SDMA_SQE", 0, ""),
-            # AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 2, 4294967295, 0, 38140478840000,
-            #                                      1000, "UNKNOWN", "NOTIFY_RECORD_SQE", 0, ""),
-            # =======================================================================================
-            # 开始重执行，上报重执行flip
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 5, 4294967295, 0, 38140478860000,
-                                                 1000, "UNKNOWN", "SDMA_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 1, 4294967295, 0, 38140478870000,  # task id 翻转
-                                                 1000, "UNKNOWN", "SDMA_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 52, 2, 4294967295, 0, 38140478880000,
-                                                 1000, "UNKNOWN", "NOTIFY_RECORD_SQE", 0, "", -1),
-
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 53, 0, 4294967295, 0, 38140478830000,  # stream 53,hccl aicpu从流
-                                                 500, "UNKNOWN", "NOTIFY_WAIT_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 53, 1, 4294967295, 0, 38140478840010,
-                                                 500, "UNKNOWN", "SDMA_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 53, 2, 4294967295, 0, 38140478870010,
-                                                 500, "UNKNOWN", "NOTIFY_RECORD_SQE", 0, "", -1),
-
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 54, 0, 4294967295, 0, 38140478900010,  # stream 54, mc2主流
-                                                 500, "UNKNOWN", "C_CORE_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 54, 1, 4294967295, 0, 38140478920010,
-                                                 500, "UNKNOWN", "SDMA_SQE", 0, "", -1),
-            AscendTaskViewModel.ASCEND_TASK_TYPE(0, 0, 54, 2, 4294967295, 0, 38140478940010,
-                                                 500, "UNKNOWN", "NOTIFY_WAIT", 0, "", -1),
-        ]
-        master_stream_hccl_task = [
-            (38140478700010, 19, 0, 52, 0, 0, 0, 0),  # batch_id = 0
-            (38140478707100, 19, 0, 52, 2, 0, 0, 1),  # batch_id = 2
-            (38140478715000, 19, 0, 52, 2, 0, 0, 1),  # batch_id = 3
-            (38140478700010, 29, 0, 80, 0, 0, 0, 0),  # batch_id = 0 异常数据,和host数据无法对齐
-        ]
-        aicpu_task_flip = [
-            (52, 38140478704000, 0, 1),  # task id翻转
-            (52, 38140478707000, 0, 2),  # task id翻转
-            (52, 38140478710000, 4, 2),  # 重执行上报flip
-            (52, 38140478712000, 0, 3),  # task id翻转
-            (80, 38140478704000, 0, 1),  # task id翻转 异常数据,和host数据无法对齐
-        ]
-        ts_task_flip = [
-            TaskFlip(52, 38140478850000, 4, 2),  # 重执行上报flip
-            TaskFlip(52, 38140478865000, 0, 3),  # task id翻转
-        ]
-        comm_info = [
-            Mc2CommInfoViewModel.MC2_COMM_INFO_TYPE(group_name, 8, 0, 0, 19, "52,53,54,55,56,57,58,59"),
-            Mc2CommInfoViewModel.MC2_COMM_INFO_TYPE(group_name, 2, 0, 0, 30, "80,81"),  # 异常数据,和host数据无法对齐
-        ]
-        ge_data = [
-            (4294967295, 'allgather', 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-             4294967295, 0, 0),
-            (4294967295, 'MatmulAllReduceAicpu', 19, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-             4294967295, 0, 0),
-            (4294967295, 'Matmul', 20, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-             4294967295, 0, 0),
-        ]
-        hccl_info_data = [
-            (38140478701100, "NOTIFY_WAIT_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 0, 0, 0, 0, 0, 'NA', -1),
-            (38140478702000, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478703300, "NOTIFY_RECORD_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 2, 0, 0, 0, 0, 'NA', -1),
-            # taskid翻转
-            (38140478705000, "NOTIFY_WAIT_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478706000, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 2, 0, 0, 0, 0, 'NA', -1),
-            # taskid翻转
-            (38140478707200, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478708000, "NOTIFY_RECORD_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 2, 0, 0, 0, 0, 'NA', -1),
-            (38140478711000, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 5, 0, 0, 0, 0, 'NA', -1),
-            (38140478712100, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478712200, "NOTIFY_RECORD_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 52, 2, 0, 0, 0, 0, 'NA', -1),
-
-            (38140478702000, "NOTIFY_RECORD_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 53, 0, 0, 0, 0, 0, 'NA', -1),
-            (38140478703000, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 53, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478704000, "NOTIFY_RECORD_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 53, 2, 0, 0, 0, 0, 'NA', -1),
-
-            (38140478901000, "C_CORE_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 54, 0, 0, 0, 0, 0, 'NA', -1),
-            (38140478922000, "SDMA_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 54, 1, 0, 0, 0, 0, 'NA', -1),
-            (38140478941000, "NOTIFY_WAIT_SQE", 0, group_name, 0, 0, 8, 0, 0, 4294967295, 2, 0, 0, 0.1, 0, 0, 1, 0,
-             266, 0, 0, 0, 54, 2, 0, 0, 0, 0, 'NA', -1),
-        ]
-        hccl_op_info_data = [
-            (38140478600000, 0, 0, 0, 90, 1, group_name, 19, 0, 8, 0),
-            (38140478702000, 0, 1, 0, 90, 1, group_name, 19, 1, 8, 0),
-            (38140478801000, 0, 0, 0, 90, 1, group_name, 19, 2, 8, 1),
-            (38140478803000, 0, 0, 0, 90, 1, group_name, 19, 3, 8, 0),
-        ]
-        with mock.patch(NAMESPACE + ".AscendTaskViewModel.get_ascend_task_data_with_op_name_pattern_and_stream_id",
-                        return_value=kfc_op_data), \
-                mock.patch(NAMESPACE + ".AscendTaskViewModel.get_ascend_task_data_with_stream_id",
-                           return_value=kfc_task_data), \
-                mock.patch(NAMESPACE + ".Mc2CommInfoViewModel.get_kfc_stream", return_value=comm_info), \
-                mock.patch(NAMESPACE + ".DBManager.fetch_all_data", side_effect=(ge_data, [])), \
-                mock.patch(NAMESPACE + ".KfcInfoViewModel.get_sql_data",
-                           side_effect=(aicpu_task_flip, hccl_info_data, master_stream_hccl_task, hccl_op_info_data)), \
-                mock.patch(NAMESPACE + ".DBManager.judge_table_exist", return_value=True), \
-                mock.patch("os.path.exists", return_value=True), \
-                mock.patch("msmodel.step_trace.ts_track_model.TsTrackModel.get_task_flip_data",
-                           return_value=ts_task_flip), \
-                mock.patch("common_func.db_manager.DBManager.check_connect_db", return_value=(True, True)):
+        k1 = _make_kfc_op(stream_id=10, task_id=20, context_id=30, batch_id=40)
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm, \
+                mock.patch(NAMESPACE + ".KfcCalculator.get_kfc_host_hccl_op", return_value={}):
+            mock_vm.return_value.__enter__.return_value.get_kfc_op_data.return_value = [k1]
             check = KfcCalculator([], CONFIG)
-            check.calculate()
-            check.save()
-        self.assertEqual(2, len(check._kfc_op_data.get(group_name, [])))
-        self.assertEqual(11, len(check._kfc_task_data.get(group_name, [])))
-        InfoConfReader()._info_json.clear()
+            hccl_kernels, mc2_kernels = check.get_hccl_and_mc2_op()
+            self.assertEqual(0, len(hccl_kernels))
+            self.assertEqual(1, len(mc2_kernels))
+            self.assertEqual(1, mc2_kernels[0].iter_id)
         InfoConfReader()._start_info.clear()
 
-    def test_make_default_kfc_info_should_return_len_28_named_tuple(self: any) -> None:
-        default_kfc_info = KfcCalculator.make_default_kfc_info()
-        self.assertEqual(30, len(default_kfc_info))
-
-    def test_update_op_name_by_group_should_set_correct_op_name_by_timestamp(self):
+    def test_get_hccl_and_mc2_op_should_increment_iter_id_for_duplicate_4tuple(self: any) -> None:
+        """同一四元组多次出现，iter_id 依次为 1, 2, 3"""
         InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
         InfoConfReader()._end_info = {}
-        ascend_task_model = AscendTaskViewModel("test", [""])
-        task = ascend_task_model.ASCEND_TASK_TYPE(
-            model_id=None,
-            index_id=None,
-            stream_id=None,
-            task_id=None,
-            context_id=None,
-            batch_id=None,
-            timestamp=150,
-            duration=20,
-            host_task_type=None,
-            device_task_type=None,
-            connection_id=None,
-            op_name=None,
-            ts_virtual_batch_id=None
-        )
-        task1 = task
-        task2 = task.replace(timestamp=400, duration=70)
-        task3 = task.replace(timestamp=500, duration=40)
-        task4 = task.replace(timestamp=600, duration=20)
-        allreduce = "hcom_allreduce_AicpuKernel"
-        allgather = "hcom_allgather_AicpuKernel"
-        expect_op_name_list = ["hcom_allreduce_AicpuKernel_321_-1_0", "hcom_allreduce_AicpuKernel_321_0_0",
-                               "hcom_allreduce_AicpuKernel_321_1_0", "hcom_allgather_AicpuKernel_321_2_0"]
+        key = (10, 20, 30, 40)
+        k1 = _make_kfc_op(stream_id=key[0], task_id=key[1], context_id=key[2], batch_id=key[3])
+        k2 = _make_kfc_op(stream_id=key[0], task_id=key[1], context_id=key[2], batch_id=key[3])
+        k3 = _make_kfc_op(stream_id=key[0], task_id=key[1], context_id=key[2], batch_id=key[3])
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm, \
+                mock.patch(NAMESPACE + ".KfcCalculator.get_kfc_host_hccl_op", return_value={}):
+            mock_vm.return_value.__enter__.return_value.get_kfc_op_data.return_value = [k1, k2, k3]
+            check = KfcCalculator([], CONFIG)
+            _, mc2_kernels = check.get_hccl_and_mc2_op()
+            self.assertEqual([1, 2, 3], [k.iter_id for k in mc2_kernels])
+        InfoConfReader()._start_info.clear()
 
+    def test_get_hccl_and_mc2_op_should_assign_independent_iter_id_per_4tuple(self: any) -> None:
+        """不同四元组各自独立计数"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+        k1 = _make_kfc_op(stream_id=10, task_id=20, context_id=30, batch_id=40)
+        k2 = _make_kfc_op(stream_id=11, task_id=21, context_id=31, batch_id=41)
+        k3 = _make_kfc_op(stream_id=10, task_id=20, context_id=30, batch_id=40)
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm, \
+                mock.patch(NAMESPACE + ".KfcCalculator.get_kfc_host_hccl_op", return_value={}):
+            mock_vm.return_value.__enter__.return_value.get_kfc_op_data.return_value = [k1, k2, k3]
+            check = KfcCalculator([], CONFIG)
+            _, mc2_kernels = check.get_hccl_and_mc2_op()
+            self.assertEqual([1, 1, 2], [k.iter_id for k in mc2_kernels])
+        InfoConfReader()._start_info.clear()
+
+    def test_get_hccl_and_mc2_op_should_set_connection_id_from_matched_hccl_op(self: any) -> None:
+        """匹配到 HCCL_OP 时，op 侧 connection_id 取 hccl_op.connection_id"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+        k1 = _make_kfc_op(stream_id=10, task_id=20, context_id=30, batch_id=40, kfc_connection_id=42)
+        hccl_op = HcclOps(connection_id=99, op_name="all_reduce", group_name="g1")
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm, \
+                mock.patch(NAMESPACE + ".KfcCalculator.get_kfc_host_hccl_op", return_value={42: hccl_op}):
+            mock_vm.return_value.__enter__.return_value.get_kfc_op_data.return_value = [k1]
+            check = KfcCalculator([], CONFIG)
+            hccl_kernels, mc2_kernels = check.get_hccl_and_mc2_op()
+            self.assertEqual(1, len(hccl_kernels))
+            self.assertEqual(0, len(mc2_kernels))
+            self.assertEqual(99, hccl_kernels[0].connection_id)
+            self.assertEqual("all_reduce", hccl_kernels[0].op_name)
+            self.assertEqual("g1", hccl_kernels[0].group_name)
+        InfoConfReader()._start_info.clear()
+
+    def test_assign_op_and_plane_should_set_task_op_id_from_kernel_connection_id(self: any) -> None:
+        """task 侧 op_id 取 op 的 connection_id（关联语义），落在 op 时间范围内标记 is_master"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+        hccl_task_tuple = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(HcclTask, [])
+        kernel = KfcOps(group_name="g1", start=100, end=200, connection_id=42,
+                        model_id=1, index_id=2, iter_id=3, op_name="all_reduce")
+        task = hccl_task_tuple(group_name="g1", timestamp=150, duration=10, stream_id=7)
+        grouped_tasks = {"g1": [task]}
         check = KfcCalculator([], CONFIG)
-        hccl_data = [
-            check.KFC_OP_DATA(ascend_data=task1, group_name="45321", op_name=allreduce, first_timestamp=65,
-                              iter_id=0, op_type="N/A", relay=-1, retry=-1, data_type="N/A",
-                              alg_type="N/A", count=-1, rank_size=-1, source=0),
-            check.KFC_OP_DATA(ascend_data=task2, group_name="45321", op_name=allreduce, first_timestamp=100,
-                              iter_id=0, op_type="N/A", relay=-1, retry=-1, data_type="N/A",
-                              alg_type="N/A", count=-1, rank_size=-1, source=0),
-            check.KFC_OP_DATA(ascend_data=task3, group_name="45321", op_name=allreduce, first_timestamp=110,
-                              iter_id=0, op_type="N/A", relay=-1, retry=-1, data_type="N/A",
-                              alg_type="N/A", count=-1, rank_size=-1, source=0),
-            check.KFC_OP_DATA(ascend_data=task4, group_name="45321", op_name=allgather, first_timestamp=130,
-                              iter_id=0, op_type="N/A", relay=-1, retry=-1, data_type="N/A",
-                              alg_type="N/A", count=-1, rank_size=-1, source=0)
+        check._assign_op_and_plane(grouped_tasks, {"g1": [kernel]})
+
+        updated = grouped_tasks["g1"][0]
+        self.assertEqual(42, updated.op_id)
+        self.assertEqual("all_reduce", updated.op_name)
+        self.assertEqual("g1", updated.group_name)
+        self.assertEqual(1, updated.is_master)
+        self.assertEqual(0, updated.plane_id)
+        InfoConfReader()._start_info.clear()
+
+    def test_refine_kernel_times_should_use_iter_id_to_distinguish_executions(self: any) -> None:
+        """_refine_kernel_times_with_master_stream 用 iter_id 区分多次执行的 start/end"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+
+        # 使用 _make_kfc_op 创建增强型 namedtuple（生产代码中 get_hccl_and_mc2_op 返回此类型）
+        hccl_kernels = [
+            _make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=0, iter_id=1),
+            _make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=0, iter_id=2),
         ]
-        check.start_time_raw_timestamp = 200
-        check.update_op_name_by_group(hccl_data)
-        op_name_list = []
-        for data in hccl_data:
-            op_name_list.append(data.op_name)
-        self.assertEqual(op_name_list, expect_op_name_list)
+
+        # context_id 必须匹配 NumberConstant.DEFAULT_GE_CONTEXT_ID (4294967295),
+        # 因为 _refine_kernel_times_with_master_stream 内部使用该常量构造 uid 进行 lookup
+        kfc_task_data = [
+            HcclTask(stream_id=52, task_id=0, duration=100, timestamp=1000, context_id=4294967295, batch_id=0),
+            HcclTask(stream_id=52, task_id=2, duration=100, timestamp=2000, context_id=4294967295, batch_id=0),
+        ]
+
+        # master_stream: 两次执行，分别对应 iter_id=1 和 iter_id=2
+        master_stream_data = [
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=1, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=0, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=2, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=2, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=3, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=0, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=4, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=2, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+        ]
+
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
+            mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
+            check = KfcCalculator([], CONFIG)
+            check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
+
+        # 第一次执行 (iter_id=1): start 来自 task(52,0), end 来自 task(52,2)
+        self.assertEqual(1000, hccl_kernels[0].start)
+        self.assertEqual(2100, hccl_kernels[0].end)
+        # 第二次执行 (iter_id=2): start 和 end 同第一次（同一组 master task 复用）
+        self.assertEqual(1000, hccl_kernels[1].start)
+        self.assertEqual(2100, hccl_kernels[1].end)
+
+        InfoConfReader()._start_info.clear()
+
+    def test_refine_kernel_times_should_match_aicpu_kernel_by_aicpu_batch_id(self: any) -> None:
+        """aicpu_key 使用 aicpu_batch_id 匹配 kernel，而非展开算子的 batch_id"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+
+        # aicpu kernel 的 batch_id=7（aicpu_batch_id），与展开算子 batch_id=3 不同
+        hccl_kernels = [
+            _make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=7, iter_id=1),
+        ]
+
+        # kfc task（展开算子）的 batch_id=3，用于 uid 匹配
+        kfc_task_data = [
+            HcclTask(stream_id=52, task_id=0, duration=100, timestamp=1000, context_id=4294967295, batch_id=3),
+            HcclTask(stream_id=52, task_id=2, duration=100, timestamp=2000, context_id=4294967295, batch_id=3),
+        ]
+
+        master_stream_data = [
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=1, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=0, aicpu_batch_id=7, batch_id=3,
+                task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=2, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=2, aicpu_batch_id=7, batch_id=3,
+                task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+        ]
+
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
+            mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
+            check = KfcCalculator([], CONFIG)
+            check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
+
+        # 命中 aicpu_batch_id=7 的 kernel，start/end 被修正
+        self.assertEqual(1000, hccl_kernels[0].start)
+        self.assertEqual(2100, hccl_kernels[0].end)
+
         InfoConfReader()._start_info.clear()

@@ -46,13 +46,13 @@ using OriDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint3
 using RuntimeOriDataFormat = std::vector<std::tuple<uint32_t, int32_t, uint32_t, uint32_t, std::string, uint64_t,
                                                     std::string, std::string, int64_t, uint16_t>>;
 using HcclTaskOriDataFormat =
-    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t, double, uint32_t, uint32_t,
-                           uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint32_t, uint32_t, std::string, double,
-                           std::string, std::string, std::string, std::string, int32_t>>;
+    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, uint64_t, int64_t, uint32_t, uint32_t,
+                           uint32_t, uint32_t, uint16_t, uint16_t, int64_t, int64_t, uint32_t, std::string, double,
+                           std::string, std::string, std::string, std::string, int64_t>>;
 using GeHashFormat = std::vector<std::tuple<std::string, std::string>>;
-using HcclOpOriDataFormat = std::vector<
-    std::tuple<uint16_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, uint64_t, uint64_t,
-               std::string, int64_t, int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
+using HcclOpOriDataFormat =
+    std::vector<std::tuple<uint16_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, int64_t,
+                           int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
 bool CheckPathAndTableExists(const std::string& path, DBRunner& dbRunner, const std::string& tableName)
 {
     if (!File::Exist(path))
@@ -154,7 +154,7 @@ bool LoadHostData::ReadHostRuntimeFromDB(std::string& profPath, TaskId2HostTask&
         std::string task_type, kernel_name, context_id;
         HostTask hostTask;
         std::tie(hostTask.streamId, hostTask.requestId, hostTask.batchId, hostTask.taskId, context_id, hostTask.modelId,
-                 hostTask.taskTypeStr, hostTask.kernelNameStr, hostTask.connection_id, hostTask.deviceId) = row;
+                 hostTask.taskTypeStr, hostTask.kernelNameStr, hostTask.connectionId, hostTask.deviceId) = row;
         StrToU32(context_id_u32, context_id);
         TaskId id = {hostTask.streamId, hostTask.batchId, hostTask.taskId, context_id_u32};
         hostTask.contextId = context_id_u32;
@@ -198,9 +198,8 @@ uint32_t ReadHcclOp(DataInventory& dataInventory, const DeviceContext& deviceCon
     std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, hcclDb.GetDBName()});
     DBRunner hostHcclDBRunner(hostDbDirectory);
     std::string sql{
-        "SELECT device_id, model_id, index_id, thread_id, op_name, task_type, op_type, begin, "
-        "end - begin, is_dynamic, connection_id, relay, retry, data_type, alg_type, count, "
-        "group_name from HCCLOP where device_id = "};
+        "SELECT device_id, model_id, index_id, thread_id, op_name, task_type, op_type, "
+        "connection_id, relay, retry, data_type, alg_type, count, group_name from HCCLOP where device_id = "};
     sql += std::to_string(deviceInfo.deviceId);
     std::vector<HcclOp> ans;
     std::shared_ptr<std::vector<HcclOp>> data;
@@ -220,15 +219,15 @@ uint32_t ReadHcclOp(DataInventory& dataInventory, const DeviceContext& deviceCon
     for (auto row : result)
     {
         uint16_t deviceId;
-        uint64_t modelId, timestamp, duration, count;
+        uint64_t modelId, count;
         int32_t indexId, relay, retry;
-        uint32_t threadId, rankSize = 0;
-        std::string opName, taskType, opType, isDynamic, dataType, algType, groupName;
+        uint32_t threadId;
+        std::string opName, taskType, opType, dataType, algType, groupName;
         int64_t connectionId;
-        std::tie(deviceId, modelId, indexId, threadId, opName, taskType, opType, timestamp, duration, isDynamic,
-                 connectionId, relay, retry, dataType, algType, count, groupName) = row;
-        HcclOp hcclOp{deviceId,  modelId,      indexId, threadId, opName,   taskType, opType, timestamp, duration,
-                      isDynamic, connectionId, relay,   retry,    dataType, algType,  count,  groupName, rankSize};
+        std::tie(deviceId, modelId, indexId, threadId, opName, taskType, opType, connectionId, relay, retry, dataType,
+                 algType, count, groupName) = row;
+        HcclOp hcclOp{deviceId,     modelId, indexId, threadId, opName,  taskType, opType,
+                      connectionId, relay,   retry,   dataType, algType, count,    groupName};
         ans.emplace_back(std::move(hcclOp));
     }
     MAKE_SHARED_RETURN_VALUE(data, std::vector<HcclOp>, ANALYSIS_ERROR, std::move(ans));
@@ -245,7 +244,7 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
     std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, hcclDb.GetDBName()});
     DBRunner hostHcclDBRunner(hostDbDirectory);
     std::string sql{
-        "SELECT model_id, index_id, name, group_name, plane_id, timestamp , duration, stream_id, task_id, "
+        "SELECT model_id, index_id, name, group_name, plane_id, timestamp, op_id, stream_id, task_id, "
         "context_id, batch_id, device_id, is_master, local_rank, remote_rank, thread_id, transport_type, "
         "size, data_type, link_type, notify_id, rdma_type, rank_size from HCCLTask where device_id = "};
     sql += std::to_string(deviceInfo.deviceId);
@@ -269,15 +268,17 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
         uint64_t modelId, timestamp;
         int32_t indexId, planeId;
         std::string name, groupName, transportType, dataType, linkType, rdmaType, notifyId;
-        double duration, size;
-        uint32_t streamId, contextId, localRank, remoteRank, threadId, rankSize, taskId, batchId;
+        double size;
+        uint32_t streamId, contextId, threadId, taskId, batchId;
+        int64_t localRank, remoteRank, rankSize;
         uint16_t deviceId, isMaster;
-        std::tie(modelId, indexId, name, groupName, planeId, timestamp, duration, streamId, taskId, contextId, batchId,
+        int64_t opId;
+        std::tie(modelId, indexId, name, groupName, planeId, timestamp, opId, streamId, taskId, contextId, batchId,
                  deviceId, isMaster, localRank, remoteRank, threadId, transportType, size, dataType, linkType, notifyId,
                  rdmaType, rankSize) = row;
-        HcclTask hcclTask{modelId,       indexId,   name,     groupName, planeId,  timestamp, duration,   streamId,
-                          taskId,        contextId, batchId,  deviceId,  isMaster, localRank, remoteRank, threadId,
-                          transportType, size,      dataType, linkType,  notifyId, rdmaType,  rankSize};
+        HcclTask hcclTask{modelId,   indexId,  name,     groupName, planeId,   timestamp,  streamId, taskId,
+                          contextId, batchId,  deviceId, isMaster,  localRank, remoteRank, threadId, transportType,
+                          size,      dataType, linkType, notifyId,  rdmaType,  rankSize,   opId};
         ans.emplace_back(std::move(hcclTask));
     }
     MAKE_SHARED_RETURN_VALUE(data, std::vector<HcclTask>, ANALYSIS_ERROR, std::move(ans));

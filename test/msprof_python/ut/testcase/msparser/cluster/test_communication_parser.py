@@ -28,6 +28,7 @@ from common_func.platform.chip_manager import ChipManager
 from mscalculate.hccl.hccl_task import HcclTask
 from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.meta_parser import HcclAnalysisTool
+from msparser.cluster.meta_parser import OpTaskBundle
 from profiling_bean.prof_enum.chip_model import ChipModel
 
 NAMESPACE = 'msparser.cluster.communication_parser'
@@ -118,9 +119,12 @@ class TestCommunicationParser(unittest.TestCase):
                 HcclTask(plane_id=0, hccl_name="0", duration=0, timestamp=0,
                          group_name="1", is_master=1)
             ]
-            CommunicationParser({}).parse_ops({-1: hccl_data_ffts}, 'hcom_broadcast__752_0_1@9577302986659220752')
+            CommunicationParser({}).parse_ops(
+                {-1: OpTaskBundle(tasks=hccl_data_ffts, op_name='hcom_broadcast__752_0_1')},
+                'hcom_broadcast__752_0_1@9577302986659220752'
+            )
         with pytest.raises(ProfException) as err:
-            CommunicationParser({}).parse_ops({1: {}}, 'name')
+            CommunicationParser({}).parse_ops({1: OpTaskBundle()}, 'name')
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
 
     def test_op_time_parser(self):
@@ -139,7 +143,7 @@ class TestCommunicationParser(unittest.TestCase):
                      group_name="1")
         ]
         with pytest.raises(ProfException) as err:
-            CommunicationParser({}).op_time_parser(err_hccl_data_ffts)
+            CommunicationParser({}).op_time_parser(err_hccl_data_ffts, OP_NAME, 0)
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
         # test whether Idle Time(ms) = Elapse Time(ms) - Transit Time(ms) - Wait Time(ms)
         # when all event's 'is_master' is 1
@@ -185,7 +189,9 @@ class TestCommunicationParser(unittest.TestCase):
                      bandwidth=-1, is_master=1),
         ]
 
-        op_time_dict = CommunicationParser({}).op_time_parser(events)
+        op_start = min(event.timestamp for event in events)
+        op_end = max(event.timestamp + event.duration for event in events)
+        op_time_dict = CommunicationParser({}).op_time_parser(events, OP_NAME, op_end - op_start)
         self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 4.3169188359375)
         self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 0.00002)
         self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 0.48856930468750026)
@@ -302,7 +308,7 @@ class TestCommunicationParser(unittest.TestCase):
         ]
         with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth",
                         return_value=standard_bandwidth):
-            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(events)
+            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(events, OP_NAME)
             self.assertEqual(op_bandwidth_dict, expect_bandwidth_dict)
         mc2_events = [
             HcclTask(op_name='AllGatherMatmulMc2AicpuKernel_491_0_1', hccl_name='Memcpy', rdma_type=RESERVED,
@@ -353,7 +359,9 @@ class TestCommunicationParser(unittest.TestCase):
         }
         with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth",
                         return_value=standard_bandwidth):
-            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(mc2_events)
+            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(
+                mc2_events, 'AllGatherMatmulMc2AicpuKernel_491_0_1'
+            )
             self.assertEqual(op_bandwidth_dict, mc2_expect_bandwidth_dict)
 
     def test_combine_time(self):

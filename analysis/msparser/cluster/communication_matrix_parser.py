@@ -38,6 +38,7 @@ class CommunicationMatrixParser(MetaParser):
     """
     communication matrix data parser
     """
+
     def __init__(self: any, events_data) -> None:
         self.op_events_dict = events_data
         self.op_info = []
@@ -63,14 +64,18 @@ class CommunicationMatrixParser(MetaParser):
         new_link_dict[CommunicationMatrixInfo.TRANSPORT_TYPE] = link_value[MatrixDataType.TRANSPORT_TYPE]
         new_link_dict[CommunicationMatrixInfo.TRANSIT_SIZE_MB] = link_value[MatrixDataType.TRANS_SIZE]
         new_link_dict[CommunicationMatrixInfo.TRANSIT_TIME_MS] = link_value[MatrixDataType.TRANS_TIME]
-        new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] = \
-            HcclAnalysisTool.divide(link_value[MatrixDataType.TRANS_SIZE], link_value[MatrixDataType.TRANS_TIME])
-        standard_bandwidth = HcclAnalysisTool.get_standard_bandwidth(). \
-            get(HcclAnalysisTool.convert_to_str(link_value[MatrixDataType.TRANSPORT_TYPE]), -1)
+        new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] = HcclAnalysisTool.divide(
+            link_value[MatrixDataType.TRANS_SIZE], link_value[MatrixDataType.TRANS_TIME]
+        )
+        standard_bandwidth = HcclAnalysisTool.get_standard_bandwidth().get(
+            HcclAnalysisTool.convert_to_str(link_value[MatrixDataType.TRANSPORT_TYPE]), -1
+        )
         new_link_dict[CommunicationMatrixInfo.BANDWIDTH_UTILIZATION] = float(
-            format(new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] / standard_bandwidth, ".4f"))
-        new_link_dict[CommunicationMatrixInfo.LARGE_PACKET_RATIO] = \
-            HcclAnalysisTool.divide(link_value[MatrixDataType.LARGE_PACKET_NUM], link_value[MatrixDataType.PACKET_NUM])
+            format(new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] / standard_bandwidth, ".4f")
+        )
+        new_link_dict[CommunicationMatrixInfo.LARGE_PACKET_RATIO] = HcclAnalysisTool.divide(
+            link_value[MatrixDataType.LARGE_PACKET_NUM], link_value[MatrixDataType.PACKET_NUM]
+        )
         return new_link_dict
 
     @staticmethod
@@ -100,26 +105,26 @@ class CommunicationMatrixParser(MetaParser):
         return self.op_info
 
     def parse(self):
-        for hccl_name, hccl_events in self.op_events_dict.items():
-            self.parse_ops(hccl_events, hccl_name)
+        for hccl_name, bundle in self.op_events_dict.items():
+            self.parse_ops(bundle, hccl_name)
         if not self.op_info:
             logging.error("Fail to get op_info in Communication Matrix Parser")
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
 
-    def parse_ops(self: any, events: list, hccl_name: str):
+    def parse_ops(self: any, bundle, hccl_name: str):
+        events = bundle.tasks
         if not events:
             logging.error("Fail to get events data in Communication Matrix Parser")
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
         link_info = {}
         idx = 0
         rdma_transit_op_num = NumberConstant.RDMA_NO_BARRIER_TASK_NUM
-        if not HcclAnalysisTool.is_send_or_recv_op(events, idx):
+        if not HcclAnalysisTool.is_send_or_recv_op(bundle.op_name):
             rdma_transit_op_num = NumberConstant.RDMA_WITH_BARRIER_TASK_NUM
         task_dict = defaultdict(list)
         for task in events:
             task_dict[task.plane_id].append(task)
-        for planeid in task_dict.keys():
-            planeid_tasks = task_dict[planeid]
+        for planeid, planeid_tasks in task_dict.items():
             idx = 0
             while idx < len(planeid_tasks):
                 event = planeid_tasks[idx]
@@ -129,7 +134,9 @@ class CommunicationMatrixParser(MetaParser):
                 if event.transport_type == StrConstant.SDMA and event.hccl_name in StrConstant.SDMA_TRANSIT_ITEMS:
                     self._calculate_sdma_bw_matrix(link_info, event)
                 if event.rdma_type == 'RDMA_SEND_PAYLOAD':
-                    idx = self._calculate_rdma_bw_matrix(link_info, planeid_tasks, idx, rdma_transit_op_num)
+                    idx = self._calculate_rdma_bw_matrix(
+                        link_info, planeid_tasks, idx, rdma_transit_op_num, bundle.op_name
+                    )
                     continue
                 idx += 1
         hccl_dict = {StrConstant.OP_NAME: hccl_name, StrConstant.LINK_INFO: link_info}
@@ -167,25 +174,26 @@ class CommunicationMatrixParser(MetaParser):
         link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = HcclAnalysisTool.convert_to_enum(trans_type)
         trans_size = HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.COMMUNICATION_B_to_MB
         link_info[link_key][MatrixDataType.TRANS_SIZE] += trans_size
-        link_info[link_key][MatrixDataType.TRANS_TIME] += \
+        link_info[link_key][MatrixDataType.TRANS_TIME] += (
             HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS
+        )
         link_info[link_key][MatrixDataType.PACKET_NUM] += 1
         if trans_size > HcclAnalysisTool.MessageSizeThreshold.get(trans_type, 0):
             link_info[link_key][MatrixDataType.LARGE_PACKET_NUM] += 1
 
-    def _calculate_rdma_bw_matrix(self, link_info: dict, events, idx, rdma_transit_op_num) -> int:
+    def _calculate_rdma_bw_matrix(self, link_info: dict, events, idx, rdma_transit_op_num, op_name) -> int:
         event = events[idx]
         link_key = self.get_link_key(event)
         payload_cnt = HcclAnalysisTool.find_consecutive_payload_tasks_count(events, idx)
         rdma_transit_result = HcclAnalysisTool.calculate_consecutive_payload_tasks_info(
-            events, idx, payload_cnt, rdma_transit_op_num)
+            events, idx, payload_cnt, rdma_transit_op_num, op_name
+        )
         if not rdma_transit_result:
             idx += payload_cnt
             return idx
         if link_key not in link_info:
             link_info[link_key] = [0] * len(MatrixDataType.__members__)
-        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = \
-            HcclAnalysisTool.convert_to_enum(event.transport_type)
+        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = HcclAnalysisTool.convert_to_enum(event.transport_type)
         link_info[link_key][MatrixDataType.TRANS_TIME] += rdma_transit_result[0]
         link_info[link_key][MatrixDataType.TRANS_SIZE] += rdma_transit_result[1]
         link_info[link_key][MatrixDataType.PACKET_NUM] += 1

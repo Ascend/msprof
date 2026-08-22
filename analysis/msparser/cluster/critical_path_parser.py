@@ -27,6 +27,7 @@ class CriticalPathParser(MetaParser):
     """
     critical path parser
     """
+
     TS = 'ts'
     ES = 'es'
     DUR = 'dur'
@@ -46,7 +47,7 @@ class CriticalPathParser(MetaParser):
         event_dict = {}
         for event in timeline_data:
             identify = f"{event.get(CriticalPathParser.TID)}_{event.get(CriticalPathParser.TASK_TYPE)}"
-            if identify not in event_dict.keys():
+            if identify not in event_dict:
                 event_dict[identify] = [event]
             else:
                 event_dict[identify].append(event)
@@ -56,8 +57,9 @@ class CriticalPathParser(MetaParser):
     def get_pre_event_in_same_stream(cur_event: dict, event_dict: dict) -> dict:
         cur_identify = f"{cur_event.get(CriticalPathParser.TID)}_{cur_event.get(CriticalPathParser.TASK_TYPE)}"
         cur_stream_event = event_dict.get(cur_identify)
-        sorted_cur_stream_event = \
-            sorted(cur_stream_event, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=True)
+        sorted_cur_stream_event = sorted(
+            cur_stream_event, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=True
+        )
         cur_idx = len(sorted_cur_stream_event)
         for idx, event in enumerate(sorted_cur_stream_event):
             if event.get(CriticalPathParser.TS) == cur_event.get(CriticalPathParser.TS):
@@ -70,8 +72,9 @@ class CriticalPathParser(MetaParser):
     def get_pre_event_in_different_stream(event_list: list, cur_event: dict) -> dict:
         pre_idx = None
         for idx, event in enumerate(event_list):
-            if float(event.get(CriticalPathParser.ES)) <= cur_event.get(CriticalPathParser.TS) and \
-                    event.get(CriticalPathParser.TS) != cur_event.get(CriticalPathParser.TS):
+            if float(event.get(CriticalPathParser.ES)) <= cur_event.get(CriticalPathParser.TS) and event.get(
+                CriticalPathParser.TS
+            ) != cur_event.get(CriticalPathParser.TS):
                 pre_idx = idx
                 break
         return event_list[pre_idx] if pre_idx else {}
@@ -86,29 +89,25 @@ class CriticalPathParser(MetaParser):
     def parse_op_list(op_list: list, topk_type: str) -> tuple:
         sorted_op_list = sorted(op_list, key=lambda s: float(s.get(topk_type)), reverse=True)
         op_num = len(sorted_op_list)
-        op_time = sum([float(op.get(CriticalPathParser.DUR)) for op in sorted_op_list])
+        op_time = sum(float(op.get(CriticalPathParser.DUR)) for op in sorted_op_list)
         return sorted_op_list, op_num, op_time
 
     @staticmethod
     def filter_method(op: dict) -> bool:
         filtered_op_names = ['Receive', 'Send', 'send', 'receive']
-        return all([name not in op.get(CriticalPathParser.NAME) for name in filtered_op_names])
+        return all(name not in op.get(CriticalPathParser.NAME) for name in filtered_op_names)
 
     @classmethod
     def event_type_analysis(cls, critical_path: list, top_k: int = 5) -> dict:
         top_type = "serial_time"
-        op_dict = {
-            Constant.TASK_TYPE_AI_CORE: [],
-            Constant.TASK_TYPE_AI_CPU: [],
-            Constant.TASK_TYPE_COMMUNICATION: []
-        }
+        op_dict = {Constant.TASK_TYPE_AI_CORE: [], Constant.TASK_TYPE_AI_CPU: [], Constant.TASK_TYPE_COMMUNICATION: []}
         for event in critical_path:
             op_task_type = event.get(CriticalPathParser.TASK_TYPE)
             if op_task_type in op_dict:
                 op_dict.get(op_task_type).append(event)
 
         analysis_result = {}
-        for op_type in op_dict.keys():
+        for op_type in op_dict:
             sorted_op_list, op_num, op_time = cls.parse_op_list(op_dict.get(op_type), top_type)
 
             # Filter out Receive and Send operators
@@ -123,8 +122,9 @@ class CriticalPathParser(MetaParser):
     @classmethod
     def get_event_serial_parallel_time(cls, cur_event: dict, intersection_event_list: list) -> Tuple[float, float]:
         """Calculate the serial time and parallel time of an event."""
-        sorted_intersection_event = \
-            sorted(intersection_event_list, key=lambda s: float(s[CriticalPathParser.TS]), reverse=False)
+        sorted_intersection_event = sorted(
+            intersection_event_list, key=lambda s: float(s[CriticalPathParser.TS]), reverse=False
+        )
         individual_time_list = []
         while len(sorted_intersection_event) > 0:
             individual_event = sorted_intersection_event.pop(0)
@@ -154,8 +154,9 @@ class CriticalPathParser(MetaParser):
 
     def get_critical_path(self) -> list:
         """Critical Path Analysis"""
-        sorted_event_by_start_time = \
-            sorted(self.events, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=False)
+        sorted_event_by_start_time = sorted(
+            self.events, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=False
+        )
         sorted_event_by_end_time = sorted(self.events, key=lambda s: float(s.get(CriticalPathParser.ES)), reverse=True)
         first_event = sorted_event_by_start_time[0]
         last_event = sorted_event_by_end_time[0]
@@ -179,8 +180,9 @@ class CriticalPathParser(MetaParser):
                 break
             if cur_event.get(CriticalPathParser.TS) == first_event.get(CriticalPathParser.TS):
                 critical_path_event_list.append(cur_event)
-        sorted_critical_path = \
-            sorted(critical_path_event_list, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=False)
+        sorted_critical_path = sorted(
+            critical_path_event_list, key=lambda s: float(s.get(CriticalPathParser.TS)), reverse=False
+        )
         return sorted_critical_path
 
     def get_time_intersection_event(self, cur_event: dict) -> list:
@@ -195,7 +197,7 @@ class CriticalPathParser(MetaParser):
         return interval_event_list
 
     def event_execution_type_analysis(self, critical_path: list) -> list:
-        """"get execution type of event in critical path """
+        """ "get execution type of event in critical path"""
         execution_type_analysis_result = []
         for event in critical_path:
             if event.get(CriticalPathParser.TASK_TYPE) != Constant.TASK_TYPE_COMMUNICATION:
@@ -216,33 +218,38 @@ class CriticalPathParser(MetaParser):
         """Parse the timestamp of Ge Ops"""
         for compute_op_event in self.compute_op_events:
             self.events.append(
-                {CriticalPathParser.NAME: compute_op_event.op_name,
-                 CriticalPathParser.TASK_TYPE: compute_op_event.task_type,
-                 CriticalPathParser.TID: compute_op_event.stream_id,
-                 CriticalPathParser.TS: compute_op_event.start_time / NumberConstant.CONVERSION_TIME,
-                 CriticalPathParser.ES: compute_op_event.end_time / NumberConstant.CONVERSION_TIME,
-                 CriticalPathParser.DUR: compute_op_event.duration_time / NumberConstant.CONVERSION_TIME
-                 }
+                {
+                    CriticalPathParser.NAME: compute_op_event.op_name,
+                    CriticalPathParser.TASK_TYPE: compute_op_event.task_type,
+                    CriticalPathParser.TID: compute_op_event.stream_id,
+                    CriticalPathParser.TS: compute_op_event.start_time / NumberConstant.CONVERSION_TIME,
+                    CriticalPathParser.ES: compute_op_event.end_time / NumberConstant.CONVERSION_TIME,
+                    CriticalPathParser.DUR: compute_op_event.duration_time / NumberConstant.CONVERSION_TIME,
+                }
             )
 
     def parse_hccl_ops(self) -> None:
         """Parse the timestamp of Hccl Ops"""
-        for hccl_op, hccl_events in self.hccl_op_events.items():
+        for hccl_op, bundle in self.hccl_op_events.items():
             hccl_op_dict = {
                 CriticalPathParser.NAME: hccl_op,
                 CriticalPathParser.TASK_TYPE: Constant.TASK_TYPE_COMMUNICATION,
-                CriticalPathParser.TID: hccl_events[0].stream_id,
-                CriticalPathParser.TS: hccl_events[0].first_timestamp,
-                CriticalPathParser.ES: max([event.timestamp + event.duration for event in hccl_events])
+                CriticalPathParser.TID: bundle.tasks[0].stream_id,
+                CriticalPathParser.TS: bundle.start,
+                CriticalPathParser.ES: bundle.end,
             }
-            hccl_op_dict[CriticalPathParser.DUR] = \
-                format(hccl_op_dict[CriticalPathParser.ES] - hccl_op_dict[CriticalPathParser.TS], '.4f')
+            hccl_op_dict[CriticalPathParser.DUR] = format(
+                hccl_op_dict[CriticalPathParser.ES] - hccl_op_dict[CriticalPathParser.TS], '.4f'
+            )
             self.events.append(hccl_op_dict)
 
     def parse(self) -> tuple:
         """Get Top HCCL ops Through Critical Path Analysis"""
-        logging.info("Start to critical path analysis ! Total ops num: %d, hccl ops num: %d",
-                     len(self.events), len(self.hccl_op_events))
+        logging.info(
+            "Start to critical path analysis ! Total ops num: %d, hccl ops num: %d",
+            len(self.events),
+            len(self.hccl_op_events),
+        )
         if not self.events:
             logging.error("Fail to get compute op and hccl op info, critical path parser is interrupted")
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
@@ -250,15 +257,20 @@ class CriticalPathParser(MetaParser):
         event_execution_type_analysis_data = self.event_execution_type_analysis(critical_path_event)
         op_type_analysis = self.event_type_analysis(event_execution_type_analysis_data)
         hccl_result = op_type_analysis.get(Constant.TASK_TYPE_COMMUNICATION)
-        logging.info("With critical path analysis, total ops num: %d, hccl ops num: %d ",
-                     len(critical_path_event), hccl_result.get('op_num'))
+        logging.info(
+            "With critical path analysis, total ops num: %d, hccl ops num: %d ",
+            len(critical_path_event),
+            hccl_result.get('op_num'),
+        )
 
         top_communication_op = set()
         for idx, communication_op in enumerate(hccl_result.get("topk_op")):
             logging.info(
-                "Top %d hccl op: %s serial time(us): %f op dur time: %s ", idx,
-                communication_op.get(CriticalPathParser.NAME), communication_op.get('serial_time'),
-                communication_op.get(CriticalPathParser.DUR)
+                "Top %d hccl op: %s serial time(us): %f op dur time: %s ",
+                idx,
+                communication_op.get(CriticalPathParser.NAME),
+                communication_op.get('serial_time'),
+                communication_op.get(CriticalPathParser.DUR),
             )
             top_communication_op.add(communication_op.get(CriticalPathParser.NAME))
         return tuple(top_communication_op)

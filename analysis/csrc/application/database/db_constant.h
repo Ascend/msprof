@@ -153,7 +153,6 @@ const std::string TABLE_NAME_PA_LINK_INFO = "PA_LINK_INFO";
 const std::string TABLE_NAME_PCIE_INFO = "ENUM_PCIE_INFO";
 const std::string TABLE_NAME_PCIE_INFO_V6 = "ENUM_PCIE_INFO_V6";
 const std::string PROCESSOR_NAME_KFC_TASK = "KFC_TASK";
-const std::string PROCESSOR_NAME_KFC_COMM = "KFC_COMM";
 const std::string PROCESSOR_NAME_DEVICE_TX = "DEVICE_MSTX";
 
 const std::string PROCESSOR_NAME_SIO = "SIO";

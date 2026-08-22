@@ -402,9 +402,10 @@ class AiStackDataCheckManager(DataCheckManager):
         """
         if cls.check_export_with_so() or InfoConfReader().is_level0():
             return False
-        return AiStackDataCheckManager._check_output(result_dir, device_id) and DBManager.check_tables_in_db(
-            PathManager.get_db_path(result_dir, DBNameConstant.DB_HCCL_SINGLE_DEVICE),
-            DBNameConstant.TABLE_HCCL_OP_REPORT,
+        hccl_db_path = PathManager.get_db_path(result_dir, DBNameConstant.DB_HCCL_SINGLE_DEVICE)
+        return AiStackDataCheckManager._check_output(result_dir, device_id) and (
+            DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_HCCL_OP_REPORT)
+            or DBManager.check_tables_in_db(hccl_db_path, DBNameConstant.TABLE_KFC_OP_REPORT)
         )
 
     @classmethod

@@ -19,6 +19,7 @@ import logging
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.ms_constant.number_constant import NumberConstant
+from mscalculate.hccl.hccl_task import ReportData
 
 
 class ReportHcclStatisticData:
@@ -27,29 +28,44 @@ class ReportHcclStatisticData:
     """
 
     @staticmethod
-    def _get_hccl_op_report_sql() -> str:
-        sql = "select op_type,  occurrences, round(total_time/{NS_TO_US}, {accuracy}), " \
-              "round(min/{NS_TO_US}, {accuracy}), round(avg/{NS_TO_US}, {accuracy}), round(max/{NS_TO_US}, " \
-              "{accuracy}), round(ratio, {accuracy}) from {0} order by total_time desc " \
-            .format(DBNameConstant.TABLE_HCCL_OP_REPORT, NS_TO_US=NumberConstant.NS_TO_US,
-                    accuracy=NumberConstant.ROUND_THREE_DECIMAL)
-        return sql
+    def _get_report_sql(table: str) -> str:
+        return (
+            "select op_type, occurrences, "
+            "round(total_time/{NS_TO_US}, {accuracy}) as total_time, "
+            "round(min/{NS_TO_US}, {accuracy}) as min, "
+            "round(avg/{NS_TO_US}, {accuracy}) as avg, "
+            "round(max/{NS_TO_US}, {accuracy}) as max "
+            "from {0}"
+        ).format(table, NS_TO_US=NumberConstant.NS_TO_US, accuracy=NumberConstant.ROUND_THREE_DECIMAL)
 
     @classmethod
     def report_hccl_op(cls: any, db_path: str, headers: list) -> tuple:
-        """
-        report hccl op
-        :param db_path: DB path
-        :param headers: table headers
-        :return: headers, data, data length
-        """
+        """从 TABLE_HCCL_OP_REPORT 和 TABLE_KFC_OP_REPORT 取数据，统一算ratio"""
         conn, curs = DBManager.check_connect_db_path(db_path)
-        if not (conn and curs) or not DBManager.judge_table_exist(curs, DBNameConstant.TABLE_HCCL_OP_REPORT):
-            logging.warning("Failed to connect to the database %s or the table %s does not exist.",
-                            DBNameConstant.DB_HCCL_SINGLE_DEVICE,
-                            DBNameConstant.TABLE_HCCL_OP_REPORT)
+        if not (conn and curs):
+            logging.warning("Failed to connect to the database %s.", DBNameConstant.DB_HCCL_SINGLE_DEVICE)
             return [], [], 0
-        sql = cls._get_hccl_op_report_sql()
-        data = DBManager.fetch_all_data(curs, sql)
+
+        rows = []
+        for table in (DBNameConstant.TABLE_HCCL_OP_REPORT, DBNameConstant.TABLE_KFC_OP_REPORT):
+            if DBManager.judge_table_exist(curs, table):
+                rows.extend(DBManager.fetch_all_data(curs, cls._get_report_sql(table), dto_class=ReportData))
         DBManager.destroy_db_connect(conn, curs)
-        return headers, data, len(data)
+
+        total_time_sum = sum(r.total_time for r in rows)
+        result = []
+        for r in rows:
+            ratio = r.total_time * 100.0 / total_time_sum if total_time_sum else 0
+            result.append(
+                [
+                    r.op_type,
+                    r.occurrences,
+                    round(r.total_time, NumberConstant.ROUND_THREE_DECIMAL),
+                    round(r.min, NumberConstant.ROUND_THREE_DECIMAL),
+                    round(r.avg, NumberConstant.ROUND_THREE_DECIMAL),
+                    round(r.max, NumberConstant.ROUND_THREE_DECIMAL),
+                    round(ratio, NumberConstant.ROUND_THREE_DECIMAL),
+                ]
+            )
+        result.sort(key=lambda x: x[2], reverse=True)
+        return headers, result, len(result)
