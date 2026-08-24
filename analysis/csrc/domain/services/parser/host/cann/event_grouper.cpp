@@ -35,6 +35,7 @@ namespace
 {
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string WAIT_EVENT = "aclrtStreamWaitEvent";
+const std::string NODE_LAUNCH = "launch";
 }  // namespace
 
 CANNWarehouses &EventGrouper::GetGroupEvents() { return cannWarehouses_; }
@@ -190,7 +191,7 @@ bool EventGrouper::isKernelApiEvent(const std::shared_ptr<MsprofApi> &trace)
         }
         if (trace->level == MSPROF_REPORT_NODE_LEVEL)
         {
-            return true;
+            return TypeData::GetInstance().Get(trace->level, trace->type) == NODE_LAUNCH;
         }
         // 判断区间相交则为冗余数据
         auto lastPair = lastKernelTimes_[trace->threadId][trace->level];

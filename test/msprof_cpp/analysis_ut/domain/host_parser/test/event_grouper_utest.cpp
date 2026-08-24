@@ -50,6 +50,10 @@ protected:
         fw.WriteText("20000_196625:aclrtRecordEvent\n");
         fw.WriteText("5000_1125:CpuKernelLaunchExWithArgs_Big\n");
         fw.WriteText("5000_1077:MemCopy2DAsync\n");
+        // node层(type=10000)仅launch(type=5)参与建树，其余类型（node_basic_info/ge_api等）不参与建树但仍落盘
+        fw.WriteText("10000_5:launch\n");
+        fw.WriteText("10000_0:node_basic_info\n");
+        fw.WriteText("10000_65536:ge_api\n");
         fw.Close();
     }
     // 所有测试用例之后执行
@@ -100,6 +104,33 @@ void GenApiEventsBin(const std::string &fakeDataDir, const int num)
 
         apiTrace.emplace_back(tmp);
     }
+
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
+    fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
+}
+
+// 构造node层api事件：launch(type=5)与非launch(type=0/0x010000)混合，写bin
+void GenNodeApiEventsBin(const std::string &fakeDataDir)
+{
+    std::vector<MsprofApi> apiTrace;
+    auto addApi = [&](uint32_t type, uint64_t begin, uint64_t end) {
+        auto tmp = MsprofApi{};
+        tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        tmp.level = MSPROF_REPORT_NODE_LEVEL;
+        tmp.type = type;
+        tmp.threadId = 1;
+        tmp.reserve = 1;
+        tmp.beginTime = begin;
+        tmp.endTime = end;
+        tmp.itemId = 1;
+        apiTrace.emplace_back(tmp);
+    };
+    // node层launch事件，应进入kernelEvents参与建树
+    addApi(MSPROF_REPORT_NODE_LAUNCH_TYPE, 100, 200);
+    addApi(MSPROF_REPORT_NODE_LAUNCH_TYPE, 300, 400);
+    // node层非launch事件，不应进入kernelEvents（不参与建树），但api全量仍保留在apiTraces_中落盘
+    addApi(MSPROF_REPORT_NODE_BASIC_INFO_TYPE, 150, 250);
+    addApi(MSPROF_REPORT_NODE_GE_API_BASE_TYPE, 350, 450);
 
     auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
     fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
@@ -266,5 +297,36 @@ TEST_F(EventGrouperUTest, TestGroupShouldGroupCorrespondingEventsWhenDataDirHasA
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "taskTrackEvents"));
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "hcclOpInfoEvents"));
 
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+// 测试node层非launch的api事件不参与建树（不进kernelEvents），但api全量仍保存在apiTraces_中（落盘不受影响）
+TEST_F(EventGrouperUTest, TestGroupShouldOnlyKeepNodeLaunchEventForBuildTree)
+{
+    const std::string fakeDataDir = "./fakeDataNodeFilter";
+    File::RemoveDir(fakeDataDir, 0);
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    TypeData::GetInstance().Load("./");
+
+    GenNodeApiEventsBin(fakeDataDir);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto tids = grouper->GetThreadIdSet();
+    auto res = grouper->GetGroupEvents();
+
+    // 只有2条launch事件进入kernelEvents参与建树
+    EXPECT_EQ(2, g_getCannEventsNum(tids, res, "kernelEvents"));
+    // api全量（2条launch + 2条非launch）仍保留在apiTraces_中，落盘不受影响
+    auto &apiTraces = grouper->GetApiTraces();
+    EXPECT_EQ(4, apiTraces.size());
+    bool hasNonLaunch = false;
+    for (const auto &event : apiTraces)
+    {
+        if (event->apiPtr->type != MSPROF_REPORT_NODE_LAUNCH_TYPE)
+        {
+            hasNonLaunch = true;
+        }
+    }
+    EXPECT_EQ(true, hasNonLaunch);
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }
