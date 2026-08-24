@@ -16,10 +16,13 @@
 
 #include "analysis/csrc/application/summary/summary_manager.h"
 
-#include <atomic>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/application/summary/summary_factory.h"
-#include "analysis/csrc/infrastructure/utils/thread_pool.h"
+#include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 
 namespace Analysis
 {
@@ -27,81 +30,101 @@ namespace Application
 {
 namespace
 {
-using namespace Utils;
-const uint8_t PROCESSOR_POOL_NUM = 5;
 const std::vector<std::string> DATA_ASSEMBLE_LIST{PROCESSOR_OP_SUMMARY,          PROCESSOR_NAME_COMM_STATISTIC,
                                                   PROCESSOR_NAME_OP_STATISTIC,   PROCESSOR_NAME_NPU_MEM,
                                                   PROCESSOR_NAME_NPU_MODULE_MEM, PROCESSOR_NAME_API,
                                                   PROCESSOR_NAME_FUSION_OP,      PROCESSOR_TASK_TIME_SUMMARY,
                                                   PROCESSOR_NAME_STEP_TRACE,     PROCESSOR_NAME_PAGE_FAULT};
 
-const std::set<std::string> SUMMARY_DATA_PROCESS_LIST{PROCESSOR_NAME_COMMUNICATION,
-                                                      PROCESSOR_NAME_COMPUTE_TASK_INFO,
-                                                      PROCESSOR_NAME_TASK,
-                                                      PROCESSOR_PMU,
-                                                      PROCESSOR_NAME_COMM_STATISTIC,
-                                                      PROCESSOR_NAME_OP_STATISTIC,
-                                                      PROCESSOR_NAME_NPU_MEM,
-                                                      PROCESSOR_NAME_NPU_MODULE_MEM,
-                                                      PROCESSOR_NAME_API,
-                                                      PROCESSOR_NAME_FUSION_OP,
-                                                      PROCESSOR_NAME_MODEL_NAME,
-                                                      PROCESSOR_NAME_STEP_TRACE,
-                                                      PROCESSOR_HOST_TASK,
-                                                      PROCESSOR_NAME_PAGE_FAULT};
+const std::unordered_map<std::string, std::string> SUMMARY_DELIVERABLES{
+    {"op_summary", PROCESSOR_OP_SUMMARY},
+    {"comm_statistic", PROCESSOR_NAME_COMM_STATISTIC},
+    {"op_statistic", PROCESSOR_NAME_OP_STATISTIC},
+    {"npu_memory", PROCESSOR_NAME_NPU_MEM},
+    {"npu_module_memory", PROCESSOR_NAME_NPU_MODULE_MEM},
+    {"api_statistic", PROCESSOR_NAME_API},
+    {"fusion_op", PROCESSOR_NAME_FUSION_OP},
+    {"task_time", PROCESSOR_TASK_TIME_SUMMARY},
+    {"step_trace", PROCESSOR_NAME_STEP_TRACE},
+    {"page_fault", PROCESSOR_NAME_PAGE_FAULT},
+};
+
 }  // namespace
 
-bool SummaryManager::Run(DataInventory& dataInventory)
+bool SummaryManager::IsDeliverableSupported(const std::string& deliverableName)
 {
-    INFO("Start exporting summary!");
-    PRINT_INFO("Start exporting the summary!");
-    bool runFlag = ProcessSummary(dataInventory);
-    if (!runFlag)
+    return SUMMARY_DELIVERABLES.find(deliverableName) != SUMMARY_DELIVERABLES.end();
+}
+
+bool SummaryManager::GetTopologyRoots(const std::vector<std::string>& deliverableNames, std::vector<TopoNodeId>& roots)
+{
+    const size_t rootsSize = roots.size();
+    std::vector<std::string> assemblerNames;
+    if (!GetAssemblerList(deliverableNames, assemblerNames))
     {
-        ERROR("The unified summary process failed to be executed.");
-        PRINT_ERROR(
-            "The unified summary process failed to be executed. "
-            "Please check msprof_analysis_log in outputPath for more info.");
         return false;
     }
-    PRINT_INFO("End exporting summary output_file. The file is stored in the PROF file.");
+    for (const auto& name : assemblerNames)
+    {
+        const TopoNodeId id{TopoNodeStage::SUMMARY_GENERATION, name};
+        if (TopoNodeRegistry::Find(id) == nullptr)
+        {
+            ERROR("Summary execution list node % has no static topology registration.", name);
+            roots.resize(rootsSize);
+            return false;
+        }
+        roots.push_back(id);
+    }
     return true;
 }
 
-bool SummaryManager::ProcessSummary(Analysis::Infra::DataInventory& dataInventory)
+bool SummaryManager::GetAssemblerList(const std::vector<std::string>& deliverableNames,
+                                      std::vector<std::string>& assemblerNames)
 {
-    Analysis::Utils::ThreadPool pool(PROCESSOR_POOL_NUM);
-    pool.Start();
-    std::atomic<bool> retFlag(true);
-    for (const auto& name : DATA_ASSEMBLE_LIST)
+    assemblerNames.clear();
+    if (deliverableNames.empty())
     {
-        pool.AddTask(
-            [this, &name, &retFlag, &dataInventory]()
-            {
-                auto assembler = SummaryFactory::GetAssemblerByName(name, profPath_);
-                if (assembler == nullptr)
+        assemblerNames = DATA_ASSEMBLE_LIST;
+        return true;
+    }
+
+    std::set<std::string> selectedAssemblers;
+    for (const auto& deliverableName : deliverableNames)
+    {
+        const auto deliverableIter = SUMMARY_DELIVERABLES.find(deliverableName);
+        if (deliverableIter == SUMMARY_DELIVERABLES.end())
+        {
+            ERROR("Summary deliverable % is not supported.", deliverableName);
+            return false;
+        }
+        if (selectedAssemblers.insert(deliverableIter->second).second)
+        {
+            assemblerNames.emplace_back(deliverableIter->second);
+        }
+    }
+    return true;
+}
+
+TopoNodeCreatorFactory SummaryManager::CreateSummaryAssembler(const std::string& name)
+{
+    return [name](const TopoBuildContext& context)
+    {
+        const std::string profPath = context.profPath;
+        return [name, profPath]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [name, profPath](DataInventory& dataInventory) -> bool
                 {
-                    ERROR("% is not defined", name);
-                    retFlag = false;
-                    return;
-                }
-                retFlag = assembler->Run(dataInventory) && retFlag;
-            });
-    }
-    pool.WaitAllTasks();
-    pool.Stop();
-    if (!retFlag)
-    {
-        ERROR("The % for summary assemble failed to be executed.", profPath_);
-        PRINT_ERROR(
-            "The % for summary assemble failed to be executed. "
-            "Please check msprof_analysis_log in outputPath for more info.",
-            profPath_);
-        return false;
-    }
-    return true;
+                    const auto assembler = SummaryFactory::GetAssemblerByName(name, profPath);
+                    if (assembler == nullptr)
+                    {
+                        ERROR("% is not defined", name);
+                        return false;
+                    }
+                    return assembler->Run(dataInventory);
+                }));
+        };
+    };
 }
-
-const std::set<std::string>& SummaryManager::GetProcessList() { return SUMMARY_DATA_PROCESS_LIST; }
 }  // namespace Application
 }  // namespace Analysis

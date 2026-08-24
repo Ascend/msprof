@@ -16,12 +16,15 @@
 
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 
-#include <atomic>
+#include <algorithm>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/application/timeline/timeline_factory.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/step_trace_data.h"
-#include "analysis/csrc/infrastructure/utils/thread_pool.h"
+#include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 
 namespace Analysis
 {
@@ -32,8 +35,9 @@ namespace
 const std::string PREFIX_CONTEXT = "[";
 const std::string SUFFIX_CONTEXT = "]";
 const int JSON_FILE_OFFSET = -1;
-// 数据中心中最少也会有hash类数据
-const size_t MIN_NUM_FOR_IOC = std::set<std::string>{PROCESSOR_NAME_HASH}.size();
+const std::string TIMELINE_PREFIX = "TIMELINE:";
+const std::string TIMELINE_PRE_DUMP = TIMELINE_PREFIX + "PRE_DUMP";
+const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
 
 const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{
     {JsonProcess::ASCEND, PROCESS_TASK},
@@ -71,85 +75,7 @@ const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{
     {JsonProcess::FUSION_TASK, PROCESS_FUSION_TASK},
 };
 
-std::set<std::string> TIMELINE_DATA_PROCESS_LIST{
-    PROCESSOR_NAME_API,
-    PROCESSOR_NAME_DPU,
-    PROCESSOR_NAME_FUSION_TASK,
-    PROCESSOR_NAME_COMMUNICATION,
-    PROCESSOR_NAME_CCU_MISSION,
-    PROCESSOR_NAME_COMPUTE_TASK_INFO,
-    PROCESSOR_NAME_KFC_TASK,
-    PROCESSOR_NAME_DEVICE_TX,
-    PROCESSOR_NAME_MSTX,
-    PROCESSOR_NAME_STEP_TRACE,
-    PROCESSOR_NAME_TASK,
-    PROCESSOR_NAME_ACC_PMU,
-    PROCESSOR_NAME_AICORE_FREQ,
-    PROCESSOR_NAME_CHIP_TRAINS,
-    PROCESSOR_NAME_DDR,
-    PROCESSOR_NAME_HBM,
-    PROCESSOR_NAME_HCCS,
-    PROCESSOR_NAME_CPU_USAGE,
-    PROCESSOR_NAME_MEM_USAGE,
-    PROCESSOR_NAME_DISK_USAGE,
-    PROCESSOR_NAME_NETWORK_USAGE,
-    PROCESSOR_NAME_OSRT_API,
-    PROCESSOR_NAME_LLC,
-    PROCESSOR_NAME_NPU_MEM,
-    PROCESSOR_NAME_PCIE,
-    PROCESSOR_NAME_SIO,
-    PROCESSOR_NAME_SOC,
-    PROCESSOR_NAME_NIC,
-    PROCESSOR_NAME_ROCE,
-    PROCESSOR_NAME_QOS,
-    PROCESSOR_MC2_COMM_INFO,
-    PROCESSOR_NAME_MEMCPY_INFO,
-    PROCESSOR_NAME_NPU_OP_MEM,
-    PROCESSOR_NAME_NPU_MODULE_MEM,
-    PROCESSOR_NAME_NIC_TIMELINE,
-    PROCESSOR_NAME_ROCE_TIMELINE,
-    PROCESSOR_NAME_LOW_POWER,
-    PROCESSOR_NAME_BIU_PERF,
-    PROCESSOR_NAME_UB,
-    PROCESSOR_NAME_BLOCK_DETAIL,
-};
 }  // namespace
-
-bool TimelineManager::ProcessTimeLine(DataInventory& dataInventory, const std::vector<JsonProcess>& jsonProcess)
-{
-    const uint16_t tableProcessors = 10;  // 最多有10个线程
-    Analysis::Utils::ThreadPool pool(tableProcessors);
-    pool.Start();
-    std::atomic<bool> retFlag(true);
-    std::vector<std::string> assemblerList = GetAssemblerList(jsonProcess);
-    for (const auto& name : assemblerList)
-    {
-        pool.AddTask(
-            [this, &name, &retFlag, &dataInventory]()
-            {
-                auto assembler = TimelineFactory::GetAssemblerByName(name);
-                if (assembler == nullptr)
-                {
-                    ERROR("% is not defined", name);
-                    retFlag = false;
-                    return;
-                }
-                retFlag = assembler->Run(dataInventory, profPath_) && retFlag;
-            });
-    }
-    pool.WaitAllTasks();
-    pool.Stop();
-    if (!retFlag)
-    {
-        ERROR("The % for json assemble failed to be executed.", profPath_);
-        PRINT_ERROR(
-            "The % for json assemble failed to be executed. "
-            "Please check msprof_analysis_log in outputPath for more info.",
-            profPath_);
-        return false;
-    }
-    return true;
-}
 
 void TimelineManager::WriteFile(const std::string& filePrefix, FileCategory category)
 {
@@ -160,18 +86,15 @@ void TimelineManager::WriteFile(const std::string& filePrefix, FileCategory cate
     fileType_.emplace(category, filePath);
 }
 
-bool TimelineManager::PreDumpJson(DataInventory& dataInventory)
+bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>& jsonProcess, DataInventory& dataInventory)
 {
-    if (dataInventory.Size() <= MIN_NUM_FOR_IOC)
-    {
-        return false;
-    }
     WriteFile(MSPROF_JSON_FILE, FileCategory::MSPROF);
-    if (dataInventory.GetPtr<std::vector<TrainTraceData>>())
+    if (std::find(jsonProcess.begin(), jsonProcess.end(), JsonProcess::STEP_TRACE) != jsonProcess.end())
     {
         WriteFile(STEP_TRACE_FILE, FileCategory::STEP);
     }
-    if (dataInventory.GetPtr<std::vector<MsprofTxHostData>>())
+    if (std::find(jsonProcess.begin(), jsonProcess.end(), JsonProcess::MSPROFTX) != jsonProcess.end() &&
+        dataInventory.GetPtr<std::vector<MsprofTxHostData>>() != nullptr)
     {
         WriteFile(MSPROF_TX_FILE, FileCategory::MSPROF_TX);
     }
@@ -184,44 +107,148 @@ void TimelineManager::PostDumpJson()
     {
         // 此处需要覆盖文件末尾的","，实测必须使用in、out、ate三种模式打开文件，才可以实现覆盖写入
         FileWriter writer(it.second, std::ios::in | std::ios::out | std::ios::ate);
-        writer.WriteTextBack(SUFFIX_CONTEXT, JSON_FILE_OFFSET);
+        if (File::Size(it.second) == PREFIX_CONTEXT.size())
+        {
+            writer.WriteText(SUFFIX_CONTEXT);
+        }
+        else
+        {
+            writer.WriteTextBack(SUFFIX_CONTEXT, JSON_FILE_OFFSET);
+        }
     }
-}
-
-bool TimelineManager::Run(DataInventory& dataInventory, const std::vector<JsonProcess>& jsonProcess)
-{
-    INFO("Start exporting timeline!");
-    PRINT_INFO("Start exporting the timeline!");
-    if (!PreDumpJson(dataInventory))
-    {
-        WARN("Can't Get data from dataInventory after data process");
-        PRINT_WARN("Can't export timeline, msprof_analysis_log in outputPath for more info");
-        return true;
-    }
-    bool runFlag = ProcessTimeLine(dataInventory, jsonProcess);
-    PostDumpJson();
-    if (!runFlag)
-    {
-        ERROR("The unified timeline process failed to be executed.");
-        PRINT_ERROR(
-            "The unified timeline process failed to be executed. "
-            "Please check msprof_analysis_log in outputPath for more info.");
-        return false;
-    }
-    PRINT_INFO("End exporting timeline output_file. The file is stored in the PROF file.");
-    return true;
 }
 
 std::vector<std::string> TimelineManager::GetAssemblerList(const std::vector<JsonProcess>& jsonProcess)
 {
     std::vector<std::string> assemblerList;
+    std::set<std::string> assemblerSet;
     for (const auto& jsonEnum : jsonProcess)
     {
-        assemblerList.push_back(JSON_TO_ASSEMBLER_TABLE.at(jsonEnum));
+        const auto& assemblerName = JSON_TO_ASSEMBLER_TABLE.at(jsonEnum);
+        if (assemblerSet.insert(assemblerName).second)
+        {
+            assemblerList.push_back(assemblerName);
+        }
     }
     return assemblerList;
 }
 
-const std::set<std::string>& TimelineManager::GetProcessList() { return TIMELINE_DATA_PROCESS_LIST; }
+bool TimelineManager::GetTopologyRoots(const std::vector<JsonProcess>& jsonProcesses, std::vector<TopoNodeId>& roots)
+{
+    const size_t rootsSize = roots.size();
+    for (const auto& name : GetAssemblerList(jsonProcesses))
+    {
+        const TopoNodeId id{TopoNodeStage::TIMELINE_EXPORT, name};
+        if (TopoNodeRegistry::Find(id) == nullptr)
+        {
+            ERROR("Timeline execution list node % has no static topology registration.", name);
+            roots.resize(rootsSize);
+            return false;
+        }
+        roots.push_back(id);
+    }
+    const TopoNodeId postDump{TopoNodeStage::FLOW_CONTROL, TIMELINE_POST_DUMP};
+    if (TopoNodeRegistry::Find(postDump) == nullptr)
+    {
+        ERROR("Timeline post dump node has no static topology registration.");
+        roots.resize(rootsSize);
+        return false;
+    }
+    roots.push_back(postDump);
+    return true;
+}
+
+TopoNodeCreatorFactory TimelineManager::CreateTimelineAssembler(const std::string& name)
+{
+    return [name](const TopoBuildContext& context)
+    {
+        const std::string profPath = context.profPath;
+        return [name, profPath]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [name, profPath](DataInventory& dataInventory) -> bool
+                {
+                    const auto assembler = TimelineFactory::GetAssemblerByName(name);
+                    if (assembler == nullptr)
+                    {
+                        ERROR("% is not defined", name);
+                        return false;
+                    }
+                    return assembler->Run(dataInventory, profPath);
+                }));
+        };
+    };
+}
+
+TopoNodeCreatorFactory TimelineManager::CreateTimelinePreDump()
+{
+    return [](const TopoBuildContext& context) -> Infra::ProcessCreator
+    {
+        const auto session = context.timelineSession;
+        const std::vector<JsonProcess> processes = context.timelineProcesses;
+        if (session == nullptr)
+        {
+            return Infra::ProcessCreator();
+        }
+        return [session, processes]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [session, processes](DataInventory& dataInventory) -> bool
+                {
+                    INFO("Start exporting timeline!");
+                    PRINT_INFO("Start exporting the timeline!");
+                    return session->PreDumpJson(processes, dataInventory);
+                }));
+        };
+    };
+}
+
+TopoNodeCreatorFactory TimelineManager::CreateTimelinePostDump()
+{
+    return [](const TopoBuildContext& context) -> Infra::ProcessCreator
+    {
+        const auto session = context.timelineSession;
+        if (session == nullptr)
+        {
+            return Infra::ProcessCreator();
+        }
+        return [session]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [session](DataInventory&) -> bool
+                {
+                    session->PostDumpJson();
+                    PRINT_INFO("End exporting timeline output_file. The file is stored in the PROF file.");
+                    return true;
+                }));
+        };
+    };
+}
+
+std::vector<TopoNodeId> TimelineManager::ResolveSelectedTimelineNodes(const TopoBuildContext&,
+                                                                      const std::vector<TopoNodeId>& roots)
+{
+    std::vector<TopoNodeId> dependencies;
+    for (const auto& root : roots)
+    {
+        if (root.stage == TopoNodeStage::TIMELINE_EXPORT)
+        {
+            dependencies.push_back(root);
+        }
+    }
+    return dependencies;
+}
+
+std::vector<TopoNodeId> TimelineManager::ResolveTimelinePreDumpDependencies(const TopoBuildContext& context,
+                                                                            const std::vector<TopoNodeId>&)
+{
+    std::vector<TopoNodeId> dependencies;
+    if (std::find(context.timelineProcesses.begin(), context.timelineProcesses.end(), JsonProcess::MSPROFTX) !=
+        context.timelineProcesses.end())
+    {
+        dependencies.push_back(TopoNodeId{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_MSTX});
+    }
+    return dependencies;
+}
 }  // namespace Application
 }  // namespace Analysis

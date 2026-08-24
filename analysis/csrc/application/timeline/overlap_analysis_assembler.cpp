@@ -18,7 +18,6 @@
 #include <set>
 
 #include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/domain/data_process/ai_task/overlap_analysis_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
 
@@ -104,16 +103,6 @@ uint8_t OverlapAnalysisAssembler::AssembleData(DataInventory &dataInventory, Jso
                                                const std::string &profPath)
 {
     auto overlapData = dataInventory.GetPtr<std::vector<OverlapAnalysisData>>();
-    if (!overlapData)
-    {
-        OverlapAnalysisProcessor processor(profPath);
-        if (!processor.Run(dataInventory, PROCESSOR_NAME_OVERLAP_ANALYSIS))
-        {
-            ERROR("Process overlap analysis data failed.");
-            return ASSEMBLE_FAILED;
-        }
-        overlapData = dataInventory.GetPtr<std::vector<OverlapAnalysisData>>();
-    }
     if (!overlapData || overlapData->empty())
     {
         WARN("No overlap analysis data found.");

@@ -20,35 +20,42 @@
 #define ANALYSIS_DEVICE_TASK_DATAINVENTORY_DATA_INVENTORY_H
 
 #include <memory>
-#include <set>
-#include <unordered_map>
-#include <typeindex>
 #include <mutex>
+#include <set>
+#include <typeindex>
+#include <unordered_map>
+
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-using Analysis::Log;
 using Analysis::Format;
+using Analysis::Log;
 
-namespace Analysis {
-namespace Infra {
+namespace Analysis
+{
+namespace Infra
+{
 
-struct BaseType {
+struct BaseType
+{
     virtual ~BaseType() = default;
 };
 using BaseTypePtr = std::shared_ptr<BaseType>;
 
 template <typename T>
-struct CustomType : public BaseType {
+struct CustomType : public BaseType
+{
     std::shared_ptr<T> data;
 };
 
-template<typename T>
-struct SharedPtrType {
+template <typename T>
+struct SharedPtrType
+{
     using Type = std::shared_ptr<T>;
 };
 
-class DataInventory {
-public:
+class DataInventory
+{
+   public:
     /**
      * @brief 将数据存放入DataInventory
      *
@@ -57,14 +64,16 @@ public:
      * @return 成功或失败
      * @note 非常重要：使用本接口缓存的数据，如果没有用REGISTER_PROCESS_DEPENDENT_DATA注册，会立即被释放
      */
-    template<typename T>
+    template <typename T>
     bool Inject(std::shared_ptr<T> ptr)
     {
-        if (ptr == nullptr) {
+        if (ptr == nullptr)
+        {
             return false;
         }
 
-        if (GetPtr<T>() != nullptr) { // 不支持注入相同类型数据
+        if (GetPtr<T>() != nullptr)
+        {  // 不支持注入相同类型数据
             return false;
         }
 
@@ -73,7 +82,7 @@ public:
         container->data = ptr;
         return InputToData(typeid(T), container);
     }
-    template<typename T>
+    template <typename T>
     std::shared_ptr<T> GetPtr() const
     {
         return Cast<T>(GetPtr(typeid(T)));
@@ -87,32 +96,30 @@ public:
      */
     std::set<std::type_index> RemoveRestData(const std::set<std::type_index>& keepingDataType);
 
-    std::size_t Size()
-    {
-        return data_.size();
-    }
+    std::size_t Size() { return data_.size(); }
 
     DataInventory() = default;
     ~DataInventory() = default;
     DataInventory(const DataInventory&) = delete;
     DataInventory& operator=(const DataInventory&) = delete;
-    DataInventory(DataInventory&& dataInventory) : data_(std::move(dataInventory.data_))
-    {
-    }
+    DataInventory(DataInventory&& dataInventory) : data_(std::move(dataInventory.data_)) {}
     DataInventory& operator=(DataInventory&& dataInventory)
     {
-        if (&dataInventory == this) {
+        if (&dataInventory == this)
+        {
             return *this;
         }
         data_.swap(dataInventory.data_);
         dataInventory.data_.clear();
         return *this;
     }
-private:
-    template<typename T>
+
+   private:
+    template <typename T>
     std::shared_ptr<T> Cast(const BaseTypePtr& ptr) const
     {
-        if (ptr == nullptr) {
+        if (ptr == nullptr)
+        {
             return {};
         }
         auto customPtr = std::static_pointer_cast<CustomType<T>>(ptr);
@@ -121,13 +128,13 @@ private:
     bool InputToData(std::type_index idx, BaseTypePtr ptr);
     BaseTypePtr GetPtr(std::type_index idx) const;
 
-private:
+   private:
     std::unordered_map<std::type_index, BaseTypePtr> data_;
     mutable std::mutex mutex_;
 };
 
-}
+}  // namespace Infra
 
-}
+}  // namespace Analysis
 
 #endif

@@ -1,68 +1,102 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/* -------------------------------------------------------------------------
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
- *
- * MindStudio is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan PSL v2.
- * You may obtain a copy of Mulan PSL v2 at:
- *
- *    http://license.coscl.org.cn/MulanPSL2
- *
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
- * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
- * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
-#include "analysis/csrc/application/summary/summary_factory.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
 
 using namespace Analysis::Application;
+using namespace Analysis::Domain;
+using namespace Analysis::Infra;
 using namespace Analysis::Utils;
-namespace {
-const int DEPTH = 0;
-const std::string BASE_PATH = "./summary_test";
-const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
+
+namespace
+{
+const std::string PROF_PATH = "./summary_test/PROF_0";
 const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
-}
 
-class SummaryManagerUTest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
-    static void SetUpTestCase()
-    {
-        if (File::Check(BASE_PATH)) {
-            File::RemoveDir(BASE_PATH, DEPTH);
-        }
-        EXPECT_TRUE(File::CreateDir(BASE_PATH));
-        EXPECT_TRUE(File::CreateDir(PROF_PATH));
-        EXPECT_TRUE(File::CreateDir(RESULT_PATH));
-    }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-        GlobalMockObject::verify();
-    }
-protected:
-    DataInventory dataInventory_;
+class TopologyRegistryGuard
+{
+   public:
+    TopologyRegistryGuard() : backup_(TopoNodeRegistry::GetDefinitions()) {}
+    ~TopologyRegistryGuard() { TopoNodeRegistry::MutableDefinitions() = backup_; }
+
+   private:
+    TopoNodeCollection backup_;
 };
+}  // namespace
 
-TEST_F(SummaryManagerUTest, ShouldReturnTrueWhenNoDataInDataInventory)
+TEST(SummaryManagerUTest, ShouldBuildOnlySelectedDeliverable)
 {
-    SummaryManager manager(PROF_PATH, RESULT_PATH);
-    EXPECT_TRUE(manager.Run(dataInventory_));
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(SummaryManager::GetTopologyRoots({"npu_memory"}, roots));
+    ASSERT_EQ(roots.size(), 1UL);
+    EXPECT_EQ(roots.front(), (TopoNodeId{TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_NPU_MEM}));
+
+    TopoBuildContext context;
+    context.profPath = PROF_PATH;
+    context.outputPath = RESULT_PATH;
+    ProcessCollection processes;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(context, roots, processes));
+
+    const auto summary = std::find_if(
+        processes.begin(), processes.end(), [](const ProcessCollection::value_type& process) -> bool
+        {
+            return process.second.processName == PROCESSOR_NAME_NPU_MEM &&
+                   process.second.paramTypes.size() == 1UL;
+        });
+    ASSERT_NE(summary, processes.end());
+    EXPECT_EQ(summary->second.processDependence.size(), 1UL);
+    EXPECT_EQ(summary->second.paramTypes.size(), 1UL);
 }
 
-TEST_F(SummaryManagerUTest, ShouldReturnFalseWhenGetAssemblerFailed)
+TEST(SummaryManagerUTest, ShouldSelectAllDeliverablesWhenSelectionIsEmpty)
 {
-    SummaryManager manager(PROF_PATH, RESULT_PATH);
-    std::shared_ptr<SummaryAssembler> assembler{nullptr};
-    MOCKER_CPP(&SummaryFactory::GetAssemblerByName).stubs().will(returnValue(assembler));
-    EXPECT_FALSE(manager.Run(dataInventory_));
-    MOCKER_CPP(&SummaryFactory::GetAssemblerByName).reset();
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(SummaryManager::GetTopologyRoots({}, roots));
+    EXPECT_EQ(roots.size(), 10UL);
+    std::unordered_set<TopoNodeId, TopoNodeIdHash> uniqueRoots;
+    for (const auto& root : roots)
+    {
+        EXPECT_EQ(root.stage, TopoNodeStage::SUMMARY_GENERATION);
+        EXPECT_NE(TopoNodeRegistry::Find(root), nullptr);
+        EXPECT_TRUE(uniqueRoots.insert(root).second);
+    }
+}
+
+TEST(SummaryManagerUTest, ShouldSelectAndDeduplicateDeliverables)
+{
+    std::vector<std::string> assemblers;
+    ASSERT_TRUE(SummaryManager::GetAssemblerList({"op_summary", "op_summary", "npu_memory"}, assemblers));
+    ASSERT_EQ(assemblers.size(), 2UL);
+    EXPECT_EQ(assemblers[0], PROCESSOR_OP_SUMMARY);
+    EXPECT_EQ(assemblers[1], PROCESSOR_NAME_NPU_MEM);
+}
+
+TEST(SummaryManagerUTest, ShouldRejectUnknownDeliverable)
+{
+    std::vector<TopoNodeId> roots;
+    EXPECT_FALSE(SummaryManager::GetTopologyRoots({"unknown_deliverable"}, roots));
+    EXPECT_TRUE(roots.empty());
+}
+
+TEST(SummaryManagerUTest, ShouldRejectExecutionListNodeWithoutRegistration)
+{
+    TopologyRegistryGuard guard;
+    TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_NPU_MEM});
+    std::vector<TopoNodeId> roots;
+    EXPECT_FALSE(SummaryManager::GetTopologyRoots({"npu_memory"}, roots));
+    EXPECT_TRUE(roots.empty());
 }

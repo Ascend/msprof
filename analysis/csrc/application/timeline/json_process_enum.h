@@ -16,6 +16,10 @@
 #ifndef ANALYSIS_APPLICATION_EXPORT_JSON_ENUM_H
 #define ANALYSIS_APPLICATION_EXPORT_JSON_ENUM_H
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 namespace Analysis
 {
 namespace Application

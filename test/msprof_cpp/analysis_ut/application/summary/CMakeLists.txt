@@ -4,6 +4,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dump_tools/csv_tool
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dump_tools/json_tool SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/utils SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dfx SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/process SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/json_trace SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process SOURCES)

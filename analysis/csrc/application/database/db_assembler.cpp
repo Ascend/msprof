@@ -16,12 +16,15 @@
 
 #include "analysis/csrc/application/database/db_assembler.h"
 
-#include <atomic>
 #include <functional>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/application/credential/id_pool.h"
 #include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/domain/data_process/ai_task/overlap_analysis_processor.h"
+#include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ccu_mission_data.h"
@@ -53,7 +56,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/dump_tools/json_tool/include/json_writer.h"
-#include "analysis/csrc/infrastructure/utils/thread_pool.h"
+#include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 
 namespace Analysis
 {
@@ -161,7 +164,7 @@ bool CreateTableIndex(const std::string& tableName, const std::string& indexName
 
 bool SaveApiData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
-    uint32_t pid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
+    uint32_t pid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     auto apiData = dataInventory.GetPtr<std::vector<ApiData>>();
     if (apiData == nullptr)
     {
@@ -501,8 +504,8 @@ bool SaveHostInfoData(DataInventory& dataInventory, DBInfo& msprofDB, const std:
     // hostuid, hostname
     using HostInfoDataFormat = std::vector<std::tuple<std::string, std::string>>;
     HostInfoDataFormat hostInfoData;
-    std::string hostUid = Context::GetInstance().GetHostUid(HOST_ID, profPath);
-    std::string hostName = Context::GetInstance().GetHostName(HOST_ID, profPath);
+    std::string hostUid = Environment::Context::GetInstance().GetHostUid(HOST_ID, profPath);
+    std::string hostName = Environment::Context::GetInstance().GetHostName(HOST_ID, profPath);
     hostInfoData.emplace_back(hostUid, hostName);
     if (hostInfoData.empty())
     {
@@ -571,7 +574,7 @@ bool SaveMsprofTxData(DataInventory& dataInventory, DBInfo& msprofDB, const std:
         ERROR("Reserved for MsprofTx data failed.");
         return false;
     }
-    uint32_t pid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
+    uint32_t pid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     for (const auto& item : *msprofTxData)
     {
         uint64_t message = IdPool::GetInstance().GetUint64Id(item.message);
@@ -588,7 +591,7 @@ void UpdateNpuData(const std::string& profPath, const std::string& deviceDir,
                    std::vector<std::tuple<int16_t, int16_t>>& rankDeviceMapData)
 {
     uint16_t deviceId = Utils::GetDeviceIdByDevicePath(deviceDir);
-    uint16_t chip = Context::GetInstance().GetPlatformVersion(deviceId, profPath);
+    uint16_t chip = Environment::Context::GetInstance().GetPlatformVersion(deviceId, profPath);
     std::string chipName;
     auto it = CHIP_TABLE.find(chip);
     if (it == CHIP_TABLE.end())
@@ -694,7 +697,7 @@ bool SaveNpuOpMemData(DataInventory& dataInventory, DBInfo& msprofDB, const std:
         return false;
     }
     uint64_t stringGeId = IdPool::GetInstance().GetUint64Id("GE");
-    uint32_t pid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
+    uint32_t pid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     uint64_t operatorNameId;
     uint64_t globalTid;
     for (const auto& item : *npuOpMemData)
@@ -768,7 +771,7 @@ bool SaveSessionTimeInfoData(DataInventory& dataInventory, DBInfo& msprofDB, con
     // startTime, endTime
     using TimeDataFormat = std::vector<std::tuple<uint64_t, uint64_t>>;
     Utils::ProfTimeRecord tempRecord;
-    if (!Context::GetInstance().GetProfTimeRecordInfo(tempRecord, profPath))
+    if (!Environment::Context::GetInstance().GetProfTimeRecordInfo(tempRecord, profPath))
     {
         ERROR("GetProfTimeRecordInfo failed, profPath is %.", profPath);
         return false;
@@ -878,7 +881,7 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
         return false;
     }
     uint64_t globalTaskId;
-    uint32_t globalPid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
+    uint32_t globalPid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     uint64_t taskType;
     if (ascendTaskData != nullptr)
     {
@@ -1195,16 +1198,6 @@ bool SaveOSRuntimeApiData(DataInventory& dataInventory, DBInfo& msprofDB, const 
 bool SaveOverlapAnalysisData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
     auto overlapData = dataInventory.GetPtr<std::vector<OverlapAnalysisData>>();
-    if (overlapData == nullptr)
-    {
-        OverlapAnalysisProcessor processor(profPath);
-        if (!processor.Run(dataInventory, PROCESSOR_NAME_OVERLAP_ANALYSIS))
-        {
-            ERROR("Process overlap analysis data failed.");
-            return false;
-        }
-        overlapData = dataInventory.GetPtr<std::vector<OverlapAnalysisData>>();
-    }
     if (overlapData == nullptr || overlapData->empty())
     {
         WARN("Overlap analysis data not exist.");
@@ -1246,7 +1239,7 @@ bool SaveQosData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
     for (const auto& devicePath : deviceList)
     {
         auto deviceId = GetDeviceIdByDevicePath(devicePath);
-        auto qosEvents = Context::GetInstance().GetQosEvents(deviceId, profPath);
+        auto qosEvents = Environment::Context::GetInstance().GetQosEvents(deviceId, profPath);
         std::vector<uint64_t> qosEventsIds;
         for (const auto& event : qosEvents)
         {
@@ -1488,9 +1481,9 @@ bool SaveCCUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
 
     return SaveData(res, TABLE_NAME_CCU, msprofDB);
 }
-// 创建 SaveData 的函数类型
-using SaveDataFunc = std::function<bool(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)>;
-const std::unordered_map<std::string, SaveDataFunc> DATA_SAVER = {
+const std::string DB_PREFIX = "DB:";
+const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
+const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_API, SaveApiData},
     {PROCESSOR_NAME_COMMUNICATION, SaveCommunicationData},
     {PROCESSOR_NAME_ACC_PMU, SaveAccPmuData},
@@ -1532,106 +1525,66 @@ const std::unordered_map<std::string, SaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
 };
 
-bool CheckMsprofDb(const std::string& outputPath)
-{
-    std::vector<std::string> files = File::GetOriginData(outputPath, {DB_NAME_MSPROF_DB}, {".json", ".csv"});
-    if (files.empty())
-    {
-        return false;
-    }
-    std::string timestampMax;
-    std::string latestFile;
-    for (const auto& file : files)
-    {
-        auto dbName = Split(file, "/").back();
-        size_t start = dbName.find(DB_NAME_MSPROF_DB) + DB_NAME_MSPROF_DB.length() + 1;
-        size_t end = dbName.find(".db");
-        if (start == std::string::npos || end == std::string::npos) continue;
-
-        std::string timestampStr = dbName.substr(start, end - start);
-        if (!IsNumber(timestampStr) || timestampStr.size() != EXPECT_TIME_LEN)
-        {
-            ERROR("Invalid msprof db name %.", dbName);
-            continue;
-        }
-        if (timestampStr > timestampMax)
-        {
-            timestampMax = timestampStr;
-            latestFile = file;
-        }
-    }
-
-    DBInfo msprofDB(latestFile, TABLE_NAME_STRING_IDS);
-    if (!msprofDB.ConstructDBRunner(latestFile))
-    {
-        ERROR("Construct for msprof db runner failed.");
-        return false;
-    }
-
-    if (!Utils::FileReader::Check(latestFile, MAX_DB_BYTES))
-    {
-        ERROR("Check % failed.", latestFile);
-        return false;
-    }
-    if (msprofDB.dbRunner->CheckTableExists(msprofDB.tableName))
-    {
-        INFO("Find completed msprof db, %.", latestFile);
-        return true;
-    }
-
-    INFO("The % database is incomplete and will be deleted.", latestFile);
-    PRINT_INFO("The % database is incomplete and will be deleted.", latestFile);
-    if (!Utils::File::DeleteFile(latestFile))
-    {
-        ERROR("Failed to delete file, %.", latestFile);
-    }
-    return false;
-}
-
 std::string GetDBPath(const std::string& outputDir)
 {
     return Utils::File::PathJoin({outputDir, DB_NAME_MSPROF_DB + "_" + Analysis::Utils::GetFormatLocalTime() + ".db"});
 }
 
-const std::set<std::string> DB_DATA_PROCESS_LIST{
-    PROCESSOR_NAME_API,
-    PROCESSOR_NAME_COMMUNICATION,
-    PROCESSOR_NAME_COMPUTE_TASK_INFO,
-    PROCESSOR_NAME_KFC_TASK,
-    PROCESSOR_NAME_DEVICE_TX,
-    PROCESSOR_NAME_MSTX,
-    PROCESSOR_NAME_STEP_TRACE,
-    PROCESSOR_NAME_TASK,
-    PROCESSOR_NAME_ACC_PMU,
-    PROCESSOR_NAME_AICORE_FREQ,
-    PROCESSOR_NAME_LOW_POWER,
-    PROCESSOR_NAME_DDR,
-    PROCESSOR_NAME_HBM,
-    PROCESSOR_NAME_HCCS,
-    PROCESSOR_NAME_NETDEV_STATS,
-    PROCESSOR_NAME_CPU_USAGE,
-    PROCESSOR_NAME_MEM_USAGE,
-    PROCESSOR_NAME_DISK_USAGE,
-    PROCESSOR_NAME_NETWORK_USAGE,
-    PROCESSOR_NAME_OSRT_API,
-    PROCESSOR_NAME_LLC,
-    PROCESSOR_NAME_NPU_MEM,
-    PROCESSOR_NAME_PCIE,
-    PROCESSOR_NAME_DPU,
-    PROCESSOR_NAME_SIO,
-    PROCESSOR_NAME_UB,
-    PROCESSOR_NAME_SOC,
-    PROCESSOR_NAME_NIC,
-    PROCESSOR_NAME_ROCE,
-    PROCESSOR_NAME_QOS,
-    PROCESSOR_NAME_CCU_MISSION,
-    PROCESSOR_MC2_COMM_INFO,
-    PROCESSOR_NAME_MEMCPY_INFO,
-    PROCESSOR_NAME_NPU_OP_MEM,
-    PROCESSOR_NAME_NPU_MODULE_MEM,
-    PROCESSOR_NAME_UNIFIED_PMU,
-};
 }  // namespace
+
+TopoNodeCreatorFactory DBAssembler::CreateSaver(const std::string& name)
+{
+    return [name](const TopoBuildContext& context) -> Infra::ProcessCreator
+    {
+        const auto saverIter = DATA_SAVER.find(name.substr(DB_PREFIX.size()));
+        if (saverIter == DATA_SAVER.end())
+        {
+            return Infra::ProcessCreator();
+        }
+        const auto session = context.dbSession;
+        if (session == nullptr)
+        {
+            return Infra::ProcessCreator();
+        }
+        const DBSaveDataFunc saver = saverIter->second;
+        return [name, saver, session]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [name, saver, session](DataInventory& dataInventory) -> bool
+                {
+                    INFO("Begin to save % data.", name);
+                    const bool result = saver(dataInventory, session->msprofDB_, session->profPath_);
+                    if (!result)
+                    {
+                        ERROR("Save % data failed.", name);
+                    }
+                    return result;
+                }));
+        };
+    };
+}
+
+TopoNodeCreatorFactory DBAssembler::CreateStringIdsSaver()
+{
+    return [](const TopoBuildContext& context) -> Infra::ProcessCreator
+    {
+        const auto session = context.dbSession;
+        if (session == nullptr)
+        {
+            return Infra::ProcessCreator();
+        }
+        return [session]() -> std::unique_ptr<Infra::Process>
+        {
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
+                [session](DataInventory& dataInventory) -> bool
+                {
+                    const bool result = SaveStringIdsData(dataInventory, session->msprofDB_, session->profPath_);
+                    PRINT_INFO("End exporting db output_file. The file is stored in the PROF file.");
+                    return result;
+                }));
+        };
+    };
+}
 
 DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputPath)
     : profPath_(profPath), outputPath_(outputPath)
@@ -1642,44 +1595,44 @@ DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputP
     msprofDB_.ConstructDBRunner(msprofDBPath);
 }
 
-bool DBAssembler::Run(DataInventory& dataInventory)
+bool DBAssembler::GetTopologyRoots(std::vector<TopoNodeId>& roots)
 {
-    INFO("Start exporting db!");
-    PRINT_INFO("Start exporting the db!");
-    if (CheckMsprofDb(outputPath_))
+    const size_t rootsSize = roots.size();
+    for (const auto& saver : DATA_SAVER)
     {
-        PRINT_INFO("Find completed msprof db. End exporting db output_file.");
-        return true;
+        const TopoNodeId id{TopoNodeStage::DATABASE_PERSISTENCE, DB_PREFIX + saver.first};
+        if (TopoNodeRegistry::Find(id) == nullptr)
+        {
+            ERROR("DB execution list node % has no static topology registration.", id.name);
+            roots.resize(rootsSize);
+            return false;
+        }
+        roots.push_back(id);
     }
-
-    std::atomic<bool> retFlag(true);
-    const uint16_t processorsLimit = 10;  // 最多有10个线程
-    Analysis::Utils::ThreadPool pool(processorsLimit);
-    pool.Start();
-
-    for (const auto& saveFunc : DATA_SAVER)
+    const TopoNodeId stringIds{TopoNodeStage::FLOW_CONTROL, DB_STRING_IDS};
+    if (TopoNodeRegistry::Find(stringIds) == nullptr)
     {
-        pool.AddTask(
-            [saveFunc, &retFlag, &dataInventory, this]()
-            {
-                INFO("Begin to save % data.", saveFunc.first);
-                auto flag = saveFunc.second(dataInventory, msprofDB_, profPath_);
-                if (!flag)
-                {
-                    ERROR("Save % data failed.", saveFunc.first);
-                }
-                retFlag = flag && retFlag;
-            });
+        ERROR("DB StringIds node has no static topology registration.");
+        roots.resize(rootsSize);
+        return false;
     }
-    pool.WaitAllTasks();
-    pool.Stop();
-
-    // StringIds为id到name映射表，需要最后落盘
-    retFlag = SaveStringIdsData(dataInventory, msprofDB_, profPath_) && retFlag;
-    PRINT_INFO("End exporting db output_file. The file is stored in the PROF file.");
-    return retFlag;
+    roots.push_back(stringIds);
+    return true;
 }
 
-const std::set<std::string>& DBAssembler::GetProcessList() { return DB_DATA_PROCESS_LIST; }
+std::vector<TopoNodeId> DBAssembler::ResolveSelectedDBSavers(const TopoBuildContext&,
+                                                             const std::vector<TopoNodeId>& roots)
+{
+    std::vector<TopoNodeId> dependencies;
+    for (const auto& root : roots)
+    {
+        if (root.stage == TopoNodeStage::DATABASE_PERSISTENCE)
+        {
+            dependencies.push_back(root);
+        }
+    }
+    return dependencies;
+}
+
 }  // namespace Application
 }  // namespace Analysis

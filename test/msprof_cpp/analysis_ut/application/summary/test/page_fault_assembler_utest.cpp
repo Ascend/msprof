@@ -116,11 +116,8 @@ TEST_F(PageFaultAssemblerUTest, ShouldReturnFalseWhenPageFaultDataEmpty)
     EXPECT_FALSE(assembler.Run(dataInventory));
 }
 
-TEST_F(PageFaultAssemblerUTest, ShouldGetAssemblerAndProcessListForPageFault)
+TEST_F(PageFaultAssemblerUTest, ShouldGetPageFaultAssembler)
 {
     auto assembler = SummaryFactory::GetAssemblerByName(PROCESSOR_NAME_PAGE_FAULT, PROF_PATH);
     EXPECT_NE(nullptr, assembler);
-
-    const auto& processList = SummaryManager::GetProcessList();
-    EXPECT_TRUE(processList.find(PROCESSOR_NAME_PAGE_FAULT) != processList.end());
 }

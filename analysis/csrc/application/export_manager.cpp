@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -6,28 +6,32 @@
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ * http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
- * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/include/export_manager.h"
 
-#include <atomic>
+#include <algorithm>
+#include <memory>
+#include <new>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "analysis/csrc/application/database/db_assembler.h"
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
-#include "analysis/csrc/domain/data_process/ai_task/hash_init_processor.h"
-#include "analysis/csrc/domain/data_process/include/data_processor_factory.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/utils/thread_pool.h"
+#include "analysis/csrc/infrastructure/process/include/process_control.h"
 
 namespace Analysis
 {
@@ -47,63 +51,20 @@ std::string CreateOutputPath(const std::string& profPath)
     }
     return outputPath;
 }
-}  // namespace
 
-bool ExportManager::ProcessData(DataInventory& dataInventory, const std::set<ExportMode>& exportModeSet)
+bool HasExportedMsprofDB(const std::string& profPath)
 {
-    // hash数据作为其他流程的依赖数据，需要优先加载
-    HashInitProcessor hashProcessor(profPath_);
-    hashProcessor.Run(dataInventory, PROCESSOR_NAME_HASH);
-    const uint16_t tableProcessors = 10;  // 最多有10个线程
-    Analysis::Utils::ThreadPool pool(tableProcessors);
-    pool.Start();
-    std::atomic<bool> retFlag(true);
-    static const std::unordered_map<ExportMode, const std::set<std::string>& (*)()> processListFactory = {
-        {ExportMode::DB, &DBAssembler::GetProcessList},
-        {ExportMode::TIMELINE, &TimelineManager::GetProcessList},
-        {ExportMode::SUMMARY, &SummaryManager::GetProcessList}};
-
-    std::set<std::string> dataProcessList;
-    for (auto exportMode : exportModeSet)
-    {
-        auto it = processListFactory.find(exportMode);
-        if (it == processListFactory.end())
-        {
-            ERROR("Unsupported ExportMode: %.", static_cast<int>(exportMode));
-            return false;
-        }
-        auto tmpSet = it->second();
-        dataProcessList.insert(tmpSet.begin(), tmpSet.end());
-    }
-
-    for (const auto& name : dataProcessList)
-    {
-        pool.AddTask(
-            [this, &name, &retFlag, &dataInventory]()
-            {
-                auto processor = DataProcessorFactory::GetDataProcessByName(profPath_, name);
-                if (processor == nullptr)
-                {
-                    ERROR("% is not defined", name);
-                    retFlag = false;
-                    return;
-                }
-                retFlag = processor->Run(dataInventory, name) && retFlag;
-            });
-    }
-    pool.WaitAllTasks();
-    pool.Stop();
-    if (!retFlag)
-    {
-        ERROR("The % for data process failed to be executed.", profPath_);
-        PRINT_ERROR(
-            "The % for data process failed to be executed. "
-            "Please check msprof_analysis_log in outputPath for more info.",
-            profPath_);
-        return false;
-    }
-    return true;
+    const std::string dbSuffix = ".db";
+    const std::vector<std::string> dbFiles = File::GetFilesWithPrefix(profPath, DB_NAME_MSPROF_DB + "_");
+    return std::any_of(dbFiles.begin(), dbFiles.end(),
+                       [&dbSuffix](const std::string& dbPath)
+                       {
+                           return dbPath.size() >= dbSuffix.size() &&
+                                  dbPath.compare(dbPath.size() - dbSuffix.size(), dbSuffix.size(), dbSuffix) == 0;
+                       });
 }
+
+}  // namespace
 
 bool ExportManager::CheckProfDirsValid()
 {
@@ -149,64 +110,106 @@ bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
     {
         return false;
     }
-    DataInventory dataInventory;
-    std::atomic<bool> runFlag(true);
-    runFlag = ProcessData(dataInventory, exportModeSet);
-    const std::map<ExportMode, std::function<bool(DataInventory&)>> operationMap = {
-        {ExportMode::DB,
-         [this](DataInventory& dataInventory) -> bool
-         {
-             DBAssembler dbAssembler(profPath_, profPath_);
-             return dbAssembler.Run(dataInventory);
-         }},
-        {ExportMode::TIMELINE,
-         [this](DataInventory& dataInventory) -> bool
-         {
-             std::string outputPath = CreateOutputPath(profPath_);
-             if (outputPath.empty())
-             {
-                 return false;
-             }
-             TimelineManager timelineManager(profPath_, outputPath);
-             std::vector<JsonProcess> jsonProcesses = GetProcessEnum();
-             return timelineManager.Run(dataInventory, jsonProcesses);
-         }},
-        {ExportMode::SUMMARY,
-         [this](DataInventory& dataInventory) -> bool
-         {
-             std::string outputPath = CreateOutputPath(profPath_);
-             if (outputPath.empty())
-             {
-                 return false;
-             }
-             SummaryManager summaryManager(profPath_, outputPath);
-             return summaryManager.Run(dataInventory);
-         }},
-    };
 
-    const uint16_t processorsLimit = 3;  // 最多有3个线程
-    Analysis::Utils::ThreadPool pool(processorsLimit);
-    pool.Start();
+    ExportSelection selection;
+    if (!GetExportSelection(exportModeSet, selection))
+    {
+        return false;
+    }
+
+    TopoBuildContext buildContext;
+    buildContext.profPath = profPath_;
+    buildContext.outputPath = profPath_;
+    buildContext.timelineProcesses = selection.timelineProcesses;
+    std::vector<TopoNodeId> roots;
     for (const auto& exportMode : exportModeSet)
     {
-        auto iter = operationMap.find(exportMode);
-        if (iter != operationMap.end())
+        switch (exportMode)
         {
-            pool.AddTask([iter, &runFlag, &dataInventory]() { runFlag = iter->second(dataInventory) && runFlag; });
+            case ExportMode::DB:
+            {
+                if (HasExportedMsprofDB(profPath_))
+                {
+                    INFO("The exported msprof db already exists, skip DB export.");
+                    break;
+                }
+                buildContext.dbSession =
+                    std::shared_ptr<DBAssembler>(new (std::nothrow) DBAssembler(profPath_, profPath_));
+                if (buildContext.dbSession == nullptr || !DBAssembler::GetTopologyRoots(roots))
+                {
+                    ERROR("Build DB topology roots failed.");
+                    return false;
+                }
+                break;
+            }
+            case ExportMode::TIMELINE:
+            {
+                const std::string outputPath = CreateOutputPath(profPath_);
+                if (outputPath.empty())
+                {
+                    return false;
+                }
+                buildContext.outputPath = outputPath;
+                buildContext.timelineSession =
+                    std::shared_ptr<TimelineManager>(new (std::nothrow) TimelineManager(profPath_, outputPath));
+                if (buildContext.timelineSession == nullptr ||
+                    !TimelineManager::GetTopologyRoots(selection.timelineProcesses, roots))
+                {
+                    return false;
+                }
+                break;
+            }
+            case ExportMode::SUMMARY:
+                if (CreateOutputPath(profPath_).empty() ||
+                    !SummaryManager::GetTopologyRoots(selection.summaryDeliverables, roots))
+                {
+                    return false;
+                }
+                break;
+            default:
+                ERROR("Unsupported ExportMode: %.", static_cast<int>(exportMode));
+                return false;
         }
     }
-    pool.WaitAllTasks();
-    pool.Stop();
-    return runFlag;
+
+    Infra::ProcessCollection processes;
+    TopoGraphBuilder graphBuilder;
+    if (!graphBuilder.Build(buildContext, roots, processes))
+    {
+        ERROR("Build export topology failed.");
+        return false;
+    }
+
+    DataInventory dataInventory;
+    Infra::Context context;
+    Infra::ProcessControl processControl(processes);
+    if (!processControl.ExecuteProcess(dataInventory, context))
+    {
+        ERROR("The % export topology failed to be executed.", profPath_);
+        PRINT_ERROR(
+            "The % for export failed to be executed. "
+            "Please check msprof_analysis_log in outputPath for more info.",
+            profPath_);
+        return false;
+    }
+    return true;
 }
 
-std::vector<JsonProcess> ExportManager::GetProcessEnum()
+bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection)
 {
+    selection.timelineProcesses.clear();
+    selection.summaryDeliverables.clear();
+    const bool exportTimeline = exportModeSet.find(ExportMode::TIMELINE) != exportModeSet.end();
+    const bool exportSummary = exportModeSet.find(ExportMode::SUMMARY) != exportModeSet.end();
+    if (exportTimeline)
+    {
+        selection.timelineProcesses = allProcesses;
+    }
     if (jsonPath_.empty())
     {
         INFO("The report parameter is not used.");
         PRINT_INFO("The report parameter is not used.");
-        return allProcesses;
+        return true;
     }
     FileReader fd(jsonPath_);
     nlohmann::json config;
@@ -214,41 +217,107 @@ std::vector<JsonProcess> ExportManager::GetProcessEnum()
     {
         ERROR("Load report config failed: '%'.", jsonPath_);
         PRINT_ERROR("Load report config failed: '%'.", jsonPath_);
-        return allProcesses;
+        return true;
     }
-    auto jsonProcessConfig = config["json_process"];
-    if (jsonProcessConfig.is_null() || !jsonProcessConfig.is_object() || jsonProcessConfig.empty())
+
+    if (exportTimeline)
     {
-        INFO("The json_process is not exist.");
-        PRINT_INFO("The json_process is not exist.");
-        return allProcesses;
-    }
-    std::vector<JsonProcess> jsonProcesses;
-    for (nlohmann::json::iterator it = jsonProcessConfig.begin(); it != jsonProcessConfig.end(); ++it)
-    {
-        if (strToJsonProcess.find(it.key()) == strToJsonProcess.end())
+        const auto jsonProcessConfig = config["json_process"];
+        if (jsonProcessConfig.is_null() || !jsonProcessConfig.is_object() || jsonProcessConfig.empty())
         {
-            ERROR("Json process contains invalid key.");
-            PRINT_ERROR("Json process contains invalid key.");
-            return allProcesses;
+            INFO("The json_process is not exist.");
+            PRINT_INFO("The json_process is not exist.");
         }
-        if (!it.value().is_boolean())
+        else
         {
-            ERROR("Json contains invalid value, only the bool type is supported.");
-            PRINT_ERROR("Json contains invalid value, only the bool type is supported.");
-            return allProcesses;
-        }
-        if (it.value())
-        {
-            auto processEnum = strToJsonProcess.at(it.key());
-            jsonProcesses.push_back(processEnum);
-            if (it.key() == "freq")
+            std::vector<JsonProcess> jsonProcesses;
+            bool valid = true;
+            for (nlohmann::json::const_iterator it = jsonProcessConfig.begin(); it != jsonProcessConfig.end(); ++it)
             {
-                jsonProcesses.push_back(JsonProcess::LOW_POWER);
+                if (strToJsonProcess.find(it.key()) == strToJsonProcess.end())
+                {
+                    ERROR("Json process contains invalid key.");
+                    PRINT_ERROR("Json process contains invalid key.");
+                    valid = false;
+                    break;
+                }
+                if (!it.value().is_boolean())
+                {
+                    ERROR("Json contains invalid value, only the bool type is supported.");
+                    PRINT_ERROR("Json contains invalid value, only the bool type is supported.");
+                    valid = false;
+                    break;
+                }
+                if (it.value())
+                {
+                    const auto processEnum = strToJsonProcess.at(it.key());
+                    jsonProcesses.emplace_back(processEnum);
+                    if (it.key() == "freq")
+                    {
+                        jsonProcesses.emplace_back(JsonProcess::LOW_POWER);
+                    }
+                }
+            }
+            if (valid)
+            {
+                if (jsonProcesses.empty())
+                {
+                    ERROR("Json process has no enabled timeline deliverable.");
+                    return false;
+                }
+                selection.timelineProcesses = std::move(jsonProcesses);
             }
         }
     }
-    return std::move(jsonProcesses);
+
+    if (exportSummary)
+    {
+        const auto summaryProcessConfig = config["summary_process"];
+        if (summaryProcessConfig.is_null())
+        {
+            return true;
+        }
+        if (!summaryProcessConfig.is_object())
+        {
+            ERROR("Summary process must be a JSON object.");
+            PRINT_ERROR("Summary process must be a JSON object.");
+            return false;
+        }
+        if (summaryProcessConfig.empty())
+        {
+            INFO("The summary_process is empty.");
+            PRINT_INFO("The summary_process is empty.");
+            return true;
+        }
+
+        std::vector<std::string> summaryDeliverables;
+        for (nlohmann::json::const_iterator it = summaryProcessConfig.begin(); it != summaryProcessConfig.end(); ++it)
+        {
+            if (!SummaryManager::IsDeliverableSupported(it.key()))
+            {
+                ERROR("Summary process contains invalid key.");
+                PRINT_ERROR("Summary process contains invalid key.");
+                return false;
+            }
+            if (!it.value().is_boolean())
+            {
+                ERROR("Summary process value must be bool.");
+                PRINT_ERROR("Summary process value must be bool.");
+                return false;
+            }
+            if (it.value())
+            {
+                summaryDeliverables.emplace_back(it.key());
+            }
+        }
+        if (summaryDeliverables.empty())
+        {
+            ERROR("Summary process has no enabled deliverable.");
+            return false;
+        }
+        selection.summaryDeliverables = std::move(summaryDeliverables);
+    }
+    return true;
 }
 }  // namespace Application
 }  // namespace Analysis

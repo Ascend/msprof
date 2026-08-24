@@ -217,8 +217,10 @@ TEST_F(PageFaultProcessorUTest, ShouldReturnTrueWhenReserveFailed)
     ResetReserveFailureForVector<std::vector<PageFaultData>>();
 }
 
-TEST_F(PageFaultProcessorUTest, ShouldCreateProcessorFromFactory)
+TEST_F(PageFaultProcessorUTest, ShouldRegisterPageFaultProcessor)
 {
-    auto processor = DataProcessorFactory::GetDataProcessByName(PROF_PATH, PROCESSOR_NAME_PAGE_FAULT);
-    EXPECT_NE(nullptr, processor);
+    const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_PAGE_FAULT);
+    ASSERT_NE(definition, nullptr);
+    EXPECT_EQ(definition->runtimeType, std::type_index(typeid(PageFaultProcessor)));
+    EXPECT_TRUE(static_cast<bool>(definition->creatorFactory));
 }

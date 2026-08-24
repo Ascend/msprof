@@ -16,19 +16,22 @@
 #ifndef ANALYSIS_INFRASTRUCTURE_PROCESS_INCLUDE_PROCESS_CONTROL_H
 #define ANALYSIS_INFRASTRUCTURE_PROCESS_INCLUDE_PROCESS_CONTROL_H
 
-#include <map>
-#include <vector>
 #include <functional>
+#include <map>
 #include <memory>
+#include <vector>
 
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Infra {
+namespace Infra
+{
 
-struct ProcessStatistics {
+struct ProcessStatistics
+{
     std::string processName;  // 以后升级到C++17或更高版本，可以使用std::string_view代替std::string
     std::vector<std::string> dependProcessNames;
     uint32_t returnCode;
@@ -38,27 +41,35 @@ struct ProcessStatistics {
     bool dfxStop;  // DFX需求：可以指定执行完哪个Process停止
 };
 
-struct OneLevelStat {
+struct OneLevelStat
+{
     bool generalResult;
     std::vector<ProcessStatistics> processStatistics;
 };
 
-struct ExecuteProcessStat {
+struct ExecuteProcessStat
+{
     uint32_t chipId;
     std::vector<OneLevelStat> allLevelStat;
 };
 
+struct ProcessControlOptions
+{
+    bool releaseUnusedData = true;
+    // 0 selects min(10, hardware_concurrency()).
+    uint32_t maxWorkerThreads = 0;
+};
 
 void RecordProcessStat(const ExecuteProcessStat& stat, const std::string& subDir, std::string& log);
-
 
 /**
  * @brief 流程控制类
  * 本类用于控制用户通过Register注册的所有流程。支持同一个level并发运行，并提供一些DFX功能
  */
-class ProcessControl final {
-public:
-    explicit ProcessControl(ProcessCollection& processes);
+class ProcessControl final
+{
+   public:
+    explicit ProcessControl(ProcessCollection& processes, ProcessControlOptions options = {});
     ~ProcessControl();
 
     bool ExecuteProcess(DataInventory& dataInventory, const Context& context);
@@ -68,13 +79,13 @@ public:
 
     bool VerifyProcess(const ProcessCollection& chipRelatedProcess) const;
 
-private:
+   private:
     class Impl;
     std::unique_ptr<Impl> impl_;
 };
 
-}
+}  // namespace Infra
 
-}
+}  // namespace Analysis
 
 #endif

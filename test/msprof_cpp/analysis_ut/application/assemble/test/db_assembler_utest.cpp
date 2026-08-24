@@ -20,6 +20,7 @@
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/process/include/process_control.h"
 #include "analysis/csrc/application/credential/id_pool.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
@@ -64,7 +65,69 @@ namespace {
 const int DEPTH = 0;
 const std::string DATA_DIR = "./db_assembler";
 const std::string PROF = File::PathJoin(std::vector<std::string>{DATA_DIR, "PROF"});
+
+class DBAssemblerTestAdapter : public Analysis::Application::DBAssembler {
+public:
+    DBAssemblerTestAdapter() = default;
+    DBAssemblerTestAdapter(const std::string& profPath, const std::string& outputPath)
+        : Analysis::Application::DBAssembler(profPath, outputPath)
+    {
+    }
+
+    bool Run(DataInventory& dataInventory)
+    {
+        std::vector<TopoNodeId> roots;
+        if (!Analysis::Application::DBAssembler::GetTopologyRoots(roots))
+        {
+            return false;
+        }
+        return RunRoots(roots, dataInventory);
+    }
+
+    bool RunSaver(const std::string& name, DataInventory& dataInventory)
+    {
+        const TopoNodeId saver{TopoNodeStage::DATABASE_PERSISTENCE, std::string("DB:") + name};
+        const TopoNodeId stringIds{TopoNodeStage::FLOW_CONTROL, std::string("DB:") + TABLE_NAME_STRING_IDS};
+        if (TopoNodeRegistry::Find(saver) == nullptr || TopoNodeRegistry::Find(stringIds) == nullptr)
+        {
+            return false;
+        }
+        return RunRoots({saver, stringIds}, dataInventory);
+    }
+
+private:
+    bool RunRoots(const std::vector<TopoNodeId>& roots, DataInventory& dataInventory)
+    {
+        TopoBuildContext context;
+        context.profPath = PROF;
+        context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
+        context.dbSession =
+            std::shared_ptr<Analysis::Application::DBAssembler>(this, [](Analysis::Application::DBAssembler*) {});
+        ProcessCollection processes;
+        TopoGraphBuilder builder;
+        TopoNodeCollection definitions = TopoNodeRegistry::GetDefinitions();
+        TopoNodeCollection& registeredDefinitions = TopoNodeRegistry::MutableDefinitions();
+        for (TopoNodeCollection::iterator it = registeredDefinitions.begin(); it != registeredDefinitions.end(); ++it)
+        {
+            if (it->first.stage == TopoNodeStage::DATABASE_PERSISTENCE)
+            {
+                it->second.processDependencies.clear();
+            }
+        }
+        const bool buildResult = builder.Build(context, roots, processes);
+        registeredDefinitions = definitions;
+        if (!buildResult)
+        {
+            return false;
+        }
+        Analysis::Infra::Context processContext;
+        ProcessControl processControl(processes);
+        return processControl.ExecuteProcess(dataInventory, processContext);
+    }
+};
 }
+
+#define DBAssembler DBAssemblerTestAdapter
 
 class DBAssemblerUTest : public testing::Test {
 protected:
@@ -100,7 +163,7 @@ protected:
             {"ai_core_profiling_mode",   "task-based"},
             {"qosEvents",                "0:OTHERS,1:AIC_DAT_QOS"},
         };
-        MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetInfoByDeviceId).stubs().will(returnValue(record));
         IdPool::GetInstance().Clear();
     }
 
@@ -1160,15 +1223,15 @@ TEST_F(DBAssemblerUTest, TestRunHostInfoShouldReturnTrueWhenProcessorRunSuccess)
     std::string hostUid = "123456789";
     std::string hostName = "localhost";
     MOCKER_CPP(&File::GetFilesWithPrefix).stubs().will(returnValue(hostDirs));
-    MOCKER_CPP(&Context::GetHostUid).stubs().will(returnValue(hostUid));
-    MOCKER_CPP(&Context::GetHostName).stubs().will(returnValue(hostName));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetHostUid).stubs().will(returnValue(hostUid));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetHostName).stubs().will(returnValue(hostName));
 
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
-    EXPECT_TRUE(assembler.Run(dataInventory));
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_HOST_INFO, dataInventory));
     MOCKER_CPP(&File::GetFilesWithPrefix).reset();
-    MOCKER_CPP(&Context::GetHostUid).reset();
-    MOCKER_CPP(&Context::GetHostName).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetHostUid).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetHostName).reset();
     std::shared_ptr<DBRunner> dbRunner;
 
     MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, GetMsprofDbPath());
@@ -1285,7 +1348,7 @@ TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenProcessorRunSuccess)
     uint16_t chip7 = 7;
     uint16_t chipX = 20;
     MOCKER_CPP(&File::GetFilesWithPrefix).stubs().will(returnValue(deviceDirs));
-    MOCKER_CPP(&Context::GetPlatformVersion)
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
         .stubs()
         .will(returnValue(chip0))
         .then(returnValue(chip1))
@@ -1295,9 +1358,9 @@ TEST_F(DBAssemblerUTest, TestRunNpuDataShouldReturnTrueWhenProcessorRunSuccess)
         .then(returnValue(chipX));
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
-    EXPECT_TRUE(assembler.Run(dataInventory));
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_NPU_INFO, dataInventory));
     MOCKER_CPP(&File::GetFilesWithPrefix).reset();
-    MOCKER_CPP(&Context::GetPlatformVersion).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion).reset();
     std::shared_ptr<DBRunner> dbRunner;
     MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, GetMsprofDbPath());
     NpuInfoDataFormat checkNpuInfoData;
@@ -1414,11 +1477,11 @@ TEST_F(DBAssemblerUTest, TestRunSessionTimeInfoShouldReturnTrueWhenProcessorRunS
 TEST_F(DBAssemblerUTest, TestRunSessionTimeInfoShouldReturnFalseWhenGetTimeFailed)
 {
     using TimeDataFormat = std::vector<std::tuple<uint64_t, uint64_t>>;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     auto dataInventory = DataInventory();
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     EXPECT_FALSE(assembler.Run(dataInventory));
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).reset();
 }
 
 TEST_F(DBAssemblerUTest, TestRunSocShouldReturnTrueWhenProcessorRunSuccess)
@@ -1966,7 +2029,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenReserveFailed)
     dataInventory.Inject<std::vector<QosData>>(dataS);
     // Reserve failed
     StubReserveFailureForVector<QosDataFormat>();
-    EXPECT_FALSE(assembler.Run(dataInventory));
+    EXPECT_FALSE(assembler.RunSaver(PROCESSOR_NAME_QOS, dataInventory));
     ResetReserveFailureForVector<QosDataFormat>();
 }
 
@@ -1975,14 +2038,14 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRun
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     // Empty data
-    EXPECT_TRUE(assembler.Run(dataInventory));
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_QOS, dataInventory));
 
     // Run success
     auto data = GenerateQosData();
     std::shared_ptr<std::vector<QosData>> dataS;
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<QosData>, data);
     dataInventory.Inject<std::vector<QosData>>(dataS);
-    EXPECT_TRUE(assembler.Run(dataInventory));
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_QOS, dataInventory));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
@@ -2242,33 +2305,68 @@ TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenRunSuccess)
     EXPECT_EQ(std::string::npos, waitArgs.find("Data Size"));
 }
 
-TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenDataNotExistOrEmpty)
+TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
 {
-    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
-    auto dataInventory = DataInventory();
-    EXPECT_TRUE(assembler.Run(dataInventory));
-    EXPECT_TRUE(File::RemoveDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}), DEPTH));
-    EXPECT_TRUE(File::CreateDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH})));
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(DBAssembler::GetTopologyRoots(roots));
+    ASSERT_FALSE(roots.empty());
 
-    std::vector<CCUMissionTimelineData> data;
-    std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
-    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CCUMissionTimelineData>, data);
-    dataInventory.Inject<std::vector<CCUMissionTimelineData>>(dataS);
-    EXPECT_TRUE(assembler.Run(dataInventory));
+    TopoBuildContext context;
+    context.profPath = PROF;
+    context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
+    context.dbSession = std::make_shared<DBAssembler>(context.profPath, context.outputPath);
+    ProcessCollection processes;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(context, roots, processes));
+
+    const RegProcessInfo* apiSaver = nullptr;
+    const RegProcessInfo* taskSaver = nullptr;
+    const RegProcessInfo* stringIdsSaver = nullptr;
+    size_t dbNodeCount = 0;
+    for (const auto& process : processes)
+    {
+        if (process.second.processName.find("DB:") != 0)
+        {
+            continue;
+        }
+        if (process.second.processName == "DB:" + PROCESSOR_NAME_API)
+        {
+            ++dbNodeCount;
+            apiSaver = &process.second;
+        }
+        else if (process.second.processName == "DB:" + PROCESSOR_NAME_TASK)
+        {
+            ++dbNodeCount;
+            taskSaver = &process.second;
+        }
+        else if (process.second.processName == "DB:" + TABLE_NAME_STRING_IDS)
+        {
+            stringIdsSaver = &process.second;
+        }
+        else
+        {
+            ++dbNodeCount;
+        }
+    }
+
+    EXPECT_EQ(dbNodeCount + 1, roots.size());
+    ASSERT_NE(apiSaver, nullptr);
+    EXPECT_EQ(apiSaver->processDependence.size(), 1UL);
+    EXPECT_EQ(apiSaver->paramTypes.size(), 1UL);
+    ASSERT_NE(taskSaver, nullptr);
+    EXPECT_EQ(taskSaver->processDependence.size(), 2UL);
+    EXPECT_EQ(taskSaver->paramTypes.size(), 2UL);
+    ASSERT_NE(stringIdsSaver, nullptr);
+    EXPECT_EQ(stringIdsSaver->processDependence.size(), dbNodeCount);
+    EXPECT_TRUE(stringIdsSaver->paramTypes.empty());
 }
 
-TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnFalseWhenReserveFailed)
+TEST_F(DBAssemblerUTest, ShouldRejectExecutionListNodeWithoutRegistration)
 {
-    // deviceId, globalTaskId, name, startNs, endNs, args
-    using CCUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
-    auto dataInventory = DataInventory();
-    auto data = GenerateCCUData();
-    std::shared_ptr<std::vector<CCUMissionTimelineData>> dataS;
-    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<CCUMissionTimelineData>, data);
-    dataInventory.Inject<std::vector<CCUMissionTimelineData>>(dataS);
-
-    StubReserveFailureForVector<CCUDataFormat>();
-    EXPECT_FALSE(assembler.Run(dataInventory));
-    ResetReserveFailureForVector<CCUDataFormat>();
+    const auto definitions = TopoNodeRegistry::GetDefinitions();
+    TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + PROCESSOR_NAME_API});
+    std::vector<TopoNodeId> roots;
+    EXPECT_FALSE(DBAssembler::GetTopologyRoots(roots));
+    EXPECT_TRUE(roots.empty());
+    TopoNodeRegistry::MutableDefinitions() = definitions;
 }

@@ -17,32 +17,47 @@
 #ifndef ANALYSIS_APPLICATION_TIMELINE_MANAGER_H
 #define ANALYSIS_APPLICATION_TIMELINE_MANAGER_H
 
+#include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
+
+#include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/dump_tools/include/dump_tool.h"
-#include "analysis/csrc/application/timeline/json_process_enum.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
-class TimelineManager {
-public:
+class TimelineManager
+{
+   public:
     explicit TimelineManager(const std::string &profPath, const std::string &outputPath)
         : profPath_(profPath), outputPath_(outputPath) {};
-    bool Run(DataInventory &dataInventory, const std::vector<JsonProcess>& jsonProcess);
-    const static std::set<std::string>& GetProcessList();
-private:
-    bool ProcessTimeLine(DataInventory &dataInventory, const std::vector<JsonProcess> &jsonEnum);
-    bool PreDumpJson(DataInventory &dataInventory);
+    static bool GetTopologyRoots(const std::vector<JsonProcess> &jsonProcesses, std::vector<TopoNodeId> &roots);
+    static TopoNodeCreatorFactory CreateTimelineAssembler(const std::string &name);
+    static TopoNodeCreatorFactory CreateTimelinePreDump();
+    static TopoNodeCreatorFactory CreateTimelinePostDump();
+    static std::vector<TopoNodeId> ResolveSelectedTimelineNodes(const TopoBuildContext &context,
+                                                                const std::vector<TopoNodeId> &roots);
+    static std::vector<TopoNodeId> ResolveTimelinePreDumpDependencies(const TopoBuildContext &context,
+                                                                      const std::vector<TopoNodeId> &roots);
+    bool PreDumpJson(const std::vector<JsonProcess> &jsonProcess, DataInventory &dataInventory);
     void PostDumpJson();
+
+   private:
     void WriteFile(const std::string &filePrefix, FileCategory category);
-    std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess>& jsonProcess);
-private:
+    static std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess> &jsonProcess);
+
+   private:
     std::string profPath_;
     std::string outputPath_;
     std::unordered_map<FileCategory, std::string> fileType_;
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_TIMELINE_MANAGER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_TIMELINE_MANAGER_H

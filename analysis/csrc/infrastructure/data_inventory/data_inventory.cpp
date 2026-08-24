@@ -17,17 +17,20 @@
 
 using namespace Analysis;
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Infra {
+namespace Infra
+{
 
 bool DataInventory::InputToData(std::type_index idx, BaseTypePtr ptr)
 {
-    if (ptr == nullptr) {
+    if (ptr == nullptr)
+    {
         ERROR("invalid ptr, type name: %", idx.name());
         return false;
     }
-    
+
     std::lock_guard<std::mutex> lg(mutex_);
     auto ret = data_.emplace(idx, ptr);
     return ret.second;
@@ -37,9 +40,10 @@ std::set<std::type_index> DataInventory::RemoveRestData(const std::set<std::type
 {
     std::set<std::type_index> removedTypes;
     std::lock_guard<std::mutex> lg(mutex_);
-    for (auto it = data_.begin(); it != data_.end();) {
-        if (std::find(keepingDataType.begin(), keepingDataType.end(), it->first) ==
-                std::end(keepingDataType)) {
+    for (auto it = data_.begin(); it != data_.end();)
+    {
+        if (std::find(keepingDataType.begin(), keepingDataType.end(), it->first) == std::end(keepingDataType))
+        {
             removedTypes.insert(it->first);
             it = data_.erase(it);
             continue;
@@ -53,13 +57,14 @@ BaseTypePtr DataInventory::GetPtr(std::type_index idx) const
 {
     std::lock_guard<std::mutex> lg(mutex_);
     auto it = data_.find(idx);
-    if (it == data_.end()) {
+    if (it == data_.end())
+    {
         return {};
     }
 
     return it->second;
 }
 
-}
+}  // namespace Infra
 
-}
+}  // namespace Analysis

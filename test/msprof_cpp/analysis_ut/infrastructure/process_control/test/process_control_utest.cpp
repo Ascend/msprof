@@ -13,13 +13,21 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
+#include <chrono>
+#include <condition_variable>
+#include <functional>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/process/process_topo.h"
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "fake_process/pah_d.h"
 #include "fake_process/pstart_a.h"
 #include "fake_process/pstart_h.h"
@@ -31,6 +39,51 @@
 using namespace testing;
 using namespace Analysis;
 using namespace Infra;
+
+namespace
+{
+class CallbackProcess final : public Process
+{
+   public:
+    explicit CallbackProcess(std::function<uint32_t(DataInventory&)> callback) : callback_(std::move(callback)) {}
+
+   private:
+    uint32_t ProcessEntry(DataInventory& dataInventory, const Infra::Context&) override
+    {
+        return callback_(dataInventory);
+    }
+
+    std::function<uint32_t(DataInventory&)> callback_;
+};
+
+struct ProducerProcessTag
+{
+};
+struct FirstConsumerProcessTag
+{
+};
+struct LastConsumerProcessTag
+{
+};
+struct SlowRootProcessTag
+{
+};
+struct FastRootProcessTag
+{
+};
+struct FastChildProcessTag
+{
+};
+
+struct DynamicSchedulingState
+{
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool slowRootStarted{false};
+    bool allowSlowRootFinish{false};
+    bool fastChildRan{false};
+};
+}  // namespace
 
 class ProcessControlUTest : public Test {
 protected:
@@ -200,6 +253,151 @@ TEST_F(ProcessControlUTest, ShouldRunAllChipV1ProcessWhenExecute)
     EXPECT_EQ(Ps::GetBaseGcCount(), 2ul);
 
     Ps::ResetBaseGcCount();
+}
+
+TEST_F(ProcessControlUTest, ShouldKeepDataWhenReleaseUnusedDataDisabled)
+{
+    Ps::ResetBaseGcCount();
+    Infra::DeviceContext deviceInstance;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    auto regInfo = ProcessRegister::CopyProcessInfo();
+    ProcessControlOptions options;
+    options.releaseUnusedData = false;
+    ProcessControl processControl(regInfo, options);
+
+    ASSERT_TRUE(processControl.ExecuteProcess(dataInventory, deviceInstance));
+    EXPECT_NE(dataInventory.GetPtr<Ps::StartA>(), nullptr);
+    EXPECT_GT(dataInventory.Size(), 0UL);
+    Ps::ResetBaseGcCount();
+}
+
+TEST_F(ProcessControlUTest, ShouldReleaseDataByDefault)
+{
+    Ps::ResetBaseGcCount();
+    Infra::DeviceContext deviceInstance;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    auto regInfo = ProcessRegister::CopyProcessInfo();
+    ProcessControl processControl(regInfo);
+
+    ASSERT_TRUE(processControl.ExecuteProcess(dataInventory, deviceInstance));
+    EXPECT_EQ(dataInventory.Size(), 0UL);
+    Ps::ResetBaseGcCount();
+}
+
+TEST_F(ProcessControlUTest, ShouldKeepDataUntilLastConsumerFinishes)
+{
+    bool firstConsumerSawData = false;
+    bool lastConsumerSawData = false;
+    auto producer = []() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([](DataInventory& dataInventory)
+        {
+            return dataInventory.Inject(std::make_shared<int>(7)) ? ANALYSIS_OK : ANALYSIS_ERROR;
+        }));
+    };
+    auto firstConsumer = [&firstConsumerSawData]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([&firstConsumerSawData](DataInventory& dataInventory)
+        {
+            auto value = dataInventory.GetPtr<int>();
+            firstConsumerSawData = value != nullptr && *value == 7;
+            if (!firstConsumerSawData || !dataInventory.Inject(std::make_shared<std::string>("ready")))
+            {
+                return ANALYSIS_ERROR;
+            }
+            return ANALYSIS_OK;
+        }));
+    };
+    auto lastConsumer = [&lastConsumerSawData]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([&lastConsumerSawData](DataInventory& dataInventory)
+        {
+            auto value = dataInventory.GetPtr<int>();
+            auto marker = dataInventory.GetPtr<std::string>();
+            lastConsumerSawData = value != nullptr && *value == 7 && marker != nullptr && *marker == "ready";
+            return lastConsumerSawData ? ANALYSIS_OK : ANALYSIS_ERROR;
+        }));
+    };
+
+    ProcessCollection processes = {
+        {typeid(ProducerProcessTag), {producer, {}, {}, {CHIP_ID_ALL}, "producer", true}},
+        {typeid(FirstConsumerProcessTag),
+         {firstConsumer, {typeid(int)}, {typeid(ProducerProcessTag)}, {CHIP_ID_ALL}, "first_consumer", true}},
+        {typeid(LastConsumerProcessTag),
+         {lastConsumer,
+          {typeid(int), typeid(std::string)},
+          {typeid(FirstConsumerProcessTag)},
+          {CHIP_ID_ALL},
+          "last_consumer",
+          true}},
+    };
+    Infra::DeviceContext context;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    ProcessControl processControl(processes);
+
+    EXPECT_TRUE(processControl.ExecuteProcess(dataInventory, context));
+    EXPECT_TRUE(firstConsumerSawData);
+    EXPECT_TRUE(lastConsumerSawData);
+    EXPECT_EQ(dataInventory.Size(), 0UL);
+}
+
+TEST_F(ProcessControlUTest, ShouldScheduleReadyDependentWithoutWaitingForUnrelatedProcess)
+{
+    auto state = std::make_shared<DynamicSchedulingState>();
+    auto slowRoot = [state]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([state](DataInventory&)
+        {
+            std::unique_lock<std::mutex> lock(state->mutex);
+            state->slowRootStarted = true;
+            state->condition.notify_all();
+            state->condition.wait(lock, [state]() { return state->allowSlowRootFinish; });
+            return ANALYSIS_OK;
+        }));
+    };
+    auto fastRoot = []() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([](DataInventory&) { return ANALYSIS_OK; }));
+    };
+    auto fastChild = [state]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess([state](DataInventory&)
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->fastChildRan = true;
+            state->condition.notify_all();
+            return ANALYSIS_OK;
+        }));
+    };
+
+    ProcessCollection processes = {
+        {typeid(SlowRootProcessTag), {slowRoot, {}, {}, {CHIP_ID_ALL}, "slow_root", true}},
+        {typeid(FastRootProcessTag), {fastRoot, {}, {}, {CHIP_ID_ALL}, "fast_root", true}},
+        {typeid(FastChildProcessTag),
+         {fastChild, {}, {typeid(FastRootProcessTag)}, {CHIP_ID_ALL}, "fast_child", true}},
+    };
+    Infra::DeviceContext context;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    ProcessControlOptions options;
+    options.maxWorkerThreads = 2;
+    ProcessControl processControl(processes, options);
+    bool result = false;
+    std::thread executionThread([&]() { result = processControl.ExecuteProcess(dataInventory, context); });
+
+    bool slowRootStarted = false;
+    bool fastChildRan = false;
+    {
+        std::unique_lock<std::mutex> lock(state->mutex);
+        slowRootStarted =
+            state->condition.wait_for(lock, std::chrono::seconds(1), [state]() { return state->slowRootStarted; });
+        fastChildRan = state->condition.wait_for(lock, std::chrono::seconds(1), [state]() { return state->fastChildRan; });
+        state->allowSlowRootFinish = true;
+    }
+    state->condition.notify_all();
+    executionThread.join();
+    EXPECT_TRUE(slowRootStarted);
+    EXPECT_TRUE(fastChildRan);
+    EXPECT_TRUE(result);
 }
 
 TEST_F(ProcessControlUTest, ShouldFailedWhenProcessTopoCircled)

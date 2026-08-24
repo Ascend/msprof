@@ -16,7 +16,10 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/ai_task SOURCE
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/system SOURCES)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/viewer/test SOURCES)
 
-list(APPEND SOURCES "${TOP_DIR}/analysis/csrc/domain/services/device_context/load_host_data.cpp")
+list(APPEND SOURCES
+    "${TOP_DIR}/analysis/csrc/infrastructure/process/topo_graph.cpp"
+    "${TOP_DIR}/analysis/csrc/domain/services/device_context/load_host_data.cpp"
+)
 
 add_executable(viewer_utest
     ${SOURCES}

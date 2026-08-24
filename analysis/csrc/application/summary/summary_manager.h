@@ -17,26 +17,35 @@
 #ifndef ANALYSIS_APPLICATION_SUMMARY_MANAGER_H
 #define ANALYSIS_APPLICATION_SUMMARY_MANAGER_H
 
+#include <set>
 #include <string>
 #include <utility>
-#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include <vector>
 
-namespace Analysis {
-namespace Application {
+#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
+
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
 
-class SummaryManager {
-public:
+class SummaryManager
+{
+   public:
     explicit SummaryManager(const std::string& profPath, const std::string& outputPath)
         : profPath_(profPath), outputPath_(outputPath) {};
-    bool Run(DataInventory& dataInventory);
-    const static std::set<std::string>& GetProcessList();
-private:
-    bool ProcessSummary(DataInventory& dataInventory);
-private:
+    static bool IsDeliverableSupported(const std::string& deliverableName);
+    static TopoNodeCreatorFactory CreateSummaryAssembler(const std::string& name);
+    static bool GetAssemblerList(const std::vector<std::string>& deliverableNames,
+                                 std::vector<std::string>& assemblerNames);
+    static bool GetTopologyRoots(const std::vector<std::string>& deliverableNames, std::vector<TopoNodeId>& roots);
+
+   private:
     std::string profPath_;
     std::string outputPath_;
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_SUMMARY_MANAGER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_SUMMARY_MANAGER_H

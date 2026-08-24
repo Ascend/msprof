@@ -17,19 +17,55 @@
 #ifndef ANALYSIS_DOMAIN_DATA_PROCESSOR_FACTORY_H
 #define ANALYSIS_DOMAIN_DATA_PROCESSOR_FACTORY_H
 
-#include <functional>
-#include "analysis/csrc/domain/data_process/data_processor.h"
+#include <memory>
+#include <new>
+#include <string>
+#include <typeindex>
 
-namespace Analysis {
-namespace Domain {
-using ProcessorCreator = std::function<void(const std::string&, std::shared_ptr<DataProcessor>&)>;
-class DataProcessorFactory {
-public:
-    static std::shared_ptr<DataProcessor> GetDataProcessByName(const std::string &profPath,
-                                                               const std::string &processName);
-private:
-    static std::unordered_map<std::string, ProcessorCreator> processorTable_;
+#include "analysis/csrc/domain/data_process/data_processor.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
+#include "analysis/csrc/infrastructure/process/include/process_struct.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
+
+namespace Analysis
+{
+namespace Domain
+{
+class DataProcessorProcess final : public Infra::Process
+{
+   public:
+    DataProcessorProcess(std::shared_ptr<DataProcessor> processor, std::string name)
+        : processor_(std::move(processor)), name_(std::move(name))
+    {
+    }
+
+    const std::shared_ptr<DataProcessor>& GetProcessor() const { return processor_; }
+
+   private:
+    uint32_t ProcessEntry(Infra::DataInventory& inventory, const Infra::Context&) override;
+
+    std::shared_ptr<DataProcessor> processor_;
+    std::string name_;
 };
+
+template <typename Processor>
+Application::TopoNodeCreatorFactory CreateDataProcessorFactory(const std::string& processName)
+{
+    return [processName](const Application::TopoBuildContext& context)
+    {
+        const std::string profPath = context.profPath;
+        return [processName, profPath]() -> std::unique_ptr<Infra::Process>
+        {
+            std::shared_ptr<DataProcessor> processor(new (std::nothrow) Processor(profPath));
+            if (processor == nullptr)
+            {
+                return nullptr;
+            }
+            return std::unique_ptr<Infra::Process>(new (std::nothrow) DataProcessorProcess(processor, processName));
+        };
+    };
 }
-}
-#endif // ANALYSIS_DOMAIN_DATA_PROCESSOR_FACTORY_H
+
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_DATA_PROCESSOR_FACTORY_H

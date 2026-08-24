@@ -17,9 +17,14 @@
 #ifndef ANALYSIS_APPLICATION_DB_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_DB_ASSEMBLER_H
 
+#include <functional>
+#include <string>
+#include <vector>
+
 #include "analysis/csrc/application/database/msprof_db.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/db/include/db_info.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
@@ -28,14 +33,19 @@ namespace Application
 {
 using namespace Analysis::Infra;
 
+using DBSaveDataFunc = std::function<bool(DataInventory &dataInventory, DBInfo &msprofDB, const std::string &profPath)>;
+
 class DBAssembler
 {
    public:
     DBAssembler() = default;
     DBAssembler(const std::string &profPath, const std::string &outputPath);
     virtual ~DBAssembler() = default;
-    bool Run(DataInventory &dataInventory);
-    const static std::set<std::string> &GetProcessList();
+    static bool GetTopologyRoots(std::vector<TopoNodeId> &roots);
+    static std::vector<TopoNodeId> ResolveSelectedDBSavers(const TopoBuildContext &context,
+                                                           const std::vector<TopoNodeId> &roots);
+    static TopoNodeCreatorFactory CreateSaver(const std::string &name);
+    static TopoNodeCreatorFactory CreateStringIdsSaver();
 
    private:
     std::string profPath_;
