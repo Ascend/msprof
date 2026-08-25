@@ -15,6 +15,8 @@
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
+#include <limits>
+
 #include "gtest/gtest.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -257,4 +259,48 @@ TEST_F(UtilsUTest, TestDivideByPowersOfTenWithPrecisionShouldReturnTrueValue)
 
     value = 78; // 入参78
     EXPECT_EQ("0.07", DivideByPowersOfTenWithPrecision(value, 2, 3)); // 长度小于3位，移动3位，精度2位
+}
+
+// =========================================================================
+// Reserve / Resize — 异常路径看护
+// 生产中出现超大 size 时，reserve/resize 抛异常必须被捕获并返回 false，
+// 而不是让异常向上传播导致进程崩溃
+// =========================================================================
+
+TEST_F(UtilsUTest, TestReserveShouldReturnTrueWhenSizeIsNormal)
+{
+    std::vector<int> vec;
+    EXPECT_TRUE(Reserve(vec, 10));
+    EXPECT_GE(vec.capacity(), static_cast<size_t>(10));
+}
+
+TEST_F(UtilsUTest, TestReserveShouldReturnFalseWhenSizeExceedsMax)
+{
+    std::vector<int> vec;
+    // 超过 max_size 会抛 std::length_error，应被捕获并返回 false
+    EXPECT_FALSE(Reserve(vec, std::numeric_limits<size_t>::max()));
+    EXPECT_TRUE(vec.empty());
+    // 异常路径不应破坏已存在的数据
+    vec = {1, 2, 3};
+    EXPECT_FALSE(Reserve(vec, std::numeric_limits<size_t>::max()));
+    EXPECT_EQ(vec.size(), static_cast<size_t>(3));
+}
+
+TEST_F(UtilsUTest, TestResizeShouldReturnTrueWhenSizeIsNormal)
+{
+    std::vector<int> vec;
+    EXPECT_TRUE(Resize(vec, 10));
+    EXPECT_EQ(vec.size(), static_cast<size_t>(10));
+}
+
+TEST_F(UtilsUTest, TestResizeShouldReturnFalseWhenSizeExceedsMax)
+{
+    std::vector<int> vec;
+    // 超过 max_size 会抛 std::length_error，应被捕获并返回 false
+    EXPECT_FALSE(Resize(vec, std::numeric_limits<size_t>::max()));
+    EXPECT_TRUE(vec.empty());
+    // 异常路径不应破坏已存在的数据
+    vec = {1, 2, 3};
+    EXPECT_FALSE(Resize(vec, std::numeric_limits<size_t>::max()));
+    EXPECT_EQ(vec.size(), static_cast<size_t>(3));
 }

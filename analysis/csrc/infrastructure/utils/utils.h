@@ -19,8 +19,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <memory>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 #include "analysis/csrc/infrastructure/dfx/log.h"
@@ -175,9 +177,9 @@ bool Reserve(std::vector<T> &vec, size_t s)
     {
         vec.reserve(s);
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-        ERROR("Reserve vector failed");
+        ERROR("Reserve vector failed, data type=%, size=%, reason=%", typeid(T).name(), s, e.what());
         return false;
     }
     return true;
@@ -190,9 +192,9 @@ bool Resize(std::vector<T> &vec, size_t s)
     {
         vec.resize(s);
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-        ERROR("Resize vector failed");
+        ERROR("Resize vector failed, data type=%, size=%, reason=%", typeid(T).name(), s, e.what());
         return false;
     }
     return true;

@@ -502,7 +502,9 @@ uint32_t AicpuPersistence::GenerateAndSaveData(const std::string& deviceFilePath
     // 表驱动方式：使用 std::function 适配不同签名的函数
     using func = std::function<uint32_t()>;
 
-    static const std::vector<std::pair<const std::vector<AicpuData> AicpuPersistence::*, func>> dataProcessMap = {
+    // 注意：不能声明为 static。static 会导致首次调用时捕获的 this/deviceFilePath
+    // 被所有 device 实例共享，后续卡的落盘路径全部错写成第一张卡的目录。
+    const std::vector<std::pair<const std::vector<AicpuData> AicpuPersistence::*, func>> dataProcessMap = {
         {&AicpuPersistence::nodeData_, [this, deviceFilePath]() { return GenerateAndSaveNode(deviceFilePath); }},
         {&AicpuPersistence::dpData_, [this, deviceFilePath]() { return GenerateAndSaveDp(deviceFilePath); }},
         {&AicpuPersistence::modelData_, [this, deviceFilePath]() { return GenerateAndSaveModel(deviceFilePath); }},
@@ -628,6 +630,7 @@ void AicpuPersistence::ComputeAicpuBatchId()
 uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
+    INFO("Start to process aicpu data for device, path %.", deviceContext.GetDeviceFilePath());
     auto aicpuData = dataInventory.GetPtr<std::vector<AicpuData>>();
     auto deviceStreamInfo = dataInventory.GetPtr<DeviceStreamInfo>();
     auto hostStreamInfo = dataInventory.GetPtr<HostStreamInfo>();

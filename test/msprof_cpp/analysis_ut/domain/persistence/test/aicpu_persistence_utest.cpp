@@ -697,6 +697,94 @@ TEST_F(AicpuPersistenceSaveUtest, ShouldOnlyWriteAiCpuDbFileWhenSaveBothNodeAndD
     EXPECT_TRUE(dbRunner.CheckTableExists("AiCpuDP"));
 }
 
+// =========================================================================
+// GenerateAndSaveData — 多 device 实例各自落盘到自己的目录
+// 回归测试：dataProcessMap 不能声明为 static。static 会让后续 device 实例
+// 复用首次调用捕获的 this/deviceFilePath，导致所有卡的 aicpu 数据
+// 全部写进第一张卡的 ai_cpu.db（旧 bug：各卡数据累加和 = 单卡 db 条数）。
+// =========================================================================
+
+class AicpuPersistenceMultiDeviceSaveUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        devicePath0_ = "./aicpu_multi_device_0";
+        devicePath1_ = "./aicpu_multi_device_1";
+        EXPECT_TRUE(File::CreateDir(devicePath0_));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({devicePath0_, "sqlite"})));
+        EXPECT_TRUE(File::CreateDir(devicePath1_));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({devicePath1_, "sqlite"})));
+        persistence0_ = std::make_shared<AicpuPersistence>();
+        persistence1_ = std::make_shared<AicpuPersistence>();
+        // freq=1000, sysCnt=1000, hostMonotonic=1000，时间换算结果确定无溢出
+        persistence0_->params_ = SyscntConversionParams(1000.0, 1000, 1000);
+        persistence1_->params_ = SyscntConversionParams(1000.0, 1000, 1000);
+    }
+
+    void TearDown() override
+    {
+        EXPECT_TRUE(File::RemoveDir(devicePath0_, 0));
+        EXPECT_TRUE(File::RemoveDir(devicePath1_, 0));
+    }
+
+    AicpuData CreateNodeData(uint32_t taskId, uint64_t runStartTick, uint64_t runEndTick)
+    {
+        AicpuData data;
+        data.type = AicpuType::AICPU_NODE;
+        data.taskId.streamId = 1;
+        data.taskId.taskId = taskId;
+        data.node.runStartTick = runStartTick;
+        data.node.runEndTick = runEndTick;
+        data.node.computeStartTime = 1000;
+        data.node.memcpyStartTime = 1200;
+        data.node.memcpyEndTime = 1500;
+        data.node.dispatchTime = 300;
+        data.node.submitTick = 900;
+        data.node.tickAfterRun = runEndTick + 100;
+        return data;
+    }
+
+protected:
+    std::string devicePath0_;
+    std::string devicePath1_;
+    std::shared_ptr<AicpuPersistence> persistence0_;
+    std::shared_ptr<AicpuPersistence> persistence1_;
+};
+
+TEST_F(AicpuPersistenceMultiDeviceSaveUtest, ShouldSaveEachDeviceDataToItsOwnDbPath)
+{
+    // 两张卡各自构造一份 node 数据，taskId 用于区分来源
+    persistence0_->nodeData_.emplace_back(CreateNodeData(10, 1000, 2000));
+    persistence1_->nodeData_.emplace_back(CreateNodeData(20, 3000, 4000));
+
+    ASSERT_EQ(ANALYSIS_OK, persistence0_->GenerateAndSaveData(devicePath0_));
+    ASSERT_EQ(ANALYSIS_OK, persistence1_->GenerateAndSaveData(devicePath1_));
+
+    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, uint64_t, uint64_t, double, uint64_t,
+                               double>;
+
+    // device0 的 ai_cpu.db 只含 device0 的数据（1 条，task_id=10）
+    std::string dbPath0 = File::PathJoin({devicePath0_, "sqlite", "ai_cpu.db"});
+    EXPECT_TRUE(File::Exist(dbPath0));
+    DBRunner dbRunner0(dbPath0);
+    EXPECT_TRUE(dbRunner0.CheckTableExists("AiCpuData"));
+    std::vector<NodeRow> rows0;
+    EXPECT_TRUE(dbRunner0.QueryData("SELECT * FROM AiCpuData", rows0));
+    ASSERT_EQ(rows0.size(), 1);
+    EXPECT_EQ(std::get<1>(rows0[0]), 10);
+
+    // device1 的 ai_cpu.db 只含 device1 的数据（1 条，task_id=20）。
+    // 回归点：旧 static bug 下 device1 的数据被写入 device0 的目录，这里不存在。
+    std::string dbPath1 = File::PathJoin({devicePath1_, "sqlite", "ai_cpu.db"});
+    EXPECT_TRUE(File::Exist(dbPath1));
+    DBRunner dbRunner1(dbPath1);
+    EXPECT_TRUE(dbRunner1.CheckTableExists("AiCpuData"));
+    std::vector<NodeRow> rows1;
+    EXPECT_TRUE(dbRunner1.QueryData("SELECT * FROM AiCpuData", rows1));
+    ASSERT_EQ(rows1.size(), 1);
+    EXPECT_EQ(std::get<1>(rows1[0]), 20);
+}
+
 
 }  // namespace
 }  // namespace Domain
