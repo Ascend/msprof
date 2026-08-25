@@ -348,7 +348,7 @@ class TestHcclCalculator(unittest.TestCase):
     def test_calculate_bandwidth_gb_s_should_return_correct_bandwidth_in_GB_S(self):
         ret = HcclCalculator._calculate_bandwidth_gb_s(duration=319959.1875, size=209715200)
         ret_0_duration = HcclCalculator._calculate_bandwidth_gb_s(duration=0, size=666666)
-        self.assertEqual(ret, 655.4435946615847)
+        self.assertEqual(ret, 610.4294160954512)
         self.assertEqual(ret_0_duration, 0)
 
     def test_update_bandwidth_should_update_correct_bandwidth(self):
@@ -396,30 +396,30 @@ class TestHcclCalculator(unittest.TestCase):
         ans = [
             HcclTask(op_name=OP_NAME, hccl_name=Memcpy, rdma_type=INVALID_TYPE,
                      timestamp=63888072593921.055, duration=319959.1875, transport_type=SDMA, task_id=1,
-                     size=209715200, bandwidth=655.4435946615847),
+                     size=209715200, bandwidth=610.4294160954512),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_NOTIFY,
                      timestamp=63888072915640.34, duration=320.0234375, transport_type=RDMA, task_id=1, size=4,
-                     bandwidth=0.01249908453971),
+                     bandwidth=0.01164067959385604),
             HcclTask(op_name=OP_NAME, hccl_name=NOTIFY_WAIT, rdma_type='RDMA_PAYLOAD_PREPARE',
                      timestamp=63888072917700.47, duration=20, transport_type=LOCAL, task_id=1, size=0, bandwidth=0),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                      timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1, size=104857600,
-                     bandwidth=24.28991694888519),
+                     bandwidth=22.621747990031903),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_NOTIFY,
                      timestamp=63888072921720.71, duration=320.0234375, transport_type=RDMA, task_id=1, size=4,
-                     bandwidth=0.01249908453971),
+                     bandwidth=0.01164067959385604),
             HcclTask(op_name=OP_NAME, hccl_name=NOTIFY_WAIT, rdma_type='RDMA_PAYLOAD_CHECK',
                      timestamp=63888072923480.82, duration=4310758.46875, transport_type=LOCAL, task_id=1, size=0,
                      bandwidth=0),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_NOTIFY,
                      timestamp=63888077234799.32, duration=320.0234375, transport_type=RDMA, task_id=1, size=4,
-                     bandwidth=0.01249908453971),
+                     bandwidth=0.01164067959385604),
             HcclTask(op_name=OP_NAME, hccl_name=NOTIFY_WAIT, rdma_type='RDMA_PAYLOAD_ACK',
                      timestamp=63888077236859.445, duration=20, transport_type=LOCAL, task_id=1, size=0,
                      bandwidth=0),
             HcclTask(op_name=OP_NAME, hccl_name=Memcpy, rdma_type=INVALID_TYPE,
                      timestamp=63888077238999.58, duration=160429.6171875, transport_type=SDMA, task_id=1,
-                     size=104857600, bandwidth=653.6050003625519),
+                     size=104857600, bandwidth=608.7170917192026),
         ]
 
         for idx, _ in enumerate(event):
@@ -444,15 +444,15 @@ class TestHcclCalculator(unittest.TestCase):
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                      timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1,
                      size=104857600,
-                     bandwidth=327664.0007812118),
+                     bandwidth=305160.88081636635),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                      timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1,
                      size=104857600,
-                     bandwidth=327664.0007812118),
+                     bandwidth=305160.88081636635),
             HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                      timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1,
                      size=104857600,
-                     bandwidth=327664.0007812118),
+                     bandwidth=305160.88081636635),
         ]
 
         for idx, _ in enumerate(event2):
@@ -481,13 +481,13 @@ class TestHcclCalculator(unittest.TestCase):
         ans = [
             [0, HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                          timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1, size=104857600,
-                         bandwidth=327664.0007812118)],
+                         bandwidth=305160.88081636635)],
             [1, HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                          timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1, size=104857600,
-                         bandwidth=327664.0007812118)],
+                         bandwidth=305160.88081636635)],
             [2, HcclTask(op_name=OP_NAME, hccl_name=RDMASend, rdma_type=RDMA_SEND_PAYLOAD,
                          timestamp=63888072919960.61, duration=320.015625, transport_type=RDMA, task_id=1, size=104857600,
-                         bandwidth=327664.0007812118)],
+                         bandwidth=305160.88081636635)],
         ]
         for idx, _ in enumerate(events):
             self.assertAlmostEqual(ans[idx][1].bandwidth, events[idx][1].bandwidth)

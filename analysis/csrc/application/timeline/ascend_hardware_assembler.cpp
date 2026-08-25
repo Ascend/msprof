@@ -286,7 +286,9 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncTrace(DataInventory &dataInvent
             }
             if (!IsDoubleEqual(data.duration, 0.0) && data.duration > 0)
             {
-                bandwidth = static_cast<double>(dataSize) / data.duration;  // GB/s, 全部按照1000计算
+                // GB/s, 字节按1024换算： (B / ns) / 1024^3 * 10^9
+                bandwidth = static_cast<double>(dataSize) / data.duration;
+                bandwidth = bandwidth / Common::BYTES_PER_GB * NANO_SECOND;
             }
         }
         MAKE_SHARED_RETURN_VOID(event, MemcpyAsyncEvent, formatPid, tid,

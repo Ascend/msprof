@@ -57,7 +57,7 @@ class DPUViewer(BaseViewer, ABC):
         if is_hccl:
             bandwidth = 0
             if duration > 0:
-                bandwidth = track.data_size * NumberConstant.COMMUNICATION_B_to_GB / (duration * NumberConstant.US_TO_S)
+                bandwidth = track.data_size / NumberConstant.BYTES_TO_GB / (duration * NumberConstant.US_TO_S)
             args.setdefault("OP Type", track.op_type)
             args.setdefault("AI CPU Device Id", track.npu_device_id)
             args.setdefault("AI CPU Task Id", track.aicpu_task_id)
@@ -109,16 +109,16 @@ class DPUViewer(BaseViewer, ABC):
                 header.append(["thread_sort_index", device_id, stream_id, stream_id])
         return header
 
-    def get_trace_timeline(self: any, dpu_data: tuple) -> list:
+    def get_trace_timeline(self: any, data_list: tuple) -> list:
         """
         format data to standard timeline format
         :return: list
         """
-        if not dpu_data:
+        if not data_list:
             logging.error("Get dpu data failed.")
             return []
-        column_trace_data = self.get_column_trace_data(*dpu_data)
-        result = TraceViewManager.metadata_event(self.get_time_timeline_header(*dpu_data))
+        column_trace_data = self.get_column_trace_data(*data_list)
+        result = TraceViewManager.metadata_event(self.get_time_timeline_header(*data_list))
         result.extend(
             TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, column_trace_data)
         )

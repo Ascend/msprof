@@ -154,10 +154,7 @@ class CommunicationParser(MetaParser):
             if transport_type == StrConstant.SDMA:
                 if total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] != 0:
                     total_dict[StrConstant.SDMA][OpBandWidthType.BANDWIDTH_GB_S] = round(
-                        (
-                            total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB]
-                            / NumberConstant.COMMUNICATION_MB_to_GB
-                        )
+                        (total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)
                         / (
                             total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS]
                             / NumberConstant.CONVERSION_TIME
@@ -252,7 +249,7 @@ class CommunicationParser(MetaParser):
         HcclAnalysisTool.update_bandwidth_record(
             op_bandwidth_dict,
             bandwidth_info_type,
-            HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.COMMUNICATION_B_to_MB,
+            HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.BYTES_TO_MB,
             HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS,
         )
 

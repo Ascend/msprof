@@ -109,12 +109,9 @@ class HcclCalculator(ICalculator, MsMultiProcess):
                     HcclCalculator.update_unclosed_rdma_task_bandwidth(idx, payload_cnt, communication_data)
                     idx += payload_cnt
                     continue
-                payload_time = rdma_send_payload_transit_result[0] / NumberConstant.NS_TO_MS
-                payload_size = rdma_send_payload_transit_result[1] / NumberConstant.COMMUNICATION_B_to_MB
-                if payload_time:
-                    payload_bandwidth = payload_size / payload_time
-                else:
-                    payload_bandwidth = 0
+                payload_bandwidth = HcclCalculator._calculate_bandwidth_gb_s(
+                    rdma_send_payload_transit_result[0], rdma_send_payload_transit_result[1]
+                )
                 for index in range(idx, idx + payload_cnt):
                     communication_data[index][1] = communication_data[index][1].replace(bandwidth=payload_bandwidth)
                 idx += payload_cnt + idx_jump - 1
@@ -162,7 +159,7 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         if abs(duration) < 1e-15:
             bandwidth = 0
         else:
-            bandwidth = (size * NumberConstant.COMMUNICATION_B_to_GB) / (duration * NumberConstant.NS_TO_S)
+            bandwidth = (size / NumberConstant.BYTES_TO_GB) / (duration * NumberConstant.NS_TO_S)
         return bandwidth
 
     @staticmethod

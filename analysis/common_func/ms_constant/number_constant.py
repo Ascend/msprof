@@ -89,6 +89,9 @@ class NumberConstant:
 
     # memory units transfer
     BYTES_TO_KB = 1024.0
+    BYTES_TO_MB = KILOBYTE**2
+    BYTES_TO_GB = KILOBYTE**3
+    MB_TO_GB = KILOBYTE
 
     # time conversion ns to us / ms to s
     CONVERSION_TIME = 1000.0
@@ -157,9 +160,6 @@ class NumberConstant:
     RANK_NUM_PER_SERVER = 8
     RANK_NUM_PER_OS = 4
     MAX_RANK_NUMS = 4096
-    COMMUNICATION_B_to_MB = 1000**2
-    COMMUNICATION_B_to_GB = 0.001**3
-    COMMUNICATION_MB_to_GB = 1000
 
     # magic number: 5A5A
     MAGIC_NUM = 23130

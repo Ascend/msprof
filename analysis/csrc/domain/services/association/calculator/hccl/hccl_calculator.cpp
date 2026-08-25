@@ -28,6 +28,7 @@
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 
 namespace Analysis
 {
@@ -477,7 +478,7 @@ void HcclCalculator::CalculateTaskBandwidth(std::vector<DeviceHcclTask*> hcclTas
             payLoadAllSize += hcclTasks[sizeI]->size;
         }
         auto transitTime = hcclTasks[closeIdx]->timestamp + hcclTasks[closeIdx]->duration - hcclTasks[idx]->timestamp;
-        double payloadBandwidth = Utils::IsDoubleEqual(transitTime, 0.0) ? 0 : (payLoadAllSize / transitTime);
+        double payloadBandwidth = CalculateBandwidth(payLoadAllSize, transitTime);
         for (size_t sizeI = idx; sizeI < idx + payloadCnt; ++sizeI)
         {
             hcclTasks[sizeI]->bandwidth = payloadBandwidth;
@@ -500,8 +501,12 @@ uint16_t HcclCalculator::GetJumpNum(const DeviceHcclTask& task)
 
 double HcclCalculator::CalculateBandwidth(double size, double duration)
 {
-    // B -> GB: 以 1 / 10^9替代； ns -> s: 以 1 / 10^9替代。两者约分，带宽单位为 GB/s
-    return (Utils::IsDoubleEqual(duration, 0.0) || (duration <= 0)) ? 0 : static_cast<double>(size) / duration;
+    // 字节按 1024 换算：GB/s = (B / 1024^3) / (ns / 10^9)
+    if (Utils::IsDoubleEqual(duration, 0.0) || (duration <= 0))
+    {
+        return 0;
+    }
+    return size / duration / Common::BYTES_PER_GB * NANO_SECOND;
 }
 
 uint16_t HcclCalculator::FindConsecutivePayloadTask(std::vector<DeviceHcclTask*> tasks, size_t idx)

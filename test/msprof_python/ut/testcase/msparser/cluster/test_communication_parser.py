@@ -29,7 +29,6 @@ from mscalculate.hccl.hccl_task import HcclTask
 from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.meta_parser import HcclAnalysisTool
 from msparser.cluster.meta_parser import OpTaskBundle
-from profiling_bean.prof_enum.chip_model import ChipModel
 
 NAMESPACE = 'msparser.cluster.communication_parser'
 
@@ -74,7 +73,7 @@ class TestHcclAnalysisTool(unittest.TestCase):
         events = [Event(StrConstant.RDMA_SEND), Event(StrConstant.RDMA_SEND), Event(StrConstant.NOTIFY_WAIT),
                   Event(StrConstant.RDMA_SEND), Event(StrConstant.NOTIFY_WAIT)]
         ret = HcclAnalysisTool.get_rdma_time_info(events, 0, 5)
-        self.assertEqual(ret, [1, 1])
+        self.assertEqual(ret, [1, 1000 ** 2 / 1024 ** 2])
 
     def test_find_consecutive_payload_tasks_count(self):
         RDMA = 'RDMA'
@@ -248,11 +247,11 @@ class TestCommunicationParser(unittest.TestCase):
                 Transit_Time_ms: 0
             },
             'RDMA': {
-                Bandwidth_GB_S: 24.2899,
-                Bandwidth_Utilization: 1.9432,
+                Bandwidth_GB_S: 22.6217,
+                Bandwidth_Utilization: 1.8097,
                 Large_Packet_Ratio: 1.0,
-                Size_Distribution: {104.8576: [1, 4.3169188359375]},
-                Transit_Size_MB: 104.8576,
+                Size_Distribution: {100.0: [1, 4.3169188359375]},
+                Transit_Size_MB: 100.0,
                 Transit_Time_ms: 4.3169188359375
             },
             SDMA: {
@@ -349,11 +348,11 @@ class TestCommunicationParser(unittest.TestCase):
                 Transit_Time_ms: 0
             },
             SDMA: {
-                Bandwidth_GB_S: 21664.3606,
+                Bandwidth_GB_S: 20176.5081,
                 Bandwidth_Utilization: 0,
                 Large_Packet_Ratio: 0,
-                Size_Distribution: {209.7152: [1, 0.009680193359375]},
-                Transit_Size_MB: 209.7152,
+                Size_Distribution: {200.0: [1, 0.009680193359375]},
+                Transit_Size_MB: 200.0,
                 Transit_Time_ms: 0.009680193359375
             },
         }
@@ -488,11 +487,11 @@ class TestCommunicationParser(unittest.TestCase):
             self.assertEqual(
                 ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["RDMA"]["Transit Time(ms)"], 2000
             )
-            self.assertEqual(ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["RDMA"]["Bandwidth(GB/s)"], 1)
+            self.assertEqual(ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["RDMA"]["Bandwidth(GB/s)"], 0.9766)
             self.assertEqual(ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["RDMA"]["Large Packet Ratio"], 1)
             self.assertEqual(
                 ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["RDMA"]["Bandwidth(Utilization)"],
-                1 / HcclAnalysisTool.StandardBandWidth.get(ChipModel.CHIP_V2_1_0).get('RDMA')
+                0.0781
             )
             self.assertEqual(ret[StrConstant.TOTAL][0]
                              ["Communication Bandwidth Info"]["RDMA"]["Size Distribution"][20], [4, 4])
@@ -503,5 +502,5 @@ class TestCommunicationParser(unittest.TestCase):
                 ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["SDMA"]["Transit Time(ms)"], 2000
             )
             self.assertEqual(
-                ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["SDMA"]["Bandwidth(GB/s)"], 1
+                ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["SDMA"]["Bandwidth(GB/s)"], 0.9766
             )

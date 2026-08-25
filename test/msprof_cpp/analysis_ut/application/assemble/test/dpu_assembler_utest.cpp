@@ -219,7 +219,7 @@ TEST_F(DPUAssemblerUTest, ShouldReturnTrueWhenDPUHcclTrackDataAssembleSuccess)
         "\"Group Name\":\"hccl_world_group(1)\",\"Plane Id\":1,\"Notify Id\":\"5555555\","
         "\"Duration Estimated(us)\":100.5,\"Rank Size\":8,"
         "\"Src Rank\":0,\"Dst Rank\":1,\"Transport Type\":\"RDMA\",\"Size(Byte)\":1048576,"
-        "\"Bandwidth(GB/s)\":1.0591676767676768,\"Data Type\":\"FP32\",\"Link Type\":\"RoCE\","
+        "\"Bandwidth(GB/s)\":0.9864267676767677,\"Data Type\":\"FP32\",\"Link Type\":\"RoCE\","
         "\"Rdma Type\":\"RDMA\"}},";
     EXPECT_EQ(expectStr, res.back());
 }

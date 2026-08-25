@@ -276,7 +276,7 @@ void ConvertTaskData(CommunicationTaskDataFormat& processedTaskData, const std::
         processedTaskData.emplace_back(opName, globalTaskId, taskType, item.planeId, groupName, notifyId, rdmaType,
                                        item.srcRank, item.dstRank, transportType, item.size, dataType, linkType,
                                        assocId, item.isMaster,
-                                       item.bandwidth * 1000 * 1000 * 1000);  // 对齐calculator中带宽计算
+                                       item.bandwidth * Common::BYTES_PER_GB);  // GB/s -> B/s，字节按1024换算
     }
 }
 

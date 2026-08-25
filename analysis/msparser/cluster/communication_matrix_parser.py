@@ -65,7 +65,8 @@ class CommunicationMatrixParser(MetaParser):
         new_link_dict[CommunicationMatrixInfo.TRANSIT_SIZE_MB] = link_value[MatrixDataType.TRANS_SIZE]
         new_link_dict[CommunicationMatrixInfo.TRANSIT_TIME_MS] = link_value[MatrixDataType.TRANS_TIME]
         new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] = HcclAnalysisTool.divide(
-            link_value[MatrixDataType.TRANS_SIZE], link_value[MatrixDataType.TRANS_TIME]
+            link_value[MatrixDataType.TRANS_SIZE] / NumberConstant.MB_TO_GB,
+            link_value[MatrixDataType.TRANS_TIME] / NumberConstant.CONVERSION_TIME,
         )
         standard_bandwidth = HcclAnalysisTool.get_standard_bandwidth().get(
             HcclAnalysisTool.convert_to_str(link_value[MatrixDataType.TRANSPORT_TYPE]), -1
@@ -172,7 +173,7 @@ class CommunicationMatrixParser(MetaParser):
             link_info[link_key] = [0] * len(MatrixDataType.__members__)
         trans_type = self.get_communication_matrix_transport_type(event)
         link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = HcclAnalysisTool.convert_to_enum(trans_type)
-        trans_size = HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.COMMUNICATION_B_to_MB
+        trans_size = HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.BYTES_TO_MB
         link_info[link_key][MatrixDataType.TRANS_SIZE] += trans_size
         link_info[link_key][MatrixDataType.TRANS_TIME] += (
             HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS

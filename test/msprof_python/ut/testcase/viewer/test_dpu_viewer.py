@@ -199,7 +199,7 @@ class TestDPUViewer(unittest.TestCase):
                                                     ('Dst Rank', 1),
                                                     ('Transport Type', 'TCP'),
                                                     ('Size(Byte)', 1024),
-                                                    ('Bandwidth(GB/s)', 1.024e-7),
+                                                    ('Bandwidth(GB/s)', 9.5367431640625e-08),
                                                     ('Data Type', 'FP16'),
                                                     ('Link Type', 'HCCS'),
                                                     ('Rdma Type', 'RDMA'),
