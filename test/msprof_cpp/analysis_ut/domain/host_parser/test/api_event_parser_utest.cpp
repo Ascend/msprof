@@ -97,7 +97,7 @@ protected:
         fakeGen->WriteBin<MsprofEvent>(agingTraces, EventType::EVENT_TYPE_EVENT, true);
     }
 
-    static void Check(const std::vector<std::shared_ptr<MsprofApi>> &data, uint16_t dataNum)
+    static void Check(const std::vector<std::shared_ptr<ParserApi>> &data, uint16_t dataNum)
     {
         ASSERT_EQ(dataNum, data.size());
         const uint16_t level = MSPROF_REPORT_NODE_LEVEL;
@@ -125,8 +125,8 @@ protected:
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturn27ApiDataAnd0EventDataWhenParseSuccess)
 {
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto apiData = parser->ParseData<MsprofApi>();
-    auto eventData = parser->ParseData<MsprofEvent>();
+    auto apiData = parser->ParseData<ParserApi>();
+    auto eventData = parser->ParseData<ParserEvent>();
     const uint16_t apiDataNum = API_DATA_NUM + EVENT_DATA_NUM / 2;  // 2个event数据合成一个api数据
     Check(apiData, apiDataNum);
     EXPECT_EQ(0, eventData.size());
@@ -134,11 +134,11 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturn27ApiDataAnd0EventDataWhe
 
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserApi>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofApi>();
+    auto data = parser->ParseData<ParserApi>();
     EXPECT_EQ(0, data.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofApi>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserApi>>).reset();
 }
 
 TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -146,6 +146,6 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenPopNullptr)
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofApi>();
+    auto data = parser->ParseData<ParserApi>();
     EXPECT_EQ(0, data.size());
 }

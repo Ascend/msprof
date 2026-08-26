@@ -15,16 +15,21 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
+
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Domain {
-namespace Cann {
+namespace Analysis
+{
+namespace Domain
+{
+namespace Cann
+{
 
-namespace {
+namespace
+{
 const int MAX_DEPTH = 20;
 const int MAX_BINDING_DEPTH = 5;
-}
+}  // namespace
 
 using namespace Analysis::Utils;
 /*
@@ -44,7 +49,8 @@ using namespace Analysis::Utils;
 */
 std::shared_ptr<TreeNode> TreeBuilder::Build()
 {
-    if (!cannWarehouse_->kernelEvents && !cannWarehouse_->taskTrackEvents) {
+    if (!cannWarehouse_->kernelEvents && !cannWarehouse_->taskTrackEvents)
+    {
         WARN("No key profiling info to build tree, threadId = %", threadId_);
         return nullptr;
     }
@@ -53,21 +59,26 @@ std::shared_ptr<TreeNode> TreeBuilder::Build()
 
     auto rootNode = GenerateRoot();
     std::shared_ptr<TreeNode> tree;
-    if (kernelEvents_ and !kernelEvents_->Empty()) {
+    if (kernelEvents_ and !kernelEvents_->Empty())
+    {
         // 1. 用Api和TaskTrack Event建立核心树
         tree = BuildTree(rootNode, 0);
-    } else {
+    }
+    else
+    {
         // 1. root节点就是整颗核心树
         tree = rootNode;
     }
-    if (!tree) {
+    if (!tree)
+    {
         ERROR("Build Tree Failed, ThreadId = %", threadId_);
         return nullptr;
     }
     MultiThreadAddLevelEvents();
     // 向核心树添加TaskTrack类型的events
     AddTaskTrackEvents(rootNode, taskTrackEvents);
-    if (taskTrackEvents && !taskTrackEvents->Empty()) {
+    if (taskTrackEvents && !taskTrackEvents->Empty())
+    {
         ERROR("taskTrackEvents matching is not complete, threadId: %", threadId_);
     }
     INFO("Build Tree End, ThreadId = %", threadId_);
@@ -94,25 +105,27 @@ void TreeBuilder::MultiThreadAddLevelEvents()
     pool.Start();
 
     // Model Level
-    pool.AddTask([this, &fusionOpInfoEvents]() {
-        AddLevelEvents(fusionOpInfoEvents, modelLevelNodes_, EventType::EVENT_TYPE_FUSION_OP_INFO);
-    });
+    pool.AddTask([this, &fusionOpInfoEvents]()
+                 { AddLevelEvents(fusionOpInfoEvents, modelLevelNodes_, EventType::EVENT_TYPE_FUSION_OP_INFO); });
 
     // Node Level
-    pool.AddTask([this, &nodeCtxIdEvents, &tensorInfoEvents, &nodeBasicInfoEvents,
-                             &nodeAttrInfoEvents, &hcclOpInfoEvents]() {
-        AddLevelEvents(nodeBasicInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_BASIC_INFO);
-        AddLevelEvents(nodeAttrInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_ATTR_INFO);
-        AddLevelEvents(tensorInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_TENSOR_INFO);
-        AddLevelEvents(nodeCtxIdEvents, nodeLevelNodes_, EventType::EVENT_TYPE_CONTEXT_ID);
-        AddLevelEvents(hcclOpInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_HCCL_OP_INFO);
-    });
+    pool.AddTask(
+        [this, &nodeCtxIdEvents, &tensorInfoEvents, &nodeBasicInfoEvents, &nodeAttrInfoEvents, &hcclOpInfoEvents]()
+        {
+            AddLevelEvents(nodeBasicInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_BASIC_INFO);
+            AddLevelEvents(nodeAttrInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_ATTR_INFO);
+            AddLevelEvents(tensorInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_TENSOR_INFO);
+            AddLevelEvents(nodeCtxIdEvents, nodeLevelNodes_, EventType::EVENT_TYPE_CONTEXT_ID);
+            AddLevelEvents(hcclOpInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_HCCL_OP_INFO);
+        });
 
     // Hccl level
-    pool.AddTask([this, &hcclCtxIdEvents, &hcclInfoEvents]() {
-        AddLevelEvents(hcclCtxIdEvents, hcclLevelNodes_, EventType::EVENT_TYPE_CONTEXT_ID);
-        AddLevelEvents(hcclInfoEvents, hcclLevelNodes_, EventType::EVENT_TYPE_HCCL_INFO);
-    });
+    pool.AddTask(
+        [this, &hcclCtxIdEvents, &hcclInfoEvents]()
+        {
+            AddLevelEvents(hcclCtxIdEvents, hcclLevelNodes_, EventType::EVENT_TYPE_CONTEXT_ID);
+            AddLevelEvents(hcclInfoEvents, hcclLevelNodes_, EventType::EVENT_TYPE_HCCL_INFO);
+        });
 
     pool.WaitAllTasks();
     pool.Stop();
@@ -122,15 +135,18 @@ std::shared_ptr<TreeNode> TreeBuilder::GenerateRoot()
 {
     uint64_t bound;
     // rootNode的时间片应该覆盖整个EventQueue
-    if (!kernelEvents_ or kernelEvents_->Empty()) {
+    if (!kernelEvents_ or kernelEvents_->Empty())
+    {
         bound = cannWarehouse_->taskTrackEvents->GetBound();
-    } else {
+    }
+    else
+    {
         auto tkBound = cannWarehouse_->taskTrackEvents ? cannWarehouse_->taskTrackEvents->GetBound() : 0;
         bound = std::max(tkBound, kernelEvents_->GetBound());
     }
     EventInfo rootInfo{EventType::EVENT_TYPE_API, 0, 0, bound + 1};
-    std::shared_ptr<MsprofApi> api;
-    MAKE_SHARED0_RETURN_VALUE(api, MsprofApi, nullptr);
+    std::shared_ptr<ParserApi> api;
+    MAKE_SHARED0_RETURN_VALUE(api, ParserApi, nullptr);
     std::shared_ptr<Event> rootEvent;
     MAKE_SHARED_RETURN_VALUE(rootEvent, Event, nullptr, api, rootInfo);
     std::shared_ptr<TreeNode> rootNode;
@@ -142,7 +158,8 @@ std::shared_ptr<TreeNode> TreeBuilder::GenerateRoot()
 EventQueuePair TreeBuilder::GroupCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdEvents)
 {
     uint64_t ctxIdSize = 0;
-    if (ctxIdEvents) {
+    if (ctxIdEvents)
+    {
         ctxIdSize = ctxIdEvents->GetSize();
     }
     std::shared_ptr<EventQueue> nodeCtxIdEvent;
@@ -150,11 +167,15 @@ EventQueuePair TreeBuilder::GroupCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdE
     std::shared_ptr<EventQueue> hcclCtxIdEvent;
     MAKE_SHARED_RETURN_VALUE(hcclCtxIdEvent, EventQueue, {}, threadId_, ctxIdSize);
 
-    while (ctxIdEvents && !ctxIdEvents->Empty()) {
+    while (ctxIdEvents && !ctxIdEvents->Empty())
+    {
         auto ctxId = ctxIdEvents->Pop();
-        if (ctxId->info.level == MSPROF_REPORT_NODE_LEVEL) {
+        if (ctxId->info.level == MSPROF_REPORT_NODE_LEVEL)
+        {
             nodeCtxIdEvent->Push(ctxId);
-        } else if (ctxId->info.level == MSPROF_REPORT_HCCL_NODE_LEVEL) {
+        }
+        else if (ctxId->info.level == MSPROF_REPORT_HCCL_NODE_LEVEL)
+        {
             hcclCtxIdEvent->Push(ctxId);
         }
     }
@@ -168,13 +189,16 @@ size_t TreeBuilder::GetEventOffset(size_t idx, std::shared_ptr<Event> &event,
     // hccl aicpu下发场景, 会出现2层node嵌套, 需要计算offset, 关联至准确的node api
     // [=======================Node(hcom_allReduce_)==============================]
     //   [===Node(hcomAicpuInit)==]     [===Node(allreduceAicpuKernel)==]
-    if (eventType != EventType::EVENT_TYPE_NODE_BASIC_INFO) {
+    if (eventType != EventType::EVENT_TYPE_NODE_BASIC_INFO)
+    {
         // hccl aicpu下发场景暂时只有node basic info上报
         return 0;
     }
     size_t offset = 1;
-    while ((idx + offset) < levelNodes.size() && levelNodes[idx + offset]->event->info.start <= event->info.start) {
-        if (event->info.start <= levelNodes[idx + offset]->event->info.end) {
+    while ((idx + offset) < levelNodes.size() && levelNodes[idx + offset]->event->info.start <= event->info.start)
+    {
+        if (event->info.start <= levelNodes[idx + offset]->event->info.end)
+        {
             return offset;
         }
         ++offset;
@@ -184,56 +208,66 @@ size_t TreeBuilder::GetEventOffset(size_t idx, std::shared_ptr<Event> &event,
 
 // 双指针遍历向Model Node HCCL Level的TreeNode中添加events
 bool TreeBuilder::AddLevelEvents(std::shared_ptr<EventQueue> &events,
-                                 std::vector<std::shared_ptr<TreeNode>> &levelNodes,
-                                 EventType eventType) const
+                                 std::vector<std::shared_ptr<TreeNode>> &levelNodes, EventType eventType) const
 {
     // 检查输入各Type的Events指针
-    if (!events || events->Empty()) {
+    if (!events || events->Empty())
+    {
         WARN("No Events, event type: %, threadId = %", static_cast<int>(eventType), threadId_);
         return false;
     }
     // 保证非空
-    if (levelNodes.empty()) {
+    if (levelNodes.empty())
+    {
         ERROR("LevelNodes is empty, level: %, threadId = % ", events->Top()->info.level, threadId_);
         return false;
     }
-    uint64_t matchCnt = 0; // 在时间片范围内的数量
-    uint64_t mismatchCnt = 0; // 在时间片范围外的数量
+    uint64_t matchCnt = 0;     // 在时间片范围内的数量
+    uint64_t mismatchCnt = 0;  // 在时间片范围外的数量
     auto it = levelNodes.begin();
     size_t idx = 0;
-    while (!events->Empty() && it != levelNodes.end()) {
+    while (!events->Empty() && it != levelNodes.end())
+    {
         auto event = events->Top();
-        if (event->info.start > (*it)->event->info.start && event->info.start <= (*it)->event->info.end) {
+        if (event->info.start > (*it)->event->info.start && event->info.start <= (*it)->event->info.end)
+        {
             // event在TreeNode时间片内：(start, end]，将event记录在TreeNode的附加信息中
             // hccl aicpu下发场景, 计算offset, 关联至准确的node api
             auto offset = GetEventOffset(idx, event, levelNodes, eventType);
             (*(it + offset))->records.emplace_back(event);
             events->Pop();
             matchCnt++;
-        } else if (event->info.start > (*it)->event->info.end) {
+        }
+        else if (event->info.start > (*it)->event->info.end)
+        {
             // event超过TreeNode的结束时间，需要检查是否在下一个TreeNode的开始之前
-            if (std::next(it) != levelNodes.end() && event->info.start < (*std::next(it))->event->info.start) {
-                events->Pop(); // 丢掉此event
+            if (std::next(it) != levelNodes.end() && event->info.start < (*std::next(it))->event->info.start)
+            {
+                events->Pop();  // 丢掉此event
                 mismatchCnt++;
-                ERROR("Drop event threadId = %, start = %, event type: %, its start time between "
-                      "last TreeNode end and next TreeNode start", threadId_, event->info.start,
-                      static_cast<int>(eventType));
+                ERROR(
+                    "Drop event threadId = %, start = %, event type: %, its start time between "
+                    "last TreeNode end and next TreeNode start",
+                    threadId_, event->info.start, static_cast<int>(eventType));
             }
             it++;
             idx++;
-        } else {
+        }
+        else
+        {
             // event小于TreeNode的开始时间，此event对应的TreeNode丢失
-            events->Pop(); // 丢掉此event
+            events->Pop();  // 丢掉此event
             mismatchCnt++;
             ERROR("Drop event threadId = %, event type: %, event time range: [%, %], node time range: [%, %]",
-                  threadId_, static_cast<int>(eventType), event->info.start, event->info.end,
-                  (*it)->event->info.start, (*it)->event->info.end);
+                  threadId_, static_cast<int>(eventType), event->info.start, event->info.end, (*it)->event->info.start,
+                  (*it)->event->info.end);
         }
     }
-    INFO("Add LevelEvents done, threadId = %, event type: %, matchCnt = %, mismatchCnt = % ",
-         threadId_, static_cast<int>(eventType), matchCnt, mismatchCnt);
+    INFO("Add LevelEvents done, threadId = %, event type: %, matchCnt = %, mismatchCnt = % ", threadId_,
+         static_cast<int>(eventType), matchCnt, mismatchCnt);
     // events没有匹配完
-    if (!events->Empty()) {
+    if (!events->Empty())
+    {
         ERROR("After matching events is not empty, size = %, threadId = %", events->GetSize(), threadId_);
         return false;
     }
@@ -243,10 +277,9 @@ bool TreeBuilder::AddLevelEvents(std::shared_ptr<EventQueue> &events,
 std::shared_ptr<TreeNode> TreeBuilder::MakeDummyNode(const std::shared_ptr<Event> &event)
 {
     // 建立dummy节点
-    EventInfo dummyInfo{EventType::EVENT_TYPE_DUMMY, MSPROF_REPORT_RUNTIME_LEVEL,
-                        event->info.start, event->info.end};
-    std::shared_ptr<MsprofApi> api;
-    MAKE_SHARED0_RETURN_VALUE(api, MsprofApi, nullptr);
+    EventInfo dummyInfo{EventType::EVENT_TYPE_DUMMY, MSPROF_REPORT_RUNTIME_LEVEL, event->info.start, event->info.end};
+    std::shared_ptr<ParserApi> api;
+    MAKE_SHARED0_RETURN_VALUE(api, ParserApi, nullptr);
     std::shared_ptr<Event> dummyEvent;
     MAKE_SHARED_RETURN_VALUE(dummyEvent, Event, nullptr, api, dummyInfo);
     std::shared_ptr<TreeNode> dummyNode;
@@ -256,48 +289,57 @@ std::shared_ptr<TreeNode> TreeBuilder::MakeDummyNode(const std::shared_ptr<Event
 }
 
 // 深度优先搜索+队列匹配添加TaskTrackEvents，基于rootNode和events有序
-bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode,
-                                     std::shared_ptr<EventQueue> &events, uint16_t depth)
+bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode, std::shared_ptr<EventQueue> &events,
+                                     uint16_t depth)
 {
-    if (!treeNode || depth > MAX_BINDING_DEPTH) {
+    if (!treeNode || depth > MAX_BINDING_DEPTH)
+    {
         ERROR("The tree node is null or recursion depth % exceeds the maximum depth %.", depth, MAX_BINDING_DEPTH);
         return false;
     }
     // 检查输入Runtime Events指针
-    if (!events || events->Empty()) {
+    if (!events || events->Empty())
+    {
         INFO("TaskTrack Events have been processed, threadId = %", threadId_);
         return true;
     }
     // event属于根节点时间范围内情况
-    auto oriSize = treeNode->children.size(); // 只遍历原始数据大小
+    auto oriSize = treeNode->children.size();  // 只遍历原始数据大小
     uint64_t prevEndTime = treeNode->event->info.start;
-    for (size_t i = 0; i < oriSize; ++i) { // 使用索引遍历，避免迭代器失效
+    for (size_t i = 0; i < oriSize; ++i)
+    {  // 使用索引遍历，避免迭代器失效
         auto child = treeNode->children[i];
         // event在当前子节点开始时间和上一个子节点结束时间之间情况(包括第一个节点之前），添加到根节点
-        while (!events->Empty() && events->Top()->info.start > prevEndTime
-            && events->Top()->info.start <= child->event->info.start) {
+        while (!events->Empty() && events->Top()->info.start > prevEndTime &&
+               events->Top()->info.start <= child->event->info.start)
+        {
             auto dummyNode = MakeDummyNode(events->Pop());
-            if (!dummyNode) {
+            if (!dummyNode)
+            {
                 return false;
             }
             dummyNode->parent = treeNode;
             treeNode->children.emplace_back(dummyNode);
         }
         // event在当前子节点的时间范围内情况
-        while (!events->Empty() && events->Top()->info.start > child->event->info.start
-            && events->Top()->info.start <= child->event->info.end) {
+        while (!events->Empty() && events->Top()->info.start > child->event->info.start &&
+               events->Top()->info.start <= child->event->info.end)
+        {
             // 递归调用AddTaskTrackEvents添加event
-            if (!AddTaskTrackEvents(child, events, depth + 1)) {
+            if (!AddTaskTrackEvents(child, events, depth + 1))
+            {
                 return false;
             }
         }
         prevEndTime = child->event->info.end;
     }
     // event不在根节点的所有子节点时间范围内，但在根节点时间范围内情况
-    while (!events->Empty() && events->Top()->info.start > treeNode->event->info.start
-        && events->Top()->info.start <= treeNode->event->info.end) {
+    while (!events->Empty() && events->Top()->info.start > treeNode->event->info.start &&
+           events->Top()->info.start <= treeNode->event->info.end)
+    {
         auto dummyNode = MakeDummyNode(events->Pop());
-        if (!dummyNode) {
+        if (!dummyNode)
+        {
             return false;
         }
         dummyNode->parent = treeNode;
@@ -310,8 +352,10 @@ bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode,
 void TreeBuilder::LogTreeNode(std::shared_ptr<TreeNode> &treeNode)
 {
     uint64_t runtimeNodes = 0;
-    for (auto child : treeNode->children) {
-        if (child->event->info.level == MSPROF_REPORT_RUNTIME_LEVEL) {
+    for (auto child : treeNode->children)
+    {
+        if (child->event->info.level == MSPROF_REPORT_RUNTIME_LEVEL)
+        {
             runtimeNodes++;
         }
     }
@@ -320,34 +364,44 @@ void TreeBuilder::LogTreeNode(std::shared_ptr<TreeNode> &treeNode)
           treeNode->children.size(), runtimeNodes);
 }
 
-void TreeBuilder::RecordTreeNode(const std::shared_ptr<TreeNode> &treeNode,
-                                 const uint16_t &eventLevel)
+void TreeBuilder::RecordTreeNode(const std::shared_ptr<TreeNode> &treeNode, const uint16_t &eventLevel)
 {
-    if (eventLevel == MSPROF_REPORT_MODEL_LEVEL) {
+    if (eventLevel == MSPROF_REPORT_MODEL_LEVEL)
+    {
         modelLevelNodes_.emplace_back(treeNode);
-    } else if (eventLevel == MSPROF_REPORT_NODE_LEVEL) {
+    }
+    else if (eventLevel == MSPROF_REPORT_NODE_LEVEL)
+    {
         nodeLevelNodes_.emplace_back(treeNode);
-    } else if (eventLevel == MSPROF_REPORT_HCCL_NODE_LEVEL) {
+    }
+    else if (eventLevel == MSPROF_REPORT_HCCL_NODE_LEVEL)
+    {
         hcclLevelNodes_.emplace_back(treeNode);
-    } else if (eventLevel == MSPROF_REPORT_RUNTIME_LEVEL) {
+    }
+    else if (eventLevel == MSPROF_REPORT_RUNTIME_LEVEL)
+    {
         runtimeLevelNodes_.emplace_back(treeNode);
     }
 }
 
 std::shared_ptr<TreeNode> TreeBuilder::BuildTree(std::shared_ptr<TreeNode> parent, int depth)
 {
-    if (depth >= MAX_DEPTH) {
+    if (depth >= MAX_DEPTH)
+    {
         ERROR("The maximum recursion depth is exceeded, thread id: %", threadId_);
         return nullptr;
     }
-    if (!parent) {
+    if (!parent)
+    {
         ERROR("Parent pointer is nullptr, thread id: %", threadId_);
         return nullptr;
     }
 
-    while (true) {
+    while (true)
+    {
         auto checkEvent = kernelEvents_->Top();
-        if (!checkEvent || checkEvent->info.end > parent->event->info.end) {
+        if (!checkEvent || checkEvent->info.end > parent->event->info.end)
+        {
             break;
         }
         auto event = kernelEvents_->Pop();
@@ -357,7 +411,8 @@ std::shared_ptr<TreeNode> TreeBuilder::BuildTree(std::shared_ptr<TreeNode> paren
         RecordTreeNode(childNode, event->info.level);
 
         auto childTree = BuildTree(childNode, depth + 1);
-        if (childTree != nullptr) {
+        if (childTree != nullptr)
+        {
             childTree->parent = parent;
             parent->children.emplace_back(childTree);
         }
@@ -365,6 +420,6 @@ std::shared_ptr<TreeNode> TreeBuilder::BuildTree(std::shared_ptr<TreeNode> paren
     return parent;
 }
 
-} // namespace Cann
-} // namespace Association
-} // namespace Analysis
+}  // namespace Cann
+}  // namespace Domain
+}  // namespace Analysis

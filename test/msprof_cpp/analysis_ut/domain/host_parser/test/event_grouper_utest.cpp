@@ -27,7 +27,7 @@
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 

@@ -13,8 +13,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
-#ifndef MSPROFILER_PROF_COMMON_H_
-#define MSPROFILER_PROF_COMMON_H_
+#ifndef MSPROFILER_PROF_STRUCT_H_
+#define MSPROFILER_PROF_STRUCT_H_
 
 #include <stdint.h>
 
@@ -289,10 +289,10 @@ extern "C"
         uint8_t reserves[9];
     };
 #pragma pack()
-
+    const uint32_t KFC_INFOS_NUM = 2;
     struct MsprofKfcInfos
     {
-        MsprofAicpuHcclTaskInfo infos[2];
+        MsprofAicpuHcclTaskInfo infos[KFC_INFOS_NUM];
     };
 
     // AICPU kfc算子执行时间
@@ -724,4 +724,4 @@ extern "C"
 }
 #endif
 
-#endif  // MSPROFILER_PROF_COMMON_H_
+#endif  // MSPROFILER_PROF_STRUCT_H_

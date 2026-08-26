@@ -36,22 +36,22 @@ const uint16_t BIT_NUM = 16;
 const uint16_t BIT_V2_NUM = 32;
 }  // namespace
 
-uint16_t Flip::GetTaskId(const MsprofCompactInfo &task)
+uint16_t Flip::GetTaskId(const ParserCompactInfo &task)
 {
-    return task.data.runtimeTrackV2.taskId & TASK_ID_BIT;  // taskId是低16位
+    return task.data.runtimeTrack.taskId & TASK_ID_BIT;  // taskId是低16位
 }
 
-uint16_t Flip::GetBatchId(const MsprofCompactInfo &task)
+uint16_t Flip::GetBatchId(const ParserCompactInfo &task)
 {
-    return task.data.runtimeTrackV2.taskId >> BIT_NUM;  // batchId/flipNum是高16位
+    return task.data.runtimeTrack.taskId >> BIT_NUM;  // batchId/flipNum是高16位
 }
 
-void Flip::SetBatchId(MsprofCompactInfo &task, uint32_t batchId)
+void Flip::SetBatchId(ParserCompactInfo &task, uint32_t batchId)
 {
-    task.data.runtimeTrackV2.taskId = (task.data.runtimeTrackV2.taskId & TASK_ID_BIT) + (batchId << BIT_NUM);
+    task.data.runtimeTrack.taskId = (task.data.runtimeTrack.taskId & TASK_ID_BIT) + (batchId << BIT_NUM);
 }
 
-std::shared_ptr<FlipTask> Flip::CreateFlipTask(MsprofCompactInfo *taskTrack)
+std::shared_ptr<FlipTask> Flip::CreateFlipTask(ParserCompactInfo *taskTrack)
 {
     if (!taskTrack)
     {
@@ -61,16 +61,16 @@ std::shared_ptr<FlipTask> Flip::CreateFlipTask(MsprofCompactInfo *taskTrack)
     std::shared_ptr<FlipTask> flipTask;
     MAKE_SHARED0_RETURN_VALUE(flipTask, FlipTask, nullptr);
 
-    flipTask->deviceId = taskTrack->data.runtimeTrackV2.deviceId;
-    flipTask->streamId = taskTrack->data.runtimeTrackV2.streamId;
+    flipTask->deviceId = taskTrack->data.runtimeTrack.deviceId;
+    flipTask->streamId = taskTrack->data.runtimeTrack.streamId;
     flipTask->taskId = GetTaskId(*taskTrack);
     flipTask->timeStamp = taskTrack->timeStamp;
     flipTask->flipNum = GetBatchId(*taskTrack);
     return flipTask;
 }
 
-void Flip::ComputeBatchId(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack,
-                          std::vector<std::shared_ptr<FlipTask>> &flipTask, bool isV2)
+void Flip::ComputeBatchId(std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack,
+                          std::vector<std::shared_ptr<FlipTask>> &flipTask, RuntimeTrackFormat runtimeTrackFormat)
 {
     if (taskTrack.empty())
     {
@@ -83,6 +83,7 @@ void Flip::ComputeBatchId(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskT
     MAKE_SHARED0_RETURN_VOID(maxFlip, FlipTask);
 
     maxFlip->timeStamp = std::numeric_limits<uint64_t>::max();
+    bool isV2 = (runtimeTrackFormat == RuntimeTrackFormat::V2);
     for (auto &item : taskTrackBin)
     {
         const auto &key = item.first;
@@ -115,7 +116,7 @@ void Flip::ComputeBatchId(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskT
             if (task->timeStamp > flip->timeStamp)
             {
                 ++batchId;  // next flip
-                CalibrateFlipTaskIdNotZero(taskTrackInStream, flip, taskIdx, batchId, isV2);
+                CalibrateFlipTaskIdNotZero(taskTrackInStream, flip, taskIdx, batchId, runtimeTrackFormat);
                 continue;
             }
             SetBatchId(*task, batchId);
@@ -140,7 +141,7 @@ Flip::FlipTaskMap Flip::SepFlipTask(const std::vector<std::shared_ptr<FlipTask>>
     return data;
 }
 
-Flip::CompactInfoMap Flip::SepTaskTrack(const std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack)
+Flip::CompactInfoMap Flip::SepTaskTrack(const std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack)
 {
     CompactInfoMap data;
     for (const auto &task : taskTrack)
@@ -151,22 +152,22 @@ Flip::CompactInfoMap Flip::SepTaskTrack(const std::vector<std::shared_ptr<Msprof
             continue;
         }
         // deviceId为高32bit, streamId为低32bit，拼接为key
-        uint64_t key = (static_cast<uint64_t>(task->data.runtimeTrackV2.deviceId) << BIT_V2_NUM) +
-                       static_cast<uint64_t>(task->data.runtimeTrackV2.streamId);
+        uint64_t key = (static_cast<uint64_t>(task->data.runtimeTrack.deviceId) << BIT_V2_NUM) +
+                       static_cast<uint64_t>(task->data.runtimeTrack.streamId);
         data[key].emplace_back(task);
     }
     return data;
 }
 
-void Flip::CalibrateFlipTaskIdNotZero(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack,
+void Flip::CalibrateFlipTaskIdNotZero(std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack,
                                       const std::shared_ptr<FlipTask> &flip, uint32_t taskIdx, uint32_t batchId,
-                                      bool isV2)
+                                      RuntimeTrackFormat runtimeTrackFormat)
 {
-    if (!isV2 && flip->flipNum == STREAM_DESTROY_FLIP)
+    if (runtimeTrackFormat == RuntimeTrackFormat::V1 && flip->flipNum == STREAM_DESTROY_FLIP)
     {
         return;
     }
-    if (isV2 && flip->flipNum == STREAM_DESTROY_FLIP_V2)
+    if (runtimeTrackFormat == RuntimeTrackFormat::V2 && flip->flipNum == STREAM_DESTROY_FLIP_V2)
     {
         return;
     }

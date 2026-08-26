@@ -264,8 +264,8 @@ void CANNTraceDBDumper::DumpOpDesc(const HostTasks &computeTasks)
     }
 }
 
-void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInfo> &tensorDesc,
-                                           const MsprofNodeBasicInfo *nodeBasicInfo, TaskInfoData &data,
+void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ParserConcatTensorInfo> &tensorDesc,
+                                           const ParserNodeBasicInfo *nodeBasicInfo, TaskInfoData &data,
                                            const std::shared_ptr<HostTask> &task)
 {
     auto tensorNum = tensorDesc->tensorNum;
@@ -402,7 +402,7 @@ void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTa
     }
 }
 
-void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofCompactInfo> &runtimeTrack,
+void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<ParserCompactInfo> &runtimeTrack,
                                                 uint32_t &blockNum, uint32_t &mixBlockNum, std::string &gridDim,
                                                 std::string &blockDim)
 {
@@ -410,11 +410,11 @@ void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofComp
     {
         return;
     }
-    auto taskTypeVal = runtimeTrack->data.runtimeTrackV2.taskType;
+    auto taskTypeVal = runtimeTrack->data.runtimeTrack.taskType;
     auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
     if (taskType == KERNEL_SIMT_TASK_TYPE)
     {
-        auto &simtInfo = runtimeTrack->data.runtimeTrackV2.extInfo.simtKernelInfo;
+        auto &simtInfo = runtimeTrack->data.runtimeTrack.simtKernelInfo;
         gridDim =
             Utils::Join(std::vector<std::string>{std::to_string(simtInfo.gridDim.x), std::to_string(simtInfo.gridDim.y),
                                                  std::to_string(simtInfo.gridDim.z)},
@@ -426,7 +426,7 @@ void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofComp
     }
     else
     {
-        auto &kernelInfo = runtimeTrack->data.runtimeTrackV2.extInfo.kernelInfo;
+        auto &kernelInfo = runtimeTrack->data.runtimeTrack.kernelInfo;
         blockNum = kernelInfo.numBlocks;
         mixBlockNum = kernelInfo.numBlocks * kernelInfo.ratio;
     }
@@ -534,16 +534,16 @@ void CANNTraceDBDumper::DumpHcclTasks(const HostTasks &hcclTasks)
                               task->threadId, 0, task->connectionId);
             continue;
         }
-        auto hcclTrace = Utils::ReinterpretConvert<MsprofHcclInfo *>(desc->hcclInfo->data);
+        auto hcclTrace = desc->hcclInfo->hcclInfo;
         data.emplace_back(
-            task->modelId, task->requestId, HashData::GetInstance().Get(hcclTrace->itemId),
-            std::to_string(hcclTrace->groupName), hcclTrace->planeID, std::to_string(task->timeStamp), task->streamId,
-            task->taskId, task->contextId, task->batchId, task->deviceId, desc->isMaster, hcclTrace->localRank,
-            hcclTrace->remoteRank, NumberMapping::Get(MappingType::HCCL_TRANSPORT_TYPE, hcclTrace->transportType),
-            static_cast<double>(hcclTrace->dataSize),
-            NumberMapping::Get(MappingType::HCCL_DATA_TYPE, hcclTrace->dataType),
-            NumberMapping::Get(MappingType::HCCL_LINK_TYPE, hcclTrace->linkType), std::to_string(hcclTrace->notifyID),
-            NumberMapping::Get(MappingType::HCCL_RDMA_TYPE, hcclTrace->rdmaType), task->threadId, hcclTrace->rankSize,
+            task->modelId, task->requestId, HashData::GetInstance().Get(hcclTrace.itemId),
+            std::to_string(hcclTrace.groupName), hcclTrace.planeID, std::to_string(task->timeStamp), task->streamId,
+            task->taskId, task->contextId, task->batchId, task->deviceId, desc->isMaster, hcclTrace.localRank,
+            hcclTrace.remoteRank, NumberMapping::Get(MappingType::HCCL_TRANSPORT_TYPE, hcclTrace.transportType),
+            static_cast<double>(hcclTrace.dataSize),
+            NumberMapping::Get(MappingType::HCCL_DATA_TYPE, hcclTrace.dataType),
+            NumberMapping::Get(MappingType::HCCL_LINK_TYPE, hcclTrace.linkType), std::to_string(hcclTrace.notifyID),
+            NumberMapping::Get(MappingType::HCCL_RDMA_TYPE, hcclTrace.rdmaType), task->threadId, hcclTrace.rankSize,
             task->connectionId);
     }
     if (!hcclTaskDBRunner.InsertData("HCCLTask", data))

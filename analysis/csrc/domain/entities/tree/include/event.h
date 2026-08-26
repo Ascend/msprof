@@ -22,7 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 namespace Analysis
 {
@@ -82,16 +83,16 @@ struct EventInfo
 // Event为本工程对软硬件上报的各类信息(Trace)的抽象, 表示一个时间点或时间片发生的事件
 struct Event
 {
-    Event(std::shared_ptr<MsprofApi> eventPtr, const EventInfo &eventInfo);
-    Event(std::shared_ptr<MsprofAdditionalInfo> eventPtr, const EventInfo &eventInfo);
-    Event(std::shared_ptr<MsprofCompactInfo> eventPtr, const EventInfo &eventInfo);
-    Event(std::shared_ptr<ConcatTensorInfo> eventPtr, const EventInfo &eventInfo);
+    Event(std::shared_ptr<ParserApi> eventPtr, const EventInfo &eventInfo);
+    Event(std::shared_ptr<ParserAdditionalInfo> eventPtr, const EventInfo &eventInfo);
+    Event(std::shared_ptr<ParserCompactInfo> eventPtr, const EventInfo &eventInfo);
+    Event(std::shared_ptr<ParserConcatTensorInfo> eventPtr, const EventInfo &eventInfo);
     union
     {
-        std::shared_ptr<MsprofApi> apiPtr;
-        std::shared_ptr<MsprofAdditionalInfo> additionPtr;
-        std::shared_ptr<MsprofCompactInfo> compactPtr;
-        std::shared_ptr<ConcatTensorInfo> tensorPtr;
+        std::shared_ptr<ParserApi> apiPtr;
+        std::shared_ptr<ParserAdditionalInfo> additionPtr;
+        std::shared_ptr<ParserCompactInfo> compactPtr;
+        std::shared_ptr<ParserConcatTensorInfo> tensorPtr;
     };
     EventInfo info;
     int64_t id = 0;  // 全局唯一ID

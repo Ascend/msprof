@@ -56,18 +56,18 @@ protected:
     }
 };
 
-std::shared_ptr<MsprofCompactInfo> MakeDpuTrackInfo(uint32_t deviceId, uint32_t threadId,
+std::shared_ptr<ParserCompactInfo> MakeDpuTrackInfo(uint32_t deviceId, uint32_t threadId,
     uint64_t startTime, uint64_t endTime, uint32_t streamId, uint32_t taskId)
 {
-    auto info = std::make_shared<MsprofCompactInfo>();
+    auto info = std::make_shared<ParserCompactInfo>();
     info->threadId = threadId;
     info->timeStamp = endTime;
     info->level = MSPROF_REPORT_NODE_LEVEL;
     info->type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
     info->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
-    MsprofDpuTrack track;
+    ParserDpuTrack track;
     track.deviceId = static_cast<uint16_t>(deviceId);
-    track.streamId = static_cast<uint16_t>(streamId);
+    track.streamId = static_cast<uint32_t>(streamId);
     track.taskId = taskId;
     track.taskType = 1;
     track.startTime = startTime;
@@ -85,7 +85,7 @@ TEST_F(DpuTaskTrackDBDumperUtest, TestGenerateDataShouldReturnCorrectlyWhenKerne
     kernelMap[(static_cast<uint64_t>(0x1002) << 32) | 20] = kernelHash2;
     dumper.SetKernelNameMap(kernelMap);
 
-    std::vector<std::shared_ptr<MsprofCompactInfo>> trackInfos;
+    std::vector<std::shared_ptr<ParserCompactInfo>> trackInfos;
     trackInfos.push_back(MakeDpuTrackInfo(0x1001, 1, 1000, 2000, 5, 10));
     trackInfos.push_back(MakeDpuTrackInfo(0x1002, 2, 3000, 4000, 6, 20));
     trackInfos.push_back(MakeDpuTrackInfo(0x1003, 3, 5000, 6000, 7, 30));
@@ -127,7 +127,7 @@ TEST_F(DpuTaskTrackDBDumperUtest, TestGenerateDataShouldReturnCorrectlyWhenKerne
 TEST_F(DpuTaskTrackDBDumperUtest, TestGenerateDataShouldReturnEmptyWhenInputEmpty)
 {
     DpuTaskTrackDBDumper dumper(".");
-    std::vector<std::shared_ptr<MsprofCompactInfo>> emptyInfos;
+    std::vector<std::shared_ptr<ParserCompactInfo>> emptyInfos;
     auto result = dumper.GenerateData(emptyInfos);
     EXPECT_TRUE(result.empty());
 }
@@ -135,7 +135,7 @@ TEST_F(DpuTaskTrackDBDumperUtest, TestGenerateDataShouldReturnEmptyWhenInputEmpt
 TEST_F(DpuTaskTrackDBDumperUtest, TestDumpDataShouldReturnTrueWhenDataInsertSuccess)
 {
     DpuTaskTrackDBDumper dumper(".");
-    std::vector<std::shared_ptr<MsprofCompactInfo>> trackInfos;
+    std::vector<std::shared_ptr<ParserCompactInfo>> trackInfos;
     trackInfos.push_back(MakeDpuTrackInfo(0x1001, 1, 1000, 2000, 5, 10));
 
     auto res = dumper.DumpData(trackInfos);
@@ -153,7 +153,7 @@ TEST_F(DpuTaskTrackDBDumperUtest, TestDumpDataShouldReturnFalseWhenDBNotCreated)
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(false));
     DpuTaskTrackDBDumper dumper(".");
-    std::vector<std::shared_ptr<MsprofCompactInfo>> trackInfos;
+    std::vector<std::shared_ptr<ParserCompactInfo>> trackInfos;
     trackInfos.push_back(MakeDpuTrackInfo(0x1001, 1, 1000, 2000, 5, 10));
 
     ASSERT_FALSE(dumper.DumpData(trackInfos));

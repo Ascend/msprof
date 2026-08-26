@@ -18,8 +18,8 @@
 
 #include <cstring>
 
+#include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "securec.h"
 
 namespace Analysis
 {
@@ -50,7 +50,7 @@ void CompactInfoParser::Init(const std::vector<std::string> &filePrefix)
 }
 
 template <>
-std::vector<std::shared_ptr<MsprofCompactInfo>> CompactInfoParser::GetData()
+std::vector<std::shared_ptr<ParserCompactInfo>> CompactInfoParser::GetData()
 {
     return compactData_;
 }
@@ -86,7 +86,15 @@ int CompactInfoParser::ProduceData()
             delete compactInfo;
             continue;
         }
-        compactData_.emplace_back(std::shared_ptr<MsprofCompactInfo>(compactInfo));
+        auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
+        if (!ParserCompactInfoAdapter::AdapterCompactInfo(compactInfo, parserCompactInfo.get(), parserType_))
+        {
+            ERROR("%: copy compactInfo data failed.", parserName_);
+            delete compactInfo;
+            return ANALYSIS_ERROR;
+        }
+        delete compactInfo;
+        compactData_.emplace_back(std::move(parserCompactInfo));
     }
     return ANALYSIS_OK;
 }
@@ -132,29 +140,19 @@ int NodeBasicInfoParser::ProduceData()
                 delete compactInfo;
                 continue;
             }
-            compactInfo->data.nodeBasicInfo.opState = opState;
-            compactData_.emplace_back(std::shared_ptr<MsprofCompactInfo>(compactInfo));
+            auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
+            if (!ParserCompactInfoAdapter::AdapterCompactInfo(compactInfo, parserCompactInfo.get(), parserType_))
+            {
+                ERROR("%: copy nodeBasic info data failed.", parserName_);
+                delete compactInfo;
+                return ANALYSIS_ERROR;
+            }
+            parserCompactInfo->data.nodeBasicInfo.opState = opState;
+            delete compactInfo;
+            compactData_.emplace_back(std::move(parserCompactInfo));
         }
     }
     return ANALYSIS_OK;
-}
-
-void TaskTrackParser::NormalizeRuntimeTrack(MsprofCompactInfo *compactInfo)
-{
-    // V1数据归一化到V2格式：统一使用runtimeTrackV2，上层不再区分V1/V2
-    MsprofRuntimeTrack v1Track = compactInfo->data.runtimeTrack;
-    compactInfo->data.runtimeTrackV2.deviceId = v1Track.deviceId;
-    compactInfo->data.runtimeTrackV2.streamId = v1Track.streamId;
-    compactInfo->data.runtimeTrackV2.taskId = v1Track.taskId;
-    // v1版本的taskType上报数据不超过uint16_t
-    compactInfo->data.runtimeTrackV2.taskType = static_cast<uint32_t>(v1Track.taskType);
-    compactInfo->data.runtimeTrackV2.kernelName = v1Track.kernelName;
-    errno_t res = memcpy_s(&compactInfo->data.runtimeTrackV2.extInfo, sizeof(compactInfo->data.runtimeTrackV2.extInfo),
-                           &v1Track.extInfo, sizeof(v1Track.extInfo));
-    if (res != EOK)
-    {
-        errorNum_++;
-    }
 }
 
 int TaskTrackParser::ProduceData()
@@ -170,7 +168,7 @@ int TaskTrackParser::ProduceData()
         ERROR("%: Reserve data failed", parserName_);
         return ANALYSIS_ERROR;
     }
-    auto isV2 = IsRuntimeTrackV2();
+    auto runtimeTrackFormat = GetRuntimeTrackFormat();
     while (!chunkProducer_->Empty())
     {
         auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunkProducer_->Pop());
@@ -185,14 +183,17 @@ int TaskTrackParser::ProduceData()
             delete compactInfo;
             continue;
         }
-        if (!isV2)
+        auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
+        if (!ParserCompactInfoAdapter::AdapterRuntimeTrack(compactInfo, runtimeTrackFormat, parserCompactInfo.get()))
         {
-            NormalizeRuntimeTrack(compactInfo);
-        }
-        if (compactInfo->data.runtimeTrackV2.taskType == flipTaskType)
-        {
-            auto flipTask = Flip::CreateFlipTask(compactInfo);
+            ERROR("%: copy runtimeTrack data failed.", parserName_);
             delete compactInfo;
+            return ANALYSIS_ERROR;
+        }
+        delete compactInfo;
+        if (parserCompactInfo->data.runtimeTrack.taskType == flipTaskType)
+        {
+            auto flipTask = Flip::CreateFlipTask(parserCompactInfo.get());
             if (!flipTask)
             {
                 ERROR("FlipTask is null.");
@@ -202,31 +203,29 @@ int TaskTrackParser::ProduceData()
             continue;
         }
 
-        if (compactInfo->data.runtimeTrackV2.taskType == maintenanceTaskType)
+        if (parserCompactInfo->data.runtimeTrack.taskType == maintenanceTaskType)
         {
-            delete compactInfo;
             continue;
         }
 
         // Collect DPU kernel name for cross-reference
-        DevType devType = static_cast<DevType>((compactInfo->data.runtimeTrackV2.deviceId >> 12) & 0xF);
+        DevType devType = static_cast<DevType>((parserCompactInfo->data.runtimeTrack.deviceId >> 12) & 0xF);
         if (devType == DevType::DPU)
         {
-            uint16_t devId = compactInfo->data.runtimeTrackV2.deviceId;
-            uint32_t taskId = compactInfo->data.runtimeTrackV2.taskId;
+            uint16_t devId = parserCompactInfo->data.runtimeTrack.deviceId;
+            uint32_t taskId = parserCompactInfo->data.runtimeTrack.taskId;
             uint64_t key = (static_cast<uint64_t>(devId) << 32) | taskId;
-            dpuKernelNameMap_[key] = compactInfo->data.runtimeTrackV2.kernelName;
-            delete compactInfo;
+            dpuKernelNameMap_[key] = parserCompactInfo->data.runtimeTrack.kernelName;
             continue;
         }
-        compactData_.emplace_back(std::shared_ptr<MsprofCompactInfo>(compactInfo));
+        compactData_.emplace_back(std::move(parserCompactInfo));
     }
-    Sort<MsprofCompactInfo, uint64_t, &MsprofCompactInfo::timeStamp>(compactData_);
+    Sort<ParserCompactInfo, uint64_t, &ParserCompactInfo::timeStamp>(compactData_);
     Sort<FlipTask, uint64_t, &FlipTask::timeStamp>(flipTaskData_);
     if (Context::GetInstance().IsAllExport() &&
         !Environment::Context::GetInstance().IsChipV6(Environment::Context::GetInstance().GetPlatformVersion()))
     {
-        Flip::ComputeBatchId(compactData_, flipTaskData_, isV2);
+        Flip::ComputeBatchId(compactData_, flipTaskData_, runtimeTrackFormat);
     }
     return ANALYSIS_OK;
 }

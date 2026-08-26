@@ -21,8 +21,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
-
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 namespace Analysis
 {
 namespace Domain
@@ -33,7 +33,7 @@ struct FlipTask
 {
     uint16_t deviceId;
     uint32_t streamId;
-    uint32_t taskId;
+    uint16_t taskId;
     uint32_t flipNum;
     uint64_t timeStamp;
 };
@@ -42,21 +42,22 @@ struct FlipTask
 class Flip
 {
    public:
-    static void ComputeBatchId(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack,
-                               std::vector<std::shared_ptr<FlipTask>> &flipTask, bool isV2 = false);
-    static uint16_t GetTaskId(const MsprofCompactInfo &task);
-    static uint16_t GetBatchId(const MsprofCompactInfo &task);
-    static std::shared_ptr<FlipTask> CreateFlipTask(MsprofCompactInfo *taskTrack);
+    static void ComputeBatchId(std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack,
+                               std::vector<std::shared_ptr<FlipTask>> &flipTask,
+                               RuntimeTrackFormat runtimeTrackFormat = RuntimeTrackFormat::V1);
+    static uint16_t GetTaskId(const ParserCompactInfo &task);
+    static uint16_t GetBatchId(const ParserCompactInfo &task);
+    static std::shared_ptr<FlipTask> CreateFlipTask(ParserCompactInfo *taskTrack);
 
    private:
-    using CompactInfoMap = std::unordered_map<uint64_t, std::vector<std::shared_ptr<MsprofCompactInfo>>>;
+    using CompactInfoMap = std::unordered_map<uint64_t, std::vector<std::shared_ptr<ParserCompactInfo>>>;
     using FlipTaskMap = std::unordered_map<uint64_t, std::vector<std::shared_ptr<FlipTask>>>;
-    static void CalibrateFlipTaskIdNotZero(std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack,
+    static void CalibrateFlipTaskIdNotZero(std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack,
                                            const std::shared_ptr<FlipTask> &flip, uint32_t taskIdx, uint32_t batchId,
-                                           bool isV2 = false);
-    static CompactInfoMap SepTaskTrack(const std::vector<std::shared_ptr<MsprofCompactInfo>> &taskTrack);
+                                           RuntimeTrackFormat runtimeTrackFormat = RuntimeTrackFormat::V1);
+    static CompactInfoMap SepTaskTrack(const std::vector<std::shared_ptr<ParserCompactInfo>> &taskTrack);
     static FlipTaskMap SepFlipTask(const std::vector<std::shared_ptr<FlipTask>> &flipTask);
-    static void SetBatchId(MsprofCompactInfo &task, uint32_t batchId);
+    static void SetBatchId(ParserCompactInfo &task, uint32_t batchId);
 
 };  // class Flip
 }  // namespace Adapter

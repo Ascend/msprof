@@ -33,7 +33,7 @@ protected:
 TEST_F(ModelNameDBDumperUtest, TestGenerateDataSuccess)
 {
     ModelNameDBDumper dumper(HOST_FILE_PATH);
-    ModelNameDBDumper::GraphIdMaps maps = {std::make_shared<MsprofAdditionalInfo>()};
+    ModelNameDBDumper::GraphIdMaps maps = {std::make_shared<ParserAdditionalInfo>()};
     dumper.GenerateData(maps);
     EXPECT_EQ(maps.size(), 1ul);
 }

@@ -173,7 +173,7 @@ void HostTraceWorker::DumpModelName(ThreadPool &pool, const std::string &hostDat
             TimeLogger t{"Dump model name data start"};
             std::shared_ptr<GraphIdParser> parser;
             MAKE_SHARED_RETURN_VOID(parser, GraphIdParser, hostDataPath);
-            auto traces = parser->ParseData<MsprofAdditionalInfo>();
+            auto traces = parser->ParseData<ParserAdditionalInfo>();
             // ModelName 数据落盘
             std::shared_ptr<ModelNameDBDumper> modelNameDumper;
             MAKE_SHARED_RETURN_VOID(modelNameDumper, ModelNameDBDumper, hostPath_);
@@ -209,7 +209,7 @@ void HostTraceWorker::DumpMemcpyInfo(const std::string &hostDataPath)
     TimeLogger t{"Dump memcpy info data start"};
     std::shared_ptr<MemcpyInfoParser> parser;
     MAKE_SHARED_RETURN_VOID(parser, MemcpyInfoParser, hostDataPath);
-    auto traces = parser->ParseData<MsprofCompactInfo>();
+    auto traces = parser->ParseData<ParserCompactInfo>();
     // MemcpyInfo 数据落盘
     std::shared_ptr<MemcpyInfoDumper> memcpyInfoDumper;
     MAKE_SHARED_RETURN_VOID(memcpyInfoDumper, MemcpyInfoDumper, hostPath_);

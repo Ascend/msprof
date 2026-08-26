@@ -79,7 +79,7 @@ protected:
 TEST_F(MemcpyInfoDumperUtest, TestMemcpyInfoDumperShouldInsertDataCorrectly)
 {
     MemcpyInfoDumper memcpyInfoDumper(HOST_PATH);
-    auto info1 = std::make_shared<MsprofCompactInfo>();
+    auto info1 = std::make_shared<ParserCompactInfo>();
     info1->level = RUNTIME_LEVEL_NUMBER;
     info1->threadId = 1; // threadId 1
     info1->timeStamp = 52851917869135;  // 时间戳 52851917869135
@@ -87,7 +87,7 @@ TEST_F(MemcpyInfoDumperUtest, TestMemcpyInfoDumperShouldInsertDataCorrectly)
     info1->data.memcpyInfo.dataSize = 83886080;  // dataSize 83886080
     info1->data.memcpyInfo.memcpyDirection = 0;
     info1->data.memcpyInfo.maxSize = 67108864;  // maxSize 67108864
-    auto info2 = std::make_shared<MsprofCompactInfo>();
+    auto info2 = std::make_shared<ParserCompactInfo>();
     info2->level = RUNTIME_LEVEL_NUMBER;
     info2->threadId = 2;  // threadId 2
     info2->timeStamp = 52851917869135;  // 时间戳 52851917869135
@@ -95,7 +95,7 @@ TEST_F(MemcpyInfoDumperUtest, TestMemcpyInfoDumperShouldInsertDataCorrectly)
     info2->data.memcpyInfo.dataSize = 22282240;  // dataSize 22282240
     info2->data.memcpyInfo.memcpyDirection = 0;
     info2->data.memcpyInfo.maxSize = 67108864;  // maxSize 67108864
-    std::vector<std::shared_ptr<MsprofCompactInfo>> memcpyInfos;
+    std::vector<std::shared_ptr<ParserCompactInfo>> memcpyInfos;
     memcpyInfos.push_back(info1);
     memcpyInfos.push_back(info2);
     auto res = memcpyInfoDumper.DumpData(memcpyInfos);
@@ -122,8 +122,8 @@ TEST_F(MemcpyInfoDumperUtest, TestMemcpyInfoDumperShouldReturnFalseWhenDBNotCrea
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(false));
     MemcpyInfoDumper memcpyInfoDumper(HOST_PATH);
-    auto info = std::make_shared<MsprofCompactInfo>();
-    std::vector<std::shared_ptr<MsprofCompactInfo>> memcpyInfos;
+    auto info = std::make_shared<ParserCompactInfo>();
+    std::vector<std::shared_ptr<ParserCompactInfo>> memcpyInfos;
     memcpyInfos.push_back(info);
     auto res = memcpyInfoDumper.DumpData(memcpyInfos);
     ASSERT_FALSE(res);
@@ -133,8 +133,8 @@ TEST_F(MemcpyInfoDumperUtest, TestMemcpyInfoDumperShouldReturnFalseWhenCannotIns
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(true));
     MemcpyInfoDumper memcpyInfoDumper(HOST_PATH);
-    std::vector<std::shared_ptr<MsprofCompactInfo>> memcpyInfos;
-    auto info = std::make_shared<MsprofCompactInfo>();
+    std::vector<std::shared_ptr<ParserCompactInfo>> memcpyInfos;
+    auto info = std::make_shared<ParserCompactInfo>();
     memcpyInfos.push_back(info);
     auto res = memcpyInfoDumper.DumpData(memcpyInfos);
     ASSERT_FALSE(res);

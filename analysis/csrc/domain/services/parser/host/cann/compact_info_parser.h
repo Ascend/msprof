@@ -24,7 +24,7 @@
 #include "analysis/csrc/domain/services/adapter/flip.h"
 #include "analysis/csrc/domain/services/parser/host/base_parser.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 namespace Analysis
 {
@@ -43,12 +43,13 @@ class CompactInfoParser : public BaseParser<CompactInfoParser>
     void Init(const std::vector<std::string> &filePrefix);
     template <typename T>
     std::vector<std::shared_ptr<T>> GetData();
+    CompactInfoFormat parserType_ = CompactInfoFormat::COMPACT_INFO_TYPE;
 
    protected:
     int ProduceData() override;
 
    protected:
-    std::vector<std::shared_ptr<MsprofCompactInfo>> compactData_;   // not owned
+    std::vector<std::shared_ptr<ParserCompactInfo>> compactData_;   // not owned
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTaskData_;  // not owned
 };  // class CompactInfoParser
 
@@ -58,6 +59,7 @@ class NodeBasicInfoParser final : public CompactInfoParser
    public:
     explicit NodeBasicInfoParser(const std::string &path) : CompactInfoParser(path, "NodeBasicInfoParser")
     {
+        parserType_ = CompactInfoFormat::NODE_BASIC_INFO_TYPE;
         Init(filePrefix_);
     }
 
@@ -84,6 +86,7 @@ class NodeAttrInfoParser final : public CompactInfoParser
    public:
     explicit NodeAttrInfoParser(const std::string &path) : CompactInfoParser(path, "NodeAttrInfoParser")
     {
+        parserType_ = CompactInfoFormat::ATTR_INFO_TYPE;
         Init(filePrefix_);
     }
 
@@ -100,6 +103,7 @@ class MemcpyInfoParser final : public CompactInfoParser
    public:
     explicit MemcpyInfoParser(const std::string &path) : CompactInfoParser(path, "MemcpyInfoParser")
     {
+        parserType_ = CompactInfoFormat::MEMCPY_INFO_TYPE;
         Init(filePrefix_);
     }
 
@@ -121,31 +125,22 @@ class TaskTrackParser final : public CompactInfoParser
         if (!Analysis::Utils::File::GetFilesWithPrefix(path, filePrefix_[0]).empty() ||
             !Analysis::Utils::File::GetFilesWithPrefix(path, filePrefix_[1]).empty())
         {
-            isRuntimeTrackV2_ = false;
+            runtimeTrackFormat_ = RuntimeTrackFormat::V1;
         }
         else if (!Analysis::Utils::File::GetFilesWithPrefix(path, filePrefixV2_[0]).empty() ||
                  !Analysis::Utils::File::GetFilesWithPrefix(path, filePrefixV2_[1]).empty())
         {
             selected = filePrefixV2_;
-            isRuntimeTrackV2_ = true;
+            runtimeTrackFormat_ = RuntimeTrackFormat::V2;
         }
         Init(selected);
     }
     // Get DPU kernel name map: key = ((uint64_t)deviceId << 32) | taskId
     const std::unordered_map<uint64_t, uint64_t> &GetDpuKernelNameMap() const;
-    bool IsRuntimeTrackV2() const { return isRuntimeTrackV2_; }
-
-    ~TaskTrackParser()
-    {
-        if (errorNum_ > 0)
-        {
-            ERROR("memcpy runtimeTrack failed!");
-        }
-    }
+    RuntimeTrackFormat GetRuntimeTrackFormat() const { return runtimeTrackFormat_; }
 
    private:
     int ProduceData() override;
-    void NormalizeRuntimeTrack(MsprofCompactInfo *compactInfo);
 
    private:
     std::vector<std::string> filePrefix_ = {
@@ -158,8 +153,7 @@ class TaskTrackParser final : public CompactInfoParser
         "aging.compact.task_track_v2.slice",
     };
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;
-    bool isRuntimeTrackV2_ = false;
-    uint64_t errorNum_ = 0;
+    RuntimeTrackFormat runtimeTrackFormat_ = RuntimeTrackFormat::V1;
 };  // class TaskTrackParser
 
 // 该类的作用是dpu task track数据的解析
@@ -168,6 +162,7 @@ class DpuTaskTrackParser final : public CompactInfoParser
    public:
     explicit DpuTaskTrackParser(const std::string &path) : CompactInfoParser(path, "DpuTaskTrackParser")
     {
+        parserType_ = CompactInfoFormat::DPU_TRACK_TYPE;
         Init(filePrefix_);
     }
 
@@ -176,7 +171,7 @@ class DpuTaskTrackParser final : public CompactInfoParser
         "aging.compact.dpu_track.slice",
         "unaging.compact.dpu_track.slice",
     };
-    std::vector<std::shared_ptr<MsprofCompactInfo>> dpuTrackData_;
+    std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
 };  // class DpuTaskTrackParser
 
 // 该类的作用是hccl op info info数据的解析
@@ -185,6 +180,7 @@ class HcclOpInfoParser final : public CompactInfoParser
    public:
     explicit HcclOpInfoParser(const std::string &path) : CompactInfoParser(path, "HcclOpInfoParser")
     {
+        parserType_ = CompactInfoFormat::HCCL_OP_INFO_TYPE;
         Init(filePrefix_);
     }
 

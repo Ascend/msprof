@@ -23,7 +23,7 @@
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 namespace Analysis
 {

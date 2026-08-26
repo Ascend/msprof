@@ -21,7 +21,7 @@
 #include <string>
 
 #include "analysis/csrc/domain/valueobject/include/task_id.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
@@ -49,16 +49,16 @@ struct AicpuData
     TaskId aicpuTaskId;
     union
     {
-        MsprofAicpuNodeAdditionalData node;
-        MsprofAicpuDpAdditionalData dp;
-        MsprofAicpuModelAdditionalData model;
-        MsprofAicpuMiAdditionalData mi;
-        AicpuKfcProfCommTurn commTurn;
-        AicpuKfcProfComputeTurn computeTurn;
-        MsprofAicpuHCCLOPInfo opInfo;
-        MsporfAicpuFlipTask flipTask;
-        MsprofAicpuHcclMainStreamTask mainStreamTask;
-        MsprofKfcInfos KfcInfos;
+        ParserAicpuNodeAdditionalData node;
+        ParserAicpuDpAdditionalData dp;
+        ParserAicpuModelAdditionalData model;
+        ParserAicpuMiAdditionalData mi;
+        ParserAicpuKfcProfCommTurn commTurn;
+        ParserAicpuKfcProfComputeTurn computeTurn;
+        ParserAicpuHCCLOPInfo opInfo;
+        ParserAicpuFlipTask flipTask;
+        ParserAicpuHcclMainStreamTask mainStreamTask;
+        ParserKfcInfos KfcInfos;
     };
     AicpuData() {}
 };

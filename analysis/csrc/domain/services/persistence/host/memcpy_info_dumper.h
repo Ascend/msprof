@@ -17,14 +17,14 @@
 #define ANALYSIS_CSRC_VIEWER_DATABASE_MEMCPY_INFO_DUMPER_H
 
 #include "analysis/csrc/domain/services/persistence/host/base_dumper.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
 namespace Domain
 {
 using MemcpyInfoData = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint16_t, int64_t, uint16_t>>;
-using MemcpyInfos = std::vector<std::shared_ptr<MsprofCompactInfo>>;
+using MemcpyInfos = std::vector<std::shared_ptr<ParserCompactInfo>>;
 struct MemcpyAsyncTask
 {
     uint32_t threadId;

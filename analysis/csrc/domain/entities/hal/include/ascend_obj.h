@@ -22,7 +22,7 @@
 #include <string>
 #include <utility>
 
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
@@ -45,11 +45,11 @@ enum class OpType
 // 计算算子描述信息
 struct OpDesc
 {
-    std::shared_ptr<MsprofCompactInfo> nodeDesc = nullptr;
-    std::shared_ptr<MsprofCompactInfo> nodeAttr = nullptr;
-    std::shared_ptr<MsprofCompactInfo> runtimeTrackDesc = nullptr;
-    std::shared_ptr<ConcatTensorInfo> tensorDesc = nullptr;
-    std::shared_ptr<MsprofAdditionalInfo> ctxId = nullptr;
+    std::shared_ptr<ParserCompactInfo> nodeDesc = nullptr;
+    std::shared_ptr<ParserCompactInfo> nodeAttr = nullptr;
+    std::shared_ptr<ParserCompactInfo> runtimeTrackDesc = nullptr;
+    std::shared_ptr<ParserConcatTensorInfo> tensorDesc = nullptr;
+    std::shared_ptr<ParserAdditionalInfo> ctxId = nullptr;
 };
 
 // 通信小算子描述信息
@@ -57,9 +57,9 @@ struct HcclSmallOpDesc
 {
     uint32_t ctxId = DEFAULT_CONTEXT_ID;
     uint8_t isMaster = 0;  // 1代表master
-    std::shared_ptr<MsprofAdditionalInfo> hcclInfo = nullptr;
+    std::shared_ptr<ParserAdditionalInfo> hcclInfo = nullptr;
 
-    HcclSmallOpDesc(uint32_t ctxId, uint32_t isMaster, const std::shared_ptr<MsprofAdditionalInfo> &hcclInfo)
+    HcclSmallOpDesc(uint32_t ctxId, uint32_t isMaster, const std::shared_ptr<ParserAdditionalInfo> &hcclInfo)
         : ctxId(ctxId), isMaster(isMaster), hcclInfo(hcclInfo)
     {
     }
@@ -75,13 +75,13 @@ struct HcclBigOpDesc
     int32_t indexId = 0;
     int64_t connectionId = 0;
     uint32_t threadId = 0;
-    std::shared_ptr<MsprofCompactInfo> nodeDesc = nullptr;
-    std::shared_ptr<MsprofCompactInfo> opInfoDesc = nullptr;
+    std::shared_ptr<ParserCompactInfo> nodeDesc = nullptr;
+    std::shared_ptr<ParserCompactInfo> opInfoDesc = nullptr;
     std::string kfcConnectionIds;
 
     HcclBigOpDesc(uint64_t begin, uint64_t end, uint16_t deviceId, uint64_t modelId, int32_t indexId,
-                  int64_t connectionId, uint32_t threadId, const std::shared_ptr<MsprofCompactInfo> &node,
-                  const std::shared_ptr<MsprofCompactInfo> &hcclOpDesc, std::string ids)
+                  int64_t connectionId, uint32_t threadId, const std::shared_ptr<ParserCompactInfo> &node,
+                  const std::shared_ptr<ParserCompactInfo> &hcclOpDesc, std::string ids)
         : beginTime(begin),
           endTime(end),
           deviceId(deviceId),
@@ -165,8 +165,8 @@ struct HostTask
 struct GeFusionOpInfo
 {
     uint64_t modelId;
-    std::shared_ptr<ProfFusionOpInfo> fusionOpInfo = nullptr;
-    GeFusionOpInfo(uint64_t modelId, const std::shared_ptr<ProfFusionOpInfo> &fusionOp)
+    std::shared_ptr<ParserProfFusionOpInfo> fusionOpInfo = nullptr;
+    GeFusionOpInfo(uint64_t modelId, const std::shared_ptr<ParserProfFusionOpInfo> &fusionOp)
         : modelId(modelId), fusionOpInfo(fusionOp)
     {
     }

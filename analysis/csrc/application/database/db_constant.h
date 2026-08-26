@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis

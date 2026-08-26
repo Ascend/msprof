@@ -30,7 +30,8 @@
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "analysis/csrc/infrastructure/utils/safe_unordered_map.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
@@ -70,14 +71,14 @@ class EventGrouper
     // 获取FlipTask数据
     std::vector<std::shared_ptr<Adapter::FlipTask>> &GetFlipTasks();
     // 获取DpuTrack数据
-    std::vector<std::shared_ptr<MsprofCompactInfo>> &GetDpuTrackData();
+    std::vector<std::shared_ptr<ParserCompactInfo>> &GetDpuTrackData();
     // 获取DpuKernelNameMap
     std::unordered_map<uint64_t, uint64_t> &GetDpuKernelNameMap();
     // ACL层建树白名单
-    bool IsBuildTreeWithAcl(const std::shared_ptr<MsprofApi> &trace);
+    bool IsBuildTreeWithAcl(const std::shared_ptr<ParserApi> &trace);
 
    private:
-    bool isKernelApiEvent(const std::shared_ptr<MsprofApi> &trace);
+    bool isKernelApiEvent(const std::shared_ptr<ParserApi> &trace);
     void InitLastKernelTimes(const std::set<uint32_t> &threadIds);
     void RecordCANNWareHouses();
 
@@ -135,7 +136,7 @@ class EventGrouper
     std::mutex tidLock_;
     std::vector<std::shared_ptr<Event>> apiTraces_;
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTasks_;
-    std::vector<std::shared_ptr<MsprofCompactInfo>> dpuTrackData_;
+    std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;
     std::set<uint32_t> threadIds_;
     std::string hostPath_;
@@ -146,19 +147,19 @@ class EventGrouper
 
 // 特化模板需要声明在类外
 template <>
-void EventGrouper::GroupEvents<ApiEventParser, MsprofApi, &CANNWarehouse::kernelEvents>(const std::string &typeName,
+void EventGrouper::GroupEvents<ApiEventParser, ParserApi, &CANNWarehouse::kernelEvents>(const std::string &typeName,
                                                                                         EventType eventType);
 
 template <>
-void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+void EventGrouper::GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
     const std::string &typeName, EventType eventType);
 
 template <>
-void EventGrouper::GroupEvents<DpuTaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+void EventGrouper::GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
     const std::string &typeName, EventType eventType);
 
 template <>
-void EventGrouper::SortByTimeAndLevel<MsprofApi>(std::vector<std::shared_ptr<MsprofApi>> &traces);
+void EventGrouper::SortByTimeAndLevel<ParserApi>(std::vector<std::shared_ptr<ParserApi>> &traces);
 
 }  // namespace Cann
 }  // namespace Host

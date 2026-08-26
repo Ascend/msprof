@@ -73,10 +73,10 @@ class CANNTraceDBDumper
     void AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskInfoData &data, bool isLevel0);
     void AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTask> &task, TaskInfoData &data, bool isLevel0);
 
-    void AddTensorShapeInfo(const std::shared_ptr<ConcatTensorInfo> &tensorDesc,
-                            const MsprofNodeBasicInfo *nodeBasicInfo, TaskInfoData &data,
+    void AddTensorShapeInfo(const std::shared_ptr<ParserConcatTensorInfo> &tensorDesc,
+                            const ParserNodeBasicInfo *nodeBasicInfo, TaskInfoData &data,
                             const std::shared_ptr<HostTask> &task);
-    static void ProcessRuntimeTrackInfo(const std::shared_ptr<MsprofCompactInfo> &runtimeTrack, uint32_t &blockNum,
+    static void ProcessRuntimeTrackInfo(const std::shared_ptr<ParserCompactInfo> &runtimeTrack, uint32_t &blockNum,
                                         uint32_t &mixBlockNum, std::string &gridDimStr, std::string &blockDimStr);
     static std::string GetFormat(uint32_t oriFormat);
     const uint32_t poolSize_ = 4;

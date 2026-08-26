@@ -14,12 +14,14 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/services/persistence/host/model_name_db_dumper.h"
-#include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
+
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
+#include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
 
-
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using HashData = Analysis::Domain::Host::Cann::HashData;
 ModelNameDBDumper::ModelNameDBDumper(const std::string &hostFilePath)
     : BaseDumper<ModelNameDBDumper>(hostFilePath, "ModelName")
@@ -30,16 +32,17 @@ ModelNameDBDumper::ModelNameDBDumper(const std::string &hostFilePath)
 ModelNameData ModelNameDBDumper::GenerateData(const GraphIdMaps &graphIdMaps)
 {
     ModelNameData data;
-    if (Utils::Reserve(data, graphIdMaps.size())) {
-        for (auto &graphIdMap: graphIdMaps) {
-            auto idMapStruct = Utils::ReinterpretConvert<MsprofGraphIdInfo *>(graphIdMap->data);
-            auto modelId = idMapStruct->modelId;
-            auto modelName = (idMapStruct->modelName == 0) ? "0" :
-                HashData::GetInstance().Get(idMapStruct->modelName);
+    if (Utils::Reserve(data, graphIdMaps.size()))
+    {
+        for (auto &graphIdMap : graphIdMaps)
+        {
+            auto idMapStruct = graphIdMap->graphIdInfo;
+            auto modelId = idMapStruct.modelId;
+            auto modelName = (idMapStruct.modelName == 0) ? "0" : HashData::GetInstance().Get(idMapStruct.modelName);
             data.emplace_back(modelId, modelName);
         }
     }
     return data;
 }
-} // Viewer
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis

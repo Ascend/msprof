@@ -60,11 +60,9 @@ protected:
         HostTask hcclHostTask;
         auto pMiniOpDesc = std::make_shared<HcclSmallOpDesc>(0, 0, nullptr);
         pMiniOpDesc->ctxId = 0;
-        auto hcclTrace = MsprofHcclInfo{};
-        hcclTrace.opType = 1;
-        auto hcclInfo = MsprofAdditionalInfo();
-        std::memcpy(hcclInfo.data, &hcclTrace, sizeof(hcclTrace));
-        pMiniOpDesc->hcclInfo = std::make_shared<MsprofAdditionalInfo>(hcclInfo);
+        auto hcclInfoData = ParserAdditionalInfo();
+        hcclInfoData.hcclInfo.opType = 1;
+        pMiniOpDesc->hcclInfo = std::make_shared<ParserAdditionalInfo>(hcclInfoData);
         auto hcclTaskPp = std::make_shared<Operator>(pMiniOpDesc, 0, OpType::OPTYPE_COMPUTE);
         hcclHostTask.op = hcclTaskPp;
         std::shared_ptr<HostTask> hostTaskPointer = std::make_shared<HostTask>(hcclHostTask);
@@ -76,18 +74,18 @@ protected:
     static void MockGetComputeTasks()
     {
         auto kernelTask = std::make_shared<HostTask>();
-        MsprofNodeBasicInfo msprofNodeBasicInfo{};
-        MsprofAttrInfo msprofNodeAttrInfo{};
-        auto ctx = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+        ParserNodeBasicInfo msprofNodeBasicInfo{};
+        ParserAttrInfo msprofNodeAttrInfo{};
+        auto ctx = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         ctx->threadId = 0;
-        auto tensorDesc = std::make_shared<ConcatTensorInfo>();
+        auto tensorDesc = std::make_shared<ParserConcatTensorInfo>();
         tensorDesc->tensorNum = 1;
         auto kernelDesc = std::make_shared<OpDesc>();
-        kernelDesc->tensorDesc = std::make_shared<ConcatTensorInfo>();
-        kernelDesc->nodeDesc = std::make_shared<MsprofCompactInfo>();
+        kernelDesc->tensorDesc = std::make_shared<ParserConcatTensorInfo>();
+        kernelDesc->nodeDesc = std::make_shared<ParserCompactInfo>();
         kernelDesc->nodeDesc->data.nodeBasicInfo = msprofNodeBasicInfo;
         kernelDesc->nodeDesc->data.nodeAttrInfo = msprofNodeAttrInfo;
-        kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+        kernelDesc->ctxId = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
         kernelTask->op = kernelOp;
         std::shared_ptr<HostTask> computeTaskPointer = kernelTask;
@@ -99,10 +97,10 @@ protected:
     static void MockGetL0ComputeTasks()
     {
         auto kernelTask = std::make_shared<HostTask>();
-        auto tensorDesc = std::make_shared<ConcatTensorInfo>();
+        auto tensorDesc = std::make_shared<ParserConcatTensorInfo>();
         tensorDesc->tensorNum = 2;
-        MsrofTensorData tensorInput = {0, 1, 1, {1, 2, 3, 0}};
-        MsrofTensorData tensorOutput = {1, 1, 1, {4, 5, 6, 0}};
+        ParserTensorData tensorInput = {0, 1, 1, {1, 2, 3, 0}};
+        ParserTensorData tensorOutput = {1, 1, 1, {4, 5, 6, 0}};
         tensorDesc->tensorData = {tensorInput, tensorOutput};
         auto kernelDesc = std::make_shared<OpDesc>();
         kernelDesc->tensorDesc = tensorDesc;
@@ -121,22 +119,22 @@ protected:
                             uint16_t gx, uint16_t gy, uint16_t gz, uint16_t bx, uint16_t by, uint16_t bz) {
             auto kernelTask = std::make_shared<HostTask>();
             auto kernelDesc = std::make_shared<OpDesc>();
-            kernelDesc->tensorDesc = std::make_shared<ConcatTensorInfo>();
-            kernelDesc->nodeDesc = std::make_shared<MsprofCompactInfo>();
-            kernelDesc->nodeDesc->data.nodeBasicInfo = MsprofNodeBasicInfo{};
-            kernelDesc->nodeDesc->data.nodeAttrInfo = MsprofAttrInfo{};
-            auto runtimeTrackDesc = std::make_shared<MsprofCompactInfo>();
+            kernelDesc->tensorDesc = std::make_shared<ParserConcatTensorInfo>();
+            kernelDesc->nodeDesc = std::make_shared<ParserCompactInfo>();
+            kernelDesc->nodeDesc->data.nodeBasicInfo = ParserNodeBasicInfo{};
+            kernelDesc->nodeDesc->data.nodeAttrInfo = ParserAttrInfo{};
+            auto runtimeTrackDesc = std::make_shared<ParserCompactInfo>();
             runtimeTrackDesc->dataLen = MSPROF_COMPACT_INFO_DATA_LENGTH;
-            runtimeTrackDesc->data.runtimeTrackV2.taskType = static_cast<uint32_t>(taskType);
+            runtimeTrackDesc->data.runtimeTrack.taskType = static_cast<uint32_t>(taskType);
             if (isSimt) {
-                runtimeTrackDesc->data.runtimeTrackV2.extInfo.simtKernelInfo.gridDim = {gx, gy, gz};
-                runtimeTrackDesc->data.runtimeTrackV2.extInfo.simtKernelInfo.blockDim = {bx, by, bz};
+                runtimeTrackDesc->data.runtimeTrack.simtKernelInfo.gridDim = {gx, gy, gz};
+                runtimeTrackDesc->data.runtimeTrack.simtKernelInfo.blockDim = {bx, by, bz};
             } else {
-                runtimeTrackDesc->data.runtimeTrackV2.extInfo.kernelInfo.numBlocks = numBlocks;
-                runtimeTrackDesc->data.runtimeTrackV2.extInfo.kernelInfo.ratio = ratio;
+                runtimeTrackDesc->data.runtimeTrack.kernelInfo.numBlocks = numBlocks;
+                runtimeTrackDesc->data.runtimeTrack.kernelInfo.ratio = ratio;
             }
             kernelDesc->runtimeTrackDesc = runtimeTrackDesc;
-            kernelDesc->ctxId = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+            kernelDesc->ctxId = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
             kernelTask->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
             kernelTasks->push_back(std::make_shared<HostTask>(*kernelTask));
         };
@@ -159,21 +157,21 @@ protected:
 
     void MockGetHcclBigOps() const
     {
-        auto trace = new MsprofCompactInfo;
-        auto nodeBasicInfo = new MsprofNodeBasicInfo;
-        auto nodeAttrInfo = new MsprofAttrInfo;
-        auto runtime = new MsprofRuntimeTrack;
+        auto trace = new ParserCompactInfo;
+        auto nodeBasicInfo = new ParserNodeBasicInfo;
+        auto nodeAttrInfo = new ParserAttrInfo;
+        auto runtime = new ParserRuntimeTrack;
         
         trace->data.nodeBasicInfo = *nodeBasicInfo;
         trace->data.nodeAttrInfo = *nodeAttrInfo;
         trace->data.runtimeTrack = *runtime;
 
-        auto hcclOp = new MsprofHcclOPInfo;
-        auto hcclOpCompactInfo = new MsprofCompactInfo;
+        auto hcclOp = new ParserHcclOPInfo;
+        auto hcclOpCompactInfo = new ParserCompactInfo;
         hcclOpCompactInfo->data.hcclopInfo = *hcclOp;
 
-        auto desc = std::make_shared<HcclBigOpDesc>(1, 1, 1, 1, 1, 1, 1, std::shared_ptr<MsprofCompactInfo>(trace),
-                                                    std::shared_ptr<MsprofCompactInfo>(hcclOpCompactInfo), "");
+        auto desc = std::make_shared<HcclBigOpDesc>(1, 1, 1, 1, 1, 1, 1, std::shared_ptr<ParserCompactInfo>(trace),
+                                                    std::shared_ptr<ParserCompactInfo>(hcclOpCompactInfo), "");
         auto op = std::make_shared<Operator>(desc, 0, OpType::OPTYPE_HCCL_BIG);
         auto hcclBigOps = std::make_shared<HCCLBigOpDescs>();
         hcclBigOps->emplace_back(op);
@@ -378,16 +376,16 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnFalseWhenCreateTableFailed)
 TEST_F(CannDBDumperUtest, TestAddTensorShapeInfoSuccess)
 {
     CANNTraceDBDumper cannTraceDbDumper(".");
-    std::shared_ptr<ConcatTensorInfo> tensorDescPtr = std::make_shared<ConcatTensorInfo>();
+    std::shared_ptr<ParserConcatTensorInfo> tensorDescPtr = std::make_shared<ParserConcatTensorInfo>();
     tensorDescPtr->tensorNum = 2; // 2ul
-    MsrofTensorData tensorInput = {
+    ParserTensorData tensorInput = {
         0, 1, 1, {1, 2, 3, 0, 4}
     };
-    MsrofTensorData tensorOutput = {
+    ParserTensorData tensorOutput = {
         1, 1, 1, {5, 6, 7, 0, 4}
     };
     tensorDescPtr->tensorData = {tensorInput, tensorOutput};
-    MsprofNodeBasicInfo nodeBasicInfo;
+    ParserNodeBasicInfo nodeBasicInfo;
     CANNTraceDBDumper::TaskInfoData data;
     std::shared_ptr<HostTask> hostTaskPtr = std::make_shared<HostTask>();
     auto kernelDesc = std::make_shared<OpDesc>();
@@ -482,7 +480,7 @@ TEST_F(CannDBDumperUtest, TestAddTaskInfoWhenTypeIsReservedAndProfLevel1)
 TEST_F(CannDBDumperUtest, TestDumpGeFusionOps)
 {
     CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
-    auto profFusionOpInfoPtr = std::make_shared<ProfFusionOpInfo>(ProfFusionOpInfo{
+    auto profFusionOpInfoPtr = std::make_shared<ParserProfFusionOpInfo>(ParserProfFusionOpInfo{
         .opName = 12345,
         .fusionOpNum = 2,
         .inputMemsize = 1024,

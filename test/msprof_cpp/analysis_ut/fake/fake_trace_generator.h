@@ -47,7 +47,7 @@ class FakeEventGenerator
                             uint32_t reserve = 0, uint64_t item_id = 0)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_API, level, start, end};
-        auto api = std::make_shared<MsprofApi>();
+        auto api = std::make_shared<ParserApi>();
         api->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         api->level = level;
         api->type = static_cast<uint32_t>(EventType::EVENT_TYPE_API);
@@ -64,7 +64,7 @@ class FakeEventGenerator
     {
         const int size = 8;
         EventInfo testInfo{EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_RUNTIME_LEVEL, dot, dot};
-        auto taskTrack = std::make_shared<MsprofCompactInfo>();
+        auto taskTrack = std::make_shared<ParserCompactInfo>();
         taskTrack->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         taskTrack->level = MSPROF_REPORT_RUNTIME_LEVEL;
         taskTrack->type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
@@ -72,9 +72,9 @@ class FakeEventGenerator
         taskTrack->dataLen = size;
         taskTrack->timeStamp = static_cast<uint64_t>(dot);
 
-        MsprofRuntimeTrackV2 track{};
-        track.taskType = static_cast<uint32_t>(taskType);
-        taskTrack->data.runtimeTrackV2 = track;
+        ParserRuntimeTrack track{};
+        track.taskType = taskType;
+        taskTrack->data.runtimeTrack = track;
         auto eventPtr = std::make_shared<Event>(taskTrack, testInfo);
         eventQueue->Push(eventPtr);
     }
@@ -83,11 +83,11 @@ class FakeEventGenerator
                                   uint32_t task_type = 0)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL, dot, dot};
-        auto nodeBasic = std::make_shared<MsprofCompactInfo>();
+        auto nodeBasic = std::make_shared<ParserCompactInfo>();
         nodeBasic->level = MSPROF_REPORT_NODE_LEVEL;
         nodeBasic->timeStamp = dot;
 
-        MsprofNodeBasicInfo node;
+        ParserNodeBasicInfo node;
         node.opName = dot;
         node.opType = opType;
         node.taskType = task_type;
@@ -99,11 +99,11 @@ class FakeEventGenerator
     static void AddNodeAttrEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot, uint64_t hashId = 1)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, dot, dot};
-        auto nodeAttr = std::make_shared<MsprofCompactInfo>();
+        auto nodeAttr = std::make_shared<ParserCompactInfo>();
         nodeAttr->level = MSPROF_REPORT_NODE_LEVEL;
         nodeAttr->timeStamp = dot;
 
-        MsprofAttrInfo attr;
+        ParserAttrInfo attr;
         attr.opName = dot;
         attr.hashId = hashId;
         nodeAttr->data.nodeAttrInfo = attr;
@@ -114,7 +114,7 @@ class FakeEventGenerator
     static void AddTensorInfoEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_TENSOR_INFO, MSPROF_REPORT_NODE_LEVEL, dot, dot};
-        auto tensor = std::make_shared<ConcatTensorInfo>();
+        auto tensor = std::make_shared<ParserConcatTensorInfo>();
         tensor->level = MSPROF_REPORT_NODE_LEVEL;
         tensor->timeStamp = dot;
         tensor->opName = dot;
@@ -128,7 +128,7 @@ class FakeEventGenerator
                                   std::pair<uint32_t, uint32_t> ctxRange)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_NODE_LEVEL, dot, dot};
-        auto additionInfo = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+        auto additionInfo = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         uint32_t num = ctxRange.second - ctxRange.first + 1;
         if (num > MSPROF_CTX_ID_MAX_NUM)
         {
@@ -137,16 +137,12 @@ class FakeEventGenerator
         additionInfo->timeStamp = dot;
         additionInfo->dataLen = num;
 
-        MsprofContextIdInfo ctxId;
-        ctxId.opName = dot;
-        ctxId.ctxIdNum = num;
-        uint32_t ids[MSPROF_CTX_ID_MAX_NUM];
-        for (uint32_t i = 0; i < ctxRange.second - ctxRange.first + 1; i++)
+        additionInfo->contextIdInfo.opName = dot;
+        additionInfo->contextIdInfo.ctxIdNum = num;
+        for (uint32_t i = 0; i < num; i++)
         {
-            ids[i] = ctxRange.first + i;
+            additionInfo->contextIdInfo.ctxIds[i] = ctxRange.first + i;
         }
-        std::memcpy(ctxId.ctxIds, &ids, sizeof(uint32_t) * num);
-        std::memcpy(additionInfo->data, &ctxId, sizeof(ctxId));
 
         auto eventPtr = std::make_shared<Event>(additionInfo, testInfo);
         eventQueue->Push(eventPtr);
@@ -157,20 +153,16 @@ class FakeEventGenerator
                                   uint32_t startCtx = 0)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_HCCL_NODE_LEVEL, dot, dot};
-        auto additionInfo = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+        auto additionInfo = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         uint32_t num = 2;
 
         additionInfo->timeStamp = dot;
         additionInfo->dataLen = num;
 
-        MsprofContextIdInfo ctxId;
-        ctxId.opName = dot;
-        ctxId.ctxIdNum = num;
-        uint32_t ids[2];
-        ids[0] = startCtx;
-        ids[1] = endCtx;
-        std::memcpy(ctxId.ctxIds, &ids, sizeof(uint32_t) * num);
-        std::memcpy(additionInfo->data, &ctxId, sizeof(ctxId));
+        additionInfo->contextIdInfo.opName = dot;
+        additionInfo->contextIdInfo.ctxIdNum = num;
+        additionInfo->contextIdInfo.ctxIds[0] = startCtx;
+        additionInfo->contextIdInfo.ctxIds[1] = endCtx;
 
         auto eventPtr = std::make_shared<Event>(additionInfo, testInfo);
         eventQueue->Push(eventPtr);
@@ -179,19 +171,19 @@ class FakeEventGenerator
     static void AddGraphIdMapEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_GRAPH_ID_MAP, MSPROF_REPORT_MODEL_LEVEL, dot, dot};
-        auto eventPtr = std::make_shared<Event>(std::shared_ptr<MsprofAdditionalInfo>{}, testInfo);
+        auto eventPtr = std::make_shared<Event>(std::shared_ptr<ParserAdditionalInfo>{}, testInfo);
         eventQueue->Push(eventPtr);
     }
 
     static void AddFusionOpInfoEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_FUSION_OP_INFO, MSPROF_REPORT_MODEL_LEVEL, dot, dot};
-        auto eventPtr = std::make_shared<Event>(std::shared_ptr<MsprofAdditionalInfo>{}, testInfo);
+        auto eventPtr = std::make_shared<Event>(std::shared_ptr<ParserAdditionalInfo>{}, testInfo);
         eventQueue->Push(eventPtr);
     }
 
     static void AddFusionOpEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot,
-                                 std::shared_ptr<MsprofAdditionalInfo> additionPtr)
+                                 std::shared_ptr<ParserAdditionalInfo> additionPtr)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_FUSION_OP_INFO, MSPROF_REPORT_MODEL_LEVEL, dot, dot};
         auto eventPtr = std::make_shared<Event>(additionPtr, testInfo);
@@ -201,15 +193,13 @@ class FakeEventGenerator
     static void AddHcclInfoEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot, uint32_t ctxId)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_HCCL_INFO, MSPROF_REPORT_HCCL_NODE_LEVEL, dot, dot};
-        auto hcclInfo = std::make_shared<MsprofAdditionalInfo>(MsprofAdditionalInfo{});
+        auto hcclInfo = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         hcclInfo->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         hcclInfo->level = MSPROF_REPORT_HCCL_NODE_LEVEL;
         hcclInfo->type = static_cast<uint32_t>(EventType::EVENT_TYPE_HCCL_INFO);
         hcclInfo->timeStamp = static_cast<uint64_t>(dot);
-        auto hcclTrace = MsprofHcclInfo{};
-        hcclTrace.ctxID = ctxId;
-        hcclTrace.itemId = dot;
-        std::memcpy(hcclInfo->data, &hcclTrace, sizeof(hcclTrace));
+        hcclInfo->hcclInfo.ctxID = ctxId;
+        hcclInfo->hcclInfo.itemId = dot;
         auto eventPtr = std::make_shared<Event>(hcclInfo, testInfo);
         eventQueue->Push(eventPtr);
     }
@@ -218,11 +208,11 @@ class FakeEventGenerator
                                const std::vector<uint16_t> &algList)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, dot, dot};
-        auto hcclOp = std::make_shared<MsprofCompactInfo>();
+        auto hcclOp = std::make_shared<ParserCompactInfo>();
         hcclOp->level = MSPROF_REPORT_NODE_LEVEL;
         hcclOp->timeStamp = dot;
 
-        MsprofHcclOPInfo node;
+        ParserHcclOPInfo node;
         node.groupName = dot;
         node.count = dot + dot;
         node.algType = 0;

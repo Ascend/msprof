@@ -18,25 +18,31 @@
 
 #include <utility>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 std::atomic<uint32_t> g_eventIDCnt{0};
 
-Event::Event(std::shared_ptr<MsprofApi> eventPtr, const EventInfo &eventInfo)
+Event::Event(std::shared_ptr<ParserApi> eventPtr, const EventInfo &eventInfo)
     : apiPtr(std::move(eventPtr)), info(eventInfo), id(++g_eventIDCnt)
-{}
+{
+}
 
-Event::Event(std::shared_ptr<MsprofAdditionalInfo> eventPtr, const EventInfo &eventInfo)
+Event::Event(std::shared_ptr<ParserAdditionalInfo> eventPtr, const EventInfo &eventInfo)
     : additionPtr(std::move(eventPtr)), info(eventInfo), id(++g_eventIDCnt)
-{}
+{
+}
 
-Event::Event(std::shared_ptr<MsprofCompactInfo> eventPtr, const EventInfo &eventInfo)
+Event::Event(std::shared_ptr<ParserCompactInfo> eventPtr, const EventInfo &eventInfo)
     : compactPtr(std::move(eventPtr)), info(eventInfo), id(++g_eventIDCnt)
-{}
+{
+}
 
-Event::Event(std::shared_ptr<ConcatTensorInfo> eventPtr, const EventInfo &eventInfo)
+Event::Event(std::shared_ptr<ParserConcatTensorInfo> eventPtr, const EventInfo &eventInfo)
     : tensorPtr(std::move(eventPtr)), info(eventInfo), id(++g_eventIDCnt)
-{}
-} // namespace Entities
-} // namespace Analysis
+{
+}
+}  // namespace Domain
+}  // namespace Analysis

@@ -23,7 +23,7 @@
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/tree.h"
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 
 using namespace Analysis::Domain::Host::Cann;
@@ -261,7 +261,7 @@ TEST_F(TreeBuilderUTest, TestAddLevelEventsShouldMatchCorrectNodeWhenInputNotEmp
     std::vector<std::pair<uint64_t, uint64_t>> nodesTimes{{2, 3}, {5, 8}, {10, 12}};
     for (auto range: nodesTimes) {
         EventInfo info{EventType::EVENT_TYPE_API, 0, range.first, range.second};
-        auto event = std::make_shared<Event>(std::shared_ptr<MsprofApi>{},
+        auto event = std::make_shared<Event>(std::shared_ptr<ParserApi>{},
                                              info);
         levelNodes.emplace_back(std::make_shared<TreeNode>(event));
     }
@@ -271,7 +271,7 @@ TEST_F(TreeBuilderUTest, TestAddLevelEventsShouldMatchCorrectNodeWhenInputNotEmp
     auto eventQueue = std::make_shared<EventQueue>(1, eventDots.size());
     for (auto dot: eventDots) {
         EventInfo info{EventType::EVENT_TYPE_NODE_BASIC_INFO, 0, dot, dot};
-        auto eventPtr = std::make_shared<Event>(std::shared_ptr<MsprofCompactInfo>{},
+        auto eventPtr = std::make_shared<Event>(std::shared_ptr<ParserCompactInfo>{},
                                                 info);
         eventQueue->Push(eventPtr);
     }
@@ -400,13 +400,13 @@ TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldReturnOffset2WhenNodeNested)
     // hccl aicpu下发场景, 会出现2层node嵌套, 需要计算offset, 关联至准确的node api
     // [=======================Node(hcom_allReduce_)==============================]
     //   [===Node(hcomAicpuInit)==]     [===Node(allreduceAicpuKernel)==]
-    std::shared_ptr<MsprofCompactInfo> compactEvent;
+    std::shared_ptr<ParserCompactInfo> compactEvent;
     uint16_t level = 3;
     uint64_t eventTime = 100;
     EventInfo nodeBasicInfo(EventType::EVENT_TYPE_NODE_BASIC_INFO, level, eventTime, eventTime);
     std::shared_ptr<Event> event = std::make_shared<Event>(compactEvent, nodeBasicInfo);
 
-    std::shared_ptr<MsprofApi> apiEvent;
+    std::shared_ptr<ParserApi> apiEvent;
     uint64_t startTime1 = 10;
     uint64_t endTime1 = 200;
     EventInfo apiEventInfo1(EventType::EVENT_TYPE_API, level, startTime1, endTime1);

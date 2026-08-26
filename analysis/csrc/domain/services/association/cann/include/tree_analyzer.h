@@ -131,12 +131,12 @@ class TreeAnalyzer
                                 uint8_t isMaster);
 
     // 根据输入参数生成HostTask，该函数纯粹负责HostTask生成
-    std::shared_ptr<HostTask> GenHostTask(const std::shared_ptr<MsprofCompactInfo> &track,
-                                          const std::shared_ptr<MsprofApi> &modelApi,
+    std::shared_ptr<HostTask> GenHostTask(const std::shared_ptr<ParserCompactInfo> &track,
+                                          const std::shared_ptr<ParserApi> &modelApi,
                                           const std::shared_ptr<Operator> &opPtr, uint32_t ctxId, uint16_t taskType,
                                           int64_t connectionId);
     // 根据输入参数生成HostTask数组
-    HostTasks GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<MsprofCompactInfo> &track,
+    HostTasks GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<ParserCompactInfo> &track,
                                   int64_t connectionId);
 
     void UpdateComputeDescForFftsSituation(ComputeOpDescs &descs, const std::shared_ptr<Event> &track);

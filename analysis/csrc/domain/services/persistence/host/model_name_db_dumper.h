@@ -16,19 +16,23 @@
 #ifndef ANALYSIS_CSRC_VIEWER_DATABASE_MODEL_NAME_DB_DUMPER_H
 #define ANALYSIS_CSRC_VIEWER_DATABASE_MODEL_NAME_DB_DUMPER_H
 
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
 #include "analysis/csrc/domain/services/persistence/host/base_dumper.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using ModelNameData = std::vector<std::tuple<uint32_t, std::string>>;
-class ModelNameDBDumper : public BaseDumper<ModelNameDBDumper> {
-    using GraphIdMaps = std::vector<std::shared_ptr<MsprofAdditionalInfo>>;
-public:
+class ModelNameDBDumper : public BaseDumper<ModelNameDBDumper>
+{
+    using GraphIdMaps = std::vector<std::shared_ptr<ParserAdditionalInfo>>;
+
+   public:
     explicit ModelNameDBDumper(const std::string &hostFilePath);
     ModelNameData GenerateData(const GraphIdMaps &graphIdMaps);
 };
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_CSRC_VIEWER_DATABASE_MODEL_NAME_DB_DUMPER_H
+#endif  // ANALYSIS_CSRC_VIEWER_DATABASE_MODEL_NAME_DB_DUMPER_H

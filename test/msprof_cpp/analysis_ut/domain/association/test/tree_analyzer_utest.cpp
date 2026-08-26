@@ -25,7 +25,7 @@
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 
 using namespace Analysis::Domain::Host::Cann;
@@ -226,17 +226,15 @@ std::shared_ptr<EventQueue> GenTaskTrackEventQueue(const std::vector<std::pair<u
 std::shared_ptr<Event> GenCtxIdEvent(uint64_t dot, uint16_t level, uint32_t ctxIdNum)
 {
     EventInfo testInfo{EventType::EVENT_TYPE_CONTEXT_ID, level, dot, dot};
-    auto additionInfo = std::make_shared<MsprofAdditionalInfo>();
+    auto additionInfo = std::make_shared<ParserAdditionalInfo>();
     uint32_t dataLen = 2;
     additionInfo->timeStamp = dot;
     additionInfo->dataLen = dataLen;
 
-    MsprofContextIdInfo ctxId;
-    ctxId.opName = dot;
-    ctxId.ctxIdNum = ctxIdNum;
-    uint32_t ids[2] = {0, 1};
-    std::memcpy(ctxId.ctxIds, &ids, sizeof(ids));
-    std::memcpy(additionInfo->data, &ctxId, sizeof(ctxId));
+    additionInfo->contextIdInfo.opName = dot;
+    additionInfo->contextIdInfo.ctxIdNum = ctxIdNum;
+    additionInfo->contextIdInfo.ctxIds[0] = 0;
+    additionInfo->contextIdInfo.ctxIds[1] = 1;
 
     auto eventPtr = std::make_shared<Event>(additionInfo, testInfo);
     return eventPtr;
@@ -246,16 +244,14 @@ std::shared_ptr<Event> GenHcclInfoEvent(uint64_t dot)
 {
     uint32_t cnt = 0;
     EventInfo testInfo{EventType::EVENT_TYPE_HCCL_INFO, MSPROF_REPORT_HCCL_NODE_LEVEL, dot, dot};
-    auto hcclInfo = std::make_shared<MsprofAdditionalInfo>();
+    auto hcclInfo = std::make_shared<ParserAdditionalInfo>();
     hcclInfo->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
     hcclInfo->level = MSPROF_REPORT_HCCL_NODE_LEVEL;
     hcclInfo->type = static_cast<uint32_t>(EventType::EVENT_TYPE_HCCL_INFO);
     hcclInfo->timeStamp = static_cast<uint64_t>(dot);
 
-    auto hcclTrace = MsprofHcclInfo{};
-    hcclTrace.ctxID = cnt;
-    hcclTrace.itemId = dot;
-    std::memcpy(hcclInfo->data, &hcclTrace, sizeof(hcclTrace));
+    hcclInfo->hcclInfo.ctxID = cnt;
+    hcclInfo->hcclInfo.itemId = dot;
     auto eventPtr = std::make_shared<Event>(hcclInfo, testInfo);
 
     return eventPtr;
@@ -276,7 +272,7 @@ std::shared_ptr<EventQueue> GenFusionOpEventQueue(const std::vector<uint64_t> &f
 {
     auto fusionOpInfoEvents = std::make_shared<EventQueue>(1, 10);
     for (auto dot: fusionOps) {
-        auto additionPtr = std::make_shared<MsprofAdditionalInfo>();
+        auto additionPtr = std::make_shared<ParserAdditionalInfo>();
         FakeEventGenerator::AddFusionOpEvent(fusionOpInfoEvents, dot, additionPtr);
     }
     fusionOpInfoEvents->Sort();

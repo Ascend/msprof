@@ -15,6 +15,7 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/entities/hal/include/aicpu.h"
+#include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
 #include "analysis/csrc/domain/services/parser/parser_item/stars_common.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -38,6 +39,7 @@ const int AICPU_FLIP_TASK_TYPE = static_cast<int>(AicpuType::AICPU_FLIP_TASK);
 const int AICPU_MASTER_STREAM_HCCL_TASK_TYPE = static_cast<int>(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK);
 const int KFC_HCCL_INFO_TYPE = static_cast<int>(AicpuType::KFC_HCCL_INFO);
 }  // namespace
+using namespace Analysis::Domain::Adapter;
 using namespace Analysis::Utils;
 
 int AicpuNodeParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus)
@@ -46,7 +48,10 @@ int AicpuNodeParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *ai
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->node = additionalData->aicpuNode;
+    if (!ParserAicpuAdapter::AdapterNode(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     data->taskId.streamId =
         StarsCommon::GetStreamId(additionalData->aicpuNode.streamId, additionalData->aicpuNode.taskId, expandStatus);
@@ -64,7 +69,10 @@ int AicpuDpParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicp
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->dp = additionalData->aicpuDp;
+    if (!ParserAicpuAdapter::AdapterDp(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
     data->type = AicpuType::AICPU_DP;
     return ANALYSIS_OK;
 }
@@ -75,7 +83,10 @@ int AicpuModelParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *a
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->model = additionalData->aicpuModel;
+    if (!ParserAicpuAdapter::AdapterModel(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
     data->type = AicpuType::AICPU_MODEL;
     return ANALYSIS_OK;
 }
@@ -86,7 +97,10 @@ int AicpuMiParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicp
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->mi = additionalData->aicpuMi;
+    if (!ParserAicpuAdapter::AdapterMi(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
     data->type = AicpuType::AICPU_MI;
     return ANALYSIS_OK;
 }
@@ -97,7 +111,10 @@ int KfcCommTurnParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->commTurn = additionalData->commTurn;
+    if (!ParserAicpuAdapter::AdapterCommTurn(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     data->taskId.streamId =
         StarsCommon::GetStreamId(additionalData->commTurn.streamId, additionalData->commTurn.taskId, expandStatus);
@@ -115,7 +132,10 @@ int KfcComputeTurnParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->computeTurn = additionalData->computeTurn;
+    if (!ParserAicpuAdapter::AdapterComputeTurn(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     data->taskId.streamId = StarsCommon::GetStreamId(additionalData->computeTurn.streamId,
                                                      additionalData->computeTurn.taskId, expandStatus);
@@ -133,7 +153,10 @@ int HcclOpInfoParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *a
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->opInfo = additionalData->opInfo;
+    if (!ParserAicpuAdapter::AdapterOpInfo(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     data->taskId.streamId =
         StarsCommon::GetStreamId(additionalData->opInfo.streamId, additionalData->opInfo.taskId, expandStatus);
@@ -151,7 +174,10 @@ int AicpuFlipTaskParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->flipTask = additionalData->flipTask;
+    if (!ParserAicpuAdapter::AdapterFlipTask(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     data->taskId.streamId =
         StarsCommon::GetStreamId(additionalData->flipTask.streamId, additionalData->flipTask.taskId, expandStatus);
@@ -170,7 +196,10 @@ int AicpuMasterStreamHcclTaskParseItem(uint8_t *binaryData, uint32_t binaryDataS
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->mainStreamTask = additionalData->mainStreamTask;
+    if (!ParserAicpuAdapter::AdapterMainStreamTask(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
 
     // aicpu task
     data->aicpuTaskId.streamId = StarsCommon::GetStreamId(additionalData->mainStreamTask.aicpuStreamId,
@@ -197,7 +226,10 @@ int KfcHcclInfoParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *
 
     auto *data = ReinterpretConvert<AicpuData *>(aicpuData);
     data->timeStamp = additionalData->timeStamp;
-    data->KfcInfos = additionalData->kfcInfos;
+    if (!ParserAicpuAdapter::AdapterKfcInfos(additionalData, data))
+    {
+        return ANALYSIS_ERROR;
+    }
     data->type = AicpuType::KFC_HCCL_INFO;
     return ANALYSIS_OK;
 }

@@ -104,7 +104,7 @@ protected:
         fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, type, true);
     }
 
-    static void Check(const std::vector<std::shared_ptr<MsprofCompactInfo>> &data,
+    static void Check(const std::vector<std::shared_ptr<ParserCompactInfo>> &data,
                       EventType type, uint16_t level, uint16_t dataNum)
     {
         ASSERT_EQ(dataNum, data.size());
@@ -123,17 +123,17 @@ protected:
 TEST_F(CompactInfoParserUTest, TestMemcpyInfoParserShouldReturn10DataWhenParseSuccess)
 {
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_MEM_CPY, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -141,7 +141,7 @@ TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturnEmpty
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -150,7 +150,7 @@ TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturn9Data
     const uint16_t invalidDataNum = 1;
     GenCompactInfoData(EventType::EVENT_TYPE_MEM_CPY, MSPROF_REPORT_NODE_LEVEL, invalidDataNum);
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_MEM_CPY, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
@@ -159,14 +159,14 @@ TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturnEmpty
     MOCKER_CPP(&FileReader::ReadBinary)
         .stubs().will(returnValue(ANALYSIS_ERROR));
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
 TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturn10DataWhenParseSuccess)
 {
     auto parser = std::make_shared<NodeBasicInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
     for (size_t i = 0; i < DATA_NUM; ++i) {
         if (i * 2 < DATA_NUM) {  // 前1/2的数据是unaging，opState是0；后1/2的数据是aging，opState是1
@@ -179,11 +179,11 @@ TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturn10D
 
 TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<NodeBasicInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -191,7 +191,7 @@ TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturnEmp
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<NodeBasicInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -200,7 +200,7 @@ TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturnEmp
     MOCKER_CPP(&FileReader::ReadBinary)
         .stubs().will(returnValue(ANALYSIS_OK)).then(returnValue(ANALYSIS_ERROR));
     auto parser = std::make_shared<NodeBasicInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -209,7 +209,7 @@ TEST_F(CompactInfoParserUTest, TestNodeBasicInfoParserProduceDataShouldReturn9Da
     const uint16_t invalidDataNum = 1;
     GenCompactInfoData(EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL, invalidDataNum);
     auto parser = std::make_shared<NodeBasicInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
@@ -220,7 +220,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturn8Compac
     const uint16_t flipTaskNum = 1;
     const uint16_t maintenanceTaskNum = 1;
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactInfo = parser->ParseData<MsprofCompactInfo>();
+    auto compactInfo = parser->ParseData<ParserCompactInfo>();
     auto flipTask = parser->ParseData<Adapter::FlipTask>();
     Check(compactInfo, EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL,
           DATA_NUM - flipTaskNum - maintenanceTaskNum);
@@ -229,13 +229,13 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturn8Compac
 
 TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactInfo = parser->ParseData<MsprofCompactInfo>();
+    auto compactInfo = parser->ParseData<ParserCompactInfo>();
     auto flipTask = parser->ParseData<Adapter::FlipTask>();
     EXPECT_EQ(0, compactInfo.size());
     EXPECT_EQ(0, flipTask.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -243,7 +243,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWh
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactInfo = parser->ParseData<MsprofCompactInfo>();
+    auto compactInfo = parser->ParseData<ParserCompactInfo>();
     auto flipTask = parser->ParseData<Adapter::FlipTask>();
     EXPECT_EQ(0, compactInfo.size());
     EXPECT_EQ(0, flipTask.size());
@@ -254,7 +254,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWh
 {
     MOCKER_CPP(&Adapter::Flip::CreateFlipTask).stubs().will(returnValue(std::shared_ptr<Adapter::FlipTask>{}));
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactInfo = parser->ParseData<MsprofCompactInfo>();
+    auto compactInfo = parser->ParseData<ParserCompactInfo>();
     auto flipTask = parser->ParseData<Adapter::FlipTask>();
     EXPECT_EQ(0, compactInfo.size());
     EXPECT_EQ(0, flipTask.size());
@@ -266,24 +266,24 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturn7DataWh
     const uint16_t invalidDataNum = 3;
     GenCompactInfoData(EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, invalidDataNum, true);
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
 TEST_F(CompactInfoParserUTest, TestNodeAttrInfoParserShouldReturn10DataWhenParseSuccess)
 {
     auto parser = std::make_shared<NodeAttrInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(CompactInfoParserUTest, TestNodeAttrInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<NodeAttrInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestNodeAttrInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -291,7 +291,7 @@ TEST_F(CompactInfoParserUTest, TestNodeAttrInfoParserProduceDataShouldReturnEmpt
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<NodeAttrInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -300,24 +300,24 @@ TEST_F(CompactInfoParserUTest, TestNodeAttrInfoParserProduceDataShouldReturn9Dat
     const uint16_t invalidDataNum = 1;
     GenCompactInfoData(EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, invalidDataNum);
     auto parser = std::make_shared<NodeAttrInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
 TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserShouldReturn10DataWhenParseSuccess)
 {
     auto parser = std::make_shared<HcclOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
 
 TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).stubs().will(returnValue(false));
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).stubs().will(returnValue(false));
     auto parser = std::make_shared<HcclOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
-    MOCKER_CPP(&Reserve<std::shared_ptr<MsprofCompactInfo>>).reset();
+    MOCKER_CPP(&Reserve<std::shared_ptr<ParserCompactInfo>>).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
@@ -325,7 +325,7 @@ TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserProduceDataShouldReturnEmptyW
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<HcclOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -334,7 +334,7 @@ TEST_F(CompactInfoParserUTest, TestHcclOpInfoParserProduceDataShouldReturn9DataW
     const uint16_t invalidDataNum = 1;
     GenCompactInfoData(EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, invalidDataNum);
     auto parser = std::make_shared<HcclOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM - invalidDataNum);
 }
 
@@ -380,7 +380,7 @@ TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserShouldReturn10DataWhenParse
 {
     GenDpuTrackData();
     auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(data.size(), DATA_NUM);
     for (uint32_t i = 0; i < data.size(); ++i) {
         EXPECT_EQ(data[i]->data.dpuTrack.deviceId, i);
@@ -395,7 +395,7 @@ TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserProduceDataShouldReturnEmpt
     MOCKER_CPP(&ChunkGenerator::Pop).stubs()
         .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(0, data.size());
 }
 
@@ -404,7 +404,7 @@ TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserProduceDataShouldReturn8Dat
     const uint16_t invalidDataNum = 2;
     GenDpuTrackData(DATA_NUM, invalidDataNum);
     auto parser = std::make_shared<DpuTaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto data = parser->ParseData<MsprofCompactInfo>();
+    auto data = parser->ParseData<ParserCompactInfo>();
     EXPECT_EQ(data.size(), DATA_NUM - invalidDataNum);
 }
 
@@ -457,7 +457,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserShouldCollectDpuKernelNamesWhe
     const std::vector<uint64_t> dpuKernelNames = {0xABCD, 0x1234};
     GenTaskTrackWithDPUData(dpuIndices, dpuKernelNames, totalData);
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactData = parser->ParseData<MsprofCompactInfo>();
+    auto compactData = parser->ParseData<ParserCompactInfo>();
     auto &kernelMap = parser->GetDpuKernelNameMap();
     EXPECT_EQ(compactData.size(), totalData - dpuIndices.size());
     EXPECT_EQ(kernelMap.size(), dpuIndices.size());
@@ -482,7 +482,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserDpuKernelNameMapShouldBeEmptyW
     const std::vector<uint64_t> dpuKernelNames = {};
     GenTaskTrackWithDPUData(dpuIndices, dpuKernelNames, totalData);
     auto parser = std::make_shared<TaskTrackParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
-    auto compactData = parser->ParseData<MsprofCompactInfo>();
+    auto compactData = parser->ParseData<ParserCompactInfo>();
     auto &kernelMap = parser->GetDpuKernelNameMap();
     EXPECT_EQ(compactData.size(), totalData);
     EXPECT_TRUE(kernelMap.empty());

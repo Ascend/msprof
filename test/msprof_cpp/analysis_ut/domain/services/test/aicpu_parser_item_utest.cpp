@@ -19,7 +19,7 @@
 #include "analysis/csrc/domain/entities/hal/include/aicpu.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 using namespace testing;
 

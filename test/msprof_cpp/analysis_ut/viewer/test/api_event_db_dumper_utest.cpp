@@ -44,7 +44,7 @@ protected:
 TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
 {
     ApiEventDBDumper apiEventDbDumper(".");
-    auto apiPtr1 = std::make_shared<MsprofApi>();
+    auto apiPtr1 = std::make_shared<ParserApi>();
     uint64_t endTime1 = 4;
     apiPtr1->type = 1 << TWO_BYTES;
     apiPtr1->level = ACL_LEVEL_NUMBER;
@@ -85,7 +85,7 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldReturnFalseWhenDBNotCrea
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(false));
     ApiEventDBDumper apiEventDbDumper(".");
-    auto apiPtr1 = std::make_shared<MsprofApi>();
+    auto apiPtr1 = std::make_shared<ParserApi>();
     apiPtr1->type = 1 << TWO_BYTES;
     apiPtr1->level = ACL_LEVEL_NUMBER;
     EventInfo info1(EventType::EVENT_TYPE_API, MSPROF_REPORT_ACL_LEVEL, 1, 1);
@@ -100,7 +100,7 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldReturnFalseWhenCannotIns
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(true));
     ApiEventDBDumper apiEventDbDumper(".");
-    auto apiPtr1 = std::make_shared<MsprofApi>();
+    auto apiPtr1 = std::make_shared<ParserApi>();
     apiPtr1->type = 1 << TWO_BYTES;
     apiPtr1->level = ACL_LEVEL_NUMBER;
 

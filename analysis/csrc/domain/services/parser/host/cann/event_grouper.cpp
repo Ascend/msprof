@@ -46,7 +46,7 @@ std::vector<std::shared_ptr<Event>> &EventGrouper::GetApiTraces() { return apiTr
 
 std::vector<std::shared_ptr<Adapter::FlipTask>> &EventGrouper::GetFlipTasks() { return flipTasks_; }
 
-std::vector<std::shared_ptr<MsprofCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
+std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
 std::unordered_map<uint64_t, uint64_t> &EventGrouper::GetDpuKernelNameMap() { return dpuKernelNameMap_; }
 
 bool EventGrouper::Group()
@@ -59,35 +59,35 @@ bool EventGrouper::Group()
     // 每个Parser一个线程
     pool.AddTask(
         [this]()
-        { GroupEvents<ApiEventParser, MsprofApi, &CANNWarehouse::kernelEvents>("Kernel", EventType::EVENT_TYPE_API); });
+        { GroupEvents<ApiEventParser, ParserApi, &CANNWarehouse::kernelEvents>("Kernel", EventType::EVENT_TYPE_API); });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<GraphIdParser, MsprofAdditionalInfo, &CANNWarehouse::graphIdMapEvents>(
+            GroupEvents<GraphIdParser, ParserAdditionalInfo, &CANNWarehouse::graphIdMapEvents>(
                 "GraphIdMap", EventType::EVENT_TYPE_GRAPH_ID_MAP);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<FusionOpInfoParser, MsprofAdditionalInfo, &CANNWarehouse::fusionOpInfoEvents>(
+            GroupEvents<FusionOpInfoParser, ParserAdditionalInfo, &CANNWarehouse::fusionOpInfoEvents>(
                 "FusionOpInfo", EventType::EVENT_TYPE_FUSION_OP_INFO);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<NodeBasicInfoParser, MsprofCompactInfo, &CANNWarehouse::nodeBasicInfoEvents>(
+            GroupEvents<NodeBasicInfoParser, ParserCompactInfo, &CANNWarehouse::nodeBasicInfoEvents>(
                 "NodeBasicInfo", EventType::EVENT_TYPE_NODE_BASIC_INFO);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<NodeAttrInfoParser, MsprofCompactInfo, &CANNWarehouse::nodeAttrInfoEvents>(
+            GroupEvents<NodeAttrInfoParser, ParserCompactInfo, &CANNWarehouse::nodeAttrInfoEvents>(
                 "NodeAttrInfo", EventType::EVENT_TYPE_NODE_ATTR_INFO);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<TensorInfoParser, ConcatTensorInfo, &CANNWarehouse::tensorInfoEvents>(
+            GroupEvents<TensorInfoParser, ParserConcatTensorInfo, &CANNWarehouse::tensorInfoEvents>(
                 "TensorInfo", EventType::EVENT_TYPE_TENSOR_INFO);
         });
     if (!Environment::Context::GetInstance().IsChipV6(Environment::Context::GetInstance().GetPlatformVersion()))
@@ -95,33 +95,33 @@ bool EventGrouper::Group()
         pool.AddTask(
             [this]()
             {
-                GroupEvents<CtxIdParser, MsprofAdditionalInfo, &CANNWarehouse::contextIdEvents>(
+                GroupEvents<CtxIdParser, ParserAdditionalInfo, &CANNWarehouse::contextIdEvents>(
                     "ContextId", EventType::EVENT_TYPE_CONTEXT_ID);
             });
     }
     pool.AddTask(
         [this]()
         {
-            GroupEvents<HcclInfoParser, MsprofAdditionalInfo, &CANNWarehouse::hcclInfoEvents>(
+            GroupEvents<HcclInfoParser, ParserAdditionalInfo, &CANNWarehouse::hcclInfoEvents>(
                 "HcclInfo", EventType::EVENT_TYPE_HCCL_INFO);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+            GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
                 "TaskTrack", EventType::EVENT_TYPE_TASK_TRACK);
         });
     pool.AddTask(
         [this]()
         {
-            GroupEvents<HcclOpInfoParser, MsprofCompactInfo, &CANNWarehouse::hcclOpInfoEvents>(
+            GroupEvents<HcclOpInfoParser, ParserCompactInfo, &CANNWarehouse::hcclOpInfoEvents>(
                 "HcclOpInfo", EventType::EVENT_TYPE_HCCL_OP_INFO);
         });
     pool.AddTask(
         [this]()
         {
             // 复用模板函数 临时使用taskTrackEvents占位 实际业务不使用
-            GroupEvents<DpuTaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+            GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
                 "DpuTaskTrack", EventType::EVENT_TYPE_TASK_TRACK);
         });
 
@@ -168,7 +168,7 @@ void EventGrouper::InitLastKernelTimes(const std::set<uint32_t> &threadIds)
     }
 }
 
-bool EventGrouper::IsBuildTreeWithAcl(const std::shared_ptr<MsprofApi> &trace)
+bool EventGrouper::IsBuildTreeWithAcl(const std::shared_ptr<ParserApi> &trace)
 {
     if (trace->level == MSPROF_REPORT_ACL_LEVEL)
     {
@@ -178,7 +178,7 @@ bool EventGrouper::IsBuildTreeWithAcl(const std::shared_ptr<MsprofApi> &trace)
     return false;
 }
 
-bool EventGrouper::isKernelApiEvent(const std::shared_ptr<MsprofApi> &trace)
+bool EventGrouper::isKernelApiEvent(const std::shared_ptr<ParserApi> &trace)
 {
     if (trace->level == MSPROF_REPORT_ACL_LEVEL || trace->level == MSPROF_REPORT_MODEL_LEVEL ||
         trace->level == MSPROF_REPORT_NODE_LEVEL || trace->level == MSPROF_REPORT_HCCL_NODE_LEVEL)
@@ -214,7 +214,7 @@ bool EventGrouper::isKernelApiEvent(const std::shared_ptr<MsprofApi> &trace)
 
 // 对于KernelEvents特化
 template <>
-void EventGrouper::GroupEvents<ApiEventParser, MsprofApi, &CANNWarehouse::kernelEvents>(const std::string &typeName,
+void EventGrouper::GroupEvents<ApiEventParser, ParserApi, &CANNWarehouse::kernelEvents>(const std::string &typeName,
                                                                                         EventType eventType)
 {
     // 1. 解析bin
@@ -222,7 +222,7 @@ void EventGrouper::GroupEvents<ApiEventParser, MsprofApi, &CANNWarehouse::kernel
     std::shared_ptr<ApiEventParser> parser;
     MAKE_SHARED_RETURN_VOID(parser, ApiEventParser, hostPath_);
 
-    auto traces = parser->ParseData<MsprofApi>();
+    auto traces = parser->ParseData<ParserApi>();
     SortByTimeAndLevel(traces);
     // 统计各个threadId元素个数，用于EventQueue分配精确的内存大小，避免大量内存浪费
     std::unordered_map<uint32_t, uint64_t> threadIdNum;
@@ -279,7 +279,7 @@ void EventGrouper::GroupEvents<ApiEventParser, MsprofApi, &CANNWarehouse::kernel
 
 // 对于taskTrackEvents特化
 template <>
-void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+void EventGrouper::GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
     const std::string &typeName, EventType eventType)
 {
     // 1. 解析bin
@@ -287,7 +287,7 @@ void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehous
     std::shared_ptr<TaskTrackParser> parser;
     MAKE_SHARED_RETURN_VOID(parser, TaskTrackParser, hostPath_);
 
-    auto traces = parser->ParseData<MsprofCompactInfo>();
+    auto traces = parser->ParseData<ParserCompactInfo>();
     SortByTimeAndLevel(traces);
     flipTasks_ = parser->GetData<Adapter::FlipTask>();
     dpuKernelNameMap_ = parser->GetDpuKernelNameMap();
@@ -324,20 +324,20 @@ void EventGrouper::GroupEvents<TaskTrackParser, MsprofCompactInfo, &CANNWarehous
 
 // dpuTaskTrack特化
 template <>
-void EventGrouper::GroupEvents<DpuTaskTrackParser, MsprofCompactInfo, &CANNWarehouse::taskTrackEvents>(
+void EventGrouper::GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
     const std::string &typeName, EventType eventType)
 {
     Utils::TimeLogger t{"Group " + typeName};
     std::shared_ptr<DpuTaskTrackParser> parser;
     MAKE_SHARED_RETURN_VOID(parser, DpuTaskTrackParser, hostPath_);
-    dpuTrackData_ = parser->ParseData<MsprofCompactInfo>();
+    dpuTrackData_ = parser->ParseData<ParserCompactInfo>();
     INFO("Parsed DPU task track data, size: %", dpuTrackData_.size());
 }
 
 template <>
-void EventGrouper::SortByTimeAndLevel<MsprofApi>(std::vector<std::shared_ptr<MsprofApi>> &traces)
+void EventGrouper::SortByTimeAndLevel<ParserApi>(std::vector<std::shared_ptr<ParserApi>> &traces)
 {
-    auto comp = [](std::shared_ptr<MsprofApi> &api1, std::shared_ptr<MsprofApi> &api2)
+    auto comp = [](std::shared_ptr<ParserApi> &api1, std::shared_ptr<ParserApi> &api2)
     { return api1->beginTime < api2->beginTime || (api1->beginTime == api2->beginTime && api1->level > api2->level); };
     std::sort(traces.begin(), traces.end(), comp);
 }

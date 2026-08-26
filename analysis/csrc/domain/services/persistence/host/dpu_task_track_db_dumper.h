@@ -25,7 +25,7 @@
 #include "analysis/csrc/domain/services/persistence/host/base_dumper.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
-#include "analysis/csrc/infrastructure/utils/prof_common.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
@@ -37,7 +37,7 @@ using DpuTaskTrackData =
 
 class DpuTaskTrackDBDumper final : public BaseDumper<DpuTaskTrackDBDumper>
 {
-    using DpuTrackInfos = std::vector<std::shared_ptr<MsprofCompactInfo>>;
+    using DpuTrackInfos = std::vector<std::shared_ptr<ParserCompactInfo>>;
 
    public:
     explicit DpuTaskTrackDBDumper(const std::string &hostFilePath);
