@@ -17,12 +17,15 @@
 # -------------------------------------------------------------------------
 import gc
 import os
+import re
 import unittest
 
+from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from constant.constant import CONFIG, clear_dt_project
 from constant.info_json_construct import InfoJsonReaderManager, InfoJson
 from mscalculate.tiling_block_num.block_num_calculator import BlockNumCalculator
+from msconfig.config_manager import ConfigManager
 from msmodel.ge.ge_info_model import GeInfoViewModel
 from sqlite.db_manager import DBOpen
 
@@ -33,20 +36,45 @@ class TestKfcCalculator(unittest.TestCase):
     DIR_PATH = os.path.join(os.path.dirname(__file__), 'DT_BlockNumCalculator')
     DEVICE_SQLITE_DIR = os.path.join(DIR_PATH, 'PROF', 'device_0', 'sqlite')
     HOST_SQLITE_DIR = os.path.join(DIR_PATH, 'PROF', 'host', 'sqlite')
+    DATABASE_CPP = os.path.realpath(os.path.join(
+        os.path.dirname(__file__), '..', '..', '..', '..', '..', '..',
+        'analysis', 'csrc', 'infrastructure', 'db', 'database.cpp'))
+
+    def get_task_info_columns(self):
+        if not os.path.exists(self.DATABASE_CPP):
+            self.fail('database.cpp not found: ' + self.DATABASE_CPP)
+        with open(self.DATABASE_CPP, encoding='utf-8') as file:
+            content = file.read()
+        matched = re.search(r'const TableColumns TaskInfo = \{(.*?)\};', content, re.S)
+        if matched is None:
+            self.fail('parse TaskInfo table definition from database.cpp failed')
+        columns = re.findall(r'\{"(\w+)",\s*SQL_(\w+)_TYPE\}', matched.group(1))
+        if not columns:
+            self.fail('parse TaskInfo columns from database.cpp failed')
+        return columns
 
     def construct_ge_info_db(self):
-        create_sql = "CREATE TABLE IF NOT EXISTS " + DBNameConstant.TABLE_GE_TASK + \
-                     "(model_id, op_name, stream_id, task_id, block_num, mix_block_num," \
-                     "op_state, task_type, op_type, index_id, thread_id, timestamp, batch_id," \
-                     "tensor_num, input_formats, input_data_types, input_shapes," \
-                     "output_formats, output_data_types, output_shapes, device_id, context_id, op_flag, hashid)"
-        data = (
-            (0, "op001", 1, 1, 65535, 4294967295, 0, 'AI_CORE', "Matmul", 1, 1, 123456, 0, 2, "", "",
-             "", "", "", "", 0, 4294967295, "1", "123"),
-            (0, "op002", 1, 1, 32, 0, 0, "MIX_AIC", "StridedSliceD", 0, 120040, 458597374830, 1, 2, "",
-             "", "", "", "", "", 0, 4294967295, "1", "234"),
-            (0, "op003", 1, 2, 65535, 4294967295, 0, "AI_CORE", "StridedSliceD", 0, 120040, 458597374830, 1, 2,
-             "", "", "", "", "", "", 0, 4294967295, "1", "345")
+        create_sql = DBManager.sql_create_general_table(
+            DBNameConstant.TABLE_GE_TASK + "Map", DBNameConstant.TABLE_GE_TASK, ConfigManager.TABLES)
+        items = ConfigManager.get(ConfigManager.TABLES).items(DBNameConstant.TABLE_GE_TASK + "Map")
+        columns = [name for name, _ in items]
+        defaults = {name: ("" if col_type.startswith("TEXT") else 0) for name, col_type in items}
+        common = {"model_id": 0, "op_state": 0, "device_id": 0, "context_id": 4294967295,
+                  "op_flag": "1", "batch_id": 0, "tensor_num": 2, "grid_dim": "NA", "block_dim": "NA"}
+        rows = (
+            {"op_name": "op001", "stream_id": 1, "task_id": 1, "block_num": 65535,
+             "mix_block_num": 4294967295, "task_type": "AI_CORE", "op_type": "Matmul",
+             "index_id": 1, "thread_id": 1, "timestamp": 123456, "hashid": "123"},
+            {"op_name": "op002", "stream_id": 1, "task_id": 1, "block_num": 32, "mix_block_num": 0,
+             "task_type": "MIX_AIC", "op_type": "StridedSliceD", "index_id": 0, "thread_id": 120040,
+             "timestamp": 458597374830, "batch_id": 1, "hashid": "234"},
+            {"op_name": "op003", "stream_id": 1, "task_id": 2, "block_num": 65535,
+             "mix_block_num": 4294967295, "task_type": "AI_CORE", "op_type": "StridedSliceD",
+             "index_id": 0, "thread_id": 120040, "timestamp": 458597374830, "batch_id": 1, "hashid": "345"},
+        )
+        data = tuple(
+            tuple({**defaults, **common, **row}[name] for name in columns)
+            for row in rows
         )
         db_open = DBOpen(DBNameConstant.DB_GE_INFO, sqlite_dir=self.HOST_SQLITE_DIR)
         db_open._connect_db()
@@ -88,6 +116,11 @@ class TestKfcCalculator(unittest.TestCase):
         if os.path.exists(self.DIR_PATH):
             clear_dt_project(self.DIR_PATH)
 
+    def test_task_info_map_consistent_with_cpp_definition(self: any) -> None:
+        cpp_columns = [name for name, _ in self.get_task_info_columns()]
+        py_columns = ConfigManager.get(ConfigManager.TABLES).options(DBNameConstant.TABLE_GE_TASK + "Map")
+        self.assertEqual(cpp_columns, py_columns)
+
     def test_ms_run_should_return_when_contain_block_num_data(self: any) -> None:
         self.construct_ts_track_db()
         self.construct_ge_info_db()
@@ -97,4 +130,5 @@ class TestKfcCalculator(unittest.TestCase):
         check.ms_run()
         with GeInfoViewModel(os.path.join(self.DIR_PATH, 'PROF', 'device_0'), [DBNameConstant.TABLE_GE_TASK]) as _model:
             data = _model.get_ge_info_by_device_id(DBNameConstant.TABLE_GE_TASK, '0')
+        self.assertEqual(len(data), 3)
         self.assertEqual({(8, 0), (32, 0), (8, 16)}, set((datum.block_num, datum.mix_block_num) for datum in data))

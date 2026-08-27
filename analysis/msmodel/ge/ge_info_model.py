@@ -18,6 +18,7 @@ from collections import namedtuple
 from common_func.db_name_constant import DBNameConstant
 from common_func.db_manager import DBManager
 from common_func.msprof_object import CustomizedNamedtupleFactory
+from msconfig.config_manager import ConfigManager
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
 
@@ -64,32 +65,7 @@ class GeInfoViewModel(ViewModel):
     TASK_INFO_TYPE = CustomizedNamedtupleFactory.enhance_namedtuple(
         namedtuple(
             "TaskInfo",
-            [
-                "model_id",
-                "op_name",
-                "stream_id",
-                "task_id",
-                "block_num",
-                "mix_block_num",
-                "op_state",
-                "task_type",
-                "op_type",
-                "index_id",
-                "thread_id",
-                "timestamp",
-                "batch_id",
-                "tensor_num",
-                "input_formats",
-                "input_data_types",
-                "input_shapes",
-                "output_formats",
-                "output_data_types",
-                "output_shapes",
-                "device_id",
-                "context_id",
-                "op_flag",
-                "hashid",
-            ],
+            ConfigManager.get(ConfigManager.TABLES).options(DBNameConstant.TABLE_GE_TASK + "Map"),
         ),
         {},
     )

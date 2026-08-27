@@ -717,6 +717,8 @@ class TaskGear(CANNGear):
                     int(cxt_id),
                     Constant.NA,
                     Constant.NA,
+                    Constant.NA,
+                    Constant.NA,
                 ]
             )
 
@@ -772,6 +774,8 @@ class TaskGear(CANNGear):
                     int(cxt_id),
                     "YES" if node_basic_info_dto.op_flag else "NO",
                     Constant.NA if not node_attr_info.hashid else node_attr_info.hashid,
+                    Constant.NA,
+                    Constant.NA,
                 ]
             )
 
@@ -827,6 +831,8 @@ class TaskGear(CANNGear):
                     context_id,
                     op_flag,
                     op_info.hash_id,
+                    Constant.NA,
+                    Constant.NA,
                 ]
             )
         else:
@@ -856,6 +862,8 @@ class TaskGear(CANNGear):
                     context_id,
                     op_flag,
                     op_info.hash_id,
+                    Constant.NA,
+                    Constant.NA,
                 ]
             )
 

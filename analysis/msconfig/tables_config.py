@@ -44,6 +44,8 @@ class TablesConfig(MetaConfig):
             ('context_id', 'INTEGER,null'),
             ('op_flag', 'TEXT,null'),
             ('hashid', 'TEXT,null'),
+            ('grid_dim', 'TEXT,null'),
+            ('block_dim', 'TEXT,null'),
         ],
         'GeHashInfoMap': [('hash_key', 'TEXT,null'), ('hash_value', 'TEXT,null')],
         'TypeHashInfoMap': [('hash_key', 'TEXT,null'), ('hash_value', 'TEXT,null'), ('level', 'TEXT,null')],

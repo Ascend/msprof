@@ -46,6 +46,7 @@ class L1NameType(Enum):
     """
     leve1:name type enum
     """
+
     MODEL_NAME = 0
     TASK_INFO = 1
 
@@ -54,6 +55,7 @@ class L2NameType(Enum):
     """
     leve2:name type enum
     """
+
     OP_NAME = 0
     OP_TYPE = 1
     ORI_OP_NAME = 2
@@ -66,6 +68,7 @@ class L3NameType(Enum):
     """
     leve3:name type enum
     """
+
     SHAPE = 0
 
 
@@ -113,8 +116,8 @@ class V5DbgParser(DataParser, MsMultiProcess):
     }
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
-        super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        DataParser.__init__(self, sample_config)
+        MsMultiProcess.__init__(self, sample_config)
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -126,16 +129,16 @@ class V5DbgParser(DataParser, MsMultiProcess):
         """
         dbg_tag_files = self._file_list.get(DataTag.DBG_FILE, [])
         model_filename_dict = self._get_v5_model_filename_with_id_data()
-        print_info(MsProfCommonConstant.COMMON_FILE_NAME,
-                   "The correct dbg named %s." % str(list(model_filename_dict)))
+        print_info(MsProfCommonConstant.COMMON_FILE_NAME, "The correct dbg named %s." % str(list(model_filename_dict)))
         for _file in dbg_tag_files:
-            if not is_valid_original_data(_file, self._project_path) \
-                    or _file[:-self.DBG_NAME_LEN] not in model_filename_dict:
+            if (
+                not is_valid_original_data(_file, self._project_path)
+                or _file[: -self.DBG_NAME_LEN] not in model_filename_dict
+            ):
                 continue
             _file_path = self.get_file_path_and_check(_file)
-            logging.info(
-                "start parsing v5_dbg_file data file: %s", _file)
-            self._read_data(_file_path, model_filename_dict.get(_file[:-self.DBG_NAME_LEN]))
+            logging.info("start parsing v5_dbg_file data file: %s", _file)
+            self._read_data(_file_path, model_filename_dict.get(_file[: -self.DBG_NAME_LEN]))
 
     def save(self: any) -> None:
         """
@@ -143,8 +146,7 @@ class V5DbgParser(DataParser, MsMultiProcess):
         :return:
         """
         if not self._model_info:
-            logging.error(
-                "Please confirm that the PROF data matches the dbg file!")
+            logging.error("Please confirm that the PROF data matches the dbg file!")
             return
         with V5ExeomModel(self._project_path) as exeom_model:
             exeom_model.flush(self._reformat_ge_task_data(self._model_info), DBNameConstant.TABLE_GE_TASK)
@@ -158,8 +160,7 @@ class V5DbgParser(DataParser, MsMultiProcess):
         :return:
         """
         if not (self._file_list.get(DataTag.DBG_FILE, [])):
-            logging.error(
-                "Please confirm if there are dbg files in the data folder!")
+            logging.error("Please confirm if there are dbg files in the data folder!")
             return
         try:
             self.parse()
@@ -186,8 +187,14 @@ class V5DbgParser(DataParser, MsMultiProcess):
                 for _ in range(num.num):
                     dbg_dict = {}
                     bean_data = L1OpDescBean().decode(data, data_offset)
-                    dbg_dict.update({"task_id": bean_data.task_id, "stream_id": bean_data.stream_id,
-                                     "task_type": bean_data.task_type, "block_num": bean_data.block_num})
+                    dbg_dict.update(
+                        {
+                            "task_id": bean_data.task_id,
+                            "stream_id": bean_data.stream_id,
+                            "task_type": bean_data.task_type,
+                            "block_num": bean_data.block_num,
+                        }
+                    )
                     data_offset += bean_data.fmt_size
                     data_offset = self._get_op_info(data, dbg_dict, data_offset, data_offset + bean_data.length)
                     dbg_dict.setdefault("model_id", model_id)
@@ -219,8 +226,11 @@ class V5DbgParser(DataParser, MsMultiProcess):
             data_type = self._add_semicolon_char(res.get(shape_type + "_data_type", ""))
             data_format = self._add_semicolon_char(res.get(shape_type + "_format", ""))
             res.update(
-                {shape_type + "_data_type": data_type + str(bean_data.data_type),
-                 shape_type + "_format": data_format + str(bean_data.format)})
+                {
+                    shape_type + "_data_type": data_type + str(bean_data.data_type),
+                    shape_type + "_format": data_format + str(bean_data.format),
+                }
+            )
             data_offset += bean_data.fmt_size
             self._get_shape(data, res, data_offset, bean_data.length, shape_type)
             data_offset += bean_data.length
@@ -230,12 +240,10 @@ class V5DbgParser(DataParser, MsMultiProcess):
         data_offset, length, shape_type = base_info
         offset = 0
         while offset < length:
-            head_data = TypeHeadBean().decode(
-                data, offset + data_offset)
+            head_data = TypeHeadBean().decode(data, offset + data_offset)
             offset += head_data.fmt_size
             if head_data.datatype == L3NameType.SHAPE.value:
-                bean_data = ShapeBean().decode(
-                    data, offset + data_offset, head_data)
+                bean_data = ShapeBean().decode(data, offset + data_offset, head_data)
                 shape = self._add_semicolon_char(res.get(shape_type + "_shape", ""))
                 res.update({shape_type + "_shape": shape + bean_data.shape})
             offset += head_data.length
@@ -271,26 +279,50 @@ class V5DbgParser(DataParser, MsMultiProcess):
             thread_id_dict = _model.get_v5_thread_id_with_model_id_data()
         return [
             [
-                data.get("model_id", self.INVALID_ID), self._get_op_name(data),
-                data.get("stream_id", self.INVALID_VALUE), data.get("task_id", self.INVALID_ID),
-                data.get("block_num", self.INVALID_BLOCK_NUM), self.INVALID_BLOCK_NUM,
-                self.INVALID_OP_STATE, data.get("task_type", Constant.NA), data.get("op_type", Constant.NA),
-                self.INVALID_INDEX_ID, thread_id_dict.get(data.get("model_id", self.INVALID_ID), self.INVALID_ID),
-                self.INVALID_TIMESTAMP, self.INVALID_BATCH_ID, self.INVALID_TENSOR_NUM,
-                data.get("input_format", Constant.NA), data.get("input_data_type", Constant.NA),
-                data.get("input_shape", Constant.NA), data.get("output_format", Constant.NA),
-                data.get("output_data_type", Constant.NA), data.get("output_shape", Constant.NA),
-                self.INVALID_DEVICE_ID, self.INVALID_CONTEXT_ID, self.OP_FLAG, self.INVALID_HASHID
-            ] for data in data_list
+                data.get("model_id", self.INVALID_ID),
+                self._get_op_name(data),
+                data.get("stream_id", self.INVALID_VALUE),
+                data.get("task_id", self.INVALID_ID),
+                data.get("block_num", self.INVALID_BLOCK_NUM),
+                self.INVALID_BLOCK_NUM,
+                self.INVALID_OP_STATE,
+                data.get("task_type", Constant.NA),
+                data.get("op_type", Constant.NA),
+                self.INVALID_INDEX_ID,
+                thread_id_dict.get(data.get("model_id", self.INVALID_ID), self.INVALID_ID),
+                self.INVALID_TIMESTAMP,
+                self.INVALID_BATCH_ID,
+                self.INVALID_TENSOR_NUM,
+                data.get("input_format", Constant.NA),
+                data.get("input_data_type", Constant.NA),
+                data.get("input_shape", Constant.NA),
+                data.get("output_format", Constant.NA),
+                data.get("output_data_type", Constant.NA),
+                data.get("output_shape", Constant.NA),
+                self.INVALID_DEVICE_ID,
+                self.INVALID_CONTEXT_ID,
+                self.OP_FLAG,
+                self.INVALID_HASHID,
+                Constant.NA,
+                Constant.NA,
+            ]
+            for data in data_list
         ]
 
     def _reformat_host_task_data(self: any, data_list: list) -> list:
         return [
             [
-                data.get("model_id", self.INVALID_ID), self.INVALID_REQUEST_ID,
-                data.get("stream_id", self.INVALID_VALUE), data.get("task_id", self.INVALID_ID),
-                str(self.INVALID_CONTEXT_ID), self.INVALID_BATCH_ID, data.get("task_type", Constant.NA),
+                data.get("model_id", self.INVALID_ID),
+                self.INVALID_REQUEST_ID,
+                data.get("stream_id", self.INVALID_VALUE),
+                data.get("task_id", self.INVALID_ID),
+                str(self.INVALID_CONTEXT_ID),
+                self.INVALID_BATCH_ID,
+                data.get("task_type", Constant.NA),
                 self._get_op_name(data),
-                self.INVALID_DEVICE_ID, self.INVALID_TIMESTAMP, self.INVALID_CONNECTION_ID
-            ] for data in data_list
+                self.INVALID_DEVICE_ID,
+                self.INVALID_TIMESTAMP,
+                self.INVALID_CONNECTION_ID,
+            ]
+            for data in data_list
         ]

@@ -28,7 +28,8 @@ NAMESPACE = 'msmodel.v5.v5_exeom_model'
 ADD_INFO_DATA_LIST = [['model', 'model_exeom', 844, 187587417144680, 'quantized', 2]]
 GE_TASK_INFO_DATA_LIST = [
     [2, 'trans_TransData_0', 0, 0, 1, 0, '0', 'KERNEL', 'TransData', -1, 16, -1, 0, -1,
-     'FLOAT16;', '32,1,512,36;', 'NHWC;', 'FLOAT16;', '32,5,1,512,8;', 'FORMAT_1;', 0, 4294967295, "NO", "N/A"]
+     'FLOAT16;', '32,1,512,36;', 'NHWC;', 'FLOAT16;', '32,5,1,512,8;', 'FORMAT_1;', 0, 4294967295, "NO", "N/A",
+     "N/A", "N/A"]
 ]
 
 
