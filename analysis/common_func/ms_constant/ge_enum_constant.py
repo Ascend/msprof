@@ -23,6 +23,7 @@ class GeDataType(Enum):
     """
     DataType enum for ge graph operator data
     """
+
     FLOAT = 0
     FLOAT16 = 1
     INT8 = 2
@@ -64,7 +65,8 @@ class GeDataType(Enum):
     DT_FLOAT6_E2M3 = 39
     DT_FLOAT4_E2M1 = 40
     DT_FLOAT4_E1M2 = 41
-    DT_MAX = 42
+    DT_HIFLOAT4 = 42
+    DT_MAX = 43
     NUMBER_TYPE_BEGIN_ = 229
     BOOL_ = 230
     INT_ = 231
@@ -83,7 +85,7 @@ class GeDataType(Enum):
     FLOAT64_ = 244
     COMPLEX_ = 245
     NUMBER_TYPE_END_ = 246
-    UNDEFINED = 0xffffffff  # 4294967295(-1) 默认值
+    UNDEFINED = 0xFFFFFFFF  # 4294967295(-1) 默认值
 
     @classmethod
     def member_map(cls: any) -> dict:
@@ -99,6 +101,7 @@ class GeDataFormat(Enum):
     """
     DataFormat enum for ge graph operator data
     """
+
     NCHW = 0
     NHWC = 1
     ND = 2
@@ -155,7 +158,7 @@ class GeDataFormat(Enum):
     FRACTAL_NZ_C0_4 = 53
     FRACTAL_NZ_C0_8 = 54
     END = 55
-    MAX = 0xff  # 256
+    MAX = 0xFF  # 255
     UNKNOWN_ = 200
     DEFAULT_ = 201
     NC1KHKWHWC0_ = 202
@@ -178,7 +181,7 @@ class GeDataFormat(Enum):
     FRACTAL_Z_3D_ = 219
     DHWNC_ = 220
     DHWCN_ = 221
-    UNDEFINED = 0xffffffff  # 4294967295(-1) 默认值
+    UNDEFINED = 0xFFFFFFFF  # 4294967295(-1) 默认值
 
     @classmethod
     def member_map(cls: any) -> dict:
@@ -194,6 +197,7 @@ class GeTaskType(Enum):
     """
     TaskType enum for ge graph operator data
     """
+
     AI_CORE = 0
     AI_CPU = 1
     AI_VECTOR_CORE = 2
