@@ -1,0 +1,46 @@
+# Frequent Kernel Thread Switching Analysis
+
+## Background
+
+Linux uses time-slice-based preemptive scheduling and task-priority-based scheduling mechanisms to schedule threads. The kernel can trigger thread context switches when a CPU time slice expires, a task is awakened, resource contention occurs, or an interrupt is triggered. Normal and reasonable thread switching is fundamental to concurrent multitasking and does not affect stable service performance when the switching frequency remains within a reasonable range.  
+The customer's service model is deployed on a Linux system with the Ascend platform and involves highly concurrent workloads such as large-scale lightweight task scheduling, high-frequency short-duration computation, multithreaded polling and monitoring, and asynchronous data processing. During service execution, a large number of kernel-mode and user-mode threads are frequently preempted and rescheduled, resulting in an extremely high frequency of thread context switching. In particular, scenarios such as excessively short time slices, an excessive number of threads, frequent task wake-ups and sleeps, and inappropriate scheduling priorities can significantly increase CPU consumption for redundant operations such as context saving and restoration, register read/write operations, and scheduling queue updates. This substantially reduces CPU resources available for effective service computation, significantly increases system scheduling overhead, and disrupts execution continuity, causing severe degradation in overall model performance.
+
+## Symptoms
+
+After the customer's core service was deployed and running on server hardware and the Ascend platform, it exhibited large fluctuations in execution latency, unstable task throughput, real-time response timeouts, low effective CPU compute utilization, and high `sys` overhead, resulting in failure to meet performance targets.  
+Preliminary investigation confirmed that the service had no code errors, operator execution anomalies, memory leaks, or hardware resource saturation bottlenecks, ruling out common performance issues related to business logic, data paths, environment configuration, driver compatibility, and hardware faults. Analysis of system runtime monitoring data revealed an abnormal surge in global thread context switching, a high proportion of CPU utilization in kernel mode, and task accumulation in the ready queues. The issue was identified as a performance bottleneck caused by frequent kernel thread switching.
+
+## Troubleshooting Process
+
+To accurately identify the triggering scenarios, switching frequency, overhead, and abnormal threads associated with frequent thread switching, system scheduling monitoring tools, kernel scheduling probes, and service performance profiling tools were used for dedicated data analysis. The complete troubleshooting process is as follows:
+
+1. **Comprehensive scheduling data collection**  
+Use the official `ftrace` tools to collect kernel scheduling data. For details, see [`ftrace_tools`](https://gitcode.com/Ascend/msinsight/tree/26.1.0/scripts/ftrace_tools).
+2. **Joint data analysis**  
+Cross-reference and correlate thread context-switching data with the service Profiler's profile data, CPU utilization data, task throughput data, and latency fluctuation data to identify the relationship between periods of degraded service performance and periods of frequent thread switching, distinguishing normal scheduling-related context switches from abnormal high-frequency switching.
+3. **Abnormal thread identification**  
+Accurately identify abnormal behaviors through multi-dimensional data analysis. The service process contains numerous lightweight, short-lived threads that undergo frequent wakeups, sleeps, preemptions, and CPU yields. The number of context switches per second far exceeds reasonable thresholds, driving up kernel scheduling overhead and repeatedly interrupting continuous task execution. This severely compresses effective computation time and fragments task execution, ultimately isolating the core abnormal threads and scheduling logic driving the performance issue.
+
+## Root Causes
+
+1. **Inherent system scheduling characteristics**: To ensure fair multitasking, Linux uses preemptive scheduling based on time slices. Thread context-switching overhead is therefore inherent in highly concurrent multithreaded scenarios, and this overhead can be continuously amplified in scenarios involving a large number of short-duration tasks.  
+2. **Service thread design defect (core root cause)**: The customer's multithreaded service architecture was not designed appropriately. The service creates a large number of lightweight, short-duration worker threads whose tasks execute for extremely short periods and frequently terminate and restart, or whose threads remain in a continuous "wake-up, execute, sleep" cycle. In addition, no batch task processing mechanism is provided, resulting in continuous kernel thread scheduling and context switching.  
+3. **Inappropriate system scheduling configuration**: The default time-slice configuration, scheduling priorities, `nice` values, and scheduling policies are not adequately optimized for the workload. A large number of service threads use the standard time-sharing scheduling policy, resulting in uncoordinated thread preemption under high concurrency and exacerbating frequent switching. In addition, CPU affinity is not configured for the threads, resulting in frequent cross-core scheduling and further increasing switching overhead.  
+4. **Cascading performance impact**: Extremely frequent thread context switching significantly increases kernel scheduling overhead, causing substantial CPU resources to be consumed by ineffective operations such as context saving and restoration, scheduling queue traversal, and thread state transitions. This severely reduces CPU resources available for effective service computation and disrupts task execution continuity, causing latency fluctuations, reduced throughput, low effective compute resource utilization, and failure to meet overall performance targets.
+
+## Methodology Summary
+
+For scenarios in which a service deployed on Linux exhibits high scheduling overhead, significant performance fluctuations, unstable throughput, and low effective CPU utilization, a standardized troubleshooting process can be established to quickly identify performance issues caused by frequent kernel thread switching:
+
+1. **Initial screening**: Monitor the system-wide context-switching frequency and kernel-mode CPU utilization to determine whether scheduling overhead is abnormal, and rule out common performance issues related to hardware bottlenecks, resource limitations, code errors, and environment configuration.
+2. **Dedicated data collection**: Use the relevant tools to collect comprehensive scheduling data, including system-wide thread switching frequency, switching duration, thread wake-up and sleep records, and CPU scheduling queue status.
+3. **Joint analysis**: Combine the service Profiler's profile data, task duration data, and CPU resource utilization data to correlate peaks in frequent thread switching with periods of degraded service performance, distinguishing normal scheduling overhead from performance bottlenecks caused by abnormal high-frequency switching.
+4. **Precise identification**: Identify abnormal threads with the highest switching frequency, frequent wake-up and sleep cycles, or short execution durations. Determine unreasonable thread creation and task scheduling logic in the service code to guide service code optimization and system scheduling parameter tuning.
+
+## Suggestions for Tool Improvements
+
+Currently, the kernel scheduling troubleshooting tools can comprehensively collect basic thread-switching behavior data, but their capabilities for correlating switching behavior with service operations are insufficient. To further improve troubleshooting efficiency and reduce manual analysis effort, the following enhancements are recommended:
+
+1. **Adding precise service-thread correlation**: Add service thread names, thread IDs, and service module identifiers to scheduling trace logs and visualization results so that threads can be directly associated with service functions such as data processing, operator dispatch, and task scheduling. This eliminates the need for manual code tracing and enables rapid identification of abnormal functional threads.  
+2. **Optimizing abnormal scheduling data aggregation and statistics**: Add statistics for per-thread switching frequency, global context-switching hotspots, the proportion of short-duration threads, and the number of cross-core switches. Automatically aggregate data for threads with abnormal high-frequency switching to provide an intuitive view of scheduling bottlenecks.  
+3. **Adding scheduling threshold alerts**: Allow users to configure thresholds for thread switching frequency and kernel scheduling overhead, automatically identify abnormal scenarios such as frequent thread switching and scheduling storms, and flag potential performance risks to support routine service performance monitoring and early issue detection.

@@ -44,7 +44,7 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 [ -n "$MY_STUDY_VAR_CANN_IMAGE" ] && echo -e "\e[32m[PASS] Successfully identified chip [$MY_CHIP_NAME] and auto-selected image:\n    $MY_STUDY_VAR_CANN_IMAGE\e[0m"
 ```
 
-> [!NOTE]说明
+> [!NOTE]
 >
 > **命令原理**  
 > 通过 `lspci` 获取 NPU 的 PCI ID，自动匹配 CANN 官方镜像，并将镜像地址赋给环境变量 `MY_STUDY_VAR_CANN_IMAGE`，供后续使用。  
@@ -246,7 +246,7 @@ PROF_XXX
 <strong>图2</strong> <code>op_summary_*.csv</code> 文件示例
 </div>
 
-> [!NOTE]说明
+> [!NOTE]
 >
 > 本教程仅介绍基础分析方法。如需了解上述输出文件及各字段的完整定义，请参见 《[性能数据文件参考](../user_guide/profile_data_file_references.md)》。
 

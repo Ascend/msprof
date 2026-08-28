@@ -419,8 +419,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |*_scalar_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
 |*_scalar_ratio|scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
-|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。|
-|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
+|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
+|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
 |*_mte1_time(us)|mte1类型指令（L1->L0A/L0B搬运类指令）耗时，单位us。|
 |*_mte1_ratio|mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
 |*_mte2_time(us)|mte2类型指令（DDR->AICORE搬运类指令）耗时，单位us。|

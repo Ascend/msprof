@@ -8,34 +8,45 @@ After raw profile data is collected, parsed, and exported into visualized profil
 
 The following example shows the structure of a profile data directory:
 
-   ```ColdFusion
+   ```ColdFusion 
     PROF_XXX
     ├── host   // Raw profile data on the host. You can ignore it.
     │    └── data
     ├── device_{id}   // Raw profile data on the device. You can ignore it.
     │       └── data
-    ├── msprof_{timestamp}.db  // Profile data in DB format.
-    ├── mindstudio_profiler_output   // Profile data summary of the host and each device.
-        ├── msprof_{timestamp}.json  // Timeline data in JSON format.
-        ├── op_summary_{timestamp}.csv // AI Core and AICPU operator data.
+    ├── msprof_{timestamp}.db  // Profile data in DB format
+    ├── mindstudio_profiler_output   // Profile data in text format
+        ├── msprof_{timestamp}.json
+        ├── op_summary_{timestamp}.csv
         └── ...
+    PLATFORM_{timestamp}   // NUMA profile data result, which is used for internal visualization. You can ignore it.
+    ├── platform.db
+    └── metrics.csv
    ```
 
-After parsing, msProf generates two types of profile data files:
+The profile data files in the `PROF_XXX` directory are classified into the following types:
 
-- **DB** format: the `msprof_{timestamp}.db` file, which stores the parsed database-level profile data.
-- **Text** format: the `mindstudio_profiler_output` directory, which stores the parsed text-based profile data. This directory contains the following two types of files:
-  1. Timeline files (`msprof_{timestamp}.json`):
-     - You can use MindStudio Insight to open these files and visualize the calling relationships and execution sequence of operators across all levels during AI task execution.
-  2. Summary files (such as `op_summary_{timestamp}.csv` and `api_statistic_{timestamp}.csv`):
-     - Multi-dimensional statistical summary.
-     - Execution durations aggregated in a tabular format.
+- **DB**: `msprof_{timestamp}.db` file
 
-## Profile Data in DB Format<a name="EN-US_TOPIC_0000002509383183"></a>
+  This file stores the parsed profile data in DB format. It contains all profile data. For details about the table structure and content, see [Profile Data File Reference (DB)](profile_data_file_references_db.md).
 
-`msprof_*.db` is a database file containing aggregated profile data. For details about the table structure and content, see [Profile Data File Reference (DB)](./profile_data_file_references_db.md).
+- **Text**: `mindstudio_profiler_output` directory
 
-## Profile Data in Text Format<a name="EN-US_TOPIC_0000002509383183"></a>
+  This directory stores the parsed text-based profile data, including:
+
+  - Timeline files (`msprof_{timestamp}.json`):
+
+    You can use MindStudio Insight to open these files and visualize the calling relationships and execution sequence of operators across all levels during AI task execution.
+
+  - Summary files (CSV files in the directory)
+
+    Multi-dimensional statistical summary and execution durations aggregated in a tabular format.
+
+  For details, see [Profile Data in Text Format](#en-us_TOPIC_0000002509383184).
+
+For details about the `PLATFORM_{timestamp}` directory, see [Platform Data](#en-us_TOPIC_0000012509383185).
+
+## Profile Data in Text Format<a name="en-us_TOPIC_0000002509383184"></a>
 
 ### Common Deliverables
 
@@ -43,12 +54,13 @@ After parsing, msProf generates two types of profile data files:
 
 **Supported Products<a name="en-us_topic_0000001751419248_section5889102116569"></a>**
 
->[!NOTE]NOTE
->For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> [!NOTE]
+> 
+> For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -59,7 +71,7 @@ The timeline data table file is `msprof_*.json`.
 
 The following figure shows a sample `msprof*.json` file opened in `chrome://tracing`.
 
-**Figure 1** Timeline summary<a name="en-us_topic_0000001751419248_fig10608132131617"></a>  
+**Figure 1** Timeline summary<a name="en-us_topic_0000001751419248_fig10608132131617"></a> 
 ![](../figures/timeline_summary.png "Timeline summary")
 
 As shown in [Figure 1](#en-us_topic_0000001751419248_fig10608132131617), the timeline summary data is displayed in the following areas.
@@ -69,10 +81,10 @@ As shown in [Figure 1](#en-us_topic_0000001751419248_fig10608132131617), the tim
 - Area 3: displays underlying NPU data, including the execution duration and iteration trace data for task streams under **Ascend Hardware**, **Communication** and **Overlap Analysis** data, and other Ascend AI Processor system data.
 - Area 4: displays details about each operator and API in the timeline (displayed when you click the timeline).
 
->[!NOTE]NOTE
+>[!NOTE] 
 >
 >- For details about data in the timeline report, see [Profile Data File Reference](profile_data_file_references.md).
->- Data in each area of the preceding figure depends on the collection environment. For example, Area 1 is generated only during collection in msproftx or other framework-based environments. **Communication** and **Overlap Analysis** data is available only in scenarios involving communication, such as the multi-rank, multi-node, and cluster scenarios. The display of actual data may vary.
+>- Data in each area of [Figure 1](#en-us_topic_0000001751419248_fig10608132131617) depends on the collection environment. For example, Area 1 is generated only during collection in msproftx or other framework-based environments. **Communication** and **Overlap Analysis** data is available only in scenarios involving communication, such as the multi-rank, multi-node, and cluster scenarios. The display of actual data may vary.
 >- The `msprof_*.json` file stores data within iterations. Data outside iterations is not displayed.
 
 **Viewing Operator Delivery Directions<a name="en-us_topic_0000001751419248_section174114535213"></a>**
@@ -88,17 +100,17 @@ The mappings include:
 - `HostToDevice`: delivery and execution mappings from CANN-layer nodes (operators) to communication operators on Ascend Hardware (`host to device`).
 - `fwdbwd`: mappings from forward APIs to backward APIs.
 
->[!NOTE]NOTE
+>[!NOTE] 
 >
 >- Due to the deviation between the Ascend AI Processor frequency measured by software and the actual frequency, as well as the time synchronization error between the host and device, lower-layer operators may fail to be connected by lines due to misplacement.
 >- Whether mappings between layers are displayed depends on whether the data is collected in a specific scenario.
 
-**Figure 2** Operator mappings<a name="en-us_topic_0000001751419248_fig490591821019"></a>  
+**Figure 2** Operator mappings<a name="en-us_topic_0000001751419248_fig490591821019"></a> 
 ![](../figures/operator_mappings.png "Operator mappings")
 
 You can click the operator or API at each end of a connection line to view the operator delivery direction. For more information, see [Figure 3](#en-us_topic_0000001751419248_fig11692135416129).
 
-**Figure 3** Operator information<a name="en-us_topic_0000001751419248_fig11692135416129"></a>  
+**Figure 3** Operator information<a name="en-us_topic_0000001751419248_fig11692135416129"></a> 
 ![](../figures/operator_information.png "Operator information")
 
 View the inbound and outbound directions of an operator or API in the **Event(s)** column. View the information at both ends of a mapping line in the **Link** column.
@@ -113,7 +125,7 @@ Supported products:
 
 The **AI Core Freq** track in `msprof_*.json` displays the frequency changes of the AI Core during AI task execution, as shown in [Figure 4](#en-us_topic_0000001751419248_fig66071155154219).
 
-**Figure 4** Viewing the AI Core frequency<a name="en-us_topic_0000001751419248_fig66071155154219"></a>  
+**Figure 4** Viewing the AI Core frequency<a name="en-us_topic_0000001751419248_fig66071155154219"></a> 
 ![](../figures/viewing_AI_Core_frequency.png "Viewing AI Core frequency")
 
 At timestamp 148089.72045898438, the AI Core operated at a high frequency. However, the frequency decreased at 170178.44116210938, which inevitably led to a performance drop for AI tasks during this period. The AI Core frequency may decrease due to rising temperatures triggering protection mechanisms, or when the AI Core enters a low-power state while no AI tasks are being executed.
@@ -131,7 +143,7 @@ The **SIO** track in `msprof_*.json` displays the transmission bandwidth between
 
 In Atlas A3 training products/Atlas A3 inference products, each SIO data stream uses two virtual channels: **die 0** and **die 1**.
 
-**Figure 5** SIO (Atlas A3 training products/Atlas A3 inference products)<a name="en-us_topic_0000001751419248_fig1090119416103"></a>  
+**Figure 5** SIO (Atlas A3 training products/Atlas A3 inference products)<a name="en-us_topic_0000001751419248_fig1090119416103"></a> 
 ![](../figures/SIO.png "SIO")
 
 In the figure, the horizontal coordinates of the color blocks correspond to time (ms), and the vertical coordinates correspond to bandwidth values (MB/s).
@@ -158,7 +170,7 @@ Supported products:
 - Atlas A2 training products/Atlas A2 inference products
 - Atlas A3 training products/Atlas A3 inference products
 
-**Figure 6** QoS OTHERS<a name="en-us_topic_0000001751419248_fig109246157107"></a>  
+**Figure 6** QoS OTHERS<a name="en-us_topic_0000001751419248_fig109246157107"></a> 
 ![](../figures/QoS-OTHERS.png "QoS-OTHERS")
 
 In the figure, the horizontal coordinates of the color blocks correspond to time (ms), and the vertical coordinates correspond to bandwidth values (MB/s).
@@ -185,14 +197,14 @@ In the MC<sup>2</sup> implementation, two operators are loaded onto the computat
 
 The communication operator executes in multiple rounds according to the tiles partitioned by the fused operator. In each round, the communication operator performs collective communication algorithms based on parameters provided by the compute operator, orchestrates specific tasks, and delivers the tasks to the hardware. Then, it waits for the execution to complete and notifies the computation side of the results.
 
->[!NOTE]NOTE
+>[!NOTE] 
 >
 >- MC<sup>2</sup> fusion is currently not supported for communication API scenarios. These include the low-bit communication operator `MatmulAllReduce` and custom MC<sup>2</sup> operators that utilize communication APIs.
 >- The communication part of the timeline displays only level-0 data.
 
 The following example shows the MC<sup>2</sup> profile data results.
 
-**Figure 7** MC<sup>2</sup><a name="en-us_topic_0000001751419248_fig16795116316"></a>  
+**Figure 7** MC<sup>2</sup><a name="en-us_topic_0000001751419248_fig16795116316"></a> 
 ![](../figures/MC.png "MC")
 
 [Figure 7](#en-us_topic_0000001751419248_fig16795116316) shows the timeline information of the fused operator `MatmulAllReduceAddRmsNormAicpu`. [Table 2](#en-us_topic_0000001751419248_table137165193119) describes the meaning of each internal phase.
@@ -219,7 +231,7 @@ Supported products:
 
 The following example shows the voltage transformation characteristic curve.
 
-**Figure 8** Voltage data analysis<a name="en-us_topic_0000001751419248_fig12628420171"></a>  
+**Figure 8** Voltage data analysis<a name="en-us_topic_0000001751419248_fig12628420171"></a> 
 ![](../figures/voltage_data_analysis.png "Voltage data analysis")
 
 [Figure 8](#en-us_topic_0000001751419248_fig12628420171) shows the voltage transformation characteristic curve. In the figure, the horizontal coordinates of the color blocks correspond to time (ms), and the vertical coordinates correspond to voltage values (mV). [Table 3](#en-us_topic_0000001751419248_table21964325014) describes the fields.
@@ -231,6 +243,94 @@ The following example shows the voltage transformation characteristic curve.
 |Aicore Voltage(mV)|AI Core voltage (mV)|
 |Bus Voltage(mV)|Interconnect bus voltage (mV)|
 
+**DPU Data Analysis<a name="en-us_topic_0000001751419248_section5199345011"></a>**
+
+The **DPU** track in `msprof_*.json` displays the execution time of operators under DPU.
+
+Supported products:
+
+- Ascend 950 products
+
+**Table 4** Field description<a name="en-us_topic_0000001751419248_table21964325015"></a>
+
+| Field                | Description                                                    |
+| ---------------------- | ------------------------------------------------------------ |
+| Thread Id              | Thread ID.                                                    |
+| Physic Stream Id       | Physical stream ID.                                                  |
+| Task Id                | Task ID.                                              |
+| OP Type                | Operator type.                                                  |
+| AI CPU Device Id       | ID of the associated AICPU device.                                  |
+| AI CPU Task Id         | ID of the associated AICPU task.                              |
+| Plane Id               | Network plane ID                                                |
+| Notify Id              | ID for which the collective communication task waits.                                      |
+| Duration Estimated(us) | Estimation task duration.                                            |
+| Src Rank               | Source rank.                                                    |
+| Dst Rank               | Destination rank.<br>For Ascend 950 products, the value for local on-chip operations is the same as that of the source rank.<br>For other products, the value `4294967295` indicates a local on-chip operation.|
+| Transport Type         | Transmission type. Valid values include: `LOCAL`, `SDMA`, `RDMA`, `UB`, and `RoCE`.             |
+| Size(Byte)             | Data size (bytes). For `notify` tasks, this field is invalid and is populated with `0`.  |
+| Bandwidth(GB/s)        | Bandwidth (GB/s).                                        |
+| Data Type              | Data format.                                                  |
+| Link Type              | Link type. Valid values include: `HCCS`, `PCIE`, `RoCE`, `UBoE`, `SIO`, `HCCS_SW`, `STANDARD_ROCE`, `UB`, and `ON_CHIP`.|
+| Rdma Type              | RDMA type. Valid values include: `RDMASendNotify` and `RDMASendPayload`.         |
+
+**Fusion Task Data Analysis<a name="en-us_topic_0000001751419248_section5199345011"></a>**
+
+The **Fusion Task** track in `msprof_*.json` displays the fusion task data.
+
+Supported products:
+
+- Ascend 950 products
+
+**Figure 9** fusion_task<a name="en-us_topic_0000001751419248_fig12628420371"></a> 
+![](../figures/fusion_task.png "fusion_task")
+
+**Table 5** Field description<a name="en-us_topic_0000001751419248_table21964325115"></a>
+
+| Field          | Description                                                    |
+| ---------------- | ------------------------------------------------------------ |
+| task_id          | ID of the fusion task.                                            |
+| acc_id           | Accelerator ID.                                                  |
+| task_type        | Type of the accelerator that executes the task. For a fusion task, the value is fixed to `FUSION`. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
+| fusion_task_type | Type of the accelerator for a fusion subtask. Valid values include: AICORE, AIVECTORCORE, and AICPU. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
+
+**SIMT Data Analysis<a name="en-us_topic_0000001751419248_section5199345011"></a>**
+
+Some operators on the **Ascend Hardware** track in `msprof_*.json` are SIMT operators. The thread hierarchy of the SIMT programming model is represented by the **Grid Dim** and **Block Dim** fields.
+
+Supported products:
+
+- Ascend 950 products
+
+**Table 6** Field description<a name="en-us_topic_0000001751419248_table21964325015"></a>
+
+| Field          | Description                                                    |
+| ---------------- | ------------------------------------------------------------ |
+| Model ID         | Model ID.                                                    |
+| Task Type        | Type of the accelerator that executes the task. For a SIMT operator, the value is fixed to `AI_VECTOR_CORE`. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
+| Physic Stream Id | Physical stream ID.                                                  |
+| Task Id          | Task ID.                                              |
+| Batch Id         | Batch ID of the corresponding task.                                        |
+| Subtask Id       | Subtask ID of the corresponding task.                                      |
+| connection_id    | ID of the connection between a CANN API and an NPU operator when the former is delivered to the latter.                    |
+| Grid Dim         | Number of enabled thread blocks in the thread block grid of the SIMT programming model. An AI Vector (AIV) core executes only one thread block task at a time.|
+| Block Dim        | Number of enabled threads in a thread block of the Single-Instruction Multiple-Threads (SIMT) model. A maximum of 2048 threads can be enabled in a thread block.|
+
+**Ascend Hardware Collection Interval<a name="en-us_topic_0000001751419248_section5199345021"></a>**
+
+Supported products:
+
+- Atlas A2 training products/Atlas A2 inference products
+- Atlas A3 training products/Atlas A3 inference products
+- Ascend 950 products
+
+**Figure 10** Ascend Hardware collection gap<a name="en-us_topic_0000001751419248_fig12628420271"></a> 
+![](../figures/ascend_hardware_sampling_interval.png "ascend_hardware_sampling_interval")
+
+As shown in [Figure 10](#en-us_topic_0000001751419248_fig12628420271), when `MEM_WAIT_VALUE` or `CAPTURE_WAIT` occurs on the Ascend Hardware track, a blank gap appears in the subsequent timeline. This gap comprises two parts:
+
+- First, profiling is automatically disabled to reduce the volume of profile data collected. During this period, `MEM_WAIT_VALUE` or `CAPTURE_WAIT` is repeatedly executed, so only the first few records are retained.
+- Second, the period from the occurrence of `MEM_WRITE_VALUE` or `CAPTURE_RECORD` to the resumption of normal operator data collection represents the time spent on restarting profiling. This gap has no performance analysis significance and does not exist during normal execution when profiling is disabled.
+
 #### op\_summary (Operator Details)<a name="EN-US_TOPIC_0000002477303242"></a>
 
 The AI Core, AI Vector Core, and AICPU operator summary data does not contain timeline information. The summary information is aggregated in `op_summary_*.csv` to record statistics on specific details and durations of operators.
@@ -239,7 +339,7 @@ The AI Core, AI Vector Core, and AICPU operator summary data does not contain ti
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -250,23 +350,29 @@ The AI Core, AI Vector Core, and AICPU operator summary data does not contain ti
 
 The following example shows the content format of `op_summary_*.csv`.
 
-**Figure 1** op\_summary (example only)<a name="en-us_topic_0000001686107246_fig1265041210717"></a>  
+**Figure 1** op\_summary (example only)<a name="en-us_topic_0000001686107246_fig1265041210717"></a> 
 ![](../figures/op_summary_(example_only).png "op_summary (example only)")
 
 The **Task Duration** field specifies the operator duration. You can sort operators by **Task Duration** to identify time-consuming operators, or sort them by **Task Type** to view the time-consuming operators executed on the AI Core or AICPU.
 
->[!NOTE]NOTE
+>[!NOTE] 
 >
 >- Supported fields may vary by product. Please refer to the actual result file for the final list of fields.
+>
 >- When `task_time` is set to `l0` or `off`, `op_summary_*.csv` does not display PMU data for the AI Core or AI Vector Core.
->- Atlas A2 training products/Atlas A2 inference products: For the `MatMul` operator, if input matrices `a` and `b` meet the criteria (inner axis > 1000, theoretical MAC computation duration > 50 μs, and the inner axis is not 516B-aligned), the `MatMul` operator will be converted into a MIX operator. Consequently, the `MatMul` operator count in `op_summary.csv` will decrease, and the **Task Type** will change from **AI_Core** to **MIX_AIC**.
->- Atlas A3 training products/Atlas A3 inference products: For the `MatMul` operator, if input matrices `a` and `b` meet the following criteria (inner axis > 1000, theoretical MAC computation duration > 50 μs, and the inner axis is not 516B-aligned), the `MatMul` operator will be converted into a MIX operator. Consequently, the `MatMul` operator count in `op_summary.csv` will decrease, and the **Task Type** will change from **AI_Core** to **MIX_AIC**.
+>
+>- Atlas A2 training products/Atlas A2 inference products and Atlas A3 training products/Atlas A3 inference products: For the `MatMul` operator, if input matrices `a` and `b` meet the criteria (inner axis > 1000, theoretical MAC computation duration > 50 μs, and the inner axis is not 516B-aligned), the `MatMul` operator will be converted into a MIX operator. Consequently, the `MatMul` operator count in `op_summary.csv` will decrease, and the **Task Type** will change from **AI_Core** to **MIX_AIC**.
+>
 >- If the execution duration of an operator is excessively long, the associated metrics may become inaccurate and lose reference value. Such data is uniformly set to `N/A` and is not presented.
+>
 >- Operators with the `communication` task type usually consist of a sequence of communication tasks, each with an independent `Task ID` and `Stream ID`. Since these individual identifiers are not displayed here, the `Task ID` and `Stream ID` for this type of operator are marked as `N/A`.
+>
 >- If the value of `Input Shapes` is empty (formatted as `; ; ; ;`), it indicates that the input is a scalar. The semicolon (`;`) serves as the delimiter for each dimension. This also applies to output shapes.
->- The tool detects operator overflow. If an overflow is detected, the following alarm is displayed, and the computation result of the operator is unreliable.<br>
-**Figure 2** Operator overflow alarm<a name="en-us_topic_0000001686107246_fig144168454163"></a>  
-![](../figures/operator_overflow_alarm.png "Operator overflow alarm")
+>
+>- The tool detects operator overflow. If an overflow is detected, the following alarm is displayed, and the computation result of the operator is unreliable.
+>
+> **Figure 2** Operator overflow alarm<a name="en-us_topic_0000001686107246_fig144168454163"></a> 
+> ![](../figures/operator_overflow_alarm.png "Operator overflow alarm")
 
 The content of the `op_summary_*.csv` file varies depending on the msProf collection parameters used. The complete fields are as follows.
 
@@ -283,7 +389,7 @@ The content of the `op_summary_*.csv` file varies depending on the msProf collec
 |Op Name|Operator name.|
 |OP Type|Operator type. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
 |OP State|Dynamic and static information about an operator. The value `dynamic` indicates a dynamic operator, and the value `static` indicates a static operator. Communication operators do not have this state, so `N/A` is displayed. This field is reported only when `--task-time` is `l1`. If `--task-time` is `l0`, `N/A` is displayed.|
-|Task Type|Type of the accelerator that executes the task (including `AI_CORE`, `AI_VECTOR_CORE`, and `AI_CPU`). If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
+|Task Type|Type of the accelerator that executes the task. Valid values include: `AI_CORE`, `AI_VECTOR_CORE`, `AI_CPU, CCU`, and `DPU`. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
 |Task Start Time(us)|Task start time (μs).|
 |Task Duration(us)|Task duration, including the time spent scheduling the task to the accelerator, execution time on the accelerator, and the completion response time (μs).|
 |Task Wait Time(us)|The time interval between the end of the previous task and the start of the current task (μs).|
@@ -298,8 +404,8 @@ The content of the `op_summary_*.csv` file varies depending on the msProf collec
 |Output Formats|Output format of the operator. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
 |Context ID|Context ID, which identifies a small operator of a subtask. If no small operator exists, `N/A` is displayed.|
 |aiv_time(us)|Theoretical execution duration of a task on the AI Vector Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Vector Core. The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
-|aicore_time(us)|Theoretical execution duration of the task on the AI Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Core.<br>This data is inaccurate and not recommended for reference if the frequency of the AI Core changes (for example, due to manual frequency regulation, dynamic frequency regulation when power consumption exceeds the threshold, or on Atlas 300V/Atlas 300I Pro products).<br>For details about frequency changes for the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and the Ascend 350 accelerator card, see [Viewing AI Core Frequency](#en-us_topic_0000001751419248_section9194165318231).<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
-|total_cycles|Total number of execution cycles of the task on the AI Core, which is the sum of the execution cycles of all blocks.<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.<br>For the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and the Ascend 950 Products, this field is split into `aic_total_cycles` (total cycles executed on the AI Cube Core) and `aiv_total_cycles` (total cycles executed on the AI Vector Core).|
+|aicore_time(us)|Theoretical execution duration of the task on the AI Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Core.<br>This data is inaccurate and not recommended for reference if the frequency of the AI Core changes (for example, due to manual frequency regulation, dynamic frequency regulation when power consumption exceeds the threshold, or on Atlas 300V/Atlas 300I Pro products).<br>For details about the frequency changes of Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and Ascend 950 products, see [Viewing the AI Core Frequency](#en-us_topic_0000001751419248_section9194165318231).<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
+|total_cycles|Total number of execution cycles of the task on the AI Core, which is the sum of the execution cycles of all blocks.<br>The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.<br>For the Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, Atlas A3 training products/Atlas A3 inference products, and Atlas 950 products, this field is split into `aic_total_cycles` (the total number of cycles of the task executed on the AI Cube Core) and `aiv_total_cycles` (the total number of cycles of the task executed on the AI Vector Core).|
 |Register value|Value of the custom register whose data is to be collected. This field is determined by custom registers specified in the `--aic-metrics` option.|
 
 The following fields are generated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`. When `--task-time` is set to `l0`, these fields are not collected and `N/A` is displayed. The content of the generated data is determined by the value of the `--aic-metrics` option.
@@ -323,25 +429,29 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_mte3_time(us)|Time taken to execute MTE3 instructions (AI Core-to-DDR transfer) (μs).|
 |*_mte3_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles.|
 |*_icache_miss_rate|iCache is the L2 cache dedicated to instructions. A high `icache_miss_rate` value indicates low instruction-read efficiency for the AI Core.|
-|memory_bound|Used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AICore operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
 |cube_utilization(%)|Cube operator utilization. Check whether the number of operations of the Cube operator in a unit time reaches the theoretical upper limit. A value closer to 100% indicates a value closer to the theoretical upper limit. Formula: `cube_utilization = total_cycles/(freq * core_num * task_duration)`|
 
-Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 3** Field description (ArithmeticUtilization)
 
 |Field|Description|
 |--|--|
-| *_mac_fp16_ratio  | Ratio of cycles taken to execute Cube fp16 instructions to the total cycles. The Ascend 950 Products supports only `aic_mac_fp16_ratio`.|
-| *_mac_int8_ratio  | Ratio of cycles taken to execute Cube int8 instructions to the total cycles. The Ascend 950 Products supports only `aic_mac_int8_ratio`.|
-| *_vec_fp32_ratio  | Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-| *_vec_fp16_ratio  | Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. The Ascend 950 Products does not support this field.|
-| *_vec_int32_ratio | Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-| *_vec_misc_ratio  | Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-| *_cube_fops       | Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products supports only `aic_cube_fops`.|
-| *_vector_fops     | Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products does not support this field.|
+| *_mac_fp16_ratio  | Ratio of cycles taken to execute Cube fp16 instructions to the total cycles. Ascend 950 products support only `aic_mac_fp16_ratio`.|
+| *_mac_int8_ratio  | Ratio of cycles taken to execute Cube int8 instructions to the total cycles. Ascend 950 products support only `aic_mac_int8_ratio`.|
+| *_vec_fp32_ratio  | Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+| *_vec_fp16_ratio  | Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. Ascend 950 products do not support this field.|
+| *_vec_int32_ratio | Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+| *_vec_misc_ratio  | Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+| *_cube_fops       | Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. Ascend 950 products support only `aic_cube_fops`.|
+| *_vector_fops     | Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. Ascend 950 products do not support this field.|
 
-Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 4** Field description (Memory)
 
@@ -351,12 +461,14 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 |*_ub_write_bw(GB/s)|UB write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |*_l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |*_l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|*_l2_read_bw|L2 read bandwidth (GB/s). The Ascend 950 Products does not support this field.|
-|*_l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|*_l2_read_bw|L2 read bandwidth (GB/s). Ascend 950 products do not support this field.|
+|*_l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
 |*_main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |*_main_mem_write_bw(GB/s)|Main memory write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
-Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 5** Field description (MemoryL0)
 
@@ -367,11 +479,14 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 |*_l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |*_l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |*_l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|*_l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Ascend 950 Products does not support this field.|
+|*_l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). Ascend 950 products do not support this field.|
 |*_l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |*_l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
-Note: During the collection of `MemoryL0` performance metrics for the AI Vector Core, the collected data will always be `0`. Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> - During the collection of `MemoryL0` performance metrics for the AI Vector Core, the collected data will always be `0`.
+> - For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 6** Field description (MemoryUB)
 
@@ -381,19 +496,23 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 |*_ub_write_bw_vector(GB/s)|Bandwidth for Vector to write data to UB (GB/s).|
 |*_ub_read_bw_scalar(GB/s)|Bandwidth for Scalar to read data from UB (GB/s).|
 |*_ub_write_bw_scalar(GB/s)|Bandwidth for Scalar to write data to UB (GB/s).|
-|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth for Vector FixPipe to write data to UB (excluding UB backpressure) (GB/s). Only the Ascend 950 Products supports this field.|
+|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth for Vector FixPipe to write data to UB (excluding UB backpressure) (GB/s). Only Ascend 950 products support this field.|
 
-Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 7** Field description (ResourceConflictRatio)
 
 |Field|Description|
 |--|--|
-|*_vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|*_vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
 |*_vec_bank_cflt_ratio|Ratio of cycles taken to execute `vec_bank_stall_cycles` instructions to the total cycles. Improper read/write pointer addresses for Vector instruction operands can lead to bank conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |*_vec_resc_cflt_ratio|Ratio of cycles taken to execute `vec_resc_cflt_ratio` instructions to the total cycles. If an operator involves multiple compute units, ensure that they are concurrently scheduled. If the operator logic keeps delivering instructions to a compute unit that is already busy, the overall computing power is not fully utilized. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
-Note: For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+> [!NOTE]
+>
+> For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
 
 **Table 8** Field description (MemoryAccess)
 
@@ -407,29 +526,31 @@ Note: For some products, specific fields in this table use an asterisk (`*`) pre
 |*_GM_to_UB_datas(KB)|Amount of data transferred from GM to UB (KB)|
 |*_UB_to_GM_datas(KB)|Amount of data transferred from UB to GM (KB)|
 
-Note: The asterisk (`*`) prefix in the preceding table represents `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
-
-Supported products:
-
-- Atlas A2 training products/Atlas A2 inference products
-- Atlas A3 training products/Atlas A3 inference products
+> [!NOTE]
+>
+> The asterisk (`*`) prefix in the preceding table represents `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
+>
+> Supported products:
+>
+> - Atlas A2 training products/Atlas A2 inference products
+> - Atlas A3 training products/Atlas A3 inference products
 
 **Table 9** Field description (L2Cache)
 
 | Field                         | Description                                                    |
 | ------------------------------- | ------------------------------------------------------------ |
-| `*_write_cache_hit`             | Number of cache write hits. The Ascend 950 Products does not support this field.  |
-| `*_write_cache_miss_allocate`   | Number of cache reallocations after cache write misses. The Ascend 950 Products does not support this field.|
-| `*_r*_read_cache_hit`           | Number of cache read hits in the `r*` channel. The Ascend 950 Products does not support this field.|
-| `*_r*_read_cache_miss_allocate` | Number of cache re-allocations after read misses in the `r*` channel. The Ascend 950 Products does not support this field.|
-| `*_read_local_l2_hit`           | Number of cache read hits. Only the Ascend 950 Products supports this field.  |
-| `*_read_local_l2_miss`          | Number of cache read misses. Only the Ascend 950 Products supports this field.    |
-| `*_read_local_l2_victim`        | Number of cache read misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
-| `*_write_local_l2_hit`          | Number of cache write hits. Only the Ascend 950 Products supports this field.  |
-| `*_write_local_l2_miss`         | Number of cache write misses. Only the Ascend 950 Products supports this field.    |
-| `*_write_local_l2_victim`       | Number of cache write misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
+| `*_write_cache_hit`             | Number of cache write hits. Ascend 950 products do not support this field.  |
+| `*_write_cache_miss_allocate`   | Number of cache reallocations after cache write misses. Ascend 950 products do not support this field.|
+| `*_r*_read_cache_hit`           | Number of cache read hits in the `r*` channel. Ascend 950 products do not support this field.|
+| `*_r*_read_cache_miss_allocate` | Number of cache re-allocations after read misses in the `r*` channel. Ascend 950 products do not support this field.|
+| `*_read_local_l2_hit`           | Number of cache read hits. Only Ascend 950 products support this field.  |
+| `*_read_local_l2_miss`          | Number of cache read misses. Only Ascend 950 products support this field.    |
+| `*_read_local_l2_victim`        | Number of cache read misses that trigger cache victimization. Only Ascend 950 products support this field.|
+| `*_write_local_l2_hit`          | Number of cache write hits. Only Ascend 950 products support this field.  |
+| `*_write_local_l2_miss`         | Number of cache write misses. Only Ascend 950 products support this field.    |
+| `*_write_local_l2_victim`       | Number of cache write misses that trigger cache victimization. Only Ascend 950 products support this field.|
 
-> [!note] Note
+> [!NOTE]
 >
 > - The L2 cache hit rate is calculated as follows: Hits/(Hits + Misses). For example: `*_write_cache_hit / (*_write_cache_hit + *_write_cache_miss_allocate)`. Other hit rates in this table are calculated using the same logic.
 > - For some products, specific fields in this table use an asterisk (`*`) prefix to represent `aic` or `aiv`, indicating that the data reflects execution results on the Cube Core or Vector Core, respectively.
@@ -438,7 +559,7 @@ Supported products:
 
 - Atlas A2 training products/Atlas A2 inference products
 - Atlas A3 training products/Atlas A3 inference products
-- Ascend 950 Products
+- Ascend 950 products
 - Atlas 200I/500 A2 inference products
 
 **Table 10** Field description (PipelineExecuteUtilization)
@@ -459,7 +580,7 @@ Supported products:
 |mte3_exe_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles.|
 |fixpipe_exe_time(us)|Time taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) (μs).|
 |fixpipe_exe_ratio|Ratio of cycles taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) to the total cycles.|
-|memory_bound|Used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AICore operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
 |cube_utilization(%)|Cube operator utilization. Check whether the number of operations of the Cube operator in a unit time reaches the theoretical upper limit. A value closer to 100% indicates a value closer to the theoretical upper limit. Formula: `cube_utilization = total_cycles/(freq * core_num * task_duration)`|
 
 Supported products: Atlas 200I/500 A2 inference products
@@ -472,7 +593,7 @@ Statistics about the AI Core and AICPU operator call counts and durations do not
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -483,7 +604,7 @@ Statistics about the AI Core and AICPU operator call counts and durations do not
 
 Analyzes the total durations and call counts for each operator type. This helps identify operators that consume excessive time and assess their potential for optimization.
 
-**Figure 1** op\_statistic\_\*.csv<a name="en-us_topic_0000001686266978_fig1654182131816"></a>  
+**Figure 1** op\_statistic\_\*.csv<a name="en-us_topic_0000001686266978_fig1654182131816"></a> 
 ![](../figures/op_statistic_-csv.png "op_statistic_-csv")
 
 **Table 1** Field description
@@ -513,7 +634,7 @@ Timeline information of API duration statistics is displayed on the **CANN** tra
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -524,8 +645,8 @@ Timeline information of API duration statistics is displayed on the **CANN** tra
 
 The CANN track in `msprof_*.json` primarily displays the duration of APIs executed in the current thread, as shown in the following figure.
 
-**Figure 1** CANN track<a name="en-us_topic_0000001656264690_fig191420493165"></a>  
-![](../figures/CANN_track.png "CANN track")
+**Figure 1** CANN-track data<a name="en-us_topic_0000001656264690_fig191420493165"></a> 
+![](../figures/CANN_track.png "CANN-track data")
 
 The timeline color blocks in the figure allow you to identify time-consuming APIs. You can click a block to select an API and view its details, as shown in the following table.
 
@@ -544,7 +665,7 @@ The timeline color blocks in the figure allow you to identify time-consuming API
 
 The following example shows the content format of `api_statistic_*.csv`.
 
-**Figure 2** api\_statistic\_\*.csv<a name="en-us_topic_0000001656264690_fig881322061712"></a>  
+**Figure 2** api\_statistic\_\*.csv<a name="en-us_topic_0000001656264690_fig881322061712"></a> 
 ![](../figures/api_statistic_-csv.png "api_statistic_-csv")
 
 The preceding figure is sorted by the **Time** column in descending order to identify the top N most time-consuming operators. You can also evaluate operator stability or identify calls with long durations by analyzing the maximum, minimum, average, and variance data. For example, a smaller variance indicates more stable operator execution. The closer the maximum and minimum values are to the average (without significant outliers), the more stable the operator performance.
@@ -569,7 +690,7 @@ The preceding figure is sorted by the **Time** column in descending order to ide
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -594,21 +715,21 @@ msproftx collects profile data output by users and upper-layer framework program
 
 The timeline summary data of msproftx is displayed on the upper-layer application tracks of `msprof_*.json`, as shown in [Figure 1](#en-us_topic_0000001798418925_fig322453919307). For details about fields at other tracks and their meanings, see [msProf (Timeline Report)](#EN-US_TOPIC_0000002477303238).
 
-**Figure 1** Timeline summary data<a name="en-us_topic_0000001798418925_fig322453919307"></a>  
+**Figure 1** Timeline summary data<a name="en-us_topic_0000001798418925_fig322453919307"></a> 
 ![](../figures/timeline_summary_data.png "Timeline summary data")
 
 **msproftx Timeline Data<a name="en-us_topic_0000001798418925_section12121185651210"></a>**
 
 The timeline data of msproftx is displayed in `msprof_tx_*.json`, as shown in the following figure.
 
-**Figure 2** msproftx timeline data<a name="en-us_topic_0000001798418925_fig912175631213"></a>  
+**Figure 2** msproftx timeline data<a name="en-us_topic_0000001798418925_fig912175631213"></a> 
 ![](../figures/msproftx_timeline_data.png "msproftx timeline data")
 
-As shown in [Figure 2](#en-us_topic_0000001798418925_fig912175631213), the timeline summary data is displayed in the following areas:
+As shown in [Figure 2](#en-us_topic_0000001798418925_fig912175631213), the msproftx timeline data is displayed in the following areas:
 
 - Area 1: displays msproftx instrumentation data, which records upper-layer application profile data, including the execution durations of the upper-layer applications.
 - Area 2: displays underlying NPU data, which contains the duration records of msproftx instrumentation and delivery to the device.
-- Area 3: displays details about each operator and API in the timeline (displayed when you click the timeline).
+- Area 3: displays details about each operator and API in a timeline. The details are displayed when you click the timeline.
 
 **msprof\_tx Summary Data<a name="en-us_topic_0000001798418925_section15813213018"></a>**
 
@@ -616,7 +737,7 @@ The msprof\_tx summary data file is `msprof_tx_*.csv`.
 
 The following example shows the content format of `msprof_tx_*.csv`.
 
-**Figure 3** msprof\_tx summary data<a name="en-us_topic_0000001798418925_fig52151315519"></a>  
+**Figure 3** msprof\_tx summary data<a name="en-us_topic_0000001798418925_fig52151315519"></a> 
 ![](../figures/msprof_tx_summary_data.png "msprof_tx summary data")
 
 **Table 2** Field description
@@ -646,7 +767,7 @@ Timeline information of the task scheduler profile data is displayed on the **As
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -659,7 +780,7 @@ The task scheduler data in `msprof_*.json` is displayed across various streams o
 
 The following example shows the task scheduler data in `msprof_*.json`.
 
-**Figure 1** Ascend Hardware<a name="en-us_topic_0000001679380154_fig1264110521453"></a>  
+**Figure 1** Ascend Hardware<a name="en-us_topic_0000001679380154_fig1264110521453"></a> 
 ![](../figures/Ascend-Hardware.png "Ascend-Hardware")
 
 The following table describes the key fields.
@@ -671,15 +792,13 @@ The following table describes the key fields.
 |Title|API name of the selected component.|
 |Start|Start timestamp on the timeline, which is automatically aligned by `chrome://tracing` (ms).|
 |Wall Duration|Duration of the current API call (ms).|
-|Task Time(us)|Task execution duration of the AICPU operator (μs).|
-|Reduce Duration(us)|Collective communication duration of the ALL REDUCE operator (μs).|
 |Model Id|Model ID.|
-|Task Type|Type of the accelerator that executes the task (including `AI_CORE`, `AI_VECTOR_CORE`, and `AI_CPU`).|
-|Stream Id|Stream ID of the task. The stream ID under **Ascend Hardware** is the complete logic stream ID of the task, and the stream ID attribute of each API in the timeline on the right is the physical stream ID of the API.|
+|Task Type|Type of the accelerator that executes the task. Valid values include: `AI_CORE`, `AI_VECTOR_CORE`, `AI_CPU, CCU`, and `DPU`.|
+|Stream Id|Stream ID of the task. The stream ID under Ascend Hardware is the complete logic stream ID of the task, and the stream ID attribute of each API in the timeline on the right is the physical stream ID of the API.|
 |Task Id|Task ID.|
+|Batch Id|Number of times that the Task ID changes.|
 |Subtask Id|Subtask ID.|
-|Aicore Time(ms)|Theoretical execution duration of the task on the AI Core when all blocks are scheduled simultaneously and each block has an equal execution duration (ms). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution duration on the AI Core. This data is inaccurate and not recommended for reference during manual frequency scaling, dynamic frequency scaling (when power consumption exceeds the default), or when using Atlas 300V or Atlas 300I Pro.|
-|Total Cycle|Total number of execution cycles of the task on the AI Core, which is the sum of the execution cycles of all blocks.|
+|connection_id|ID of the connection between a CANN API and an NPU operator when the former is delivered to the latter.|
 |Receive Time|Time when the device receives information about the memory copy task (μs). This field is displayed only for the `MemcopyAsync` API.|
 |Start Time|Time when the memory copy task starts (μs). This field is displayed only for the `MemcopyAsync` API.|
 |End Time|Time when the memory copy task ends (μs). This field is displayed only for the `MemcopyAsync` API.|
@@ -691,7 +810,7 @@ The following table describes the key fields.
 
 The following example shows the content format of `task_time_*.csv`.
 
-**Figure 2** task\_time\_\*.csv<a name="en-us_topic_0000001679380154_fig77617419164"></a>  
+**Figure 2** task\_time\_\*.csv<a name="en-us_topic_0000001679380154_fig77617419164"></a> 
 ![](../figures/task_time_-csv.png "task_time_-csv")
 
 By identifying the top-consuming operators in a task, you can determine if an operator is faulty based on its specific implementation.
@@ -719,7 +838,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -732,7 +851,7 @@ Iteration trace data is stored in `step_trace_*.json`. You can identify the most
 
 The following example shows the content format of `step_trace_*.json`.
 
-**Figure 1** step\_trace\_\*.json<a name="en-us_topic_0000001706482137_fig131371629121716"></a>  
+**Figure 1** step\_trace\_\*.json<a name="en-us_topic_0000001706482137_fig131371629121716"></a> 
 ![](../figures/step_trace_-json.png "step_trace_-json")
 
 Iteration trace data consists of software information from the training job and the AI software stack, which can be used to analyze the performance of the training job. Taking the default two-segment gradient splitting policy as an example, iteration execution is clarified by printing the timestamps of key nodes, including **fp_start**, **bp_end**, **Reduce Start**, and **Reduce Duration(us)**.
@@ -766,7 +885,7 @@ For the interval between the end of a previous iteration and the start of the ne
 
 Only the TensorFlow framework supports this function.
 
-**Figure 2** GetNext<a name="en-us_topic_0000001706482137_fig989215211178"></a>  
+**Figure 2** GetNext<a name="en-us_topic_0000001706482137_fig989215211178"></a> 
 ![](../figures/GetNext.png "GetNext")
 
 **Table 2** GetNext field description
@@ -781,7 +900,7 @@ Only the TensorFlow framework supports this function.
 
 The following example shows the content format of `step_trace_*.csv`.
 
-**Figure 3** step\_trace\_\*.csv<a name="en-us_topic_0000001706482137_fig1790711444171"></a>  
+**Figure 3** step\_trace\_\*.csv<a name="en-us_topic_0000001706482137_fig1790711444171"></a> 
 ![](../figures/step_trace_-csv.png "step_trace_-csv")
 
 Conclusions drawn from `step_trace_*.json` can be cross-verified using information in `step_trace_*.csv`.
@@ -813,7 +932,7 @@ Collective communication operator data is collected and parsed only in scenarios
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -824,54 +943,47 @@ Collective communication operator data is collected and parsed only in scenarios
 
 The following figure shows data on the **Communication** track in `msprof_*.json`.
 
-**Figure 1** Large communication operators<a name="en-us_topic_0000001658339478_fig18715851115013"></a>  
+**Figure 1** Large communication operators<a name="en-us_topic_0000001658339478_fig18715851115013"></a> 
 ![](../figures/large_communication_operators.png "Large communication operators")
 
-**Figure 2** Small communication operators<a name="en-us_topic_0000001658339478_fig471535125016"></a>  
+**Figure 2** Small communication operators<a name="en-us_topic_0000001658339478_fig471535125016"></a> 
 ![](../figures/small_communication_operators.png "Small communication operators")
 
 In multi-rank, multi-server, and cluster scenarios, ranks communicating with each other form communication groups. The **Communication** track displays the durations of communication operators based on the arranged communication groups, allowing you to intuitively identify the most time-consuming operators in this file.
 
-**Table 1** Common information
+**Table 1** Field description
 
 |Field|Description|
 |--|--|
+|**Common information**|
 |Group * *Communication* (communication group name, determined by the reported name)|Communication operators in a communication group. A rank may exist in different communication groups, and a group identifies the behavior of the current rank in the current communication group.|
 |Plane ID|Network plane ID. For the parallel scheduling and execution of multiple transmit (TX)/receive (RX) links, each plane represents a distinct concurrent communication dimension.|
 |Title|API name of the selected component.|
 |Start|Start timestamp on the timeline, which is automatically aligned by `chrome://tracing` (ms).|
 |Wall Duration|Duration of the current API call (ms).|
 |Self Time|Execution duration of the current instruction (ms).|
-
-**Table 2** Information about large communication operators
-
-|Field|Description|
-|--|--|
-|connection_id|ID of the connection between a CANN API and an NPU operator when the former is delivered to the latter.|
 |model id|Model ID.|
+|**Information about large communication operators**|
+|rank_size|Total number of ranks in each communication domain.|
+|connection_id|ID of the connection between a CANN API and an NPU operator when the former is delivered to the latter.|
 |data_type|Data type.|
 |alg_type|Algorithm type in each phase of communication operators. Supported types include: `MESH`, `RING`, `NB`, `HD`, `NHR`, `PIPELINE`, `PAIRWISE`, and `STAR`.|
 |count|Data transmission count.|
 |relay|Indicates whether rail borrowing occurred for the communication operator. Valid values: `yes` or `no`. Supported products:<br>Atlas A2 training products/Atlas A2 inference products: Only `no` is displayed, with no specific meaning.<br>Atlas A3 training products/Atlas A3 inference products|
 |retry|Indicates whether the communication operator was re-executed: `yes` (re-executed) or `no` (not re-executed). Supported products:<br>Atlas A2 training products/Atlas A2 inference products<br>Atlas A3 training products/Atlas A3 inference products|
-
-**Table 3** Information about small communication operators
-
-|Field|Description|
-|--|--|
+|**Information about small communication operators**|
 |notify id|Unique notify ID. The `notify id` is valid only for `notify` tasks and `RDMA send` tasks used to transmit `notify record` signals. For other task types, this field is invalid and is displayed as `18446744073709551615`.|
 |duration estimated(us)|Estimated task duration (μs).|
 |stream id|Stream ID of the task.|
 |task id|Task ID.|
 |task type|Task type.|
 |src rank|Source rank.|
-|dst rank|Destination rank. The value `4294967295` indicates a local on-chip operation.|
-|transport type|Transmission type, including `LOCAL`, `SDMA`, and `RDMA`.|
-|size(Byte)|Data size (bytes). For `notify` tasks, this field is invalid and is populated with `0`.|
+|dst rank|Destination rank.<br>For Ascend 950 products, the value for local on-chip operations is the same as that of the source rank.<br>For other products, the value `4294967295` indicates a local on-chip operation.|
+|transport type|Transmission type. Valid values include: `LOCAL`, `SDMA`, `RDMA`, `UB`, and `RoCE`.|
+|size(Byte)|Data size (bytes). If the size cannot be obtained, `0` is displayed.|
 |data type|Data type.|
-|link type|Link type, including `HCCS`, `PCIe`, and `RoCE`.|
+|link type|Link type. Valid values include: `HCCS`, `PCIE`, `RoCE`, `UBoE`, `SIO`, `HCCS_SW`, `STANDARD_ROCE`, `UB`, and `ON_CHIP`.|
 |bandwidth(GB/s)|Bandwidth (GB/s).|
-|model id|Model ID.|
 
 **Computation-Communication Overlap Analysis<a name="en-us_topic_0000001658339478_section18441122912161"></a>**
 
@@ -879,7 +991,7 @@ Overlap analysis statistics for computation and communication are displayed on t
 
 Since computation and communication occur in parallel, you can assess computation-communication efficiency by analyzing the overlap duration (the period during which both processes run in parallel).
 
-**Figure 3** Computation-communication overlap<a name="en-us_topic_0000001658339478_fig1514136114211"></a>  
+**Figure 3** Computation-communication overlap<a name="en-us_topic_0000001658339478_fig1514136114211"></a> 
 ![](../figures/computation-communication_overlap.png "Computation-communication overlap")
 
 **Table 2** Field description
@@ -897,7 +1009,7 @@ Since computation and communication occur in parallel, you can assess computatio
 
 The following example shows the content format of `communication_statistic_*.csv`.
 
-**Figure 4** communication\_statistic\_\*.csv<a name="en-us_topic_0000001658339478_fig172301674189"></a>  
+**Figure 4** communication\_statistic\_\*.csv<a name="en-us_topic_0000001658339478_fig172301674189"></a> 
 ![](../figures/communication_statistic_-csv.png "communication_statistic_-csv")
 
 `communication_statistic_*.csv` stores the collective communication operator statistics, through which you can learn the execution duration of an operator type and the duration ratio of each communication operator in collective communication to determine whether the operator can be optimized.
@@ -923,7 +1035,7 @@ The memory usage records of CANN operators do not contain timeline information. 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -934,7 +1046,7 @@ The memory usage records of CANN operators do not contain timeline information. 
 
 The following example shows the content format of `memory_record_*.csv`.
 
-**Figure 1** memory\_record\_\*.csv<a name="en-us_topic_000000170451978_fig18726153033320"></a>  
+**Figure 1** memory\_record\_\*.csv<a name="en-us_topic_000000170451978_fig18726153033320"></a> 
 ![](../figures/memory_record_-csv.png "memory_record_-csv")
 
 **Table 1** Field description
@@ -956,7 +1068,7 @@ The memory usage details of CANN operators do not contain timeline information. 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -967,7 +1079,7 @@ The memory usage details of CANN operators do not contain timeline information. 
 
 The following example shows the content format of `operator_memory_*.csv`.
 
-**Figure 1** operator\_memory\_\*.csv<a name="en-us_topic_0000001752279281_fig280612153313"></a>  
+**Figure 1** operator\_memory\_\*.csv<a name="en-us_topic_0000001752279281_fig280612153313"></a> 
 ![](../figures/operator_memory_-csv.png "operator_memory_-csv")
 
 The following table describes the key fields.
@@ -991,7 +1103,7 @@ The following table describes the key fields.
 
 `operator_memory_*.csv` may contain empty or negative values if certain operator allocation or deallocation events fall outside the profile data collection scope. For details, see the following example.
 
-**Figure 2** Negative and empty value description<a name="en-us_topic_0000001752279281_fig16334112284217"></a>  
+**Figure 2** Negative and empty value description<a name="en-us_topic_0000001752279281_fig16334112284217"></a> 
 ![](../figures/negative_and_empty_value_description.png "Negative and empty value description")
 
 Negative value description: In the preceding figure, row 4873 of the **Size** column shows a negative value. (Memory allocation size is positive, while memory deallocation size is negative. If memory is both allocated and deallocated within the profiling window, the **Size** column displays the allocation value.) However, for this row, the **Name** column cannot identify an operator name, **Allocation** columns are empty, and **Release** columns show valid deallocation values. This indicates that memory allocation for the operator occurred before the profiling process, but memory deallocation occurred within the profiling window. Consequently, only a negative value for memory deallocation was captured. Furthermore, operator name identification occurs only during memory allocation. Consequently, the operator name cannot be identified during memory deallocation. Since the allocation fell outside the profiling window, the **Allocation** columns remain empty.
@@ -1006,7 +1118,7 @@ Timeline information of the NPU memory usage is displayed on the **NPU MEM** tra
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1017,7 +1129,7 @@ Timeline information of the NPU memory usage is displayed on the **NPU MEM** tra
 
 The following figure shows data on the **NPU MEM** track in `msprof_*.json`. (The following figure is only an example. The actual display depends on the product implementation.)
 
-**Figure 1** NPU MEM track<a name="en-us_topic_0000001704360086_fig186331551142017"></a>  
+**Figure 1** NPU MEM track<a name="en-us_topic_0000001704360086_fig186331551142017"></a> 
 ![](../figures/NPU-MEM_track.png "NPU-MEM track")
 
 The preceding figure shows the process-level and device-level memory usage. The `Memory` field indicates the total memory usage (KB).
@@ -1029,7 +1141,7 @@ The following example shows the content format of `npu_mem_*.csv`.
 **Figure 2** npu\_mem\_\*.csv<a name="en-us_topic_0000001704360086_fig137821719212"></a>  
 ![](../figures/npu_mem_-csv.png "npu_mem_-csv")
 
-The preceding table shows the memory usage details. The `Memory` field indicates the total memory usage (KB).
+The preceding figure shows the memory usage details. The `Memory` field indicates the total memory usage (KB).
 
 #### npu\_module\_mem (Memory Usage of NPU Components)<a name="EN-US_TOPIC_0000002509503215"></a>
 
@@ -1039,7 +1151,7 @@ The memory usage data of the NPU components does not contain timeline informatio
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1050,14 +1162,14 @@ The memory usage data of the NPU components does not contain timeline informatio
 
 The following example shows the content format of `npu_module_mem_*.csv`.
 
-**Figure 1** npu\_module\_mem\_\*.csv<a name="en-us_topic_0000001797276317_fig537247162117"></a>  
+**Figure 1** npu\_module\_mem\_\*.csv<a name="en-us_topic_0000001797276317_fig537247162117"></a> 
 ![](../figures/npu_module_mem_-csv.png "npu_module_mem_-csv")
 
 **Table 1** Field description
 
 |Field|Description|
 |--|--|
-|Device_id|Device ID.|
+|Device_id|Device ID|
 |Component|Component name.|
 |Timestamp(us)|Timestamp (μs). You can view the memory used by the component at the current point in time.|
 |Total Reserved(KB)|Memory usage (KB). A value of `–1` may indicate that only the released memory is collected for the component.|
@@ -1069,7 +1181,7 @@ The following example shows the content format of `npu_module_mem_*.csv`.
 
 Data augmentation information is generated only in training scenarios and only the summary data file `dp_*.csv` is generated.
 
-In TensorFlow training scenarios, `dp_*.csv` can be generated when data preprocessing offload is enabled (`enable_data_pre_proc` is set to `True`). For details, see "Iteration Offload" in the *TensorFlow 1.15 Model Porting Guide*.
+In TensorFlow training scenarios, `dp_*.csv` can be generated when data preprocessing offload is enabled (`enable_data_pre_proc` is set to `True`). For details, see [Iteration Offload](https://gitcode.com/cann/tensorflow/blob/9.1.0/docs/en/tfadapter_1/migration/performance_tuning/iteration_offload.md) in the *TensorFlow 1.15 Model Porting Guide*.
 
 **Supported Products<a name="en-us_topic_0000001752181593_section91616487538"></a>**
 
@@ -1085,7 +1197,7 @@ In TensorFlow training scenarios, `dp_*.csv` can be generated when data preproce
 
 The following example shows the content format of `dp_*.csv`.
 
-**Figure 1** dp\_\*.csv<a name="en-us_topic_0000001752181593_fig5210278292"></a>  
+**Figure 1** dp\_\*.csv<a name="en-us_topic_0000001752181593_fig5210278292"></a> 
 ![](../figures/dp_-csv.png "dp_-csv")
 
 **Table 1** Field description
@@ -1106,7 +1218,7 @@ Timeline information about the percentage of AI Core instructions is displayed o
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1117,7 +1229,7 @@ Timeline information about the percentage of AI Core instructions is displayed o
 
 The following example shows the content format of `msprof_*.json`.
 
-**Figure 1** AI Core Utilization track<a name="en-us_topic_0000001731321225_fig8427528151814"></a>  
+**Figure 1** AI Core Utilization track<a name="en-us_topic_0000001731321225_fig8427528151814"></a> 
 ![](../figures/AI_Core_Utilization_track.png "AI Core Utilization track")
 
 **Table 1** Field description
@@ -1132,12 +1244,12 @@ The following example shows the content format of `msprof_*.json`.
 
 The following example shows the content format of `ai_core_utilization_*.csv`.
 
-**Figure 2** ai\_core\_utilization (example only)<a name="en-us_topic_0000001731321225_fig12780124014279"></a>  
+**Figure 2** ai\_core\_utilization (example only)<a name="en-us_topic_0000001731321225_fig12780124014279"></a> 
 ![](../figures/ai_core_utilization_(example_only).png "ai_core_utilization (example only)")
 
 File results vary depending on the `--aic-metrics` option value. The complete fields are as follows.
 
->[!NOTE]NOTE
+>[!NOTE] 
 >
 >- Supported fields may vary by product. Please refer to the actual result file for the final list of fields.
 >- The following fields are generated when `--task-time` is set to `l1` and `--aic-mode` is set to `sample-based`. When `--task-time` is set to `l0`, these fields are not collected and `N/A` is displayed. The content of the generated data is controlled by the value of the `--aic-metrics` option.
@@ -1154,7 +1266,7 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |mte3_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles. This field is not supported by Atlas A2 training and Atlas A2 inference products. This field is not supported by Atlas A3 training and Atlas A3 inference products.|
 |icache_miss_rate|iCache is the L2 cache dedicated to instructions. A high `icache_miss_rate` value indicates low instruction-read efficiency for the AI Core.|
 |fixpipe_ratio|Ratio of cycles taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) to the total cycles.|
-|memory_bound|Used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks. This field is not supported by Atlas A2 training and Atlas A2 inference products. This field is not supported by Atlas A3 training and Atlas A3 inference products.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AICore operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks. This field is not supported by Atlas A2 training and Atlas A2 inference products. This field is not supported by Atlas A3 training and Atlas A3 inference products.|
 
 **Table 3** Field description (ArithmeticUtilization)
 
@@ -1162,12 +1274,12 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |--|--|
 |mac_fp16_ratio|Ratio of cycles taken to execute Cube fp16 instructions to the total cycles.|
 |mac_int8_ratio|Ratio of cycles taken to execute Cube int8 instructions to the total cycles.|
-|vec_fp32_ratio|Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-|vec_fp16_ratio|Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-|vec_int32_ratio|Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
-|vec_misc_ratio|Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|vec_fp32_ratio|Ratio of cycles taken to execute Vector fp32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+|vec_fp16_ratio|Ratio of cycles taken to execute Vector fp16 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+|vec_int32_ratio|Ratio of cycles taken to execute Vector int32 instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
+|vec_misc_ratio|Ratio of cycles taken to execute Vector misc instructions to the total cycles. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
 |cube_fops|Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model.|
-|vector_fops|Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. The Ascend 950 Products does not support this field.|
+|vector_fops|Floating-point operations of the Vector type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model. Ascend 950 products do not support this field.|
 
 **Table 4** Field description (Memory)
 
@@ -1177,8 +1289,8 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |ub_write_bw(GB/s)|UB write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|l2_read_bw|L2 read bandwidth (GB/s). The Ascend 950 Products does not support this field.|
-|l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|l2_read_bw|L2 read bandwidth (GB/s). Ascend 950 products do not support this field.|
+|l2_write_bw|L2 write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
 |main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |main_mem_write_bw(GB/s)|Main memory write bandwidth (GB/s). Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -1191,11 +1303,13 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). The Ascend 950 Products does not support this field.|
+|l0c_write_bw(GB/s)|Bandwidth for Vector to write data to L0C (GB/s). Ascend 950 products do not support this field.|
 |l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
-Note: During the collection of `MemoryL0` performance metrics for the AI Vector Core, the collected data will always be `0`.
+> [!NOTE]
+>
+> During the collection of `MemoryL0` performance metrics for the AI Vector Core, the collected data will always be `0`.
 
 **Table 6** Field description (MemoryUB)
 
@@ -1210,7 +1324,7 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 
 |Field|Description|
 |--|--|
-|vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. The Ascend 950 Products does not support this field.|
+|vec_bankgroup_cflt_ratio|Ratio of cycles taken to execute `vec_bankgroup_stall_cycles` instructions to the total cycles. Improper block stride settings for Vector instructions can lead to bank group conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`. Ascend 950 products do not support this field.|
 |vec_bank_cflt_ratio|Ratio of cycles taken to execute `vec_bank_stall_cycles` instructions to the total cycles. Improper read/write pointer addresses for Vector instruction operands can lead to bank conflicts. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 |vec_resc_cflt_ratio|Ratio of cycles taken to execute `vec_resc_cflt_ratio` instructions to the total cycles. If an operator involves multiple compute units, ensure that they are concurrently scheduled. If the operator logic keeps delivering instructions to a compute unit that is already busy, the overall computing power is not fully utilized. Atlas 200I/500 A2 inference products do not support this field. Default value: `N/A`.|
 
@@ -1218,22 +1332,22 @@ Note: During the collection of `MemoryL0` performance metrics for the AI Vector 
 
 |Field|Description|
 |--|--|
-|write_cache_hit|Number of cache write hits. The Ascend 950 Products does not support this field.|
-|write_cache_miss_allocate|Number of cache reallocations after cache write misses. The Ascend 950 Products does not support this field.|
-|r*_read_cache_hit|Number of cache read hits in the `r*` channel. The Ascend 950 Products does not support this field.|
-|r*_read_cache_miss_allocate|Number of cache re-allocations after read misses in the `r*` channel. The Ascend 950 Products does not support this field.|
-|read_local_l2_hit|Number of cache read hits. Only the Ascend 950 Products supports this field.|
-|read_local_l2_miss|Number of cache read misses. Only the Ascend 950 Products supports this field.|
-|read_local_l2_victim|Number of cache read misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
-|write_local_l2_hit|Number of cache write hits. Only the Ascend 950 Products supports this field.|
-|write_local_l2_miss|Number of cache write misses. Only the Ascend 950 Products supports this field.|
-|write_local_l2_victim|Number of cache write misses that trigger cache victimization. Only the Ascend 950 Products supports this field.|
+|write_cache_hit|Number of cache write hits. Ascend 950 products do not support this field.|
+|write_cache_miss_allocate|Number of cache reallocations after cache write misses. Ascend 950 products do not support this field.|
+|r*_read_cache_hit|Number of cache read hits in the `r*` channel. Ascend 950 products do not support this field.|
+|r*_read_cache_miss_allocate|Number of cache re-allocations after read misses in the `r*` channel. Ascend 950 products do not support this field.|
+|read_local_l2_hit|Number of cache read hits. Only Ascend 950 products support this field.|
+|read_local_l2_miss|Number of cache read misses. Only Ascend 950 products support this field.|
+|read_local_l2_victim|Number of cache read misses that trigger cache victimization. Only Ascend 950 products support this field.|
+|write_local_l2_hit|Number of cache write hits. Only Ascend 950 products support this field.|
+|write_local_l2_miss|Number of cache write misses. Only Ascend 950 products support this field.|
+|write_local_l2_victim|Number of cache write misses that trigger cache victimization. Only Ascend 950 products support this field.|
 
 Supported products:
 
 - Atlas A2 training products/Atlas A2 inference products
 - Atlas A3 training products/Atlas A3 inference products
-- Ascend 950 Products
+- Ascend 950 products
 - Atlas 200I/500 A2 inference products
 
 **Table 9** Field description (MemoryAccess)
@@ -1261,7 +1375,7 @@ Statistics about the percentage of AI Vector Core instructions do not contain ti
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1272,7 +1386,7 @@ Statistics about the percentage of AI Vector Core instructions do not contain ti
 
 The following example shows the content format of `ai_vector_core_utilization_*.csv`.
 
-**Figure 1** ai\_vector\_core\_utilization\_\*.csv<a name="en-us_topic_0000001750641108_fig167159472016"></a>  
+**Figure 1** ai\_vector\_core\_utilization\_\*.csv<a name="en-us_topic_0000001750641108_fig167159472016"></a> 
 ![](../figures/ai_vector_core_utilization_-csv.jpg "ai_vector_core_utilization_-csv")
 
 **Table 1** Field description
@@ -1288,9 +1402,11 @@ The following example shows the content format of `ai_vector_core_utilization_*.
 |mte3_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles. (Atlas 200I/500 A2 inference products)|
 |mte3_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core to on-chip memory transfer) to total cycles. (Atlas A2 training products/Atlas A2 inference products) (Atlas A3 training products/Atlas A3 inference products)|
 |icache_miss_rate|iCache miss rate (L1 instruction cache misses). A smaller value indicates better performance.|
-|memory_bound|Used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates a memory bottleneck. Higher values signify more severe memory bottlenecks.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AI Vector Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates a memory bottleneck. Higher values signify more severe memory bottlenecks.|
 
-Note: This section uses PipeUtilization in a sample-based scenario as an example of AI Vector Core performance metrics. For more parameter details, see [ai_core_utilization (AI Core Instruction Ratio)](#EN-US_TOPIC_0000002509503211).
+> [!NOTE]
+>
+> This section uses PipeUtilization in a sample-based scenario as an example of AI Vector Core performance metrics. For more parameter details, see [ai_core_utilization (AI Core Instruction Ratio)](#EN-US_TOPIC_0000002509503211).
 
 #### aicpu (Detailed Duration of AICPU Operators)<a name="EN-US_TOPIC_0000002509383191"></a>
 
@@ -1300,7 +1416,7 @@ The AICPU operator duration data does not contain timeline information. The summ
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1311,7 +1427,7 @@ The AICPU operator duration data does not contain timeline information. The summ
 
 The following example shows the content format of `aicpu_*.csv`.
 
-**Figure 1** aicpu\_\*.csv<a name="en-us_topic_0000001752101817_fig101583132201"></a>  
+**Figure 1** aicpu\_\*.csv<a name="en-us_topic_0000001752101817_fig101583132201"></a> 
 ![](../figures/aicpu_-csv.png "aicpu_-csv")
 
 This file records AICPU data reported during data preprocessing. Other AICPU-related files contain full AICPU data.
@@ -1339,7 +1455,7 @@ Records the sizes of data preparation queues. It is generated when AICPU is enab
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1350,7 +1466,7 @@ Records the sizes of data preparation queues. It is generated when AICPU is enab
 
 The following example shows the content format of `aicpu_mi_*.csv`.
 
-**Figure 1** aicpu\_mi\_\*.csv<a name="en-us_topic_0000002013989984_fig10248152262010"></a>  
+**Figure 1** aicpu\_mi\_\*.csv<a name="en-us_topic_0000002013989984_fig10248152262010"></a> 
 ![](../figures/aicpu_mi_-csv.png "aicpu_mi_-csv")
 
 **Table 1** Field description
@@ -1367,11 +1483,15 @@ The following example shows the content format of `aicpu_mi_*.csv`.
 
 The L2 cache data does not contain timeline information. The summary information is aggregated in `l2_cache_*.csv`.
 
+> [!NOTE]
+>
+> In static graph scenarios, only the L2 cache data of the first execution of the graph can be collected and parsed.
+
 **Supported Products<a name="en-us_topic_0000001704262430_section91616487538"></a>**
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1382,7 +1502,7 @@ The L2 cache data does not contain timeline information. The summary information
 
 The following example shows the content format of `l2_cache_*.csv`.
 
-**Figure 1** l2\_cache\_\*.csv<a name="en-us_topic_0000001704262430_fig1350115305204"></a>  
+**Figure 1** l2\_cache\_\*.csv<a name="en-us_topic_0000001704262430_fig1350115305204"></a> 
 ![](../figures/l2_cache_-csv.png "l2_cache_-csv")
 
 For the following products:
@@ -1421,7 +1541,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1432,7 +1552,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 
 The following example shows the content format of `fusion_op_*.csv`.
 
-**Figure 1** fusion\_op\_\*.csv<a name="en-us_topic_0000001704421886_fig686494418203"></a>  
+**Figure 1** fusion\_op\_\*.csv<a name="en-us_topic_0000001704421886_fig686494418203"></a> 
 ![](../figures/fusion_op_-csv.png "fusion_op_-csv")
 
 **Table 1** Field description
@@ -1458,7 +1578,7 @@ Memory statistics for static graph operators do not contain timeline information
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1469,7 +1589,7 @@ Memory statistics for static graph operators do not contain timeline information
 
 The following example shows the content format of `static_op_mem_*.csv`.
 
-**Figure 1** static\_op\_mem\_\*.csv<a name="en-us_topic_0000001924444106_fig788719246226"></a>  
+**Figure 1** static\_op\_mem\_\*.csv<a name="en-us_topic_0000001924444106_fig788719246226"></a> 
 ![](../figures/static_op_mem_-csv.png "static_op_mem_-csv")
 
 In single-operator scenarios, the `ACL_PROF_TASK_MEMORY` data collection function is enabled by calling the `aclprofCreateConfig` API. The data is reported only during the model compilation phase. This file provides a view of operator memory allocation within each subgraph for static graph scenarios.
@@ -1496,7 +1616,7 @@ The system memory data does not contain timeline information. The summary inform
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1507,7 +1627,7 @@ The system memory data does not contain timeline information. The summary inform
 
 The following example shows the content format of `sys_mem_*.csv`.
 
-**Figure 1** sys\_mem\_\*.csv<a name="en-us_topic_0000001751484586_fig1844811313228"></a>  
+**Figure 1** sys\_mem\_\*.csv<a name="en-us_topic_0000001751484586_fig1844811313228"></a> 
 ![](../figures/sys_mem_-csv.png "sys_mem_-csv")
 
 **Table 1** Field description
@@ -1533,7 +1653,7 @@ The process memory usage data does not contain timeline information. The summary
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1544,7 +1664,7 @@ The process memory usage data does not contain timeline information. The summary
 
 The following example shows the content format of `process_mem_*.csv`.
 
-**Figure 1** process\_mem\_\*.csv<a name="en-us_topic_0000001798284369_fig13750153752213"></a>  
+**Figure 1** process\_mem\_\*.csv<a name="en-us_topic_0000001798284369_fig13750153752213"></a> 
 ![](../figures/process_mem_-csv.png "process_mem_-csv")
 
 **Table 1** Field description
@@ -1566,7 +1686,7 @@ Utilization data for the AICPU (executing AICPU operators) and Ctrl CPU (executi
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1577,7 +1697,7 @@ Utilization data for the AICPU (executing AICPU operators) and Ctrl CPU (executi
 
 The following example shows the content format of `cpu_usage_*.csv`.
 
-**Figure 1** cpu\_usage\_\*.csv<a name="en-us_topic_0000001798325329_fig1012454414220"></a>  
+**Figure 1** cpu\_usage\_\*.csv<a name="en-us_topic_0000001798325329_fig1012454414220"></a> 
 ![](../figures/cpu_usage_-csv.png "cpu_usage_-csv")
 
 **Table 1** Field description
@@ -1601,7 +1721,7 @@ The CPU utilization data of processes does not contain timeline information. The
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1612,7 +1732,7 @@ The CPU utilization data of processes does not contain timeline information. The
 
 The following example shows the content format of `process_cpu_usage_*.csv`.
 
-**Figure 1** process\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001751325670_fig939675212225"></a>  
+**Figure 1** process\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001751325670_fig939675212225"></a> 
 ![](../figures/process_cpu_usage_-csv.png "process_cpu_usage_-csv")
 
 **Table 1** Field description
@@ -1632,7 +1752,7 @@ Timeline information of the on-chip memory read/write speed data is displayed in
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1643,10 +1763,10 @@ Timeline information of the on-chip memory read/write speed data is displayed in
 
 The following figure shows the on-chip memory data in `msprof_*.json`.
 
-**Figure 1** On-chip memory 1<a name="en-us_topic_000000170451974_fig766519153238"></a>  
+**Figure 1** On-chip memory 1<a name="en-us_topic_000000170451974_fig766519153238"></a> 
 ![](../figures/on-chip_memory_1.png "On-chip memory 1")
 
-**Figure 2** On-chip memory 2<a name="en-us_topic_000000170451974_fig128671226172320"></a>  
+**Figure 2** On-chip memory 2<a name="en-us_topic_000000170451974_fig128671226172320"></a> 
 ![](../figures/on-chip_memory_2.png "On-chip memory 2")
 
 The preceding figure shows the read/write speed of the on-chip memory (MB/s).
@@ -1655,7 +1775,7 @@ The preceding figure shows the read/write speed of the on-chip memory (MB/s).
 
 The following example shows the content format of `ddr_*.csv`.
 
-**Figure 3** ddr\_\*.csv<a name="en-us_topic_000000170451974_fig4397103862317"></a>  
+**Figure 3** ddr\_\*.csv<a name="en-us_topic_000000170451974_fig4397103862317"></a> 
 ![](../figures/ddr_-csv.png "ddr_-csv")
 
 **Table 1** Field description
@@ -1671,7 +1791,7 @@ The following example shows the content format of `ddr_*.csv`.
 
 The following example shows the content format of `hbm_*.csv`.
 
-**Figure 4** hbm\_\*.csv<a name="en-us_topic_000000170451974_fig13282164482314"></a>  
+**Figure 4** hbm\_\*.csv<a name="en-us_topic_000000170451974_fig13282164482314"></a> 
 ![](../figures/hbm_-csv.png "hbm_-csv")
 
 **Table 2** Field description
@@ -1691,7 +1811,7 @@ Timeline information of the HCCS collective communication bandwidth data is disp
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1702,7 +1822,7 @@ Timeline information of the HCCS collective communication bandwidth data is disp
 
 The following figure shows data on the **HCCS** track in `msprof_*.json`.
 
-**Figure 1** HCCS track<a name="en-us_topic_0000001752359493_fig876626102412"></a>  
+**Figure 1** HCCS track<a name="en-us_topic_0000001752359493_fig876626102412"></a> 
 ![](../figures/HCCS_track.png "HCCS track")
 
 **Table 1** Field description
@@ -1715,7 +1835,7 @@ The following figure shows data on the **HCCS** track in `msprof_*.json`.
 
 The following example shows the content format of `hccs_*.csv`.
 
-**Figure 2** hccs\_\*.csv<a name="en-us_topic_0000001752359493_fig597612312247"></a>  
+**Figure 2** hccs\_\*.csv<a name="en-us_topic_0000001752359493_fig597612312247"></a> 
 ![](../figures/hccs_-csv.png "hccs_-csv")
 
 **Table 2** Field description
@@ -1736,7 +1856,7 @@ Timeline information of NIC summary is displayed on the **NIC** track in `msprof
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1747,7 +1867,7 @@ Timeline information of NIC summary is displayed on the **NIC** track in `msprof
 
 The following figure shows data on the **NIC** track in `msprof_*.json`.
 
-**Figure 1** NIC track<a name="en-us_topic_0000001750414058_fig1930611382249"></a>  
+**Figure 1** NIC track<a name="en-us_topic_0000001750414058_fig1930611382249"></a> 
 ![](../figures/NIC_track.png "NIC track")
 
 **Table 1** Field description
@@ -1763,7 +1883,7 @@ The following figure shows data on the **NIC** track in `msprof_*.json`.
 
 The following example shows the content format of `nic_*.csv`.
 
-**Figure 2** nic\_\*.csv<a name="en-us_topic_0000001750414058_fig135704512412"></a>  
+**Figure 2** nic\_\*.csv<a name="en-us_topic_0000001750414058_fig135704512412"></a> 
 ![](../figures/nic_-csv.png "nic_-csv")
 
 **Table 2** Field description
@@ -1791,7 +1911,7 @@ Timeline information of the RoCE bandwidth data is displayed on the **RoCE** tra
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1802,7 +1922,7 @@ Timeline information of the RoCE bandwidth data is displayed on the **RoCE** tra
 
 The following figure shows data on the **RoCE** track in `msprof_*.json`.
 
-**Figure 1** RoCE track<a name="en-us_topic_0000001750572972_fig12169145011241"></a>  
+**Figure 1** RoCE track<a name="en-us_topic_0000001750572972_fig12169145011241"></a> 
 ![](../figures/RoCE_track.png "RoCE track")
 
 **Table 1** Field description
@@ -1818,7 +1938,7 @@ The following figure shows data on the **RoCE** track in `msprof_*.json`.
 
 The following example shows the content format of `roce_*.csv`.
 
-**Figure 2** roce\_\*.csv<a name="en-us_topic_0000001750572972_fig8322115682418"></a>  
+**Figure 2** roce\_\*.csv<a name="en-us_topic_0000001750572972_fig8322115682418"></a> 
 ![](../figures/roce_-csv.png "roce_-csv")
 
 **Table 2** Field description
@@ -1846,7 +1966,7 @@ Timeline information of the PCIe bandwidth data is displayed on the **PCIe** tra
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1873,14 +1993,14 @@ The following figure shows data on the **PCIe** track in `msprof_*.json`.
 
 The following example shows the content format of `pcie_*.csv`.
 
-**Figure 2** pcie\_\*.csv<a name="en-us_topic_0000001797493789_fig97188812514"></a>  
+**Figure 2** pcie\_\*.csv<a name="en-us_topic_0000001797493789_fig97188812514"></a> 
 ![](../figures/pcie_-csv.png "pcie_-csv")
 
 **Table 2** Field description
 
 |Field|Description|
 |--|--|
-|Device_id|Device ID.|
+|Device_id|Device ID|
 |Mode|Mode. Valid values:<br>&#8226; `Tx_p_avg(MB/s)`: average PCIe posted data transmission bandwidth at the TX side (MB/s). `TX` indicates transmit, and `RX` indicates receive.<br>&#8226; `Tx_np_avg(MB/s)`: average PCIe non-posted data transmission bandwidth at the TX side (MB/s).<br>&#8226; `Tx_cpl_avg(MB/s)`: average throughput of completion packets for received write requests at the TX side (MB/s).<br>&#8226; `Tx_latency_avg (us)`: average PCIe non-posted transmission latency at the TX side (μs).<br>&#8226; `Rx_p_avg(MB/s)`: average PCIe posted data transmission bandwidth at the RX side (MB/s).<br>&#8226; `Rx_np_avg (MB/s)`: average PCIe non-posted data transmission bandwidth at the RX side (MB/s).<br>&#8226; `Rx_cpl_avg(MB/s)`: average throughput of completion packets for received write requests at the RX side (MB/s).|
 |Min, Max, Avg|Minimum, maximum, and average values.|
 
@@ -1892,7 +2012,7 @@ The bandwidth and latency data of AI Core and AI Vector does not contain summary
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -1901,42 +2021,48 @@ The bandwidth and latency data of AI Core and AI Vector does not contain summary
 
 **biu_group, aic_core_group, and aiv_core_group Tracks in msprof\_\*.json<a name="en-us_topic_0000001797600917_section432932191111"></a>**
 
-**Figure 1** biu\_group<a name="en-us_topic_0000001797600917_fig13198121214588"></a>  
+This section uses data of Atlas A3 training products/Atlas A3 inference products and Atlas A2 training products/Atlas A2 inference products as an example.
+
+**Figure 1** biu\_group<a name="en-us_topic_0000001797600917_fig13198121214588"></a> 
 ![](../figures/biu_group.png "biu_group")
 
-**Figure 2** aic\_core\_group<a name="en-us_topic_0000001797600917_fig14725302476"></a>  
+**Figure 2** aic\_core\_group<a name="en-us_topic_0000001797600917_fig14725302476"></a> 
 ![](../figures/aic_core_group.png "aic_core_group")
 
-**Figure 3** aiv\_core\_group<a name="en-us_topic_0000001797600917_fig1994919116471"></a>  
+**Figure 3** aiv\_core\_group<a name="en-us_topic_0000001797600917_fig1994919116471"></a> 
 ![](../figures/aiv_core_group.png "aiv_core_group")
 
-**Table 1** biu_group
+**Table 1** Field description (biu_group)
 
-|Field|Description|
-|--|--|
-|Bandwidth Read|Bandwidth for the bus interface unit (BIU) to read instructions|
-|Bandwidth Write|Bandwidth for the BIU to write instructions|
-|Latency Read|Latency for the BIU to read instructions|
-|Latency Write|Latency for the BIU to write instructions|
+| Field         | Description                         |
+| --------------- | --------------------------------- |
+| Bandwidth Read  | Bandwidth for the bus interface unit (BIU) to read instructions|
+| Bandwidth Write | Bandwidth for the BIU to write instructions|
+| Latency Read    | Latency for the BIU to read instructions|
+| Latency Write   | Latency for the BIU to write instructions|
 
-**Table 2** aic_core_group
+> [!NOTE]
+>
+> The preceding `biu_group` level contains data of Atlas A3 training products/Atlas A3 inference products and Atlas A2 training products/Atlas A2 inference products. For the Ascend 950 products, the corresponding track is Biu Perf (BIU instruction pipeline), with the lower level grouped by `Group{id}-{core ID}`, such as `Group0-aiv0`. The fields on this track are the same as those on the `biu_group` track.
 
-|Field|Description|
-|--|--|
-|Cube|Cycle count and ratio of matrix operation instructions in the current sampling period|
-|Mte1|Cycle count and ratio of L1-to-L0A/L0B transfer instructions in the current sampling period|
-|Mte2|Cycle count and ratio of on-chip memory to AI Core transfer instructions in the current sampling period|
-|Mte3|Cycle count and ratio of AI Core to on-chip memory transfer instructions in the current sampling period|
+**Table 2** Field description (aic_core_group)
 
-**Table 3** aiv_core_group
+| Field| Description                                                 |
+| ------ | --------------------------------------------------------- |
+| Cube   | Cycle count and ratio of matrix operation instructions in the current sampling period            |
+| Mte1   | Cycle count and ratio of L1-to-L0A/L0B transfer instructions in the current sampling period     |
+| Mte2   | Cycle count and ratio of on-chip memory to AI Core transfer instructions in the current sampling period|
+| Mte3   | Cycle count and ratio of AI Core to on-chip memory transfer instructions in the current sampling period|
 
-|Field|Description|
-|--|--|
-|Mte1|Cycle count and ratio of L1-to-L0A/L0B transfer instructions in the current sampling period|
-|Mte2|Cycle count and ratio of on-chip memory to AI Core transfer instructions in the current sampling period|
-|Mte3|Cycle count and ratio of AI Core to on-chip memory transfer instructions in the current sampling period|
-|Scalar|Cycle count and ratio of scalar operation instructions in the current sampling period|
-|Vector|Cycle count and ratio of vector operation instructions in the current sampling period|
+**Table 3** Field description (aiv_core_group)
+
+| Field| Description                                                 |
+| ------ | --------------------------------------------------------- |
+| Mte1   | Cycle count and ratio of L1-to-L0A/L0B transfer instructions in the current sampling period     |
+| Mte2   | Cycle count and ratio of on-chip memory to AI Core transfer instructions in the current sampling period|
+| Mte3   | Cycle count and ratio of AI Core to on-chip memory transfer instructions in the current sampling period|
+| Scalar | Cycle count and ratio of scalar operation instructions in the current sampling period            |
+| Vector | Cycle count and ratio of vector operation instructions in the current sampling period            |
 
 #### Acc PMU (Accelerator Bandwidth and Concurrency Information)<a name="EN-US_TOPIC_0000002509383203"></a>
 
@@ -1946,7 +2072,7 @@ The accelerator bandwidth and concurrency data does not contain summary informat
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1957,7 +2083,7 @@ The accelerator bandwidth and concurrency data does not contain summary informat
 
 The following figure shows data on the **Acc PMU** track in `msprof_*.json`.
 
-**Figure 1** Acc PMU track<a name="en-us_topic_0000001750723840_fig19052202251"></a>  
+**Figure 1** Acc PMU track<a name="en-us_topic_0000001750723840_fig19052202251"></a> 
 ![](../figures/Acc-PMU_track.png "Acc-PMU track")
 
 **Table 1** Field description
@@ -1977,7 +2103,7 @@ The SoC transmission bandwidth information does not contain summary information.
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -1988,7 +2114,7 @@ The SoC transmission bandwidth information does not contain summary information.
 
 The following figure shows data on the **Stars Soc Info** track in `msprof_*.json`.
 
-**Figure 1** Stars Soc Info track<a name="en-us_topic_0000001797682569_fig125031026102512"></a>  
+**Figure 1** Stars Soc Info track<a name="en-us_topic_0000001797682569_fig125031026102512"></a> 
 ![](../figures/Stars_Soc_Info_track.png "Stars Soc Info track")
 
 **Table 1** Field description
@@ -1996,7 +2122,7 @@ The following figure shows data on the **Stars Soc Info** track in `msprof_*.jso
 |Field|Description|
 |--|--|
 |L2 Buffer Bw Level|L2 buffer bandwidth level information. When buffer bandwidth information is available, avoid using this field as a reference, as it provides only coarse-grained statistics.|
-|Mata Bw Level|Mata bandwidth level information.|
+|Mata Bw Level|Mata bandwidth level information. The load level is indicated by a numerical value in ascending order. A higher value indicates a heavier load. This can be used to analyze the change trend of bandwidth load.|
 
 #### Stars Chip Trans (Inter-Chip Transmission Bandwidth Information)<a name="EN-US_TOPIC_0000002477303258"></a>
 
@@ -2006,7 +2132,7 @@ The inter-chip transmission bandwidth data does not contain summary information.
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|x|
@@ -2017,17 +2143,17 @@ The inter-chip transmission bandwidth data does not contain summary information.
 
 The following figure shows data on the **Stars Chip Trans** track in `msprof_*.json`.
 
-**Figure 1** Stars Chip Trans track<a name="en-us_topic_0000001750882752_fig16602113442510"></a>  
+**Figure 1** Stars Chip Trans track<a name="en-us_topic_0000001750882752_fig16602113442510"></a> 
 ![](../figures/Stars_Chip_Trans_track.png "Stars Chip Trans track")
 
 **Table 1** Field description
 
 |Field|Description|
 |--|--|
-|PA Link Rx|RX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Ascend 950 Products does not support this field.|
-|PA Link Tx|TX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. The Ascend 950 Products does not support this field.|
-|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Ascend 950 Products supports this field.|
-|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only the Ascend 950 Products supports this field.|
+|PA Link Rx|RX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Ascend 950 products do not support this field.|
+|PA Link Tx|TX level of the PA traffic. When collective communication bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Ascend 950 products do not support this field.|
+|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only Ascend 950 products support this field.|
+|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, avoid using this field as a reference, as it provides only coarse-grained statistics. Only Ascend 950 products support this field.|
 
 #### llc_read_write (L3 Cache Read/Write Rate)<a name="EN-US_TOPIC_0000002477463240"></a>
 
@@ -2037,7 +2163,7 @@ The timeline information of the L3 cache read/write rate data is displayed on th
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2064,7 +2190,7 @@ The following figure shows data on the **LLC** track in `msprof_*.json`.
 
 The following example shows the content format of `llc_read_write_*.csv`.
 
-**Figure 2** llc\_read\_write\_\*.csv<a name="en-us_topic_0000001750960004_fig1718935117257"></a>  
+**Figure 2** llc\_read\_write\_\*.csv<a name="en-us_topic_0000001750960004_fig1718935117257"></a> 
 ![](../figures/llc_read_write_-csv.png "llc_read_write_-csv")
 
 **Table 2** Field description
@@ -2085,7 +2211,7 @@ The DVPP data does not contain timeline information. The summary information is 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2096,7 +2222,7 @@ The DVPP data does not contain timeline information. The summary information is 
 
 The following example shows the content format of `dvpp_*.csv`.
 
-**Figure 1** dvpp\_\*.csv<a name="en-us_topic_0000001798325341_fig123751313132713"></a>  
+**Figure 1** dvpp\_\*.csv<a name="en-us_topic_0000001798325341_fig123751313132713"></a> 
 ![](../figures/dvpp_-csv.png "dvpp_-csv")
 
 **Table 1** Field description
@@ -2119,7 +2245,7 @@ The AICPU top function data does not contain timeline information. The summary i
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2130,7 +2256,7 @@ The AICPU top function data does not contain timeline information. The summary i
 
 The following example shows the content format of `ai_cpu_top_function_*.csv`.
 
-**Figure 1** ai\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798284377_fig20671163622713"></a>  
+**Figure 1** ai\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798284377_fig20671163622713"></a> 
 ![](../figures/ai_cpu_top_function_-csv.png "ai_cpu_top_function_-csv")
 
 **Table 1** Field description
@@ -2151,7 +2277,7 @@ The AICPU PMU event data does not contain timeline information. The summary info
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2162,7 +2288,7 @@ The AICPU PMU event data does not contain timeline information. The summary info
 
 The following example shows the content format of `ai_cpu_pmu_events_*.csv`.
 
-**Figure 1** ai\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751325686_fig9742143132713"></a>  
+**Figure 1** ai\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751325686_fig9742143132713"></a> 
 ![](../figures/ai_cpu_pmu_events_-csv.png "ai_cpu_pmu_events_-csv")
 
 **Table 1** Field description
@@ -2182,7 +2308,7 @@ The Ctrl CPU top function data does not contain timeline information. The summar
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2193,7 +2319,7 @@ The Ctrl CPU top function data does not contain timeline information. The summar
 
 The following example shows the content format of `ctrl_cpu_top_function_*.csv`.
 
-**Figure 1** ctrl\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798325349_fig116201349122718"></a>  
+**Figure 1** ctrl\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798325349_fig116201349122718"></a> 
 ![](../figures/ctrl_cpu_top_function_-csv.png "ctrl_cpu_top_function_-csv")
 
 **Table 1** Field description
@@ -2214,7 +2340,7 @@ The Ctrl CPU PMU event data does not contain timeline information. The summary i
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2225,7 +2351,7 @@ The Ctrl CPU PMU event data does not contain timeline information. The summary i
 
 The following example shows the content format of `ctrl_cpu_pmu_events_*.csv`.
 
-**Figure 1** ctrl\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751484602_fig01371555142714"></a>  
+**Figure 1** ctrl\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751484602_fig01371555142714"></a> 
 ![](../figures/ctrl_cpu_pmu_events_-csv.png "ctrl_cpu_pmu_events_-csv")
 
 **Table 1** Field description
@@ -2245,7 +2371,7 @@ The TS CPU top function data does not contain timeline information. The summary 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2256,7 +2382,7 @@ The TS CPU top function data does not contain timeline information. The summary 
 
 The following example shows the content format of `ts_cpu_top_function_*.csv`.
 
-**Figure 1** ts\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798284385_fig633819114286"></a>  
+**Figure 1** ts\_cpu\_top\_function\_\*.csv<a name="en-us_topic_0000001798284385_fig633819114286"></a> 
 ![](../figures/ts_cpu_top_function_-csv.png "ts_cpu_top_function_-csv")
 
 **Table 1** Field description
@@ -2276,7 +2402,7 @@ The TS CPU PMU event data does not contain timeline information. The summary inf
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|x|
+|Ascend 950 products|x|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2287,7 +2413,7 @@ The TS CPU PMU event data does not contain timeline information. The summary inf
 
 The following example shows the content format of `ts_cpu_pmu_events_*.csv`.
 
-**Figure 1** ts\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751325694_fig1666014619286"></a>  
+**Figure 1** ts\_cpu\_pmu\_events\_\*.csv<a name="en-us_topic_0000001751325694_fig1666014619286"></a> 
 ![](../figures/ts_cpu_pmu_events_-csv.png "ts_cpu_pmu_events_-csv")
 
 **Table 1** Field description
@@ -2307,7 +2433,7 @@ The host-side CPU utilization data is displayed on the **CPU Usage** track in `m
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2318,7 +2444,7 @@ The host-side CPU utilization data is displayed on the **CPU Usage** track in `m
 
 The following figure shows data on the **CPU Usage** track in `msprof_*.json`.
 
-**Figure 1** CPU Usage track<a name="en-us_topic_0000001751778214_fig03894179287"></a>  
+**Figure 1** CPU Usage track<a name="en-us_topic_0000001751778214_fig03894179287"></a> 
 ![](../figures/CPU_Usage_track.png "CPU Usage track")
 
 **Table 1** Field description
@@ -2327,13 +2453,13 @@ The following figure shows data on the **CPU Usage** track in `msprof_*.json`.
 |--|--|
 |CPU {ID}|CPU ID|
 |CPU Avg|Average CPU utilization|
-|usage|CPU utilization|
+|usage|Usage.|
 
 **host\_cpu\_usage\_\*.csv File<a name="en-us_topic_0000001751778214_section11791341554"></a>**
 
 The following example shows the content format of `host_cpu_usage_*.csv`.
 
-**Figure 2** host\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001751778214_fig1156013718322"></a>  
+**Figure 2** host\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001751778214_fig1156013718322"></a> 
 ![](../figures/host_cpu_usage_-csv.png "host_cpu_usage_-csv")
 
 **Table 2** Field description
@@ -2353,7 +2479,7 @@ Timeline information about host-side memory usage is displayed on the **Memory U
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2364,7 +2490,7 @@ Timeline information about host-side memory usage is displayed on the **Memory U
 
 The following figure shows data on the **Memory Usage** track in `msprof_*.json`.
 
-**Figure 1** Memory Usage track<a name="en-us_topic_0000001751619310_fig142149295285"></a>  
+**Figure 1** Memory Usage track<a name="en-us_topic_0000001751619310_fig142149295285"></a> 
 ![](../figures/Memory_Usage_track.png "Memory Usage track")
 
 **Table 1** Field description
@@ -2377,7 +2503,7 @@ The following figure shows data on the **Memory Usage** track in `msprof_*.json`
 
 The following example shows the content format of `host_mem_usage_*.csv`.
 
-**Figure 2** host\_mem\_usage\_\*.csv<a name="en-us_topic_0000001751619310_fig10818133753117"></a>  
+**Figure 2** host\_mem\_usage\_\*.csv<a name="en-us_topic_0000001751619310_fig10818133753117"></a> 
 ![](../figures/host_mem_usage_-csv.png "host_mem_usage_-csv")
 
 **Table 2** Field description
@@ -2397,7 +2523,7 @@ Timeline information about host-side drive I/O usage is displayed on the **Disk 
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2408,7 +2534,7 @@ Timeline information about host-side drive I/O usage is displayed on the **Disk 
 
 The following figure shows data on the **Disk Usage** track in `msprof_*.json`.
 
-**Figure 1** Disk Usage track<a name="en-us_topic_0000001798578961_fig2438443142810"></a>  
+**Figure 1** Disk Usage track<a name="en-us_topic_0000001798578961_fig2438443142810"></a> 
 ![](../figures/Disk_Usage_track.png "Disk Usage track")
 
 **Table 1** Field description
@@ -2421,7 +2547,7 @@ The following figure shows data on the **Disk Usage** track in `msprof_*.json`.
 
 The following example shows the content format of `host_disk_usage_*.csv`.
 
-**Figure 2** host\_disk\_usage\_\*.csv<a name="en-us_topic_0000001798578961_fig169961347312"></a>  
+**Figure 2** host\_disk\_usage\_\*.csv<a name="en-us_topic_0000001798578961_fig169961347312"></a> 
 ![](../figures/host_disk_usage_-csv.png "host_disk_usage_-csv")
 
 **Table 2** Field description
@@ -2442,7 +2568,7 @@ Timeline information about host-side network I/O usage is displayed on the **Net
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2453,7 +2579,7 @@ Timeline information about host-side network I/O usage is displayed on the **Net
 
 The following figure shows data on the **Network Usage** track in `msprof_*.json`.
 
-**Figure 1** Network Usage track<a name="en-us_topic_0000001798698005_fig9276175712815"></a>  
+**Figure 1** Network Usage track<a name="en-us_topic_0000001798698005_fig9276175712815"></a> 
 ![](../figures/Network_Usage_track.png "Network Usage track")
 
 **Table 1** Field description
@@ -2466,7 +2592,7 @@ The following figure shows data on the **Network Usage** track in `msprof_*.json
 
 The following example shows the content format of `host_network_usage_*.csv`.
 
-**Figure 2** host\_network\_usage\_\*.csv<a name="en-us_topic_0000001798698005_fig16572542193015"></a>  
+**Figure 2** host\_network\_usage\_\*.csv<a name="en-us_topic_0000001798698005_fig16572542193015"></a> 
 ![](../figures/host_network_usage_-csv.png "host_network_usage_-csv")
 
 **Table 2** Field description
@@ -2486,7 +2612,7 @@ Timeline information of the syscall and pthreadcall data on the host is displaye
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2497,7 +2623,7 @@ Timeline information of the syscall and pthreadcall data on the host is displaye
 
 The following figure shows data on the **OS Runtime API** track in `msprof_*.json`.
 
-**Figure 1** OS Runtime API track<a name="en-us_topic_0000001751778218_fig144942132296"></a>  
+**Figure 1** OS Runtime API track<a name="en-us_topic_0000001751778218_fig144942132296"></a> 
 ![](../figures/OS_runtime_API_track.png "OS runtime API track")
 
 **Table 1** Field description
@@ -2512,7 +2638,7 @@ The following figure shows data on the **OS Runtime API** track in `msprof_*.jso
 
 The following example shows the content format of `os_runtime_statistic_*.csv`.
 
-**Figure 2** os\_runtime\_statistic\_\*.csv<a name="en-us_topic_0000001751778218_fig1425753011116"></a>  
+**Figure 2** os\_runtime\_statistic\_\*.csv<a name="en-us_topic_0000001751778218_fig1425753011116"></a> 
 ![](../figures/os_runtime_statistic_-csv.png "os_runtime_statistic_-csv")
 
 **Table 2** Field description
@@ -2536,7 +2662,7 @@ The host-side system CPU utilization data does not contain timeline information.
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2547,7 +2673,7 @@ The host-side system CPU utilization data does not contain timeline information.
 
 The following example shows the content format of `cpu_usage_*.csv`.
 
-**Figure 1** cpu\_usage\_\*.csv<a name="en-us_topic_0000001751619314_fig514903822911"></a>  
+**Figure 1** cpu\_usage\_\*.csv<a name="en-us_topic_0000001751619314_fig514903822911"></a> 
 ![](../figures/cpu_usage_-csv-0.png "cpu_usage_-csv-0")
 
 **Table 1** Field description
@@ -2571,7 +2697,7 @@ The CPU utilization data of host-side processes does not contain timeline inform
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2582,7 +2708,7 @@ The CPU utilization data of host-side processes does not contain timeline inform
 
 The following example shows the content format of `process_cpu_usage_*.csv`.
 
-**Figure 1** process\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001798578965_fig18181124942913"></a>  
+**Figure 1** process\_cpu\_usage\_\*.csv<a name="en-us_topic_0000001798578965_fig18181124942913"></a> 
 ![](../figures/process_cpu_usage_-csv-1.png "process_cpu_usage_-csv-1")
 
 **Table 1** Field description
@@ -2602,7 +2728,7 @@ The host-side system memory usage data does not contain timeline information. Th
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2613,7 +2739,7 @@ The host-side system memory usage data does not contain timeline information. Th
 
 The following example shows the content format of `sys_mem_*.csv`.
 
-**Figure 1** sys\_mem\_\*.csv<a name="en-us_topic_0000001798698009_fig99825716297"></a>  
+**Figure 1** sys\_mem\_\*.csv<a name="en-us_topic_0000001798698009_fig99825716297"></a> 
 ![](../figures/sys_mem_-csv-2.png "sys_mem_-csv-2")
 
 **Table 1** Field description
@@ -2627,7 +2753,7 @@ The following example shows the content format of `sys_mem_*.csv`.
 |Cached(kB)|Cache size (KB)|
 |Share Memory(kB)|Shared memory (KB)|
 |Commit Limit(kB)|Virtual memory limit (KB)|
-|Committed AS(kB)|Committed memory (KB)|
+|Committed AS(kB)|Memory committed to the system (KB)|
 |Huge Pages Total(pages)|Total number of huge pages in the system|
 |Huge Pages Free(pages)|Total number of free huge pages in the system|
 
@@ -2639,7 +2765,7 @@ The memory usage data for processes on the host does not contain timeline inform
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -2650,7 +2776,8 @@ The memory usage data for processes on the host does not contain timeline inform
 
 The following example shows the content format of `process_mem_*.csv`.
 
-**Figure 1** process\_mem\_\*.csv<a name="en-us_topic_0000001800355893_fig31171443301"></a>  
+**Figure 1** process\_mem\_\*.csv<a name="en-us_topic_0000001800355893_fig31171443301"></a> 
+
 ![](../figures/en-us_image_0000002123036985.png)
 
 **Table 1** Field description
@@ -2672,7 +2799,7 @@ The following example shows the content format of `process_mem_*.csv`.
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 Products                  |    √     |
+| Ascend 950 products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    √     |
 | Atlas A2 training products/Atlas A2 inference products|    √     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2681,21 +2808,21 @@ The following example shows the content format of `process_mem_*.csv`.
 
 **File Description<a name="section13876175514481"></a>**
 
-**Figure 1** soc\_pmu\_\*.csv file<a name="fig1844571018213"></a>  
+**Figure 1** soc\_pmu\_\*.csv file<a name="fig1844571018213"></a> 
 ![](../figures/soc_pmu_-csv_file.png "soc_pmu_-csv file")
 
 **Table 1** Field description
 
 | Field       | Description                 |
 | ------------- | ------------------------- |
-| Device_id     | Device ID                 |
-| Stream Id     | Stream ID of the task  |
+| Device_id     | Device ID.                 |
+| Stream Id     | Stream ID of the task.  |
 | Task Id       | Task ID           |
 | TLB Miss Rate | TLB miss rate|
 | TLB Hit Rate  | TLB hit rate  |
-| Op Name       | Operator name               |
+| Op Name       | Operator name.               |
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > When a large number of operator tasks are delivered, the execution duration of each operator is 2 to 3 μs. In this case, the sum of `TLB Miss Rate` and `TLB Hit Rate` may not be 1.
 
@@ -2707,7 +2834,7 @@ Timeline information of the collective communication instructions is displayed o
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 Products                  |    √     |
+| Ascend 950 products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2718,12 +2845,13 @@ Timeline information of the collective communication instructions is displayed o
 
 The following figure shows data on the **CCU** track in `msprof_*.json`.
 
-**Figure 1** CCU track  
+**Figure 1** CCU track 
 ![ccu_track](../figures/ccu_track.png)
 
 **ccu\_mission\_\*.csv File<a name="section13876175514481"></a>**
 
-**Figure 1** ccu\_mission\_\*.csv<a name="fig1844571018213"></a>  
+**Figure 1** ccu\_mission\_\*.csv<a name="fig1844571018213"></a> 
+
 ![](../figures/en-us_image_0000002378234113.png)
 
 **Table 1** Field description
@@ -2748,7 +2876,7 @@ The bandwidth data of the collective communication unit (CCU) does not contain t
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 Products                  |    √     |
+| Ascend 950 products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2757,7 +2885,7 @@ The bandwidth data of the collective communication unit (CCU) does not contain t
 
 **File Description<a name="section13876175514481"></a>**
 
-**Figure 1** ccu\_channel\_\*.csv<a name="fig1844571018213"></a>  
+**Figure 1** ccu\_channel\_\*.csv<a name="fig1844571018213"></a> 
 
 ![](../figures/en-us_image_0000002386383444.png)
 
@@ -2780,7 +2908,7 @@ Timeline information of the UB bandwidth data is displayed on the **UB** track i
 
 | Product                                       | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 Products                  |    √     |
+| Ascend 950 products                  |    √     |
 | Atlas A3 training products/Atlas A3 inference products|    x     |
 | Atlas A2 training products/Atlas A2 inference products|    x     |
 | Atlas 200I/500 A2 inference products                 |    x     |
@@ -2791,7 +2919,7 @@ Timeline information of the UB bandwidth data is displayed on the **UB** track i
 
 The following figure shows data on the UB track in `msprof_*.json`.
 
-**Figure 1** UB track  
+**Figure 1** UB track
 
 ![img](../figures/UB_track.png)
 
@@ -2805,7 +2933,7 @@ The following figure shows data on the UB track in `msprof_*.json`.
 
 The following example shows the content format of `ub_*.csv`.
 
-**Figure 2** ub_*.csv  
+**Figure 2** ub_*.csv
 
 ![img](../figures/ub_csv.png)
 
@@ -2818,3 +2946,34 @@ The following example shows the content format of `ub_*.csv`.
 | TimeStamp               | Timestamp (μs)                |
 | UBRxPortBandWidth(MB/s) | UB RX bandwidth at the current time (MB/s)|
 | UBTxPortBandWidth(MB/s) | UB TX bandwidth at the current time (MB/s)|
+
+## PLATFORM_{timestamp}<a name="en-us_TOPIC_0000012509383185"></a>
+
+Currently, only the `platform.db` and `metrics.csv` files are included. The `platform.db` file is used for internal visualization and can be ignored. The `metrics.csv` file records the bandwidth information of each NUMA node in each time segment.
+
+This file is generated when the `msprof --host-sys=numa` parameter is configured during profile data collection.
+
+Currently, this data is used for internal visualization. You can ignore it.
+
+**Supported Products**
+
+| Product                                       | Supported|
+| ------------------------------------------- | :------: |
+| Ascend 950 products                        |    √     |
+| Atlas A3 training products/Atlas A3 inference products|    √     |
+| Atlas A2 training products/Atlas A2 inference products|    √     |
+| Atlas 200I/500 A2 inference products                 |    √     |
+| Atlas inference products                         |    √     |
+| Atlas training products                         |    √     |
+
+**`metrics.csv`**
+
+The following shows the file content of `metrics.csv`.
+
+**Table 1** Field description
+
+| Field| Description        |
+| ------ | ---------------- |
+| ts     | Timestamp        |
+| value  | Bandwidth        |
+| name   | Metric name of the event|

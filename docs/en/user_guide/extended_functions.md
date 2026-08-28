@@ -6,7 +6,7 @@
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -19,9 +19,9 @@ After collecting the profile data, use `get_msprof_info.py` to obtain device inf
 
 **Table 1** Script description
 
-|Script|Function|Directory|
-|--|--|--|
-|get_msprof_info.py|Obtains device information.|`${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/interface`. Replace `${INSTALL_DIR}` with the CANN installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.|
+|Script|Function| Directory                                                                                                                                                              |
+|--|--|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|get_msprof_info.py|Obtains device information.| `${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/interface`. Replace `${INSTALL_DIR}` with the CANN installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.|
 
 **Syntax<a name="en-us_topic_0000001276273570_section25968322563"></a>**
 
@@ -60,7 +60,7 @@ python3 get_msprof_info.py -dir <dir> [--help]
 
 In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_topic_0000001276273570_fig1935196101). Field descriptions are provided in [Table 3](#en-us_topic_0000001276273570_table293151916103). In cluster scenarios, a `/query/cluster_info.json` file is generated in the directory specified by the `-dir` option to store node information, as shown in [Figure 2](#en-us_topic_0000001276273570_fig095121901016). Field descriptions are provided in [Table 4](#en-us_topic_0000001276273570_table1095119171010).
 
-**Figure 1** Device information (non-cluster scenarios)<a name="en-us_topic_0000001276273570_fig1935196101"></a>  
+**Figure 1** Device information (non-cluster scenarios)<a name="en-us_topic_0000001276273570_fig1935196101"></a>
 ![](../figures/device_info_(non-cluster_scenarios).png "Device information (non-cluster scenarios)")
 
 **Table 3** Fields (non-cluster scenarios)<a name="en-us_topic_0000001276273570_table293151916103"></a>
@@ -98,7 +98,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 |collection_version|Collection version information|
 |drv_version|Driver version information|
 
-**Figure 2** Device information (cluster scenarios)<a name="en-us_topic_0000001276273570_fig095121901016"></a>  
+**Figure 2** Device information (cluster scenarios)<a name="en-us_topic_0000001276273570_fig095121901016"></a>
 ![](../figures/device_info_(cluster_scenarios).png "Device information (cluster scenarios)")
 
 **Table 4** Fields (cluster scenarios)<a name="en-us_topic_0000001276273570_table1095119171010"></a>
@@ -117,7 +117,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -158,7 +158,7 @@ The directory for storing the `msprof_slice.json` file is as follows:
 
 ### Overview
 
-The msProf parsing tool is encapsulated using `msprof.py`. You can directly use the [msProf parsing tool](msprof_parsing_instruct.md) to parse and export the profile data.
+The msProf parsing tool is encapsulated in the `msprof.py` script. You can directly use the [msProf parsing tool](msprof_parsing_instruct.md) to parse and export profile data.
 
 **Tool Usage Process**
 
@@ -171,7 +171,7 @@ To export profile data using `msprof.py`, perform the following steps:
 
 3. Export profile data by referring to [Exporting Profile Data](#exporting-profile-data).
 
->[!NOTE]Note
+>[!NOTE]
 >
 >- Direct parsing, querying, and exporting are not supported on the device for the Atlas 200I/500 A2 inference products in the Ascend RC scenario. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
 >
@@ -183,7 +183,7 @@ To export profile data using `msprof.py`, perform the following steps:
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -240,7 +240,7 @@ To export final timeline data or .db files, proceed to [Exporting Profile Data](
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -258,7 +258,7 @@ Before you run the query command, run the `import` command to parse the profile 
 **Syntax<a name="en-us_topic_0000001312709849_section1078215339441"></a>**
 
 ```bash
-python3 msprof.py query -dir <dir> 
+python3 msprof.py query -dir <dir>
 ```
 
 **Command-line Options<a name="en-us_topic_0000001312709849_section1358435054413"></a>**
@@ -312,7 +312,7 @@ After the command for querying profile data is executed, the results will be pri
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -389,7 +389,7 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
         python3 msprof.py export db -dir /home/HwHiAiUser/profiler_data/PROF_XXX
         ```
 
-    >[!NOTE]Note
+    >[!NOTE]
     >
     >- By default, all profile data is exported.
     >- In single-operator scenarios or scenarios where only Ascend AI Processor system data is collected (that is, the `--application` option is not specified in the `msprof` data collection command), the `--iteration-id` and `--model-id` options are not supported.
@@ -448,7 +448,7 @@ The following examples show the directory structure of the generated profile dat
                 └── README.txt
     ```
 
->[!NOTE]Note
+>[!NOTE]
 >
 >- In multi-device scenarios, if a single collection process is started, only one `PROF_XXX` directory is generated. If multiple processes are started, multiple `PROF_XXX` directories are generated. The device directories are created within these `PROF_XXX` directories. The specific number of device directories per `PROF_XXX` depends on the actual user operations and does not affect profile data analysis.
 >- For details about profile data, see [Profile Data File References](profile_data_file_references.md).
@@ -458,17 +458,19 @@ The following examples show the directory structure of the generated profile dat
 
 ## Performance Tuning Suggestions
 
->[!NOTE]Note
->This function provides tuning suggestions after msProf parses the profile data and is no longer being updated. For more advanced profile data analysis and tuning suggestions, see [msprof-analyze](https://gitcode.com/Ascend/mstt/tree/master/profiler/msprof_analyze/).
+> [!NOTE]
+> 
+> This function provides tuning suggestions after msProf parses the profile data and is no longer being updated. For more advanced profile data analysis and tuning suggestions, see [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md).
 
 **Supported Products<a name="en-us_topic_0000002441319698_section5889102116569"></a>**
 
->[!NOTE]Note
->For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> [!NOTE]
+> 
+> For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 |Product|Supported|
 |--|:-:|
-|Ascend 950 Products|√|
+|Ascend 950 products|√|
 |Atlas A3 training products/Atlas A3 inference products|√|
 |Atlas A2 training products/Atlas A2 inference products|√|
 |Atlas 200I/500 A2 inference products|√|
@@ -485,17 +487,17 @@ In cluster or multi-rank communication scenarios, performance tuning suggestions
 
     1. Check whether there is a rank in an iteration with a `Wait Time Ratio` greater than the threshold (`0.2`):
         1. If yes, a communication bottleneck exists in this iteration. For more information, see [1.2](#en-us_topic_0000002441319698_li137377801319).
-        2. If no, it can be preliminarily determined that no communication bottleneck exists in this iteration. Proceed to check the overall bandwidth usage.
+        2. If no, this iteration is unlikely to have a communication bottleneck. You can then check the overall bandwidth utilization.
 
     2. <a name="en-us_topic_0000002441319698_li137377801319"></a>Identify the rank with the maximum `Wait Time Ratio` and check whether its `Synchronization Time Ratio Before Transit` exceeds the threshold (`0.2`):
         1. If yes, a slow rank exists (the rank with the smallest `Wait Time Ratio`). Check its forward and backward calculation time. If this time is significantly longer than that of other cards, check for load imbalances or processor faults. If the calculation time is consistent with other ranks, check the data preprocessing time.
         2. If no, the links are abnormal. In this case, check for link failures or cases where the communication volume is too low.
 
-    >[!NOTE]Note
+    >[!NOTE]
     >- **Wait Time Ratio = Wait Time/(Wait Time + Transit Time)**. A higher `Wait Time Ratio` indicates that the wait duration of the rank accounts for a larger portion of the total communication duration, resulting in lower communication efficiency.
     >- **Synchronization Time Ratio Before Transit = Synchronization Time/(Synchronization Time + Transit Time)**. `Synchronization Time` refers to the synchronization duration before the first data transmission. A higher `Synchronization Time Ratio Before Transit` indicates lower communication efficiency and the possible existence of slow ranks.
 
-    **Figure 1** Communication duration-based suggestion<a name="en-us_topic_0000002441319698_fig37451988134"></a>  
+    **Figure 1** Communication duration-based suggestion<a name="en-us_topic_0000002441319698_fig37451988134"></a>
     ![](../figures/communication_duration-based_suggestion.png "Communication duration-based suggestion")
 
 2. Obtain optimization suggestions based on communication matrix analysis.
@@ -520,5 +522,5 @@ In cluster or multi-rank communication scenarios, performance tuning suggestions
     2. <a name="en-us_topic_0000002441319698_li78702451587"></a>If the communication packet ratio is greater than 0.8, the size of communication packets is normal. However, the link configuration may be incorrect or link degradation may exist. For more information, see [2.3](#en-us_topic_0000002441319698_li13870154517585).
     3. <a name="en-us_topic_0000002441319698_li13870154517585"></a>If the communication packet size is too small, the packets transmitted during each communication are undersized, leading to low bandwidth usage and a bandwidth bottleneck.
 
-    **Figure 2** Communication matrix-based suggestion<a name="en-us_topic_0000002441319698_fig1087154512584"></a>  
+    **Figure 2** Communication matrix-based suggestion<a name="en-us_topic_0000002441319698_fig1087154512584"></a>
     ![](../figures/communication_matrix-based_suggestion.png "Communication matrix-based suggestion")

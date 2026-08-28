@@ -10,7 +10,7 @@
 
   1. 通过命令行或 API 接口两种方式采集 Python GIL 数据。
   2. 将采集的 Python GIL 数据进行后处理，转换为Chrome Trace Json格式。
-  3. 联合 Profiler 数据导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)，进行可视化展示，Profiler 数据采集可参见 [msProf性能数据采集](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/preparation/before_you_start.md)。
+  3. 联合 Profiler 数据导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)，进行可视化展示，Profiler 数据采集可参见 [msProf性能数据采集](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/devaids/Profiling/atlasprofiling_16_0010.html)。
 
 ## 使用前准备
 
