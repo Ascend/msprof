@@ -1,0 +1,180 @@
+name: PR-pipeline_full
+
+on:
+  # PR 流水线通过 PR 评论 /compile 触发，不在 PR 打开/更新时自动运行
+  pull_request:
+    types: [open, update]
+    branches: [ '*' ]
+  pull_request_comment:
+    types: [created]
+    branches: [ '*' ]
+    comments: [ '^(?:\/)?compile*' ]
+  workflow_dispatch:
+
+env:
+  # 入口 workflow 中系统上下文必须放在 env（PR 触发时 inputs 不会被自动填充）
+  REPO_NAME: ${{ atomgit.event.repository.name }}
+  ORG_NAME: ${{ atomgit.repository_owner }}
+  REMOTE_URL: ${{ atomgit.repositoryurl }}
+  PR_ID: ${{ atomgit.event.pull_request.number }}
+  TARGET_BRANCH: ${{ atomgit.event.pull_request.base.ref }}
+
+stages:
+  stage_0:
+    name: CodeCheck
+    select: selected_by_default
+    jobs:
+      Detect_file_changes:
+        name: Detect_file_changes
+        runs-on: [ dedicate-hosted, x64, large ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/huawei-ascend/demo_mindx:mindxdl_20230912_1
+          options: --user root
+        outputs:
+          need_build: ${{ steps.set-skip.outputs.need_build }}
+        steps:
+          - name: git upgrade
+            run: |
+              apt-get update
+              apt-get install -y software-properties-common
+              add-apt-repository ppa:git-core/ppa -y
+              apt-get update
+              apt-get install -y git
+              git --version
+          - name: checkout
+            uses: checkout
+            with:
+              ref: ${{ atomgit.event.pull_request.merge_commit_sha || '' }}
+              fetch-depth: 0
+          - name: Only_doc_commit
+            id: filter
+            uses: paths-changes-filter
+            with:
+              event-name: 'pull_request'
+              base: ${{ atomgit.event.pull_request.base.ref }}
+              repo: ${{ atomgit.repository }}
+              number: ${{ env.PR_ID }}
+              token: ${{ atomgit.ATOMGIT_TOKEN }}
+              list-files: json
+              predicate-quantifier: every
+              filters: |
+                changed:
+                  - '**'
+                non-doc:
+                  - '!**.md'
+                  - '!**.rst'
+                  - '!**.log'
+                  - '!**.png'
+                  - '!**.jpg'
+                  - '!**.doc'
+                  - '!**.eddx'
+                  - '!**.svg'
+          - name: set build skip flag
+            id: set-skip
+            run: |
+              echo "changed: ${{ steps.filter.outputs.changed_files }}"
+              echo "non-doc: ${{ steps.filter.outputs.non-doc }}"
+              if [ "${{ steps.filter.outputs.non-doc }}" = "true" ]; then
+                echo "need_build=yes" >> "$ATOMGIT_OUTPUT"
+              else
+                echo "need_build=no" >> "$ATOMGIT_OUTPUT"
+              fi
+
+      pre-commit:
+        name: pre_commit
+        runs-on: [ dedicate-hosted, x64, large ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          options: --user root
+        steps:
+          - name: checkout
+            uses: checkout
+            with:
+              ref: ${{ atomgit.event.pull_request.merge_commit_sha || '' }}
+          - name: gitleaks install
+            run: |
+              wget -q --no-host-directories -c --no-check-certificate https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta-codecheck/gitleaks
+              chmod +x gitleaks
+              cp gitleaks /usr/local/bin/
+              gitleaks version
+          - name: setup python
+            run: |
+              ln -sf /usr/local/bin/python3.11 /usr/bin/python
+              python --version
+              ls -al
+          - name: run pre-commit
+            uses: openlibing-pre-commit-action
+
+  stage_1:
+    name: build
+    select: selected_by_default
+    jobs:
+      Build_msprof_x86:
+        name: Build_msprof_x86
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.build_mindstudio_job.yml
+        with:
+          IMAGE_FLAG: "mindstudio-build:26.1.0"
+          runs_on_arch: "x64"
+          ARTIFACT_NAME: "msprof-run-x86-test"
+
+      Build_msprof_arm:
+        name: Build_msprof_arm
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.build_mindstudio_job.yml
+        with:
+          IMAGE_FLAG: "mindstudio-build:26.1.0"
+          runs_on_arch: "arm64"
+          ARTIFACT_NAME: "msprof-run-arm-test"
+
+      Build_msprof_x86_zijie:
+        name: Build_msprof_x86_zijie
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.build_job.yml
+        with:
+          IMAGE_FLAG: "mindstudio-build:26.1.0-20260530-amd64"
+          runs_on_arch: "x64"
+          ARTIFACT_NAME: "msprof-run-x86-zijie"
+
+      Build_msprof_arm_zijie:
+        name: Build_msprof_arm_zijie
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.build_job.yml
+        with:
+          IMAGE_FLAG: "mindstudio-build:26.1.0-20260530-arm64"
+          runs_on_arch: "arm64"
+          ARTIFACT_NAME: "msprof-run-arm-zijie"
+
+  stage_2:
+    name: UT
+    select: selected_by_default
+    jobs:
+      UT_msprof:
+        name: UT_msprof
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.ut_mindstudio_job.yml
+        with:
+          IMAGE_FLAG: "mindstudio-build:26.1.0"
+          runs_on_arch: "x64"
+
+      UT_msprof_147:
+        name: UT_msprof_147
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.ut_job.yml
+        secrets:
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+        with:
+          IMAGE_FLAG: "att_image:ms_monitor_ubuntu_x86_0.6"
+          runs_on_arch: "x64"
+
+      PreSmoke_msprof:
+        name: PreSmoke_msprof
+        # l0_ascend_msprof_communication 用例需要 2 张 NPU（device 0/1），
+        # 单卡 self-hosted runner 上该用例必失败（环境限制），故不阻断流水线
+        continue-on-error: true
+        if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
+        uses: .gitcode/workflows/.presmoke.yml
+        with:
+          IMAGE_FLAG: "mindstudio-st-msprof:26.1.0-0708-test3"
+          runs_on_arch: "arm64"
+          ARTIFACT_NAME: "msprof-run-arm-zijie"
