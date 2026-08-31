@@ -40,6 +40,8 @@ using StepTraceDataFormat = std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, u
 using TaskMemcpyDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t>;
 // timestamp stream_id task_id block_num
 using BlockNumDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint32_t>;
+// stream_id timestamp task_id flip_num
+using TaskFlipDataFormat = std::tuple<uint32_t, double, uint32_t, uint16_t>;
 const std::vector<TaskTypeDataFormat> TASK_TYPE_DATA{};
 const std::vector<StepTraceDataFormat> STEP_TRACE_DATA{};
 const std::vector<TaskMemcpyDataFormat> TS_MEMCPY_DATA{};
@@ -50,6 +52,7 @@ const int BLOCK_NUM_SIZE = 15;
 const int TASK_TYPE_SIZE = 10;
 const int TS_MEMCPY_SIZE = 9;
 const int STEP_TRACE_SIZE = 8;
+const int TASK_FLIP_SIZE = 3;
 }
 
 class TsTrackPersistenceUtest : public testing::Test {
@@ -129,6 +132,21 @@ protected:
         return ans;
     }
 
+    std::vector<HalTrackData> CreateHalTaskFlip()
+    {
+        std::vector<HalTrackData> ans;
+        for (int i = 0; i < TASK_FLIP_SIZE; i++) {
+            HalTrackData trackData{};
+            trackData.type = HalTrackType::TS_TASK_FLIP;
+            trackData.hd.timestamp = 110 + i;
+            trackData.hd.taskId.taskId = 20 + i;
+            trackData.hd.taskId.streamId = 30 + i;
+            trackData.flip.flipNum = 40 + i;
+            ans.emplace_back(std::move(trackData));
+        }
+        return ans;
+    }
+
 protected:
     DataInventory dataInventory_;
 };
@@ -171,21 +189,52 @@ TEST_F(TsTrackPersistenceUtest, ReturnSuccessWhenOnlyBlockNum)
     ASSERT_EQ(BLOCK_NUM_SIZE, blockNumDatas.size());
 }
 
+TEST_F(TsTrackPersistenceUtest, ReturnSuccessAndConvertedTimestampWhenOnlyTaskFlip)
+{
+    auto taskFlip = CreateHalTaskFlip();
+    auto halTrackData = dataInventory_.GetPtr<std::vector<HalTrackData>>();
+    halTrackData->swap(taskFlip);
+
+    TsTrackPersistence tsTrackPersistence;
+    DeviceContext deviceContext;
+    deviceContext.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    deviceContext.deviceContextInfo.deviceInfo.hwtsFrequency = 1000;
+    deviceContext.deviceContextInfo.deviceStart.cntVct = 100;
+    deviceContext.deviceContextInfo.hostStartLog.clockMonotonicRaw = 1000;
+    ASSERT_EQ(ANALYSIS_OK, tsTrackPersistence.Run(dataInventory_, deviceContext));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, STEP_TRACE_DB_PATH);
+    std::vector<TaskFlipDataFormat> taskFlipData;
+    EXPECT_TRUE(dbRunner->QueryData(
+        "SELECT stream_id, timestamp, task_id, flip_num FROM DeviceTaskFlip ORDER BY task_id", taskFlipData));
+    ASSERT_EQ(TASK_FLIP_SIZE, taskFlipData.size());
+    EXPECT_EQ(30u, std::get<0>(taskFlipData.front()));
+    EXPECT_DOUBLE_EQ(1010.0, std::get<1>(taskFlipData.front()));
+    EXPECT_EQ(20u, std::get<2>(taskFlipData.front()));
+    EXPECT_EQ(40, std::get<3>(taskFlipData.front()));
+}
+
 TEST_F(TsTrackPersistenceUtest, ReturnSuccessWhenMultiTypeData)
 {
     auto halTaskType = CreateHalTaskType();
     auto halTsMemcpy = CreateHalTsMemcpy();
     auto halStepTrace = CreateHalStepTrace();
     auto halBlockNum = CreateHalBlockNum();
+    auto halTaskFlip = CreateHalTaskFlip();
     halTaskType.insert(halTaskType.begin(), halTsMemcpy.begin(), halTsMemcpy.end());
     halTaskType.insert(halTaskType.begin(), halStepTrace.begin(), halStepTrace.end());
     halTaskType.insert(halTaskType.begin(), halBlockNum.begin(), halBlockNum.end());
+    halTaskType.insert(halTaskType.begin(), halTaskFlip.begin(), halTaskFlip.end());
     auto halTrackData = dataInventory_.GetPtr<std::vector<HalTrackData>>();
     halTrackData->swap(halTaskType);
 
     TsTrackPersistence tsTrackPersistence;
     DeviceContext deviceContext;
     deviceContext.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    deviceContext.deviceContextInfo.deviceInfo.hwtsFrequency = 1000;
+    deviceContext.deviceContextInfo.deviceStart.cntVct = 100;
+    deviceContext.deviceContextInfo.hostStartLog.clockMonotonicRaw = 1000;
     ASSERT_EQ(ANALYSIS_OK, tsTrackPersistence.Run(dataInventory_, deviceContext));
 
     std::shared_ptr<DBRunner> dbRunner;
@@ -206,6 +255,10 @@ TEST_F(TsTrackPersistenceUtest, ReturnSuccessWhenMultiTypeData)
     std::vector<BlockNumDataFormat> blockNumDatas;
     EXPECT_TRUE(dbRunner->QueryData("SELECT * from TsBlockNum", blockNumDatas));
     ASSERT_EQ(BLOCK_NUM_SIZE, blockNumDatas.size());
+
+    std::vector<TaskFlipDataFormat> taskFlipDatas;
+    EXPECT_TRUE(dbRunner->QueryData("SELECT * from DeviceTaskFlip", taskFlipDatas));
+    ASSERT_EQ(TASK_FLIP_SIZE, taskFlipDatas.size());
 }
 
 TEST_F(TsTrackPersistenceUtest, TestRunShouldReturnErrorWhenDataIsNull)

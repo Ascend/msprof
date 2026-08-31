@@ -77,12 +77,10 @@ protected:
 TEST_F(StepTraceProcessUtest, ShouldRunSuccessWhenInputDataIsValid)
 {
     int expectModelNum = 2;
-    int expectTrainingTraceNum1 = 1;
     int expectAllReduceNum1 = 0;
     int expectGetNextNum1 = 0;
-    int expectTrainingTraceNum2 = 1;
     int expectAllReduceNum2 = 2;
-    int expectGetNextNum2 = 1;
+    int expectGetNextNum2 = 2;
     DataInventory dataInventory_;
     auto data = std::make_shared<std::vector<HalTrackData>>();
     data->emplace_back(CreateHalTrackData(2, 20000, 33)); // 2, 20000, 33
@@ -114,11 +112,13 @@ TEST_F(StepTraceProcessUtest, ShouldRunSuccessWhenInputDataIsValid)
     auto stepData = dataInventory_.GetPtr<std::map<uint32_t, std::vector<StepTraceTasks>>>();
     auto stepDataRef = *stepData;
     ASSERT_EQ(stepDataRef.size(), expectModelNum);
-    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.size(), expectTrainingTraceNum1);
+    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.start, 18ul);
+    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.end, 19ul);
     ASSERT_EQ(stepDataRef[MODEL1][INDEX0].allReduceTable.size(), expectAllReduceNum1);
     ASSERT_EQ(stepDataRef[MODEL1][INDEX0].getNextTable.size(), expectGetNextNum1);
 
-    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.size(), expectTrainingTraceNum2);
+    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.start, 40ul);
+    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.end, 55ul);
     ASSERT_EQ(stepDataRef[MODEL2][INDEX0].allReduceTable.size(), expectAllReduceNum2);
     ASSERT_EQ(stepDataRef[MODEL2][INDEX0].getNextTable.size(), expectGetNextNum2);
 }
@@ -151,11 +151,9 @@ TEST_F(StepTraceProcessUtest, ShouldRunSuccessWhenInputDataIsValid)
 TEST_F(StepTraceProcessUtest, ShouldRunSuccessWhenInputContainsExceptionalData)
 {
     int expectModelNum = 2;
-    int expectTrainingTraceNum1 = 1;
     int expectIndexNum1 = 1;
-    int expectTrainingTraceNum2 = 1;
     int expectAllReduceNum2 = 2;
-    int expectGetNextNum2 = 1;
+    int expectGetNextNum2 = 3;
     int expectIndexNum2 = 2;
     DataInventory dataInventory_;
     auto data = std::make_shared<std::vector<HalTrackData>>();
@@ -193,10 +191,12 @@ TEST_F(StepTraceProcessUtest, ShouldRunSuccessWhenInputContainsExceptionalData)
     auto stepData = dataInventory_.GetPtr<std::map<uint32_t, std::vector<StepTraceTasks>>>();
     auto stepDataRef = *stepData;
     ASSERT_EQ(stepDataRef.size(), expectModelNum);
-    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.size(), expectTrainingTraceNum1);
+    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.start, 18ul);
+    ASSERT_EQ(stepDataRef[MODEL1][INDEX0].trainingTrace.end, 19ul);
     ASSERT_EQ(stepDataRef[MODEL1].size(), expectIndexNum1);
 
-    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.size(), expectTrainingTraceNum2);
+    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.start, 40ul);
+    ASSERT_EQ(stepDataRef[MODEL2][INDEX0].trainingTrace.end, 55ul);
     ASSERT_EQ(stepDataRef[MODEL2][INDEX0].allReduceTable.size(), expectAllReduceNum2);
     ASSERT_EQ(stepDataRef[MODEL2][INDEX0].getNextTable.size(), expectGetNextNum2);
     ASSERT_EQ(stepDataRef[MODEL2].size(), expectIndexNum2);

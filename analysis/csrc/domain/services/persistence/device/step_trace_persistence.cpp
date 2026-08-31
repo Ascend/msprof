@@ -15,9 +15,12 @@
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/services/persistence/device/step_trace_persistence.h"
 
+#include <algorithm>
+
 #include "analysis/csrc/domain/services/modeling/step_trace/include/step_trace_process.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/process/include/process_register.h"
 
 namespace Analysis
 {
@@ -36,13 +39,18 @@ StepTraceDataVectorFormat GenerateStepTraceData(std::map<uint32_t, std::vector<S
     for (auto& it : stepTraceTask)
     {
         auto model_id = it.first;
-        uint32_t iter_id = 0;
         for (const auto& element : it.second)
         {
-            processedData.emplace_back(element.indexId, model_id, element.stepTrace.start, element.stepTrace.end,
-                                       iter_id);
-            iter_id++;
+            processedData.emplace_back(element.indexId, model_id, element.stepTrace.start, element.stepTrace.end, 0);
         }
+    }
+    std::sort(processedData.begin(), processedData.end(),
+              [](const StepTraceDataVectorFormat::value_type& lhs, const StepTraceDataVectorFormat::value_type& rhs)
+              { return std::get<3>(lhs) < std::get<3>(rhs); });
+    uint64_t iterId = 1;
+    for (auto& data : processedData)
+    {
+        std::get<4>(data) = iterId++;
     }
     return processedData;
 }

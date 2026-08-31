@@ -19,19 +19,21 @@
 
 #include <cstdint>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 #define PARSER_ITEM_TASK_FLIP 0x0e
 
 #pragma pack(1)
-struct TaskFlip {
+struct TaskFlip
+{
     uint8_t resv1;
     uint8_t funcType;
     uint16_t resv2;
     uint32_t resv3;
     uint64_t timestamp;
-    uint16_t streamId : 11;
-    uint16_t resv4 : 5;
+    uint16_t streamId;
     uint16_t flipNum;
     uint16_t resv5;
     uint16_t taskId;
@@ -40,6 +42,6 @@ struct TaskFlip {
 #pragma pack()
 
 int TaskFlipParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
-}
-}
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_TASK_FLIP_PARSER_ITEM_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_TASK_FLIP_PARSER_ITEM_H

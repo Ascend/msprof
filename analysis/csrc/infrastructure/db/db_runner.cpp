@@ -47,12 +47,22 @@ bool DBRunner::CheckTableExists(const std::string &tableName)
 
 bool DBRunner::CreateTable(const std::string &tableName, const std::vector<TableColumn> &cols) const
 {
+    return CreateTableWithConstraints(tableName, cols, {});
+}
+
+bool DBRunner::CreateTableWithConstraints(const std::string &tableName, const std::vector<TableColumn> &cols,
+                                          const std::vector<std::string> &constraints) const
+{
     if (tableName.empty())
     {
         ERROR("The tableName is empty string");
         return false;
     }
     std::string valuesStr = GetColumnsString(cols);
+    if (!constraints.empty())
+    {
+        valuesStr += ", " + Join(constraints, ", ");
+    }
     std::string sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + valuesStr + ");";
     INFO("Start create %, sql is %.", tableName, sql);
     std::shared_ptr<Connection> conn;

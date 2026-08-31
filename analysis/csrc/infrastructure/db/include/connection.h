@@ -16,30 +16,35 @@
 #ifndef ANALYSIS_VIEWER_DATABASE_CONNECTION_H
 #define ANALYSIS_VIEWER_DATABASE_CONNECTION_H
 
-#include <iostream>
 #include <sqlite3.h>
-#include <vector>
-#include <string>
+
+#include <initializer_list>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
-#include <initializer_list>
 #include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/infrastructure/dfx/log.h"
 
-namespace Analysis {
-namespace Infra {
+namespace Analysis
+{
+namespace Infra
+{
 using namespace Analysis;
 using CHAR_PTR = char *;
 const int TIMEOUT = 2147483647;
-struct TableColumn {
+struct TableColumn
+{
     std::string name;
     std::string type;
     bool isPrimary = false;
     TableColumn(const std::string &name, const std::string &type, const bool isPrimary = false)
         : name(name), type(type), isPrimary(isPrimary)
-    {}
+    {
+    }
     std::string ToString() const
     {
         std::string base = name + " " + type;
@@ -47,29 +52,32 @@ struct TableColumn {
         return str;
     }
 
-    bool operator==(const TableColumn& other) const
-    {
-        return (name == other.name) && (type == other.type);
-    }
+    bool operator==(const TableColumn &other) const { return (name == other.name) && (type == other.type); }
 };
 
-template<size_t... S>
-struct IndexSequence {};
+template <size_t... S>
+struct IndexSequence
+{
+};
 
-template<size_t N, size_t... S>
-struct IndexSequenceMaker : public IndexSequenceMaker<N - 1, N - 1, S...> {};
+template <size_t N, size_t... S>
+struct IndexSequenceMaker : public IndexSequenceMaker<N - 1, N - 1, S...>
+{
+};
 
-template<size_t... S>
-struct IndexSequenceMaker<0, S...> {
+template <size_t... S>
+struct IndexSequenceMaker<0, S...>
+{
     using Type = IndexSequence<S...>;
 };
 
-template<size_t N>
+template <size_t N>
 using MakeIndexSequence = typename IndexSequenceMaker<N>::Type;
 
 // 数据库连接对象，当前版本以sqlite3实现
-class Connection {
-public:
+class Connection
+{
+   public:
     explicit Connection(const std::string &path);
     ~Connection();
     bool IsDBOpened() const { return db_ != nullptr; }
@@ -78,15 +86,15 @@ public:
     bool ExecuteCreateTable(const std::string &sql);
     bool ExecuteCreateIndex(const std::string &sql);
     bool ExecuteDropTable(const std::string &sql);
-    template<typename... Args>
+    template <typename... Args>
     bool ExecuteInsert(const std::string &tableName, const std::vector<std::tuple<Args...>> &data);
     bool ExecuteDelete(const std::string &sql);
-    template<typename... Args>
+    template <typename... Args>
     bool ExecuteQuery(const std::string &sql, std::vector<std::tuple<Args...>> &result);
     bool ExecuteUpdate(const std::string &sql);
     std::vector<TableColumn> ExecuteGetTableColumns(const std::string &tableName);
 
-private:
+   private:
     bool InsertCmd(const std::string &tableName, const uint32_t &colNum);
     void FinalizeStmt();
     void BindParameters(int64_t value);
@@ -95,11 +103,12 @@ private:
     void BindParameters(uint32_t value);
     void BindParameters(double value);
     void BindParameters(std::string value);
-    template<typename T, size_t... S>
+    void BindParameters(std::nullptr_t value);
+    template <typename T, size_t... S>
     void ExecuteInsertHelper(T &row, IndexSequence<S...>);
-    template<typename T>
+    template <typename T>
     int ExecuteInsertHelperHelper(T t);
-    template<typename T>
+    template <typename T>
     void InsertRow(T &row);
 
     bool QueryCmd(const std::string &sql);
@@ -110,77 +119,81 @@ private:
     void GetColumn(uint16_t &value);
     void GetColumn(double &value);
     void GetColumn(std::string &value);
-    template<typename T, size_t... S>
+    template <typename T, size_t... S>
     void ExecuteQueryHelper(T &row, IndexSequence<S...>);
-    template<typename T>
+    template <typename T>
     int ExecuteQueryHelperHelper(T &t);
-    template<typename T>
+    template <typename T>
     void GetRow(T &row);
 
-private:
+   private:
     int index_ = 0;
     sqlite3 *db_ = nullptr;
     sqlite3_stmt *stmt_ = nullptr;
 };
 
-template<typename T>
+template <typename T>
 int Connection::ExecuteInsertHelperHelper(T t)
 {
     BindParameters(t);
     return 0;
 }
 
-template<typename T, size_t... S>
+template <typename T, size_t... S>
 void Connection::ExecuteInsertHelper(T &row, IndexSequence<S...>)
 {
-    std::initializer_list<int> {(ExecuteInsertHelperHelper(std::get<S>(row)), 0)...};
+    std::initializer_list<int>{(ExecuteInsertHelperHelper(std::get<S>(row)), 0)...};
 }
 
-template<typename T>
+template <typename T>
 void Connection::InsertRow(T &row)
 {
     using TupleType = typename std::decay<T>::type;
     ExecuteInsertHelper(row, MakeIndexSequence<std::tuple_size<TupleType>::value>{});
 }
 
-template<typename T>
+template <typename T>
 int Connection::ExecuteQueryHelperHelper(T &t)
 {
     GetColumn(t);
     return 0;
 }
 
-template<typename T, size_t... S>
+template <typename T, size_t... S>
 void Connection::ExecuteQueryHelper(T &row, IndexSequence<S...>)
 {
-    std::initializer_list<int> {(ExecuteQueryHelperHelper(std::get<S>(row)), 0)...};
+    std::initializer_list<int>{(ExecuteQueryHelperHelper(std::get<S>(row)), 0)...};
 }
 
-template<typename T>
+template <typename T>
 void Connection::GetRow(T &row)
 {
     using TupleType = typename std::decay<T>::type;
     ExecuteQueryHelper(row, MakeIndexSequence<std::tuple_size<TupleType>::value>{});
 }
 
-template<typename... Args>
+template <typename... Args>
 bool Connection::ExecuteInsert(const std::string &tableName, const std::vector<std::tuple<Args...>> &data)
 {
     uint32_t colNum = sizeof...(Args);
     // 开启事务
     sqlite3_exec(db_, "BEGIN", nullptr, nullptr, nullptr);
-    if (!InsertCmd(tableName, colNum)) {
+    if (!InsertCmd(tableName, colNum))
+    {
         return false;
     }
     // 绑定参数
-    for (const auto &row: data) {
+    for (const auto &row : data)
+    {
         index_ = 0;
         sqlite3_reset(stmt_);
         InsertRow(row);
         auto rc = sqlite3_step(stmt_);
-        if (rc != SQLITE_DONE) {
+        if (rc != SQLITE_DONE)
+        {
             // 插入失败，回滚事务
-            if (sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr)) {
+            if (sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr))
+            {
                 ERROR("sqlite3_exec return %: rollback failed!", rc);
             }
             std::string errorMsg = "Failed to insert data: " + std::string(sqlite3_errmsg(db_));
@@ -193,16 +206,20 @@ bool Connection::ExecuteInsert(const std::string &tableName, const std::vector<s
     return true;
 }
 
-template<typename... Args>
+template <typename... Args>
 bool Connection::ExecuteQuery(const std::string &sql, std::vector<std::tuple<Args...>> &result)
 {
-    if (!QueryCmd(sql)) {
+    if (!QueryCmd(sql))
+    {
         return false;
     }
-    while (true) {
+    while (true)
+    {
         auto rc = sqlite3_step(stmt_);
-        if (rc != SQLITE_ROW) {
-            if (rc != SQLITE_DONE) {
+        if (rc != SQLITE_ROW)
+        {
+            if (rc != SQLITE_DONE)
+            {
                 std::string errorMsg = "Failed to query data: " + std::string(sqlite3_errmsg(db_));
                 ERROR("sqlite3_step return %, %", rc, errorMsg);
                 return false;
@@ -216,7 +233,7 @@ bool Connection::ExecuteQuery(const std::string &sql, std::vector<std::tuple<Arg
     }
     return true;
 }
-} // Infra
-} // Analysis
+}  // namespace Infra
+}  // namespace Analysis
 
-#endif // ANALYSIS_VIEWER_DATABASE_CONNECTION_H
+#endif  // ANALYSIS_VIEWER_DATABASE_CONNECTION_H

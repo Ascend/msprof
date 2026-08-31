@@ -20,6 +20,7 @@
 
 #include "analysis/csrc/domain/services/modeling/step_trace/include/step_trace_process.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "persistence_utils.h"
 
 namespace Analysis
@@ -39,6 +40,13 @@ const uint16_t STEP_TIME_STEP_END_INDEX = 3;
 }  // namespace
 // device_id, model_id, index_id, iteration_end, start, end
 using AllReduceFormat = std::vector<std::tuple<uint32_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t>>;
+using AllReduceNullEndFormat =
+    std::vector<std::tuple<uint32_t, uint64_t, uint32_t, uint64_t, uint64_t, std::nullptr_t>>;
+struct AllReduceData
+{
+    AllReduceFormat completed;
+    AllReduceNullEndFormat incomplete;
+};
 // model_id, index_id, start_time, end_time
 using GetNextFormat = std::vector<std::tuple<uint64_t, uint32_t, uint64_t, uint64_t>>;
 // device_id, model_id, iteration_id, FP_start, BP_end, iteration_end, iteration_time, fp_bp_time, grad_refresh_bound,
@@ -53,7 +61,7 @@ bool CompareStepEnd(const TrainingTraceInnerFormat &a, const TrainingTraceInnerF
     return std::get<STEP_END_INDEX>(a) < std::get<STEP_END_INDEX>(b);
 }
 
-void ProcessSingleAllReduce(const StepTraceTasks &stepTraceTask, AllReduceFormat &processedData, uint32_t modelId,
+void ProcessSingleAllReduce(const StepTraceTasks &stepTraceTask, AllReduceData &processedData, uint32_t modelId,
                             uint32_t deviceId)
 {
     for (auto reduceList = stepTraceTask.allReduceTable.begin(); reduceList != stepTraceTask.allReduceTable.end();
@@ -61,15 +69,23 @@ void ProcessSingleAllReduce(const StepTraceTasks &stepTraceTask, AllReduceFormat
     {
         for (const auto &eachReduce : reduceList->second)
         {
-            processedData.emplace_back(deviceId, modelId, stepTraceTask.indexId, stepTraceTask.stepTrace.end,
-                                       eachReduce.start, eachReduce.end);
+            if (eachReduce.end)
+            {
+                processedData.completed.emplace_back(deviceId, modelId, stepTraceTask.indexId,
+                                                     stepTraceTask.stepTrace.end, eachReduce.start, eachReduce.end);
+            }
+            else
+            {
+                processedData.incomplete.emplace_back(deviceId, modelId, stepTraceTask.indexId,
+                                                      stepTraceTask.stepTrace.end, eachReduce.start, nullptr);
+            }
         }
     }
 }
 
-AllReduceFormat GenerateAllReduce(std::map<uint32_t, std::vector<StepTraceTasks>> &stepTraceTask, uint32_t deviceId)
+AllReduceData GenerateAllReduce(std::map<uint32_t, std::vector<StepTraceTasks>> &stepTraceTask, uint32_t deviceId)
 {
-    AllReduceFormat processedData;
+    AllReduceData processedData;
     for (auto &it : stepTraceTask)
     {
         auto modelId = it.first;
@@ -83,11 +99,30 @@ AllReduceFormat GenerateAllReduce(std::map<uint32_t, std::vector<StepTraceTasks>
 
 void ProcessSingleGetNext(const StepTraceTasks &stepTraceTask, GetNextFormat &processedData, uint32_t modelId)
 {
-    for (auto nextList = stepTraceTask.getNextTable.begin(); nextList != stepTraceTask.getNextTable.end(); nextList++)
+    for (const auto &nextList : stepTraceTask.getNextTable)
     {
-        for (const auto &eachNext : nextList->second)
+        const auto &starts = nextList.second.starts;
+        const auto &ends = nextList.second.ends;
+        size_t startIndex = 0;
+        size_t endIndex = 0;
+        while (startIndex < starts.size() && endIndex < ends.size())
         {
-            processedData.emplace_back(modelId, stepTraceTask.indexId, eachNext.start, eachNext.end);
+            auto start = starts[startIndex++];
+            auto end = ends[endIndex++];
+            while (endIndex < ends.size() && end < start)
+            {
+                end = ends[endIndex++];
+            }
+            while (startIndex < starts.size() && starts[startIndex] <= end)
+            {
+                start = starts[startIndex++];
+            }
+            processedData.emplace_back(modelId, stepTraceTask.indexId, start, end);
+        }
+        if (startIndex < starts.size() || endIndex < ends.size())
+        {
+            WARN("GetNext data mismatch, model id: %, index id: %, start remain: %, end remain: %", modelId,
+                 stepTraceTask.indexId, starts.size() - startIndex, ends.size() - endIndex);
         }
     }
 }
@@ -131,18 +166,19 @@ int64_t findClosestStepEndIndex(const TrainingTraceFormat &processedData, int64_
 void ProcessSingleTrainingTrace(const StepTraceTasks &stepTraceTask, TrainingTraceFormat &processedData,
                                 uint32_t modelId, uint32_t deviceId)
 {
-    for (auto &trainingTrace : stepTraceTask.trainingTrace)
+    if (!stepTraceTask.stepTrace.start || !stepTraceTask.stepTrace.end ||
+        stepTraceTask.stepTrace.start == stepTraceTask.stepTrace.end)
     {
-        uint64_t gradRefreshBound = 0;
-        uint64_t iteration_time = stepTraceTask.stepTrace.end - stepTraceTask.stepTrace.start;
-        uint64_t fpBpTime = trainingTrace.end - trainingTrace.start;
-        if (trainingTrace.end)
-        {
-            gradRefreshBound = stepTraceTask.stepTrace.end - trainingTrace.end;
-        }
-        processedData.emplace_back(deviceId, modelId, stepTraceTask.indexId, trainingTrace.start, trainingTrace.end,
-                                   stepTraceTask.stepTrace.end, iteration_time, fpBpTime, gradRefreshBound, 0);
+        ERROR("Invalid step time, model id: %, index id: %, start: %, end: %", modelId, stepTraceTask.indexId,
+              stepTraceTask.stepTrace.start, stepTraceTask.stepTrace.end);
+        return;
     }
+    const auto &trainingTrace = stepTraceTask.trainingTrace;
+    uint64_t iterationTime = stepTraceTask.stepTrace.end - stepTraceTask.stepTrace.start;
+    uint64_t fpBpTime = trainingTrace.start && trainingTrace.end ? trainingTrace.end - trainingTrace.start : 0;
+    uint64_t gradRefreshBound = trainingTrace.end ? stepTraceTask.stepTrace.end - trainingTrace.end : 0;
+    processedData.emplace_back(deviceId, modelId, stepTraceTask.indexId, trainingTrace.start, trainingTrace.end,
+                               stepTraceTask.stepTrace.end, iterationTime, fpBpTime, gradRefreshBound, 0);
 }
 
 TrainingTraceFormat UpdateDataAugBound(TrainingTraceFormat &processedData)
@@ -212,12 +248,27 @@ uint32_t ProcessAllReduceEntry(DataInventory &dataInventory, const DeviceContext
     DeviceInfo deviceInfo{};
     context.Getter(deviceInfo);
     auto data = GenerateAllReduce(*stepTraceTask, deviceInfo.deviceId);
-    if (data.empty())
+    if (!stepTraceDB.dbRunner->CreateTableWithConstraints(stepTraceDB.tableName,
+                                                          stepTraceDB.database->GetTableCols(stepTraceDB.tableName),
+                                                          {"PRIMARY KEY(device_id, iteration_end, start)"}))
+    {
+        ERROR("Create table with primary key failed: %", stepTraceDB.tableName);
+        return ANALYSIS_ERROR;
+    }
+    if (data.completed.empty() && data.incomplete.empty())
     {
         WARN("AllReduce data is empty.");
         return ANALYSIS_OK;
     }
-    auto res = SaveData(data, stepTraceDB, dbPath);
+    bool res = true;
+    if (!data.completed.empty())
+    {
+        res &= SaveData(data.completed, stepTraceDB, dbPath);
+    }
+    if (!data.incomplete.empty())
+    {
+        res &= SaveData(data.incomplete, stepTraceDB, dbPath);
+    }
     if (!res)
     {
         ERROR("Process % failed!", stepTraceDB.tableName);
@@ -240,7 +291,13 @@ uint32_t ProcessGetNextEntry(DataInventory &dataInventory, const DeviceContext &
     if (data.empty())
     {
         WARN("GetNext data is empty.");
-        return ANALYSIS_OK;
+        if (stepTraceDB.dbRunner->CreateTable(stepTraceDB.tableName,
+                                              stepTraceDB.database->GetTableCols(stepTraceDB.tableName)))
+        {
+            return ANALYSIS_OK;
+        }
+        ERROR("Create empty table failed: %", stepTraceDB.tableName);
+        return ANALYSIS_ERROR;
     }
     auto res = SaveData(data, stepTraceDB, dbPath);
     if (!res)
@@ -274,7 +331,13 @@ uint32_t ProcessTrainingTraceEntry(DataInventory &dataInventory, const DeviceCon
     if (processedData.empty())
     {
         WARN("TrainingTrace data is empty.");
-        return ANALYSIS_OK;
+        if (stepTraceDB.dbRunner->CreateTable(stepTraceDB.tableName,
+                                              stepTraceDB.database->GetTableCols(stepTraceDB.tableName)))
+        {
+            return ANALYSIS_OK;
+        }
+        ERROR("Create empty table failed: %", stepTraceDB.tableName);
+        return ANALYSIS_ERROR;
     }
     auto res = SaveData(processedData, stepTraceDB, dbPath);
     if (!res)

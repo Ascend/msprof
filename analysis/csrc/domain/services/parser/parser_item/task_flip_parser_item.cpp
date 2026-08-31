@@ -15,19 +15,23 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/services/parser/parser_item/task_flip_parser_item.h"
-#include "analysis/csrc/infrastructure/dfx/log.h"
+
 #include "analysis/csrc/domain/entities/hal/include/hal_track.h"
-#include "analysis/csrc/infrastructure/utils/utils.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
+#include "analysis/csrc/infrastructure/dfx/log.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Utils;
 
 int TaskFlipParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus)
 {
-    if (binaryDataSize != sizeof(TaskFlip)) {
+    if (binaryDataSize != sizeof(TaskFlip))
+    {
         ERROR("TaskFlipParseItem failure, struct is TaskFlip");
         return PARSER_ERROR_SIZE_MISMATCH;
     }
@@ -50,5 +54,6 @@ int TaskFlipParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *hal
 }
 
 REGISTER_PARSER_ITEM(TRACK_PARSER, PARSER_ITEM_TASK_FLIP, TaskFlipParseItem);
-}
-}
+// REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_TASK_FLIP, TaskFlipParseItem);
+}  // namespace Domain
+}  // namespace Analysis

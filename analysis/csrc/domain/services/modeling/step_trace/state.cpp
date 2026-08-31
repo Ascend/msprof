@@ -30,18 +30,11 @@ void HandleTrainingTrace(const HalTrackData& step, StepTraceTasks& baseStep)
 {
     if (step.stepTrace.tagId == FP_TAG)
     {
-        TimePair timePair = {};
-        timePair.start = step.stepTrace.timestamp;
-        baseStep.trainingTrace.emplace_back(timePair);
+        baseStep.trainingTrace.start = step.stepTrace.timestamp;
     }
     else if (step.stepTrace.tagId == BP_TAG)
     {
-        if (baseStep.trainingTrace.empty())
-        {
-            WARN("TrainingTrace: There is no start tag before the end of step: %.", step.stepTrace.indexId);
-            return;
-        }
-        baseStep.trainingTrace.back().end = step.stepTrace.timestamp;
+        baseStep.trainingTrace.end = step.stepTrace.timestamp;
     }
 }
 
@@ -76,30 +69,15 @@ void HandleAllReduceTable(const HalTrackData& step, StepTraceTasks& baseStep)
 
 void HandleGetNextTable(const HalTrackData& step, StepTraceTasks& baseStep)
 {
+    const uint64_t tagPair = step.stepTrace.tagId / TWO;
+    const uint64_t key = (static_cast<uint64_t>(step.hd.taskId.streamId) << 32) | tagPair;
     if (step.stepTrace.tagId % TWO == 0)
     {
-        // 偶数作为开始时间
-        TimePair timePair = {};
-        timePair.start = step.stepTrace.timestamp;
-        baseStep.getNextTable[step.hd.taskId.streamId].emplace_back(timePair);
+        baseStep.getNextTable[key].starts.emplace_back(step.stepTrace.timestamp);
     }
     else
     {
-        if (baseStep.getNextTable.empty())
-        {
-            WARN("getNextTable is empty");
-            return;
-        }
-        if (baseStep.getNextTable.find(step.hd.taskId.streamId) != baseStep.getNextTable.end())
-        {
-            auto& getNext = baseStep.getNextTable[step.hd.taskId.streamId];
-            getNext.back().end = step.stepTrace.timestamp;
-        }
-        else
-        {
-            WARN("StreamId % is not exist in getNextTable", step.hd.taskId.streamId);
-            return;
-        }
+        baseStep.getNextTable[key].ends.emplace_back(step.stepTrace.timestamp);
     }
 }
 

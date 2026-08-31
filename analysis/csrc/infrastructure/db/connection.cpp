@@ -184,6 +184,8 @@ void Connection::BindParameters(uint32_t value) { sqlite3_bind_int64(stmt_, ++in
 
 void Connection::BindParameters(double value) { sqlite3_bind_double(stmt_, ++index_, value); }
 
+void Connection::BindParameters(std::nullptr_t) { sqlite3_bind_null(stmt_, ++index_); }
+
 void Connection::BindParameters(std::string value)
 {
     sqlite3_bind_text(stmt_, ++index_, value.c_str(), -1, SQLITE_TRANSIENT);

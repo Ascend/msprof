@@ -72,3 +72,34 @@ TEST_F(HalTrackUTest, ShouldReturnFlipBeanWhenInputTaskFlipBean)
     ASSERT_EQ(3ul, result.size());
     ASSERT_EQ(HalTrackType::TS_TASK_FLIP, result[0].type);
 }
+
+TEST_F(HalTrackUTest, ShouldGenerateStepTimeFromStepTraceRecordsOnly)
+{
+    HalTrackData start{};
+    start.type = STEP_TRACE;
+    start.stepTrace.indexId = 1;
+    start.stepTrace.modelId = 2;
+    start.stepTrace.timestamp = 10;
+    start.stepTrace.tagId = 60000;
+    HalTrackData end = start;
+    end.stepTrace.timestamp = 20;
+    end.stepTrace.tagId = 60001;
+
+    HalTrackData fakeStart{};
+    fakeStart.type = TS_TASK_FLIP;
+    fakeStart.stepTrace.indexId = 3;
+    fakeStart.stepTrace.timestamp = 11;
+    fakeStart.stepTrace.tagId = 60000;
+    HalTrackData fakeEnd = fakeStart;
+    fakeEnd.type = TS_TASK_TYPE;
+    fakeEnd.stepTrace.timestamp = 21;
+    fakeEnd.stepTrace.tagId = 60001;
+
+    std::vector<HalTrackData> data{fakeEnd, end, fakeStart, start};
+    auto result = GenerateStepTime(data);
+    ASSERT_EQ(1ul, result.size());
+    EXPECT_EQ(1u, std::get<0>(result.front()));
+    EXPECT_EQ(2ul, std::get<1>(result.front()));
+    EXPECT_EQ(10ul, std::get<2>(result.front()));
+    EXPECT_EQ(20ul, std::get<3>(result.front()));
+}

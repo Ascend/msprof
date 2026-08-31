@@ -32,7 +32,8 @@ enum ParserType
     PMU_PARSER,
     TRACK_PARSER,
     FREQ_PARSER,
-    AICPU_PARSER
+    AICPU_PARSER,
+    TRACK_PARSER_V6
 };
 const int MIN_COUNT = 2;
 const int VALID_CNT = 15;

@@ -20,6 +20,7 @@
 #include "analysis/csrc/domain/services/modeling/step_trace/include/step_trace_process.h"
 #include "analysis/csrc/domain/services/persistence/device/step_trace_persistence.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
 
 
 namespace Analysis {
@@ -29,6 +30,7 @@ namespace Analysis {
     using namespace Analysis::Utils;
     namespace {
         const std::string DEVICE_PATH = "./device_0";
+        const std::string STEP_TRACE_DB_PATH = File::PathJoin({DEVICE_PATH, "sqlite", "step_trace.db"});
     }
     class StepTracePersistenceUtest : public testing::Test {
     protected:
@@ -169,6 +171,41 @@ TEST_F(StepTracePersistenceUtest, ShouldRunSuccessWhenStepDataIsEmpty)
 
     auto stepTraceProcess = StepTracePersistence();
     ASSERT_EQ(ANALYSIS_OK, stepTraceProcess.Run(dataInventory_, context));
+}
+
+TEST_F(StepTracePersistenceUtest, ShouldAssignGlobalIterationIdByStepEnd)
+{
+    auto stepTasks = std::make_shared<std::map<uint32_t, std::vector<StepTraceTasks>>>();
+    StepTraceTasks later;
+    later.indexId = 4;
+    later.stepTrace.start = 10;
+    later.stepTrace.end = 30;
+    (*stepTasks)[1].push_back(later);
+    StepTraceTasks earlier;
+    earlier.indexId = 3;
+    earlier.stepTrace.start = 5;
+    earlier.stepTrace.end = 20;
+    (*stepTasks)[2].push_back(earlier);
+    ASSERT_TRUE(dataInventory_.Inject(stepTasks));
+    ASSERT_TRUE(dataInventory_.Inject(std::make_shared<std::vector<HalTrackData>>()));
+
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    StepTracePersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context));
+
+    using StepDataFormat = std::tuple<uint32_t, uint64_t, uint64_t, uint64_t, uint64_t>;
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, STEP_TRACE_DB_PATH);
+    std::vector<StepDataFormat> rows;
+    ASSERT_TRUE(dbRunner->QueryData("SELECT * FROM step_trace_data ORDER BY iter_id", rows));
+    ASSERT_EQ(2ul, rows.size());
+    EXPECT_EQ(2ul, std::get<1>(rows[0]));
+    EXPECT_EQ(20ul, std::get<3>(rows[0]));
+    EXPECT_EQ(1ul, std::get<4>(rows[0]));
+    EXPECT_EQ(1ul, std::get<1>(rows[1]));
+    EXPECT_EQ(30ul, std::get<3>(rows[1]));
+    EXPECT_EQ(2ul, std::get<4>(rows[1]));
 }
 
 }

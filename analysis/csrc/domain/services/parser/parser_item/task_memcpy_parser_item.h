@@ -19,20 +19,22 @@
 
 #include <cstdint>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 #define PARSER_ITEM_TS_MEMCPY 0x0B
 
 #pragma pack(1)
-struct TaskMemcpy {
+struct TaskMemcpy
+{
     uint8_t resv1;
     uint8_t funcType;
     uint16_t resv2;
     uint32_t resv3;
     uint64_t timestamp;
-    uint16_t streamId : 11;
-    uint16_t resv4 : 5;
+    uint16_t streamId;
     uint16_t taskId;
     uint8_t taskStatus;
     uint8_t resv5;
@@ -43,7 +45,7 @@ struct TaskMemcpy {
 #pragma pack()
 
 int TaskMemcpyParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_TASK_MEMCPY_PARSER_ITEM_H
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_TASK_MEMCPY_PARSER_ITEM_H

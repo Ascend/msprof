@@ -27,7 +27,7 @@ namespace Analysis
 namespace Domain
 {
 // index_id, model_id, step_start, step_end, iter_id
-using StepTraceDataVectorFormat = std::vector<std::tuple<uint32_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+using StepTraceDataVectorFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
 
 enum HalTrackType
 {

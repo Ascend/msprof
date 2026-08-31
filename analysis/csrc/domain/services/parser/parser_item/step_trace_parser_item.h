@@ -19,13 +19,16 @@
 
 #include <cstdint>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
 #define PARSER_ITEM_STEP_TRACE 0x0A
 
 #pragma pack(1)
-struct StepTrace {
+struct StepTrace
+{
     uint8_t resv1;
     uint8_t funcType;
     uint16_t resv2;
@@ -33,16 +36,33 @@ struct StepTrace {
     uint64_t timestamp;
     uint64_t indexId;
     uint64_t modelId;
-    uint16_t streamId : 11;
-    uint16_t resv5 : 5;
+    uint16_t streamId;
     uint16_t taskId;
     uint16_t tagId;
     uint16_t resv4;
 };
+
+struct StepTraceV6
+{
+    uint8_t resv1;
+    uint8_t funcType;
+    uint16_t resv2;
+    uint32_t resv3;
+    uint64_t timestamp;
+    uint64_t indexId;
+    uint64_t modelId;
+    uint16_t tagId;
+    uint16_t streamId;
+    uint32_t taskId;
+};
 #pragma pack()
 
-int StepTraceParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
-}
-}
+static_assert(sizeof(StepTrace) == 40, "Legacy StepTrace record size must be 40 bytes");
+static_assert(sizeof(StepTraceV6) == 40, "V6 StepTrace record size must be 40 bytes");
 
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_STEP_TRACE_PARSER_ITEM_H
+int StepTraceParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
+int StepTraceParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
+}  // namespace Domain
+}  // namespace Analysis
+
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_STEP_TRACE_PARSER_ITEM_H

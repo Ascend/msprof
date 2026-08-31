@@ -98,6 +98,11 @@ const TableColumns HostTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
                                    {"task_id", SQL_INTEGER_TYPE},
                                    {"flip_num", SQL_INTEGER_TYPE}};
 
+const TableColumns DeviceTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
+                                     {"timestamp", SQL_NUMERIC_TYPE},
+                                     {"task_id", SQL_INTEGER_TYPE},
+                                     {"flip_num", SQL_INTEGER_TYPE}};
+
 const TableColumns RuntimeOpInfo = {{"level", SQL_TEXT_TYPE},
                                     {"struct_type", SQL_TEXT_TYPE},
                                     {"thread_id", SQL_INTEGER_TYPE},
@@ -342,7 +347,7 @@ const TableColumns TaskType = {{"timestamp", SQL_NUMERIC_TYPE},
                                {"task_type", SQL_TEXT_TYPE},
                                {"task_state", SQL_INTEGER_TYPE}};
 
-const TableColumns TsMemcpy = {{"timestamp", SQL_REAL_TYPE},
+const TableColumns TsMemcpy = {{"timestamp", SQL_NUMERIC_TYPE},
                                {"stream_id", SQL_INTEGER_TYPE},
                                {"task_id", SQL_INTEGER_TYPE},
                                {"task_state", SQL_INTEGER_TYPE}};
@@ -415,7 +420,7 @@ const TableColumns Sio = {{"acc_id", SQL_INTEGER_TYPE},   {"req_rx", SQL_NUMERIC
                           {"rsp_tx", SQL_NUMERIC_TYPE},   {"snp_tx", SQL_NUMERIC_TYPE}, {"dat_tx", SQL_NUMERIC_TYPE},
                           {"timestamp", SQL_NUMERIC_TYPE}};
 
-const TableColumns TsBlockNum = {{"timestamp", SQL_REAL_TYPE},
+const TableColumns TsBlockNum = {{"timestamp", SQL_NUMERIC_TYPE},
                                  {"stream_id", SQL_INTEGER_TYPE},
                                  {"task_id", SQL_INTEGER_TYPE},
                                  {"block_num", SQL_INTEGER_TYPE}};
@@ -812,6 +817,7 @@ StepTraceDB::StepTraceDB()
     tableColNames_["TaskType"] = TaskType;
     tableColNames_["TsMemcpy"] = TsMemcpy;
     tableColNames_["TsBlockNum"] = TsBlockNum;
+    tableColNames_["DeviceTaskFlip"] = DeviceTaskFlip;
     tableColNames_["ModelWithQ"] = ModelWithQ;
 }
 

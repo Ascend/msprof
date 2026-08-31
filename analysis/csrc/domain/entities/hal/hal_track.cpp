@@ -65,7 +65,8 @@ StepTraceDataVectorFormat GenerateStepTime(std::vector<HalTrackData>& halTraceTa
               { return t1.stepTrace.timestamp < t2.stepTrace.timestamp; });
     for (auto trackData : halTraceTasksBackup)
     {
-        if (trackData.stepTrace.tagId == STEP_START_TAG || trackData.stepTrace.tagId == STEP_END_TAG)
+        if (trackData.type == STEP_TRACE &&
+            (trackData.stepTrace.tagId == STEP_START_TAG || trackData.stepTrace.tagId == STEP_END_TAG))
         {
             stepTime[trackData.stepTrace.indexId].emplace_back(trackData);
         }

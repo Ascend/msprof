@@ -18,21 +18,28 @@
 #define MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_TRACK_TS_TRACK_PARSER_H
 
 #include <vector>
-#include "analysis/csrc/domain/services/parser/parser.h"
-#include "analysis/csrc/domain/entities/hal/include/hal_track.h"
 
-namespace Analysis {
-namespace Domain {
-class TsTrackParser : public Parser {
-private:
-    uint32_t ParseDataItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* data);
+#include "analysis/csrc/domain/entities/hal/include/hal_track.h"
+#include "analysis/csrc/domain/services/parser/parser.h"
+#include "analysis/csrc/domain/services/parser/parser_item_factory.h"
+
+namespace Analysis
+{
+namespace Domain
+{
+class TsTrackParser : public Parser
+{
+   private:
+    uint32_t ParseDataItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* data, ParserType parserType,
+                           uint16_t expandStatus);
     std::vector<std::string> GetFilePattern() override;
     uint32_t GetTrunkSize() override;
-    uint32_t ParseData(Infra::DataInventory& dataInventory, const Infra::Context &context) override;
-private:
+    uint32_t ParseData(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
+
+   private:
     std::vector<HalTrackData> halUniData_;
     std::vector<std::string> filePrefix_{"ts_track."};
 };
-}
-}
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_TRACK_TS_TRACK_PARSER_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_TRACK_TS_TRACK_PARSER_H

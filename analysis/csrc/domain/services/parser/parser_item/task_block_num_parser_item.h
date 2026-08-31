@@ -19,19 +19,21 @@
 
 #include <cstdint>
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 #define PARSER_ITEM_BLOCK_NUM 0x0f
 
 #pragma pack(1)
-struct BlockNum {
+struct BlockNum
+{
     uint8_t resv1;
     uint8_t funcType;
     uint16_t resv2;
     uint32_t resv3;
     uint64_t timestamp;
-    uint16_t streamId : 11;
-    uint16_t resv4 : 5;
+    uint16_t streamId;
     uint16_t taskId;
     uint32_t blockNum;
     uint8_t resv6[16];
@@ -39,6 +41,7 @@ struct BlockNum {
 #pragma pack()
 
 int BlockNumParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
-}
-}
-#endif // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_BLOCK_NUM_PARSER_ITEM_H
+int BlockNumParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_DOMAIN_SERVICES_PARSER_PARSER_ITEM_BLOCK_NUM_PARSER_ITEM_H

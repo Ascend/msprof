@@ -23,6 +23,7 @@
 #include "analysis/csrc/domain/services/persistence/device/trace_persistence.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
 
 
 namespace Analysis {
@@ -33,6 +34,7 @@ namespace Analysis {
     using namespace Analysis::Application;
     namespace {
         const std::string DEVICE_PATH = "./device_1";
+        const std::string TRACE_DB_PATH = File::PathJoin({DEVICE_PATH, "sqlite", "trace.db"});
     }
     class TracePersistenceUtest : public testing::Test {
     protected:
@@ -159,6 +161,109 @@ TEST_F(TracePersistenceUtest, ShouldSaveTraceDBSuccessWhenDataIsAged)
 
     auto traceProcess = TracePersistence();
     ASSERT_EQ(ANALYSIS_OK, traceProcess.Run(dataInventory_, context));
+}
+
+TEST_F(TracePersistenceUtest, ShouldPersistPythonCompatibleTraceSemantics)
+{
+    auto stepTasks = std::make_shared<std::map<uint32_t, std::vector<StepTraceTasks>>>();
+    StepTraceTasks task;
+    task.indexId = 7;
+    task.stepTrace.start = 1;
+    task.stepTrace.end = 20;
+    TimePair completedReduce;
+    completedReduce.start = 11;
+    completedReduce.end = 12;
+    task.allReduceTable[3].push_back(completedReduce);
+    TimePair incompleteReduce;
+    incompleteReduce.start = 13;
+    task.allReduceTable[3].push_back(incompleteReduce);
+    task.getNextTable[1].starts = {3, 7};
+    task.getNextTable[1].ends = {6, 10};
+    (*stepTasks)[5].push_back(task);
+    ASSERT_TRUE(dataInventory_.Inject(stepTasks));
+
+    auto halData = std::make_shared<std::vector<HalTrackData>>();
+    HalTrackData nonStepData{};
+    nonStepData.type = TS_TASK_FLIP;
+    halData->push_back(nonStepData);
+    ASSERT_TRUE(dataInventory_.Inject(halData));
+
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    context.deviceContextInfo.deviceInfo.deviceId = 2;
+    TracePersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, TRACE_DB_PATH);
+    ASSERT_NE(nullptr, dbRunner);
+
+    std::vector<std::tuple<int64_t>> counts;
+    ASSERT_TRUE(dbRunner->QueryData("SELECT count(*) FROM all_reduce", counts));
+    ASSERT_EQ(2, std::get<0>(counts.front()));
+    counts.clear();
+    ASSERT_TRUE(dbRunner->QueryData("SELECT count(*) FROM all_reduce WHERE end IS NULL", counts));
+    EXPECT_EQ(1, std::get<0>(counts.front()));
+    counts.clear();
+    ASSERT_TRUE(dbRunner->QueryData("SELECT count(*) FROM pragma_table_info('all_reduce') WHERE pk > 0", counts));
+    EXPECT_EQ(3, std::get<0>(counts.front()));
+
+    using GetNextFormat = std::tuple<uint64_t, uint32_t, uint64_t, uint64_t>;
+    std::vector<GetNextFormat> getNext;
+    ASSERT_TRUE(dbRunner->QueryData(
+        "SELECT model_id, index_id, start_time, end_time FROM get_next ORDER BY start_time", getNext));
+    ASSERT_EQ(2ul, getNext.size());
+    EXPECT_EQ(3ul, std::get<2>(getNext[0]));
+    EXPECT_EQ(6ul, std::get<3>(getNext[0]));
+    EXPECT_EQ(7ul, std::get<2>(getNext[1]));
+    EXPECT_EQ(10ul, std::get<3>(getNext[1]));
+
+    using TrainingFormat =
+        std::tuple<uint32_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
+                   uint64_t>;
+    std::vector<TrainingFormat> training;
+    ASSERT_TRUE(dbRunner->QueryData("SELECT * FROM training_trace", training));
+    ASSERT_EQ(1ul, training.size());
+    EXPECT_EQ(0ul, std::get<3>(training.front()));
+    EXPECT_EQ(0ul, std::get<4>(training.front()));
+    EXPECT_EQ(20ul, std::get<5>(training.front()));
+    EXPECT_EQ(19ul, std::get<6>(training.front()));
+}
+
+TEST_F(TracePersistenceUtest, ShouldCreateEmptyPythonCompatibleTraceTables)
+{
+    auto stepTasks = std::make_shared<std::map<uint32_t, std::vector<StepTraceTasks>>>();
+    StepTraceTasks task;
+    task.indexId = 7;
+    task.stepTrace.start = 1;
+    task.stepTrace.end = 20;
+    (*stepTasks)[5].push_back(task);
+    ASSERT_TRUE(dataInventory_.Inject(stepTasks));
+
+    auto halData = std::make_shared<std::vector<HalTrackData>>();
+    HalTrackData nonStepData{};
+    nonStepData.type = TS_TASK_FLIP;
+    halData->push_back(nonStepData);
+    ASSERT_TRUE(dataInventory_.Inject(halData));
+
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    TracePersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, TRACE_DB_PATH);
+    ASSERT_NE(nullptr, dbRunner);
+    EXPECT_TRUE(dbRunner->CheckTableExists("all_reduce"));
+    EXPECT_TRUE(dbRunner->CheckTableExists("get_next"));
+    EXPECT_TRUE(dbRunner->CheckTableExists("training_trace"));
+
+    std::vector<std::tuple<int64_t>> counts;
+    ASSERT_TRUE(dbRunner->QueryData("SELECT count(*) FROM all_reduce", counts));
+    EXPECT_EQ(0, std::get<0>(counts.front()));
+    counts.clear();
+    ASSERT_TRUE(dbRunner->QueryData("SELECT count(*) FROM get_next", counts));
+    EXPECT_EQ(0, std::get<0>(counts.front()));
 }
 
 }

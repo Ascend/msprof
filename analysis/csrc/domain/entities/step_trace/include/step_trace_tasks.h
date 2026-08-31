@@ -32,6 +32,12 @@ struct TimePair
     uint64_t end = 0;
 };
 
+struct GetNextRecords
+{
+    std::vector<uint64_t> starts;
+    std::vector<uint64_t> ends;
+};
+
 // 记录一个完整迭代内事件信息
 struct StepTraceTasks
 {
@@ -39,8 +45,8 @@ struct StepTraceTasks
     uint32_t iterId = 0;
     TimePair stepTrace;
     std::map<uint32_t, std::vector<TimePair>> allReduceTable;  // key 为 streamId
-    std::map<uint32_t, std::vector<TimePair>> getNextTable;    // key 为 streamId
-    std::vector<TimePair> trainingTrace;
+    std::map<uint64_t, GetNextRecords> getNextTable;           // key 为 streamId 和 tag pair
+    TimePair trainingTrace;
 };
 
 }  // namespace Domain
