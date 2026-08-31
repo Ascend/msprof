@@ -25,49 +25,52 @@ namespace Analysis
 {
 namespace Domain
 {
+// 成员按对齐降序排列（8B → 4B → 2B → string），减少结构体内存填充
 struct HcclOp
 {
-    uint16_t deviceId;
     uint64_t modelId;
+    int64_t connectionId;
+    uint64_t count;
     int32_t indexId;
     uint32_t threadId;
+    int32_t relay;
+    int32_t retry;
+    uint16_t deviceId;
     std::string opName;
     std::string taskType;
     std::string opType;
-    int64_t connectionId;
-    int32_t relay;
-    int32_t retry;
     std::string dataType;
     std::string algType;
-    uint64_t count;
     std::string groupName;
+    std::string kfcConnectionIds;  // 逗号分隔，一行对应多个 kfc_connection_id
 };
 
+// 成员按对齐降序排列（8B → 4B → 2B → string），减少结构体内存填充
 struct HcclTask
 {
     uint64_t modelId;
-    int32_t indexId;
-    std::string name;
-    std::string groupName;
-    int32_t planeId;
     uint64_t timestamp;
+    int64_t localRank;
+    int64_t remoteRank;
+    int64_t rankSize;
+    int64_t opId;
+    double size;
+    int32_t indexId;
+    int32_t planeId;
     uint32_t streamId;
     uint32_t taskId;
     uint32_t contextId;
     uint32_t batchId;
+    uint32_t threadId;
     uint16_t deviceId;
     uint16_t isMaster;
-    int64_t localRank;
-    int64_t remoteRank;
-    uint32_t threadId;
+    std::string name;
+    std::string groupName;
     std::string transportType;
-    double size;
     std::string dataType;
     std::string linkType;
     std::string notifyId;
     std::string rdmaType;
-    int64_t rankSize;
-    int64_t opId;
 };
 }  // namespace Domain
 }  // namespace Analysis

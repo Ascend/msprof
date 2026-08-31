@@ -308,9 +308,66 @@ class TestKfcCalculator(unittest.TestCase):
         # 第一次执行 (iter_id=1): start 来自 task(52,0), end 来自 task(52,2)
         self.assertEqual(1000, hccl_kernels[0].start)
         self.assertEqual(2100, hccl_kernels[0].end)
-        # 第二次执行 (iter_id=2): start 和 end 同第一次（同一组 master task 复用）
+        # 第二次执行 (iter_id=2): 本例 kfc_task_data 每个 uid 仅一条，两轮都命中同一条，时间一致
         self.assertEqual(1000, hccl_kernels[1].start)
         self.assertEqual(2100, hccl_kernels[1].end)
+
+        InfoConfReader()._start_info.clear()
+
+    def test_refine_kernel_times_should_use_own_round_when_same_uid_repeated(self: any) -> None:
+        """同一 uid 多次执行（重复执行）时，各轮 kernel 取对应轮次的小 task 时间，不被最后一轮覆盖"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+
+        # 两轮执行，同一 uid 重复出现
+        hccl_kernels = [
+            _make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=0, iter_id=1),
+            _make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=0, iter_id=2),
+        ]
+
+        # FIRST uid(52,0) 两次执行、LAST uid(52,2) 两次执行，时间不同（乱序验证按 timestamp 排序）
+        kfc_task_data = [
+            HcclTask(stream_id=52, task_id=0, duration=100, timestamp=1000, context_id=4294967295, batch_id=0),
+            HcclTask(stream_id=52, task_id=2, duration=100, timestamp=3000, context_id=4294967295, batch_id=0),
+            HcclTask(stream_id=52, task_id=0, duration=100, timestamp=2000, context_id=4294967295, batch_id=0),
+            HcclTask(stream_id=52, task_id=2, duration=100, timestamp=4000, context_id=4294967295, batch_id=0),
+        ]
+
+        # 两轮执行，按 timestamp 顺序：第一轮 F/L、第二轮 F/L
+        master_stream_data = [
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=1, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=0, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=2, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=2, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=3, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=0, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=4, aicpu_stream_id=19, aicpu_task_id=0,
+                stream_id=52, task_id=2, aicpu_batch_id=0, batch_id=0,
+                task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+        ]
+
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
+            mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
+            check = KfcCalculator([], CONFIG)
+            check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
+
+        # 第一轮: start=FIRST uid 第 1 次(1000), end=LAST uid 第 1 次(3000+100=3100)
+        self.assertEqual(1000, hccl_kernels[0].start)
+        self.assertEqual(3100, hccl_kernels[0].end)
+        # 第二轮: start=FIRST uid 第 2 次(2000), end=LAST uid 第 2 次(4000+100=4100)
+        self.assertEqual(2000, hccl_kernels[1].start)
+        self.assertEqual(4100, hccl_kernels[1].end)
 
         InfoConfReader()._start_info.clear()
 

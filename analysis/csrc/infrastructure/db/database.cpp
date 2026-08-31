@@ -551,9 +551,10 @@ const TableColumns AicpuTaskFlip = {{"stream_id", SQL_INTEGER_TYPE},
                                     {"flip_num", SQL_INTEGER_TYPE}};
 
 const TableColumns AicpuMasterStreamHcclTask = {
-    {"timestamp", SQL_NUMERIC_TYPE}, {"aicpu_stream_id", SQL_INTEGER_TYPE}, {"aicpu_task_id", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},         {"batch_id", SQL_INTEGER_TYPE},
-    {"type", SQL_INTEGER_TYPE}};
+    {"timestamp", SQL_NUMERIC_TYPE},     {"aicpu_stream_id", SQL_INTEGER_TYPE},
+    {"aicpu_task_id", SQL_INTEGER_TYPE}, {"aicpu_batch_id", SQL_INTEGER_TYPE},
+    {"stream_id", SQL_INTEGER_TYPE},     {"task_id", SQL_INTEGER_TYPE},
+    {"batch_id", SQL_INTEGER_TYPE},      {"type", SQL_INTEGER_TYPE}};
 
 const TableColumns DeviceHcclOpInfo = {
     {"timestamp", SQL_NUMERIC_TYPE}, {"relay", SQL_INTEGER_TYPE},     {"retry", SQL_INTEGER_TYPE},

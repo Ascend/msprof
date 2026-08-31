@@ -26,15 +26,16 @@ namespace Domain
 using GeHashMap = std::unordered_map<std::string, std::string>;
 // model_id, hccl_name, group_name, plane_id, stream_id, task_id, local_rank, remote_rank,
 // transport_type, size, data_type, link_type, context_id, notify_id, batch_id, rdma_type, timestamp, duration,
-// op_id, bandwidth, is_master, iter_id
+// op_id, bandwidth, is_master, iter_id, source
+// 末尾 source 仅 KfcTask/KfcOP 表有该列；HCCL 表 SELECT 不含 source 时该元素越界读恒为 0(=HCCL)
 using HcclTaskFormat = std::tuple<uint32_t, std::string, std::string, int32_t, uint32_t, uint32_t, int64_t, int64_t,
                                   std::string, uint64_t, std::string, std::string, uint32_t, std::string, uint32_t,
-                                  std::string, double, double, int64_t, double, uint16_t, uint32_t>;
+                                  std::string, double, double, int64_t, double, uint16_t, uint32_t, int32_t>;
 using OriTaskDataFormat = std::vector<HcclTaskFormat>;
 // connection_id, op_name, relay, retry, data_type, alg_type, count, group_name, op_type, model_id, rank_size, start,
-// end, iter_id
+// end, iter_id, source（source 语义同 HcclTaskFormat 末尾）
 using HcclOpFormat = std::tuple<int64_t, std::string, int32_t, int32_t, std::string, std::string, uint64_t, std::string,
-                                std::string, uint32_t, int64_t, double, double, uint32_t>;
+                                std::string, uint32_t, int64_t, double, double, uint32_t, int32_t>;
 using OriOpDataFormat = std::vector<HcclOpFormat>;
 
 // 该类用于依据HCCLSingleDevice库生成COMMUNICATION_TASK_INFO(通信小算子)和COMMUNICATION_OP表(通信大算子)
@@ -57,18 +58,27 @@ class CommunicationInfoProcessor : public DataProcessor
     virtual ~CommunicationInfoProcessor() = default;
 
    protected:
-    bool FormatData(const OriTaskDataFormat& oriTaskData, const OriOpDataFormat& oriOpData,
-                    std::vector<CommunicationTaskData>& taskFormatData, std::vector<CommunicationOpData>& opFormatData,
-                    CommunicationData& communicationData, HcclType type);
+    bool FormatTaskData(const OriTaskDataFormat& oriTaskData, std::vector<CommunicationTaskData>& taskFormatData,
+                        CommunicationData& communicationData, HcclType type);
+    bool FormatOpData(const OriOpDataFormat& oriOpData, std::vector<CommunicationOpData>& opFormatData,
+                      CommunicationData& communicationData, HcclType type);
 
    private:
     bool Process(DataInventory& dataInventory) override;
-    OriOpDataFormat LoadOpData(const DBInfo& hcclSingleDeviceDB);
-    OriTaskDataFormat LoadTaskData(const DBInfo& hcclSingleDeviceDB);
+    OriOpDataFormat LoadOpData(const DBInfo& hcclSingleDeviceDB, bool needSource);
+    OriTaskDataFormat LoadTaskData(const DBInfo& hcclSingleDeviceDB, bool needSource);
     bool ProcessOneDevice(const std::string& devicePath, CommunicationData& communicationData);
     CommunicationTaskData UpdateTaskInfo(const HcclTaskFormat& oriData, CommunicationData& communicationData,
                                          HcclType type);
     CommunicationOpData UpdateOpInfo(const HcclOpFormat& oriData, CommunicationData& communicationData, HcclType type);
+    // 单张数据表独立处理：谁有谁处理；缺表/空表不影响后续业务；损坏才视为失败
+    // needSource=true 时 SELECT 末尾追加 source 列（KfcTask/KfcOP 才有），false 时越界读为 0(=HCCL)
+    bool ProcessTaskTable(const std::string& devicePath, const std::string& dbName, const std::string& tableName,
+                          OriTaskDataFormat& oriTaskData, std::vector<CommunicationTaskData>& taskFormatData,
+                          CommunicationData& communicationData, HcclType type, bool needSource);
+    bool ProcessOpTable(const std::string& devicePath, const std::string& dbName, const std::string& tableName,
+                        OriOpDataFormat& oriOpData, std::vector<CommunicationOpData>& opFormatData,
+                        CommunicationData& communicationData, HcclType type, bool needSource);
     bool ProcessHcclData(const std::string& devicePath, std::vector<CommunicationTaskData>& taskData,
                          std::vector<CommunicationOpData>& opData, CommunicationData& communicationData);
     bool ProcessKfcData(const std::string& devicePath, std::vector<CommunicationTaskData>& taskData,

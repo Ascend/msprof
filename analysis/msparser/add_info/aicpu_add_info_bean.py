@@ -525,6 +525,7 @@ class AicpuMasterStreamHcclTaskBean:
         self._task_id = StarsCommon.set_task_id(data[8], data[9], SqeType.StarsSqeType.AI_CPU)
         self._type = data[10]
         self._batch_id = 0  # 由AicpuAddInfoParser预计算填充
+        self._aicpu_batch_id = 0  # 由AicpuAddInfoParser用device flip预计算填充
         self._timestamp = data[5]
 
     @property
@@ -554,6 +555,14 @@ class AicpuMasterStreamHcclTaskBean:
     @batch_id.setter
     def batch_id(self: any, value: int) -> None:
         self._batch_id = value
+
+    @property
+    def aicpu_batch_id(self: any) -> int:
+        return self._aicpu_batch_id
+
+    @aicpu_batch_id.setter
+    def aicpu_batch_id(self: any, value: int) -> None:
+        self._aicpu_batch_id = value
 
     @property
     def timestamp(self: any) -> int:

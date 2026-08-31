@@ -14,6 +14,8 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 #include <gtest/gtest.h>
+#include <string>
+#include <unordered_map>
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
@@ -226,6 +228,25 @@ protected:
     }
 };
 
+// UpdateOpNameByGroupName 是 protected static 模板，通过子类 using 暴露供单测直接调用
+class TestableHcclCalculator : public HcclCalculator
+{
+public:
+    using HcclCalculator::UpdateOpNameByGroupName;
+};
+
+static DeviceHcclOp MakeDeviceHcclOp(double start, double end, uint32_t iterId, const std::string& opName,
+                                     const std::string& groupName)
+{
+    DeviceHcclOp op;
+    op.start = start;
+    op.end = end;
+    op.iterId = iterId;
+    op.opName = opName;
+    op.groupName = groupName;
+    return op;
+}
+
 TEST_F(HcclCalculatorUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
 {
     HcclCalculator calculator;
@@ -346,4 +367,53 @@ TEST_F(HcclCalculatorUTest, TestGetHcclStatisticsDataShouldBeFilteredWhenProcess
     auto hcclStatisticsData = dataInventory_.GetPtr<std::vector<HcclStatistics>>();
     size_t expectStatisticsDataNum = 5;
     EXPECT_EQ(expectStatisticsDataNum, hcclStatisticsData->size());
+}
+
+TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldAppendLast3CharsAndCountIndexByGroup)
+{
+    // 输入乱序，验证函数先按 (start, end) 排序后再更新 opName；
+    // 同一 groupName 的算子按 warmup 边界(严格 >)递增 index：warmup 内为 -1，越过采集起始时间从 0 起
+    std::vector<DeviceHcclOp> ops;
+    ops.emplace_back(MakeDeviceHcclOp(250, 300, 4, "opD", "group_1"));
+    ops.emplace_back(MakeDeviceHcclOp(50, 50, 1, "opA", "group_1"));
+    ops.emplace_back(MakeDeviceHcclOp(10, 20, 5, "opE", "x_y"));
+    ops.emplace_back(MakeDeviceHcclOp(150, 200, 3, "opC", "group_1"));
+    ops.emplace_back(MakeDeviceHcclOp(100, 100, 2, "opB", "group_1"));
+
+    TestableHcclCalculator::UpdateOpNameByGroupName(ops, 100);
+
+    std::unordered_map<uint32_t, std::string> nameByIterId;
+    for (const auto& data : ops) {
+        nameByIterId[data.iterId] = data.opName;
+    }
+    // groupName 长度>3 时取末尾3字符拼接："group_1" → "p_1"
+    EXPECT_EQ("opA_p_1_-1_1", nameByIterId[1]);
+    // end == startTime 严格不大于，不触发 ++，index 保持 -1（warmup 边界）
+    EXPECT_EQ("opB_p_1_-1_2", nameByIterId[2]);
+    // 越过 warmup 后同一 groupName 的 index 从 0 递增
+    EXPECT_EQ("opC_p_1_0_3", nameByIterId[3]);
+    EXPECT_EQ("opD_p_1_1_4", nameByIterId[4]);
+    // groupName 长度==3 时不截断，取整串
+    EXPECT_EQ("opE_x_y_-1_5", nameByIterId[5]);
+}
+
+TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldHandleShortAndEmptyGroupName)
+{
+    // groupName 长度 <= 3（含空串）时 subPoint 保持 0，取整串拼接；
+    // 若去掉 size() > 3 守卫，size_t 下溢会使 substr(huge) 抛 std::out_of_range 导致 abort
+    std::vector<DeviceHcclOp> ops;
+    ops.emplace_back(MakeDeviceHcclOp(10, 20, 1, "opA", "ab"));
+    ops.emplace_back(MakeDeviceHcclOp(30, 40, 2, "opB", ""));
+    ops.emplace_back(MakeDeviceHcclOp(50, 60, 3, "opC", "abc"));
+
+    // startTime 为 0，所有算子都在 warmup 之外，各 group 的 index 从 0 起
+    TestableHcclCalculator::UpdateOpNameByGroupName(ops, 0);
+
+    std::unordered_map<uint32_t, std::string> nameByIterId;
+    for (const auto& data : ops) {
+        nameByIterId[data.iterId] = data.opName;
+    }
+    EXPECT_EQ("opA_ab_0_1", nameByIterId[1]);
+    EXPECT_EQ("opB__0_2", nameByIterId[2]);
+    EXPECT_EQ("opC_abc_0_3", nameByIterId[3]);
 }

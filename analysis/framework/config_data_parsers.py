@@ -180,6 +180,7 @@ class ConfigDataParsers:
             "SubTaskCalculator",
             "FreqParser",
             "AicpuAddInfoParser",
+            "KfcCalculator",
         ]:
             return True
         return False

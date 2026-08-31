@@ -24,7 +24,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_object import CustomizedNamedtupleFactory
 from common_func.db_manager import DBManager
-from mscalculate.flip.flip_calculator import FlipCalculator
 from mscalculate.hccl.hccl_task import HcclTask, KfcOps
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
@@ -124,23 +123,6 @@ class KfcInfoViewModel(ViewModel):
         {},
     )
 
-    HCCL_OP_MASTER_STREAM_TYPE = CustomizedNamedtupleFactory.enhance_namedtuple(
-        namedtuple(
-            "HcclOpMasterStreamType",
-            [
-                "timestamp",
-                "stream_id",
-                "task_id",
-                "hccl_stream_id",
-                "hccl_task_id",
-                "batch_id",
-                "hccl_batch_id",
-                "task_type",
-            ],
-        ),
-        {},
-    )
-
     MASTER_STREAM_HCCL_TASK_TYPE = CustomizedNamedtupleFactory.enhance_namedtuple(
         namedtuple(
             "MasterStreamHcclTaskType",
@@ -148,9 +130,9 @@ class KfcInfoViewModel(ViewModel):
                 "timestamp",
                 "aicpu_stream_id",
                 "aicpu_task_id",
+                "aicpu_batch_id",
                 "stream_id",
                 "task_id",
-                "aicpu_batch_id",
                 "batch_id",
                 "task_type",
             ],
@@ -312,20 +294,15 @@ class KfcInfoViewModel(ViewModel):
         return [self.KFC_COMPUTE_TURN_TYPE(*data) for data in kfc_info_data]
 
     def get_aicpu_master_stream_hccl_task(self: any) -> list:
+        # aicpu_batch_id 已由 msparser AicpuAddInfoParser 用 DeviceTaskFlip 预计算并落盘，此处直读列值
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_AICPU_MASTER_STREAM_HCCL_TASK):
             return []
         sql = (
-            "select timestamp, aicpu_stream_id, aicpu_task_id, stream_id, task_id, "
-            "0 as aicpu_batch_id, batch_id, type "
+            "select timestamp, aicpu_stream_id, aicpu_task_id, aicpu_batch_id, "
+            "stream_id, task_id, batch_id, type "
             "from {} order by timestamp".format(DBNameConstant.TABLE_AICPU_MASTER_STREAM_HCCL_TASK)
         )
         aicpu_master_stream_hccl_task = self.get_sql_data(sql)
-        aicpu_master_stream_hccl_task = [
-            self.HCCL_OP_MASTER_STREAM_TYPE(*data) for data in aicpu_master_stream_hccl_task
-        ]
-        aicpu_master_stream_hccl_task = FlipCalculator.set_device_batch_id(
-            aicpu_master_stream_hccl_task, self.result_dir
-        )
         return [self.MASTER_STREAM_HCCL_TASK_TYPE(*data) for data in aicpu_master_stream_hccl_task]
 
     def get_kfc_info_dict(self: any) -> dict:

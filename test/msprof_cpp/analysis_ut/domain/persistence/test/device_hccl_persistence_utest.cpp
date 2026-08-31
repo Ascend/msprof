@@ -17,6 +17,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/persistence/device/device_hccl_persistence.h"
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/hccl/include/kfc_calculator.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -66,6 +67,34 @@ const HcclStatisticsFormat HCCL_STATISTICS_DATA = {
     {"hcom_batchSendRecv_", 96, 243562100, 542100, 2537105.208333, 105191720},
     {"hcom_broadcast_", 96, 70865740, 236820, 738184.791667, 3929660},
     {"hcom_allGather_", 50, 52400100, 530920, 1048002, 1810800},
+};
+
+// 与 device_hccl_persistence.cpp 中 SaveKfcTaskData 写入顺序一致：
+// modelId, indexId, hcclName, groupName, planeId, timestamp, duration,
+// opId, isMaster, streamId, taskId, contextId, batchId, size, bandwidth,
+// localRank, remoteRank, rankSize, transportType, dataType, linkType, rdmaType, notifyId, iterId, source
+using KfcTaskDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, double, double,
+        int64_t, uint16_t, uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t, int64_t,
+        std::string, std::string, std::string, std::string, std::string, uint32_t, int32_t>>;
+const KfcTaskDataFormat KFC_TASK_DATA = {
+    {4294967295, 0, "KfcAllReduce", "group_kfc", 2, 1500.0, 200.0, 42, 1, 8, 300, 2, 3, 4096.0, 0.02,
+        1, 2, 8, "SDMA", "FP16", "ON_CHIP", "INVALID_TYPE", "100", 3, 1},
+};
+
+// 与 device_hccl_persistence.cpp 中 SaveKfcOpData 写入顺序一致：
+// modelId, indexId, opName, start, end, groupName, connectionId, opType, relay, retry, dataType, algType, count,
+// rankSize, iterId, source
+using KfcOpDataFormat = std::vector<std::tuple<uint64_t, int32_t, std::string, double, double, std::string, int64_t,
+        std::string, int32_t, int32_t, std::string, std::string, uint64_t, int64_t, uint32_t, int32_t>>;
+const KfcOpDataFormat KFC_OP_DATA = {
+    {4294967295, 0, "hcom_kfc_allreduce", 1500.0, 1700.0, "group_kfc", 1001, "hcom_kfc_allreduce", 0, 0, "FP16", "HD",
+        6291456, 8, 3, 1},
+};
+
+// 与 device_hccl_persistence.cpp 中 SaveKfcOpReportData 写入顺序一致（KfcOpReport 表列序）：
+// opType, count, totalTime, min, avg, max
+const HcclStatisticsFormat KFC_OP_REPORT_DATA = {
+    {"hcom_kfc_allreduce", 3, 600000, 100000, 200000, 300000},
 };
 
 class DeviceHcclPersistenceUTest : public testing::Test {
@@ -155,6 +184,51 @@ protected:
         }
         return taskData;
     }
+
+    static std::vector<Analysis::Domain::KfcTaskRecord> GenerateKfcTaskData()
+    {
+        std::vector<Analysis::Domain::KfcTaskRecord> taskData;
+        EXPECT_TRUE(Reserve(taskData, KFC_TASK_DATA.size()));
+        for (const auto& data : KFC_TASK_DATA) {
+            Analysis::Domain::KfcTaskRecord task;
+            int32_t source = 0;
+            std::tie(task.modelId, task.indexId, task.hcclName, task.groupName, task.planeId, task.timestamp,
+                     task.duration, task.opId, task.isMaster, task.streamId, task.taskId, task.contextId,
+                     task.batchId, task.size, task.bandwidth, task.localRank, task.remoteRank, task.rankSize,
+                     task.transportType, task.dataType, task.linkType, task.rdmaType, task.notifyId, task.iterId,
+                     source) = data;
+            task.source = static_cast<Analysis::Domain::HcclType>(source);
+            taskData.emplace_back(task);
+        }
+        return taskData;
+    }
+
+    static std::vector<Analysis::Domain::KfcOpRecord> GenerateKfcOpData()
+    {
+        std::vector<Analysis::Domain::KfcOpRecord> opData;
+        EXPECT_TRUE(Reserve(opData, KFC_OP_DATA.size()));
+        for (const auto& data : KFC_OP_DATA) {
+            Analysis::Domain::KfcOpRecord op;
+            int32_t source = 0;
+            std::tie(op.modelId, op.indexId, op.opName, op.start, op.end, op.groupName, op.connectionId, op.opType,
+                     op.relay, op.retry, op.dataType, op.algType, op.count, op.rankSize, op.iterId, source) = data;
+            op.source = static_cast<Analysis::Domain::HcclType>(source);
+            opData.emplace_back(op);
+        }
+        return opData;
+    }
+
+    static std::vector<Analysis::Domain::KfcOpStatistics> GenerateKfcOpReportData()
+    {
+        std::vector<Analysis::Domain::KfcOpStatistics> reportData;
+        EXPECT_TRUE(Reserve(reportData, KFC_OP_REPORT_DATA.size()));
+        for (const auto& data : KFC_OP_REPORT_DATA) {
+            Analysis::Domain::KfcOpStatistics report;
+            std::tie(report.opType, report.count, report.totalTime, report.min, report.avg, report.max) = data;
+            reportData.emplace_back(report);
+        }
+        return reportData;
+    }
 };
 
 TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
@@ -223,4 +297,44 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
     tempDataInventory.Inject(hcclStatisticsData);
 
     ASSERT_EQ(Analysis::ANALYSIS_OK, per.Run(tempDataInventory, context));
+}
+
+TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenKfcDataPresentThenSaveKfcTables)
+{
+    auto kfcTask = GenerateKfcTaskData();
+    std::shared_ptr<std::vector<Analysis::Domain::KfcTaskRecord>> kfcTaskData;
+    MAKE_SHARED0_NO_OPERATION(kfcTaskData, std::vector<Analysis::Domain::KfcTaskRecord>, std::move(kfcTask));
+    dataInventory_.Inject(kfcTaskData);
+
+    auto kfcOp = GenerateKfcOpData();
+    std::shared_ptr<std::vector<Analysis::Domain::KfcOpRecord>> kfcOpData;
+    MAKE_SHARED0_NO_OPERATION(kfcOpData, std::vector<Analysis::Domain::KfcOpRecord>, std::move(kfcOp));
+    dataInventory_.Inject(kfcOpData);
+
+    auto kfcReport = GenerateKfcOpReportData();
+    std::shared_ptr<std::vector<Analysis::Domain::KfcOpStatistics>> kfcReportData;
+    MAKE_SHARED0_NO_OPERATION(kfcReportData, std::vector<Analysis::Domain::KfcOpStatistics>, std::move(kfcReport));
+    dataInventory_.Inject(kfcReportData);
+
+    Analysis::Domain::DeviceHcclPersistence per;
+    Analysis::Domain::DeviceContext context;
+    MOCKER_CPP(&Analysis::Domain::DeviceContext::GetDeviceFilePath).stubs().will(returnValue(DEVICE_DIR));
+    ASSERT_EQ(Analysis::ANALYSIS_OK, per.Run(dataInventory_, context));
+    MOCKER_CPP(&Analysis::Domain::DeviceContext::GetDeviceFilePath).reset();
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, DB_PATH);
+    ASSERT_NE(dbRunner, nullptr);
+
+    KfcTaskDataFormat taskData;
+    EXPECT_TRUE(dbRunner->QueryData("SELECT * from KfcTask", taskData));
+    EXPECT_EQ(KFC_TASK_DATA, taskData);
+
+    KfcOpDataFormat opData;
+    EXPECT_TRUE(dbRunner->QueryData("SELECT * from KfcOP", opData));
+    EXPECT_EQ(KFC_OP_DATA, opData);
+
+    HcclStatisticsFormat reportData;
+    EXPECT_TRUE(dbRunner->QueryData("SELECT * from KfcOpReport", reportData));
+    EXPECT_EQ(KFC_OP_REPORT_DATA, reportData);
 }

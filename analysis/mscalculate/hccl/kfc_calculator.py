@@ -92,25 +92,30 @@ class KfcCalculator(ICalculator, MsMultiProcess):
         if not master_stream_hccl_task:
             return
 
-        # 用kfcTask数据构建小task索引 (unique_id → task)
-        hccl_small_task = {}
+        # 用kfcTask数据构建小task索引 (unique_id → 多次执行按 timestamp 排序)。
+        # 同一四元组多次执行（动态 profiling 重复执行）时，若只保留最后一条，各轮 kernel 都会被
+        # 修正为最后一轮的时间，故按出现顺序保留全部，处理时按轮次取对应小 task
+        hccl_small_task = defaultdict(list)
         for data in kfc_task_data:
             uid = "{0}-{1}-{2}-{3}".format(data.stream_id, data.task_id, data.context_id, data.batch_id)
-            hccl_small_task[uid] = data
+            hccl_small_task[uid].append(data)
+        for tasks in hccl_small_task.values():
+            tasks.sort(key=lambda t: t.timestamp)
 
         # 构建 kernel_key → [first_start, last_end]，key中加入iter_id区分多次执行
         kernel_times = {}
         aicpu_iter = defaultdict(lambda: 0)  # (aicpu_stream_id, aicpu_task_id, context_id, batch_id) → 当前执行次数
         mismatch = set()
         missing_first = set()  # 有 LAST 但无对应 FIRST 的异常 key
+        uid_occurrence = defaultdict(lambda: [0, 0])  # uid → [FIRST 出现次数, LAST 出现次数]
         for data in master_stream_hccl_task:
             if data.task_type not in (self.FIRST_TASK_TYPE, self.LAST_TASK_TYPE):
                 continue
             uid = "{0}-{1}-{2}-{3}".format(
                 data.stream_id, data.task_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id
             )
-            small_task = hccl_small_task.get(uid)
-            if not small_task:
+            small_tasks = hccl_small_task.get(uid)
+            if not small_tasks:
                 mismatch.add(uid)
                 continue
             aicpu_key = (
@@ -119,6 +124,16 @@ class KfcCalculator(ICalculator, MsMultiProcess):
                 NumberConstant.DEFAULT_GE_CONTEXT_ID,
                 data.aicpu_batch_id,
             )
+            # 按出现顺序取本轮对应的小 task：FIRST(起始 task) 与 LAST(结束 task) 通常是不同 uid，
+            # 各自独立计数推进；同一 uid 多次执行（重复执行）时后一次不再覆盖前一次
+            if data.task_type == self.FIRST_TASK_TYPE:
+                occ = uid_occurrence[uid][0]
+                uid_occurrence[uid][0] += 1
+            else:
+                occ = uid_occurrence[uid][1]
+                uid_occurrence[uid][1] += 1
+            occ = min(occ, len(small_tasks) - 1)
+            small_task = small_tasks[occ]
             # FIRST表示新一轮执行开始，递增iter_id（从1开始）
             if data.task_type == self.FIRST_TASK_TYPE:
                 aicpu_iter[aicpu_key] += 1

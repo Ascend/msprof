@@ -212,6 +212,7 @@ class DataParsersConfig(MetaConfig):
         'AicpuAddInfoParser': [
             ('path', 'msparser.add_info.aicpu_add_info_parser'),
             ('chip_model', '0,1,2,3,4,5,7,8,11,15,16'),
+            ('level', '3'),  # 需在 TstrackParser(level2) 之后，读取 step_trace.db DeviceTaskFlip 计算 aicpu_batch_id
             ('position', 'D'),
         ],
         'TensorAddInfoParser': [

@@ -46,6 +46,37 @@ from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 from profiling_bean.prof_enum.data_tag import DataTag
 
 
+class _AicpuBatchTaskAdapter:
+    """将 mainStreamTask 的 aicpu 侧分组 key 暴露给 FlipCalculator.compute_batch_id：
+    stream_id 取落盘 aicpu_stream_id 列值（host_tasks_map remap），timestamp 取 host 时间（对齐 DeviceTaskFlip），
+    compute_batch_id 写入的 batch_id 直接落到 bean.aicpu_batch_id
+    """
+
+    def __init__(self: any, bean: any, aicpu_stream_id: int) -> None:
+        self._bean = bean
+        self._aicpu_stream_id = aicpu_stream_id
+
+    @property
+    def stream_id(self: any) -> int:
+        return self._aicpu_stream_id
+
+    @property
+    def task_id(self: any) -> int:
+        return self._bean.aicpu_task_id
+
+    @property
+    def timestamp(self: any) -> int:
+        return InfoConfReader().time_from_syscnt(self._bean.timestamp)
+
+    @property
+    def batch_id(self: any) -> int:
+        return self._bean.aicpu_batch_id
+
+    @batch_id.setter
+    def batch_id(self: any, value: int) -> None:
+        self._bean.aicpu_batch_id = value
+
+
 class AicpuAddInfoParser(DataParser, MsMultiProcess):
     """
     aicpu data parser
@@ -208,6 +239,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 InfoConfReader().time_from_syscnt(aicpu_info.timestamp),
                 self.host_tasks_map.get(aicpu_info.data.aicpu_task_id, aicpu_info.data.aicpu_stream_id),
                 aicpu_info.data.aicpu_task_id,
+                aicpu_info.data.aicpu_batch_id,
                 self.unique_id_map.get(aicpu_info.data.task_id, aicpu_info.data.stream_id),
                 aicpu_info.data.task_id,
                 aicpu_info.data.batch_id,
@@ -308,6 +340,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         self.parse()
         self._pre_process_host_info()
         self._compute_batch_id()
+        self._compute_aicpu_batch_id()
         self.save()
 
     def set_aicpu_data(self: any, aicpu_data: list) -> None:
@@ -371,3 +404,25 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         master_stream_list = self._aicpu_data.get(AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK, [])
         if master_stream_list:
             FlipCalculator.compute_batch_id([item.data for item in master_stream_list], flip_items, is_flip_num=False)
+
+    def _compute_aicpu_batch_id(self: any) -> None:
+        """用 step_trace.db DeviceTaskFlip(device flip) 预计算 mainStreamTask 的 aicpuBatchId。
+        分组 key 对齐落盘 aicpu_stream_id 列值（host_tasks_map remap），timestamp 对齐 DeviceTaskFlip（host 时间），
+        与 kfcModel 原先 set_device_batch_id 的逻辑一致，计算后随 aicpu_batch_id 列一并落盘
+        """
+        master_stream_list = self._aicpu_data.get(AicpuAddInfoBean.AICPU_MASTER_STREAM_HCCL_TASK, [])
+        if not master_stream_list:
+            return
+        with TsTrackModel(
+            self.project_path, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]
+        ) as model:
+            task_flip = model.get_task_flip_data()
+        if not task_flip:
+            return
+        task_data = [
+            _AicpuBatchTaskAdapter(
+                item.data, self.host_tasks_map.get(item.data.aicpu_task_id, item.data.aicpu_stream_id)
+            )
+            for item in master_stream_list
+        ]
+        FlipCalculator.compute_batch_id(task_data, task_flip, is_flip_num=False)

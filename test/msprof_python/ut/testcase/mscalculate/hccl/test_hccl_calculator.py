@@ -251,6 +251,81 @@ class TestHcclCalculator(unittest.TestCase):
         self.assertEqual(1, len(result))
         self.assertEqual(200, result[0].start)
 
+    def test_merge_hccl_ops_and_tasks_should_drop_op_with_no_master_task(self):
+        """该 op 的 task 全为 non-master，无主流聚合窗口，op 不产出（对齐 C++ hasGroup 守卫）；
+        task 仍保留并回填 iter_id，iter_id 与是否 master 无关"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+            # 同线程第二个 op：task 全为 non-master
+            HcclOps(thread_id=100, connection_id=2),
+        ]
+        hccl_tasks = [
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+            # op2 的两个 task 四元组不同（task_id 不同），是同一 op 单次执行的两个 task，不触发 iter_id 递增
+            HcclTask(thread_id=100, op_id=2, stream_id=2, task_id=1, context_id=1, batch_id=1,
+                     is_master=0, timestamp=200, duration=10, rank_size=8),
+            HcclTask(thread_id=100, op_id=2, stream_id=2, task_id=2, context_id=1, batch_id=1,
+                     is_master=0, timestamp=300, duration=10, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        # 仅 op1 产出，op2 因无 master task 被跳过
+        self.assertEqual(1, len(result))
+        self.assertEqual(1, result[0].connection_id)
+        self.assertNotIn(2, [op.connection_id for op in result])
+        # op2 的 task 仍保留，iter_id 与是否 master 无关，统一回填为 1
+        self.assertEqual(3, len(hccl_tasks))
+        self.assertEqual([1, 2, 2], [t.op_id for t in hccl_tasks])
+        self.assertTrue(all(t.iter_id == 1 for t in hccl_tasks))
+
+    def test_merge_hccl_ops_and_tasks_should_drop_unmatched_tasks(self):
+        """未匹配到任何 op 的 task 从 hccl_tasks 移除（对齐 C++ MergeOpDataByThreadId 丢弃），不落库"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+        ]
+        hccl_tasks = [
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+            # op_id 不匹配该线程任何 op → 丢弃
+            HcclTask(thread_id=100, op_id=999, stream_id=2, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=200, duration=10, rank_size=8),
+            # 线程 200 只有 task 无 op → 整体丢弃
+            HcclTask(thread_id=200, op_id=2, stream_id=3, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=300, duration=10, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        # 仅匹配的 op 产出结果
+        self.assertEqual(1, len(result))
+        self.assertEqual(1, result[0].connection_id)
+        self.assertEqual(100, result[0].start)
+        # 未匹配 task 已被移除，剩余匹配 task 回填了 iter_id
+        self.assertEqual(1, len(hccl_tasks))
+        self.assertEqual(1, hccl_tasks[0].op_id)
+        self.assertEqual(1, hccl_tasks[0].iter_id)
+
+    def test_merge_hccl_ops_and_tasks_should_drop_ops_without_tasks(self):
+        """有 op 无 task 的线程：op 未进入匹配流程、整体不产出（对齐 C++ MergeHcclOpData）"""
+        hccl_ops = [
+            HcclOps(thread_id=100, connection_id=1),
+            # 线程 300 只有 op 无 task → op 不产出
+            HcclOps(thread_id=300, connection_id=2),
+        ]
+        hccl_tasks = [
+            HcclTask(thread_id=100, op_id=1, stream_id=1, task_id=1, context_id=1, batch_id=1,
+                     is_master=1, timestamp=100, duration=10, rank_size=8),
+        ]
+        check = HcclCalculator([], CONFIG)
+        result = check._merge_hccl_ops_and_tasks(hccl_ops, hccl_tasks)
+
+        # 仅线程 100 的 op 产出，线程 300 的 op（connection_id=2）被丢弃
+        self.assertEqual(1, len(result))
+        self.assertEqual(1, result[0].connection_id)
+        self.assertNotIn(2, [op.connection_id for op in result])
+
     def test_merge_hccl_ops_and_tasks_should_group_by_op_id_and_refresh_group_name(self):
         """同一线程多个 op 的 task 时间戳交错时，应按 op_id 聚拢避免单个 op 被拆成多次迭代；
         并把所属 op 的 group_name 回填给 task（task 侧 group_name 与 op 侧不同源，以 op 侧为准）"""

@@ -20,6 +20,7 @@
 
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hccl/include/hccl_task.h"
+#include "analysis/csrc/domain/entities/hccl/include/kfc_task.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/modeling/include/log_modeling.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
@@ -42,6 +43,8 @@ const std::string TASK_INFO_TABLE = "TaskInfo";
 const std::string HCCL_OP_TABLE = "HCCLOP";
 const std::string HCCL_TASK_TABLE = "HCCLTask";
 const std::string GE_HASH_INFO_TABLE = "GeHashInfo";
+const std::string AICPU_KERNEL = "AicpuKernel";
+const std::string MC2_COMM_INFO_TABLE = "Mc2CommInfo";
 using OriDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
 using RuntimeOriDataFormat = std::vector<std::tuple<uint32_t, int32_t, uint32_t, uint32_t, std::string, uint64_t,
                                                     std::string, std::string, int64_t, uint16_t>>;
@@ -52,7 +55,9 @@ using HcclTaskOriDataFormat =
 using GeHashFormat = std::vector<std::tuple<std::string, std::string>>;
 using HcclOpOriDataFormat =
     std::vector<std::tuple<uint16_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, int64_t,
-                           int32_t, int32_t, std::string, std::string, uint64_t, std::string>>;
+                           int32_t, int32_t, std::string, std::string, uint64_t, std::string, std::string>>;
+using AicpuOpNameDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, std::string>>;
+using Mc2CommInfoDataFormat = std::vector<std::tuple<std::string, int64_t, uint32_t, std::string>>;
 bool CheckPathAndTableExists(const std::string& path, DBRunner& dbRunner, const std::string& tableName)
 {
     if (!File::Exist(path))
@@ -199,7 +204,8 @@ uint32_t ReadHcclOp(DataInventory& dataInventory, const DeviceContext& deviceCon
     DBRunner hostHcclDBRunner(hostDbDirectory);
     std::string sql{
         "SELECT device_id, model_id, index_id, thread_id, op_name, task_type, op_type, "
-        "connection_id, relay, retry, data_type, alg_type, count, group_name from HCCLOP where device_id = "};
+        "connection_id, relay, retry, data_type, alg_type, count, group_name, kfc_connection_ids from HCCLOP "
+        "where device_id = "};
     sql += std::to_string(deviceInfo.deviceId);
     std::vector<HcclOp> ans;
     std::shared_ptr<std::vector<HcclOp>> data;
@@ -222,12 +228,12 @@ uint32_t ReadHcclOp(DataInventory& dataInventory, const DeviceContext& deviceCon
         uint64_t modelId, count;
         int32_t indexId, relay, retry;
         uint32_t threadId;
-        std::string opName, taskType, opType, dataType, algType, groupName;
+        std::string opName, taskType, opType, dataType, algType, groupName, kfcConnectionIds;
         int64_t connectionId;
         std::tie(deviceId, modelId, indexId, threadId, opName, taskType, opType, connectionId, relay, retry, dataType,
-                 algType, count, groupName) = row;
-        HcclOp hcclOp{deviceId,     modelId, indexId, threadId, opName,  taskType, opType,
-                      connectionId, relay,   retry,   dataType, algType, count,    groupName};
+                 algType, count, groupName, kfcConnectionIds) = row;
+        HcclOp hcclOp{modelId, connectionId, count,  indexId,  threadId, relay,     retry,           deviceId,
+                      opName,  taskType,     opType, dataType, algType,  groupName, kfcConnectionIds};
         ans.emplace_back(std::move(hcclOp));
     }
     MAKE_SHARED_RETURN_VALUE(data, std::vector<HcclOp>, ANALYSIS_ERROR, std::move(ans));
@@ -276,9 +282,9 @@ uint32_t ReadHcclTask(DataInventory& dataInventory, const DeviceContext& deviceC
         std::tie(modelId, indexId, name, groupName, planeId, timestamp, opId, streamId, taskId, contextId, batchId,
                  deviceId, isMaster, localRank, remoteRank, threadId, transportType, size, dataType, linkType, notifyId,
                  rdmaType, rankSize) = row;
-        HcclTask hcclTask{modelId,   indexId,  name,     groupName, planeId,   timestamp,  streamId, taskId,
-                          contextId, batchId,  deviceId, isMaster,  localRank, remoteRank, threadId, transportType,
-                          size,      dataType, linkType, notifyId,  rdmaType,  rankSize,   opId};
+        HcclTask hcclTask{modelId, timestamp, localRank,     remoteRank, rankSize, opId,     size,     indexId,
+                          planeId, streamId,  taskId,        contextId,  batchId,  threadId, deviceId, isMaster,
+                          name,    groupName, transportType, dataType,   linkType, notifyId, rdmaType};
         ans.emplace_back(std::move(hcclTask));
     }
     MAKE_SHARED_RETURN_VALUE(data, std::vector<HcclTask>, ANALYSIS_ERROR, std::move(ans));
@@ -318,6 +324,89 @@ uint32_t ReadHash(DataInventory& dataInventory, const DeviceContext& deviceConte
     return ANALYSIS_OK;
 }
 
+uint32_t ReadAicpuKernelOps(DataInventory& dataInventory, const DeviceContext& deviceContext)
+{
+    GEInfoDB geInfoDb;
+    DeviceInfo deviceInfo{};
+    deviceContext.Getter(deviceInfo);
+    auto hostPath = deviceContext.GetDeviceFilePath();
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, geInfoDb.GetDBName()});
+    DBRunner hostGeInfoDBRunner(hostDbDirectory);
+    AicpuOpNameMap opNameByTask;
+    std::shared_ptr<AicpuOpNameMap> data;
+    if (!CheckPathAndTableExists(hostDbDirectory, hostGeInfoDBRunner, TASK_INFO_TABLE))
+    {
+        MAKE_SHARED_RETURN_VALUE(data, AicpuOpNameMap, ANALYSIS_ERROR, std::move(opNameByTask));
+        dataInventory.Inject(data);
+        return ANALYSIS_OK;
+    }
+    std::string sql{"SELECT stream_id, batch_id, task_id, context_id, op_name FROM TaskInfo WHERE device_id = " +
+                    std::to_string(deviceInfo.deviceId) + " AND op_name LIKE '%" + AICPU_KERNEL + "%'"};
+    AicpuOpNameDataFormat result(0);
+    if (!hostGeInfoDBRunner.QueryData(sql, result))
+    {
+        ERROR("Failed to obtain data from the % table.", geInfoDb.GetDBName());
+        return ANALYSIS_ERROR;
+    }
+    for (const auto& row : result)
+    {
+        uint32_t streamId, batchId, taskId, contextId;
+        std::string opName;
+        std::tie(streamId, batchId, taskId, contextId, opName) = row;
+        opNameByTask.emplace(TaskId(streamId, batchId, taskId, contextId), opName);
+    }
+    MAKE_SHARED_RETURN_VALUE(data, AicpuOpNameMap, ANALYSIS_ERROR, std::move(opNameByTask));
+    dataInventory.Inject(data);
+    return ANALYSIS_OK;
+}
+
+uint32_t ReadMc2CommInfo(DataInventory& dataInventory, const DeviceContext& deviceContext)
+{
+    Mc2CommInfoDB mc2CommInfoDb;
+    auto hostPath = deviceContext.GetDeviceFilePath();
+    std::string hostDbDirectory = Utils::File::PathJoin({hostPath, "..", HOST, SQLITE, mc2CommInfoDb.GetDBName()});
+    DBRunner mc2CommInfoDBRunner(hostDbDirectory);
+    std::vector<Mc2CommInfo> commInfo;
+    std::shared_ptr<std::vector<Mc2CommInfo>> data;
+    if (!CheckPathAndTableExists(hostDbDirectory, mc2CommInfoDBRunner, MC2_COMM_INFO_TABLE))
+    {
+        MAKE_SHARED_RETURN_VALUE(data, std::vector<Mc2CommInfo>, ANALYSIS_ERROR, std::move(commInfo));
+        dataInventory.Inject(data);
+        return ANALYSIS_OK;
+    }
+    std::string sql{"SELECT group_name, rank_size, aicpu_kfc_stream_id, comm_stream_ids FROM Mc2CommInfo"};
+    Mc2CommInfoDataFormat result(0);
+    if (!mc2CommInfoDBRunner.QueryData(sql, result))
+    {
+        ERROR("Failed to obtain data from the % table.", mc2CommInfoDb.GetDBName());
+        return ANALYSIS_ERROR;
+    }
+    for (const auto& row : result)
+    {
+        Mc2CommInfo info;
+        std::string commStreamIds;
+        std::tie(info.groupName, info.rankSize, info.aicpuKfcStreamId, commStreamIds) = row;
+        for (const auto& streamId : Split(commStreamIds, ","))
+        {
+            if (streamId.empty())
+            {
+                continue;
+            }
+            uint32_t id = 0;
+            if (StrToU32(id, streamId) != ANALYSIS_OK)
+            {
+                WARN("comm_stream_ids contains invalid number: %", streamId);
+                continue;
+            }
+            info.commStreamIds.emplace_back(id);
+        }
+        commInfo.emplace_back(std::move(info));
+    }
+    MAKE_SHARED_RETURN_VALUE(data, std::vector<Mc2CommInfo>, ANALYSIS_ERROR, std::move(commInfo));
+    dataInventory.Inject(data);
+    return ANALYSIS_OK;
+}
+
 uint32_t LoadHostData::ProcessEntry(DataInventory& dataInventory, const Infra::Context& context)
 {
     auto devTaskSummary = dataInventory.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
@@ -329,11 +418,13 @@ uint32_t LoadHostData::ProcessEntry(DataInventory& dataInventory, const Infra::C
     const auto& deviceContext = dynamic_cast<const DeviceContext&>(context);
     return ReadHostRuntime(dataInventory, deviceContext) | ReadHostGEInfo(dataInventory, deviceContext) |
            ReadHcclTask(dataInventory, deviceContext) | ReadHcclOp(dataInventory, deviceContext) |
-           ReadHash(dataInventory, deviceContext);
+           ReadHash(dataInventory, deviceContext) | ReadAicpuKernelOps(dataInventory, deviceContext) |
+           ReadMc2CommInfo(dataInventory, deviceContext);
 }
 
 REGISTER_PROCESS_SEQUENCE(LoadHostData, false, Analysis::Domain::LogModeling, Analysis::Domain::LogModelingV6);
-REGISTER_PROCESS_DEPENDENT_DATA(LoadHostData, std::map<TaskId, std::vector<Domain::DeviceTask>>);
+REGISTER_PROCESS_DEPENDENT_DATA(LoadHostData, std::map<TaskId, std::vector<Domain::DeviceTask>>, AicpuOpNameMap,
+                                std::vector<Mc2CommInfo>);
 REGISTER_PROCESS_SUPPORT_CHIP(LoadHostData, CHIP_ID_ALL);
 
 }  // namespace Domain

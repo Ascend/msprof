@@ -420,7 +420,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldReturnImmediatelyWhenFlipDataI
     persistence_->mainStreamTaskData_ = {MakeTaskData(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, 100, 1)};
     // flipTaskData_ 为空
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // batchId 应保持默认值 0
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
@@ -431,7 +431,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldReturnImmediatelyWhenTaskDataI
     persistence_->flipTaskData_ = {MakeFlipData(100, 1, 0)};
     // mainStreamTaskData_ 和 kfcInfosData_ 为空
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     EXPECT_EQ(persistence_->flipTaskData_[0].taskId.batchId, 0);
 }
@@ -443,7 +443,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldNotComputeBatchIdWhenStreamHas
     // flip 在 stream 2
     persistence_->flipTaskData_ = {MakeFlipData(100, 2, 0)};
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // stream 1 没有对应的 flip，batchId 不计算
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
@@ -465,7 +465,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeCorrectBatchIdForMainSt
         MakeFlipData(300, 1, 0),
     };
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);  // ts=50  < flip@100
     EXPECT_EQ(persistence_->mainStreamTaskData_[1].taskId.batchId, 1);  // ts=200 between flips
@@ -487,7 +487,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBatchIdIndependentlyPer
         MakeFlipData(500, 2, 0),
     };
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // stream 1: ts=50<100(batch0), ts=200>100(batch1)
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
@@ -513,7 +513,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBatchIdForKfcInfos)
     kfc.KfcInfos.infos[1].taskId = 20;
     persistence_->kfcInfosData_ = {kfc};
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // 两条 info 共享 AicpuData.taskId.batchId，timestamp 大的(300)后写入
     // info[0]@100 → flip@200 → batch 0，info[1]@300 → batch 1
@@ -534,7 +534,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldSkipKfcInfoWithZeroGroupName)
     kfc.KfcInfos.infos[1].groupName = 1;
     persistence_->kfcInfosData_ = {kfc};
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // 只有 info[1] 参与计算，ts=300 > flip@200 → batch 1
     EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
@@ -555,7 +555,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBothMainStreamAndKfcTog
     kfc.KfcInfos.infos[0].groupName = 1;
     persistence_->kfcInfosData_ = {kfc};
 
-    persistence_->ComputeAicpuBatchId();
+    persistence_->ComputeAicpuBatchId(nullptr);
 
     // mainStream@100 < flip@200 → batch 0
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);

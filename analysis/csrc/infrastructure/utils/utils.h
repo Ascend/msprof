@@ -42,6 +42,7 @@ std::string Rstrip(const std::string &str1, const std::string &str2);
 int StrToU16(uint16_t &dest, const std::string &numStr);
 int StrToU32(uint32_t &dest, const std::string &numStr);
 int StrToU64(uint64_t &dest, const std::string &numStr);
+int StrToInt64(int64_t &dest, const std::string &numStr);
 int StrToDouble(double &dest, const std::string &numStr);
 // 根据所给的device路径获取对应的deviceId {local_path}/PROF_xxx/device_{id} 返回id对应的数值
 // 对于传入的 {local_path}/PROF_xxx/host, 也返回host对应的id（64）

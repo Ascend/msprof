@@ -188,9 +188,6 @@ class HcclCalculator(ICalculator, MsMultiProcess):
             op_type_group[data.op_type]["min"] = min(op_type_group[data.op_type]["min"], duration)
             op_type_group[data.op_type]["max"] = max(op_type_group[data.op_type]["max"], duration)
 
-        if not any(s["total_time"] for s in op_type_group.values()):
-            return
-
         for status in op_type_group.values():
             status["avg"] = status["total_time"] / status["count"] if status["count"] else 0
 
@@ -205,7 +202,6 @@ class HcclCalculator(ICalculator, MsMultiProcess):
                     round(float(status["max"]), NumberConstant.DECIMAL_ACCURACY),
                 ]
             )
-        report_list.sort(key=lambda x: x[2], reverse=True)
 
     def calculate(self: any) -> None:
         """
@@ -370,10 +366,14 @@ class HcclCalculator(ICalculator, MsMultiProcess):
 
         res = []
         mismatch_op_ids = set()
+        # 未匹配到 op 的 task 索引：统一丢弃（对齐 C++ MergeOpDataByThreadId 的 continue 丢弃），
+        # 避免以默认 iter_id=0/op_name=NA 落库并进入 update_bandwidth 导致带宽计算失真
+        drop_indices = set()
 
         for thread_id, task_queue in task_thread_map.items():
             if thread_id not in op_thread_map:
-                logging.error("Op data can't match any task, thread id is %d.", thread_id)
+                # 该线程只有 task 无 op，所有 task 无法匹配，统一丢弃（对齐 C++ 侧丢弃语义）
+                drop_indices.update(idx for idx, _ in task_queue)
                 continue
             op_id_map = op_thread_map[thread_id]
 
@@ -390,6 +390,7 @@ class HcclCalculator(ICalculator, MsMultiProcess):
             for idx, task in task_queue:
                 if task.op_id not in op_id_map:
                     mismatch_op_ids.add(task.op_id)
+                    drop_indices.add(idx)
                     continue
 
                 task_key = (task.stream_id, task.task_id, task.context_id, task.batch_id)
@@ -398,15 +399,20 @@ class HcclCalculator(ICalculator, MsMultiProcess):
 
                 if new_round:
                     if current_op_id is not None:
-                        op = op_id_map[current_op_id]
-                        res.append(
-                            op.replace(
-                                start=group_start,
-                                end=group_end,
-                                rank_size=last_rank_size,
-                                iter_id=current_iter_id,
+                        if group_start is None:
+                            # 对齐 C++ MergeOpDataByThreadId 的 hasGroup 守卫：
+                            # 该 op 的 task 全为 non-master，无主流聚合窗口，报错并整组跳过，避免落全 0 数据
+                            logging.error("Hccl op has no master task, op_id(connection_id) is: %s", current_op_id)
+                        else:
+                            op = op_id_map[current_op_id]
+                            res.append(
+                                op.replace(
+                                    start=group_start,
+                                    end=group_end,
+                                    rank_size=last_rank_size,
+                                    iter_id=current_iter_id,
+                                )
                             )
-                        )
 
                     if task.op_id != current_op_id:
                         current_op_id = task.op_id
@@ -441,15 +447,25 @@ class HcclCalculator(ICalculator, MsMultiProcess):
                     group_end = new_end if new_end > group_end else group_end
 
             if current_op_id is not None:
-                op = op_id_map[current_op_id]
-                res.append(
-                    op.replace(
-                        start=group_start,
-                        end=group_end,
-                        rank_size=last_rank_size,
-                        iter_id=current_iter_id,
+                if group_start is None:
+                    # 对齐 C++ MergeOpDataByThreadId 的 hasGroup 守卫
+                    logging.error("Hccl op has no master task, op_id(connection_id) is: %s", current_op_id)
+                else:
+                    op = op_id_map[current_op_id]
+                    res.append(
+                        op.replace(
+                            start=group_start,
+                            end=group_end,
+                            rank_size=last_rank_size,
+                            iter_id=current_iter_id,
+                        )
                     )
-                )
+
+        # 统一丢弃未匹配 op 的 task（对齐 C++ MergeOpDataByThreadId 的 continue 丢弃）：
+        # 从 hccl_tasks 移除，后续 update_bandwidth / _generate_hccl_data 不再处理这些 task，
+        # 避免以 iter_id=0 / op_name=NA 落库、带宽计算失真
+        for drop_idx in sorted(drop_indices, reverse=True):
+            del hccl_tasks[drop_idx]
 
         if mismatch_op_ids:
             logging.error("Some op_id can't match any task, op_id is %s", mismatch_op_ids)

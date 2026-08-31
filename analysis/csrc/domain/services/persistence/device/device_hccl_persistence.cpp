@@ -17,6 +17,7 @@
 #include "analysis/csrc/domain/services/persistence/device/device_hccl_persistence.h"
 
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/hccl/include/kfc_calculator.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
@@ -44,6 +45,20 @@ using HcclTaskDataFormat =
 
 // opType, count, totalTime, min, avg, max
 using HcclStatisticsFormat = std::vector<std::tuple<std::string, uint32_t, double, double, double, double>>;
+
+// modelId, indexId, hcclName, groupName, planeId, timestamp, duration,
+// opId, isMaster, streamId, taskId, contextId, batchId, size, bandwidth,
+// localRank, remoteRank, rankSize, transportType, dataType, linkType, rdmaType, notifyId, iterId, source
+using KfcTaskDataFormat =
+    std::vector<std::tuple<uint64_t, int32_t, std::string, std::string, int32_t, double, double, int64_t, uint16_t,
+                           uint32_t, uint32_t, uint32_t, uint32_t, double, double, int64_t, int64_t, int64_t,
+                           std::string, std::string, std::string, std::string, std::string, uint32_t, int32_t>>;
+
+// modelId, indexId, opName, start, end, groupName, connectionId, opType, relay, retry, dataType, algType, count,
+// rankSize, iterId, source
+using KfcOpDataFormat =
+    std::vector<std::tuple<uint64_t, int32_t, std::string, double, double, std::string, int64_t, std::string, int32_t,
+                           int32_t, std::string, std::string, uint64_t, int64_t, uint32_t, int32_t>>;
 }  // namespace
 
 bool SaveHcclOpData(DataInventory& dataInventory, const std::string& devicePath)
@@ -145,6 +160,93 @@ bool SaveHcclStatisticsData(DataInventory& dataInventory, const std::string& dev
     return SaveData(saveData, hcclDB, dbPath);
 }
 
+bool SaveKfcTaskData(DataInventory& dataInventory, const std::string& devicePath)
+{
+    auto taskData = dataInventory.GetPtr<std::vector<KfcTaskRecord>>();
+    if (taskData == nullptr || taskData->empty())
+    {
+        // kfc 为可选数据：数据缺失/为空时优雅跳过，不影响 hccl 落盘与后续业务
+        WARN("No kfc task data, skip saving kfc task data.");
+        return true;
+    }
+    DBInfo hcclDB("hccl_single_device.db", "KfcTask");
+    MAKE_SHARED0_RETURN_VALUE(hcclDB.database, HCCLSingleDeviceDB, false);
+    std::string dbPath = Utils::File::PathJoin({devicePath, SQLITE, hcclDB.dbName});
+    INFO("Start to process %.", dbPath);
+    MAKE_SHARED_RETURN_VALUE(hcclDB.dbRunner, DBRunner, false, dbPath);
+    KfcTaskDataFormat saveData;
+    if (!Utils::Reserve(saveData, taskData->size()))
+    {
+        ERROR("Reserve for % data failed.", hcclDB.tableName);
+        return false;
+    }
+    for (const auto& data : *taskData)
+    {
+        saveData.emplace_back(data.modelId, data.indexId, data.hcclName, data.groupName, data.planeId, data.timestamp,
+                              data.duration, data.opId, data.isMaster, data.streamId, data.taskId, data.contextId,
+                              data.batchId, data.size, data.bandwidth, data.localRank, data.remoteRank, data.rankSize,
+                              data.transportType, data.dataType, data.linkType, data.rdmaType, data.notifyId,
+                              data.iterId, static_cast<int32_t>(data.source));
+    }
+    return SaveData(saveData, hcclDB, dbPath);
+}
+
+bool SaveKfcOpData(DataInventory& dataInventory, const std::string& devicePath)
+{
+    auto opData = dataInventory.GetPtr<std::vector<KfcOpRecord>>();
+    if (opData == nullptr || opData->empty())
+    {
+        // kfc 为可选数据：数据缺失/为空时优雅跳过，不影响 hccl 落盘与后续业务
+        WARN("No kfc op data, skip saving kfc op data.");
+        return true;
+    }
+    DBInfo hcclDB("hccl_single_device.db", "KfcOP");
+    MAKE_SHARED0_RETURN_VALUE(hcclDB.database, HCCLSingleDeviceDB, false);
+    std::string dbPath = Utils::File::PathJoin({devicePath, SQLITE, hcclDB.dbName});
+    INFO("Start to process %.", dbPath);
+    MAKE_SHARED_RETURN_VALUE(hcclDB.dbRunner, DBRunner, false, dbPath);
+    KfcOpDataFormat saveData;
+    if (!Utils::Reserve(saveData, opData->size()))
+    {
+        ERROR("Reserve for % data failed.", hcclDB.tableName);
+        return false;
+    }
+    for (const auto& data : *opData)
+    {
+        saveData.emplace_back(data.modelId, data.indexId, data.opName, data.start, data.end, data.groupName,
+                              data.connectionId, data.opType, data.relay, data.retry, data.dataType, data.algType,
+                              data.count, data.rankSize, data.iterId, static_cast<int32_t>(data.source));
+    }
+    return SaveData(saveData, hcclDB, dbPath);
+}
+
+bool SaveKfcOpReportData(DataInventory& dataInventory, const std::string& devicePath)
+{
+    auto statisticsData = dataInventory.GetPtr<std::vector<KfcOpStatistics>>();
+    if (statisticsData == nullptr || statisticsData->empty())
+    {
+        // kfc 为可选数据：数据缺失/为空时优雅跳过，不影响 hccl 落盘与后续业务
+        WARN("No kfc op report data, skip saving kfc op report data.");
+        return true;
+    }
+    DBInfo hcclDB("hccl_single_device.db", "KfcOpReport");
+    MAKE_SHARED0_RETURN_VALUE(hcclDB.database, HCCLSingleDeviceDB, false);
+    std::string dbPath = Utils::File::PathJoin({devicePath, SQLITE, hcclDB.dbName});
+    INFO("Start to process %.", dbPath);
+    MAKE_SHARED_RETURN_VALUE(hcclDB.dbRunner, DBRunner, false, dbPath);
+    HcclStatisticsFormat saveData;
+    if (!Utils::Reserve(saveData, statisticsData->size()))
+    {
+        ERROR("Reserve for % data failed.", hcclDB.tableName);
+        return false;
+    }
+    for (auto& data : *statisticsData)
+    {
+        saveData.emplace_back(data.opType, data.count, data.totalTime, data.min, data.avg, data.max);
+    }
+    return SaveData(saveData, hcclDB, dbPath);
+}
+
 uint32_t DeviceHcclPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     INFO("Start to dump device hccl data.");
@@ -165,11 +267,27 @@ uint32_t DeviceHcclPersistence::ProcessEntry(DataInventory& dataInventory, const
         flag = false;
         ERROR("Save hccl statistics single device data failed.");
     }
+    if (!SaveKfcTaskData(dataInventory, devicePath))
+    {
+        flag = false;
+        ERROR("Save kfc task single device data failed.");
+    }
+    if (!SaveKfcOpData(dataInventory, devicePath))
+    {
+        flag = false;
+        ERROR("Save kfc op single device data failed.");
+    }
+    if (!SaveKfcOpReportData(dataInventory, devicePath))
+    {
+        flag = false;
+        ERROR("Save kfc op report single device data failed.");
+    }
     return (flag) ? ANALYSIS_OK : ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(DeviceHcclPersistence, true, HcclCalculator);
+REGISTER_PROCESS_SEQUENCE(DeviceHcclPersistence, true, HcclCalculator, KfcCalculator);
 REGISTER_PROCESS_DEPENDENT_DATA(DeviceHcclPersistence, std::vector<DeviceHcclOp>, std::vector<DeviceHcclTask>,
-                                std::vector<HcclStatistics>);
+                                std::vector<HcclStatistics>, std::vector<KfcTaskRecord>, std::vector<KfcOpRecord>,
+                                std::vector<KfcOpStatistics>);
 REGISTER_PROCESS_SUPPORT_CHIP(DeviceHcclPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

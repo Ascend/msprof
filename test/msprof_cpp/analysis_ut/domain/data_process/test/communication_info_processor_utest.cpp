@@ -103,6 +103,19 @@ const KfcOpFormat DATA_KFC_OP_A{
     {4294967295, -1, "hcom_allReduce_360", 781687236999151, 35092402526, "group_1",
         200, "AicpuKernel", 0, 1, "INT8", "HD-NB", 3021, 8, 0, 1},
 };
+// KfcTask/KfcOP 的 source 列同时存在 HCCL(0) 与 MC2(1) 的行，末尾元素即 source
+const KfcTaskFormat DATA_KFC_MIXED_SOURCE{
+    {4294967295, -1, "allreduceAicpuKernel_100", "group_1", 0, 781687236999156.0, 20.0, 200, 1, 69, 0, 0, 0,
+        1024.0, 3.12, 5, 6, 8, "SDMA", "INT8", "HCCS", "INVALID_TYPE", "102", 0, 0},  // source=0 => HCCL
+    {4294967295, -1, "allreduceAicpuKernel_200", "group_1", 0, 781687236999157.0, 20.0, 200, 1, 69, 0, 0, 0,
+        1024.0, 3.12, 5, 6, 8, "SDMA", "INT8", "HCCS", "INVALID_TYPE", "102", 0, 1},  // source=1 => MC2
+};
+const KfcOpFormat DATA_KFC_OP_MIXED_SOURCE{
+    {4294967295, -1, "hcom_allReduce_100", 781687236999151, 35092402526, "group_1",
+        200, "AicpuKernel", 0, 1, "INT8", "HD-NB", 3021, 8, 0, 0},  // source=0 => HCCL
+    {4294967295, -1, "hcom_allReduce_200", 781687236999152, 35092402526, "group_1",
+        200, "AicpuKernel", 0, 1, "INT8", "HD-NB", 3021, 8, 0, 1},  // source=1 => MC2
+};
 }
 
 class CommunicationInfoProcessorUTest : public testing::Test {
@@ -191,6 +204,13 @@ protected:
         auto cols = database->GetTableCols(tableName);
         dbRunner->CreateTable(tableName, cols);
     }
+    // 删除指定表，模拟"表缺失"，用于验证四表独立处理、谁有谁处理
+    static void DropTableFromDb(const std::string& dbPath, const std::string& tableName)
+    {
+        std::shared_ptr<DBRunner> dbRunner;
+        MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
+        dbRunner->DropTable(tableName);
+    }
 };
 
 static void CheckTaskInfo(std::vector<CommunicationTaskData> data)
@@ -246,6 +266,58 @@ TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunS
     }
     CheckOpInfo(opRes);
     CheckTaskInfo(taskRes);
+}
+
+TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReadKfcSourceFromData)
+{
+    // KfcTask/KfcOP 的 source 应从数据中来：数据里既有 source=hccl 也有 source=mc2 的行，
+    // 处理结果必须各自保持，不能一律硬标成 mc2（回归：曾对所有 Kfc 行默认标 MC2）
+    auto dbPath = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPath, KFC_TASK_TABLE_NAME);
+    DropTableFromDb(dbPath, KFC_OP_TABLE_NAME);
+    CreateKfcTask(dbPath, DATA_KFC_MIXED_SOURCE);
+    CreateKfcOP(dbPath, DATA_KFC_OP_MIXED_SOURCE);
+
+    std::string processorName = "COMMUNICATION_TASK_INFO";
+    GeHashMap geHashMap = {{"key1", "value1"}};
+    std::shared_ptr<GeHashMap> geHashMapPtr;
+    MAKE_SHARED0_NO_OPERATION(geHashMapPtr, GeHashMap, std::move(geHashMap));
+    auto processor = CommunicationInfoProcessor(PROF_PATH_A);
+    auto dataInventory = DataInventory();
+    dataInventory.Inject(geHashMapPtr);
+    EXPECT_TRUE(processor.Run(dataInventory, processorName));
+
+    auto taskResPtr = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
+    ASSERT_TRUE(taskResPtr != nullptr);
+    bool foundHcclTask = false;
+    bool foundMc2Task = false;
+    for (const auto& item : *taskResPtr) {
+        if (item.hcclName == "allreduceAicpuKernel_100") {
+            EXPECT_EQ(item.source, HcclType::HCCL);
+            foundHcclTask = true;
+        } else if (item.hcclName == "allreduceAicpuKernel_200") {
+            EXPECT_EQ(item.source, HcclType::MC2);
+            foundMc2Task = true;
+        }
+    }
+    EXPECT_TRUE(foundHcclTask);
+    EXPECT_TRUE(foundMc2Task);
+
+    auto opResPtr = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
+    ASSERT_TRUE(opResPtr != nullptr);
+    bool foundHcclOp = false;
+    bool foundMc2Op = false;
+    for (const auto& item : *opResPtr) {
+        if (item.opName == "hcom_allReduce_100") {
+            EXPECT_EQ(item.source, HcclType::HCCL);
+            foundHcclOp = true;
+        } else if (item.opName == "hcom_allReduce_200") {
+            EXPECT_EQ(item.source, HcclType::MC2);
+            foundMc2Op = true;
+        }
+    }
+    EXPECT_TRUE(foundHcclOp);
+    EXPECT_TRUE(foundMc2Op);
 }
 
 TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnTrueWhenSourceTableNotExist)
@@ -432,4 +504,97 @@ TEST_F(CommunicationInfoProcessorUTest, TestRunShouldReturnFalseWhenGetProfTimeR
     .will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, processorName));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
+}
+
+TEST_F(CommunicationInfoProcessorUTest, TestRunShouldExportTaskDataWhenOpTableNotExist)
+{
+    // 所有 op 表缺失时，task 表数据仍应正常导出（四表独立，谁有谁处理）
+    auto dbPathA = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPathA, OP_TABLE_NAME);
+    DropTableFromDb(dbPathA, KFC_OP_TABLE_NAME);
+    auto dbPathB = File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPathB, OP_TABLE_NAME);
+
+    std::string processorName = "COMMUNICATION_TASK_INFO";
+    GeHashMap geHashMap = {{"key1", "value1"}};
+    std::shared_ptr<GeHashMap> geHashMapPtr;
+    MAKE_SHARED0_NO_OPERATION(geHashMapPtr, GeHashMap, std::move(geHashMap));
+    std::vector<CommunicationTaskData> taskRes;
+    for (auto path : PROF_PATHS) {
+        auto processor = CommunicationInfoProcessor(path);
+        auto dataInventory = DataInventory();
+        dataInventory.Inject(geHashMapPtr);
+        EXPECT_TRUE(processor.Run(dataInventory, processorName));
+        auto opResPtr = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
+        EXPECT_TRUE(opResPtr == nullptr);  // op 表全缺失，不应注入 op 数据
+        auto taskResPtr = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
+        if (taskResPtr != nullptr) {
+            taskRes.insert(taskRes.end(), taskResPtr->begin(), taskResPtr->end());
+        }
+    }
+    // HCCL task 4 条（A、B 各 2）+ KfcTask 1 条（仅 A）= 5 条
+    EXPECT_EQ(taskRes.size(), TASK_NUM);
+}
+
+TEST_F(CommunicationInfoProcessorUTest, TestRunShouldExportOpDataWhenTaskTableNotExist)
+{
+    // 所有 task 表缺失时，op 表数据仍应正常导出（四表独立，谁有谁处理）
+    auto dbPathA = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPathA, TASK_TABLE_NAME);
+    DropTableFromDb(dbPathA, KFC_TASK_TABLE_NAME);
+    auto dbPathB = File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPathB, TASK_TABLE_NAME);
+
+    std::string processorName = "COMMUNICATION_TASK_INFO";
+    GeHashMap geHashMap = {{"key1", "value1"}};
+    std::shared_ptr<GeHashMap> geHashMapPtr;
+    MAKE_SHARED0_NO_OPERATION(geHashMapPtr, GeHashMap, std::move(geHashMap));
+    std::vector<CommunicationOpData> opRes;
+    for (auto path : PROF_PATHS) {
+        auto processor = CommunicationInfoProcessor(path);
+        auto dataInventory = DataInventory();
+        dataInventory.Inject(geHashMapPtr);
+        EXPECT_TRUE(processor.Run(dataInventory, processorName));
+        auto taskResPtr = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
+        EXPECT_TRUE(taskResPtr == nullptr);  // task 表全缺失，不应注入 task 数据
+        auto opResPtr = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
+        if (opResPtr != nullptr) {
+            opRes.insert(opRes.end(), opResPtr->begin(), opResPtr->end());
+        }
+    }
+    // HCCL op 2 条（A、B 各 1）+ KfcOP 1 条（仅 A）= 3 条
+    CheckOpInfo(opRes);
+}
+
+TEST_F(CommunicationInfoProcessorUTest, TestRunShouldProcessHcclWhenKfcTableMissing)
+{
+    // Kfc 表全缺失时，HCCL 数据仍正常导出（HCCL 与 KFC 独立处理）
+    auto dbPathA = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
+    DropTableFromDb(dbPathA, KFC_TASK_TABLE_NAME);
+    DropTableFromDb(dbPathA, KFC_OP_TABLE_NAME);
+
+    std::string processorName = "COMMUNICATION_TASK_INFO";
+    GeHashMap geHashMap = {{"key1", "value1"}};
+    std::shared_ptr<GeHashMap> geHashMapPtr;
+    MAKE_SHARED0_NO_OPERATION(geHashMapPtr, GeHashMap, std::move(geHashMap));
+    std::vector<CommunicationTaskData> taskRes;
+    std::vector<CommunicationOpData> opRes;
+    for (auto path : PROF_PATHS) {
+        auto processor = CommunicationInfoProcessor(path);
+        auto dataInventory = DataInventory();
+        dataInventory.Inject(geHashMapPtr);
+        EXPECT_TRUE(processor.Run(dataInventory, processorName));
+        auto taskResPtr = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
+        if (taskResPtr != nullptr) {
+            taskRes.insert(taskRes.end(), taskResPtr->begin(), taskResPtr->end());
+        }
+        auto opResPtr = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
+        if (opResPtr != nullptr) {
+            opRes.insert(opRes.end(), opResPtr->begin(), opResPtr->end());
+        }
+    }
+    // HCCL task 4 条（A、B 各 2），Kfc 数据已被 drop
+    EXPECT_EQ(taskRes.size(), static_cast<size_t>(4));
+    // HCCL op 2 条（A、B 各 1）
+    EXPECT_EQ(opRes.size(), static_cast<size_t>(2));
 }

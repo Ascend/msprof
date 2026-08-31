@@ -30,48 +30,40 @@ class TestKfcInfoViewModel(unittest.TestCase):
         with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=False):
             self.assertEqual([], vm.get_aicpu_master_stream_hccl_task())
 
-    def test_get_aicpu_master_stream_hccl_task_should_compute_aicpu_batch_id_and_keep_db_batch_id(self: any) -> None:
-        # DB 行：timestamp, aicpu_stream_id, aicpu_task_id, stream_id, task_id,
-        #        aicpu_batch_id(0 占位), batch_id(展开算子 batchId), type
+    def test_get_aicpu_master_stream_hccl_task_should_read_aicpu_batch_id_from_db_and_keep_batch_id(self: any) -> None:
+        # DB 行：timestamp, aicpu_stream_id, aicpu_task_id, aicpu_batch_id(msparser 预计算落盘值),
+        #        stream_id, task_id, batch_id(展开算子 batchId), type
         db_rows = [
-            (100, 19, 0, 52, 7, 0, 5, 0),
-            (200, 19, 1, 52, 8, 0, 5, 1),
+            (100, 19, 0, 0, 52, 7, 5, 0),
+            (200, 19, 1, 0, 52, 8, 5, 1),
         ]
-        captured = {}
-
-        def fake_set_device_batch_id(data, result_dir):
-            captured['intermediate'] = data
-            captured['result_dir'] = result_dir
-            # 模拟 flip 计算：把 HCCL_OP_MASTER_STREAM_TYPE 的 batch_id 槽位算成 aicpu_batch_id
-            return [d.replace(batch_id=42) for d in data]
 
         vm = KfcInfoViewModel('result_dir', [])
         with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
-                mock.patch.object(vm, 'get_sql_data', return_value=db_rows) as mock_get_sql, \
-                mock.patch(NAMESPACE + '.FlipCalculator.set_device_batch_id',
-                           side_effect=fake_set_device_batch_id):
+                mock.patch.object(vm, 'get_sql_data', return_value=db_rows) as mock_get_sql:
             result = vm.get_aicpu_master_stream_hccl_task()
 
-        # SQL 需包含 aicpu_batch_id 占位列，batch_id 从 DB 读取
+        # SQL 直读 aicpu_batch_id（msparser 已用 DeviceTaskFlip 预计算并落盘），batch_id 同样从 DB 读取
         sql = mock_get_sql.call_args[0][0]
-        self.assertIn('0 as aicpu_batch_id', sql)
+        self.assertIn('aicpu_batch_id', sql)
         self.assertIn('batch_id', sql)
 
-        # 中间类型：stream_id 槽位承载 aicpu_stream_id（flip 按 aicpu stream 计算）
-        mid = captured['intermediate']
-        self.assertEqual(19, mid[0].stream_id)
-        self.assertEqual(0, mid[0].task_id)
-        self.assertEqual(52, mid[0].hccl_stream_id)
-        self.assertEqual(7, mid[0].hccl_task_id)
-        self.assertEqual(5, mid[0].hccl_batch_id)
-        self.assertEqual('result_dir', captured['result_dir'])
-
-        # 最终类型：aicpu_batch_id 来自 set_device_batch_id，batch_id 保留 DB 值
+        # 直读结果：aicpu_batch_id / batch_id / task_type 均保留 DB 值
         self.assertEqual(2, len(result))
-        self.assertEqual(42, result[0].aicpu_batch_id)
+        self.assertEqual(100, result[0].timestamp)
+        self.assertEqual(19, result[0].aicpu_stream_id)
+        self.assertEqual(0, result[0].aicpu_task_id)
+        self.assertEqual(52, result[0].stream_id)
+        self.assertEqual(7, result[0].task_id)
+        self.assertEqual(0, result[0].aicpu_batch_id)
         self.assertEqual(5, result[0].batch_id)
         self.assertEqual(0, result[0].task_type)
-        self.assertEqual(42, result[1].aicpu_batch_id)
+        self.assertEqual(200, result[1].timestamp)
+        self.assertEqual(19, result[1].aicpu_stream_id)
+        self.assertEqual(1, result[1].aicpu_task_id)
+        self.assertEqual(52, result[1].stream_id)
+        self.assertEqual(8, result[1].task_id)
+        self.assertEqual(0, result[1].aicpu_batch_id)
         self.assertEqual(5, result[1].batch_id)
         self.assertEqual(1, result[1].task_type)
 

@@ -1519,6 +1519,7 @@ class TablesConfig(MetaConfig):
             ('timestamp', 'NUMERIC,null'),
             ('aicpu_stream_id', 'INTEGER,null'),
             ('aicpu_task_id', 'INTEGER,null'),
+            ('aicpu_batch_id', 'INTEGER,null'),
             ('stream_id', 'INTEGER,null'),
             ('task_id', 'INTEGER,null'),
             ('batch_id', 'INTEGER,null'),

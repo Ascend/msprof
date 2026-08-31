@@ -17,6 +17,8 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_AICPU_PERSISTENCE_H
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_AICPU_PERSISTENCE_H
 
+#include "analysis/csrc/domain/entities/hal/include/hal_track.h"
+#include "analysis/csrc/domain/entities/hccl/include/kfc_task.h"
 #include "analysis/csrc/domain/services/parser/aicpu/include/aicpu_parser.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
@@ -45,7 +47,13 @@ class AicpuPersistence : public Process
     uint32_t GenerateAndSaveMainStreamTask(const std::string& deviceFilePath);
     uint32_t GenerateAndSaveKfcInfos(const std::string& deviceFilePath);
 
-    void ComputeAicpuBatchId();
+    // halTrackData：device flip（TS_TASK_FLIP，TsTrackParser 注入），用于计算 aicpuStreamId/aicpuTaskId 的
+    // aicpuBatchId， 可能为空指针（TsTrackParser 未注入时），此时只计算主流侧 batchId
+    void ComputeAicpuBatchId(std::vector<HalTrackData>* halTrackData);
+    // 构建注入 DataInventory 的 kfc 上游实体，与 kfc_info.db 落盘行同源同值，
+    // 供同进程的 KfcCalculator 直接消费（越过 kfc_info.db 读取）
+    std::vector<KfcInfoData> BuildKfcInfoData() const;
+    std::vector<MasterStreamTaskData> BuildMasterStreamTaskData() const;
 
    private:
     std::vector<AicpuData> nodeData_;
