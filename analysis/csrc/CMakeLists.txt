@@ -31,6 +31,8 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/modeling/batch_id SOURC
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/modeling/step_trace SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/freq SOURCES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/qos SOURCES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/ub SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/host SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/host/cann SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/log SOURCES)

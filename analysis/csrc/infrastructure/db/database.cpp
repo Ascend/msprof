@@ -477,9 +477,12 @@ const TableColumns V6BlockPmu = {{"stream_id", SQL_NUMERIC_TYPE},  {"task_id", S
                                  {"core_type", SQL_TEXT_TYPE},     {"core_id", SQL_INTEGER_TYPE}};
 
 const TableColumns UBBwData = {
-    {"device_id", "INTEGER"},          {"port_id", "INTEGER"},      {"time_stamp", "NUMERIC"},
-    {"udma_rx_bind", "NUMERIC"},       {"udma_tx_bind", "NUMERIC"}, {"rx_port_band_width", "NUMERIC"},
-    {"tx_port_band_width", "NUMERIC"},
+    {"device_id", SQL_NUMERIC_TYPE},      {"port_id", SQL_NUMERIC_TYPE},      {"time_stamp", SQL_NUMERIC_TYPE},
+    {"udma_rx_bind", SQL_NUMERIC_TYPE},   {"udma_tx_bind", SQL_NUMERIC_TYPE}, {"rx_port_band_width", SQL_NUMERIC_TYPE},
+    {"rx_packet_rate", SQL_NUMERIC_TYPE}, {"rx_bytes", SQL_NUMERIC_TYPE},     {"rx_packets", SQL_NUMERIC_TYPE},
+    {"rx_errors", SQL_NUMERIC_TYPE},      {"rx_dropped", SQL_NUMERIC_TYPE},   {"tx_port_band_width", SQL_NUMERIC_TYPE},
+    {"tx_packet_rate", SQL_NUMERIC_TYPE}, {"tx_bytes", SQL_NUMERIC_TYPE},     {"tx_packets", SQL_NUMERIC_TYPE},
+    {"tx_errors", SQL_NUMERIC_TYPE},      {"tx_dropped", SQL_NUMERIC_TYPE},
 };
 
 const TableColumns BiuInstrStatus = {

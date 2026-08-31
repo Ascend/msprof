@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
  * MindStudio is licensed under Mulan PSL v2.
@@ -14,17 +14,29 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
-#ifndef ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
-#define ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
+#ifndef MSPROF_ANALYSIS_HAL_UB_H
+#define MSPROF_ANALYSIS_HAL_UB_H
+
+#include <array>
+#include <cstdint>
 
 namespace Analysis
 {
-const int STARS_SOC_STRUCT_SIZE = 64;
-const int STARS_SOC_STRUCT_SIZE_V6 = 32;
-const int FFTS_PROFILE_STRUCT_SIZE = 128;
-const int TS_TRACK_STRUCT_SIZE = 40;
-const int FREQ_STRUCT_SIZE = 888;
-const int QOS_STRUCT_SIZE = 64;
-const int UB_STRUCT_SIZE = 128;
+namespace Domain
+{
+enum UbParserItemType : uint32_t
+{
+    UB_ITEM_TYPE = 0
+};
+
+struct HalUbBwData
+{
+    uint32_t deviceId{};
+    uint16_t portId{};
+    uint64_t timestamp{};
+    std::array<uint64_t, 14> metrics{};
+};
+}  // namespace Domain
 }  // namespace Analysis
-#endif  // ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
+
+#endif  // MSPROF_ANALYSIS_HAL_UB_H

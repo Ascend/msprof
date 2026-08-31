@@ -18,6 +18,7 @@
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/data_process/system/ub_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/domain/services/persistence/device/ub_persistence.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
@@ -35,11 +36,11 @@ const std::string TABLE_NAME = "UBBwData";
 const std::string PROF_PATH_A = File::PathJoin({BASE_PATH, "PROF_000001_20231125090304037_02333394MBJNQLKJ"});
 const std::string SQLITE_SUFFIX = "sqlite";
 
-using OriUbFormat = std::vector<std::tuple<uint16_t, uint16_t, uint64_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
+using OriUbFormat = std::vector<UbBwRow>;
 using ProcessedFormat = std::vector<UbData>;
 
-OriUbFormat DATA_A{{0, 0, 3758215093862910, 100, 200, 1000, 2000},
-                   {0, 1, 3758215114581640, 150, 250, 1500, 2500}};
+OriUbFormat DATA_A{{0, 0, 3758215093862910, 100, 200, 1000, 0, 0, 0, 0, 0, 2000, 0, 0, 0, 0, 0},
+                   {0, 1, 3758215114581640, 150, 250, 1500, 0, 0, 0, 0, 0, 2500, 0, 0, 0, 0, 0}};
 }
 
 class UbProcessorUTest : public testing::Test {
@@ -62,12 +63,12 @@ protected:
             {"devMonotonic", "36471130547330"},
             {"CPU", {{{"Frequency", "100.000000"}}}},
         };
-        MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     }
     virtual void TearDown()
     {
         EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-        MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetInfoByDeviceId).reset();
     }
     static void CreateUbData(const std::string& dbPath, OriUbFormat data)
     {
@@ -93,18 +94,18 @@ TEST_F(UbProcessorUTest, TestRunShouldReturnFalseWhenGetClockMonotonicRawFailed)
 {
     auto processor = UbProcessor(PROF_PATH_A);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetClockMonotonicRaw).stubs().will(returnValue(false));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetClockMonotonicRaw).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_UB));
-    MOCKER_CPP(&Context::GetClockMonotonicRaw).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetClockMonotonicRaw).reset();
 }
 
 TEST_F(UbProcessorUTest, TestRunShouldReturnFalseWhenGetProfTimeRecordInfoFailed)
 {
     auto processor = UbProcessor(PROF_PATH_A);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_UB));
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).reset();
 }
 
 TEST_F(UbProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
