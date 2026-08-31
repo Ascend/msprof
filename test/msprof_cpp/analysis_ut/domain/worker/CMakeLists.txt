@@ -10,6 +10,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/tree SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/persistence/host SOURCES)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/worker/test SOURCES)
+list(APPEND SOURCES ${TOP_DIR}/analysis/csrc/domain/services/modeling/npu_op_mem_calculator.cpp)
 
 add_executable(host_worker_utest
     ${SOURCES}

@@ -60,6 +60,7 @@ class ParserAdditionalInfoAdapter
     static bool AdapterGraphId(MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterHcclInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterMultiThread(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
+    static void AdapterMemoryInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
 };
 
 class ParserAicpuAdapter

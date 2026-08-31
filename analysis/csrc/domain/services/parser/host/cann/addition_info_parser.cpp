@@ -16,6 +16,7 @@
 
 #include "analysis/csrc/domain/services/parser/host/cann/addition_info_parser.h"
 
+#include <memory>
 #include <unordered_map>
 
 #include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
@@ -102,7 +103,8 @@ int AdditionInfoParser::ProduceData()
     }
     while (!chunkProducer_->Empty())
     {
-        auto additionalInfo = ReinterpretConvert<MsprofAdditionalInfo *>(chunkProducer_->Pop());
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto additionalInfo = ReinterpretConvert<MsprofAdditionalInfo *>(chunk.get());
         if (!additionalInfo)
         {
             ERROR("%: Pop chunk failed.", parserName_);
@@ -110,21 +112,32 @@ int AdditionInfoParser::ProduceData()
         }
         if (additionalInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
         {
-            ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
-            delete additionalInfo;
+            ERROR("%: Invalid magic number, record discarded, % records remaining.", parserName_,
+                  chunkProducer_->Size());
+            continue;
+        }
+        if (!IsDataValid(*additionalInfo))
+        {
+            ERROR("%: Invalid payload length %, record discarded, % records remaining.", parserName_,
+                  additionalInfo->dataLen, chunkProducer_->Size());
             continue;
         }
         auto parser = std::make_shared<ParserAdditionalInfo>();
         if (!ParserAdditionalInfoAdapter::AdapterAdditionalInfo(additionalInfo, parser.get(), parserType_))
         {
             ERROR("%: copy addition info data failed.", parserName_);
-            delete additionalInfo;
             return ANALYSIS_ERROR;
         }
-        delete additionalInfo;
         additionalData_.emplace_back(std::move(parser));
     }
     return ANALYSIS_OK;
+}
+
+bool AdditionInfoParser::IsDataValid(const MsprofAdditionalInfo &) const { return true; }
+
+bool TaskMemoryParser::IsDataValid(const MsprofAdditionalInfo &additionalInfo) const
+{
+    return additionalInfo.dataLen >= sizeof(MsprofMemoryInfo);
 }
 
 int TensorInfoParser::ProduceData()
@@ -141,7 +154,8 @@ int TensorInfoParser::ProduceData()
     std::unordered_map<std::string, std::shared_ptr<ParserConcatTensorInfo>> concatTensorMap;
     while (!chunkProducer_->Empty())
     {
-        auto currTensorInfo = ReinterpretConvert<MsprofAdditionalInfo *>(chunkProducer_->Pop());
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto currTensorInfo = ReinterpretConvert<MsprofAdditionalInfo *>(chunk.get());
         if (!currTensorInfo)
         {
             ERROR("%: Pop chunk failed.", parserName_);
@@ -149,8 +163,8 @@ int TensorInfoParser::ProduceData()
         }
         if (currTensorInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
         {
-            ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
-            delete currTensorInfo;
+            ERROR("%: Invalid magic number, record discarded, % records remaining.", parserName_,
+                  chunkProducer_->Size());
             continue;
         }
         auto currTensor = ReinterpretConvert<MsprofTensorInfo *>(currTensorInfo->data);
@@ -161,11 +175,9 @@ int TensorInfoParser::ProduceData()
             if (!concatTensor)
             {
                 ERROR("%: Create concat tensor failed.");
-                delete currTensorInfo;
                 return ANALYSIS_ERROR;
             }
             concatTensorMap.insert({key, concatTensor});
-            delete currTensorInfo;
             continue;
         }
         auto concatTensor = concatTensorMap[key];
@@ -182,7 +194,6 @@ int TensorInfoParser::ProduceData()
             }
             concatTensor->tensorNum += 1;
         }
-        delete currTensorInfo;
     }
     for (const auto &kv : concatTensorMap)
     {

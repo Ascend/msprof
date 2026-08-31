@@ -261,6 +261,9 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
         case AdditionalInfoFormat::MULTI_THREAD_TYPE:
             AdapterMultiThread(addition, parsed);
             return true;
+        case AdditionalInfoFormat::TASK_MEMORY_INFO_TYPE:
+            AdapterMemoryInfo(addition, parsed);
+            return true;
         default:
             ERROR("Unsupported Additional Info: %.", static_cast<uint32_t>(parserType));
             return false;
@@ -356,6 +359,17 @@ void ParserAdditionalInfoAdapter::AdapterMultiThread(const MsprofAdditionalInfo*
     {
         parsed->multiThread.threadId[i] = addition->multiThread.threadId[i];
     }
+}
+
+void ParserAdditionalInfoAdapter::AdapterMemoryInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed)
+{
+    parsed->memoryInfo.addr = addition->memoryInfo.addr;
+    parsed->memoryInfo.size = addition->memoryInfo.size;
+    parsed->memoryInfo.nodeId = addition->memoryInfo.nodeId;
+    parsed->memoryInfo.totalAllocateMemory = addition->memoryInfo.totalAllocateMemory;
+    parsed->memoryInfo.totalReserveMemory = addition->memoryInfo.totalReserveMemory;
+    parsed->memoryInfo.deviceId = addition->memoryInfo.deviceId;
+    parsed->memoryInfo.deviceType = addition->memoryInfo.deviceType;
 }
 
 bool ParserAicpuAdapter::AdapterNode(const MsprofAdditionalInfo* additionalData, AicpuData* aicpuData)

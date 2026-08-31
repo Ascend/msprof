@@ -46,6 +46,7 @@ class AdditionInfoParser : public BaseParser<AdditionInfoParser>
 
    protected:
     int ProduceData() override;
+    virtual bool IsDataValid(const MsprofAdditionalInfo &additionalInfo) const;
 
    protected:
     std::vector<std::shared_ptr<ParserAdditionalInfo>> additionalData_;      // not owned
@@ -156,6 +157,26 @@ class MemoryApplicationParser final : public AdditionInfoParser
         "aging.additional.memory_application.slice",
     };
 };  // class MemoryApplicationParser
+
+// 该类的作用是解析NPU算子内存数据
+class TaskMemoryParser final : public AdditionInfoParser
+{
+   public:
+    explicit TaskMemoryParser(const std::string &path) : AdditionInfoParser(path, "TaskMemoryParser")
+    {
+        parserType_ = AdditionalInfoFormat::TASK_MEMORY_INFO_TYPE;
+        Init(filePrefix_);
+    }
+
+   private:
+    bool IsDataValid(const MsprofAdditionalInfo &additionalInfo) const override;
+
+   private:
+    std::vector<std::string> filePrefix_ = {
+        "unaging.additional.task_memory_info.slice",
+        "aging.additional.task_memory_info.slice",
+    };
+};  // class TaskMemoryParser
 
 // 该类的作用是multi thread数据的解析
 class MultiThreadParser final : public AdditionInfoParser

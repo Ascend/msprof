@@ -44,6 +44,7 @@ enum class AdditionalInfoFormat : uint8_t
     HCCL_INFO_TYPE,
     MEMORY_APPLICATION_TYPE,
     MULTI_THREAD_TYPE,
+    TASK_MEMORY_INFO_TYPE,
 };
 
 enum class RuntimeTrackFormat : uint8_t
@@ -489,6 +490,7 @@ struct ParserAdditionalInfo
         ParserProfFusionOpInfo fusionOpInfo;
         ParserContextIdInfo contextIdInfo;
         ParserGraphIdInfo graphIdInfo;
+        ParserMemoryInfo memoryInfo;
     };
 };
 

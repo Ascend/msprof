@@ -17,6 +17,8 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
+#include <string>
+
 #include "analysis/csrc/domain/services/parser/host/cann/addition_info_parser.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
@@ -29,6 +31,35 @@ const auto DATA_DIR = "./PROF";
 const uint16_t DATA_NUM = 30;
 const uint16_t TENSOR_DATA_NUM = 18000;
 const uint32_t TENSOR_NUM_TO_CONCAT = 3;
+const std::string TASK_MEMORY_DATA_DIR = "./task_memory_addition_parser_test";
+
+namespace {
+std::string MakeTaskMemoryRecord(uint16_t magic, uint64_t operatorId, uint64_t addr = 1, int64_t size = 1,
+                                 uint64_t timestamp = 100, uint32_t dataLen = sizeof(MsprofMemoryInfo))
+{
+    MsprofAdditionalInfo additionalInfo{};
+    additionalInfo.magicNumber = magic;
+    additionalInfo.level = 7;
+    additionalInfo.type = MSPROF_REPORT_NODE_TASK_MEMORY_TYPE;
+    additionalInfo.threadId = 11;
+    additionalInfo.dataLen = dataLen;
+    additionalInfo.timeStamp = timestamp;
+    additionalInfo.memoryInfo.addr = addr;
+    additionalInfo.memoryInfo.size = size;
+    additionalInfo.memoryInfo.nodeId = operatorId;
+    additionalInfo.memoryInfo.totalAllocateMemory = 1000;
+    additionalInfo.memoryInfo.totalReserveMemory = 2000;
+    additionalInfo.memoryInfo.deviceId = 3;
+    additionalInfo.memoryInfo.deviceType = 99;
+    return std::string(reinterpret_cast<const char *>(&additionalInfo), sizeof(additionalInfo));
+}
+
+void WriteTaskMemoryFile(const std::string &fileName, const std::string &content)
+{
+    FileWriter writer(File::PathJoin({TASK_MEMORY_DATA_DIR, fileName}), std::ios::out | std::ios::binary);
+    writer.WriteText(content.data(), content.size());
+}
+}  // namespace
 
 class AdditionInfoParserUTest : public testing::Test {
 protected:
@@ -146,6 +177,19 @@ protected:
             EXPECT_EQ(dataLen, data[i]->dataLen);
             EXPECT_EQ(DATA_NUM + i, data[i]->timeStamp);
         }
+    }
+};
+
+class TaskMemoryParserUTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        File::CreateDir(TASK_MEMORY_DATA_DIR);
+    }
+
+    void TearDown() override
+    {
+        File::RemoveDir(TASK_MEMORY_DATA_DIR, 0);
     }
 };
 
@@ -271,4 +315,91 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturn3600D
         EXPECT_EQ(dataLen, data[i]->dataLen);
         EXPECT_EQ(geTensorNum * concatTensorNum, data[i]->tensorNum);
     }
+}
+
+TEST_F(TaskMemoryParserUTest, ParseShouldReturnNotExistWhenTargetFileDoesNotExist)
+{
+    TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    EXPECT_EQ(parser.GetStatus(), ParserStatus::NOT_EXIST);
+    EXPECT_TRUE(data.empty());
+}
+
+TEST_F(TaskMemoryParserUTest, ParseShouldDiscardInvalidRecordsAndDecodeValidRecord)
+{
+    WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
+                        MakeTaskMemoryRecord(0x1234, 6) +
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 7, 1, 1, 9,
+                                             sizeof(MsprofMemoryInfo) - 1) +
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 8, 9, -10, 11));
+
+    TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    ASSERT_EQ(parser.GetStatus(), ParserStatus::SUCCESS);
+    ASSERT_EQ(data.size(), 1U);
+    EXPECT_EQ(data[0]->magicNumber, MSPROF_DATA_HEAD_MAGIC_NUM);
+    EXPECT_EQ(data[0]->level, 7U);
+    EXPECT_EQ(data[0]->type, MSPROF_REPORT_NODE_TASK_MEMORY_TYPE);
+    EXPECT_EQ(data[0]->threadId, 11U);
+    EXPECT_EQ(data[0]->dataLen, sizeof(MsprofMemoryInfo));
+    EXPECT_EQ(data[0]->timeStamp, 11U);
+    EXPECT_EQ(data[0]->memoryInfo.addr, 9U);
+    EXPECT_EQ(data[0]->memoryInfo.size, -10);
+    EXPECT_EQ(data[0]->memoryInfo.nodeId, 8U);
+    EXPECT_EQ(data[0]->memoryInfo.totalAllocateMemory, 1000U);
+    EXPECT_EQ(data[0]->memoryInfo.totalReserveMemory, 2000U);
+    EXPECT_EQ(data[0]->memoryInfo.deviceId, 3U);
+    EXPECT_EQ(data[0]->memoryInfo.deviceType, 99U);
+}
+
+TEST_F(TaskMemoryParserUTest, ParseShouldReturnSuccessAndEmptyWhenAllRecordsAreInvalid)
+{
+    WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
+                        MakeTaskMemoryRecord(0x1234, 1) +
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2, 1, 1, 100,
+                                             sizeof(MsprofMemoryInfo) - 1));
+
+    TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    EXPECT_EQ(parser.GetStatus(), ParserStatus::SUCCESS);
+    EXPECT_TRUE(data.empty());
+}
+
+TEST_F(TaskMemoryParserUTest, ParseShouldFailAndReturnNoDataWhenAnyFileIsNotRecordAligned)
+{
+    WriteTaskMemoryFile("unaging.additional.task_memory_info.slice_0",
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 1));
+    WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
+                        "x" + MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2));
+
+    TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    EXPECT_EQ(parser.GetStatus(), ParserStatus::ERROR);
+    EXPECT_TRUE(data.empty());
+}
+
+TEST_F(TaskMemoryParserUTest, ParseShouldUseChunkGeneratorAgingAndSliceOrder)
+{
+    WriteTaskMemoryFile("aging.additional.task_memory_info.slice_1",
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 4));
+    WriteTaskMemoryFile("unaging.additional.task_memory_info.slice_1",
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2));
+    WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 3));
+    WriteTaskMemoryFile("unaging.additional.task_memory_info.slice_0",
+                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 1));
+
+    TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    ASSERT_EQ(parser.GetStatus(), ParserStatus::SUCCESS);
+    ASSERT_EQ(data.size(), 4U);
+    EXPECT_EQ(data[0]->memoryInfo.nodeId, 1U);
+    EXPECT_EQ(data[1]->memoryInfo.nodeId, 2U);
+    EXPECT_EQ(data[2]->memoryInfo.nodeId, 3U);
+    EXPECT_EQ(data[3]->memoryInfo.nodeId, 4U);
 }

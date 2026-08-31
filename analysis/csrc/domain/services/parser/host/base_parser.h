@@ -17,50 +17,72 @@
 #ifndef ANALYSIS_PARSER_BASE_PARSER_H
 #define ANALYSIS_PARSER_BASE_PARSER_H
 
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
+#include <vector>
 
+#include "analysis/csrc/domain/services/parser/host/chunk_generator.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
-#include "analysis/csrc/domain/services/parser/host/chunk_generator.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
+enum class ParserStatus
+{
+    SUCCESS,
+    NOT_EXIST,
+    ERROR,
+};
+
 // 该类是数据解析的对外接口，提供接口ParseData()，解析不同类型数据并返回
-// ParseData获取的数据是裸指针，需要接口调用者释放内存
-template<typename ParserType>
-class BaseParser {
-public:
+// ParseData通过shared_ptr返回数据，数据生命周期由调用者持有
+template <typename ParserType>
+class BaseParser
+{
+   public:
     explicit BaseParser(std::string path, std::string parserName)
-        : path_(std::move(path)), parserName_(std::move(parserName)) {}
-
-    template<typename T> std::vector<std::shared_ptr<T>> ParseData()
+        : path_(std::move(path)), parserName_(std::move(parserName))
     {
-        if (!chunkProducer_) {
+    }
+
+    template <typename T>
+    std::vector<std::shared_ptr<T>> ParseData()
+    {
+        status_ = ParserStatus::ERROR;
+        if (!chunkProducer_)
+        {
             ERROR("%: The chunk producer is null.", parserName_);
             return {};
         }
-        if (chunkProducer_->ReadChunk() != ANALYSIS_OK) {
+        if (chunkProducer_->ReadChunk() != ANALYSIS_OK)
+        {
             ERROR("%: Read Chunk failed.", parserName_);
             return {};
         }
-        if (ProduceData() != ANALYSIS_OK) {
+        const bool hasInputData = !chunkProducer_->Empty();
+        if (ProduceData() != ANALYSIS_OK)
+        {
             ERROR("%: Format data failed.", parserName_);
             return {};
         }
+        status_ = hasInputData ? ParserStatus::SUCCESS : ParserStatus::NOT_EXIST;
         return static_cast<ParserType*>(this)->template GetData<T>();
     }
 
-protected:
+    ParserStatus GetStatus() const { return status_; }
+
+   protected:
     virtual int ProduceData() = 0;
 
-protected:
+   protected:
     std::string path_;
     std::string parserName_;
     std::shared_ptr<ChunkGenerator> chunkProducer_;
+    ParserStatus status_ = ParserStatus::NOT_EXIST;
 };  // class BaseParser
 }  // namespace Domain
 }  // namespace Analysis
 
-#endif // ANALYSIS_PARSER_BASE_PARSER_H
+#endif  // ANALYSIS_PARSER_BASE_PARSER_H

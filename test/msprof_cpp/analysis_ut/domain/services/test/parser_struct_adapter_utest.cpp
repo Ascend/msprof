@@ -422,6 +422,38 @@ TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapMultiThread)
     EXPECT_EQ(parsed.multiThread.threadId[2], 12);
 }
 
+TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapMemoryInfo)
+{
+    MsprofAdditionalInfo addition{};
+    ParserAdditionalInfo parsed{};
+    InitAdditionalInfoHeader(addition);
+    addition.memoryInfo.addr = 6;
+    addition.memoryInfo.size = -7;
+    addition.memoryInfo.nodeId = 8;
+    addition.memoryInfo.totalAllocateMemory = 9;
+    addition.memoryInfo.totalReserveMemory = 10;
+    addition.memoryInfo.deviceId = 11;
+    addition.memoryInfo.deviceType = 12;
+
+    bool ret = ParserAdditionalInfoAdapter::AdapterAdditionalInfo(
+        &addition, &parsed, AdditionalInfoFormat::TASK_MEMORY_INFO_TYPE);
+
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(parsed.magicNumber, addition.magicNumber);
+    EXPECT_EQ(parsed.level, addition.level);
+    EXPECT_EQ(parsed.type, addition.type);
+    EXPECT_EQ(parsed.threadId, addition.threadId);
+    EXPECT_EQ(parsed.dataLen, addition.dataLen);
+    EXPECT_EQ(parsed.timeStamp, addition.timeStamp);
+    EXPECT_EQ(parsed.memoryInfo.addr, 6);
+    EXPECT_EQ(parsed.memoryInfo.size, -7);
+    EXPECT_EQ(parsed.memoryInfo.nodeId, 8);
+    EXPECT_EQ(parsed.memoryInfo.totalAllocateMemory, 9);
+    EXPECT_EQ(parsed.memoryInfo.totalReserveMemory, 10);
+    EXPECT_EQ(parsed.memoryInfo.deviceId, 11);
+    EXPECT_EQ(parsed.memoryInfo.deviceType, 12);
+}
+
 TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldReturnFalseForUnsupportedFormat)
 {
     MsprofAdditionalInfo addition{};

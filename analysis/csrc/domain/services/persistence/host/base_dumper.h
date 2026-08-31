@@ -54,7 +54,7 @@ class BaseDumper
         auto data = static_cast<DumperType *>(this)->GenerateData(input);
         if (data.empty())
         {
-            ERROR("Get Empty data");
+            ERROR("Generate data for table % failed: non-empty input produced empty output.", tableName_);
             return false;
         }
         if (dbRunner_->template InsertData(tableName_, data))

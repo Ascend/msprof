@@ -213,6 +213,24 @@ const TableColumns NpuOpMemRaw = {{"operator", SQL_TEXT_TYPE},
                                   {"type", SQL_INTEGER_TYPE},
                                   {"device_type", SQL_TEXT_TYPE}};
 
+const TableColumns NpuOpMem = {{"operator", SQL_TEXT_TYPE},
+                               {"size", SQL_INTEGER_TYPE},
+                               {"allocation_time", SQL_NUMERIC_TYPE},
+                               {"release_time", SQL_NUMERIC_TYPE},
+                               {"duration", SQL_NUMERIC_TYPE},
+                               {"allocation_total_allocated", SQL_INTEGER_TYPE},
+                               {"allocation_total_reserved", SQL_INTEGER_TYPE},
+                               {"release_total_allocated", SQL_INTEGER_TYPE},
+                               {"release_total_reserved", SQL_INTEGER_TYPE},
+                               {"device_type", SQL_TEXT_TYPE},
+                               {"name", SQL_TEXT_TYPE}};
+
+const TableColumns NpuOpMemRec = {{"component", SQL_TEXT_TYPE},
+                                  {"timestamp", SQL_NUMERIC_TYPE},
+                                  {"total_reserve_memory", SQL_INTEGER_TYPE},
+                                  {"total_allocate_memory", SQL_INTEGER_TYPE},
+                                  {"device_type", SQL_TEXT_TYPE}};
+
 const TableColumns NicOriginalData = {
     {"device_id", SQL_INTEGER_TYPE}, {"replayid", SQL_INTEGER_TYPE}, {"timestamp", SQL_NUMERIC_TYPE},
     {"bandwidth", SQL_INTEGER_TYPE}, {"rxpacket", SQL_REAL_TYPE},    {"rxbyte", SQL_REAL_TYPE},
@@ -706,6 +724,8 @@ TaskMemoryDB::TaskMemoryDB()
 {
     dbName_ = "task_memory.db";
     tableColNames_["NpuOpMemRaw"] = NpuOpMemRaw;
+    tableColNames_["NpuOpMem"] = NpuOpMem;
+    tableColNames_["NpuOpMemRec"] = NpuOpMemRec;
 }
 
 NicDB::NicDB()

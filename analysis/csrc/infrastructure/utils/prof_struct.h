@@ -549,6 +549,7 @@ extern "C"
             MsprofTensorInfo tensorInfo;
             ProfFusionOpInfo fusionOpInfo;
             MsprofContextIdInfo contextIdInfo;
+            MsprofMemoryInfo memoryInfo;
         };
     };
     // =====================ADDITIONAL=====================

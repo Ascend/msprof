@@ -64,7 +64,7 @@ class ConfigDataParsers:
                 continue
             if position not in cls._load_parser_position(conf_parser_read, _section):
                 continue
-            if host_cpp_parse_flag and cls._load_can_cpp_parse(_section):
+            if host_cpp_parse_flag and cls._load_can_cpp_parse_or_calculate_host_data(_section):
                 continue
             if device_cpp_parse_flag and all_export_flag and cls._load_can_cpp_parse_or_calculate_device_data(_section):
                 continue
@@ -142,7 +142,7 @@ class ConfigDataParsers:
         return positions
 
     @classmethod
-    def _load_can_cpp_parse(cls, section) -> bool:
+    def _load_can_cpp_parse_or_calculate_host_data(cls, section) -> bool:
         """
         load can cpp parse
         :param section: parser name config in the config file
