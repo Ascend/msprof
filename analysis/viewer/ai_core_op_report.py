@@ -292,9 +292,9 @@ class AiCoreOpReport:
         with HcclViewModel(
             project_path, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE]
         ) as hccl_model:
-            if not hccl_model.check_table():
-                return []
+            # 对齐 C++ CommunicationOpData：HCCLOpSingleDevice 与 KfcOP 独立加载后拼接
             hccl_communication_data = hccl_model.get_hccl_op_data_by_group()
+            hccl_communication_data += hccl_model.get_hccl_op_data_by_group(DBNameConstant.TABLE_KFC_OP)
         if not hccl_communication_data:
             return []
 
@@ -315,9 +315,9 @@ class AiCoreOpReport:
                     _hccl_op.op_name,
                     _hccl_op.op_type,
                     Constant.NA,
-                    _hccl_op.task_type,
-                    int(_hccl_op.timestamp),
-                    int(_hccl_op.duration),
+                    Constant.TASK_TYPE_COMMUNICATION,
+                    int(_hccl_op.start),
+                    int(_hccl_op.end - _hccl_op.start),
                     Constant.DEFAULT_VALUE,
                     Constant.DEFAULT_VALUE,
                 ]

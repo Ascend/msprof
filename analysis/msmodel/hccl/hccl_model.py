@@ -112,19 +112,17 @@ class HcclViewModel(ViewModel):
         )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=HcclOps)
 
-    def get_hccl_op_data_by_group(self):
+    def get_hccl_op_data_by_group(self, table_name: str = DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE):
         """
         get the real execution of the communication op
         """
-        if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE):
+        if not DBManager.judge_table_exist(self.cur, table_name):
             return []
         sql = (
-            f"select model_id, index_id, op_name, start as timestamp, "  # nosec B608
-            f"end - start as duration, task_type, op_type "
-            f"from {DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE} "
-            f"group by op_name, start"
+            f"select model_id, index_id, op_name, start, end, op_type "  # nosec B608
+            f"from {table_name}"
         )
-        return DBManager.fetch_all_data(self.cur, sql, dto_class=HcclTask)
+        return DBManager.fetch_all_data(self.cur, sql, dto_class=HcclOps)
 
     def get_hccl_op_info_from_table(self: any, table_name: str = DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE):
         """

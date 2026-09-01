@@ -253,6 +253,54 @@ class TestHCCLModel(TestDirCRBaseModel):
             self.assertEqual(len(hccl_result), 0)
         model.finalize()
 
+    def test_get_hccl_op_data_by_group_should_return_all_hccl_op_rows(self):
+        hccl_op_data = [
+            (1, 0, "hcom_allReduce__1", "HCCL", "hcom_allReduce_", 100, 110,
+             0, 0, "FP16", "NA", 1, "group", 1, 8, 0),
+            (1, 0, "hcom_allReduce__1", "HCCL", "hcom_allReduce_", 100, 110,
+             0, 0, "FP16", "NA", 1, "group", 1, 8, 0),
+        ]
+        model = HcclViewModel(
+            self.PROF_DEVICE_DIR, DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+            [DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE]
+        )
+        model.init()
+        model.create_table()
+        model.insert_data_to_db(DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE, hccl_op_data)
+        result = model.get_hccl_op_data_by_group()
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].op_name, "hcom_allReduce__1")
+        self.assertEqual(result[0].start, 100)
+        self.assertEqual(result[0].end, 110)
+        model.finalize()
+
+    def test_get_hccl_op_data_by_group_should_return_kfc_op(self):
+        kfc_op_data = [
+            (1, 0, "mc2_matmul_allreduce", 200, 250, "group", 2, "MatmulAllReduce",
+             0, 0, "FP16", "NA", 1, 8, 0, 1),
+        ]
+        model = HcclViewModel(
+            self.PROF_DEVICE_DIR, DBNameConstant.DB_HCCL_SINGLE_DEVICE,
+            [DBNameConstant.TABLE_KFC_OP]
+        )
+        model.init()
+        model.create_table()
+        model.insert_data_to_db(DBNameConstant.TABLE_KFC_OP, kfc_op_data)
+        result = model.get_hccl_op_data_by_group(DBNameConstant.TABLE_KFC_OP)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].op_name, "mc2_matmul_allreduce")
+        self.assertEqual(result[0].op_type, "MatmulAllReduce")
+        self.assertEqual(result[0].start, 200)
+        self.assertEqual(result[0].end, 250)
+        model.finalize()
+
+    def test_get_hccl_op_data_by_group_should_return_empty_when_kfc_table_missing(self):
+        model = HcclViewModel(self.PROF_DEVICE_DIR, DBNameConstant.DB_HCCL_SINGLE_DEVICE, [])
+        model.init()
+        result = model.get_hccl_op_data_by_group(DBNameConstant.TABLE_KFC_OP)
+        self.assertEqual(result, [])
+        model.finalize()
+
     def test_get_hccl_op_info_from_table_sql(self):
         with mock.patch(NAMESPACE + '.DBManager.fetch_all_data'):
             check = HcclViewModel("", DBNameConstant.DB_HCCL_SINGLE_DEVICE,

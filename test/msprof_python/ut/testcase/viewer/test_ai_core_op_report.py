@@ -27,6 +27,7 @@ from common_func.profiling_scene import ExportMode
 from constant.ut_db_name_constant import DB_AICORE_OP_SUMMARY
 from constant.ut_db_name_constant import DB_OP_COUNTER
 from constant.ut_db_name_constant import TABLE_OP_COUNTER_OP_REPORT
+from mscalculate.hccl.hccl_task import HcclOps
 from sqlite.db_manager import DBOpen
 from viewer.ai_core_op_report import AiCoreOpReport
 from viewer.ai_core_op_report import ReportOPCounter
@@ -40,20 +41,23 @@ config = {'handler': '_get_op_summary_data_with_headers',
 
 class TestAiCoreOpReport(unittest.TestCase):
     def test_get_op_summary_data1(self):
-        with mock.patch("os.path.exists", return_value=True), \
-                mock.patch(NAMESPACE + '.HcclViewModel.check_table', return_value=True), \
-                mock.patch(NAMESPACE + '.HcclViewModel.get_hccl_op_data_by_group', return_value=[]):
-            check = AiCoreOpReport()
-            ProfilingScene().set_mode(ExportMode.GRAPH_EXPORT)
-            res = check.get_op_summary_data("0", "", config)
-        expect_res = [
-            'Model Name', 'Model ID', 'Task ID', 'Stream ID', 'Infer ID', 'Op Name', 'OP Type', 'OP State',
-            'Task Type', 'Task Start Time(us)', 'Task Duration(us)', 'Task Wait Time(us)'
-        ]
-        self.assertEqual(res[0], expect_res)
-        self.assertEqual(res[1], [])
-        self.assertEqual(res[2], 0)
-        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
+        try:
+            with mock.patch("os.path.exists", return_value=True), \
+                    mock.patch(NAMESPACE + '.HcclViewModel.init', return_value=True), \
+                    mock.patch(NAMESPACE + '.HcclViewModel.finalize', return_value=None), \
+                    mock.patch(NAMESPACE + '.HcclViewModel.get_hccl_op_data_by_group', return_value=[]):
+                check = AiCoreOpReport()
+                ProfilingScene().set_mode(ExportMode.GRAPH_EXPORT)
+                res = check.get_op_summary_data("0", "", config)
+            expect_res = [
+                'Model Name', 'Model ID', 'Task ID', 'Stream ID', 'Infer ID', 'Op Name', 'OP Type', 'OP State',
+                'Task Type', 'Task Start Time(us)', 'Task Duration(us)', 'Task Wait Time(us)'
+            ]
+            self.assertEqual(res[0], expect_res)
+            self.assertEqual(res[1], [])
+            self.assertEqual(res[2], 0)
+        finally:
+            ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
 
     def test_get_ai_core_op_summary_data(self):
         with mock.patch(NAMESPACE + '.AiCoreOpReport._get_op_summary_data_with_headers', return_value=[]):
@@ -283,6 +287,76 @@ class TestAiCoreOpReport(unittest.TestCase):
         headers = ["mac_exe_ratio", "vec_exe_ratio", "mte2_exe_ratio"]
         data = [[1, 2, 3], [5, 6, 2]]
         DataManager.add_memory_bound(headers, data)
+
+    def test_get_hccl_op_data_should_concat_hccl_and_kfc_op(self):
+        hccl_op = HcclOps(model_id=1, index_id=0, op_name="hcom_allReduce", op_type="hcom_allReduce_",
+                          start=100, end=110)
+        kfc_op = HcclOps(model_id=2, index_id=0, op_name="mc2_matmul_allreduce", op_type="MatmulAllReduce",
+                         start=200, end=220)
+
+        def fake_get_hccl_op_data_by_group(table_name=DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE):
+            if table_name == DBNameConstant.TABLE_KFC_OP:
+                return [kfc_op]
+            return [hccl_op]
+
+        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
+        with mock.patch("os.path.exists", return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.init', return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.finalize', return_value=None), \
+                mock.patch(NAMESPACE + '.HcclViewModel.get_hccl_op_data_by_group',
+                           side_effect=fake_get_hccl_op_data_by_group), \
+                mock.patch(NAMESPACE + '.get_ge_model_name_dict', return_value={}):
+            res = AiCoreOpReport.get_hccl_op_data("proj", 11)
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0][3], "hcom_allReduce")
+        self.assertEqual(res[0][6], Constant.TASK_TYPE_COMMUNICATION)
+        self.assertEqual(res[0][7], 100)
+        self.assertEqual(res[0][8], 10)
+        self.assertEqual(res[1][3], "mc2_matmul_allreduce")
+        self.assertEqual(res[1][6], Constant.TASK_TYPE_COMMUNICATION)
+        self.assertEqual(res[1][7], 200)
+        self.assertEqual(res[1][8], 20)
+
+    def test_get_hccl_op_data_should_keep_hccl_when_kfc_empty(self):
+        hccl_op = HcclOps(model_id=1, index_id=0, op_name="hcom_allReduce", op_type="hcom_allReduce_",
+                          start=100, end=110)
+
+        def fake_get_hccl_op_data_by_group(table_name=DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE):
+            if table_name == DBNameConstant.TABLE_KFC_OP:
+                return []
+            return [hccl_op]
+
+        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
+        with mock.patch("os.path.exists", return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.init', return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.finalize', return_value=None), \
+                mock.patch(NAMESPACE + '.HcclViewModel.get_hccl_op_data_by_group',
+                           side_effect=fake_get_hccl_op_data_by_group), \
+                mock.patch(NAMESPACE + '.get_ge_model_name_dict', return_value={}):
+            res = AiCoreOpReport.get_hccl_op_data("proj", 11)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0][3], "hcom_allReduce")
+
+    def test_get_hccl_op_data_should_keep_kfc_when_hccl_empty(self):
+        kfc_op = HcclOps(model_id=2, index_id=0, op_name="mc2_matmul_allreduce", op_type="MatmulAllReduce",
+                         start=200, end=220)
+
+        def fake_get_hccl_op_data_by_group(table_name=DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE):
+            if table_name == DBNameConstant.TABLE_KFC_OP:
+                return [kfc_op]
+            return []
+
+        ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
+        with mock.patch("os.path.exists", return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.init', return_value=True), \
+                mock.patch(NAMESPACE + '.HcclViewModel.finalize', return_value=None), \
+                mock.patch(NAMESPACE + '.HcclViewModel.get_hccl_op_data_by_group',
+                           side_effect=fake_get_hccl_op_data_by_group), \
+                mock.patch(NAMESPACE + '.get_ge_model_name_dict', return_value={}):
+            res = AiCoreOpReport.get_hccl_op_data("proj", 11)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0][3], "mc2_matmul_allreduce")
+        self.assertEqual(res[0][6], Constant.TASK_TYPE_COMMUNICATION)
 
 
 class TestReportOPCounter(unittest.TestCase):
