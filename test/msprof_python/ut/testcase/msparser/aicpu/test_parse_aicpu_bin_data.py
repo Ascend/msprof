@@ -57,7 +57,7 @@ class TestAicpuBinDataParser(unittest.TestCase):
                 InfoConfReader()._info_json = {"DeviceInfo": [{'hwts_frequency': 100}]}
                 check.read_binary_data('DATA_PREPROCESS.AICPU.7.slice_0')
             self.assertEqual(check.ai_cpu_datas,
-                             [[0, '0', 1e-05, 2e-05, '', 0.0, 0.0, 1e-05, 0.0, 0.0]])
+                             [[0, '0', 10.0, 20.0, '', 0.0, 0.0, 10.0, 0.0, 0.0]])
 
     def test_parse_ai_cpu(self):
         with mock.patch(NAMESPACE + '.AiStackDataCheckManager.contain_dp_aicpu_data',

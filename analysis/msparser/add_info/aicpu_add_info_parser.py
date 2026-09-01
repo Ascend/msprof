@@ -141,7 +141,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
     def save_aicpu_dp_data(self: any, aicpu_info_list: List[AicpuAddInfoBean]):
         result = [
             [
-                InfoConfReader().trans_into_local_time(float(aicpu_info.timestamp)),
+                InfoConfReader().time_from_syscnt(aicpu_info.timestamp),
                 aicpu_info.data.action,
                 aicpu_info.data.source,
                 aicpu_info.data.buffer_size,

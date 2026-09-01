@@ -23,6 +23,9 @@ from common_func.utils import Utils
 from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.struct_info.struct_decoder import StructDecoder
 
+# 旧 AICPU .dat 解析仍走本文件，时间属性与 AicpuNodeBean 相近但二进制布局不同。
+# pylint: disable=duplicate-code
+
 
 class AiCpuTimeConsuming:
     """
@@ -32,13 +35,14 @@ class AiCpuTimeConsuming:
     def __init__(self: any, *args: any) -> None:
         ai_cpu_data = args[0]
         self._ai_cpu_task_start = ai_cpu_data[1]
-        self._compute_time = (ai_cpu_data[3] - ai_cpu_data[2]) / NumberConstant.MILLI_SECOND
-        self._mem_copy_time = (ai_cpu_data[4] - ai_cpu_data[3]) / NumberConstant.MILLI_SECOND
+        # payload 为 us，落盘与 C++ 对齐为 ns
+        self._compute_time = (ai_cpu_data[3] - ai_cpu_data[2]) * NumberConstant.USTONS
+        self._mem_copy_time = (ai_cpu_data[4] - ai_cpu_data[3]) * NumberConstant.USTONS
         self._ai_cpu_task_end = ai_cpu_data[6]
         self._ai_cpu_task_time = ai_cpu_data[6] - ai_cpu_data[1]
         self._submit_tick = ai_cpu_data[9]
         self._after_run_tick = ai_cpu_data[12]
-        self._dispatch_time = ai_cpu_data[14] / NumberConstant.MILLI_SECOND
+        self._dispatch_time = ai_cpu_data[14] * NumberConstant.USTONS
 
     @property
     def compute_time(self: any) -> float:
@@ -63,7 +67,7 @@ class AiCpuTimeConsuming:
         :return: ai cpu task start time
         """
         if self._ai_cpu_task_start != 0:
-            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_start, NumberConstant.MILLI_SECOND)
+            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_start)
         return 0
 
     @property
@@ -81,7 +85,7 @@ class AiCpuTimeConsuming:
         :return: ai cpu task end time
         """
         if self._ai_cpu_task_end != 0:
-            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_end, NumberConstant.MILLI_SECOND)
+            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_end)
         return 0
 
     @property
@@ -114,8 +118,10 @@ class AiCpuTimeConsuming:
         ai cpu total time
         :return: ai cpu total time
         """
-        return InfoConfReader().duration_from_syscnt(self._after_run_tick - self._submit_tick,
-                                                     time_fmt=NumberConstant.MILLI_SECOND)
+        return InfoConfReader().duration_from_syscnt(
+            self._after_run_tick - self._submit_tick,
+            time_fmt=NumberConstant.NANO_SECOND,
+        )
 
 
 class AiCpuData(StructDecoder):
@@ -177,5 +183,8 @@ class AiCpuData(StructDecoder):
             self._task_id = str(_ai_cpu_data[3])
             self._ai_cpu_time_consuming = AiCpuTimeConsuming(_ai_cpu_data[4:])
             return True
-        logging.error("AICPU data struct is incomplete: %s, please check the AICPU file.", hex(_magic_num))
+        logging.error(
+            "AICPU data struct is incomplete: %s, please check the AICPU file.",
+            hex(_magic_num),
+        )
         return False

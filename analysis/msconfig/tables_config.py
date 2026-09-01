@@ -469,8 +469,8 @@ class TablesConfig(MetaConfig):
         'AiCpuDataMap': [
             ('stream_id', 'INTEGER,null'),
             ('task_id', 'INTEGER,null'),
-            ('sys_start', 'INTEGER, null'),
-            ('sys_end', 'INTEGER, null'),
+            ('sys_start', 'NUMERIC, null'),
+            ('sys_end', 'NUMERIC, null'),
             ('node_name', 'TEXT, null'),
             ('compute_time', 'REAL, null'),
             ('memcpy_time', 'REAL, null'),
@@ -485,7 +485,7 @@ class TablesConfig(MetaConfig):
             ('sys_end', 'INTEGER, null'),
         ],
         'AiCpuDPMap': [
-            ('timestamp', 'TEXT,null'),
+            ('timestamp', 'NUMERIC,null'),
             ('action', 'TEXT,null'),
             ('source', 'TEXT, null'),
             ('buffer_size', 'INTEGER, null'),

@@ -37,14 +37,15 @@ class ParseDpData:
     """
     class for parse dp data
     """
+
     DP_MARKS = "Last queue dequeue"
     TAG_DP = "DP"
     DEFAULT_BATCH = 32
     BIN_DP_HEADER_FMT = "=HH"
     BIN_DP_DATA_TAG = 100
-    DP_FILE_STR_TYPE = 'str_or_bytes'
-    DP_FILE_BIN_TYPE = 'bin'
-    DP_BIN_START_TAG = '='
+    DP_FILE_STR_TYPE = "str_or_bytes"
+    DP_FILE_BIN_TYPE = "bin"
+    DP_BIN_START_TAG = "="
     DP_DATA_FMT = "HHIQ16s64sQQ2Q"
     DP_DATA_FMT_SIZE = 128
     DP_TUPLE_LENGTH = 10
@@ -63,7 +64,7 @@ class ParseDpData:
             size_list.append(os.path.getsize(file))
             total_size += os.path.getsize(file)
         if total_size < ParseDpData.DP_DATA_FMT_SIZE:
-            return EmptyClass(str('Insufficient file size')), 0
+            return EmptyClass(str("Insufficient file size")), 0
         judge_file = dp_file[0]
         offset = 0
         if size_list[0] < ParseDpData.DP_DATA_FMT_SIZE:
@@ -78,8 +79,8 @@ class ParseDpData:
         """
         dp_data_length = index * ParseDpData.DP_TUPLE_LENGTH
         timestamp = InfoConfReader().trans_into_local_time(dp_data[dp_data_length + 3])
-        action = dp_data[dp_data_length + 4].partition(b'\x00')[0].decode('utf-8', 'ignore')
-        source = dp_data[dp_data_length + 5].partition(b'\x00')[0].decode('utf-8', 'ignore')
+        action = dp_data[dp_data_length + 4].partition(b"\x00")[0].decode("utf-8", "ignore")
+        source = dp_data[dp_data_length + 5].partition(b"\x00")[0].decode("utf-8", "ignore")
         size = dp_data[dp_data_length + 7]
         dp_data_message = (float(timestamp), action, source, size)
         return dp_data_message
@@ -101,8 +102,7 @@ class ParseDpData:
             return files
         # file name should be longer than 3, so split(".")[-2] is in the safe range
         # file name is in the format DATAPREPROCESS.dev.AICPU.0.slice_0
-        if len(files[0].split('.')) < Constant.LINE_LEN or int(device_id) != int(
-                files[0].split('.')[(-2)]):
+        if len(files[0].split(".")) < Constant.LINE_LEN or int(device_id) != int(files[0].split(".")[(-2)]):
             warn(cls.FILE_NAME, 'The file name "%s" is not correct.' % files[0])
         return files
 
@@ -116,7 +116,16 @@ class ParseDpData:
         if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_AI_CPU_DP):
             with AiCpuModel(os.path.dirname(dp_path)) as model:
                 data = model.get_all_data(DBNameConstant.TABLE_AI_CPU_DP)
-            return data
+            # 表内 timestamp 为 ns（Python/C++ 落盘对齐），CSV 头为 Timestamp(us)
+            return [
+                (
+                    float(InfoConfReader().trans_into_local_time(float(row[0]))),
+                    row[1],
+                    row[2],
+                    row[3],
+                )
+                for row in data
+            ]
         if ParseDpData.dp_data_dispatch(files) == cls.DP_FILE_BIN_TYPE:
             return ParseDpData.analyse_bin_dp(files)
         lines = []
@@ -126,8 +135,7 @@ class ParseDpData:
         for file_ in files:
             with FileOpen(file_, "rb") as file_reader:
                 # replace \n and \x00 in lines
-                file_str = str(file_reader.file_reader.read().replace(b'\n\x00',
-                                                          b' ___ ').replace(b'\x00', b' ___ '))
+                file_str = str(file_reader.file_reader.read().replace(b"\n\x00", b" ___ ").replace(b"\x00", b" ___ "))
                 if len(file_str) > Constant.LINE_LEN:
                     lines += str(file_str)[2:-1].split(" ___ ")
         for line in lines:
@@ -140,8 +148,7 @@ class ParseDpData:
             if len(info_split) > Constant.LINE_LEN:
                 # info are in the following format
                 # [13135969231] Last queue dequeue, source:iterator_default, index:1, size:131
-                timestamp = InfoConfReader().trans_into_local_time(
-                    float(info_split[0].split("]")[0].strip("[")))
+                timestamp = InfoConfReader().trans_into_local_time(float(info_split[0].split("]")[0].strip("[")))
                 action = info_split[0].split("]")[-1].strip()
                 source = info_split[-3].split(":")[-1]
                 size = info_split[-1].split(":")[-1]
@@ -160,10 +167,12 @@ class ParseDpData:
         if ParseDpData.DP_DATA_FMT_SIZE - offset < struct.calcsize(cls.BIN_DP_HEADER_FMT):
             offset -= ParseDpData.DP_DATA_FMT_SIZE
         try:
-            with FileOpen(judge_file, 'rb') as dp_f:
+            with FileOpen(judge_file, "rb") as dp_f:
                 _ = dp_f.file_reader.read(file_size + offset - ParseDpData.DP_DATA_FMT_SIZE)
-                magic_num, data_tag = struct.unpack(cls.BIN_DP_HEADER_FMT,
-                                                    dp_f.file_reader.read(struct.calcsize(cls.BIN_DP_HEADER_FMT)))
+                magic_num, data_tag = struct.unpack(
+                    cls.BIN_DP_HEADER_FMT,
+                    dp_f.file_reader.read(struct.calcsize(cls.BIN_DP_HEADER_FMT)),
+                )
                 if magic_num == NumberConstant.MAGIC_NUM and data_tag == cls.BIN_DP_DATA_TAG:
                     return cls.DP_FILE_BIN_TYPE
                 return cls.DP_FILE_STR_TYPE
@@ -198,8 +207,7 @@ class ParseDpData:
             with FileOpen(file_, "rb") as file_reader:
                 dp_bin_data = file_reader.file_reader.read()
                 struct_nums = file_size // cls.DP_DATA_FMT_SIZE
-                dp_data = struct.unpack(
-                    cls.DP_BIN_START_TAG + cls.DP_DATA_FMT * struct_nums, dp_bin_data)
+                dp_data = struct.unpack(cls.DP_BIN_START_TAG + cls.DP_DATA_FMT * struct_nums, dp_bin_data)
                 for index in range(struct_nums):
                     origin_data.append(ParseDpData.get_dp_tuple(index, dp_data))
             return origin_data

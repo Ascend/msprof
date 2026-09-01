@@ -88,7 +88,7 @@ class TestAicpuAddInfoParser(unittest.TestCase):
             check.save()
         data = check._aicpu_data.get(AicpuAddInfoBean.AICPU_NODE, [])
         self.assertEqual(1, len(data))
-        self.assertEqual(0.123, data[0].data.dispatch_time)
+        self.assertEqual(123000.0, data[0].data.dispatch_time)
         InfoConfReader()._info_json = {}
 
     def test_parse_should_return_aicpu_node_data_when_type_0_and_start_time_0(self):

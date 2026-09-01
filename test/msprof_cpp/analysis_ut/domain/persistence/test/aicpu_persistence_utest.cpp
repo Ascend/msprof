@@ -638,14 +638,16 @@ TEST_F(AicpuPersistenceSaveUtest, ShouldSaveNodeToAiCpuDb)
 
     DBRunner dbRunner(dbPath);
     EXPECT_TRUE(dbRunner.CheckTableExists("AiCpuData"));
-    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, uint64_t, uint64_t, double, uint64_t,
-                               double>;
+    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, double, double, double, double, double>;
     std::vector<NodeRow> rows;
     EXPECT_TRUE(dbRunner.QueryData("SELECT * FROM AiCpuData", rows));
     ASSERT_EQ(rows.size(), 1);
     EXPECT_EQ(std::get<0>(rows[0]), 1);   // stream_id
     EXPECT_EQ(std::get<1>(rows[0]), 10);  // task_id
     EXPECT_EQ(std::get<4>(rows[0]), "");  // node_name
+    EXPECT_DOUBLE_EQ(std::get<5>(rows[0]), 200000.0);  // compute_time ns: (1200-1000)*1000
+    EXPECT_DOUBLE_EQ(std::get<6>(rows[0]), 300000.0);  // memcpy_time ns: (1500-1200)*1000
+    EXPECT_DOUBLE_EQ(std::get<8>(rows[0]), 300000.0);  // dispatch_time ns: 300*1000
 }
 
 TEST_F(AicpuPersistenceSaveUtest, ShouldSaveDpToAiCpuDb)
@@ -760,8 +762,7 @@ TEST_F(AicpuPersistenceMultiDeviceSaveUtest, ShouldSaveEachDeviceDataToItsOwnDbP
     ASSERT_EQ(ANALYSIS_OK, persistence0_->GenerateAndSaveData(devicePath0_));
     ASSERT_EQ(ANALYSIS_OK, persistence1_->GenerateAndSaveData(devicePath1_));
 
-    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, uint64_t, uint64_t, double, uint64_t,
-                               double>;
+    using NodeRow = std::tuple<uint32_t, uint16_t, double, double, std::string, double, double, double, double, double>;
 
     // device0 的 ai_cpu.db 只含 device0 的数据（1 条，task_id=10）
     std::string dbPath0 = File::PathJoin({devicePath0_, "sqlite", "ai_cpu.db"});

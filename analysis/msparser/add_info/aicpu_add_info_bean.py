@@ -35,12 +35,13 @@ class AicpuNodeBean:
         self._stream_id = StarsCommon.set_stream_id(data[6], data[7], SqeType.StarsSqeType.AI_CPU)
         self._task_id = StarsCommon.set_task_id(data[6], data[7], SqeType.StarsSqeType.AI_CPU, need_merge=False)
         self._ai_cpu_task_start = data[10]
-        self._compute_time = (data[12] - data[11]) / NumberConstant.MILLI_SECOND  # ms
-        self._mem_copy_time = (data[13] - data[12]) / NumberConstant.MILLI_SECOND
+        # payload 为 us，落盘与 C++ 对齐为 ns
+        self._compute_time = (data[12] - data[11]) * NumberConstant.USTONS
+        self._mem_copy_time = (data[13] - data[12]) * NumberConstant.USTONS
         self._ai_cpu_task_end = data[15]
         self._submit_tick = data[18]
         self._after_run_tick = data[21]
-        self._dispatch_time = data[23] / NumberConstant.MILLI_SECOND
+        self._dispatch_time = data[23] * NumberConstant.USTONS
 
     @property
     def stream_id(self: any) -> any:
@@ -81,7 +82,7 @@ class AicpuNodeBean:
         :return: ai cpu task start time
         """
         if self._ai_cpu_task_start != 0:
-            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_start, NumberConstant.MILLI_SECOND)
+            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_start)
         return 0
 
     @property
@@ -99,7 +100,7 @@ class AicpuNodeBean:
         :return: ai cpu task end time
         """
         if self._ai_cpu_task_end != 0:
-            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_end, NumberConstant.MILLI_SECOND)
+            return InfoConfReader().time_from_syscnt(self._ai_cpu_task_end)
         return 0
 
     @property
@@ -133,15 +134,16 @@ class AicpuNodeBean:
         :return: ai cpu total time
         """
         return InfoConfReader().duration_from_syscnt(
-            self._after_run_tick - self._submit_tick, time_fmt=NumberConstant.MILLI_SECOND
+            self._after_run_tick - self._submit_tick,
+            time_fmt=NumberConstant.NANO_SECOND,
         )
 
 
 class AicpuDPBean:
     def __init__(self: any, *args) -> None:
         data = args[0]
-        self._action = data[6].partition(b'\x00')[0].decode('utf-8', 'ignore')
-        self._source = data[7].partition(b'\x00')[0].decode('utf-8', 'ignore')
+        self._action = data[6].partition(b"\x00")[0].decode("utf-8", "ignore")
+        self._source = data[7].partition(b"\x00")[0].decode("utf-8", "ignore")
         self._buffer_size = data[9]
 
     @property

@@ -62,8 +62,9 @@ SyscntConversionParams GetSyscntConversionParams(const DeviceContext& context)
 }
 
 // stream_id, task_id, sys_start, sys_end, node_name, compute_time, memcpy_time, task_time, dispatch_time, total_time
-using NodeFormat = std::vector<
-    std::tuple<uint32_t, uint16_t, double, double, std::string, uint64_t, uint64_t, double, uint64_t, double>>;
+// 时间列全部为 ns；compute/memcpy/dispatch 的 payload 为 us，乘 1000 转 ns
+using NodeFormat =
+    std::vector<std::tuple<uint32_t, uint16_t, double, double, std::string, double, double, double, double, double>>;
 
 using DpFormat = std::vector<std::tuple<double, std::string, std::string, uint64_t>>;
 
@@ -110,9 +111,9 @@ uint32_t AicpuPersistence::GenerateAndSaveNode(const std::string& deviceFilePath
         }
         auto start_time = GetTimeFromSyscnt(node.node.runStartTick, params_);
         auto end_time = GetTimeFromSyscnt(node.node.runEndTick, params_);
-        auto compute_time = (node.node.memcpyStartTime - node.node.computeStartTime) / 1000;
-        auto memcpy_time = (node.node.memcpyEndTime - node.node.memcpyStartTime) / 1000;
-        auto dispatch_time = node.node.dispatchTime / 1000;
+        auto compute_time = static_cast<double>(node.node.memcpyStartTime - node.node.computeStartTime) * NS_TO_US;
+        auto memcpy_time = static_cast<double>(node.node.memcpyEndTime - node.node.memcpyStartTime) * NS_TO_US;
+        auto dispatch_time = static_cast<double>(node.node.dispatchTime) * NS_TO_US;
         auto total_time = GetDurTimeFromSyscnt(node.node.tickAfterRun - node.node.submitTick, params_);
         data.emplace_back(node.taskId.streamId, node.taskId.taskId, start_time.Double(), end_time.Double(), "",
                           compute_time, memcpy_time, end_time.Double() - start_time.Double(), dispatch_time,

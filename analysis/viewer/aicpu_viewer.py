@@ -16,7 +16,6 @@
 
 import logging
 import os
-from collections import deque
 from dataclasses import dataclass
 from typing import Union
 from typing import List
@@ -125,8 +124,15 @@ class ParseAiCpuData:
             total_time = round(dto.total_time, NumberConstant.ROUND_THREE_DECIMAL)
             node_name = ge_summary_dic.get((dto.stream_id, dto.task_id, dto.batch_id), dto.node_name)
             res[index] = [
-                sys_start, node_name, compute_time, memcpy_time,
-                task_time, dispatch_time, total_time, dto.stream_id, dto.task_id
+                sys_start,
+                node_name,
+                compute_time,
+                memcpy_time,
+                task_time,
+                dispatch_time,
+                total_time,
+                dto.stream_id,
+                dto.task_id,
             ]
             index = index + 1
         return res[:index]
@@ -208,7 +214,9 @@ class ParseAiCpuData:
         return aicpu_data
 
     @staticmethod
-    def _sep_task_by_stream_task(tasks: Union[List[TaskTimeDto], List[AiCpuData]]) -> dict:
+    def _sep_task_by_stream_task(
+        tasks: Union[List[TaskTimeDto], List[AiCpuData]],
+    ) -> dict:
         ret = {}
         for task in tasks:
             ret.setdefault((task.stream_id, task.task_id), []).append(task)
@@ -240,16 +248,18 @@ class ParseAiCpuData:
 
     @staticmethod
     def _get_ge_summary_aicpu_data(ge_summary_conn):
-        sql = "select op_name, stream_id, task_id, batch_id from {0} where task_type = '{1}' " \
-              "order by timestamp".format(DBNameConstant.TABLE_SUMMARY_GE,
-                                          Constant.TASK_TYPE_AI_CPU)
+        sql = "select op_name, stream_id, task_id, batch_id from {0} where task_type = '{1}' order by timestamp".format(
+            DBNameConstant.TABLE_SUMMARY_GE, Constant.TASK_TYPE_AI_CPU
+        )
         return DBManager.fetch_all_data(ge_summary_conn.cursor(), sql, dto_class=GeTaskDto)
 
     @staticmethod
     def _get_ascend_task_aicpu_data(ascend_task_conn):
-        sql = "select batch_id, stream_id, task_id, start_time, start_time + duration AS end_time " \
-              "from {0} where host_task_type = 'KERNEL_AICPU' " \
-              "order by start_time".format(DBNameConstant.TABLE_ASCEND_TASK)
+        sql = (
+            "select batch_id, stream_id, task_id, start_time, start_time + duration AS end_time "
+            "from {0} where host_task_type = 'KERNEL_AICPU' "
+            "order by start_time".format(DBNameConstant.TABLE_ASCEND_TASK)
+        )
         return DBManager.fetch_all_data(ascend_task_conn.cursor(), sql, dto_class=TaskTimeDto)
 
     @staticmethod
@@ -258,17 +268,20 @@ class ParseAiCpuData:
         if not ProfilingScene().is_all_export():
             iter_time = MsprofIteration(project_path).get_iter_interval(iter_range)
             if iter_time:
-                where_condition = "where sys_start>={0} " \
-                                  "and sys_end<={1}".format(iter_time[0] / NumberConstant.MS_TO_NS,
-                                                            iter_time[1] / NumberConstant.MS_TO_NS)
-        sql = "select sys_start*{MS_TO_US} as sys_start, sys_end * {MS_TO_US} as sys_end, " \
-              "'{node_name}' as node_name," \
-              "compute_time*{MS_TO_US} as compute_time, memcpy_time*{MS_TO_US} as memcpy_time," \
-              "task_time*{MS_TO_US} as task_time,dispatch_time*{MS_TO_US} as dispatch_time," \
-              "total_time*{MS_TO_US} as total_time, stream_id, task_id from {0} {where_condition} " \
-              "order by sys_start".format(DBNameConstant.TABLE_AI_CPU,
-                                          MS_TO_US=NumberConstant.MS_TO_US,
-                                          local_time_offset=InfoConfReader().get_local_time_offset(),
-                                          node_name=Constant.NA,
-                                          where_condition=where_condition)
+                # AiCpuData 落盘为 ns，iter 区间同样是 ns
+                where_condition = "where sys_start>={0} and sys_end<={1}".format(iter_time[0], iter_time[1])
+        # DB 为 ns，导出 CSV 为 us
+        sql = (
+            "select sys_start/{NS_TO_US} as sys_start, sys_end/{NS_TO_US} as sys_end, "
+            "'{node_name}' as node_name,"
+            "compute_time/{NS_TO_US} as compute_time, memcpy_time/{NS_TO_US} as memcpy_time,"
+            "task_time/{NS_TO_US} as task_time,dispatch_time/{NS_TO_US} as dispatch_time,"
+            "total_time/{NS_TO_US} as total_time, stream_id, task_id from {0} {where_condition} "
+            "order by sys_start".format(
+                DBNameConstant.TABLE_AI_CPU,
+                NS_TO_US=NumberConstant.NS_TO_US,
+                node_name=Constant.NA,
+                where_condition=where_condition,
+            )
+        )
         return DBManager.fetch_all_data(ai_cpu_conn.cursor(), sql, dto_class=AiCpuData)
