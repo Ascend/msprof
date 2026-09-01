@@ -35,6 +35,7 @@ aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/services/test
 add_executable(device_parser_utest
     ${DEVICE_PARSER_SOURCE}
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/number_mapping.cpp
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/lpm_info_persistence.cpp
 )
 
 target_include_directories(device_parser_utest PRIVATE

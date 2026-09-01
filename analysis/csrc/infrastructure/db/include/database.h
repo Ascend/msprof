@@ -229,6 +229,12 @@ class FreqDB : public Database
     FreqDB();
 };
 
+class VoltageDB : public Database
+{
+   public:
+    VoltageDB();
+};
+
 class MsprofTxDB : public Database
 {
    public:

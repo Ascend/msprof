@@ -33,6 +33,7 @@ enum ParserType
     TRACK_PARSER,
     FREQ_PARSER,
     AICPU_PARSER,
+    LPM_INFO_PARSER,
     TRACK_PARSER_V6,
     QOS_PARSER,
     UB_PARSER

@@ -342,6 +342,10 @@ const TableColumns InterSoc = {
 
 const TableColumns FreqParse = {{"syscnt", SQL_INTEGER_TYPE}, {"freq", SQL_INTEGER_TYPE}};
 
+const TableColumns AicVoltage = {{"syscnt", SQL_INTEGER_TYPE}, {"voltage", SQL_INTEGER_TYPE}};
+
+const TableColumns BusVoltage = {{"syscnt", SQL_INTEGER_TYPE}, {"voltage", SQL_INTEGER_TYPE}};
+
 const TableColumns MsprofTx = {
     {"pid", SQL_INTEGER_TYPE},        {"tid", SQL_INTEGER_TYPE},          {"category", SQL_INTEGER_TYPE},
     {"event_type", SQL_TEXT_TYPE},    {"payload_type", SQL_INTEGER_TYPE}, {"payload_value", SQL_INTEGER_TYPE},
@@ -822,6 +826,13 @@ FreqDB::FreqDB()
 {
     dbName_ = "freq.db";
     tableColNames_["FreqParse"] = FreqParse;
+}
+
+VoltageDB::VoltageDB()
+{
+    dbName_ = "voltage.db";
+    tableColNames_["AicVoltage"] = AicVoltage;
+    tableColNames_["BusVoltage"] = BusVoltage;
 }
 
 MsprofTxDB::MsprofTxDB()

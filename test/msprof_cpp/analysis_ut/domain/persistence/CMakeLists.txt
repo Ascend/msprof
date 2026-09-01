@@ -15,6 +15,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calcul
         DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/track DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser DEVICE_PERSISTENCE_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq DEVICE_PERSISTENCE_SOURCE)
 
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/stubs/dfx DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/persistence/test DEVICE_PERSISTENCE_SOURCE)
