@@ -610,14 +610,14 @@ const TableColumns KfcInfo = {{"timestamp", SQL_NUMERIC_TYPE},   {"op_name", SQL
                               {"batch_id", SQL_INTEGER_TYPE}};
 
 const TableColumns LowPower = {
-    {"timestamp", SQL_INTEGER_TYPE},  {"die_id", SQL_INTEGER_TYPE},     {"data0_hard", SQL_INTEGER_TYPE},
-    {"data1_hard", SQL_INTEGER_TYPE}, {"data2_hard", SQL_INTEGER_TYPE}, {"data3_hard", SQL_INTEGER_TYPE},
-    {"data4_hard", SQL_INTEGER_TYPE}, {"data5_hard", SQL_INTEGER_TYPE}, {"data6_hard", SQL_INTEGER_TYPE},
-    {"data7_hard", SQL_INTEGER_TYPE}, {"data8_hard", SQL_INTEGER_TYPE}, {"data9_hard", SQL_INTEGER_TYPE},
-    {"data0_soft", SQL_INTEGER_TYPE}, {"data1_soft", SQL_INTEGER_TYPE}, {"data2_soft", SQL_INTEGER_TYPE},
-    {"data3_soft", SQL_INTEGER_TYPE}, {"data4_soft", SQL_INTEGER_TYPE}, {"data5_soft", SQL_INTEGER_TYPE},
-    {"data6_soft", SQL_INTEGER_TYPE}, {"data7_soft", SQL_INTEGER_TYPE}, {"data8_soft", SQL_INTEGER_TYPE},
-    {"data9_soft", SQL_INTEGER_TYPE},
+    {"timestamp", SQL_NUMERIC_TYPE},  {"die_id", SQL_NUMERIC_TYPE},     {"data0_hard", SQL_NUMERIC_TYPE},
+    {"data1_hard", SQL_NUMERIC_TYPE}, {"data2_hard", SQL_NUMERIC_TYPE}, {"data3_hard", SQL_NUMERIC_TYPE},
+    {"data4_hard", SQL_NUMERIC_TYPE}, {"data5_hard", SQL_NUMERIC_TYPE}, {"data6_hard", SQL_NUMERIC_TYPE},
+    {"data7_hard", SQL_NUMERIC_TYPE}, {"data8_hard", SQL_NUMERIC_TYPE}, {"data9_hard", SQL_NUMERIC_TYPE},
+    {"data0_soft", SQL_NUMERIC_TYPE}, {"data1_soft", SQL_NUMERIC_TYPE}, {"data2_soft", SQL_NUMERIC_TYPE},
+    {"data3_soft", SQL_NUMERIC_TYPE}, {"data4_soft", SQL_NUMERIC_TYPE}, {"data5_soft", SQL_NUMERIC_TYPE},
+    {"data6_soft", SQL_NUMERIC_TYPE}, {"data7_soft", SQL_NUMERIC_TYPE}, {"data8_soft", SQL_NUMERIC_TYPE},
+    {"data9_soft", SQL_NUMERIC_TYPE},
 };
 
 std::string Database::GetDBName() const { return dbName_; }

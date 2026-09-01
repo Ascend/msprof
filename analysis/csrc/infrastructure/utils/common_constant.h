@@ -47,6 +47,7 @@ const uint64_t MILLI_SECOND = 1000;
 const uint16_t BYTE_SIZE = 1024;
 // 字节按 1024 换算：1GB = 1024^3 B。B -> GB 时除以该值
 constexpr double BYTES_PER_GB = 1024.0 * 1024.0 * 1024.0;
+const uint16_t STARS_MAGIC_NUM = 0x6bd3;
 
 const std::string HOST = "host";
 const std::string DEVICE_PREFIX = "device_";

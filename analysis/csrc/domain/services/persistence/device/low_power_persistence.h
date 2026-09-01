@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
  * MindStudio is licensed under Mulan PSL v2.
@@ -10,22 +10,26 @@
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
- * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- * See the Mulan PSL v2 for more details.
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
  * -------------------------------------------------------------------------*/
 
-#ifndef ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
-#define ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
+#ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_LOW_POWER_PERSISTENCE_H
+#define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_LOW_POWER_PERSISTENCE_H
+
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
 namespace Analysis
 {
-const int STARS_SOC_STRUCT_SIZE = 64;
-const int STARS_SOC_STRUCT_SIZE_V6 = 32;
-const int STARS_SOC_PROFILE_STRUCT_SIZE = 64;
-const int FFTS_PROFILE_STRUCT_SIZE = 128;
-const int TS_TRACK_STRUCT_SIZE = 40;
-const int FREQ_STRUCT_SIZE = 888;
-const int QOS_STRUCT_SIZE = 64;
-const int UB_STRUCT_SIZE = 128;
+namespace Domain
+{
+
+class LowPowerPersistence : public Infra::Process
+{
+   private:
+    uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
+};
+
+}  // namespace Domain
 }  // namespace Analysis
-#endif  // ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
+
+#endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_LOW_POWER_PERSISTENCE_H
