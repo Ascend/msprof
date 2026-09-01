@@ -4,8 +4,8 @@
 <p><b><span style="font-size:24px;">Ascend Profile Data Collection Tool</span></b></p>
 
  [![Quick Start](https://badgen.net/badge/Quick%20Start/QuickStart/blue)](docs/en/quick_start/msprof_quick_start.md)
- [![AI Q&A DeepWiki](https://badgen.net/badge/AI%20Q%26A/DeepWiki/blue)](https://deepwiki.com/kali20gakki/msprof)
- [![AI Q&A ZRead](https://badgen.net/badge/AI%20Q%26A/ZRead/blue)](https://zread.ai/kali20gakki/msprof)
+ [![AI Q&A DeepWiki](https://badgen.net/badge/AI%20Q%26A/DeepWiki/blue)](https://deepwiki.com/Ascend/msprof)
+ [![AI Q&A ZRead](https://badgen.net/badge/AI%20Q%26A/ZRead/blue)](https://zread.ai/Ascend/msprof)
  [![Exact Search](https://badgen.net/badge/Exact%20Search/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io/zh-cn/latest/msprof)
  [![Ascend Community](https://badgen.net/badge/Ascend%20Community/Community/blue)](https://www.hiascend.com/en/developer/software/mindstudio)
  [![Report an Issue](https://badgen.net/badge/Report%20an%20Issue/Issues/blue)](https://gitcode.com/Ascend/msprof/issues)

@@ -4,8 +4,8 @@
 <p><b><span style="font-size:24px;">昇腾性能采集工具</span></b></p>
 
  [![快速入门](https://badgen.net/badge/快速入门/QuickStart/blue)](docs/zh/quick_start/msprof_quick_start.md)
- [![AI问答 DeepWiki](https://badgen.net/badge/AI问答/DeepWiki/blue)](https://deepwiki.com/kali20gakki/msprof )
- [![AI问答 ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/kali20gakki/msprof)
+ [![AI问答 DeepWiki](https://badgen.net/badge/AI问答/DeepWiki/blue)](https://deepwiki.com/Ascend/msprof)
+ [![AI问答 ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/Ascend/msprof)
  [![精确搜索](https://badgen.net/badge/精确搜索/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io/zh-cn/latest/msprof)
  [![昇腾社区](https://badgen.net/badge/昇腾社区/Community/blue)](https://www.hiascend.com/cn/developer/software/mindstudio) 
  [![报告问题](https://badgen.net/badge/报告问题/Issues/blue)](https://gitcode.com/Ascend/msprof/issues)

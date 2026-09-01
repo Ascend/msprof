@@ -420,8 +420,8 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_mac_ratio|Ratio of cycles taken to execute Cube instructions to the total cycles.|
 |*_scalar_time(us)|Time taken to execute Scalar instructions (μs).|
 |*_scalar_ratio|Ratio of cycles taken to execute Scalar instructions to the total cycles.|
-|aic_fixpipe_time(us)|Time taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) (μs).|
-|aic_fixpipe_ratio|Ratio of cycles taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) to the total cycles.|
+|aic_fixpipe_time(us)|Time taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) (μs). Atlas 200I/500 A2 inference products, Atlas inference products, and Atlas training products do not support this field.|
+|aic_fixpipe_ratio|Ratio of cycles taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) to the total cycles. Atlas 200I/500 A2 inference products, Atlas inference products, and Atlas training products do not support this field.|
 |*_mte1_time(us)|Time taken to execute MTE1 instructions (L1-to-L0A/L0B transfer) (μs).|
 |*_mte1_ratio|Ratio of cycles taken to execute MTE1 instructions (L1-to-L0A/L0B transfer) to the total cycles.|
 |*_mte2_time(us)|Time taken to execute MTE2 instructions (DDR-to-AI Core transfer) (μs).|
@@ -955,7 +955,7 @@ In multi-rank, multi-server, and cluster scenarios, ranks communicating with eac
 
 |Field|Description|
 |--|--|
-|**Common information**|
+|**Common information**||
 |Group * *Communication* (communication group name, determined by the reported name)|Communication operators in a communication group. A rank may exist in different communication groups, and a group identifies the behavior of the current rank in the current communication group.|
 |Plane ID|Network plane ID. For the parallel scheduling and execution of multiple transmit (TX)/receive (RX) links, each plane represents a distinct concurrent communication dimension.|
 |Title|API name of the selected component.|
@@ -963,7 +963,7 @@ In multi-rank, multi-server, and cluster scenarios, ranks communicating with eac
 |Wall Duration|Duration of the current API call (ms).|
 |Self Time|Execution duration of the current instruction (ms).|
 |model id|Model ID.|
-|**Information about large communication operators**|
+|**Information about large communication operators**||
 |rank_size|Total number of ranks in each communication domain.|
 |connection_id|ID of the connection between a CANN API and an NPU operator when the former is delivered to the latter.|
 |data_type|Data type.|
@@ -971,7 +971,7 @@ In multi-rank, multi-server, and cluster scenarios, ranks communicating with eac
 |count|Data transmission count.|
 |relay|Indicates whether rail borrowing occurred for the communication operator. Valid values: `yes` or `no`. Supported products:<br>Atlas A2 training products/Atlas A2 inference products: Only `no` is displayed, with no specific meaning.<br>Atlas A3 training products/Atlas A3 inference products|
 |retry|Indicates whether the communication operator was re-executed: `yes` (re-executed) or `no` (not re-executed). Supported products:<br>Atlas A2 training products/Atlas A2 inference products<br>Atlas A3 training products/Atlas A3 inference products|
-|**Information about small communication operators**|
+|**Information about small communication operators**||
 |notify id|Unique notify ID. The `notify id` is valid only for `notify` tasks and `RDMA send` tasks used to transmit `notify record` signals. For other task types, this field is invalid and is displayed as `18446744073709551615`.|
 |duration estimated(us)|Estimated task duration (μs).|
 |stream id|Stream ID of the task.|

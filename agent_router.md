@@ -11,7 +11,8 @@
 - 如果只给出文档名且未标注子目录，需要先按目录分类补全，不要默认拼接成 `docs/zh/<filename>`
 - 如果输入已经是 `docs/zh/...` 相对路径，则直接使用，不要重复拼接成 `docs/zh/docs/zh/...`
 - 常见子目录映射：
-  - `getting_started/<filename>` -> `docs/zh/getting_started/<filename>`
+  - `quick_start/<filename>` -> `docs/zh/quick_start/<filename>`
+  - `install_guide/<filename>` -> `docs/zh/install_guide/<filename>`
   - `user_guide/<filename>` -> `docs/zh/user_guide/<filename>`
   - `legal/<filename>` -> `docs/zh/legal/<filename>`
   - `development_guide/<filename>` -> `docs/zh/development_guide/<filename>`
@@ -22,10 +23,9 @@
 
 ```text
 docs/zh/
-├── overview.md                                      // 工具是什么、能力范围、简介
-├── dir_structure.md                                 // 仓库目录、模块位置、源码在哪
-├── getting_started/
-│   ├── quick_start.md                               // 快速跑通采集、解析、导出、初步分析
+├── quick_start/
+│   └── msprof_quick_start.md                        // 快速跑通采集、解析、导出、初步分析
+├── install_guide/
 │   └── msprof_install_guide.md                      // 安装、编译、run包、依赖、卸载
 ├── user_guide/
 │   ├── msprof_parsing_instruct.md                   // `msprof --export/--parse/--query/--analyze`等命令使用说明
@@ -36,6 +36,6 @@ docs/zh/
 │   ├── security_statement.md                        // 权限、安全、漏洞、root、umask
 │   ├── disclaimer.md                                // 免责声明
 │   └── license_notice.md                            // 许可证声明
-├── development_guide/                                 // 设计文档，默认不要主动读取
+├── development_guide/                               // 设计文档，默认不要主动读取
 └── figures/                                         // 配图，默认不要主动读取
 ```

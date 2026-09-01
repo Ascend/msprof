@@ -69,7 +69,7 @@ ms_service_profiler_parse --input-path ${PROF_DIR} --output-path ${OUTPUT_DIR} -
 
 ## Determining Whether Asynchronous Scheduling Takes Effect
 
-**Characteristics When Asynchronous Scheduling Takes Effect**
+### Characteristics When Asynchronous Scheduling Takes Effect
 
 When asynchronous scheduling takes effect, you can typically observe the following results:
 
@@ -79,7 +79,7 @@ When asynchronous scheduling takes effect, you can typically observe the followi
 - Communication duration in the `Communication` domain is partially overlapped and is no longer fully exposed on the critical path.
 - Observable improvements are seen in `Decode_Generate_Speed_Latency_curve`, `Request_Latency_curve`, or throughput metrics.
 
-**Characteristics When Asynchronous Scheduling Does Not Take Effect**
+### Characteristics When Asynchronous Scheduling Does Not Take Effect
 
 If asynchronous scheduling does not take effect, the following symptoms are typically observed:
 
