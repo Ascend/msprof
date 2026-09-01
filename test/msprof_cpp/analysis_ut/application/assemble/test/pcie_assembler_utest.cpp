@@ -128,7 +128,7 @@ TEST_F(PCIeAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "73.43292236328125}},{\"name\":\"process_name\",\"pid\":2383960800,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"name\":\"PCIe\"}},{\"name\":\"process_labels\",\"pid\":2383960800,\"tid\":0,"
                             "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":"
-                            "2383960800,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":23}},";
+                            "2383960800,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":24}},";
     EXPECT_EQ(expectStr, res.back());
 }
 

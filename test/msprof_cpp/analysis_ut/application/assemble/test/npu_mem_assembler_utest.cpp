@@ -99,7 +99,7 @@ TEST_F(NpuMemAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960608,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"NPU MEM\"}},{\"name\":\"process_labels\",\"pid\":2383960608,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960608,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":17}},{\"name\":\"APP/DDR\","
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":18}},{\"name\":\"APP/DDR\","
                             "\"pid\":2383960608,"
                             "\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"KB\":0.0}},{\"name"
                             "\":\"APP/HBM\",\"pid\":2383960608,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\""

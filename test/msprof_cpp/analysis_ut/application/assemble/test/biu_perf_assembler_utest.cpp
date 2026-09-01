@@ -106,7 +106,7 @@ TEST_F(BiuPerfAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383961088,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"Biu Perf\"}},{\"name\":\"process_labels\",\"pid\":2383961088,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961088,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":32}},{\"name\":\"thread_name\",\"pid"
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":33}},{\"name\":\"thread_name\",\"pid"
                             "\":2383961088,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Group0-AI_CORE\"}},{\"name\":"
                             "\"instruction_a\",\"pid\":2383961088,\"tid\":0,\"ts\":\"1717575960208020.758\",\"dur"
                             "\":450.0,\"ph\":\"X\",\"args\":{\"Core Type\":\"AI_CORE\",\"Block Id\":1}},{\"name\":"

@@ -22,58 +22,83 @@
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_usage_data.h"
 
-namespace Analysis {
-namespace Application {
-class HostUsageAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class HostUsageAssembler : public JsonAssembler
+{
+   public:
     HostUsageAssembler(const std::string &assembleName);
-protected:
+
+   protected:
     std::vector<std::shared_ptr<TraceEvent>> res_;
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+
+   private:
+    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
     virtual uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) = 0;
 };
 
-// 处理host cpu usage 数据
-class CpuUsageAssembler : public HostUsageAssembler {
-public:
+// 处理host cpu usage数据
+class CpuUsageAssembler : public HostUsageAssembler
+{
+   public:
     CpuUsageAssembler();
-private:
+
+   private:
     uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
 };
 
-// 处理host memory usage 数据
-class MemUsageAssembler : public HostUsageAssembler {
-public:
+// 处理host cpu freq数据
+class CpuFreqAssembler : public HostUsageAssembler
+{
+   public:
+    CpuFreqAssembler();
+
+   private:
+    uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
+};
+
+// 处理host memory usage数据
+class MemUsageAssembler : public HostUsageAssembler
+{
+   public:
     MemUsageAssembler();
-private:
+
+   private:
     uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
 };
 
-// 处理host disk usage 数据
-class DiskUsageAssembler : public HostUsageAssembler {
-public:
+// 处理host disk usage数据
+class DiskUsageAssembler : public HostUsageAssembler
+{
+   public:
     DiskUsageAssembler();
-private:
+
+   private:
     uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
 };
 
-// 处理host network usage 数据
-class NetworkUsageAssembler : public HostUsageAssembler {
-public:
+// 处理host network usage数据
+class NetworkUsageAssembler : public HostUsageAssembler
+{
+   public:
     NetworkUsageAssembler();
-private:
+
+   private:
     uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
 };
 
-// 处理os runtime api 数据
-class OSRuntimeApiAssembler : public HostUsageAssembler {
-public:
+// 处理os runtime api数据
+class OSRuntimeApiAssembler : public HostUsageAssembler
+{
+   public:
     OSRuntimeApiAssembler();
-private:
+
+   private:
     uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) override;
 };
 
-}
-}
-#endif // ANALYSIS_APPLICATION_HOST_USAGE_ASSEMBLER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_HOST_USAGE_ASSEMBLER_H

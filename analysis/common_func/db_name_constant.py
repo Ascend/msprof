@@ -37,6 +37,7 @@ class DBNameConstant(metaclass=ABCMeta):
     DB_HCCS = "hccs.db"
     DB_HOST_SYS_USAGE_CPU = "cpu_usage.db"
     DB_HOST_SYS_USAGE_MEM = "memory.db"
+    DB_HOST_CPU_FREQ = "host_cpu_freq.db"
     DB_HOST_CPU_USAGE = "host_cpu_usage.db"
     DB_HOST_DISK_USAGE = "host_disk_usage.db"
     DB_HOST_MEM_USAGE = "host_mem_usage.db"

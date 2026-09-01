@@ -183,7 +183,7 @@ TEST_F(LowPowerAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"pid\":2383960544,\"tid\":0,\"ts\":\"1719621074688868.780\",\"ph\":\"C\",\"args\":{\"MHz\":1800}},{\""
                             "name\":\"process_name\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
                             "{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
-                            "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},";
+                            "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -221,19 +221,19 @@ TEST_F(LowPowerAssemblerUTest, ShouldIgnoreUnsupportedDieAndKeepSupportedDies)
                              "\"tid\":0,\"ts\":\"1719621074669031.430\",\"ph\":\"C\",\"args\":{\"MHz\":900}},{\"name\":"
                              "\"process_name\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
                              "{\"name\":\"process_labels\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 1\"}},"
-                             "{\"name\":\"process_sort_index\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},"
+                             "{\"name\":\"process_sort_index\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},"
                              "{\"name\":\"process_name\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
                              "{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
-                             "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},";
+                             "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
     std::string expectStr2 = "{\"name\":\"AI Core Freq Die 0\",\"pid\":2383960544,\"tid\":0,\"ts\":\"1719621074669030.430\","
                              "\"ph\":\"C\",\"args\":{\"MHz\":800}},{\"name\":\"AI Core Freq Die 1\",\"pid\":2383960545,"
                              "\"tid\":0,\"ts\":\"1719621074669031.430\",\"ph\":\"C\",\"args\":{\"MHz\":900}},{\"name\":"
                              "\"process_name\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
                              "{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
-                             "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},"
+                             "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},"
                              "{\"name\":\"process_name\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
                              "{\"name\":\"process_labels\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 1\"}},"
-                             "{\"name\":\"process_sort_index\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},";
+                             "{\"name\":\"process_sort_index\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
     // json_assembler.cpp 里的 pidMap 是 std::unordered_map<uint16_t, uint32_t>，遍历它生成 metadata 时，device 0 和 device 1 的先后次序没有保证
     EXPECT_TRUE(res.back() == expectStr1 || res.back() == expectStr2);
 }
@@ -273,6 +273,6 @@ TEST_F(LowPowerAssemblerUTest, ShouldReuseSameProcessMetadataWhenSupportedDiesBe
                             "{\"name\":\"process_name\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"name\":\"AI Core Freq\"}},{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,"
                             "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
-                            "\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},";
+                            "\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
     EXPECT_EQ(expectStr, res.back());
 }

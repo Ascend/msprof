@@ -20,7 +20,9 @@ import threading
 
 from common_func.config_mgr import ConfigMgr
 from common_func.data_manager import DataManager
+from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
+from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_common import MsProfCommonConstant
@@ -28,6 +30,8 @@ from common_func.msvp_constant import MsvpConstant
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
+from common_func.trace_view_header_constant import TraceViewHeaderConstant
+from common_func.trace_view_manager import TraceViewManager
 from host_prof.host_prof_presenter_manager import HostExportType
 from host_prof.host_prof_presenter_manager import get_host_prof_summary
 from host_prof.host_prof_presenter_manager import get_host_prof_timeline
@@ -502,6 +506,43 @@ class MsProfExportDataUtils:
             return get_host_prof_timeline(result_dir, HostExportType.CPU_USAGE)
         else:
             return get_host_prof_summary(result_dir, HostExportType.CPU_USAGE, configs)
+
+    @staticmethod
+    def _get_host_cpu_freq_data(configs: dict, params: dict) -> any:
+        _ = configs
+        if params.get(StrConstant.PARAM_EXPORT_TYPE) != MsProfCommonConstant.TIMELINE:
+            return MsvpConstant.MSVP_EMPTY_DATA
+        result_dir = params.get(StrConstant.PARAM_RESULT_DIR)
+        db_path = PathManager.get_db_path(result_dir, DBNameConstant.DB_HOST_CPU_FREQ)
+        conn, cur = DBManager.check_connect_db(result_dir, DBNameConstant.DB_HOST_CPU_FREQ)
+        if not conn or not cur:
+            logging.warning("failed to connect host cpu freq db, path is %s", db_path)
+            return []
+        try:
+            timeline_data = DBManager.fetch_all_data(
+                cur, "SELECT timestamp, cpu_no, freq FROM CpuFreq ORDER BY CAST(cpu_no AS DECIMAL), timestamp"
+            )
+        finally:
+            DBManager.destroy_db_connect(conn, cur)
+        if not timeline_data:
+            return []
+
+        pid = InfoConfReader().get_json_pid_data()
+        tid = InfoConfReader().get_json_tid_data()
+        header = [["process_name", pid, tid, TraceViewHeaderConstant.PROCESS_CPU_FREQUENCY]]
+        sort_map = {}
+        result = []
+        for index, cpu_no in enumerate(sorted({str(item[1]) for item in timeline_data}, key=int)):
+            cpu_name = f"CPU {cpu_no}"
+            header.append(["thread_name", pid, index, cpu_name])
+            header.append(["thread_sort_index", pid, index, index])
+            sort_map[cpu_name] = index
+        for timestamp, cpu_no, freq in timeline_data:
+            cpu_name = f"CPU {cpu_no}"
+            result.append([cpu_name, timestamp, pid, sort_map.get(cpu_name), {"MHz": float(freq) / 1000}])
+        timeline = TraceViewManager.metadata_event(header)
+        timeline.extend(TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, result))
+        return timeline
 
     @staticmethod
     def _get_host_mem_usage_data(configs: dict, params: dict) -> any:

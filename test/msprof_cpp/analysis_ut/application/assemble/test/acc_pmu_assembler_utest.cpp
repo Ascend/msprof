@@ -135,7 +135,7 @@ TEST_F(AccPmuAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Acc PMU\"}},{\"name\":\"process_labels\","
                             "\"pid\":2383960672,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
                             "{\"name\":\"process_sort_index\",\"pid\":2383960672,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"sort_index\":19}},";
+                            "\"args\":{\"sort_index\":20}},";
     EXPECT_EQ(expectStr, res.back());
 }
 

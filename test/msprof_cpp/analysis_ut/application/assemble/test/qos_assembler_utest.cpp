@@ -164,7 +164,7 @@ TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\""
                             ":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\""
                             "process_sort_index\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\""
-                            "args\":{\"sort_index\":29}},";
+                            "args\":{\"sort_index\":30}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -195,7 +195,7 @@ TEST_F(QosAssemblerUTest, ShouldGenerateMergedDieSeriesForV6Platform)
     std::string expectMeta = "{\"name\":\"process_name\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":"
                              "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\":0,"
                              "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
-                             "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":29}},";
+                             "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":30}},";
     std::string expectOthers1 = "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
                                 "\"ph\":\"C\",\"args\":{\"die 0\":11,\"die 1\":21}}";
     std::string expectOthers2 = "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
@@ -227,7 +227,7 @@ TEST_F(QosAssemblerUTest, ShouldGenerateCounterSeriesForV4Platform)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"name\":\"QoS\"}},{\"name\":\"process_labels\",\"pid\":2383960992,\"tid\":0,"
                             "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
-                            "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":29}},{\"name\":"
+                            "\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":30}},{\"name\":"
                             "\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
                             "\"ph\":\"C\",\"args\":{\"value\":10}},{\"name\":\"QoS DVPP\",\"pid\":2383960992,"
                             "\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"value\":10}},"

@@ -143,7 +143,7 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\""
                             "Communication\"}},{\"name\":\"process_labels\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\""
                             "args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10327552,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},{\"name\":\"thread_name\","
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":17}},{\"name\":\"thread_name\","
                             "\"pid\":10327552,\""
                             "tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Group 16898834563344171674 Communication\"}},{"
                             "\"name\":\"thread_sort_index\",\"pid\":10327552,\"tid\":0,\"ph\":\"M\",\"args\":{\""

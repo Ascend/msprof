@@ -104,6 +104,7 @@ class ExportCommand:
                 'handler': AiStackDataCheckManager.contain_ai_core_sample_based,
             },
             {'export_type': ExportDataType.HOST_CPU_USAGE, 'handler': HostDataCheckManager.contain_host_cpuusage_data},
+            {'export_type': ExportDataType.CPU_FREQ, 'handler': HostDataCheckManager.contain_host_cpu_freq_data},
             {'export_type': ExportDataType.HOST_MEM_USAGE, 'handler': HostDataCheckManager.contain_host_mem_usage_data},
             {
                 'export_type': ExportDataType.HOST_NETWORK_USAGE,

@@ -187,6 +187,9 @@ class MsProfExportDataConfig(MetaConfig):
             ('handler', '_get_host_cpu_usage_data'),
             ('headers', 'Total Cpu Numbers,Occupied Cpu Numbers,Recommend Cpu Numbers'),
         ],
+        'cpu_freq': [
+            ('handler', '_get_host_cpu_freq_data'),
+        ],
         'host_mem_usage': [
             ('handler', '_get_host_mem_usage_data'),
             ('headers', 'Total Memory(KB),Peak Used Memory(KB),Recommend Memory(KB)'),

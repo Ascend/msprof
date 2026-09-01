@@ -179,6 +179,7 @@ class FileNameManagerConstant:
     MATCHED_DEV_ID_INX = -1
 
     HOST_CPU_USAGE_PATTERN = r"^host_cpu\.data\.slice_\d+"
+    HOST_CPU_FREQ_PATTERN = r"^host_cpu_freq\.data\.slice_\d+"
     HOST_MEM_USAGE_PATTERN = r"^host_mem\.data\.slice_\d+"
     HOST_DISK_USAGE_PATTERN = r"^host_disk\.data\.slice_\d+"
     HOST_SYS_CALL_PATTERN = r"^host_syscall\.data\.slice_\d+"
@@ -774,6 +775,13 @@ def get_host_cpu_usage_compiles() -> tuple:
     get host cpu usage regex compiles
     """
     return (re.compile(FileNameManagerConstant.HOST_CPU_USAGE_PATTERN),)
+
+
+def get_host_cpu_freq_compiles() -> tuple:
+    """
+    get host cpu freq regex compiles
+    """
+    return (re.compile(FileNameManagerConstant.HOST_CPU_FREQ_PATTERN),)
 
 
 def get_host_mem_usage_compiles() -> tuple:

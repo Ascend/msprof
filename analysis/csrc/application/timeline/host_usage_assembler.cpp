@@ -143,6 +143,26 @@ uint8_t CpuUsageAssembler::GenerateDataTrace(DataInventory &dataInventory, uint3
     return ASSEMBLE_SUCCESS;
 }
 
+CpuFreqAssembler::CpuFreqAssembler() : HostUsageAssembler(PROCESS_CPU_FREQUENCY) {}
+uint8_t CpuFreqAssembler::GenerateDataTrace(DataInventory &dataInventory, uint32_t pid)
+{
+    auto freqData = dataInventory.GetPtr<std::vector<CpuFreqData>>();
+    if (freqData == nullptr)
+    {
+        WARN("Can't get host cpu freq data from dataInventory");
+        return DATA_NOT_EXIST;
+    }
+    std::shared_ptr<CounterEvent> event;
+    for (const auto &data : *freqData)
+    {
+        MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
+                                 DivideByPowersOfTenWithPrecision(data.timestamp), "CPU " + data.cpuNo);
+        event->SetSeriesDValue("MHz", data.freq);
+        res_.push_back(event);
+    }
+    return ASSEMBLE_SUCCESS;
+}
+
 HostUsageAssembler::HostUsageAssembler(const std::string &assembleName)
     : JsonAssembler(assembleName, {{MSPROF_JSON_FILE, FileCategory::MSPROF}})
 {

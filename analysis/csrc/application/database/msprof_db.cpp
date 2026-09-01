@@ -215,6 +215,9 @@ const TableColumns MEMCPY_INFO = {
 const TableColumns CPU_USAGE = {
     {"timestampNs", SQL_NUMERIC_TYPE}, {"cpuId", SQL_NUMERIC_TYPE}, {"usage", SQL_NUMERIC_TYPE}};
 
+const TableColumns CPU_FREQ = {
+    {"timestampNs", SQL_NUMERIC_TYPE}, {"cpuId", SQL_NUMERIC_TYPE}, {"freq", SQL_NUMERIC_TYPE}};
+
 const TableColumns HOST_MEM_USAGE = {{"timestampNs", SQL_NUMERIC_TYPE}, {"usage", SQL_NUMERIC_TYPE}};
 
 const TableColumns HOST_DISK_USAGE = {{"timestampNs", SQL_NUMERIC_TYPE},
@@ -299,6 +302,7 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_MSTX, MSTX},
                       {TABLE_NAME_MEMCPY_INFO, MEMCPY_INFO},
                       {TABLE_NAME_CPU_USAGE, CPU_USAGE},
+                      {TABLE_NAME_CPU_FREQ, CPU_FREQ},
                       {TABLE_NAME_HOST_MEM_USAGE, HOST_MEM_USAGE},
                       {TABLE_NAME_HOST_DISK_USAGE, HOST_DISK_USAGE},
                       {TABLE_NAME_HOST_NETWORK_USAGE, HOST_NETWORK_USAGE},

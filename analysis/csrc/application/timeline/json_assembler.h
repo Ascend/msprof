@@ -49,6 +49,7 @@ class JsonAssembler
                               std::set<std::pair<uint32_t, uint32_t>> &pidTidSet);
     static uint32_t GetFormatPid(uint32_t pid, uint32_t index, uint32_t deviceId = HOST_PID);
     static uint32_t GetDeviceIdFromPid(uint32_t pid);
+    static uint32_t GetDisplaySortIndex(const struct LayerInfo &layerInfo);
     static std::string GetLayerInfoLabelWithDeviceId(const std::string &label, uint32_t pid);
 
    protected:

@@ -18,6 +18,7 @@
 
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
+#include "analysis/csrc/domain/services/host_worker/host_cpu_freq_parser.h"
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/dpu_task_track_db_dumper.h"
@@ -47,6 +48,7 @@ bool HostTraceWorker::Run()
     pool.Start();
     DumpApiEvent(pool, grouper);
     DumpDpuTaskTrack(pool, grouper);
+    DumpHostSystemProfileData(pool);
     if (!cannWarehouses_.Empty())
     {
         DumpFlipTask(pool, grouper);
@@ -65,6 +67,19 @@ bool HostTraceWorker::Run()
     pool.Stop();
     DumpMemcpyInfo(hostDataPath);  // 依赖runtime.db中的HostTask, 不能放在pool中
     return true;
+}
+
+void HostTraceWorker::DumpHostSystemProfileData(ThreadPool &pool)
+{
+    pool.AddTask(
+        [this]()
+        {
+            INFO("Start parse host system profile data");
+            if (HostCpuFreqParser(hostPath_).Run() != ANALYSIS_OK)
+            {
+                ERROR("Host cpu freq parse failed");
+            }
+        });
 }
 
 void HostTraceWorker::MultiThreadBuildTree()

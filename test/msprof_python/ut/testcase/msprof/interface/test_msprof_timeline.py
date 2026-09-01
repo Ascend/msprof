@@ -102,7 +102,13 @@ class TestMsprofTimeline(unittest.TestCase):
         self.assertEqual(result, True)
 
     def test_set_iteration_info(self):
-        with mock.patch(NAMESPACE + '.MsprofIteration.get_iteration_time', return_value=0):
+        profiling_scene_mock = mock.Mock()
+        profiling_scene_mock.is_all_export.return_value = True
+        info_conf_reader_mock = mock.Mock()
+        info_conf_reader_mock.get_collect_time.return_value = (0, 0)
+        with mock.patch(NAMESPACE + '.MsprofIteration.get_iteration_time', return_value=0), \
+                mock.patch(NAMESPACE + '.ProfilingScene', return_value=profiling_scene_mock), \
+                mock.patch(NAMESPACE + '.InfoConfReader', return_value=info_conf_reader_mock):
             key = MsprofTimeline()
             key._iteration_time = [[1, 2], [1, 2]]
             key.set_iteration_info('test', ITER_RANGE)
@@ -122,7 +128,6 @@ class TestMsprofTimeline(unittest.TestCase):
         res = key.get_start_end_time()
         self.assertEqual(len(res), 2)
         self.assertEqual(res, key._iteration_time)
-
 
 if __name__ == '__main__':
     unittest.main()

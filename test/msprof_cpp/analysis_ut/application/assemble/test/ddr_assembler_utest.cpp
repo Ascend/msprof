@@ -106,7 +106,7 @@ TEST_F(DDRAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960640,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"DDR\"}},{\"name\":\"process_labels\",\"pid\":2383960640,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960640"
-                            ",\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":18}},{\"name\":\"DDR/Read\",\"pid\":"
+                            ",\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":19}},{\"name\":\"DDR/Read\",\"pid\":"
                             "2383960640,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Read("
                             "MB/s)\":38.56}},{\"name\":\"DDR/Write\",\"pid\":2383960640,\"tid\":0,\"ts\":\""
                             "1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Write(MB/s)\":69.1654}},{\"name"

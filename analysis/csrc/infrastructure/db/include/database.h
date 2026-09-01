@@ -265,6 +265,12 @@ class HostCpuUsage : public Database
     HostCpuUsage();
 };
 
+class HostCpuFreq : public Database
+{
+   public:
+    HostCpuFreq();
+};
+
 class HostMemUsage : public Database
 {
    public:

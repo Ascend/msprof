@@ -1109,6 +1109,34 @@ bool SaveCpuUsageData(DataInventory& dataInventory, DBInfo& msprofDB, const std:
     return SaveData(res, TABLE_NAME_CPU_USAGE, msprofDB);
 }
 
+bool SaveHostCpuFreqData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
+{
+    (void)profPath;
+    auto cpuFreqData = dataInventory.GetPtr<std::vector<CpuFreqData>>();
+    if (cpuFreqData == nullptr)
+    {
+        WARN("Host cpu freq data not exist.");
+        return true;
+    }
+    std::vector<std::tuple<uint64_t, uint64_t, double>> res;
+    if (!Reserve(res, cpuFreqData->size()))
+    {
+        ERROR("Reserved for cpu freq data failed.");
+        return false;
+    }
+    for (const auto& item : *cpuFreqData)
+    {
+        uint64_t cpuId;
+        if (StrToU64(cpuId, item.cpuNo) != ANALYSIS_OK)
+        {
+            ERROR("Invalid cpu freq cpu id found after processor filtering, cpu_no is %.", item.cpuNo);
+            continue;
+        }
+        res.emplace_back(item.timestamp, cpuId, item.freq);
+    }
+    return SaveData(res, TABLE_NAME_CPU_FREQ, msprofDB);
+}
+
 bool SaveHostMemUsageData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
     auto memData = dataInventory.GetPtr<std::vector<MemUsageData>>();
@@ -1516,6 +1544,7 @@ const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_SAMPLE_PMU_TIMELINE, SaveSamplePmuTimelineData},
     {PROCESSOR_NAME_SAMPLE_PMU_SUMMARY, SaveSamplePmuSummaryData},
     {PROCESSOR_NAME_CPU_USAGE, SaveCpuUsageData},
+    {PROCESSOR_NAME_CPU_FREQ, SaveHostCpuFreqData},
     {PROCESSOR_NAME_MEM_USAGE, SaveHostMemUsageData},
     {PROCESSOR_NAME_DISK_USAGE, SaveHostDiskUsageData},
     {PROCESSOR_NAME_NETWORK_USAGE, SaveHostNetworkUsageData},

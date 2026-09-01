@@ -106,7 +106,7 @@ TEST_F(StarsSocAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960864,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"Stars Soc Info\"}},{\"name\":\"process_labels\",\"pid\":2383960864,\"tid\":0,\"ph\":\"M"
                             "\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960864,\""
-                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":25}},{\"name\":\"L2 Buffer Bw Level\",\"pid"
+                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":26}},{\"name\":\"L2 Buffer Bw Level\",\"pid"
                             "\":2383960864,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\""
                             "L2 Buffer Bw Level\":7}},{\"name\":\"Mata Bw Level\",\"pid\":2383960864,\"tid\":0,\"ts\":"
                             "\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Mata Bw Level\":4}},{\"name\":\""

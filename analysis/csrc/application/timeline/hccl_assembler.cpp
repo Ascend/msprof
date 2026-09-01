@@ -73,7 +73,7 @@ void HcclAssembler::GenerateMetaDataEvent(std::unordered_map<uint16_t, uint32_t>
         res_.push_back(processLabel);
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_INDEX,
-                                layerInfo.sortIndex);
+                                GetDisplaySortIndex(layerInfo));
         res_.push_back(processIndex);
         for (auto &groupIt : it.second)
         {

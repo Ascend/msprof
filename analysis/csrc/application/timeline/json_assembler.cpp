@@ -62,6 +62,19 @@ uint32_t JsonAssembler::GetFormatPid(uint32_t pid, uint32_t index, uint32_t devi
 
 uint32_t JsonAssembler::GetDeviceIdFromPid(uint32_t pid) { return (pid & ((1 << MIDDLE_BIT_OFFSET) - 1)); }
 
+uint32_t JsonAssembler::GetDisplaySortIndex(const struct LayerInfo &layerInfo)
+{
+    if (layerInfo.component == PROCESS_CPU_FREQUENCY)
+    {
+        return LAYER_CPU_USAGE_SORT + 1;
+    }
+    if (layerInfo.sortIndex >= LAYER_MEMORY_USAGE_SORT && layerInfo.sortIndex <= LAYER_FUSION_TASK)
+    {
+        return layerInfo.sortIndex + 1;
+    }
+    return layerInfo.sortIndex;
+}
+
 std::string JsonAssembler::GetLayerInfoLabelWithDeviceId(const std::string &label, uint32_t pid)
 {
     uint32_t deviceId = GetDeviceIdFromPid(pid);
@@ -116,7 +129,7 @@ void JsonAssembler::GenerateHWMetaData(const std::unordered_map<uint16_t, uint32
         res.push_back(processLabel);
 
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, kv.second, DEFAULT_TID, META_DATA_PROCESS_INDEX,
-                                layerInfo.sortIndex);
+                                GetDisplaySortIndex(layerInfo));
         res.push_back(processIndex);
     }
 }

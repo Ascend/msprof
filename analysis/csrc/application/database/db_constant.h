@@ -160,6 +160,8 @@ const std::string TABLE_NAME_SIO = "SIO";
 
 const std::string PROCESSOR_NAME_CPU_USAGE = "CPU_USAGE";
 const std::string TABLE_NAME_CPU_USAGE = "CPU_USAGE";
+const std::string PROCESSOR_NAME_CPU_FREQ = "CPU_FREQ";
+const std::string TABLE_NAME_CPU_FREQ = "CPU_FREQ";
 
 const std::string PROCESSOR_NAME_MEM_USAGE = "MEM_USAGE";
 const std::string TABLE_NAME_HOST_MEM_USAGE = "HOST_MEM_USAGE";

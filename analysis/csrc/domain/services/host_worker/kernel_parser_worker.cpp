@@ -37,6 +37,7 @@ using HostTraceWorker = Analysis::Domain::HostTraceWorker;
 using ThreadPool = Analysis::Utils::ThreadPool;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain::Host::Cann;
+
 // 解析流程控制类，传入host data所在路径，启动采集流程并返回结果
 KernelParserWorker::KernelParserWorker(std::string hostFilePath) : hostFilePath_(std::move(hostFilePath)), result_(true)
 {
@@ -59,7 +60,7 @@ int KernelParserWorker::Run()
         return ANALYSIS_ERROR;
     }
     // 启动线程
-    const uint16_t taskNumber = 3;
+    const uint16_t taskNumber = 2;
     ThreadPool pool(taskNumber);
     pool.Start();
     pool.AddTask(

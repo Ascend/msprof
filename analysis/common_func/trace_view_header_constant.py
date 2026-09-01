@@ -22,23 +22,34 @@ class TraceViewHeaderConstant:
     trace view header constant class
     """
 
-    TRACE_HEADER_NAME = 'name'
-    TRACE_HEADER_PH = 'ph'
-    TRACE_HEADER_TS = 'ts'
-    TRACE_HEADER_CAT = 'cat'
-    TRACE_HEADER_DURATION = 'dur'
-    TRACE_HEADER_PID = 'pid'
-    TRACE_HEADER_TID = 'tid'
-    TRACE_HEADER_BP = 'bp'
-    TRACE_HEADER_ID = 'id'
-    TRACE_HEADER_ARGS = 'args'
+    TRACE_HEADER_NAME = "name"
+    TRACE_HEADER_PH = "ph"
+    TRACE_HEADER_TS = "ts"
+    TRACE_HEADER_CAT = "cat"
+    TRACE_HEADER_DURATION = "dur"
+    TRACE_HEADER_PID = "pid"
+    TRACE_HEADER_TID = "tid"
+    TRACE_HEADER_BP = "bp"
+    TRACE_HEADER_ID = "id"
+    TRACE_HEADER_ARGS = "args"
     # column graph format
-    COLUMN_GRAPH_HEAD_LEAST = ['name', 'ts', 'pid', 'tid', 'args']  # name, ts, pid, tid, args is required
+    COLUMN_GRAPH_HEAD_LEAST = [
+        "name",
+        "ts",
+        "pid",
+        "tid",
+        "args",
+    ]  # name, ts, pid, tid, args is required
     # timeline graph format
-    TIME_GRAPH_HEAD_LEAST = ['name', 'pid', 'ts', 'dur']  # name, pid, ts, dur is required
-    TASK_TIME_GRAPH_HEAD = ['name', 'pid', 'tid', 'ts', 'dur']
-    TOP_DOWN_TIME_GRAPH_HEAD = ['name', 'pid', 'tid', 'ts', 'dur', 'args']
-    GRPC_TIME_GRAPH_HEAD = ['name', 'pid', 'tid', 'ts', 'dur', 'args', 'cat']
+    TIME_GRAPH_HEAD_LEAST = [
+        "name",
+        "pid",
+        "ts",
+        "dur",
+    ]  # name, pid, ts, dur is required
+    TASK_TIME_GRAPH_HEAD = ["name", "pid", "tid", "ts", "dur"]
+    TOP_DOWN_TIME_GRAPH_HEAD = ["name", "pid", "tid", "ts", "dur", "args"]
+    GRPC_TIME_GRAPH_HEAD = ["name", "pid", "tid", "ts", "dur", "args", "cat"]
 
     # don't filter phase
     NOT_FILTER_PHASE = ["M", "s"]
@@ -64,12 +75,13 @@ class TraceViewHeaderConstant:
     PROCESS_TRAINING_TRACE = "Training Trace"
     PROCESS_PCIE = "Pcie"
     PROCESS_MSPROFTX = "MsprofTx"
-    PROCESS_SUBTASK = 'Subtask Time'
-    PROCESS_THREAD_TASK = 'Thread Task Time'
+    PROCESS_SUBTASK = "Subtask Time"
+    PROCESS_THREAD_TASK = "Thread Task Time"
     PROCESS_OVERLAP_ANALYSE = "Overlap Analysis"
     PROCESS_API = "Api"
     PROCESS_EVENT = "Event"
     PROCESS_CPU_USAGE = "CPU Usage"
+    PROCESS_CPU_FREQUENCY = "CPU Freq"
     PROCESS_MEMORY_USAGE = "Memory Usage"
     PROCESS_NETWORK_USAGE = "Network Usage"
     PROCESS_DISK_USAGE = "Disk Usage"
@@ -95,6 +107,7 @@ class TraceViewHeaderConstant:
     COMPONENT_LAYER_CANN = "CANN"
     COMPONENT_LAYER_ASCEND_HW = "Ascend Hardware"
     COMPONENT_LAYER_CPU_USAGE = "CPU Usage"
+    COMPONENT_LAYER_CPU_FREQUENCY = "CPU Freq"
     COMPONENT_LAYER_MEMORY_USAGE = "Memory Usage"
     COMPONENT_LAYER_NETWORK_USAGE = "Network Usage"
     COMPONENT_LAYER_DISK_USAGE = "Disk Usage"
@@ -122,12 +135,13 @@ class TraceViewHeaderConstant:
     LAYER_VOLTAGE_SORT = 16
     LAYER_HCCL_SORT = 17
     LAYER_FUSION_TASK_SORT = 18
-    DEFAULT_LAYER_SORT_START = 19
+    LAYER_CPU_FREQUENCY_SORT = 19
+    DEFAULT_LAYER_SORT_START = 20
 
     # namedtuple configuration of LayerInfo
-    LayerInfo = namedtuple('LayerInfo', ['component_layer', 'general_layer', 'sort_index'])
+    LayerInfo = namedtuple("LayerInfo", ["component_layer", "general_layer", "sort_index"])
 
-    # 【msprof.json】 timeline layer info map
+    # "msprof.json" timeline layer info map
     LAYER_INFO_MAP = {
         PROCESS_MSPROFTX: LayerInfo(COMPONENT_LAYER_FRAMEWORK, GENERAL_LAYER_CPU, LAYER_FRAMEWORK_SORT),
         PROCESS_ACL: LayerInfo(COMPONENT_LAYER_CANN, GENERAL_LAYER_CPU, LAYER_CANN_SORT),
@@ -139,11 +153,16 @@ class TraceViewHeaderConstant:
         PROCESS_API: LayerInfo(COMPONENT_LAYER_CANN, GENERAL_LAYER_CPU, LAYER_CANN_SORT),
         PROCESS_EVENT: LayerInfo(COMPONENT_LAYER_CANN, GENERAL_LAYER_CPU, LAYER_CANN_SORT),
         PROCESS_CPU_USAGE: LayerInfo(COMPONENT_LAYER_CPU_USAGE, GENERAL_LAYER_CPU, LAYER_CPU_USAGE_SORT),
+        PROCESS_CPU_FREQUENCY: LayerInfo(COMPONENT_LAYER_CPU_FREQUENCY, GENERAL_LAYER_CPU, LAYER_CPU_FREQUENCY_SORT),
         PROCESS_MEMORY_USAGE: LayerInfo(COMPONENT_LAYER_MEMORY_USAGE, GENERAL_LAYER_CPU, LAYER_MEMORY_USAGE_SORT),
         PROCESS_NETWORK_USAGE: LayerInfo(COMPONENT_LAYER_NETWORK_USAGE, GENERAL_LAYER_CPU, LAYER_NETWORK_USAGE_SORT),
         PROCESS_DISK_USAGE: LayerInfo(COMPONENT_LAYER_DISK_USAGE, GENERAL_LAYER_CPU, LAYER_DISK_USAGE_SORT),
         PROCESS_OS_RUNTIME_API: LayerInfo(COMPONENT_LAYER_OS_RUNTIME_API, GENERAL_LAYER_CPU, LAYER_OS_RUNTIME_API_SORT),
-        PROCESS_AI_CORE_FREQ: LayerInfo(COMPONENT_LAYER_AICORE_FREQ, GENERAL_LAYER_NPU, LAYER_ASCEND_AICORE_FREQ_SORT),
+        PROCESS_AI_CORE_FREQ: LayerInfo(
+            COMPONENT_LAYER_AICORE_FREQ,
+            GENERAL_LAYER_NPU,
+            LAYER_ASCEND_AICORE_FREQ_SORT,
+        ),
         PROCESS_VOLTAGE: LayerInfo(COMPONENT_LAYER_VOLTAGE, GENERAL_LAYER_NPU, LAYER_VOLTAGE_SORT),
         PROCESS_COMMUNICATION: LayerInfo(COMPONENT_LAYER_HCCL, GENERAL_LAYER_NPU, LAYER_HCCL_SORT),
         PROCESS_DPU: LayerInfo(COMPONENT_LAYER_DPU, GENERAL_LAYER_DPU, LAYER_DPU_SORT),
@@ -159,7 +178,9 @@ class TraceViewHeaderConstant:
             cls.LAYER_INFO_MAP.update(
                 {
                     cls.PROCESS_MSPROFTX: cls.LayerInfo(
-                        cls.COMPONENT_LAYER_FRAMEWORK, cls.GENERAL_LAYER_CPU, cls.LAYER_FRAMEWORK_SORT
+                        cls.COMPONENT_LAYER_FRAMEWORK,
+                        cls.GENERAL_LAYER_CPU,
+                        cls.LAYER_FRAMEWORK_SORT,
                     )
                 }
             )

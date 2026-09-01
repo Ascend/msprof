@@ -1,21 +1,6 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is part of the MindStudio project.
- *
- * MindStudio is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan PSL v2.
- * You may obtain a copy of Mulan PSL v2 at:
- *
- *    http://license.coscl.org.cn/MulanPSL2
- *
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
- * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
- * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-
 #ifndef ANALYSIS_WORKER_KERNEL_PARSER_WORKER_H
 #define ANALYSIS_WORKER_KERNEL_PARSER_WORKER_H
+
 #include <atomic>
 #include <string>
 
@@ -41,10 +26,12 @@ class KernelParserWorker
     void ProcessNpuOpMemData();
     // 启动CANN侧数据解析及分析流程
     void LaunchTraceParser();
+
     std::string hostFilePath_;
     // 用于子线程上报执行结果
     std::atomic<bool> result_;
 };
 }  // namespace Domain
 }  // namespace Analysis
+
 #endif  // ANALYSIS_WORKER_KERNEL_PARSER_WORKER_H

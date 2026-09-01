@@ -175,7 +175,7 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"process_name\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961152,\"tid"
-                            "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":34}},";
+                            "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -232,7 +232,7 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutTaskInf
                             "\"process_name\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M"
                             "\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961152,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":34}},{\"name\":\"thread_name\",\"pid"
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},{\"name\":\"thread_name\",\"pid"
                             "\":2383961152,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"AIC Earliest\"}},{\"name\":"
                             "\"thread_name\",\"pid\":2383961152,\"tid\":2,\"ph\":\"M\",\"args\":{\"name\":\"AIC Latest"
                             "\"}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":1,\"ts\":"
@@ -251,6 +251,6 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutTaskInf
                             "\"Core Id\":32}},{\"name\":\"process_name\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"name\":\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,"
                             "\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
-                            "\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":34}},";
+                            "\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
     EXPECT_EQ(expectStr, res.back());
 }

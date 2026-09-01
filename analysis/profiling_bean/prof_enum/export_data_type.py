@@ -68,6 +68,7 @@ class ExportDataType(Enum):
     TS_CPU_TOP_FUNCTION = 47
     STARS_SOC = 48
     STARS_CHIP_TRANS = 49
+    CPU_FREQ = 50
     LOW_POWER = 51
     INSTR = 52
     ACC_PMU = 53

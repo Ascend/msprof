@@ -38,6 +38,13 @@ class HostDataCheckManager(DataCheckManager):
         return cls.check_data_exist(result_dir, file_name_manager.get_host_cpu_usage_compiles(), device_id=device_id)
 
     @classmethod
+    def contain_host_cpu_freq_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        """
+        The data path contain cpu freq data or not
+        """
+        return cls.check_data_exist(result_dir, file_name_manager.get_host_cpu_freq_compiles(), device_id=device_id)
+
+    @classmethod
     def contain_host_mem_usage_data(cls: any, result_dir: str, device_id: any = None) -> bool:
         """
         The data path contain mem data or not

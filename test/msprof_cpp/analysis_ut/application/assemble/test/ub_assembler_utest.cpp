@@ -106,7 +106,7 @@ TEST_F(UbAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383961120,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"Ub\"}},{\"name\":\"process_labels\",\"pid\":2383961120,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961120,\"tid\":0,\"ph\":"
-                            "\"M\",\"args\":{\"sort_index\":33}},{\"name\":\"UB Port000\",\"pid\":2383961120,\"tid\":0,"
+                            "\"M\",\"args\":{\"sort_index\":34}},{\"name\":\"UB Port000\",\"pid\":2383961120,\"tid\":0,"
                             "\"ts\":\"1717575960208020.758\",\"ph\":\"C\",\"args\":{\"bandwidth_tx(MB/s)\":200.0,"
                             "\"bandwidth_rx(MB/s)\":100.0}},{\"name\":\"UB Port001\",\"pid\":2383961120,\"tid\":0,\"ts\":"
                             "\"1717575960208020.758\",\"ph\":\"C\",\"args\":{\"bandwidth_tx(MB/s)\":250.0,"

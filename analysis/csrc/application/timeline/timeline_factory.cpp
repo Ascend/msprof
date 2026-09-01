@@ -81,6 +81,8 @@ std::unordered_map<std::string, AssemblerCreator> TimelineFactory::assemblerTabl
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, MemUsageAssembler); }},
     {PROCESS_CPU_USAGE,
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, CpuUsageAssembler); }},
+    {PROCESS_CPU_FREQUENCY,
+     [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, CpuFreqAssembler); }},
     {PROCESS_MSPROFTX,
      [](std::shared_ptr<JsonAssembler> &assembler) { MAKE_SHARED0_NO_OPERATION(assembler, MsprofTxAssembler); }},
     {PROCESS_NPU_MEM,

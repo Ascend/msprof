@@ -295,7 +295,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                         "process_name\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\""
                         "Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\","
                         "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10328512,\"tid\""
-                        ":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\"name\":\"thread_name\",\"pid\":10328512,"
+                        ":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":10328512,"
                         "\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\","
                         "\"pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
     EXPECT_EQ(expectStr, res.back());
@@ -379,7 +379,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutApi)
                             "process_name\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\""
                             "Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\","
                             "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10328512,\""
-                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\"name\":\"thread_name\",\"pid\":"
+                            "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":"
                             "10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\""
                             "thread_sort_index\",\"pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
     EXPECT_EQ(expectStr, res.back());
@@ -462,7 +462,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithLogicSt
                         "Task Id\":15}},{\"name\":\"process_name\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\",\"args\""
                         ":{\"name\":\"Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid\":10328512,\"tid\":0,\""
                         "ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\""
-                        ":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\"name\":\"thread_name\""
+                        ":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\""
                         ",\"pid\":10328512,\"tid\":1337,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1337\"}},{\"name\""
                         ":\"thread_sort_index\",\"pid\":10328512,\"tid\":1337,\"ph\":\"M\",\"args\""
                         ":{\"sort_index\":1337}},";
@@ -496,7 +496,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithSimtTas
                         "e\"},{\"name\":\"process_name\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\""
                         ":\"Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\""
                         ",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10328512,\"tid\""
-                        ":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\"name\":\"thread_name\",\"pid\":10328512,\""
+                        ":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":10328512,\""
                         "tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\",\""
                         "pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
     EXPECT_EQ(expectStr, res.back());

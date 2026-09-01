@@ -138,7 +138,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "18446744073709551.615\",\"bp\":\"e\"},{\"name\":\"process_name\",\"pid\":448,\"tid\":0"
                             ",\"ph\":\"M\",\"args\":{\"name\":\"Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid"
                             "\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\""
-                            "process_sort_index\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\""
+                            "process_sort_index\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\""
                             "name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\""
                             "}},{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\""
                             "sort_index\":1}},";
@@ -183,7 +183,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldUseHostMessageWhenConnectionIdMatchesHostTx
                             "\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Ascend Hardware\"}},{\"name\":"
                             "\"process_labels\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
                             "{\"name\":\"process_sort_index\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":"
-                            "{\"sort_index\":14}},{\"name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\","
+                            "{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\","
                             "\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,"
                             "\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
     EXPECT_EQ(expectStr, res.back());
@@ -214,7 +214,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldGenerateThreadMetadataForEachStream)
                             "\"7891\",\"ts\":\"1.000\",\"bp\":\"e\"},{\"name\":\"process_name\",\"pid\":448,\"tid\":0,"
                             "\"ph\":\"M\",\"args\":{\"name\":\"Ascend Hardware\"}},{\"name\":\"process_labels\","
                             "\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":"
-                            "\"process_sort_index\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},"
+                            "\"process_sort_index\",\"pid\":448,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},"
                             "{\"name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}}"
                             ",{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}}"
                             ",{\"name\":\"thread_name\",\"pid\":448,\"tid\":2,\"ph\":\"M\",\"args\":{\"name\":\"Stream 2\"}}"

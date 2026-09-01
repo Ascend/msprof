@@ -186,7 +186,7 @@ void StepTraceAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t>
         res_.push_back(processLabel);
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_INDEX,
-                                layer.sortIndex);
+                                GetDisplaySortIndex(layer));
         res_.push_back(processIndex);
     }
     for (const auto& it : pidTidSet_)

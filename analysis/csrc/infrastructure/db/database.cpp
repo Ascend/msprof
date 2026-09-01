@@ -384,6 +384,8 @@ const TableColumns CpuUsage = {{"start_time", SQL_NUMERIC_TYPE},
                                {"cpu_no", SQL_TEXT_TYPE},
                                {"usage", SQL_REAL_TYPE}};
 
+const TableColumns CpuFreq = {{"timestamp", SQL_NUMERIC_TYPE}, {"cpu_no", SQL_TEXT_TYPE}, {"freq", SQL_REAL_TYPE}};
+
 const TableColumns MemUsage = {
     {"start_time", SQL_NUMERIC_TYPE}, {"end_time", SQL_NUMERIC_TYPE}, {"usage", SQL_REAL_TYPE}};
 
@@ -876,6 +878,12 @@ HostCpuUsage::HostCpuUsage()
 {
     dbName_ = "host_cpu_usage.db";
     tableColNames_["CpuUsage"] = CpuUsage;
+}
+
+HostCpuFreq::HostCpuFreq()
+{
+    dbName_ = "host_cpu_freq.db";
+    tableColNames_["CpuFreq"] = CpuFreq;
 }
 
 HostMemUsage::HostMemUsage()

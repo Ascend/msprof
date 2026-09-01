@@ -54,6 +54,7 @@ const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{
     {JsonProcess::DISK_USAGE, PROCESS_DISK_USAGE},
     {JsonProcess::MEMORY_USAGE, PROCESS_MEMORY_USAGE},
     {JsonProcess::CPU_USAGE, PROCESS_CPU_USAGE},
+    {JsonProcess::CPU_FREQ, PROCESS_CPU_FREQUENCY},
     {JsonProcess::MSPROFTX, PROCESS_MSPROFTX},
     {JsonProcess::NPU_MEM, PROCESS_NPU_MEM},
     {JsonProcess::OVERLAP_ANALYSE, PROCESS_OVERLAP_ANALYSE},

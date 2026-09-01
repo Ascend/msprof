@@ -232,7 +232,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenMemSuccess)
                             "\"pid\":2383960415,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Memory Usage\"}},"
                             "{\"name\":\"process_labels\",\"pid\":2383960415,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960415,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":10}},";
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":11}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -252,7 +252,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenDiskSuccess)
                             "\"pid\":2383960479,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Disk Usage\"}},"
                             "{\"name\":\"process_labels\",\"pid\":2383960479,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960479,"
-                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":12}},";
+                            "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":13}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -272,7 +272,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenNetworkSuccess)
                             "\"pid\":2383960447,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"Network Usage\"}},"
                             "{\"name\":\"process_labels\",\"pid\":2383960447,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960447,\"tid"
-                            "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":11}},";
+                            "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":12}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -294,7 +294,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenRuntimeApiSuccess)
                             "\"M\",\"args\":{\"name\":\"OS Runtime API\"}},{\"name\":\"process_labels\","
                             "\"pid\":2383960511,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"CPU\"}},{\"name\":"
                             "\"process_sort_index\",\"pid\":2383960511,\"tid\":0,\"ph\":\"M\","
-                            "\"args\":{\"sort_index\":13}},";
+                            "\"args\":{\"sort_index\":14}},";
     EXPECT_EQ(expectStr, res.back());
 }
 
@@ -363,6 +363,6 @@ TEST_F(HostUsageAssemblerUTest, ShouldGenerateThreadMetadataOnlyForUniqueRuntime
                             "\"pid\":2383960511,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"OS Runtime API\"}},"
                             "{\"name\":\"process_labels\",\"pid\":2383960511,\"tid\":0,\"ph\":\"M\",\"args\":"
                             "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960511,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":13}},";
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":14}},";
     EXPECT_EQ(expectStr, res.back());
 }

@@ -175,7 +175,7 @@ TEST_F(SysIOAssemblerUTest, NicAssemblerShouldReturnTrueWhenDataAssembleSuccess)
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960736,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"NIC\"}},{\"name\":\"process_labels\",\"pid\":2383960736,\"tid\":0,\"ph\":\"M\",\"args"
                             "\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960736,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":21}},{\"name\":\"Port 0/Rx\",\"pid\":2383960736,"
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":22}},{\"name\":\"Port 0/Rx\",\"pid\":2383960736,"
                             "\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Rx Bandwidth "
                             "Efficiency\":0.5,\"Rx Packets\":60.0,\"Rx Error Rate\":1.2,\"Rx Dropped Rate\":5.6}},{"
                             "\"name\":\"Port 0/Tx\",\"pid\":2383960736,\"tid\":0,\"ts\":\"1724405892226599.429\","
@@ -218,7 +218,7 @@ TEST_F(SysIOAssemblerUTest, RoCEAssemblerShouldReturnTrueWhenDataAssembleSuccess
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960768,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"RoCE\"}},{\"name\":\"process_labels\",\"pid\":2383960768,\"tid\":0,\"ph\":\"M\",\"args"
                             "\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960768,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":22}},{\"name\":\"Port 0/Rx\",\"pid\":2383960768,"
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":23}},{\"name\":\"Port 0/Rx\",\"pid\":2383960768,"
                             "\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Rx Bandwidth "
                             "Efficiency\":0.5,\"Rx Packets\":60.0,\"Rx Error Rate\":1.2,\"Rx Dropped Rate\":5.6}},"
                             "{\"name\":\"Port 0/Tx\",\"pid\":2383960768,\"tid\":0,\"ts\":\"1724405892226599.429\""
@@ -255,6 +255,6 @@ TEST_F(SysIOAssemblerUTest, NicAssemblerShouldGenerateMetadataOnlyWhenInnerTrace
     std::string expectStr = "{\"name\":\"process_name\",\"pid\":2383960736,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
                             "\"NIC\"}},{\"name\":\"process_labels\",\"pid\":2383960736,\"tid\":0,\"ph\":\"M\",\"args\""
                             ":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960736,\"tid\":0,"
-                            "\"ph\":\"M\",\"args\":{\"sort_index\":21}},";
+                            "\"ph\":\"M\",\"args\":{\"sort_index\":22}},";
     EXPECT_EQ(expectStr, res.back());
 }

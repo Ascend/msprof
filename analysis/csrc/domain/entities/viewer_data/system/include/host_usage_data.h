@@ -18,37 +18,51 @@
 #define ANALYSIS_DOMAIN_HOST_USAGE_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct CpuUsageData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct CpuUsageData : public BasicData
+{
     double usage = 0.0;
     std::string cpuNo;
 };
 
-struct MemUsageData : public BasicData {
+struct CpuFreqData : public BasicData
+{
+    double freq = 0.0;
+    std::string cpuNo;
+};
+
+struct MemUsageData : public BasicData
+{
     double usage = 0.0;
 };
 
-struct DiskUsageData : public BasicData {
+struct DiskUsageData : public BasicData
+{
     double usage = 0.0;
     double readRate = 0.0;
     double writeRate = 0.0;
 };
 
-struct NetWorkUsageData : public BasicData {
+struct NetWorkUsageData : public BasicData
+{
     double usage = 0.0;
     double speed = 0.0;
 };
 
-struct OSRuntimeApiData : public BasicData {
+struct OSRuntimeApiData : public BasicData
+{
     std::string name;
     uint64_t pid = 0;
     uint64_t tid = 0;
     uint64_t endTime = 0;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_HOST_USAGE_DATA_H
+#endif  // ANALYSIS_DOMAIN_HOST_USAGE_DATA_H

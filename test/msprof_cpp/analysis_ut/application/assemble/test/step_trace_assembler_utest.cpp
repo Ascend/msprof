@@ -50,7 +50,7 @@ std::string expectStr = "{\"name\":\"Iteration 1\",\"pid\":10248640,\"tid\":7001
                         "7134923.284}},{\"name\":\"process_name\",\"pid\":10248640,\"tid\":0,\"ph\":\"M\",\"args\":{\""
                         "name\":\"Ascend Hardware\"}},{\"name\":\"process_labels\",\"pid\":10248640,\"tid\":0,\"ph\":"
                         "\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":10248640,\"tid"
-                        "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":14}},{\"name\":\"thread_name\",\"pid\":10248640,\""
+                        "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":10248640,\""
                         "tid\":70013,\"ph\":\"M\",\"args\":{\"name\":\"Step Trace(Model ID:13)\"}},{\"name\":\""
                         "thread_sort_index\",\"pid\":10248640,\"tid\":70013,\"ph\":\"M\",\"args\":{\"sort_index\":"
                         "70013}},{\"name\":\"Reduce_1_0\",\"pid\":10248640,\"tid\":70013,\"ts\":\"830082637.434\","
