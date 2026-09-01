@@ -91,6 +91,24 @@ static std::vector<ApiData> GenerateMemcpyAsyncApiData()
     return res;
 }
 
+static std::vector<ApiData> GenerateRecordEventApiData()
+{
+    std::vector<ApiData> res;
+    ApiData data;
+    data.apiName = "aclrtRecordEvent";
+    data.connectionId = 33;
+    data.id = "aclrtRecordEvent";
+    data.timestamp = 1717575960208020750;
+    data.itemId = "0";
+    data.event_id = 123456789;
+    data.level = MSPROF_REPORT_ACL_LEVEL;
+    data.threadId = 2816340;
+    data.end = 1717575960209010750;
+    data.structType = "ACL_RTS";
+    res.push_back(data);
+    return res;
+}
+
 static std::vector<AscendTaskData> GenerateAscendTaskData()
 {
     std::vector<AscendTaskData> res;
@@ -99,6 +117,24 @@ static std::vector<AscendTaskData> GenerateAscendTaskData()
     data.connectionId = 22;  // connectionId 22
     res.push_back(data);
     return res;
+}
+
+TEST_F(CannAssemblerUTest, ShouldExportEventIdWhenRecordEventHasKey)
+{
+    CannAssembler assembler;
+    std::shared_ptr<std::vector<ApiData>> dataS;
+    auto data = GenerateRecordEventApiData();
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
+    dataInventory_.Inject(dataS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    EXPECT_NE(res.back().find("\"name\":\"AscendCL@aclrtRecordEvent\""), std::string::npos);
+    EXPECT_NE(res.back().find("\"event_id\":123456789"), std::string::npos);
 }
 
 TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataNotExists)
@@ -129,7 +165,8 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"pid\":1024255,\"tid\":87144,\"ph\":\"M\",\"args\":{\"sort_index\":87144}},{\"name\":"
                             "\"Node@launch\",\"pid\":1024255,\"tid\":87144,\"ts\":\"1717575960208020.750\",\"dur\":"
                             "990.0,\"ph\":\"X\",\"args\":{\"Thread Id\":87144,\"Mode\":\"launch\",\"level\":\"node\","
-                            "\"id\":\"0\",\"item_id\":\"hcom_broadcast_\",\"connection_id\":2762}},{\"name\":"
+                            "\"id\":\"0\",\"item_id\":\"hcom_broadcast_\",\"connection_id\":2762,\"event_id\":0}},"
+                            "{\"name\":"
                             "\"HostToDevice11862699671552\",\"pid\":1024255,\"tid\":87144,\"ph\":\"s\",\"cat\":"
                             "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960208020.750\"},";
     EXPECT_EQ(expectStr, res.back());
@@ -174,7 +211,8 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccessCaseMemcpyAsyn
                             "\":2816340}},{\"name\":\"AscendCL@aclrtMemcpyAsync\",\"pid\":1024255,\"tid\":2816340,"
                             "\"ts\":\"1717575960208020.750\",\"dur\":990.0,\"ph\":\"X\",\"args\":{\"Thread Id\":"
                             "2816340,\"Mode\":\"ACL_RTS\",\"level\":\"acl\",\"id\":\"aclrtMemcpyAsync\",\"item_id"
-                            "\":\"0\",\"connection_id\":22}},{\"name\":\"HostToDevice94489280512\",\"pid\":1024255,"
+                            "\":\"0\",\"connection_id\":22,\"event_id\":0}},{\"name\":\"HostToDevice94489280512\","
+                            "\"pid\":1024255,"
                             "\"tid\":2816340,\"ph\":\"s\",\"cat\":\"HostToDevice\",\"id\":\"94489280512\",\"ts\":"
                             "\"1717575960208020.750\"},";
     EXPECT_EQ(expectStr, res.back());

@@ -591,7 +591,8 @@ extern "C"
     struct MsprofEventInfo
     {
         uint64_t key;
-        uint8_t rsv[8];
+        uint32_t eventFlag;
+        uint32_t flag;
     };
 
     struct MsprofNotifyInfo
@@ -609,6 +610,7 @@ extern "C"
         uint64_t kernelName;
         union
         {
+            uint8_t rsv[16];
             struct MsporfKernelInfo kernelInfo;
             struct MsprofSimtKernelInfo simtKernelInfo;
             struct MsprofModelInfo modelInfo;
@@ -627,6 +629,7 @@ extern "C"
         uint64_t kernelName;
         union
         {
+            uint8_t rsv[16];
             struct MsporfKernelInfo kernelInfo;
             struct MsprofSimtKernelInfo simtKernelInfo;
             struct MsprofModelInfo modelInfo;

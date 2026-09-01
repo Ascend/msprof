@@ -16,6 +16,7 @@
 
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 
+#include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
@@ -29,9 +30,65 @@ namespace
 {
 const int MAX_DEPTH = 20;
 const int MAX_BINDING_DEPTH = 5;
+const std::string RECORD_EVENT = "aclrtRecordEvent";
+const std::string WAIT_EVENT = "aclrtStreamWaitEvent";
+
 }  // namespace
 
 using namespace Analysis::Utils;
+
+void TreeBuilder::InitTaskTrackApiTypes()
+{
+    hasRecordEventType_ = false;
+    recordEventLevel_ = 0;
+    recordEventType_ = 0;
+    hasWaitEventType_ = false;
+    waitEventLevel_ = 0;
+    waitEventType_ = 0;
+
+    for (const auto &levelData : Host::Cann::TypeData::GetInstance().GetAll())
+    {
+        for (const auto &typeData : levelData.second)
+        {
+            if (typeData.second == RECORD_EVENT)
+            {
+                hasRecordEventType_ = true;
+                recordEventLevel_ = levelData.first;
+                recordEventType_ = typeData.first;
+            }
+            else if (typeData.second == WAIT_EVENT)
+            {
+                hasWaitEventType_ = true;
+                waitEventLevel_ = levelData.first;
+                waitEventType_ = typeData.first;
+            }
+            if (hasRecordEventType_ && hasWaitEventType_)
+            {
+                return;
+            }
+        }
+    }
+}
+
+void TreeBuilder::SetApiEventKey(const std::shared_ptr<Event> &apiEvent,
+                                 const std::shared_ptr<Event> &taskTrackEvent) const
+{
+    if (!apiEvent || !apiEvent->apiPtr || !taskTrackEvent || !taskTrackEvent->compactPtr ||
+        taskTrackEvent->info.type != EventType::EVENT_TYPE_TASK_TRACK)
+    {
+        return;
+    }
+    if (hasRecordEventType_ && apiEvent->apiPtr->level == recordEventLevel_ &&
+        apiEvent->apiPtr->type == recordEventType_)
+    {
+        apiEvent->key = taskTrackEvent->compactPtr->data.runtimeTrack.eventInfo.key;
+    }
+    else if (hasWaitEventType_ && apiEvent->apiPtr->level == waitEventLevel_ &&
+             apiEvent->apiPtr->type == waitEventType_)
+    {
+        apiEvent->key = taskTrackEvent->compactPtr->data.runtimeTrack.notifyInfo.key;
+    }
+}
 /*
  EventLevel      此Level包含的EventType
 |- ACL
@@ -75,6 +132,7 @@ std::shared_ptr<TreeNode> TreeBuilder::Build()
         return nullptr;
     }
     MultiThreadAddLevelEvents();
+    InitTaskTrackApiTypes();
     // 向核心树添加TaskTrack类型的events
     AddTaskTrackEvents(rootNode, taskTrackEvents);
     if (taskTrackEvents && !taskTrackEvents->Empty())
@@ -313,6 +371,7 @@ bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode, std::s
         while (!events->Empty() && events->Top()->info.start > prevEndTime &&
                events->Top()->info.start <= child->event->info.start)
         {
+            SetApiEventKey(treeNode->event, events->Top());
             auto dummyNode = MakeDummyNode(events->Pop());
             if (!dummyNode)
             {
@@ -325,6 +384,7 @@ bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode, std::s
         while (!events->Empty() && events->Top()->info.start > child->event->info.start &&
                events->Top()->info.start <= child->event->info.end)
         {
+            SetApiEventKey(child->event, events->Top());
             // 递归调用AddTaskTrackEvents添加event
             if (!AddTaskTrackEvents(child, events, depth + 1))
             {
@@ -337,6 +397,7 @@ bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode, std::s
     while (!events->Empty() && events->Top()->info.start > treeNode->event->info.start &&
            events->Top()->info.start <= treeNode->event->info.end)
     {
+        SetApiEventKey(treeNode->event, events->Top());
         auto dummyNode = MakeDummyNode(events->Pop());
         if (!dummyNode)
         {

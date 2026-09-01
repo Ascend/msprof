@@ -129,7 +129,7 @@ void GenerateApiTrace(std::vector<ApiData> &apiData, std::vector<std::shared_ptr
         std::shared_ptr<ApiTraceEvent> event;
         MAKE_SHARED_RETURN_VOID(event, ApiTraceEvent, pid, data.threadId, dur,
                                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.threadId,
-                                data.connectionId, data.structType, levelStr, data.id, data.itemId);
+                                data.connectionId, data.structType, levelStr, data.id, data.itemId, data.event_id);
         res.push_back(event);
     }
 }

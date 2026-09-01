@@ -77,6 +77,8 @@ class TreeBuilder
     // 建树时记录各个Level的TreeNode
     void RecordTreeNode(const std::shared_ptr<TreeNode> &treeNode, const uint16_t &eventLevel);
     std::shared_ptr<TreeNode> GenerateRoot();
+    void InitTaskTrackApiTypes();
+    void SetApiEventKey(const std::shared_ptr<Event> &apiEvent, const std::shared_ptr<Event> &taskTrackEvent) const;
     static size_t GetEventOffset(size_t idx, std::shared_ptr<Event> &event,
                                  std::vector<std::shared_ptr<TreeNode>> &levelNodes, EventType eventType);
 
@@ -93,6 +95,13 @@ class TreeBuilder
     std::vector<std::shared_ptr<TreeNode>> nodeLevelNodes_;
     std::vector<std::shared_ptr<TreeNode>> hcclLevelNodes_;
     std::vector<std::shared_ptr<TreeNode>> runtimeLevelNodes_;
+
+    bool hasRecordEventType_ = false;
+    uint16_t recordEventLevel_ = 0;
+    uint64_t recordEventType_ = 0;
+    bool hasWaitEventType_ = false;
+    uint16_t waitEventLevel_ = 0;
+    uint64_t waitEventType_ = 0;
 };
 }  // namespace Cann
 }  // namespace Domain

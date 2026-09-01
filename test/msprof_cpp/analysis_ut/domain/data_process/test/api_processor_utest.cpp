@@ -39,20 +39,21 @@ const std::string TABLE_NAME = "ApiData";
 const std::set<std::string> PROF_PATHS = {PROF0, PROF1, PROF2, PROF3};
 
 const OriApiDataFormat API_DATA = {
-    {"StreamSyncTaskFinish", "0", "runtime", 116, "0", 65177262396323, 65177262396323, 1},
-    {"ACL_RTS", "aclrtSynchronizeStreamWithTimeout", "acl", 116, "0", 65177262395395, 65177262397115, 2},
-    {"ACL_RTS", "aclrtMemcpy", "test", 116, "0", 65177262397274, 65177262404692, 4},
-    {"launch", "0", "node", 116, "Index4", 65177262436161, 65177262437816, 24},
-    {"ACL_OP", "aclCreateTensorDesc", "acl", 116, "0", 65177262448526, 65177262448545, 35},
-    {"master", "0", "hccl", 6635, "hcom_allReduce_", 65177264896891, 65177264928192, 224},
-    {"HOST_HCCL", "hcom_allReduce_", "acl", 6635, "hcom_allReduce_", 65177264940493, 65177264975485, 245},
-    {"master", "0", "hccl", 6635, "hcom_allReduce_", 65177264940493, 65177264975485, 247},
-    {"ACL_OTHERS", "262144", "acl", 116, "GraphOperation::Setup", 65177265026179, 65177265048078, 299},
-    {"master", "hccl", "communication", 116, "ModelLoad", 65177262397274, 65177262404692, 7},
+    {"StreamSyncTaskFinish", "0", "runtime", 116, "0", 65177262396323, 65177262396323, 1, 0},
+    {"ACL_RTS", "aclrtSynchronizeStreamWithTimeout", "acl", 116, "0", 65177262395395, 65177262397115, 2, 999},
+    {"ACL_RTS", "aclrtMemcpy", "test", 116, "0", 65177262397274, 65177262404692, 4, 0},
+    {"launch", "0", "node", 116, "Index4", 65177262436161, 65177262437816, 24, 0},
+    {"ACL_OP", "aclCreateTensorDesc", "acl", 116, "0", 65177262448526, 65177262448545, 35, 0},
+    {"master", "0", "hccl", 6635, "hcom_allReduce_", 65177264896891, 65177264928192, 224, 0},
+    {"HOST_HCCL", "hcom_allReduce_", "acl", 6635, "hcom_allReduce_", 65177264940493, 65177264975485, 245, 0},
+    {"master", "0", "hccl", 6635, "hcom_allReduce_", 65177264940493, 65177264975485, 247, 0},
+    {"ACL_OTHERS", "262144", "acl", 116, "GraphOperation::Setup", 65177265026179, 65177265048078, 299, 0},
+    {"master", "hccl", "communication", 116, "ModelLoad", 65177262397274, 65177262404692, 7, 0},
 };
 const uint16_t LEVEL_INDEX = 2;
 const uint16_t TID_INDEX = 3;
 const uint16_t CONNECTION_ID_INDEX = 7;
+const uint16_t EVENT_ID_INDEX = 8;
 
 class ApiProcessorUTest : public testing::Test {
 protected:
@@ -126,6 +127,7 @@ void CheckApiDataValid(const std::vector<ApiData> &checkData)
         // 分别校验获取到的tid和connectionId的低32位是否与原先保持一致。
         EXPECT_EQ((data.threadId & 0xffffffff), oriTid);
         EXPECT_EQ((data.connectionId & 0xffffffff), oriConId);
+        EXPECT_EQ(data.event_id, std::get<EVENT_ID_INDEX>(API_DATA[index]));
         ++index;
     }
 }

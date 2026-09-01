@@ -36,6 +36,20 @@ namespace
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string WAIT_EVENT = "aclrtStreamWaitEvent";
 const std::string NODE_LAUNCH = "launch";
+
+void SortApiTracesByBeginTime(std::vector<std::shared_ptr<Event>> &apiTraces)
+{
+    std::sort(apiTraces.begin(), apiTraces.end(),
+              [](const std::shared_ptr<Event> &left, const std::shared_ptr<Event> &right)
+              { return left->apiPtr->beginTime < right->apiPtr->beginTime; });
+}
+
+void SortTaskTracksByStartTime(std::vector<std::shared_ptr<Event>> &taskTracks)
+{
+    std::sort(taskTracks.begin(), taskTracks.end(),
+              [](const std::shared_ptr<Event> &left, const std::shared_ptr<Event> &right)
+              { return left->info.start < right->info.start; });
+}
 }  // namespace
 
 CANNWarehouses &EventGrouper::GetGroupEvents() { return cannWarehouses_; }
@@ -127,9 +141,62 @@ bool EventGrouper::Group()
 
     pool.WaitAllTasks();
     pool.Stop();
+    SetApiEventKeys();
     RecordCANNWareHouses();
 
     return true;
+}
+
+void EventGrouper::SetApiEventKeys()
+{
+    std::unordered_map<uint32_t, std::vector<std::shared_ptr<Event>>> apiTraceByThread;
+    for (const auto &apiTrace : apiTraces_)
+    {
+        if (!apiTrace || !apiTrace->apiPtr || apiTrace->apiPtr->level != MSPROF_REPORT_ACL_LEVEL)
+        {
+            continue;
+        }
+        auto apiName = TypeData::GetInstance().Get(apiTrace->apiPtr->level, apiTrace->apiPtr->type);
+        if (apiName != RECORD_EVENT && apiName != WAIT_EVENT)
+        {
+            continue;
+        }
+        apiTraceByThread[apiTrace->apiPtr->threadId].emplace_back(apiTrace);
+    }
+    for (auto &item : apiTraceByThread)
+    {
+        SortApiTracesByBeginTime(item.second);
+        auto taskTrackIter = taskTrackTraces_.find(item.first);
+        if (taskTrackIter == taskTrackTraces_.end())
+        {
+            continue;
+        }
+        size_t trackIndex = 0;
+        auto &taskTracks = taskTrackIter->second;
+        SortTaskTracksByStartTime(taskTracks);
+        for (auto &apiTrace : item.second)
+        {
+            while (trackIndex < taskTracks.size() && taskTracks[trackIndex]->info.start <= apiTrace->apiPtr->beginTime)
+            {
+                ++trackIndex;
+            }
+            size_t matchIndex = trackIndex;
+            while (matchIndex < taskTracks.size() && taskTracks[matchIndex]->info.start <= apiTrace->apiPtr->endTime)
+            {
+                auto compactPtr = taskTracks[matchIndex]->compactPtr;
+                auto apiName = TypeData::GetInstance().Get(apiTrace->apiPtr->level, apiTrace->apiPtr->type);
+                if (apiName == RECORD_EVENT)
+                {
+                    apiTrace->key = compactPtr->data.runtimeTrack.eventInfo.key;
+                }
+                else
+                {
+                    apiTrace->key = compactPtr->data.runtimeTrack.notifyInfo.key;
+                }
+                break;
+            }
+        }
+    }
 }
 
 void EventGrouper::RecordCANNWareHouses()
@@ -307,6 +374,7 @@ void EventGrouper::GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehous
         std::shared_ptr<Event> event;
         MAKE_SHARED_BREAK(event, Event, trace, info);
         // 新建
+        taskTrackTraces_[trace->threadId].emplace_back(event);
         if (!cannWarehouses_.FindAndInsertIfNotExist(trace->threadId) ||
             !(cannWarehouses_[trace->threadId].taskTrackEvents))
         {

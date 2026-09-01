@@ -55,6 +55,7 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
 
     EventInfo info1(EventType::EVENT_TYPE_API, MSPROF_REPORT_ACL_LEVEL, 1, endTime1);
     auto even1 = std::make_shared<Event>(apiPtr1, info1);
+    even1->key = 12345;
 
     ApiData apiData = {even1};
 
@@ -64,7 +65,8 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
     ApiEventDB apiEventDB;
     std::string runtimeDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, apiEventDB.GetDBName()});
     DBRunner runtimeDBRunner(runtimeDBPath);
-    std::vector<std::tuple<std::string, std::string, std::string, uint32_t, std::string, uint64_t, uint64_t>> data;
+    std::vector<std::tuple<std::string, std::string, std::string, uint32_t, std::string, uint64_t, uint64_t, uint32_t,
+                           uint64_t>> data;
     runtimeDBRunner.QueryData("select * from ApiData", data);
     // 如果level不是acl，则会直接把id置为0
     const int col2 = 2;
@@ -72,6 +74,7 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
     const int col4 = 4;
     const int col5 = 5;
     const int col6 = 6;
+    const int col8 = 8;
     EXPECT_EQ(std::get<0>(data[0]), "ACL_OP");
     EXPECT_EQ(std::get<1>(data[0]), "65536");
     EXPECT_EQ(std::get<col2>(data[0]), "acl");
@@ -79,6 +82,7 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
     EXPECT_EQ(std::get<col4>(data[0]), "0");
     EXPECT_EQ(std::get<col5>(data[0]), 1);
     EXPECT_EQ(std::get<col6>(data[0]), endTime1);
+    EXPECT_EQ(std::get<col8>(data[0]), 12345);
 }
 
 TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldReturnFalseWhenDBNotCreated)

@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <fstream>
 #include "gtest/gtest.h"
 
@@ -48,6 +49,7 @@ protected:
         // 有效输入
         fw.WriteText("20000_655361:isGraphNeedRebuild\n");
         fw.WriteText("20000_196625:aclrtRecordEvent\n");
+        fw.WriteText("20000_196626:aclrtStreamWaitEvent\n");
         fw.WriteText("5000_1125:CpuKernelLaunchExWithArgs_Big\n");
         fw.WriteText("5000_1077:MemCopy2DAsync\n");
         // node层(type=10000)仅launch(type=5)参与建树，其余类型（node_basic_info/ge_api等）不参与建树但仍落盘
@@ -134,6 +136,93 @@ void GenNodeApiEventsBin(const std::string &fakeDataDir)
 
     auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
     fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
+}
+
+void GenRecordEventApiAndTaskTrackBin(const std::string &fakeDataDir, uint64_t eventKey)
+{
+    std::vector<MsprofApi> apiTrace;
+    auto api = MsprofApi{};
+    api.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    api.level = MSPROF_REPORT_ACL_LEVEL;
+    api.type = 196625;
+    api.threadId = 1;
+    api.beginTime = 100;
+    api.endTime = 200;
+    apiTrace.emplace_back(api);
+
+    std::vector<MsprofCompactInfo> taskTrackTrace;
+    auto taskTrack = MsprofCompactInfo{};
+    taskTrack.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    taskTrack.level = MSPROF_REPORT_RUNTIME_LEVEL;
+    taskTrack.threadId = 1;
+    taskTrack.timeStamp = 150;
+    taskTrack.data.runtimeTrack.extInfo.eventInfo.key = eventKey;
+    taskTrackTrace.emplace_back(taskTrack);
+
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
+    fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
+    fakeGen->WriteBin<MsprofCompactInfo>(taskTrackTrace, EventType::EVENT_TYPE_TASK_TRACK, true, 0);
+}
+
+void GenRecordEventApiWithoutMatchingTaskTrackBin(const std::string &fakeDataDir)
+{
+    std::vector<MsprofApi> apiTrace;
+    auto api = MsprofApi{};
+    api.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    api.level = MSPROF_REPORT_ACL_LEVEL;
+    api.type = 196625;
+    api.threadId = 1;
+    api.beginTime = 100;
+    api.endTime = 200;
+    apiTrace.emplace_back(api);
+
+    std::vector<MsprofCompactInfo> taskTrackTrace;
+    auto taskTrack = MsprofCompactInfo{};
+    taskTrack.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    taskTrack.level = MSPROF_REPORT_RUNTIME_LEVEL;
+    taskTrack.threadId = 1;
+    taskTrack.timeStamp = 250;
+    taskTrack.data.runtimeTrack.extInfo.eventInfo.key = 123456789;
+    taskTrackTrace.emplace_back(taskTrack);
+
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
+    fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
+    fakeGen->WriteBin<MsprofCompactInfo>(taskTrackTrace, EventType::EVENT_TYPE_TASK_TRACK, true, 0);
+}
+
+void GenUnorderedApiAndTaskTrackBin(const std::string &fakeDataDir, uint64_t eventKey)
+{
+    std::vector<MsprofApi> apiTrace;
+    auto lateApi = MsprofApi{};
+    lateApi.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    lateApi.level = MSPROF_REPORT_ACL_LEVEL;
+    lateApi.type = 196625;
+    lateApi.threadId = 1;
+    lateApi.beginTime = 120;
+    lateApi.endTime = 220;
+    apiTrace.emplace_back(lateApi);
+
+    auto earlyApi = MsprofApi{};
+    earlyApi.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    earlyApi.level = MSPROF_REPORT_ACL_LEVEL;
+    earlyApi.type = 196625;
+    earlyApi.threadId = 1;
+    earlyApi.beginTime = 100;
+    earlyApi.endTime = 200;
+    apiTrace.emplace_back(earlyApi);
+
+    std::vector<MsprofCompactInfo> taskTrackTrace;
+    auto recordTaskTrack = MsprofCompactInfo{};
+    recordTaskTrack.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    recordTaskTrack.level = MSPROF_REPORT_RUNTIME_LEVEL;
+    recordTaskTrack.threadId = 1;
+    recordTaskTrack.timeStamp = 150;
+    recordTaskTrack.data.runtimeTrack.extInfo.eventInfo.key = eventKey;
+    taskTrackTrace.emplace_back(recordTaskTrack);
+
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
+    fakeGen->WriteBin<MsprofApi>(apiTrace, EventType::EVENT_TYPE_API, true, 0);
+    fakeGen->WriteBin<MsprofCompactInfo>(taskTrackTrace, EventType::EVENT_TYPE_TASK_TRACK, true, 0);
 }
 
 void GenAdditionalInfoEventsBin(const std::string &fakeDataDir, EventType type, uint16_t level, const int num)
@@ -328,5 +417,70 @@ TEST_F(EventGrouperUTest, TestGroupShouldOnlyKeepNodeLaunchEventForBuildTree)
         }
     }
     EXPECT_EQ(true, hasNonLaunch);
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldSetRecordEventKeyFromTaskTrackEventInfo)
+{
+    const std::string fakeDataDir = "./fakeDataRecordEventKey";
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    const uint64_t eventKey = 123456789;
+    File::RemoveDir(fakeDataDir, 0);
+    TypeData::GetInstance().Clear();
+    TypeData::GetInstance().Load("./");
+
+    GenRecordEventApiAndTaskTrackBin(fakeDataDir, eventKey);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto &apiTraces = grouper->GetApiTraces();
+
+    ASSERT_EQ(1, apiTraces.size());
+    EXPECT_EQ(eventKey, apiTraces[0]->key);
+    TypeData::GetInstance().Clear();
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldKeepKeyZeroWhenTaskTrackDoesNotMatchApiRange)
+{
+    const std::string fakeDataDir = "./fakeDataRecordEventKeyNoMatch";
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    File::RemoveDir(fakeDataDir, 0);
+    TypeData::GetInstance().Clear();
+    TypeData::GetInstance().Load("./");
+
+    GenRecordEventApiWithoutMatchingTaskTrackBin(fakeDataDir);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto &apiTraces = grouper->GetApiTraces();
+
+    ASSERT_EQ(1, apiTraces.size());
+    EXPECT_EQ(0, apiTraces[0]->key);
+    TypeData::GetInstance().Clear();
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldSetKeysWhenApiAndTaskTrackAreUnordered)
+{
+    const std::string fakeDataDir = "./fakeDataUnorderedApiAndTaskTrack";
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    const uint64_t eventKey = 123456789;
+    File::RemoveDir(fakeDataDir, 0);
+    TypeData::GetInstance().Clear();
+    TypeData::GetInstance().Load("./");
+
+    GenUnorderedApiAndTaskTrackBin(fakeDataDir, eventKey);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto &apiTraces = grouper->GetApiTraces();
+
+    ASSERT_EQ(2, apiTraces.size());
+    std::unordered_map<uint64_t, uint64_t> keyByBeginTime;
+    for (const auto &apiTrace : apiTraces)
+    {
+        keyByBeginTime[apiTrace->apiPtr->beginTime] = apiTrace->key;
+    }
+    EXPECT_EQ(eventKey, keyByBeginTime[100]);
+    EXPECT_EQ(eventKey, keyByBeginTime[120]);
+    TypeData::GetInstance().Clear();
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }

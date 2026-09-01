@@ -81,6 +81,7 @@ class EventGrouper
     bool isKernelApiEvent(const std::shared_ptr<ParserApi> &trace);
     void InitLastKernelTimes(const std::set<uint32_t> &threadIds);
     void RecordCANNWareHouses();
+    void SetApiEventKeys();
 
     template <typename P, typename M, std::shared_ptr<EventQueue> CANNWarehouse::*element>
     void GroupEvents(const std::string &typeName, EventType eventType)
@@ -135,6 +136,7 @@ class EventGrouper
    private:
     std::mutex tidLock_;
     std::vector<std::shared_ptr<Event>> apiTraces_;
+    std::unordered_map<uint32_t, std::vector<std::shared_ptr<Event>>> taskTrackTraces_;
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTasks_;
     std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;

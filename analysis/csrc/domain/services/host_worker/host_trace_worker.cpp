@@ -46,7 +46,6 @@ bool HostTraceWorker::Run()
     threadIds_ = grouper->GetThreadIdSet();
     ThreadPool pool(poolSize_);
     pool.Start();
-    DumpApiEvent(pool, grouper);
     DumpDpuTaskTrack(pool, grouper);
     DumpHostSystemProfileData(pool);
     if (!cannWarehouses_.Empty())
@@ -65,6 +64,11 @@ bool HostTraceWorker::Run()
     }
     pool.WaitAllTasks();
     pool.Stop();
+    ThreadPool apiDumpPool(1);
+    apiDumpPool.Start();
+    DumpApiEvent(apiDumpPool, grouper);
+    apiDumpPool.WaitAllTasks();
+    apiDumpPool.Stop();
     DumpMemcpyInfo(hostDataPath);  // 依赖runtime.db中的HostTask, 不能放在pool中
     return true;
 }

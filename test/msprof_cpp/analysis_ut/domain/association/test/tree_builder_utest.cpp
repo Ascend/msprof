@@ -23,6 +23,7 @@
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/tree.h"
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
+#include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 
@@ -427,4 +428,96 @@ TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldReturnOffset2WhenNodeNested)
     auto offset = TreeBuilder::GetEventOffset(0, event, levelNodes, EventType::EVENT_TYPE_NODE_BASIC_INFO);
     uint16_t expectResult = 2;
     EXPECT_EQ(expectResult, offset);
+}
+
+TEST_F(TreeBuilderUTest, TestBuildShouldSetRecordEventKeyFromTaskTrackEventInfo)
+{
+    const uint32_t recordEventType = 196625;
+    const uint64_t expectKey = 123456789;
+    TypeData::GetInstance().Clear();
+    TypeData::GetInstance().GetAll()[MSPROF_REPORT_ACL_LEVEL][recordEventType] = "aclrtRecordEvent";
+
+    auto kernelEvents = std::make_shared<EventQueue>(1, 1);
+    auto api = std::make_shared<ParserApi>();
+    api->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    api->level = MSPROF_REPORT_ACL_LEVEL;
+    api->type = recordEventType;
+    api->threadId = 1;
+    api->beginTime = 10;
+    api->endTime = 20;
+    EventInfo apiInfo{EventType::EVENT_TYPE_API, MSPROF_REPORT_ACL_LEVEL, api->beginTime, api->endTime};
+    auto apiEvent = std::make_shared<Event>(api, apiInfo);
+    kernelEvents->Push(apiEvent);
+    kernelEvents->Sort();
+
+    auto taskTrackEvents = std::make_shared<EventQueue>(1, 1);
+    auto taskTrack = std::make_shared<ParserCompactInfo>();
+    taskTrack->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    taskTrack->level = MSPROF_REPORT_RUNTIME_LEVEL;
+    taskTrack->type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
+    taskTrack->threadId = 1;
+    taskTrack->timeStamp = 15;
+    taskTrack->data.runtimeTrack.eventInfo.key = expectKey;
+    EventInfo taskTrackInfo{
+        EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_RUNTIME_LEVEL, taskTrack->timeStamp, taskTrack->timeStamp};
+    auto taskTrackEvent = std::make_shared<Event>(taskTrack, taskTrackInfo);
+    taskTrackEvents->Push(taskTrackEvent);
+    taskTrackEvents->Sort();
+
+    auto cannWarehouse = std::make_shared<CANNWarehouse>();
+    cannWarehouse->kernelEvents = kernelEvents;
+    cannWarehouse->taskTrackEvents = taskTrackEvents;
+    auto treeBuilder = std::make_shared<TreeBuilder>(cannWarehouse, 1);
+
+    auto tree = treeBuilder->Build();
+
+    EXPECT_NE(nullptr, tree);
+    EXPECT_EQ(expectKey, apiEvent->key);
+    TypeData::GetInstance().Clear();
+}
+
+TEST_F(TreeBuilderUTest, TestBuildShouldSetWaitEventKeyFromTaskTrackNotifyInfo)
+{
+    const uint32_t waitEventType = 196626;
+    const uint64_t expectKey = 987654321;
+    TypeData::GetInstance().Clear();
+    TypeData::GetInstance().GetAll()[MSPROF_REPORT_ACL_LEVEL][waitEventType] = "aclrtStreamWaitEvent";
+
+    auto kernelEvents = std::make_shared<EventQueue>(1, 1);
+    auto api = std::make_shared<ParserApi>();
+    api->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    api->level = MSPROF_REPORT_ACL_LEVEL;
+    api->type = waitEventType;
+    api->threadId = 1;
+    api->beginTime = 10;
+    api->endTime = 20;
+    EventInfo apiInfo{EventType::EVENT_TYPE_API, MSPROF_REPORT_ACL_LEVEL, api->beginTime, api->endTime};
+    auto apiEvent = std::make_shared<Event>(api, apiInfo);
+    kernelEvents->Push(apiEvent);
+    kernelEvents->Sort();
+
+    auto taskTrackEvents = std::make_shared<EventQueue>(1, 1);
+    auto taskTrack = std::make_shared<ParserCompactInfo>();
+    taskTrack->magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    taskTrack->level = MSPROF_REPORT_RUNTIME_LEVEL;
+    taskTrack->type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
+    taskTrack->threadId = 1;
+    taskTrack->timeStamp = 15;
+    taskTrack->data.runtimeTrack.notifyInfo.key = expectKey;
+    EventInfo taskTrackInfo{
+        EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_RUNTIME_LEVEL, taskTrack->timeStamp, taskTrack->timeStamp};
+    auto taskTrackEvent = std::make_shared<Event>(taskTrack, taskTrackInfo);
+    taskTrackEvents->Push(taskTrackEvent);
+    taskTrackEvents->Sort();
+
+    auto cannWarehouse = std::make_shared<CANNWarehouse>();
+    cannWarehouse->kernelEvents = kernelEvents;
+    cannWarehouse->taskTrackEvents = taskTrackEvents;
+    auto treeBuilder = std::make_shared<TreeBuilder>(cannWarehouse, 1);
+
+    auto tree = treeBuilder->Build();
+
+    EXPECT_NE(nullptr, tree);
+    EXPECT_EQ(expectKey, apiEvent->key);
+    TypeData::GetInstance().Clear();
 }

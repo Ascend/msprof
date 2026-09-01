@@ -96,6 +96,7 @@ struct Event
     };
     EventInfo info;
     int64_t id = 0;  // 全局唯一ID
+    uint64_t key = 0;
 
     ~Event()
     {

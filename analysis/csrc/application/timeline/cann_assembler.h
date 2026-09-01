@@ -40,14 +40,15 @@ class ApiTraceEvent : public DurationEvent
    public:
     ApiTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                   uint32_t threadId, uint64_t connectionId, const std::string &mode, const std::string level,
-                  const std::string id, const std::string itemId)
+                  const std::string id, const std::string itemId, uint64_t event_id)
         : DurationEvent(pid, tid, dur, ts, name),
           threadId_(threadId),
           connectionId_(connectionId),
           mode_(mode),
           level_(level),
           id_(id),
-          itemId_(itemId)
+          itemId_(itemId),
+          event_id_(event_id)
     {
     }
 
@@ -60,6 +61,7 @@ class ApiTraceEvent : public DurationEvent
         ostream["id"] << id_;
         ostream["item_id"] << itemId_;
         ostream["connection_id"] << connectionId_;
+        ostream["event_id"] << event_id_;
     }
 
    private:
@@ -69,6 +71,7 @@ class ApiTraceEvent : public DurationEvent
     std::string level_;
     std::string id_;
     std::string itemId_;
+    uint64_t event_id_;
 };
 }  // namespace Application
 }  // namespace Analysis

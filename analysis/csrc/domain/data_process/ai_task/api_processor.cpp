@@ -15,19 +15,25 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/data_process/ai_task/api_processor.h"
+
+#include <algorithm>
+
 #include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
 
-
 bool isContainedInRange(const std::vector<ApiData> &modelLoadDatas, const ApiData &data)
 {
-    for (const auto& modelLoadData : modelLoadDatas) {
+    for (const auto &modelLoadData : modelLoadDatas)
+    {
         if (data.threadId == modelLoadData.threadId && data.timestamp >= modelLoadData.timestamp &&
-            data.end <= modelLoadData.end) {
+            data.end <= modelLoadData.end)
+        {
             return true;
         }
     }
@@ -40,49 +46,61 @@ bool ApiProcessor::Process(DataInventory &dataInventory)
 {
     DBInfo apiDB("api_event.db", "ApiData");
     std::string dbPath = Utils::File::PathJoin({profPath_, HOST, SQLITE, apiDB.dbName});
-    if (!apiDB.ConstructDBRunner(dbPath)) {
+    if (!apiDB.ConstructDBRunner(dbPath))
+    {
         return false;
     }
     // 并不是所有场景都有api数据
     auto status = CheckPathAndTable(dbPath, apiDB);
-    if (status == CHECK_FAILED) {
+    if (status == CHECK_FAILED)
+    {
         return false;
-    } else if (status == NOT_EXIST) {
+    }
+    else if (status == NOT_EXIST)
+    {
         return true;
     }
     auto apiData = LoadData(apiDB, dbPath);
-    if (apiData.empty()) {
+    if (apiData.empty())
+    {
         ERROR("Api original data is empty. DBPath is %", dbPath);
         return false;
     }
     ProfTimeRecord record;
-    if (!Context::GetInstance().GetProfTimeRecordInfo(record, profPath_)) {
+    if (!Context::GetInstance().GetProfTimeRecordInfo(record, profPath_))
+    {
         ERROR("GetProfTimeRecordInfo failed, profPath is %.", profPath_);
         return false;
     }
     SyscntConversionParams params;
-    if (!Context::GetInstance().GetSyscntConversionParams(params, HOST_ID, profPath_)) {
+    if (!Context::GetInstance().GetSyscntConversionParams(params, HOST_ID, profPath_))
+    {
         ERROR("GetSyscntConversionParams failed, profPath is %.", profPath_);
         return false;
     }
     auto processedData = FormatData(apiData, record, params);
-    if (processedData.empty()) {
+    if (processedData.empty())
+    {
         ERROR("format api data error");
         return false;
     }
     std::vector<ApiData> modelLoadDatas;
-    for (const auto& data : processedData) {
-        if (data.apiName == "ModelLoad") {
+    for (const auto &data : processedData)
+    {
+        if (data.apiName == "ModelLoad")
+        {
             modelLoadDatas.push_back(data);
         }
     }
     FilterDataByStartTime<ApiData>(processedData, record.startTimeNs, PROCESSOR_NAME_API,
-        [modelLoadDatas](const ApiData& data, uint64_t startTimeNs) {
-            bool inRange = isContainedInRange(modelLoadDatas, data);
-            bool isFiltered = data.end >= startTimeNs;
-            return !(inRange || isFiltered);
-        });
-    if (!SaveToDataInventory<ApiData>(std::move(processedData), dataInventory, PROCESSOR_NAME_API)) {
+                                   [modelLoadDatas](const ApiData &data, uint64_t startTimeNs)
+                                   {
+                                       bool inRange = isContainedInRange(modelLoadDatas, data);
+                                       bool isFiltered = data.end >= startTimeNs;
+                                       return !(inRange || isFiltered);
+                                   });
+    if (!SaveToDataInventory<ApiData>(std::move(processedData), dataInventory, PROCESSOR_NAME_API))
+    {
         ERROR("Save data failed, %.", PROCESSOR_NAME_API);
         return false;
     }
@@ -92,39 +110,52 @@ bool ApiProcessor::Process(DataInventory &dataInventory)
 OriApiDataFormat ApiProcessor::LoadData(const DBInfo &apiDB, const std::string &dbPath)
 {
     OriApiDataFormat oriData;
-    if (apiDB.dbRunner == nullptr) {
+    if (apiDB.dbRunner == nullptr)
+    {
         ERROR("Create % connection failed.", dbPath);
         return oriData;
     }
-    std::string sql = "SELECT struct_type, id, level, thread_id, item_id, start, end, connection_id "
-                      "FROM " + apiDB.tableName;
-    if (!apiDB.dbRunner->QueryData(sql, oriData)) {
+    auto tableColumns = apiDB.dbRunner->GetTableColumns(apiDB.tableName);
+    bool hasKey = std::any_of(tableColumns.begin(), tableColumns.end(),
+                              [](const Infra::TableColumn &column) { return column.name == "key"; });
+    std::string keyColumn = hasKey ? "key" : "0 AS key";
+    std::string sql = "SELECT struct_type, id, level, thread_id, item_id, start, end, connection_id, " + keyColumn +
+                      " "
+                      "FROM " +
+                      apiDB.tableName;
+    if (!apiDB.dbRunner->QueryData(sql, oriData))
+    {
         ERROR("Query api data failed, db path is %.", dbPath);
         return oriData;
     }
     return oriData;
 }
 
-std::vector<ApiData> ApiProcessor::FormatData(
-    const OriApiDataFormat &oriData, const ProfTimeRecord &record, const SyscntConversionParams &params)
+std::vector<ApiData> ApiProcessor::FormatData(const OriApiDataFormat &oriData, const ProfTimeRecord &record,
+                                              const SyscntConversionParams &params)
 {
     std::vector<ApiData> formatData;
-    if (!Reserve(formatData, oriData.size())) {
+    if (!Reserve(formatData, oriData.size()))
+    {
         ERROR("Reserved for api data failed.");
         return formatData;
     }
     ApiData data;
     std::string level;
-    for (const auto& row : oriData) {
-        std::tie(data.structType, data.id, level, data.threadId, data.itemId,
-                 data.timestamp, data.end, data.connectionId) = row;
+    for (const auto &row : oriData)
+    {
+        std::tie(data.structType, data.id, level, data.threadId, data.itemId, data.timestamp, data.end,
+                 data.connectionId, data.event_id) = row;
         HPFloat startTimestamp = Utils::GetTimeFromHostCnt(data.timestamp, params);
         HPFloat endTimestamp = Utils::GetTimeFromHostCnt(data.end, params);
         data.level = GetEnumTypeValue(level, NAME_STR(API_LEVEL_TABLE), API_LEVEL_TABLE);
         data.apiName = data.structType;
-        if (data.level == MSPROF_REPORT_ACL_LEVEL) {
+        if (data.level == MSPROF_REPORT_ACL_LEVEL)
+        {
             data.apiName = data.id;
-        } else if (data.level == MSPROF_REPORT_HCCL_NODE_LEVEL) {
+        }
+        else if (data.level == MSPROF_REPORT_HCCL_NODE_LEVEL)
+        {
             data.apiName = data.itemId;
         }
         data.timestamp = GetLocalTime(startTimestamp, record).Uint64();
@@ -133,5 +164,5 @@ std::vector<ApiData> ApiProcessor::FormatData(
     }
     return formatData;
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

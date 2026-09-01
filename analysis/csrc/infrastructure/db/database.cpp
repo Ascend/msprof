@@ -26,7 +26,8 @@ namespace
 const TableColumns ApiEventData = {{"struct_type", SQL_TEXT_TYPE}, {"id", SQL_TEXT_TYPE},
                                    {"level", SQL_TEXT_TYPE},       {"thread_id", SQL_INTEGER_TYPE},
                                    {"item_id", SQL_TEXT_TYPE},     {"start", SQL_INTEGER_TYPE},
-                                   {"end", SQL_INTEGER_TYPE},      {"connection_id", SQL_INTEGER_TYPE}};
+                                   {"end", SQL_INTEGER_TYPE},      {"connection_id", SQL_INTEGER_TYPE},
+                                   {"key", SQL_INTEGER_TYPE}};
 
 const TableColumns HostTask = {
     {"model_id", SQL_INTEGER_TYPE},  {"request_id", SQL_INTEGER_TYPE},    {"stream_id", SQL_INTEGER_TYPE},
