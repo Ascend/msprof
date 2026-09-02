@@ -51,14 +51,14 @@ class Event:
 class TestCommunicationMatrixParser(unittest.TestCase):
     link_info1 = {
         "0-1": {
-            MatrixDataType.TRANSPORT_TYPE: 0,
+            MatrixDataType.TRANSPORT_TYPE: StrConstant.HCCS,
             MatrixDataType.TRANS_TIME: 1,
             MatrixDataType.TRANS_SIZE: 1,
             MatrixDataType.PACKET_NUM: 10,
             MatrixDataType.LARGE_PACKET_NUM: 2
         },
         "0-7": {
-            MatrixDataType.TRANSPORT_TYPE: 2,
+            MatrixDataType.TRANSPORT_TYPE: StrConstant.RDMA,
             MatrixDataType.TRANS_TIME: 10,
             MatrixDataType.TRANS_SIZE: 10,
             MatrixDataType.PACKET_NUM: 100,
@@ -67,21 +67,21 @@ class TestCommunicationMatrixParser(unittest.TestCase):
     }
     link_info2 = {
         "0-1": {
-            MatrixDataType.TRANSPORT_TYPE: 0,
+            MatrixDataType.TRANSPORT_TYPE: StrConstant.HCCS,
             MatrixDataType.TRANS_TIME: 0.5,
             MatrixDataType.TRANS_SIZE: 0.5,
             MatrixDataType.PACKET_NUM: 10,
             MatrixDataType.LARGE_PACKET_NUM: 0
         },
         "0-7": {
-            MatrixDataType.TRANSPORT_TYPE: 2,
+            MatrixDataType.TRANSPORT_TYPE: StrConstant.RDMA,
             MatrixDataType.TRANS_TIME: 10.5,
             MatrixDataType.TRANS_SIZE: 10.5,
             MatrixDataType.PACKET_NUM: 105,
             MatrixDataType.LARGE_PACKET_NUM: 100
         },
         "0-4": {
-            MatrixDataType.TRANSPORT_TYPE: 1,
+            MatrixDataType.TRANSPORT_TYPE: StrConstant.PCIE,
             MatrixDataType.TRANS_TIME: 1,
             MatrixDataType.TRANS_SIZE: 1,
             MatrixDataType.PACKET_NUM: 1,
@@ -129,7 +129,7 @@ class TestCommunicationMatrixParser(unittest.TestCase):
         parser.op_info = [self.hccl_dict1, self.hccl_dict2]
         parser.combine()
         ret = parser.op_info[-1].get(StrConstant.LINK_INFO)
-        self.assertEqual(ret['0-1'][MatrixDataType.TRANSPORT_TYPE], 0)
+        self.assertEqual(ret['0-1'][MatrixDataType.TRANSPORT_TYPE], StrConstant.HCCS)
         self.assertEqual(ret['0-1'][MatrixDataType.TRANS_SIZE], 1.5)
         self.assertEqual(ret['0-7'][MatrixDataType.TRANS_TIME], 20.5)
         self.assertEqual(ret['0-7'][MatrixDataType.PACKET_NUM], 205)
@@ -153,3 +153,22 @@ class TestCommunicationMatrixParser(unittest.TestCase):
             self.assertEqual(ret1[1][CommunicationMatrixInfo.BANDWIDTH_UTILIZATION], 0.0781)
             self.assertEqual(ret2[2][CommunicationMatrixInfo.BANDWIDTH_GB_S], 0.9766)
             self.assertEqual(ret2[1][CommunicationMatrixInfo.LARGE_PACKET_RATIO], round(100 / 105, 4))
+
+    def test_parse_ub(self):
+        events = [Event(StrConstant.UB, 'Ub_Write_Or_Read')]
+        events[0].link_type = StrConstant.UB
+        parser = CommunicationMatrixParser({})
+        parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
+        link_value = parser.op_info[0][StrConstant.LINK_INFO]['0-1']
+        self.assertEqual(link_value[MatrixDataType.TRANSPORT_TYPE], StrConstant.UB)
+        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1024 ** 2)
+        self.assertEqual(link_value[MatrixDataType.TRANS_TIME], 1)
+
+    def test_parse_uboe_as_ub(self):
+        events = [Event(StrConstant.UB, 'Ub_Inline_Write')]
+        events[0].link_type = StrConstant.UBOE
+        parser = CommunicationMatrixParser({})
+        parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
+        link_value = parser.op_info[0][StrConstant.LINK_INFO]['0-1']
+        self.assertEqual(link_value[MatrixDataType.TRANSPORT_TYPE], StrConstant.UB)
+        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1024 ** 2)

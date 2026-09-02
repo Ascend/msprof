@@ -54,7 +54,7 @@ class TestCommunicationMatrixAnalyzer(unittest.TestCase):
                 {
                     'Src Rank': 0,
                     'Dst Rank': 1,
-                    'Transport Type': 0,
+                    'Transport Type': 'HCCS',
                     'Transit Size(MB)': 1,
                     'Transit Time(ms)': 1,
                     'Bandwidth(GB/s)': 1
@@ -62,7 +62,7 @@ class TestCommunicationMatrixAnalyzer(unittest.TestCase):
                 {
                     'Src Rank': 0,
                     'Dst Rank': 0,
-                    'Transport Type': 3,
+                    'Transport Type': 'LOCAL',
                     'Transit Size(MB)': 1,
                     'Transit Time(ms)': 1,
                     'Bandwidth(GB/s)': 1
@@ -75,7 +75,7 @@ class TestCommunicationMatrixAnalyzer(unittest.TestCase):
                 {
                     'Src Rank': 1,
                     'Dst Rank': 9,
-                    'Transport Type': 2,
+                    'Transport Type': 'RDMA',
                     'Transit Size(MB)': 1,
                     'Transit Time(ms)': 1,
                     'Bandwidth(GB/s)': 1
@@ -83,7 +83,7 @@ class TestCommunicationMatrixAnalyzer(unittest.TestCase):
                 {
                     'Src Rank': 1,
                     'Dst Rank': 1,
-                    'Transport Type': 3,
+                    'Transport Type': 'LOCAL',
                     'Transit Size(MB)': 1,
                     'Transit Time(ms)': 1,
                     'Bandwidth(GB/s)': 1

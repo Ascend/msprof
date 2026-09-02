@@ -50,7 +50,6 @@ class CommunicationMatrixAnalyzer:
 
     FILE_NAME = os.path.basename(__file__)
     HOST_PATH = 'host'
-    TRANSPORT_TYPE = {0: 'HCCS', 1: 'PCIE', 2: 'RDMA', 3: 'LOCAL', 4: 'SIO'}
 
     def __init__(self: any, collection_path: any, export_type: any) -> None:
         self.collection_path = collection_path
@@ -72,9 +71,7 @@ class CommunicationMatrixAnalyzer:
                 dst_rank = info.get(CommunicationMatrixInfo.DST_RANK)
                 link_key = f"{src_rank}-{dst_rank}"
                 proc_dict[data.get(StrConstant.OP_NAME)][link_key] = {
-                    CommunicationMatrixInfo.TRANSPORT_TYPE: self.TRANSPORT_TYPE.get(
-                        info.get(CommunicationMatrixInfo.TRANSPORT_TYPE)
-                    ),
+                    CommunicationMatrixInfo.TRANSPORT_TYPE: info.get(CommunicationMatrixInfo.TRANSPORT_TYPE),
                     CommunicationMatrixInfo.TRANSIT_SIZE_MB: info.get(CommunicationMatrixInfo.TRANSIT_SIZE_MB),
                     CommunicationMatrixInfo.TRANSIT_TIME_MS: info.get(CommunicationMatrixInfo.TRANSIT_TIME_MS),
                     CommunicationMatrixInfo.BANDWIDTH_GB_S: info.get(CommunicationMatrixInfo.BANDWIDTH_GB_S),

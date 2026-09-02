@@ -22,6 +22,7 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import CommunicationMatrixInfo
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
+from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.meta_parser import HcclAnalysisTool
 from msparser.cluster.meta_parser import MetaParser
 
@@ -69,7 +70,7 @@ class CommunicationMatrixParser(MetaParser):
             link_value[MatrixDataType.TRANS_TIME] / NumberConstant.CONVERSION_TIME,
         )
         standard_bandwidth = HcclAnalysisTool.get_standard_bandwidth().get(
-            HcclAnalysisTool.convert_to_str(link_value[MatrixDataType.TRANSPORT_TYPE]), -1
+            link_value[MatrixDataType.TRANSPORT_TYPE], -1
         )
         new_link_dict[CommunicationMatrixInfo.BANDWIDTH_UTILIZATION] = float(
             format(new_link_dict[CommunicationMatrixInfo.BANDWIDTH_GB_S] / standard_bandwidth, ".4f")
@@ -133,7 +134,9 @@ class CommunicationMatrixParser(MetaParser):
                     idx += 1
                     continue
                 if event.transport_type == StrConstant.SDMA and event.hccl_name in StrConstant.SDMA_TRANSIT_ITEMS:
-                    self._calculate_sdma_bw_matrix(link_info, event)
+                    self._calculate_link_bw_matrix(link_info, event)
+                if CommunicationParser.is_transit_ub_event(event):
+                    self._calculate_link_bw_matrix(link_info, event, StrConstant.UB)
                 if event.rdma_type == 'RDMA_SEND_PAYLOAD':
                     idx = self._calculate_rdma_bw_matrix(
                         link_info, planeid_tasks, idx, rdma_transit_op_num, bundle.op_name
@@ -167,12 +170,13 @@ class CommunicationMatrixParser(MetaParser):
                 link_info_list.append(self.convert_link_info(link_key, link_value))
             hccl_dict[StrConstant.LINK_INFO] = link_info_list
 
-    def _calculate_sdma_bw_matrix(self, link_info: dict, event):
+    def _calculate_link_bw_matrix(self, link_info: dict, event, trans_type=None):
         link_key = self.get_link_key(event)
         if link_key not in link_info:
             link_info[link_key] = [0] * len(MatrixDataType.__members__)
-        trans_type = self.get_communication_matrix_transport_type(event)
-        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = HcclAnalysisTool.convert_to_enum(trans_type)
+        if trans_type is None:
+            trans_type = self.get_communication_matrix_transport_type(event)
+        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = trans_type
         trans_size = HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.BYTES_TO_MB
         link_info[link_key][MatrixDataType.TRANS_SIZE] += trans_size
         link_info[link_key][MatrixDataType.TRANS_TIME] += (
@@ -194,7 +198,7 @@ class CommunicationMatrixParser(MetaParser):
             return idx
         if link_key not in link_info:
             link_info[link_key] = [0] * len(MatrixDataType.__members__)
-        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = HcclAnalysisTool.convert_to_enum(event.transport_type)
+        link_info[link_key][MatrixDataType.TRANSPORT_TYPE] = event.transport_type
         link_info[link_key][MatrixDataType.TRANS_TIME] += rdma_transit_result[0]
         link_info[link_key][MatrixDataType.TRANS_SIZE] += rdma_transit_result[1]
         link_info[link_key][MatrixDataType.PACKET_NUM] += 1

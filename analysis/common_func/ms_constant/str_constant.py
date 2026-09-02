@@ -15,7 +15,6 @@
 # -------------------------------------------------------------------------
 
 import re
-from enum import IntEnum
 
 from common_func.db_name_constant import DBNameConstant
 
@@ -393,7 +392,7 @@ class StrConstant:
     ]
 
     # hccl str constant
-    TRANSIT_TYPE = ["RDMA", "HCCS", "PCIE", "SDMA", "SIO"]
+    TRANSIT_TYPE = ["RDMA", "HCCS", "PCIE", "SDMA", "SIO", "UB"]
     TOTAL = "Total HCCL Operators"
     ON_CHIP = "ON_CHIP"
     HCCS = "HCCS"
@@ -403,6 +402,9 @@ class StrConstant:
     STANDARD_ROCE = "STANDARD_ROCE"
     RDMA = "RDMA"
     SDMA = "SDMA"
+    UB = "UB"
+    UBOE = "UBoE"
+    UB_TYPES = (UB, UBOE)
     LOCAL = "LOCAL"
     NOTIFY_WAIT = "Notify_Wait"
     RDMA_PAYLOAD_PREPARE = "RDMA_PAYLOAD_PREPARE"
@@ -411,6 +413,7 @@ class StrConstant:
     REDUCE_TBE = "Reduce TBE"
     RDMA_SEND = "RDMASend"
     SDMA_TRANSIT_ITEMS = ["Memcpy", "Reduce_Inline"]
+    UB_TRANSIT_ITEMS = ["Ub_Inline_Write", "Ub_Write_Or_Read"]
     COMMUNICATION_TIME_INFO = "Communication Time Info"
     COMMUNICATION_BANDWIDTH_INFO = "Communication Bandwidth Info"
     SLOW_RANK_SUGGESTION = "Slow Rank Suggestion"
@@ -489,11 +492,3 @@ class CommunicationMatrixInfo:
     BANDWIDTH_GB_S = "Bandwidth(GB/s)"
     BANDWIDTH_UTILIZATION = "Bandwidth(Utilization)"
     LARGE_PACKET_RATIO = "Large Packet Ratio"
-
-
-class TransportType(IntEnum):
-    HCCS = 0
-    PCIE = 1
-    RDMA = 2
-    LOCAL = 3
-    SIO = 4

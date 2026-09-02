@@ -149,6 +149,10 @@ class NumberConstant:
     PCIE_BANDWIDTH_V2_1_0 = 20
     RDMA_BANDWIDTH_V4_1_0 = 25
     HCCS_BANDWIDTH_V4_1_0 = 28
+    # Placeholder UB values; replace when official numbers are confirmed.
+    UB_BANDWIDTH_V2_1_0 = 18
+    UB_BANDWIDTH_V4_1_0 = 28
+    UB_MESSAGE_SIZE_THRESHOLD = 1
     HCCS_MESSAGE_SIZE_THRESHOLD = 32
     PCIE_MESSAGE_SIZE_THRESHOLD = 32
     SIO_MESSAGE_SIZE_THRESHOLD = 32

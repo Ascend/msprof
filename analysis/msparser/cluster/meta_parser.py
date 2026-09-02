@@ -25,7 +25,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import OpAnalysisType
 from common_func.ms_constant.str_constant import OpBandWidthType
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.ms_constant.str_constant import TransportType
 from common_func.platform.chip_manager import ChipManager
 from profiling_bean.prof_enum.chip_model import ChipModel
 
@@ -76,10 +75,12 @@ class HcclAnalysisTool:
             StrConstant.RDMA: NumberConstant.RDMA_BANDWIDTH_V2_1_0,
             StrConstant.HCCS: NumberConstant.HCCS_BANDWIDTH_V2_1_0,
             StrConstant.PCIE: NumberConstant.PCIE_BANDWIDTH_V2_1_0,
+            StrConstant.UB: NumberConstant.UB_BANDWIDTH_V2_1_0,
         },
         ChipModel.CHIP_V4_1_0: {
             StrConstant.RDMA: NumberConstant.RDMA_BANDWIDTH_V4_1_0,
             StrConstant.HCCS: NumberConstant.HCCS_BANDWIDTH_V4_1_0,
+            StrConstant.UB: NumberConstant.UB_BANDWIDTH_V4_1_0,
         },
     }
 
@@ -88,6 +89,7 @@ class HcclAnalysisTool:
         StrConstant.HCCS: NumberConstant.HCCS_MESSAGE_SIZE_THRESHOLD,
         StrConstant.PCIE: NumberConstant.PCIE_MESSAGE_SIZE_THRESHOLD,
         StrConstant.SIO: NumberConstant.SIO_MESSAGE_SIZE_THRESHOLD,
+        StrConstant.UB: NumberConstant.UB_MESSAGE_SIZE_THRESHOLD,
     }
 
     @classmethod
@@ -263,33 +265,3 @@ class HcclAnalysisTool:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
             return 0
         return quotient
-
-    @classmethod
-    def convert_to_enum(cls: any, trans_type: str) -> int:
-        if trans_type in (StrConstant.HCCS, StrConstant.HCCS_SW):
-            return TransportType.HCCS
-        if trans_type == StrConstant.PCIE:
-            return TransportType.PCIE
-        if trans_type == StrConstant.RDMA:
-            return TransportType.RDMA
-        if trans_type == StrConstant.LOCAL:
-            return TransportType.LOCAL
-        if trans_type == StrConstant.SIO:
-            return TransportType.SIO
-        logging.warning("trans_type is not normal, which is %s", trans_type)
-        return -1
-
-    @classmethod
-    def convert_to_str(cls: any, trans_data_type: int) -> str:
-        if trans_data_type == TransportType.HCCS:
-            return StrConstant.HCCS
-        if trans_data_type == TransportType.PCIE:
-            return StrConstant.PCIE
-        if trans_data_type == TransportType.RDMA:
-            return StrConstant.RDMA
-        if trans_data_type == TransportType.LOCAL:
-            return StrConstant.LOCAL
-        if trans_data_type == TransportType.SIO:
-            return StrConstant.SIO
-        logging.warning("trans_data_type is not normal, which is %d", trans_data_type)
-        return 'Unknown transport type'

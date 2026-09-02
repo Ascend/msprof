@@ -262,6 +262,14 @@ class TestCommunicationParser(unittest.TestCase):
                 Transit_Size_MB: 0,
                 Transit_Time_ms: 0
             },
+            'UB': {
+                Bandwidth_GB_S: 0,
+                Bandwidth_Utilization: 0.0,
+                Large_Packet_Ratio: 0,
+                Size_Distribution: defaultdict(lambda: [0, 0]),
+                Transit_Size_MB: 0,
+                Transit_Time_ms: 0
+            },
         }
 
         events = [
@@ -354,6 +362,14 @@ class TestCommunicationParser(unittest.TestCase):
                 Size_Distribution: {200.0: [1, 0.009680193359375]},
                 Transit_Size_MB: 200.0,
                 Transit_Time_ms: 0.009680193359375
+            },
+            'UB': {
+                Bandwidth_GB_S: 0,
+                Bandwidth_Utilization: 0.0,
+                Large_Packet_Ratio: 0,
+                Size_Distribution: defaultdict(lambda: [0, 0]),
+                Transit_Size_MB: 0,
+                Transit_Time_ms: 0
             },
         }
         with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth",
@@ -504,3 +520,72 @@ class TestCommunicationParser(unittest.TestCase):
             self.assertEqual(
                 ret[StrConstant.TOTAL][0]["Communication Bandwidth Info"]["SDMA"]["Bandwidth(GB/s)"], 0.9766
             )
+
+    def test_is_transit_ub_event(self):
+        ub_event = HcclTask(
+            hccl_name='Ub_Write_Or_Read', transport_type=StrConstant.UB, link_type=StrConstant.UB
+        )
+        self.assertTrue(CommunicationParser.is_transit_ub_event(ub_event))
+        inline_event = HcclTask(
+            hccl_name='Ub_Inline_Write', transport_type=StrConstant.UB, link_type=StrConstant.UB
+        )
+        self.assertTrue(CommunicationParser.is_transit_ub_event(inline_event))
+        uboe_event = HcclTask(
+            hccl_name='Ub_Write_Or_Read', transport_type=StrConstant.UB, link_type=StrConstant.UBOE
+        )
+        self.assertTrue(CommunicationParser.is_transit_ub_event(uboe_event))
+        name_mismatch = HcclTask(
+            hccl_name='Memcpy', transport_type=StrConstant.UB, link_type=StrConstant.UB
+        )
+        self.assertFalse(CommunicationParser.is_transit_ub_event(name_mismatch))
+        transport_mismatch = HcclTask(
+            hccl_name='Ub_Write_Or_Read', transport_type=StrConstant.SDMA, link_type=StrConstant.UB
+        )
+        self.assertFalse(CommunicationParser.is_transit_ub_event(transport_mismatch))
+
+    def test_op_time_parser_ub(self):
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce_ub', hccl_name='Ub_Write_Or_Read', rdma_type='RDMA_SEND_NOTIFY',
+                timestamp=0, duration=1000000, transport_type=StrConstant.UB, size=1048576,
+                link_type=StrConstant.UB, is_master=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce_ub', hccl_name='Notify_Wait', timestamp=1000000, duration=2000000,
+                is_master=1
+            ),
+        ]
+        op_time_dict = CommunicationParser({}).op_time_parser(events, 'hcom_allReduce_ub', 4000000)
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 2.0)
+        self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 1.0)
+
+    def test_op_bandwidth_parser_ub(self):
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce_ub', hccl_name='Ub_Inline_Write', rdma_type='RDMA_SEND_NOTIFY',
+                timestamp=0, duration=1000000, transport_type=StrConstant.UB, task_id=1, size=1048576,
+                link_type=StrConstant.UB, plane_id=0
+            ),
+        ]
+        with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth", return_value={}):
+            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(events, 'hcom_allReduce_ub')
+        self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Size(MB)"], 1.0)
+        self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Bandwidth(GB/s)"], 0.9766)
+        self.assertEqual(op_bandwidth_dict[StrConstant.SDMA]["Transit Size(MB)"], 0)
+        self.assertEqual(op_bandwidth_dict[StrConstant.SDMA]["Transit Time(ms)"], 0)
+
+    def test_op_bandwidth_parser_uboe_counted_as_ub(self):
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce_ub', hccl_name='Ub_Write_Or_Read', rdma_type='RDMA_SEND_NOTIFY',
+                timestamp=0, duration=1000000, transport_type=StrConstant.UB, task_id=1, size=1048576,
+                link_type=StrConstant.UBOE, plane_id=0
+            ),
+        ]
+        with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth", return_value={}):
+            op_bandwidth_dict = CommunicationParser({}).op_bandwidth_parser(events, 'hcom_allReduce_ub')
+        self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Size(MB)"], 1.0)
+        self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Time(ms)"], 1.0)
+        self.assertEqual(op_bandwidth_dict[StrConstant.SDMA]["Transit Size(MB)"], 0)

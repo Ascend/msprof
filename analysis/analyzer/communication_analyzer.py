@@ -63,16 +63,11 @@ class CommunicationAnalyzer:
         proc_dict = {}
         for op_name, op_data in dict_data.items():
             proc_dict[op_name] = op_data.get(Constant.DEFAULT_INVALID_VALUE)
-            for transport_type in [
-                StrConstant.RDMA,
-                StrConstant.SDMA,
-                StrConstant.PCIE,
-                StrConstant.HCCS,
-                StrConstant.SIO,
-            ]:
-                proc_dict[op_name].get(StrConstant.COMMUNICATION_BANDWIDTH_INFO).get(transport_type).pop(
-                    OpBandWidthType.BANDWIDTH_UTILIZATION
-                )
+            bandwidth_info = proc_dict[op_name].get(StrConstant.COMMUNICATION_BANDWIDTH_INFO, {})
+            for transport_type in StrConstant.TRANSIT_TYPE:
+                transport_dict = bandwidth_info.get(transport_type)
+                if transport_dict:
+                    transport_dict.pop(OpBandWidthType.BANDWIDTH_UTILIZATION, None)
         return proc_dict
 
     def process(self):

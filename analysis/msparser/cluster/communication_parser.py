@@ -66,11 +66,19 @@ class CommunicationParser(MetaParser):
         )
 
     @staticmethod
+    def is_transit_ub_event(event) -> bool:
+        return (
+            event.hccl_name in StrConstant.UB_TRANSIT_ITEMS
+            and event.transport_type in StrConstant.UB_TYPES
+            and event.link_type in StrConstant.UB_TYPES
+        )
+
+    @staticmethod
     def get_communication_bandwidth_info_type(event):
         """
         只适用于transport_type为SDMA且event.name为"Memcpy"，"Reduce_Inline"，
-        对应communication.json里面的"Communication Bandwidth Info"的key值，目前有5种：HCCS，PCIE，SIO，SDMA，RDMA，
-        其中，SDMA的数据为PCIE, HCCS, SIO的和
+        对应communication.json里面的"Communication Bandwidth Info"的key值，目前有6种：HCCS，PCIE，SIO，SDMA，RDMA，UB，
+        其中，SDMA的数据为PCIE, HCCS, SIO的和；UB单独统计，不并入SDMA
         """
         if event.link_type == StrConstant.HCCS_SW:
             return StrConstant.HCCS  # HCCS_SW, 特殊的HCCS
@@ -183,7 +191,7 @@ class CommunicationParser(MetaParser):
             rdma_transit_op_num = NumberConstant.RDMA_WITH_BARRIER_TASK_NUM
         while idx < len(master_events):
             event = master_events[idx]
-            if CommunicationParser.is_transit_sdma_event(event):
+            if CommunicationParser.is_transit_sdma_event(event) or CommunicationParser.is_transit_ub_event(event):
                 wait_flag = False
                 op_time_dict[OpAnalysisType.TRANSIT_TIME] += (
                     HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS
@@ -233,6 +241,8 @@ class CommunicationParser(MetaParser):
                 event = plane_id_tasks[idx]
                 if CommunicationParser.is_transit_sdma_event(event):
                     self._calculate_sdma_bw(op_bandwidth_dict, event)
+                if CommunicationParser.is_transit_ub_event(event):
+                    self._calculate_ub_bw(op_bandwidth_dict, event)
                 if event.rdma_type == 'RDMA_SEND_PAYLOAD':
                     idx = self._calculate_rdma_bw(op_bandwidth_dict, plane_id_tasks, idx, rdma_transit_op_num, op_name)
                     continue
@@ -249,6 +259,14 @@ class CommunicationParser(MetaParser):
         HcclAnalysisTool.update_bandwidth_record(
             op_bandwidth_dict,
             bandwidth_info_type,
+            HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.BYTES_TO_MB,
+            HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS,
+        )
+
+    def _calculate_ub_bw(self, op_bandwidth_dict, event):
+        HcclAnalysisTool.update_bandwidth_record(
+            op_bandwidth_dict,
+            StrConstant.UB,
             HcclAnalysisTool.get_value(event.size, "size") / NumberConstant.BYTES_TO_MB,
             HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS,
         )
