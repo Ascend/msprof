@@ -623,6 +623,7 @@ RoCE通信接口带宽数据。
 |throughput|NUMERIC|三级缓存吞吐量，单位Byte/s|
 |mode|INTEGER|模式，用于区分是读或写，STRING_IDS(mode)|
 
+<!-- npu="910b,310b" id1 -->
 ## TASK\_PMU\_INFO
 
 计算算子的PMU数据。
@@ -633,7 +634,14 @@ RoCE通信接口带宽数据。
 - Ascend PyTorch Profiler的aic\_metrics
 - MindSpore Profiler的aic\_metrics
 
-仅昇腾310B系列产品和昇腾A2系列产品支持采集该数据。
+支持产品：
+
+<!-- npu="310b" id2 -->
+- 昇腾310B系列产品
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品
+<!-- end id3 -->
 
 **表 1**  格式
 
@@ -642,6 +650,7 @@ RoCE通信接口带宽数据。
 |globalTaskId|INTEGER|全局算子任务ID，用于关联TASK表|
 |name|INTEGER|PMU metric指标名，STRING_IDS(name)|
 |value|NUMERIC|对应指标名的数值|
+<!-- end id1 -->
 
 ## SAMPLE\_PMU\_TIMELINE
 

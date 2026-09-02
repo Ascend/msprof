@@ -54,17 +54,28 @@
 
 **产品支持情况<a name="zh-cn_topic_0000001751419248_section5889102116569"></a>**
 
->[!NOTE] 
->昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
+> [!NOTE]
+> 
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 timeline数据总表文件为msprof\_\*.json。
 
@@ -80,11 +91,11 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 - 区域3：底层NPU数据，主要包含Ascend Hardware下各个Stream任务流的耗时数据和迭代轨迹数据、Communication和Overlap Analysis通信数据以及其他昇腾AI处理器系统数据。
 - 区域4：展示timeline中各算子、接口的详细信息（单击各个timeline时展示）。
 
->[!NOTE] 
+> [!NOTE]
 >
->- timeline数据总表的数据在[性能数据文件参考](profile_data_file_references.md)均有对应数据的详细介绍。
->- [图1](#zh-cn_topic_0000001751419248_fig10608132131617)中各区域的数据与采集场景有关，例如区域1仅在msproftx或其他框架场景采集时生成；Communication和Overlap Analysis通信数据仅在多卡、多节点或集群等存在通信的场景可采集到数据等。请以采集数据实际情况为准。
->- msprof\_\*.json展示的数据是迭代内的数据，迭代外的数据不展示。
+> - timeline数据总表的数据在[性能数据文件参考](profile_data_file_references.md)均有对应数据的详细介绍。
+> - [图1](#zh-cn_topic_0000001751419248_fig10608132131617)中各区域的数据与采集场景有关，例如区域1仅在msproftx或其他框架场景采集时生成；Communication和Overlap Analysis通信数据仅在多卡、多节点或集群等存在通信的场景可采集到数据等。请以采集数据实际情况为准。
+> - msprof\_\*.json展示的数据是迭代内的数据，迭代外的数据不展示。
 
 **查看算子下发方向<a name="zh-cn_topic_0000001751419248_section174114535213"></a>**
 
@@ -99,10 +110,10 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 - HostToDevice：CANN层Node（算子） \> Communication通信算子的下发执行关系（Host到Device）。
 - fwdbwd：前向API \> 反向API。
 
->[!NOTE] 
+> [!NOTE]
 >
->- 由于软件测量的昇腾AI处理器频率与真实频率有误差，以及Host与Device的时间同步误差，可能会出现下层算子因错位而无法连线的问题。
->- 各层的对应关系是否呈现与对应采集场景是否采集该数据有关，请以实际情况为准。
+> - 由于软件测量的昇腾AI处理器频率与真实频率有误差，以及Host与Device的时间同步误差，可能会出现下层算子因错位而无法连线的问题。
+> - 各层的对应关系是否呈现与对应采集场景是否采集该数据有关，请以实际情况为准。
 
 **图 2**  算子映射关系<a name="zh-cn_topic_0000001751419248_fig490591821019"></a>  
 ![](../figures/算子映射关系.png "算子映射关系")
@@ -114,13 +125,20 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 
 其中Event\(s\)列查看该算子或接口的出入方向，Link列查看映射关系两端的信息。
 
+<!-- npu="A3,910b,310b" id14 -->
 **查看AI Core频率**<a name="zh-cn_topic_0000001751419248_section9194165318231"></a>
 
-支持的型号：
+支持的产品：
 
+<!-- npu="310b" id15 -->
 - 昇腾310B系列产品
+<!-- end id15 -->
+<!-- npu="910b" id16 -->
 - 昇腾A2系列产品
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
 - 昇腾A3系列产品
+<!-- end id17 -->
 
 msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任务的过程中频率的变化情况，如[图4](#zh-cn_topic_0000001751419248_fig66071155154219)所示。
 
@@ -130,13 +148,19 @@ msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任�
 在148089.72045898438时刻下，AI Core处于高频状态，而在170178.44116210938时刻频率降低，那么在该时间段下AI任务的性能必然下降。AI Core芯片可能因温度升高，触发保护机制，降低频率；也可能因当前无AI任务运行，AI Core进入低功耗状态而降频。
 
 在发生变频时，实际变频时间与软件监测到的时间存在0\~1ms的延时，该延时可能导致变频前后统计出的算子执行时间与实际不符。
+<!-- end id14 -->
 
+<!-- npu="A3,910b" id18 -->
 **SIO数据分析<a name="zh-cn_topic_0000001751419248_section18441122912161"></a>**
 
-支持的型号：
+支持的产品：
 
+<!-- npu="910b" id19 -->
 - 对于昇腾A2系列产品，该数据均为0，不具有参考性。
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
 - 昇腾A3系列产品
+<!-- end id20 -->
 
 msprof\_\*.json下的“SIO”层级展示通道间传输带宽的信息。
 
@@ -159,27 +183,39 @@ msprof\_\*.json下的“SIO”层级展示通道间传输带宽的信息。
 |rsp_tx|回应流通道的发送带宽。|
 |snp_rx|侦听流通道的接收带宽。|
 |snp_tx|侦听流通道的发送带宽。|
+<!-- end id18 -->
 
+<!-- npu="A3,910b" id21 -->
 **QoS数据分析<a name="zh-cn_topic_0000001751419248_section7237154131716"></a>**
 
 msprof\_\*.json下的“QoS”层级展示设备QoS带宽信息。
 
-支持的型号：
+支持的产品：
 
+<!-- npu="910b" id22 -->
 - 昇腾A2系列产品
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
 - 昇腾A3系列产品
+<!-- end id23 -->
 
 **图 6**  QoS OTHERS<a name="zh-cn_topic_0000001751419248_fig109246157107"></a>  
 ![](../figures/QoS-OTHERS.png "QoS-OTHERS")
 
 图中色块横坐标对应时间Time，单位ms，纵坐标对应带宽Value，单位MB/s。
+<!-- end id21 -->
 
+<!-- npu="910b,310p" id24 -->
 **计算及通信算子融合MC²<a name="zh-cn_topic_0000001751419248_section10665117313"></a>**
 
-支持的型号：
+支持的产品：
 
+<!-- npu="310p" id25 -->
 - 昇腾310P系列产品
+<!-- end id25 -->
+<!-- npu="910b" id26 -->
 - 昇腾A2系列产品
+<!-- end id26 -->
 
 存在计算和通信算子融合的场景。
 
@@ -196,10 +232,10 @@ MC²实现中，内部分别在计算流、通信流上加载两个算子，两�
 
 通信算子根据融合算子Tiling切分执行多个通信轮次，每轮的基本流程是，根据计算算子下发的通信参数，执行集合通信算法，编排好具体任务，下发给硬件执行，并等待执行完成，通知计算侧执行结果。
 
->[!NOTE] 
+> [!NOTE]
 >
->- 通信API场景暂不支持融合MC²，通信API场景包括：低bit通信MatmulAllReduce算子以及自定义的使用通信API的MC²算子。
->- Timeline的Communication部分仅呈现Level0级别的数据。
+> - 通信API场景暂不支持融合MC²，通信API场景包括：低bit通信MatmulAllReduce算子以及自定义的使用通信API的MC²算子。
+> - Timeline的Communication部分仅呈现Level0级别的数据。
 
 MC²性能数据结果示例如下：
 
@@ -218,15 +254,21 @@ MC²性能数据结果示例如下：
 |TaskLaunch|任务下发耗时。|
 |TaskExecute|等待硬件任务执行完成耗时。|
 |Finalize|KFC结束流程。|
+<!-- end id24 -->
 
+<!-- npu="A3,910b" id27 -->
 **电压数据分析<a name="zh-cn_topic_0000001751419248_section5199345010"></a>**
 
 msprof\_\*.json下的“Voltage Info”层级展示设备电压变压信息。
 
-支持的型号：
+支持的产品：
 
+<!-- npu="910b" id28 -->
 - 昇腾A2系列产品
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
 - 昇腾A3系列产品
+<!-- end id29 -->
 
 变压特性曲线结果示例如下：
 
@@ -242,11 +284,13 @@ msprof\_\*.json下的“Voltage Info”层级展示设备电压变压信息。
 |Aicore Voltage(mV)|AI Core电压，单位mV。|
 |Bus Voltage(mV)|互联总线电压，单位mV。|
 
+<!-- end id27 -->
+<!-- npu="950" id7 -->
 **DPU数据分析<a name="zh-cn_topic_0000001751419248_section5199345011"></a>**
 
 msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息。
 
-支持的型号：
+支持的产品：
 
 - 昇腾950PR&950DT系列产品
 
@@ -271,12 +315,14 @@ msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息�
 | Data Type              | 数据格式。                                                   |
 | Link Type              | 链路类型，包含：HCCS、PCIE、ROCE、UBoE、SIO、HCCS_SW、STANDARD_ROCE、UB和ON_CHIP等。 |
 | Rdma Type              | RDMA类型，包含：RDMASendNotify、RDMASendPayload等。          |
+<!-- end id7 -->
 
+<!-- npu="950" id8 -->
 **Fusion Task数据分析<a name="zh-cn_topic_0000001751419248_section5199345011"></a>**
 
 msprof\_\*.json下的“Fusion Task”层级展示Fusion任务数据。
 
-支持的型号：
+支持的产品：
 
 - 昇腾950PR&950DT系列产品
 
@@ -291,12 +337,14 @@ msprof\_\*.json下的“Fusion Task”层级展示Fusion任务数据。
 | acc_id           | 加速器的ID                                                   |
 | task_type        | 执行该Task的加速器类型，对于Fusion任务，固定为FUSION。task_time为l0时，不采集该字段，显示为N/A。 |
 | fusion_task_type | Fusion小任务的加速器类型，包含AICORE、AIVECTORCORE、AICPU等。task_time为l0时，不采集该字段，显示为N/A。 |
+<!-- end id8 -->
 
+<!-- npu="950" id9 -->
 **SIMT数据分析<a name="zh-cn_topic_0000001751419248_section5199345011"></a>**
 
 msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子，主要通过Grid Dim和Block Dim字段体现SIMT编程模型的线程层次结构。
 
-支持的型号：
+支持的产品：
 
 - 昇腾950PR&950DT系列产品
 
@@ -313,14 +361,22 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 | connection_id    | CANN层API向NPU算子下发时二者关联的标识。                     |
 | Grid Dim         | 体现SIMT编程模型的线程块网络（Grid）中启用的线程块个数，同一时刻一个AIV核只执行一个线程块任务。 |
 | Block Dim        | 体现SIMT编程模型的线程块（Thread Block）启用的线程个数，一个线程块最多可以启用2048个线程。 |
+<!-- end id9 -->
 
+<!-- npu="950,A3,910b" id10 -->
 **Ascend Hardware采集间隙说明<a name="zh-cn_topic_0000001751419248_section5199345021"></a>**
 
-支持的型号：
+支持的产品：
 
+<!-- npu="910b" id30 -->
 - 昇腾A2系列产品
+<!-- end id30 -->
+<!-- npu="A3" id31 -->
 - 昇腾A3系列产品
+<!-- end id31 -->
+<!-- npu="950" id32 -->
 - 昇腾950PR&950DT系列产品
+<!-- end id32 -->
 
 **图 10**  Ascend Hardware采集间隙<a name="zh-cn_topic_0000001751419248_fig12628420271"></a>  
 ![](../figures/ascend_hardware_sampling_interval.png "ascend_hardware_sampling_interval")
@@ -329,6 +385,7 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 
 - 一是为了减少Profiling数据量，而自动关闭了Profiling采集，这段时间的性能数据是重复执行MEM_WAIT_VALUE或CAPTURE_WAIT，故只保留了前面的若干条。
 - 二是在出现MEM_WRITE_VALUE或CAPTURE_RECORD到正常采集算子耗时的时间段，这段间隙为重新启动Profiling的时间。这段间隙无性能参考意义，正常情况下未使用Profiling采集时，这段间隙实际不存在。
+<!-- end id10 -->
 
 #### op\_summary（算子详细信息）<a name="ZH-CN_TOPIC_0000002477303242"></a>
 
@@ -336,14 +393,24 @@ AI Core、AI Vector Core和AI CPU算子汇总信息无timeline信息，summary�
 
 **产品支持情况<a name="zh-cn_topic_0000001686107246_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **op\_summary\_\*.csv文件说明<a name="zh-cn_topic_0000001686107246_section1214520215155"></a>**
 
@@ -354,23 +421,25 @@ op\_summary\_\*.csv文件内容格式示例如下：
 
 Task Duration字段为算子耗时信息，可以按照Task Duration排序，找出高耗时算子；也可以按照Task Type排序，查看AI Core或AI CPU上运行的高耗时算子。
 
->[!NOTE] 
+> [!NOTE]
 >
->- 下文字段说明中，不同产品支持的字段略有不同，请以实际结果文件呈现字段为准。
+> - 下文字段说明中，不同产品支持的字段略有不同，请以实际结果文件呈现字段为准。
 >
->- task\_time配置为l0或off时，op\_summary\_\*.csv不呈现AI Core、AI Vector Core的PMU数据。
+> - task\_time配置为l0或off时，op\_summary\_\*.csv不呈现AI Core、AI Vector Core的PMU数据。
 >
->- 昇腾A2系列产品、昇腾A3系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
+<!-- npu="A3,910b" id33 -->
+> - 昇腾A2系列产品、昇腾A3系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
+<!-- end id33 -->
 >
->- 对于部分算子，执行时间过长，导致metric相关数据失准，不再具有参考意义，此类数据统一置为N/A，不做相关呈现。
+> - 对于部分算子，执行时间过长，导致metric相关数据失准，不再具有参考意义，此类数据统一置为N/A，不做相关呈现。
 >
->- 由于Task Type为communication类型的算子通常包含一系列通信任务，每个通信任务均有独立的Task ID和Stream ID等标识，此处不作展示，因此该类算子的Task ID和Stream ID为N/A。
+> - 由于Task Type为communication类型的算子通常包含一系列通信任务，每个通信任务均有独立的Task ID和Stream ID等标识，此处不作展示，因此该类算子的Task ID和Stream ID为N/A。
 >
->- 算子的输入维度Input Shapes取值为空，即表示为“; ; ; ;”格式时，表示当前输入的为标量，其中“;”为每个维度的分隔符。算子的输出维度同理。
+> - 算子的输入维度Input Shapes取值为空，即表示为“; ; ; ;”格式时，表示当前输入的为标量，其中“;”为每个维度的分隔符。算子的输出维度同理。
 >
->- 工具会检测算子溢出情况，若发现算子溢出，则提示如下告警，此时该算子的计算结果不可信。
+> - 工具会检测算子溢出情况，若发现算子溢出，则提示如下告警，此时该算子的计算结果不可信。
 >
-> **图 2**  算子溢出告警<a name="zh-cn_topic_0000001686107246_fig144168454163"></a>  
+>   **图 2**  算子溢出告警<a name="zh-cn_topic_0000001686107246_fig144168454163"></a>  
 > ![](../figures/算子溢出告警.png "算子溢出告警")
 
 op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结果不同。完整字段如下。
@@ -419,8 +488,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |*_scalar_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
 |*_scalar_ratio|scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
-|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。|
-|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
+|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
+|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
 |*_mte1_time(us)|mte1类型指令（L1->L0A/L0B搬运类指令）耗时，单位us。|
 |*_mte1_ratio|mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
 |*_mte2_time(us)|mte2类型指令（DDR->AICORE搬运类指令）耗时，单位us。|
@@ -513,6 +582,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 >
 > 对于部分产品，部分字段在该表中使用*前缀指代aic或aiv，表示该数据是在Cube Core或Vector Core上执行的结果。
 
+<!-- npu="A3,910b" id34 -->
 **表 8**  字段说明（MemoryAccess）
 
 |字段名|字段含义|
@@ -529,11 +599,17 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 >
 > 上表中字段的*前缀，指代aic或aiv，表示该数据是在Cube Core或Vector Core上执行的结果。
 >
-> 仅支持产品：
+> 支持的产品：
 >
+<!-- npu="910b" id35 -->
 > - 昇腾A2系列产品
+<!-- end id35 -->
+<!-- npu="A3" id36 -->
 > - 昇腾A3系列产品
+<!-- end id36 -->
+<!-- end id34 -->
 
+<!-- npu="950,A3,910b,310b" id11 -->
 **表 9**  字段说明（L2Cache）
 
 | 字段名                          | 字段含义                                                     |
@@ -554,13 +630,23 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 > - L2 Cache命中率计算公式为：命中次数/（命中次数+未命中次数），例如，`*_write_cache_hit/(*_write_cache_hit+*_write_cache_miss_allocate)`，本表中其他命中率计算方式类似。
 > - 对于部分产品，部分字段在该表中使用*前缀指代aic或aiv，表示该数据是在Cube Core或Vector Core上执行的结果。
 
-仅支持产品：
+支持的产品：
 
+<!-- npu="910b" id37 -->
 - 昇腾A2系列产品
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
 - 昇腾A3系列产品
+<!-- end id38 -->
+<!-- npu="950" id39 -->
 - 昇腾950PR&950DT系列产品
+<!-- end id39 -->
+<!-- npu="310b" id40 -->
 - 昇腾310B系列产品
+<!-- end id40 -->
+<!-- end id11 -->
 
+<!-- npu="310b" id41 -->
 **表 10**  字段说明（PipelineExecuteUtilization）
 
 |字段名|字段含义|
@@ -582,7 +668,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
 |cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：`cube_utilization = total_cycles / (freq * core_num * task_duration)`。|
 
-仅支持产品：昇腾310B系列产品
+支持的产品：昇腾310B系列产品
+<!-- end id41 -->
 
 #### op\_statistic（算子调用次数及耗时）<a name="ZH-CN_TOPIC_0000002509383189"></a>
 
@@ -590,14 +677,24 @@ AI Core和AI CPU算子调用的次数及耗时数据无timeline信息，summary�
 
 **产品支持情况<a name="zh-cn_topic_0000001686266978_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **op\_statistic\_\*.csv文件数据说明<a name="zh-cn_topic_0000001686266978_section142961814104116"></a>**
 
@@ -631,14 +728,24 @@ API耗时信息统计数据timeline信息在msprof\_\*.json文件的CANN层级�
 
 **产品支持情况<a name="zh-cn_topic_0000001656264690_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的CANN层级数据说明<a name="zh-cn_topic_0000001656264690_section344219426541"></a>**
 
@@ -687,14 +794,24 @@ api\_statistic\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001798418925_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **总体说明<a name="zh-cn_topic_0000001798418925_section132087265710"></a>**
 
@@ -764,14 +881,24 @@ msprof\_tx\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001679380154_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件中的任务调度信息数据说明<a name="zh-cn_topic_0000001679380154_section11622953115117"></a>**
 
@@ -835,14 +962,24 @@ task\_time\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001706482137_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **step\_trace\_\*.json文件说明<a name="zh-cn_topic_0000001706482137_section8123844101012"></a>**
 
@@ -929,14 +1066,24 @@ step\_trace\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001658339478_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Communication层级数据说明<a name="zh-cn_topic_0000001658339478_section8123844101012"></a>**
 
@@ -1032,14 +1179,24 @@ CANN算子的内存占用记录无timeline信息，summary信息在memory\_recor
 
 **产品支持情况<a name="zh-cn_topic_000000170451978_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **memory\_record\_\*.csv文件数据说明<a name="zh-cn_topic_000000170451978_section104048511517"></a>**
 
@@ -1065,14 +1222,24 @@ CANN算子的内存占用明细无timeline信息，summary信息在operator\_mem
 
 **产品支持情况<a name="zh-cn_topic_0000001752279281_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **operator\_memory\_\*.csv文件数据说明<a name="zh-cn_topic_0000001752279281_section104048511517"></a>**
 
@@ -1115,14 +1282,24 @@ NPU内存占用数据timeline信息在msprof\_\*.json文件的NPU MEM层级展�
 
 **产品支持情况<a name="zh-cn_topic_0000001704360086_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的NPU MEM层级数据说明<a name="zh-cn_topic_0000001704360086_section11622953115117"></a>**
 
@@ -1148,14 +1325,24 @@ NPU组件内存占用数据无timeline信息，summary信息在npu\_module\_mem\
 
 **产品支持情况<a name="zh-cn_topic_0000001797276317_section165442389381"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **npu\_module\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001797276317_section104048511517"></a>**
 
@@ -1176,6 +1363,7 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 
 ### 扩展交付件
 
+<!-- npu="910" id57 -->
 #### dp（数据增强信息）<a name="ZH-CN_TOPIC_0000002509383187"></a>
 
 数据增强信息仅在训练场景下生成且仅生成summary数据dp\_\*.csv。
@@ -1184,13 +1372,21 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001752181593_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾A3系列产品|x|
-|昇腾A2系列产品|x|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|√|
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：不支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：不支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **dp\_\*.csv文件说明<a name="zh-cn_topic_0000001752181593_section5874203112014"></a>**
 
@@ -1208,6 +1404,7 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 |Action|事件的执行动作。|
 |Source|事件的来源。|
 |Cached Buffer Size|事件占用的Cached Buffer大小。|
+<!-- end id57 -->
 
 #### ai\_core\_utilization（AI Core指令占比）<a name="ZH-CN_TOPIC_0000002509503211"></a>
 
@@ -1215,14 +1412,24 @@ AI Core指令占比数据timeline信息在msprof\_\*.json文件的AI Core Utiliz
 
 **产品支持情况<a name="zh-cn_topic_0000001731321225_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的AI Core指令占比数据说明<a name="zh-cn_topic_0000001731321225_section432932191111"></a>**
 
@@ -1248,10 +1455,10 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 根据--aic-metrics参数取值不同，文件呈现结果不同。完整字段如下。
 
->[!NOTE] 
+> [!NOTE] 
 >
->- 下文字段说明中，不同产品支持的字段略有不同，请以实际结果文件呈现字段为准。
->- 下列字段均在--task-time=l1、--aic-mode=sample-based时生成，--task-time为l0时，不采集该字段，显示为N/A。生成的数据由aic\_metrics参数取值控制。
+> - 下文字段说明中，不同产品支持的字段略有不同，请以实际结果文件呈现字段为准。
+> - 下列字段均在--task-time=l1、--aic-mode=sample-based时生成，--task-time为l0时，不采集该字段，显示为N/A。生成的数据由aic\_metrics参数取值控制。
 
 **表 2**  字段说明（PipeUtilization）
 
@@ -1327,6 +1534,7 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。昇腾310B系列产品不支持该字段，给予默认值N/A。|
 |vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。昇腾310B系列产品不支持该字段，给予默认值N/A。|
 
+<!-- npu="950,A3,910b,310b" id12 -->
 **表 8**  字段说明（L2Cache）
 
 |字段名|字段含义|
@@ -1342,13 +1550,23 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |write_local_l2_miss|写Cache缺失次数。仅昇腾950PR&950DT系列产品支持该字段。|
 |write_local_l2_victim|写Cache未命中并触发Cache中数据被换出的次数。仅昇腾950PR&950DT系列产品支持该字段。|
 
-仅支持产品：
+支持的产品：
 
+<!-- npu="910b" id42 -->
 - 昇腾A2系列产品
+<!-- end id42 -->
+<!-- npu="A3" id43 -->
 - 昇腾A3系列产品
+<!-- end id43 -->
+<!-- npu="950" id44 -->
 - 昇腾950PR&950DT系列产品
+<!-- end id44 -->
+<!-- npu="310b" id45 -->
 - 昇腾310B系列产品
+<!-- end id45 -->
+<!-- end id12 -->
 
+<!-- npu="A3,910b" id46 -->
 **表 9**  字段说明（MemoryAccess）
 
 |字段名|字段含义|
@@ -1361,25 +1579,41 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |gm_to_ub_datas(KB)|GM到UB的数据搬运量，单位KB。|
 |ub_to_gm_datas(KB)|UB到GM的数据搬运量，单位KB。|
 
-仅支持产品：
+支持的产品：
 
+<!-- npu="910b" id47 -->
 - 昇腾A2系列产品
+<!-- end id47 -->
+<!-- npu="A3" id48 -->
 - 昇腾A3系列产品
+<!-- end id48 -->
+<!-- end id46 -->
 
+<!-- npu="950,A3,910b,310b" id73 -->
 #### ai\_vector\_core\_utilization（AI Vector Core指令占比）<a name="ZH-CN_TOPIC_0000002477463228"></a>
 
 AI Vector Core指令占比数据无timeline信息，summary信息在ai\_vector\_core\_utilization\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001750641108_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|x|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **ai\_vector\_core\_utilization\_\*.csv文件说明<a name="zh-cn_topic_0000001750641108_section44809124408"></a>**
 
@@ -1406,6 +1640,7 @@ ai\_vector\_core\_utilization\_\*.csv文件内容格式示例如下：
 > [!NOTE]
 >
 > 此处AI Vector Core性能指标采集项以sample-based场景的PipeUtilization为例，更多参数解析参见[ai_core_utilization（AI Core指令占比）](#ZH-CN_TOPIC_0000002509503211)。
+<!-- end id73 -->
 
 #### aicpu（AI CPU算子详细耗时）<a name="ZH-CN_TOPIC_0000002509383191"></a>
 
@@ -1413,14 +1648,24 @@ aicpu算子详细耗时数据无timeline信息，summary信息在aicpu\_\*.csv�
 
 **产品支持情况<a name="zh-cn_topic_0000001752101817_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **aicpu\_\*.csv文件说明<a name="zh-cn_topic_0000001752101817_section98641131621"></a>**
 
@@ -1452,14 +1697,24 @@ AI CPU数据aicpu\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000002013989984_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **aicpu\_mi\_\*.csv文件说明<a name="zh-cn_topic_0000002013989984_section98641131621"></a>**
 
@@ -1488,14 +1743,24 @@ L2 Cache数据无timeline信息，summary信息在l2\_cache\_\*.csv文件汇总�
 
 **产品支持情况<a name="zh-cn_topic_0000001704262430_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **l2\_cache\_\*.csv文件说明<a name="zh-cn_topic_0000001704262430_section98641131621"></a>**
 
@@ -1504,20 +1769,34 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 **图 1**  l2\_cache\_\*.csv<a name="zh-cn_topic_0000001704262430_fig1350115305204"></a>  
 ![](../figures/l2_cache_-csv.png "l2_cache_-csv")
 
+<!-- npu="910,310p" id54 -->
 对于下列产品：
 
+<!-- npu="310p" id49 -->
 - 昇腾310P系列产品
+<!-- end id49 -->
+<!-- npu="910" id50 -->
 - 昇腾910系列产品
+<!-- end id50 -->
 
 该文件中第一个算子的Hit Rate和Victim Rate数据不作为参考。
+<!-- end id54 -->
 
+<!-- npu="A3,910b,310b" id55 -->
 对于下列产品
 
+<!-- npu="310b" id51 -->
 - 昇腾310B系列产品
+<!-- end id51 -->
+<!-- npu="910b" id52 -->
 - 昇腾A2系列产品
+<!-- end id52 -->
+<!-- npu="A3" id53 -->
 - 昇腾A3系列产品
+<!-- end id53 -->
 
 该文件中第一个算子数据缺失，不影响整体的性能分析。
+<!-- end id55 -->
 
 **表 1**  字段说明
 
@@ -1538,14 +1817,24 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001704421886_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **fusion\_op\_\*.csv文件说明<a name="zh-cn_topic_0000001704421886_section98641131621"></a>**
 
@@ -1575,14 +1864,24 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001924444106_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **static\_op\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001924444106_section104048511517"></a>**
 
@@ -1613,14 +1912,24 @@ static\_op\_mem\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001751484586_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **sys\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751484586_section104048511517"></a>**
 
@@ -1650,14 +1959,24 @@ sys\_mem\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001798284369_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **process\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798284369_section104048511517"></a>**
 
@@ -1683,14 +2002,24 @@ AI CPU（执行AI CPU算子）、Ctrl CPU（执行Driver任务）利用率数据
 
 **产品支持情况<a name="zh-cn_topic_0000001798325329_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798325329_section104048511517"></a>**
 
@@ -1718,14 +2047,24 @@ cpu\_usage\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_0000001751325670_section5889102116569"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751325670_section104048511517"></a>**
 
@@ -1749,14 +2088,24 @@ process\_cpu\_usage\_\*.csv文件内容格式示例如下：
 
 **产品支持情况<a name="zh-cn_topic_000000170451974_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的片上内存数据说明<a name="zh-cn_topic_000000170451974_section1861610200457"></a>**
 
@@ -1798,24 +2147,35 @@ hbm\_\*.csv文件内容格式示例如下：
 |字段名|字段含义|
 |--|--|
 |Device_id|设备ID。|
-|Metric|统计项，数值为内存访问单元的ID。|
+|Metric|统计项，数值为内存访问单元的ID，其中Average表示当前设备上内存访问单元读写速率的平均值。内存访问单元为连接NPU的高带宽内存。|
 |Read(MB/s)|读取速率，单位MB/s。|
 |Write(MB/s)|写速率，单位MB/s。|
 
+<!-- npu="950,A3,910b,910" id58 -->
 #### hccs（集合通信带宽）<a name="ZH-CN_TOPIC_0000002477463236"></a>
 
 HCCS集合通信带宽数据timeline信息在msprof\_\*.json文件的HCCS层级展示，summary信息在hccs\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001752359493_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的HCCS层级数据说明<a name="zh-cn_topic_0000001752359493_section279614455011"></a>**
 
@@ -1846,21 +2206,33 @@ hccs\_\*.csv文件内容格式示例如下：
 |Max|最大带宽，单位MB/s。|
 |Min|最小带宽，单位MB/s。|
 |Average|平均带宽，单位MB/s。|
+<!-- end id58 -->
 
+<!-- npu="A3,910b,910,310p,310b" id59 -->
 #### nic（每个时间节点网络信息）<a name="ZH-CN_TOPIC_0000002509383201"></a>
 
 每个时间节点网络信息数据timeline信息在msprof\_\*.json文件的NIC层级展示，summary信息在nic\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001750414058_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的NIC层级数据说明<a name="zh-cn_topic_0000001750414058_section10870339706"></a>**
 
@@ -1901,21 +2273,33 @@ nic\_\*.csv文件内容格式示例如下：
 |txError rate(%)|发送包错误率。|
 |txDropped rate(%)|发送包丢包率。|
 |funcId|网络节点。|
+<!-- end id59 -->
 
+<!-- npu="A3,910b,910" id60 -->
 #### roce（RoCE通信接口带宽）<a name="ZH-CN_TOPIC_0000002509503223"></a>
 
 RoCE通信接口带宽数据timeline信息在msprof\_\*.json文件的RoCE层级展示，summary信息在roce\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001750572972_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的RoCE层级数据说明<a name="zh-cn_topic_0000001750572972_section11622953115117"></a>**
 
@@ -1956,21 +2340,33 @@ roce\_\*.csv文件内容格式示例如下：
 |txError rate(%)|发送包错误率。|
 |txDropped rate(%)|发送包丢包率。|
 |funcId|端口ID，用于区分一个Device中的多个端口。|
+<!-- end id60 -->
 
+<!-- npu="950,A3,910b,910,310p" id61 -->
 #### pcie（PCIe带宽）<a name="ZH-CN_TOPIC_0000002477303256"></a>
 
 PCIe带宽数据timeline信息在msprof\_\*.json文件的PCIe层级展示，summary信息在pcie\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001797493789_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的PCIe层级数据说明<a name="zh-cn_topic_0000001797493789_section11622953115117"></a>**
 
@@ -2002,21 +2398,33 @@ pcie\_\*.csv文件内容格式示例如下：
 |Device_id|设备ID。|
 |Mode|模式，包含：<br>&#8226; Tx_p_avg(MB/s)：发送端PCIe Post数据传输带宽，单位MB/s。Tx表示发送端，Rx表示接收端。<br>&#8226; Tx_np_avg(MB/s)：发送端PCIe Non-Post数据传输带宽，单位MB/s。<br>&#8226; Tx_cpl_avg(MB/s)：发送端接收写请求的完成数据包，单位MB/s。<br>&#8226; Tx_latency_avg(us)：发送端PCIe Non-Post模式下的传输时延，单位us。<br>&#8226; Rx_p_avg(MB/s)：接收端PCIe Post数据传输带宽，单位MB/s。<br>&#8226; Rx_np_avg(MB/s)：接收端PCIe Non-Post数据传输带宽，单位MB/s。<br>&#8226; Rx_cpl_avg(MB/s)：接收端接收写请求的完成数据包，单位MB/s。|
 |Min、Max、Avg|最小值、最大值、平均值。|
+<!-- end id61 -->
 
+<!-- npu="950,A3,910b" id56 -->
 #### biu\_group/aic\_core\_group/aiv\_core\_group（AI Core和AI Vector的带宽和延时）<a name="ZH-CN_TOPIC_0000002477463238"></a>
 
 AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在msprof\_\*.json文件的biu\_group、aic\_core\_group、aiv\_core\_group层级展示。
 
 **产品支持情况<a name="zh-cn_topic_0000001797600917_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|x|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的biu\_group、aic\_core\_group、aiv\_core\_group层级数据说明<a name="zh-cn_topic_0000001797600917_section432932191111"></a>**
 
@@ -2040,9 +2448,11 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 | Latency Read    | BIU总线接口单元读取指令时的时延。 |
 | Latency Write   | BIU总线接口单元写入指令时的时延。 |
 
+<!-- npu="950" id13 -->
 > [!NOTE]
 >
 > 以上biu_group层级为昇腾A3系列产品和昇腾A2系列产品数据，对于昇腾950PR&950DT系列产品，则为Biu Perf层级（BIU指令流水），下层则是以Group{id}-{核id}的维度进行分组，例如Group0-aiv0，分组下的字段和biu_group层级一致。
+<!-- end id13 -->
 
 **表 2**  字段说明（aic_core_group）
 
@@ -2062,21 +2472,33 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 | Mte3   | AICORE->片上内存搬运类指令在本采样周期内的cycle数和占比。 |
 | Scalar | 标量类运算指令在本采样周期内的cycle数和占比。             |
 | Vector | 向量类运算指令在本采样周期内的cycle数和占比。             |
+<!-- end id56 -->
 
+<!-- npu="A3,910b,310b" id62 -->
 #### Acc PMU（加速器带宽及并发信息）<a name="ZH-CN_TOPIC_0000002509383203"></a>
 
 加速器带宽及并发数据无summary信息，timeline信息在msprof\_\*.json文件的Acc PMU层级展示。
 
 **产品支持情况<a name="zh-cn_topic_0000001750723840_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|x|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Acc PMU层级数据说明<a name="zh-cn_topic_0000001750723840_section432932191111"></a>**
 
@@ -2093,21 +2515,33 @@ msprof\_\*.json文件Acc PMU层级数据如下图所示。
 |read_ost|DVPP和DSA加速器读并发。|
 |write_bandwidth|DVPP和DSA加速器写带宽。|
 |write_ost|DVPP和DSA加速器写并发。|
+<!-- end id62 -->
 
+<!-- npu="A3,910b,310b" id63 -->
 #### Stars Soc Info（SoC传输带宽信息）<a name="ZH-CN_TOPIC_0000002509503225"></a>
 
 SoC传输带宽信息数据无summary信息，timeline信息在msprof\_\*.json文件的Stars Soc Info层级展示。
 
 **产品支持情况<a name="zh-cn_topic_0000001797682569_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|x|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Soc Info层级数据说明<a name="zh-cn_topic_0000001797682569_section432932191111"></a>**
 
@@ -2122,21 +2556,33 @@ msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 |--|--|
 |L2 Buffer Bw Level|L2 Buffer带宽等级信息。当有缓存带宽信息时，不建议参考该字段值，该字段为粗粒度的统计值。|
 |Mata Bw Level|Mata带宽等级信息。以数值从低到高表示负载程度，数值越高，负载越重，可用于观察带宽负载的变化趋势。|
+<!-- end id63 -->
 
+<!-- npu="950,A3,910b" id64 -->
 #### Stars Chip Trans（片间传输带宽信息）<a name="ZH-CN_TOPIC_0000002477303258"></a>
 
 片间传输带宽信息数据无summary信息，timeline信息在msprof\_\*.json文件的Stars Chip Trans层级展示。
 
 **产品支持情况<a name="zh-cn_topic_0000001750882752_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|x|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|x|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Chip Trans层级数据说明<a name="zh-cn_topic_0000001750882752_section11622953115117"></a>**
 
@@ -2153,6 +2599,7 @@ msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 |PA Link Tx|PA流量发送级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。昇腾950PR&950DT系列产品不支持此数据。|
 |PCIE Read Bandwidth|PCIe读带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅昇腾950PR&950DT系列产品支持此数据。|
 |PCIE Write Bandwidth|PCIe写带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅昇腾950PR&950DT系列产品支持此数据。|
+<!-- end id64 -->
 
 #### llc\_read\_write（三级缓存读写速率）<a name="ZH-CN_TOPIC_0000002477463240"></a>
 
@@ -2160,14 +2607,24 @@ msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 
 **产品支持情况<a name="zh-cn_topic_0000001750960004_section1413114612162"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的LLC层级数据说明<a name="zh-cn_topic_0000001750960004_section12203141812107"></a>**
 
@@ -2202,20 +2659,31 @@ llc\_read\_write\_\*.csv文件内容格式示例如下：
 |Hit Rate(%)|三级缓存命中率。|
 |Throughput(MB/s)|三级缓存吞吐量，单位MB/s。|
 
+<!-- npu="950,A3,910b,910,310b" id65 -->
 #### dvpp（DVPP信息）<a name="ZH-CN_TOPIC_0000002477463244"></a>
 
 DVPP数据无timeline信息，summary信息在dvpp\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001798325341_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|x|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **dvpp\_\*.csv文件说明<a name="zh-cn_topic_0000001798325341_section11791341554"></a>**
 
@@ -2235,6 +2703,7 @@ dvpp\_\*.csv文件内容格式示例如下：
 |All Time(us)|采样周期内本引擎执行的时间，单位us。|
 |All Frame|采样周期内处理的帧数。|
 |All Utilization(%)|采样周期内本引擎的利用率，本引擎执行的时间/采样周期。|
+<!-- end id65 -->
 
 #### ai\_cpu\_top\_function（AI CPU热点函数）<a name="ZH-CN_TOPIC_0000002509383209"></a>
 
@@ -2242,14 +2711,24 @@ AI CPU热点函数数据无timeline信息，summary信息在ai\_cpu\_top\_functi
 
 **产品支持情况<a name="zh-cn_topic_0000001798284377_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ai\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284377_section11791341554"></a>**
 
@@ -2274,14 +2753,24 @@ AI CPU PMU事件数据无timeline信息，summary信息在ai\_cpu\_pmu\_events\_
 
 **产品支持情况<a name="zh-cn_topic_0000001751325686_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ai\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325686_section11791341554"></a>**
 
@@ -2305,14 +2794,24 @@ Ctrl CPU热点函数数据无timeline信息，summary信息在ctrl\_cpu\_top\_fu
 
 **产品支持情况<a name="zh-cn_topic_0000001798325349_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ctrl\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798325349_section11791341554"></a>**
 
@@ -2337,14 +2836,24 @@ Ctrl CPU PMU事件数据无timeline信息，summary信息在ctrl\_cpu\_pmu\_even
 
 **产品支持情况<a name="zh-cn_topic_0000001751484602_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ctrl\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751484602_section11791341554"></a>**
 
@@ -2362,20 +2871,31 @@ ctrl\_cpu\_pmu\_events\_\*.csv文件内容格式示例如下：
 |Name|值对应的事件名。|
 |Count|寄存器的计数值。|
 
+<!-- npu="A3,910b,910,310p,310b" id66 -->
 #### ts\_cpu\_top\_function（TS CPU热点函数）<a name="ZH-CN_TOPIC_0000002509383211"></a>
 
 TS CPU热点函数数据无timeline信息，summary信息在ts\_cpu\_top\_function\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001798284385_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ts\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284385_section11791341554"></a>**
 
@@ -2392,21 +2912,33 @@ ts\_cpu\_top\_function\_\*.csv文件内容格式示例如下：
 |Function|TS CPU模块的热点函数。|
 |Cycles|统计时间内函数消耗的Cycle数。|
 |Cycles(%)|统计时间内函数消耗的Cycle数对于统计时长的占比。|
+<!-- end id66 -->
 
+<!-- npu="A3,910b,910,310p,310b" id67 -->
 #### ts\_cpu\_pmu\_events（TS CPU PMU事件）<a name="ZH-CN_TOPIC_0000002509503233"></a>
 
 TS CPU PMU事件数据无timeline信息，summary信息在ts\_cpu\_pmu\_events\_\*.csv文件汇总。
 
 **产品支持情况<a name="zh-cn_topic_0000001751325694_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|x|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **ts\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325694_section11791341554"></a>**
 
@@ -2423,6 +2955,7 @@ ts\_cpu\_pmu\_events\_\*.csv文件内容格式示例如下：
 |Event|寄存器的值。|
 |Name|值对应的事件名。|
 |Count|寄存器的计数值。|
+<!-- end id67 -->
 
 #### host\_cpu\_usage（Host侧CPU利用率）<a name="ZH-CN_TOPIC_0000002477463248"></a>
 
@@ -2430,14 +2963,24 @@ Host侧CPU利用率数据在msprof\_\*.json文件的CPU Usage层级展示，summ
 
 **产品支持情况<a name="zh-cn_topic_0000001751778214_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的CPU Usage层级数据说明<a name="zh-cn_topic_0000001751778214_section11622953115117"></a>**
 
@@ -2476,14 +3019,24 @@ Host侧内存利用率数据timeline信息在msprof\_\*.json文件的Memory Usag
 
 **产品支持情况<a name="zh-cn_topic_0000001751619310_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Memory Usage层级数据说明<a name="zh-cn_topic_0000001751619310_section11622953115117"></a>**
 
@@ -2520,14 +3073,24 @@ Host侧磁盘I/O利用率数据timeline信息在msprof\_\*.json文件的Disk Usa
 
 **产品支持情况<a name="zh-cn_topic_0000001798578961_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Disk Usage层级数据说明<a name="zh-cn_topic_0000001798578961_section11622953115117"></a>**
 
@@ -2565,14 +3128,24 @@ Host侧网络I/O利用率数据timeline信息在msprof\_\*.json文件的Network 
 
 **产品支持情况<a name="zh-cn_topic_0000001798698005_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的Network Usage层级数据说明<a name="zh-cn_topic_0000001798698005_section11622953115117"></a>**
 
@@ -2609,14 +3182,24 @@ Host侧syscall和pthreadcall数据timeline信息在msprof\_\*.json文件的OS Ru
 
 **产品支持情况<a name="zh-cn_topic_0000001751778218_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的OS Runtime API层级数据说明<a name="zh-cn_topic_0000001751778218_section11622953115117"></a>**
 
@@ -2659,14 +3242,24 @@ Host侧系统CPU利用率数据无timeline信息，summary信息在cpu\_usage\_\
 
 **产品支持情况<a name="zh-cn_topic_0000001751619314_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001751619314_section11791341554"></a>**
 
@@ -2694,14 +3287,24 @@ Host侧进程CPU利用率数据无timeline信息，summary信息在process\_cpu\
 
 **产品支持情况<a name="zh-cn_topic_0000001798578965_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001798578965_section11791341554"></a>**
 
@@ -2725,14 +3328,24 @@ Host侧系统内存利用率数据无timeline信息，summary信息在sys\_mem\_
 
 **产品支持情况<a name="zh-cn_topic_0000001798698009_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **sys\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001798698009_section11791341554"></a>**
 
@@ -2762,14 +3375,24 @@ Host侧进程内存利用率数据无timeline信息，summary信息在process\_m
 
 **产品支持情况<a name="zh-cn_topic_0000001800355893_section91616487538"></a>**
 
-|产品|是否支持|
-|--|:-:|
-|昇腾950PR&950DT系列产品|√|
-|昇腾A3系列产品|√|
-|昇腾A2系列产品|√|
-|昇腾310B系列产品|√|
-|昇腾310P系列产品|√|
-|昇腾910系列产品|√|
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **process\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001800355893_section11791341554"></a>**
 
@@ -2790,20 +3413,31 @@ process\_mem\_\*.csv文件内容格式示例如下：
 |Resident(pages)|进程占用的物理内存页数。|
 |Shared(pages)|进程占用的共享内存页数。|
 
+<!-- npu="950,A3,910b" id68 -->
 #### soc\_pmu（TLB命中率）<a name="ZH-CN_TOPIC_0000002416100682"></a>
 
 TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录页表缓存命中情况。
 
 **产品支持情况<a name="section1568858014"></a>**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                   |    √     |
-| 昇腾A3系列产品 |    √     |
-| 昇腾A2系列产品 |    √     |
-| 昇腾310B系列产品                  |    x     |
-| 昇腾310P系列产品                          |    x     |
-| 昇腾910系列产品                          |    x     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
 
@@ -2824,7 +3458,9 @@ TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录�
 > [!NOTE]
 >
 > 算子任务大量下发时，每个算子的执行时间为2~3us，此时TLB Miss Rate + TLB Hit Rate的值可能不为1。
+<!-- end id68 -->
 
+<!-- npu="950,A3,910b" id69 -->
 #### page\_fault（SMMU错误数据）<a name="ZH-CN_TOPIC_0000002416100683"></a>
 
 SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU进行地址翻译、页表权限校验以及PTW过程中发生错误的情况。
@@ -2833,14 +3469,24 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 
 **产品支持情况<a name="section156885801410"></a>**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                         |    √     |
-| 昇腾A3系列产品 |    √     |
-| 昇腾A2系列产品 |    √     |
-| 昇腾310B系列产品                  |    x     |
-| 昇腾310P系列产品                          |    x     |
-| 昇腾910系列产品                          |    x     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **文件说明<a name="section13876175514482"></a>**
 
@@ -2856,21 +3502,33 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 | Task Id        | Task任务的ID。                                              |
 | Page Fault Num | SMMU进行地址翻译、页表权限校验以及PTW过程中发生错误的次数。 |
 | Op Name        | 算子名称。                                                  |
+<!-- end id69 -->
 
+<!-- npu="950" id70 -->
 #### ccu\_mission（集合通信指令信息）<a name="ZH-CN_TOPIC_0000002344234016"></a>
 
 集合通信指令timeline信息在msprof\_\*.json文件的CCU层级展示，summary信息在ccu\_mission\_\*.csv文件汇总。
 
 **产品支持情况<a name="section156885801411"></a>**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                   |    √     |
-| 昇腾A3系列产品 |    x     |
-| 昇腾A2系列产品 |    x     |
-| 昇腾310B系列产品                  |    x     |
-| 昇腾310P系列产品                          |    x     |
-| 昇腾910系列产品                          |    x     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：不支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：不支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof\_\*.json文件的CCU层级数据说明<a name="section11622953115117"></a>**
 
@@ -2898,21 +3556,33 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 | Notify Instruction ID      | 集合通信任务等待的指令ID。             |
 | Notify Rank ID             | 集合通信任务等待的Rank ID。            |
 | Notify Duration(us)        | 集合通信任务等待持续时间，单位us。     |
+<!-- end id70 -->
 
+<!-- npu="950" id71 -->
 #### ccu\_channel（集合通信硬件加速单元带宽信息）<a name="ZH-CN_TOPIC_0000002420022685"></a>
 
 集合通信硬件加速单元（CCU）带宽无timeline信息，summary信息在ccu\_channel\_\*.csv文件汇总。
 
 **产品支持情况<a name="section156885801412"></a>**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                   |    √     |
-| 昇腾A3系列产品 |    x     |
-| 昇腾A2系列产品 |    x     |
-| 昇腾310B系列产品                  |    x     |
-| 昇腾310P系列产品                          |    x     |
-| 昇腾910系列产品                          |    x     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：不支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：不支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
 
@@ -2930,21 +3600,33 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 | Max Bandwidth(MB/s) | 该通道在当前时刻的最大带宽，单位MB/s。 |
 | Min Bandwidth(MB/s) | 该通道在当前时刻的最小带宽，单位MB/s。 |
 | Avg Bandwidth(MB/s) | 该通道在当前时刻的平均带宽，单位MB/s。 |
+<!-- end id71 -->
 
+<!-- npu="950" id72 -->
 #### ub（UB带宽数据）<a name="ZH-CN_TOPIC_0000002378351781"></a>
 
 UB带宽数据timeline信息在msprof\_\*.json文件的UB层级展示，summary信息在ub\_\*.csv文件汇总。
 
 **产品支持情况<a name="section156885801414"></a>**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                   |    √     |
-| 昇腾A3系列产品 |    x     |
-| 昇腾A2系列产品 |    x     |
-| 昇腾310B系列产品                  |    x     |
-| 昇腾310P系列产品                          |    x     |
-| 昇腾910系列产品                          |    x     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：不支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：不支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：不支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 **msprof_\*.json文件的UB层级数据说明**
 
@@ -2977,6 +3659,7 @@ ub_*.csv文件内容格式示例如下：
 | TimeStamp               | 时间戳，单位us。                 |
 | UBRxPortBandWidth(MB/s) | UB当前时刻的接收带宽，单位MB/s。 |
 | UBTxPortBandWidth(MB/s) | UB当前时刻的发送带宽，单位MB/s。 |
+<!-- end id72 -->
 
 ## PLATFORM_{timestamp}<a name="ZH-CN_TOPIC_0000012509383185"></a>
 
@@ -2988,14 +3671,24 @@ ub_*.csv文件内容格式示例如下：
 
 **产品支持情况**
 
-| 产品                                        | 是否支持 |
-| ------------------------------------------- | :------: |
-| 昇腾950PR&950DT系列产品                         |    √     |
-| 昇腾A3系列产品 |    √     |
-| 昇腾A2系列产品 |    √     |
-| 昇腾310B系列产品                  |    √     |
-| 昇腾310P系列产品                          |    √     |
-| 昇腾910系列产品                          |    √     |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+<!-- end id6 -->
 
 **metrics.csv文件说明**
 

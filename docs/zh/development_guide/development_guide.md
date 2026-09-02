@@ -167,8 +167,8 @@ msprof --help
 | --- | --- |
 | `msprof --export` 参数 | `zh/user_guide/msprof_parsing_instruct.md` |
 | `msprof.py import/query/export` 参数 | `zh/user_guide/extended_functions.md` |
-| 安装、卸载、校验参数 | `zh/getting_started/msprof_install_guide.md` |
-| 首次体验路径或基础示例 | `zh/getting_started/quick_start.md` |
+| 安装、卸载、校验参数 | `zh/install_guide/msprof_install_guide.md` |
+| 首次体验路径或基础示例 | `zh/quick_start/msprof_quick_start.md` |
 
 ### 5.2 新增解析能力
 
@@ -265,13 +265,12 @@ msProf 的开发改动通常会直接影响资料，禁止只改代码不改文�
 
 | 改动内容 | 必查文档 |
 | --- | --- |
-| 新增安装方式、依赖、打包参数 | `zh/getting_started/msprof_install_guide.md` |
-| 新增基础使用流程或示例 | `zh/getting_started/quick_start.md` |
+| 新增安装方式、依赖、打包参数 | `zh/install_guide/msprof_install_guide.md` |
+| 新增基础使用流程或示例 | `zh/quick_start/msprof_quick_start.md` |
 | 新增解析流程或命令参数 | `zh/user_guide/msprof_parsing_instruct.md` |
 | 新增脚本能力或高级用法 | `zh/user_guide/extended_functions.md` |
 | 新增导出文件、字段、图层 | `zh/user_guide/profile_data_file_references.md` |
 | 新增 DB 数据结构说明 | `zh/user_guide/profile_data_file_references_db.md` |
-| 产品能力概述变化 | `zh/overview.md` |
 
 若新增截图或示意图：
 
