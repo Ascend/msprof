@@ -105,7 +105,8 @@ class TestRuntimeOpInfoParser(unittest.TestCase):
 
     def test_read_data_with_variable_length_data_when_tensor_num_is_invalid_then_failed(self):
         tensor_num = 7
-        info = (23130, 10000, 2, 3, 372, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 0, 14, 5,
+        # dataLen 盖不住 固定体(64) + 7 * tensor(44) = 372，应报错并跳过
+        info = (23130, 10000, 2, 3, 100, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 0, 14, tensor_num,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # input
                 1, 88, 2, 3, 4, 5, 0, 0, 0, 0, 0,  # output
                 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0,  # input
@@ -116,8 +117,8 @@ class TestRuntimeOpInfoParser(unittest.TestCase):
         struct_data = struct.pack(StructFmt.BYTE_ORDER_CHAR + StructFmt.RUNTIME_OP_INFO_FMT +
                                   tensor_num * StructFmt.RUNTIME_OP_INFO_TENSOR_FMT,
                                   *info)
-        with mock.patch('os.path.getsize',return_value=StructFmt.RUNTIME_OP_INFO_BODY_SIZE +
-                                                       tensor_num * StructFmt.RUNTIME_OP_INFO_TENSOR_SIZE,), \
+        header_size = StructFmt.RUNTIME_OP_INFO_BODY_SIZE - StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE
+        with mock.patch('os.path.getsize', return_value=header_size + 100), \
                 mock.patch('common_func.file_manager.check_path_valid'), \
                 mock.patch('builtins.open', mock.mock_open(read_data=struct_data)):
             check = RuntimeOpInfoParser(self.file_list, CONFIG)

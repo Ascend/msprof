@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -63,9 +64,41 @@ enum class EventType
     EVENT_TYPE_TASK_TRACK,
     EVENT_TYPE_HCCL_OP_INFO,
     EVENT_TYPE_MEM_CPY,
-    EVENT_TYPE_DUMMY,  // 虚拟类型，用于建树时标志虚拟节点
+    EVENT_TYPE_RUNTIME_OP_INFO,  // capture_op_info，按 device/stream/task 查找
+    EVENT_TYPE_DPU_TASK_TRACK,   // dpu_track，lookup 后直接落盘，不进建树
+    EVENT_TYPE_DUMMY,            // 虚拟类型，用于建树时标志虚拟节点
     EVENT_TYPE_INVALID
 };
+
+inline const std::set<EventType> &TreeBuildEventTypes()
+{
+    static const std::set<EventType> types = {
+        EventType::EVENT_TYPE_API,
+        EventType::EVENT_TYPE_EVENT,
+        EventType::EVENT_TYPE_NODE_BASIC_INFO,
+        EventType::EVENT_TYPE_NODE_ATTR_INFO,
+        EventType::EVENT_TYPE_TENSOR_INFO,
+        EventType::EVENT_TYPE_HCCL_INFO,
+        EventType::EVENT_TYPE_CONTEXT_ID,
+        EventType::EVENT_TYPE_GRAPH_ID_MAP,
+        EventType::EVENT_TYPE_FUSION_OP_INFO,
+        EventType::EVENT_TYPE_TASK_TRACK,
+        EventType::EVENT_TYPE_HCCL_OP_INFO,
+        EventType::EVENT_TYPE_MEM_CPY,
+    };
+    return types;
+}
+
+inline const std::set<EventType> &LookupEventTypes()
+{
+    static const std::set<EventType> types = {EventType::EVENT_TYPE_RUNTIME_OP_INFO,
+                                              EventType::EVENT_TYPE_DPU_TASK_TRACK};
+    return types;
+}
+
+inline bool NeedTreeBuild(EventType type) { return TreeBuildEventTypes().count(type) > 0; }
+
+inline bool NeedLookup(EventType type) { return LookupEventTypes().count(type) > 0; }
 
 // Event关键信息
 struct EventInfo

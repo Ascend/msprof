@@ -351,7 +351,7 @@ static void GenDpuTrackData(uint16_t dataNum = DATA_NUM, uint16_t invalidDataNum
     for (uint32_t i = 0; i < dataNum; ++i) {
         MsprofCompactInfo info;
         info.level = level;
-        info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_INVALID);
+        info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_DPU_TASK_TRACK);
         info.threadId = i;
         info.dataLen = dataLen;
         info.timeStamp = dataNum + i;
@@ -372,8 +372,8 @@ static void GenDpuTrackData(uint16_t dataNum = DATA_NUM, uint16_t invalidDataNum
         }
     }
     auto fakeGen = std::make_shared<FakeTraceGenerator>(DATA_DIR);
-    fakeGen->WriteBin<MsprofCompactInfo>(unAgingTraces, EventType::EVENT_TYPE_INVALID, false);
-    fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, EventType::EVENT_TYPE_INVALID, true);
+    fakeGen->WriteBin<MsprofCompactInfo>(unAgingTraces, EventType::EVENT_TYPE_DPU_TASK_TRACK, false);
+    fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, EventType::EVENT_TYPE_DPU_TASK_TRACK, true);
 }
 
 TEST_F(CompactInfoParserUTest, TestDpuTaskTrackParserShouldReturn10DataWhenParseSuccess)

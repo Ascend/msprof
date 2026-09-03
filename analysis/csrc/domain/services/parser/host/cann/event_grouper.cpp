@@ -18,7 +18,10 @@
 
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
+#include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
+#include "analysis/csrc/domain/services/parser/host/cann/variable_info_parser.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
 
 using namespace Analysis::Utils;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
@@ -69,8 +72,17 @@ bool EventGrouper::Group()
     const uint32_t poolSize = 8;
     ThreadPool pool(poolSize);
     pool.Start();
+    GroupTreeEvent(pool);
+    GroupLookup(pool);
+    pool.WaitAllTasks();
+    pool.Stop();
+    SetApiEventKeys();
+    RecordCANNWareHouses();
+    return true;
+}
 
-    // 每个Parser一个线程
+void EventGrouper::GroupTreeEvent(ThreadPool &pool)
+{
     pool.AddTask(
         [this]()
         { GroupEvents<ApiEventParser, ParserApi, &CANNWarehouse::kernelEvents>("Kernel", EventType::EVENT_TYPE_API); });
@@ -131,20 +143,69 @@ bool EventGrouper::Group()
             GroupEvents<HcclOpInfoParser, ParserCompactInfo, &CANNWarehouse::hcclOpInfoEvents>(
                 "HcclOpInfo", EventType::EVENT_TYPE_HCCL_OP_INFO);
         });
-    pool.AddTask(
-        [this]()
-        {
-            // 复用模板函数 临时使用taskTrackEvents占位 实际业务不使用
-            GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
-                "DpuTaskTrack", EventType::EVENT_TYPE_TASK_TRACK);
-        });
+}
 
-    pool.WaitAllTasks();
-    pool.Stop();
-    SetApiEventKeys();
-    RecordCANNWareHouses();
+void EventGrouper::GroupLookup(ThreadPool &pool)
+{
+    if (NeedLookup(EventType::EVENT_TYPE_RUNTIME_OP_INFO))
+    {
+        pool.AddTask([this]() { ParseRuntimeOpInfo(); });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_DPU_TASK_TRACK))
+    {
+        pool.AddTask([this]() { ParseDpuTaskTrack(); });
+    }
+}
 
-    return true;
+void EventGrouper::DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos)
+{
+    switch (eventType)
+    {
+        case EventType::EVENT_TYPE_RUNTIME_OP_INFO:
+            for (const auto &info : opInfos)
+            {
+                RTAddInfoCenter::GetInstance().Add(info);
+            }
+            break;
+        default:
+            ERROR("Unsupported lookup EventType");
+            break;
+    }
+}
+
+void EventGrouper::DispatchLookupData(EventType eventType,
+                                      const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks)
+{
+    switch (eventType)
+    {
+        case EventType::EVENT_TYPE_DPU_TASK_TRACK:
+            dpuTrackData_ = tracks;
+            break;
+        default:
+            ERROR("Unsupported lookup EventType");
+            break;
+    }
+}
+
+void EventGrouper::ParseRuntimeOpInfo()
+{
+    std::shared_ptr<RuntimeOpInfoParser> parser;
+    MAKE_SHARED_RETURN_VOID(parser, RuntimeOpInfoParser, hostPath_);
+    if (parser->Parse() != ANALYSIS_OK)
+    {
+        ERROR("Parse capture_op_info failed");
+        return;
+    }
+    DispatchLookupData(EventType::EVENT_TYPE_RUNTIME_OP_INFO, parser->GetOpInfo());
+}
+
+void EventGrouper::ParseDpuTaskTrack()
+{
+    std::shared_ptr<DpuTaskTrackParser> parser;
+    MAKE_SHARED_RETURN_VOID(parser, DpuTaskTrackParser, hostPath_);
+    auto tracks = parser->ParseData<ParserCompactInfo>();
+    INFO("Parsed DPU task track data, size: %", tracks.size());
+    DispatchLookupData(EventType::EVENT_TYPE_DPU_TASK_TRACK, tracks);
 }
 
 void EventGrouper::SetApiEventKeys()
@@ -388,18 +449,6 @@ void EventGrouper::GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehous
     }
     std::lock_guard<std::mutex> lock(tidLock_);
     threadIds_.insert(threadIds.begin(), threadIds.end());
-}
-
-// dpuTaskTrack特化
-template <>
-void EventGrouper::GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
-    const std::string &typeName, EventType eventType)
-{
-    Utils::TimeLogger t{"Group " + typeName};
-    std::shared_ptr<DpuTaskTrackParser> parser;
-    MAKE_SHARED_RETURN_VOID(parser, DpuTaskTrackParser, hostPath_);
-    dpuTrackData_ = parser->ParseData<ParserCompactInfo>();
-    INFO("Parsed DPU task track data, size: %", dpuTrackData_.size());
 }
 
 template <>

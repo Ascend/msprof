@@ -183,7 +183,11 @@ struct RuntimeOpInfo
     uint16_t opFlag = 0;
     uint16_t tensorNum = 0;
     uint32_t streamId = 0;
+    uint32_t threadId = 0;
     uint64_t modelId = UINT32_MAX;
+    uint64_t timeStamp = 0;
+    std::string level{"N/A"};
+    std::string structType{"N/A"};
     std::string taskType{"N/A"};
     std::string opType{"N/A"};
     std::string hashId{"N/A"};

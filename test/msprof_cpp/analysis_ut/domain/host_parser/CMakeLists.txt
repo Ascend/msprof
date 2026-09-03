@@ -11,6 +11,7 @@ aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/host_parser/t
 
 add_executable(host_parser_utest
     ${PARSER_SOURCES}
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/number_mapping.cpp
 )
 
 target_link_libraries(host_parser_utest PRIVATE

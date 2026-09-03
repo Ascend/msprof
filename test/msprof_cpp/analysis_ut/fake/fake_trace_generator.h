@@ -243,14 +243,18 @@ class FakeTraceGenerator
 
     template <typename T>
     void WriteBin(std::vector<T> &traces, EventType eventType, bool isAging,
-                  const int deviceId = Analysis::Domain::Environment::HOST_ID)
+                  const int deviceId = Analysis::Domain::Environment::HOST_ID, const std::string &prefixOverride = "")
     {
         auto saveDir = CreateFakeDataDir(eventType, deviceId);  // 创建PROF_XXX/host or device_<deviceId>/data
         if (saveDir.empty())
         {
             return;
         }
-        auto &prefixes = hostBinNames_[eventType];
+        std::vector<std::string> prefixes = hostBinNames_[eventType];
+        if (!prefixOverride.empty())
+        {
+            prefixes = {prefixOverride};
+        }
         for (const auto &prefix : prefixes)
         {
             auto baseFileName = GetHostBinName(prefix, isAging);
@@ -339,7 +343,8 @@ class FakeTraceGenerator
         {EventType::EVENT_TYPE_TENSOR_INFO, {"additional.tensor_info.slice_"}},
         {EventType::EVENT_TYPE_MEM_CPY, {"compact.memcpy_info.slice_"}},
         {EventType::EVENT_TYPE_HCCL_OP_INFO, {"compact.hccl_op_info.slice_"}},
-        {EventType::EVENT_TYPE_INVALID, {"compact.dpu_track.slice_"}},
+        {EventType::EVENT_TYPE_DPU_TASK_TRACK, {"compact.dpu_track.slice_"}},
+        {EventType::EVENT_TYPE_RUNTIME_OP_INFO, {"additional.capture_op_info.slice_"}},
     };
 };
 

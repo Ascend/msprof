@@ -100,13 +100,23 @@ TEST_F(FileUTest, TestCheckDir)
 
 TEST_F(FileUTest, TestCreateDir)
 {
+    const std::string workDir = "file_utest_create_dir";
+    const std::string testDir = File::PathJoin({workDir, "dir"});
+    const std::string testFile = File::PathJoin({workDir, "file"});
+    const std::string testLink = File::PathJoin({workDir, "file_soft_link"});
+    File::RemoveDir(workDir, 0);
+    EXPECT_TRUE(File::CreateDir(workDir));
+    FileWriter fw(testFile);
+    EXPECT_TRUE(fw.IsOpen());
+    fw.Close();
+
     EXPECT_FALSE(File::CreateDir(""));
-    EXPECT_TRUE(File::CreateDir("test_dir"));  // 创建目录成功返回true
-    EXPECT_TRUE(File::CreateDir("test_dir"));  // 创建已存在的目录返回true
-    EXPECT_EQ(0, symlink("test_file", "test_file_soft_link"));
-    EXPECT_FALSE(File::CreateDir("test_file_soft_link"));
-    EXPECT_TRUE(File::DeleteFile("test_file_soft_link"));
-    EXPECT_EQ(0, rmdir("test_dir"));
+    EXPECT_TRUE(File::CreateDir(testDir));
+    EXPECT_TRUE(File::CreateDir(testDir));
+    EXPECT_EQ(0, symlink(testFile.c_str(), testLink.c_str()));
+    EXPECT_FALSE(File::CreateDir(testLink));
+    EXPECT_TRUE(File::DeleteFile(testLink));
+    EXPECT_TRUE(File::RemoveDir(workDir, 0));
 }
 
 TEST_F(FileUTest, TestRemoveDir)

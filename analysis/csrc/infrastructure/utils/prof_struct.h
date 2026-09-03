@@ -179,6 +179,32 @@ extern "C"
         uint64_t timeStamp;
         uint8_t data[0];
     };
+
+    const uint32_t MSPROF_RUNTIME_OP_TENSOR_DIM = 8;
+    const uint32_t MSPROF_RUNTIME_OP_INPUT = 0;
+    const uint32_t MSPROF_RUNTIME_OP_OUTPUT = 1;
+    struct MsprofRuntimeOpTensor
+    {
+        uint32_t tensorType;
+        uint32_t format;
+        uint32_t dataType;
+        uint32_t shape[MSPROF_RUNTIME_OP_TENSOR_DIM];
+    };
+    struct MsprofRuntimeOpInfoPayload
+    {
+        uint32_t modelId;
+        uint32_t deviceId;
+        uint32_t streamId;
+        uint32_t taskId;
+        uint32_t taskType;
+        uint32_t blockNum;
+        uint64_t nodeId;
+        uint64_t opType;
+        uint64_t hashId;
+        uint64_t reserve;
+        uint32_t opFlag;
+        uint32_t tensorNum;
+    };
     // =====================VARIABLE=====================
 
     // =====================ADDITIONAL=====================

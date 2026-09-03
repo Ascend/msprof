@@ -19,12 +19,14 @@
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 #include "analysis/csrc/domain/services/host_worker/host_cpu_freq_parser.h"
+#include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/dpu_task_track_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/memcpy_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/model_name_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/runtime_op_info_dumper.h"
 
 using namespace Analysis::Domain::Cann;
 
@@ -41,6 +43,9 @@ bool HostTraceWorker::Run()
     std::shared_ptr<EventGrouper> grouper;
     MAKE_SHARED_RETURN_VALUE(grouper, EventGrouper, false, hostDataPath);
     grouper->Group();
+    auto sqlitePath = Utils::File::PathJoin({hostPath_, "sqlite"});
+    RTAddInfoCenter::GetInstance().Load(sqlitePath);
+    DumpRuntimeOpInfo();
 
     cannWarehouses_ = grouper->GetGroupEvents();
     threadIds_ = grouper->GetThreadIdSet();
@@ -146,6 +151,22 @@ void HostTraceWorker::MultiThreadAnalyzeTreeDumpData()
 
     pool.WaitAllTasks();
     pool.Stop();
+}
+
+void HostTraceWorker::DumpRuntimeOpInfo()
+{
+    auto &center = RTAddInfoCenter::GetInstance();
+    if (!center.LoadedFromBinary() || center.Empty())
+    {
+        return;
+    }
+    TimeLogger t{"Dump runtime op info"};
+    std::shared_ptr<RuntimeOpInfoDumper> dumper;
+    MAKE_SHARED_RETURN_VOID(dumper, RuntimeOpInfoDumper, hostPath_);
+    if (!dumper->DumpData(center.GetDumpList()))
+    {
+        ERROR("Dump runtime op info data failed");
+    }
 }
 
 void HostTraceWorker::DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)

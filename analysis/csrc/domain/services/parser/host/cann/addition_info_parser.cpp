@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
+#include "analysis/csrc/domain/services/parser/host/cann/tensor_desc_formatter.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
@@ -34,18 +35,7 @@ using namespace Analysis::Utils;
 using namespace Analysis::Domain::Adapter;
 namespace
 {
-ParserTensorData ConvertTensorData(const MsrofTensorData &src)
-{
-    ParserTensorData dst;
-    dst.tensorType = src.tensorType;
-    dst.format = src.format;
-    dst.dataType = src.dataType;
-    for (uint32_t i = 0; i < MSPROF_GE_TENSOR_DATA_SHAPE_LEN; ++i)
-    {
-        dst.shape[i] = src.shape[i];
-    }
-    return dst;
-}
+ParserTensorData ConvertTensorData(const MsrofTensorData &src) { return TensorDescFormatter::ToParserTensor(src); }
 
 std::shared_ptr<ParserConcatTensorInfo> CreateConcatTensorInfo(MsprofAdditionalInfo *additionalInfo)
 {

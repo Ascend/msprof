@@ -48,12 +48,22 @@ static constexpr uint16_t CAPTURE_STATUS_START = 0;
 
 static constexpr uint16_t CAPTURE_STATUS_END = 1;
 
-// 该类是runtime 算子补充信息数据单例类，当前仅读取db，不做解析
+// 该类是runtime 算子补充信息数据单例类，支持二进制解析写入与 db 兜底。
+// 使用场景（单 PROF 目录、单线程、无并发）：
+//   1. 一次解析生命周期内先由 EventGrouper::Group() 调 Add 写入二进制解析结果；
+//   2. Group 返回后再调 Load 做 db 兜底，随后只读（Get/GetAll/GetDumpList/...）。
+// Add 与读取有严格先后、互不重叠，故不加锁；若未来出现多线程或跨 PROF 目录复用，
+// 需先补并发保护或按目录清空单例状态。
 class RTAddInfoCenter : public Utils::Singleton<RTAddInfoCenter>
 {
    public:
     void Load(const std::string &path);
+    void Add(const RuntimeOpInfo &info);
     RuntimeOpInfo Get(uint16_t deviceId, uint32_t streamId, uint32_t taskId);
+    const std::unordered_map<std::string, RuntimeOpInfo> &GetAll() const;
+    const std::vector<RuntimeOpInfo> &GetDumpList() const;
+    bool Empty() const;
+    bool LoadedFromBinary() const;
     uint64_t GetModelId(uint16_t deviceId, uint32_t streamId, uint32_t batchId, uint64_t timestamp);
 
    private:
@@ -61,8 +71,10 @@ class RTAddInfoCenter : public Utils::Singleton<RTAddInfoCenter>
     void LoadCaptureInfoDB(const std::string &path);
     void BuildCaptureInfoTimeRange();
     std::unordered_map<std::string, RuntimeOpInfo> runtimeOpInfoData_;
+    std::vector<RuntimeOpInfo> dumpList_;
     std::vector<CaptureStreamInfo> captureStreamInfoData_;
     std::map<CaptureKey, TimeRangeInfo> captureInfoTimeRangeDict_;
+    bool loadedFromBinary_ = false;
 };  // class RTAddInfoCenter
 }  // namespace Cann
 }  // namespace Host

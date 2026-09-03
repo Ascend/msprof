@@ -268,6 +268,10 @@ void GenCompactInfoEventsBin(const std::string &fakeDataDir, EventType type, uin
             tmp.data.nodeBasicInfo = MsprofNodeBasicInfo{};
         } else if (type == EventType::EVENT_TYPE_TASK_TRACK) {
             tmp.data.runtimeTrack = MsprofRuntimeTrack{};
+        } else if (type == EventType::EVENT_TYPE_DPU_TASK_TRACK) {
+            tmp.data.dpuTrack = MsprofDpuTrack{};
+            tmp.data.dpuTrack.deviceId = static_cast<uint16_t>(i);
+            tmp.data.dpuTrack.taskId = static_cast<uint32_t>(i);
         } else {
             memcpy(tmp.data.info, fakeData, size);
         }
@@ -482,5 +486,75 @@ TEST_F(EventGrouperUTest, TestGroupShouldSetKeysWhenApiAndTaskTrackAreUnordered)
     EXPECT_EQ(eventKey, keyByBeginTime[100]);
     EXPECT_EQ(eventKey, keyByBeginTime[120]);
     TypeData::GetInstance().Clear();
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+void GenMixedRtsDpuTaskTrackBin(const std::string &fakeDataDir, const int npuNum, const int dpuNum)
+{
+    std::vector<MsprofCompactInfo> traces;
+    const uint64_t dpuDeviceTypeBits = static_cast<uint64_t>(1) << 12;
+    for (int i = 0; i < npuNum + dpuNum; ++i) {
+        auto tmp = MsprofCompactInfo{};
+        tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+        tmp.level = MSPROF_REPORT_RUNTIME_LEVEL;
+        tmp.type = static_cast<uint32_t>(EventType::EVENT_TYPE_TASK_TRACK);
+        tmp.threadId = static_cast<uint32_t>(i + 2);
+        tmp.dataLen = 8;
+        tmp.timeStamp = static_cast<uint64_t>(i + 1);
+        tmp.data.runtimeTrack.taskType = 1;
+        tmp.data.runtimeTrack.taskId = static_cast<uint32_t>(i);
+        tmp.data.runtimeTrack.kernelName = static_cast<uint64_t>(100 + i);
+        if (i < dpuNum) {
+            tmp.data.runtimeTrack.deviceId = static_cast<uint16_t>(dpuDeviceTypeBits | (i & 0xFFF));
+        } else {
+            tmp.data.runtimeTrack.deviceId = 0;
+        }
+        traces.emplace_back(tmp);
+    }
+    auto fakeGen = std::make_shared<FakeTraceGenerator>(fakeDataDir);
+    fakeGen->WriteBin<MsprofCompactInfo>(traces, EventType::EVENT_TYPE_TASK_TRACK, false, 0);
+}
+
+TEST_F(EventGrouperUTest, TestNeedLookupAndNeedTreeBuildForDpuAndRts)
+{
+    EXPECT_TRUE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_TASK_TRACK));
+    EXPECT_FALSE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_TASK_TRACK));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_DPU_TASK_TRACK));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_DPU_TASK_TRACK));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldPutDpuTrackToLookupNotTree)
+{
+    const std::string fakeDataDir = "./fakeDataDpuLookup";
+    File::RemoveDir(fakeDataDir, 0);
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    const int num = 8;
+    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_DPU_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, num);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto tids = grouper->GetThreadIdSet();
+    auto res = grouper->GetGroupEvents();
+    EXPECT_EQ(num, grouper->GetDpuTrackData().size());
+    EXPECT_EQ(0, g_getCannEventsNum(tids, res, "taskTrackEvents"));
+    EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldKeepRtsTaskInTreeAndDpuKernelNameFromTaskTrack)
+{
+    const std::string fakeDataDir = "./fakeDataMixedTaskTrack";
+    File::RemoveDir(fakeDataDir, 0);
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    const int npuNum = 6;
+    const int dpuNum = 2;
+    GenMixedRtsDpuTaskTrackBin(fakeDataDir, npuNum, dpuNum);
+    auto grouper = std::make_shared<EventGrouper>(hostDataDir);
+    grouper->Group();
+    auto tids = grouper->GetThreadIdSet();
+    auto res = grouper->GetGroupEvents();
+    EXPECT_EQ(npuNum, g_getCannEventsNum(tids, res, "taskTrackEvents"));
+    EXPECT_EQ(dpuNum, grouper->GetDpuKernelNameMap().size());
+    EXPECT_EQ(0, grouper->GetDpuTrackData().size());
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }

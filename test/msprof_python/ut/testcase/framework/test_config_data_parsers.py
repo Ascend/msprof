@@ -38,6 +38,8 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertFalse(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("HashDicParser")
         self.assertTrue(ret)
+        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("RuntimeOpInfoParser")
+        self.assertTrue(ret)
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_in_whitelist(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0

@@ -26,6 +26,7 @@ list(APPEND DEVICE_ASSOCIATION_SOURCE ${TOP_DIR}/analysis/csrc/domain/services/d
 
 add_executable(association_utest
     ${DEVICE_ASSOCIATION_SOURCE}
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/number_mapping.cpp
 )
 
 target_link_libraries(association_utest PRIVATE

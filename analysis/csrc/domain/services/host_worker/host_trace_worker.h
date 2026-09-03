@@ -51,6 +51,7 @@ class HostTraceWorker
     void MultiThreadBuildTree();
     void MultiThreadAnalyzeTreeDumpData();
     void DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpRuntimeOpInfo();
     void DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpFlipTask(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpModelName(ThreadPool &pool, const std::string &hostDataPath);

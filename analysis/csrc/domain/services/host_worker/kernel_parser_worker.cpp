@@ -92,8 +92,6 @@ void KernelParserWorker::DumpHashData()
     auto dataPath = Utils::File::PathJoin({hostFilePath_, "data"});
     INFO("Hash data load from path: %", dataPath);
     HashData::GetInstance().Load(dataPath);
-    INFO("Start load runtime op info data");
-    RTAddInfoCenter::GetInstance().Load(Utils::File::PathJoin({hostFilePath_, "sqlite"}));
     auto hashDataContent = HashData::GetInstance().GetAll();
     INFO("success get hash data");
     if (hashDataContent.empty())

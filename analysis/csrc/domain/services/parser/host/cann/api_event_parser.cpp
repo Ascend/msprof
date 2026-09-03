@@ -16,6 +16,8 @@
 
 #include "analysis/csrc/domain/services/parser/host/cann/api_event_parser.h"
 
+#include <memory>
+
 namespace Analysis
 {
 namespace Domain
@@ -49,18 +51,14 @@ std::shared_ptr<MsprofApi> CreateMsprofApi(const MsprofEvent *startEvent, const 
 }
 
 void ClearStartEventMap(
-    std::map<std::tuple<uint16_t, uint32_t, uint32_t, uint32_t, uint64_t>, MsprofEvent *> &startEventMap)
+    std::map<std::tuple<uint16_t, uint32_t, uint32_t, uint32_t, uint64_t>, std::unique_ptr<char[]>> &startEventMap)
 {
     if (startEventMap.empty())
     {
         return;
     }
     ERROR("There is remaining start event.");
-    for (auto &startEvent : startEventMap)
-    {
-        delete startEvent.second;
-        startEvent.second = nullptr;
-    }
+    // 剩余 start event 的 chunk 由 unique_ptr<char[]> 接管，clear 时按数组规则自动释放
     startEventMap.clear();
 }
 
@@ -89,7 +87,7 @@ int ApiEventParser::ProduceData()
     {
         return ANALYSIS_OK;
     }
-    std::map<std::tuple<uint16_t, uint32_t, uint32_t, uint32_t, uint64_t>, MsprofEvent *> startEventMap;
+    std::map<std::tuple<uint16_t, uint32_t, uint32_t, uint32_t, uint64_t>, std::unique_ptr<char[]>> startEventMap;
     if (!Reserve(apiData_, chunkProducer_->Size()))
     {
         ERROR("%: Reserve data failed", parserName_);
@@ -97,7 +95,9 @@ int ApiEventParser::ProduceData()
     }
     while (!chunkProducer_->Empty())
     {
-        auto event = ReinterpretConvert<MsprofEvent *>(chunkProducer_->Pop());
+        // Pop 内部按 new char[chunkSize] 分配，用 unique_ptr<char[]> 接管以保证按数组规则释放
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto event = ReinterpretConvert<MsprofEvent *>(chunk.get());
         if (!event)
         {
             ERROR("%: Pop chunk failed.", parserName_);
@@ -107,7 +107,6 @@ int ApiEventParser::ProduceData()
         if (event->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
         {
             ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
-            delete event;
             continue;
         }
         if (event->reserve != MSPROF_EVENT_FLAG)
@@ -117,11 +116,9 @@ int ApiEventParser::ProduceData()
             if (!ParserApiAdapter::AdapterApi(ReinterpretConvert<MsprofApi *>(event), parser.get()))
             {
                 ERROR("%: copy api data data failed.", parserName_);
-                delete event;
                 return ANALYSIS_ERROR;
             }
             apiData_.emplace_back(parser);
-            delete event;
             continue;
         }
         // event data，根据level, type, threadId, requestId, itemId合并start event和end event
@@ -129,14 +126,14 @@ int ApiEventParser::ProduceData()
         auto iter = startEventMap.find(key);
         if (iter == startEventMap.end())
         {
-            startEventMap[key] = event;
+            // 未匹配到 end event，chunk 所有权移交 startEventMap 暂存，待配对后释放
+            startEventMap[key] = std::move(chunk);
             continue;
         }
-        auto startEvent = iter->second;
-        auto apiData = CreateMsprofApi(startEvent, event);
+        auto startChunk = std::move(iter->second);
+        auto startEvent = ReinterpretConvert<MsprofEvent *>(startChunk.get());
         startEventMap.erase(iter);
-        delete startEvent;
-        delete event;
+        auto apiData = CreateMsprofApi(startEvent, event);
         if (!apiData)
         {
             ERROR("Api data is null.");
@@ -150,6 +147,7 @@ int ApiEventParser::ProduceData()
             return ANALYSIS_ERROR;
         }
         apiData_.emplace_back(parser);
+        // startChunk(经startEvent使用完毕)与chunk 在本轮作用域结束处按数组规则释放
     }
     ClearStartEventMap(startEventMap);
     return ANALYSIS_OK;

@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
+#include "analysis/csrc/domain/services/parser/host/cann/tensor_desc_formatter.h"
 #include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
@@ -31,6 +32,7 @@ using Context = Analysis::Domain::Environment::Context;
 using ThreadPool = Analysis::Utils::ThreadPool;
 using RTAddInfoCenter = Analysis::Domain::Host::Cann::RTAddInfoCenter;
 using HashData = Analysis::Domain::Host::Cann::HashData;
+using TensorDescFormatter = Analysis::Domain::Host::Cann::TensorDescFormatter;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
 using MappingType = NumberMapping::MappingType;
 using namespace Infra;
@@ -53,8 +55,6 @@ using GeFusionOpsDumpData = std::vector<std::tuple<uint64_t, std::string, uint32
 
 namespace
 {
-const uint32_t INPUT_FORMAT_INDEX = 0;
-const uint32_t OUTPUT_FORMAT_INDEX = 1;
 const std::unordered_map<std::string, uint32_t> RtsTaskTypeMap = {
     {KERNEL_AICORE_TASK_TYPE, 0},  {KERNEL_AICPU_TASK_TYPE, 1},   {KERNEL_AIVEC_TASK_TYPE, 2},
     {KERNEL_MIX_AIC_TASK_TYPE, 4}, {KERNEL_MIX_AIV_TASK_TYPE, 5}, {KERNEL_SIMT_TASK_TYPE, 2},
@@ -269,37 +269,7 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ParserConcatTen
                                            const std::shared_ptr<HostTask> &task)
 {
     auto tensorNum = tensorDesc->tensorNum;
-    std::vector<std::string> inputFormat;
-    std::vector<std::string> inputDataType;
-    std::vector<std::string> inputShape;
-    std::vector<std::string> outputFormat;
-    std::vector<std::string> outputDataType;
-    std::vector<std::string> outputShape;
-    for (uint32_t i = 0; i < tensorNum; i++)
-    {
-        std::vector<std::string> shapes;
-        auto tensorData = tensorDesc->tensorData[i];
-        for (const auto shape : tensorData.shape)
-        {
-            if (shape == 0)
-            {
-                break;
-            }
-            shapes.emplace_back(std::to_string(shape));
-        }
-        if (tensorData.tensorType == INPUT_FORMAT_INDEX)
-        {
-            inputFormat.emplace_back(GetFormat(tensorData.format));
-            inputDataType.emplace_back(NumberMapping::Get(MappingType::GE_DATA_TYPE, tensorData.dataType));
-            inputShape.emplace_back(Utils::Join(shapes, ","));
-        }
-        else if (tensorData.tensorType == OUTPUT_FORMAT_INDEX)
-        {
-            outputFormat.emplace_back(GetFormat(tensorData.format));
-            outputDataType.emplace_back(NumberMapping::Get(MappingType::GE_DATA_TYPE, tensorData.dataType));
-            outputShape.emplace_back(Utils::Join(shapes, ","));
-        }
-    }
+    auto tensorFields = TensorDescFormatter::Format(tensorDesc->tensorData, tensorNum);
     auto desc = task->op->opDesc;
     auto attr = desc->nodeAttr;
     const bool hasNodeBasicInfo = nodeBasicInfo != nullptr;
@@ -315,32 +285,19 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ParserConcatTen
     std::string gridDim = NA;
     std::string blockDim = NA;
     ProcessRuntimeTrackInfo(runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
-    auto inputFormatStr = inputFormat.empty() ? NA : Utils::Join(inputFormat, ";");
-    auto inputDataTypeStr = inputDataType.empty() ? NA : Utils::Join(inputDataType, ";");
-    auto inputShapeStr = inputShape.empty() ? NA : Utils::AddQuotation(Utils::Join(inputShape, ";"));
-    auto outputFormatStr = outputFormat.empty() ? NA : Utils::Join(outputFormat, ";");
-    auto outputDataTypeStr = outputDataType.empty() ? NA : Utils::Join(outputDataType, ";");
-    auto outputShapeStr = outputShape.empty() ? NA : Utils::AddQuotation(Utils::Join(outputShape, ";"));
+    auto inputFormatStr = tensorFields.inputFormats;
+    auto inputDataTypeStr = tensorFields.inputDataTypes;
+    auto inputShapeStr = tensorFields.inputShapes;
+    auto outputFormatStr = tensorFields.outputFormats;
+    auto outputDataTypeStr = tensorFields.outputDataTypes;
+    auto outputShapeStr = tensorFields.outputShapes;
     data.emplace_back(task->modelId, opName, task->streamId, task->taskId, blockNum, mixBlockNum, opState, taskType,
                       opType, task->requestId, task->threadId, task->timeStamp, task->batchId, tensorNum,
                       inputFormatStr, inputDataTypeStr, inputShapeStr, outputFormatStr, outputDataTypeStr,
                       outputShapeStr, task->deviceId, task->contextId, opFlag, hashId, gridDim, blockDim);
 }
 
-std::string CANNTraceDBDumper::GetFormat(uint32_t oriFormat)
-{
-    // 若format是默认值(UINT32_MAX) 直接使用枚举UNDEFINED即可 无需换算subFormat
-    auto format = (oriFormat == UINT32_MAX) ? UINT32_MAX : (oriFormat & 0xff);
-    auto subFormat = (oriFormat == UINT32_MAX) ? 0 : (oriFormat & 0xffff00) >> 8;
-    std::string enumFormat = NumberMapping::Get(MappingType::GE_FORMAT, format);
-    std::string enumSubFormat = std::to_string(subFormat);
-    std::vector<std::string> vec{enumFormat, enumSubFormat};
-    if (subFormat > 0)
-    {
-        enumFormat = Utils::Join(vec, ":");
-    }
-    return enumFormat;
-}
+std::string CANNTraceDBDumper::GetFormat(uint32_t oriFormat) { return TensorDescFormatter::GetFormat(oriFormat); }
 
 void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTask> &task, TaskInfoData &data,
                                                     bool isLevel0)

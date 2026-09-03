@@ -36,10 +36,30 @@ using namespace Analysis::Infra;
 
 void Cann::RTAddInfoCenter::Load(const std::string& path)
 {
-    LoadDB(path);
+    if (runtimeOpInfoData_.empty())
+    {
+        LoadDB(path);
+    }
     LoadCaptureInfoDB(path);
     BuildCaptureInfoTimeRange();
 }
+
+void RTAddInfoCenter::Add(const RuntimeOpInfo& info)
+{
+    // 仅在 EventGrouper::Group() 内单线程调用（见头文件使用场景注释），与后续读取互不重叠
+    std::string key = Utils::Join("_", info.deviceId, info.streamId, info.taskId);
+    runtimeOpInfoData_[key] = info;
+    dumpList_.push_back(info);
+    loadedFromBinary_ = true;
+}
+
+const std::unordered_map<std::string, RuntimeOpInfo>& RTAddInfoCenter::GetAll() const { return runtimeOpInfoData_; }
+
+const std::vector<RuntimeOpInfo>& RTAddInfoCenter::GetDumpList() const { return dumpList_; }
+
+bool RTAddInfoCenter::Empty() const { return runtimeOpInfoData_.empty(); }
+
+bool RTAddInfoCenter::LoadedFromBinary() const { return loadedFromBinary_; }
 
 RuntimeOpInfo RTAddInfoCenter::Get(uint16_t deviceId, uint32_t streamId, uint32_t taskId)
 {

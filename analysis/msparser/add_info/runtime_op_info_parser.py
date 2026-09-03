@@ -41,7 +41,7 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=E1003
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -64,11 +64,14 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
         """
         if not self._runtime_op_info_data:
             return
-        logging.info("256 size is %d, var size is %d, actually size is %d",
-                     self._256_size, self._var_size, len(self._runtime_op_info_data))
+        logging.info(
+            "256 size is %d, var size is %d, actually size is %d",
+            self._256_size,
+            self._var_size,
+            len(self._runtime_op_info_data),
+        )
         with RuntimeOpInfoModel(self._project_path) as _model:
             _model.flush(self._runtime_op_info_data)
-
 
     def ms_run(self: any) -> None:
         """
@@ -84,8 +87,12 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
             return
         self.save()
 
-    def _assemble_data(self: any, mode: str, body: Union[RuntimeOpInfoBean, RuntimeOpInfo256Bean],
-                       tensor: Union[RuntimeTensorBean, RuntimeOpInfo256Bean]):
+    def _assemble_data(
+        self: any,
+        mode: str,
+        body: Union[RuntimeOpInfoBean, RuntimeOpInfo256Bean],
+        tensor: Union[RuntimeTensorBean, RuntimeOpInfo256Bean],
+    ):
         hash_dict_data = HashDictData(self._project_path)
         type_hash_dict = hash_dict_data.get_type_hash_dict()
         ge_hash_dict = hash_dict_data.get_ge_hash_dict()
@@ -93,18 +100,33 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
         op_name = ge_hash_dict.get(body.node_id, body.node_id)
         op_type = ge_hash_dict.get(body.op_type, body.op_type)
         op_state = NodeBasicInfoParser.get_op_state(mode)
-        self._runtime_op_info_data.append([
-            body.level, struct_type, body.thread_id, body.timestamp,
-            body.device_id, body.model_id, body.stream_id, body.task_id,
-            op_name, body.task_type, op_type, body.hash_id,
-            body.block_num, body.mix_block_num, body.op_flag, op_state, body.tensor_num,
-            tensor.input_format if tensor.input_format else Constant.NA,
-            tensor.input_data_type if tensor.input_data_type else Constant.NA,
-            "\"" + tensor.input_shape + "\"" if tensor.input_shape else Constant.NA,
-            tensor.output_format if tensor.output_format else Constant.NA,
-            tensor.output_data_type if tensor.output_data_type else Constant.NA,
-            "\"" + tensor.output_shape + "\"" if tensor.output_shape else Constant.NA
-        ])
+        self._runtime_op_info_data.append(
+            [
+                body.level,
+                struct_type,
+                body.thread_id,
+                body.timestamp,
+                body.device_id,
+                body.model_id,
+                body.stream_id,
+                body.task_id,
+                op_name,
+                body.task_type,
+                op_type,
+                body.hash_id,
+                body.block_num,
+                body.mix_block_num,
+                body.op_flag,
+                op_state,
+                body.tensor_num,
+                tensor.input_format if tensor.input_format else Constant.NA,
+                tensor.input_data_type if tensor.input_data_type else Constant.NA,
+                "\"" + tensor.input_shape + "\"" if tensor.input_shape else Constant.NA,
+                tensor.output_format if tensor.output_format else Constant.NA,
+                tensor.output_data_type if tensor.output_data_type else Constant.NA,
+                "\"" + tensor.output_shape + "\"" if tensor.output_shape else Constant.NA,
+            ]
+        )
 
     def _read_data(self: any, mode: str, file_path: str) -> None:
         offset = 0
@@ -113,24 +135,26 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
             _all_data = _open_file.file_reader.read(file_size)
         while offset < file_size:
             middle = offset + StructFmt.RUNTIME_OP_INFO_BODY_SIZE
-            self.check_magic_num(_all_data[offset: middle])
+            self.check_magic_num(_all_data[offset:middle])
             self._var_size = self._var_size + 1
-            body = RuntimeOpInfoBean.decode(_all_data[offset: middle])
+            body = RuntimeOpInfoBean.decode(_all_data[offset:middle])
 
-            # 结构体中的data_len长度无法涵盖tensor范围，或者tensor范围已超数据剩余长度
-            data_len = body.tensor_num * StructFmt.RUNTIME_OP_INFO_TENSOR_SIZE
-            if (data_len + StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE) < body.data_len or \
-                    middle + data_len > file_size:
+            # dataLen 描述 24 字节公共头之后的长度。能覆盖「固定体 + tensor」则合法，
+            # 解 tensor 只用 tensor_num * TENSOR_SIZE；记录跳转始终以 dataLen 为准。
+            header_size = StructFmt.RUNTIME_OP_INFO_BODY_SIZE - StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE
+            tensor_bytes = body.tensor_num * StructFmt.RUNTIME_OP_INFO_TENSOR_SIZE
+            needed_after_header = StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE + tensor_bytes
+            record_end = offset + header_size + body.data_len
+            if body.data_len < needed_after_header or record_end > file_size:
                 logging.error("data_len error: data_len is %d, tensor num is %d", body.data_len, body.tensor_num)
-                offset = middle + body.data_len - StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE
+                offset = record_end
                 continue
 
-            end = middle + body.data_len - StructFmt.RUNTIME_OP_INFO_WITHOUT_HEAD_SIZE
-            tensor = RuntimeTensorBean().decode(_all_data[middle: end],
-                                                StructFmt.RUNTIME_OP_INFO_TENSOR_FMT,
-                                                body.tensor_num)
+            tensor = RuntimeTensorBean().decode(
+                _all_data[middle : middle + tensor_bytes], StructFmt.RUNTIME_OP_INFO_TENSOR_FMT, body.tensor_num
+            )
             self._assemble_data(mode, body, tensor)
-            offset = end
+            offset = record_end
 
     def _parse_for_var_data(self, parser_files: list):
         op_info_files = self.group_aging_file(parser_files)
@@ -146,9 +170,13 @@ class RuntimeOpInfoParser(DataParser, MsMultiProcess):
         op_info_files = self.group_aging_file(parser_files)
         op_info_data = {}
         for mode, file_list in op_info_files.items():
-            op_info_data[mode] = self.parse_bean_data(file_list, StructFmt.RUNTIME_OP_INFO_256_SIZE,
-                                                      RuntimeOpInfo256Bean,
-                                                      format_func=lambda x: x, check_func=self.check_magic_num,)
+            op_info_data[mode] = self.parse_bean_data(
+                file_list,
+                StructFmt.RUNTIME_OP_INFO_256_SIZE,
+                RuntimeOpInfo256Bean,
+                format_func=lambda x: x,
+                check_func=self.check_magic_num,
+            )
         for mode, op_infos in op_info_data.items():
             self._256_size = self._256_size + len(op_infos)
             for op_info in op_infos:

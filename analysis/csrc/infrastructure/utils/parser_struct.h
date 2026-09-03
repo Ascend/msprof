@@ -47,6 +47,12 @@ enum class AdditionalInfoFormat : uint8_t
     TASK_MEMORY_INFO_TYPE,
 };
 
+enum class VariableInfoFormat : uint8_t
+{
+    VARIABLE_INFO_TYPE = 0,
+    RUNTIME_OP_INFO_TYPE,
+};
+
 enum class RuntimeTrackFormat : uint8_t
 {
     V1 = 0,
@@ -492,6 +498,17 @@ struct ParserAdditionalInfo
         ParserGraphIdInfo graphIdInfo;
         ParserMemoryInfo memoryInfo;
     };
+};
+
+struct ParserVariableInfo
+{  // for MsprofVariableInfo: 24 字节公共头 + dataLen
+    uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    uint16_t level = 0;
+    uint32_t type = 0;
+    uint32_t threadId = 0;
+    uint32_t dataLen = 0;
+    uint64_t timeStamp = 0;
+    std::vector<uint8_t> data;
 };
 
 #endif  // MSPROFILER_PARSER_STRUCT_H_

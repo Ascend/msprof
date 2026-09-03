@@ -23,6 +23,7 @@
 #include <set>
 #include <unordered_map>
 
+#include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/event_queue.h"
 #include "analysis/csrc/domain/services/parser/host/cann/addition_info_parser.h"
@@ -59,7 +60,7 @@ class EventGrouper
    public:
     // hostPath为采集侧落盘host二进制数据路径
     explicit EventGrouper(const std::string &hostPath) : hostPath_(hostPath) {}
-    // 多线程解析bin,生成Event插入到对应类型EventQueue
+    // 多线程解析 bin，按 EventType 分发
     bool Group();
 
     // 获取解析分类完成的Event, Key为threadId
@@ -83,6 +84,13 @@ class EventGrouper
     void RecordCANNWareHouses();
     void SetApiEventKeys();
 
+    void GroupTreeEvent(ThreadPool &pool);
+    void GroupLookup(ThreadPool &pool);
+    void DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos);
+    void DispatchLookupData(EventType eventType, const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks);
+    void ParseRuntimeOpInfo();
+    void ParseDpuTaskTrack();
+
     template <typename P, typename M, std::shared_ptr<EventQueue> CANNWarehouse::*element>
     void GroupEvents(const std::string &typeName, EventType eventType)
     {
@@ -92,6 +100,11 @@ class EventGrouper
         MAKE_SHARED_RETURN_VOID(parser, P, hostPath_);
         auto traces = parser->template ParseData<M>();
         SortByTimeAndLevel(traces);
+
+        if (!NeedTreeBuild(eventType))
+        {
+            return;
+        }
 
         // 统计各个threadId元素个数，用于EventQueue分配精确的内存大小，避免大量内存浪费
         std::unordered_map<uint32_t, uint64_t> threadIdNum;
@@ -154,10 +167,6 @@ void EventGrouper::GroupEvents<ApiEventParser, ParserApi, &CANNWarehouse::kernel
 
 template <>
 void EventGrouper::GroupEvents<TaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
-    const std::string &typeName, EventType eventType);
-
-template <>
-void EventGrouper::GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNWarehouse::taskTrackEvents>(
     const std::string &typeName, EventType eventType);
 
 template <>

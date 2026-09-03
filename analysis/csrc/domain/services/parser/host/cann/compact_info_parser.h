@@ -114,7 +114,7 @@ class MemcpyInfoParser final : public CompactInfoParser
     };
 };  // class MemcpyInfoParser
 
-// 该类的作用是task track数据的解析
+// 解析 task_track：NPU(RTS) 进建树；混入的 DPU 只抽出 kernelName，不在此解析 dpu_track
 class TaskTrackParser final : public CompactInfoParser
 {
    public:
@@ -156,7 +156,7 @@ class TaskTrackParser final : public CompactInfoParser
     RuntimeTrackFormat runtimeTrackFormat_ = RuntimeTrackFormat::V1;
 };  // class TaskTrackParser
 
-// 该类的作用是dpu task track数据的解析
+// 独立解析 dpu_track.slice，不读 task_track；kernelName 由 TaskTrackParser 的 DPU 子集提供
 class DpuTaskTrackParser final : public CompactInfoParser
 {
    public:

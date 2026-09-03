@@ -166,3 +166,18 @@ TEST_F(RTAddInfoCenterUTest, LoadThenTestGetWhenLoadSuccess)
     EXPECT_EQ(modelId3, 49);
     EXPECT_EQ(modelId4, 4294967295u);
 }
+
+TEST_F(RTAddInfoCenterUTest, AddShouldMarkLoadedFromBinaryAndKeepDumpList)
+{
+    RuntimeOpInfo info1{9, 101, 1, 0, 0, 0, 21, 7, "AI_CORE", "Add", "op_a", "N/A", "0",
+                        "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"};
+    RuntimeOpInfo info2{9, 102, 1, 0, 0, 0, 21, 7, "AI_CORE", "Mul", "op_b", "N/A", "0",
+                        "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"};
+    RTAddInfoCenter::GetInstance().Add(info1);
+    RTAddInfoCenter::GetInstance().Add(info2);
+    EXPECT_TRUE(RTAddInfoCenter::GetInstance().LoadedFromBinary());
+    auto got = RTAddInfoCenter::GetInstance().Get(9, 21, 101);
+    EXPECT_EQ("op_a", got.opName);
+    auto dumpList = RTAddInfoCenter::GetInstance().GetDumpList();
+    EXPECT_GE(dumpList.size(), 2u);
+}

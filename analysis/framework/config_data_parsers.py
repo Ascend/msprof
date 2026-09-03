@@ -162,6 +162,7 @@ class ConfigDataParsers:
             "MemoryApplicationParser",
             "CtxIdParser",
             "HcclOpInfoParser",
+            "RuntimeOpInfoParser",
         ]:
             return True
         return False

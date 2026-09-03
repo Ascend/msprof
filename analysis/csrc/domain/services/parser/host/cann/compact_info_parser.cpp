@@ -17,6 +17,7 @@
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 
 #include <cstring>
+#include <memory>
 
 #include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -40,7 +41,15 @@ enum class DevType : uint16_t
     NPU = 0,
     DPU = 1,
 };
+
+constexpr uint16_t kDevTypeShift = 12;
+constexpr uint16_t kDevTypeMask = 0xF;
+
+bool IsDpuTask(uint16_t deviceId)
+{
+    return static_cast<DevType>((deviceId >> kDevTypeShift) & kDevTypeMask) == DevType::DPU;
 }
+}  // namespace
 
 const std::unordered_map<uint64_t, uint64_t> &TaskTrackParser::GetDpuKernelNameMap() const { return dpuKernelNameMap_; }
 
@@ -74,7 +83,9 @@ int CompactInfoParser::ProduceData()
     }
     while (!chunkProducer_->Empty())
     {
-        auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunkProducer_->Pop());
+        // Pop 内部按 new char[chunkSize] 分配，用 unique_ptr<char[]> 接管以保证按数组规则释放
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunk.get());
         if (!compactInfo)
         {
             ERROR("%: Pop chunk failed.", parserName_);
@@ -83,17 +94,14 @@ int CompactInfoParser::ProduceData()
         if (compactInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
         {
             ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
-            delete compactInfo;
             continue;
         }
         auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
         if (!ParserCompactInfoAdapter::AdapterCompactInfo(compactInfo, parserCompactInfo.get(), parserType_))
         {
             ERROR("%: copy compactInfo data failed.", parserName_);
-            delete compactInfo;
             return ANALYSIS_ERROR;
         }
-        delete compactInfo;
         compactData_.emplace_back(std::move(parserCompactInfo));
     }
     return ANALYSIS_OK;
@@ -128,7 +136,9 @@ int NodeBasicInfoParser::ProduceData()
         auto &producer = item.second;
         while (!producer->Empty())
         {
-            auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(producer->Pop());
+            // Pop 内部按 new char[chunkSize] 分配，用 unique_ptr<char[]> 接管以保证按数组规则释放
+            std::unique_ptr<char[]> chunk(producer->Pop());
+            auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunk.get());
             if (!compactInfo)
             {
                 ERROR("%: Pop chunk failed.", parserName_);
@@ -137,18 +147,15 @@ int NodeBasicInfoParser::ProduceData()
             if (compactInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
             {
                 ERROR("%: The last %th data check failed with opState %.", parserName_, producer->Size(), opState);
-                delete compactInfo;
                 continue;
             }
             auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
             if (!ParserCompactInfoAdapter::AdapterCompactInfo(compactInfo, parserCompactInfo.get(), parserType_))
             {
                 ERROR("%: copy nodeBasic info data failed.", parserName_);
-                delete compactInfo;
                 return ANALYSIS_ERROR;
             }
             parserCompactInfo->data.nodeBasicInfo.opState = opState;
-            delete compactInfo;
             compactData_.emplace_back(std::move(parserCompactInfo));
         }
     }
@@ -171,7 +178,9 @@ int TaskTrackParser::ProduceData()
     auto runtimeTrackFormat = GetRuntimeTrackFormat();
     while (!chunkProducer_->Empty())
     {
-        auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunkProducer_->Pop());
+        // Pop 内部按 new char[chunkSize] 分配，用 unique_ptr<char[]> 接管以保证按数组规则释放
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunk.get());
         if (!compactInfo)
         {
             ERROR("%: Pop chunk failed.", parserName_);
@@ -180,17 +189,14 @@ int TaskTrackParser::ProduceData()
         if (compactInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
         {
             ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
-            delete compactInfo;
             continue;
         }
         auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
         if (!ParserCompactInfoAdapter::AdapterRuntimeTrack(compactInfo, runtimeTrackFormat, parserCompactInfo.get()))
         {
             ERROR("%: copy runtimeTrack data failed.", parserName_);
-            delete compactInfo;
             return ANALYSIS_ERROR;
         }
-        delete compactInfo;
         if (parserCompactInfo->data.runtimeTrack.taskType == flipTaskType)
         {
             auto flipTask = Flip::CreateFlipTask(parserCompactInfo.get());
@@ -208,9 +214,8 @@ int TaskTrackParser::ProduceData()
             continue;
         }
 
-        // Collect DPU kernel name for cross-reference
-        DevType devType = static_cast<DevType>((parserCompactInfo->data.runtimeTrack.deviceId >> 12) & 0xF);
-        if (devType == DevType::DPU)
+        // DPU 记录不进建树，只收集 kernelName
+        if (IsDpuTask(parserCompactInfo->data.runtimeTrack.deviceId))
         {
             uint16_t devId = parserCompactInfo->data.runtimeTrack.deviceId;
             uint32_t taskId = parserCompactInfo->data.runtimeTrack.taskId;
