@@ -15,6 +15,7 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/ai_task/aicpu_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/api_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/ccu_mission_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/communication_info_processor.h"
@@ -110,6 +111,10 @@ REGISTER_PROCESSOR(PCIeProcessor, PROCESSOR_NAME_PCIE, TOPO_DEPS());
 REGISTER_PROCESSOR(SioProcessor, PROCESSOR_NAME_SIO, TOPO_DEPS());
 REGISTER_PROCESSOR(SocBandwidthProcessor, PROCESSOR_NAME_SOC, TOPO_DEPS());
 REGISTER_PROCESSOR(PageFaultProcessor, PROCESSOR_NAME_PAGE_FAULT, TOPO_DEPS());
+REGISTER_PROCESSOR_WITH_DATA(AicpuProcessor, PROCESSOR_NAME_AICPU,
+                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
+                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO)),
+                             std::vector<AscendTaskData>, std::vector<TaskInfoData>);
 REGISTER_PROCESSOR(NicTimelineProcessor, PROCESSOR_NAME_NIC_TIMELINE, TOPO_DEPS());
 REGISTER_PROCESSOR(RoCETimelineProcessor, PROCESSOR_NAME_ROCE_TIMELINE, TOPO_DEPS());
 REGISTER_PROCESSOR(NicProcessor, PROCESSOR_NAME_NIC, TOPO_DEPS());

@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/modeling/batch_id/batch_id.h"
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
@@ -34,6 +35,7 @@ namespace Analysis
 namespace Domain
 {
 using namespace Utils;
+using namespace Analysis::Application;
 namespace
 {
 static const std::string MI_NAME = "GetNext_dequeue_wait";
@@ -120,7 +122,7 @@ uint32_t AicpuPersistence::GenerateAndSaveNode(const std::string& deviceFilePath
                           total_time.Double());
     }
 
-    DBInfo dbInfo("ai_cpu.db", "AiCpuData");
+    DBInfo dbInfo(DB_NAME_AI_CPU, TABLE_NAME_AI_CPU);
     MAKE_SHARED0_RETURN_VALUE(dbInfo.database, AicpuDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceFilePath, SQLITE, dbInfo.dbName});
     INFO("Start to process %.", dbPath);
@@ -151,7 +153,7 @@ uint32_t AicpuPersistence::GenerateAndSaveDp(const std::string& deviceFilePath)
         data.emplace_back(timeStamp.Double(), std::string(dp.dp.action), std::string(dp.dp.source), dp.dp.size);
     }
 
-    DBInfo dbInfo("ai_cpu.db", "AiCpuDP");
+    DBInfo dbInfo(DB_NAME_AI_CPU, TABLE_NAME_AI_CPU_DP);
     MAKE_SHARED0_RETURN_VALUE(dbInfo.database, AicpuDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceFilePath, SQLITE, dbInfo.dbName});
     INFO("Start to process %.", dbPath);
@@ -213,7 +215,7 @@ uint32_t AicpuPersistence::GenerateAndSaveMi(const std::string& deviceFilePath)
                           mi.mi.runEndTime, mi.mi.runEndTime - mi.mi.runStartTime);
     }
 
-    DBInfo dbInfo("data_preprocess.db", "DataQueue");
+    DBInfo dbInfo(DB_NAME_DATA_PREPROCESS, TABLE_NAME_DATA_QUEUE);
     MAKE_SHARED0_RETURN_VALUE(dbInfo.database, DataPreprocessDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceFilePath, SQLITE, dbInfo.dbName});
     MAKE_SHARED_RETURN_VALUE(dbInfo.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);

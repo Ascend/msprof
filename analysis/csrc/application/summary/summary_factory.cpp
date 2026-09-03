@@ -16,6 +16,9 @@
 
 #include "analysis/csrc/application/summary/summary_factory.h"
 
+#include <unordered_map>
+
+#include "analysis/csrc/application/summary/aicpu_assembler.h"
 #include "analysis/csrc/application/summary/api_statistic_assembler.h"
 #include "analysis/csrc/application/summary/comm_statistic_assembler.h"
 #include "analysis/csrc/application/summary/fusion_op_assembler.h"
@@ -53,6 +56,8 @@ std::unordered_map<std::string, AssemblerCreator> SummaryFactory::assemblerTable
      { MAKE_SHARED0_NO_OPERATION(assembler, OpStatisticAssembler, PROCESSOR_NAME_OP_STATISTIC, profPath); }},
     {PROCESSOR_NAME_PAGE_FAULT, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
      { MAKE_SHARED0_NO_OPERATION(assembler, PageFaultAssembler, PROCESSOR_NAME_PAGE_FAULT, profPath); }},
+    {PROCESSOR_NAME_AICPU, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
+     { MAKE_SHARED0_NO_OPERATION(assembler, AicpuAssembler, PROCESSOR_NAME_AICPU, profPath); }},
 };
 
 std::shared_ptr<SummaryAssembler> SummaryFactory::GetAssemblerByName(const std::string& processName,

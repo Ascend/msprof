@@ -117,6 +117,8 @@ class ParseDpData:
             with AiCpuModel(os.path.dirname(dp_path)) as model:
                 data = model.get_all_data(DBNameConstant.TABLE_AI_CPU_DP)
             # 表内 timestamp 为 ns（Python/C++ 落盘对齐），CSV 头为 Timestamp(us)
+            # 与 C++ LoadDpData 的 ORDER BY timestamp 对齐，保证 dp.csv 行序可重现
+            data.sort(key=lambda row: row[0])
             return [
                 (
                     float(InfoConfReader().trans_into_local_time(float(row[0]))),

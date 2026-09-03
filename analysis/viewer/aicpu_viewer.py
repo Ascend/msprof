@@ -195,7 +195,9 @@ class ParseAiCpuData:
         if not conn or not curs:
             logging.warning("Can't connect %s", DBNameConstant.DB_CLUSTER_DATA_PREPROCESS)
             return []
-        sql = "select node_name, start_time, end_time, queue_size from {0}".format(DBNameConstant.TABLE_DATA_QUEUE)
+        sql = "select node_name, start_time, end_time, queue_size from {0} order by start_time".format(
+            DBNameConstant.TABLE_DATA_QUEUE
+        )
         aicpu_mi_data = DBManager.fetch_all_data(conn.cursor(), sql)
         DBManager.destroy_db_connect(conn, curs)
         return aicpu_mi_data

@@ -66,7 +66,7 @@ TEST(SummaryManagerUTest, ShouldSelectAllDeliverablesWhenSelectionIsEmpty)
 {
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(SummaryManager::GetTopologyRoots({}, roots));
-    EXPECT_EQ(roots.size(), 10UL);
+    EXPECT_EQ(roots.size(), 11UL);
     std::unordered_set<TopoNodeId, TopoNodeIdHash> uniqueRoots;
     for (const auto& root : roots)
     {
@@ -83,6 +83,19 @@ TEST(SummaryManagerUTest, ShouldSelectAndDeduplicateDeliverables)
     ASSERT_EQ(assemblers.size(), 2UL);
     EXPECT_EQ(assemblers[0], PROCESSOR_OP_SUMMARY);
     EXPECT_EQ(assemblers[1], PROCESSOR_NAME_NPU_MEM);
+}
+
+TEST(SummaryManagerUTest, ShouldDeduplicateAicpuFamilyDeliverables)
+{
+    std::vector<std::string> assemblers;
+    ASSERT_TRUE(SummaryManager::GetAssemblerList({"aicpu", "dp", "aicpu_mi", "aicpu"}, assemblers));
+    ASSERT_EQ(assemblers.size(), 1UL);
+    EXPECT_EQ(assemblers[0], PROCESSOR_NAME_AICPU);
+
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(SummaryManager::GetTopologyRoots({"dp", "aicpu_mi"}, roots));
+    ASSERT_EQ(roots.size(), 1UL);
+    EXPECT_EQ(roots.front(), (TopoNodeId{TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_AICPU}));
 }
 
 TEST(SummaryManagerUTest, ShouldRejectUnknownDeliverable)

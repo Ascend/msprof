@@ -19,6 +19,7 @@
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/aicpu_summary_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
@@ -69,6 +70,11 @@ REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_NPU_MODULE_MEM, std::vector<NpuModul
 REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_API, std::vector<ApiData>, PROCESSOR_NAME_API);
 REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_STEP_TRACE, std::vector<TrainTraceData>, PROCESSOR_NAME_STEP_TRACE);
 REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_PAGE_FAULT, std::vector<PageFaultData>, PROCESSOR_NAME_PAGE_FAULT);
+REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_AICPU), true,
+                            SummaryManager::CreateSummaryAssembler(PROCESSOR_NAME_AICPU),
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_AICPU)), nullptr);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_AICPU), std::vector<AicpuSummaryData>,
+                                  std::vector<AicpuDpData>, std::vector<AicpuMiData>);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_FUSION_OP), true,
                             SummaryManager::CreateSummaryAssembler(PROCESSOR_NAME_FUSION_OP),

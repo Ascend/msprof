@@ -203,6 +203,12 @@ const std::string TABLE_NAME_UB = "UB";
 
 const std::string PROCESSOR_NAME_BLOCK_DETAIL = "BLOCK_DETAIL";
 const std::string PROCESSOR_NAME_PAGE_FAULT = "PAGE_FAULT";
+const std::string PROCESSOR_NAME_AICPU = "AICPU";
+const std::string DB_NAME_AI_CPU = "ai_cpu.db";
+const std::string TABLE_NAME_AI_CPU = "AiCpuData";
+const std::string TABLE_NAME_AI_CPU_DP = "AiCpuDP";
+const std::string DB_NAME_DATA_PREPROCESS = "data_preprocess.db";
+const std::string TABLE_NAME_DATA_QUEUE = "DataQueue";
 
 const std::string PROCESSOR_NAME_DPU = "DPU";
 const std::string TABLE_NAME_DPU_TASK = "DPU_TASK";

@@ -30,11 +30,11 @@ namespace Application
 {
 namespace
 {
-const std::vector<std::string> DATA_ASSEMBLE_LIST{PROCESSOR_OP_SUMMARY,          PROCESSOR_NAME_COMM_STATISTIC,
-                                                  PROCESSOR_NAME_OP_STATISTIC,   PROCESSOR_NAME_NPU_MEM,
-                                                  PROCESSOR_NAME_NPU_MODULE_MEM, PROCESSOR_NAME_API,
-                                                  PROCESSOR_NAME_FUSION_OP,      PROCESSOR_TASK_TIME_SUMMARY,
-                                                  PROCESSOR_NAME_STEP_TRACE,     PROCESSOR_NAME_PAGE_FAULT};
+const std::vector<std::string> DATA_ASSEMBLE_LIST{
+    PROCESSOR_OP_SUMMARY,      PROCESSOR_NAME_COMM_STATISTIC, PROCESSOR_NAME_OP_STATISTIC,
+    PROCESSOR_NAME_NPU_MEM,    PROCESSOR_NAME_NPU_MODULE_MEM, PROCESSOR_NAME_API,
+    PROCESSOR_NAME_FUSION_OP,  PROCESSOR_TASK_TIME_SUMMARY,   PROCESSOR_NAME_STEP_TRACE,
+    PROCESSOR_NAME_PAGE_FAULT, PROCESSOR_NAME_AICPU};
 
 const std::unordered_map<std::string, std::string> SUMMARY_DELIVERABLES{
     {"op_summary", PROCESSOR_OP_SUMMARY},
@@ -47,6 +47,9 @@ const std::unordered_map<std::string, std::string> SUMMARY_DELIVERABLES{
     {"task_time", PROCESSOR_TASK_TIME_SUMMARY},
     {"step_trace", PROCESSOR_NAME_STEP_TRACE},
     {"page_fault", PROCESSOR_NAME_PAGE_FAULT},
+    {"aicpu", PROCESSOR_NAME_AICPU},
+    {"dp", PROCESSOR_NAME_AICPU},
+    {"aicpu_mi", PROCESSOR_NAME_AICPU},
 };
 
 }  // namespace
