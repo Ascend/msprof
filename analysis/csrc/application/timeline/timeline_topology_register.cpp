@@ -105,7 +105,7 @@ REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_STARS_CHIP_TRANS,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CHIP_TRAINS),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_PCIE)),
-                                 std::vector<PaLinkInfoData>, std::vector<PcieInfoData>);
+                                 std::vector<PaLinkInfoData>, std::vector<PcieInfoData>, std::vector<PcieInfoV6Data>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HBM,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HBM)),
