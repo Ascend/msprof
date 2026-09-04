@@ -122,7 +122,7 @@ Run the following command in the container to write the sample training code to 
 
 ```bash
 cat > ~/train.py << 'EOF'
-import sys, re, subprocess, torch, torch.nn as nn, torch.optim as optim, torchvision.models as models # 为精简篇幅，导入语句合并为单行（非规范写法）
+import sys, re, subprocess, torch, torch.nn as nn, torch.optim as optim, torchvision.models as models # For brevity, the import statements are combined into a single line. This is not standard practice.
 
 class ResNet50:
     def __init__(self, num_classes=1000, device=0):
