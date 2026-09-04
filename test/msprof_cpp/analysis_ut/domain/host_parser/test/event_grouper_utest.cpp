@@ -31,6 +31,7 @@
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
+#include "test/msprof_cpp/analysis_ut/domain/services/test/fake_generator.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Host::Cann;
@@ -322,6 +323,43 @@ TEST_F(EventGrouperUTest, TestGroupShouldReturnEmptyWhenDataDirEmpty)
     auto tids = grouper->GetThreadIdSet();
     EXPECT_EQ(0, tids.size());
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, ShouldSkipCaptureAndMc2InGroupWhenCppParserDisabled)
+{
+    const std::string fakeDataDir = "./fakeCaptureData";
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    File::RemoveDir(fakeDataDir, 0);
+    ASSERT_TRUE(File::CreateDir(fakeDataDir));
+    ASSERT_TRUE(File::CreateDir(fakeDataDir + "/host"));
+    ASSERT_TRUE(File::CreateDir(hostDataDir));
+
+    MsprofCompactInfo capture{};
+    capture.threadId = 9;
+    capture.timeStamp = 123;
+    capture.data.captureStreamInfo.deviceId = 1;
+    capture.data.captureStreamInfo.modelId = 7;
+    capture.data.captureStreamInfo.originalStreamId = 52;
+    capture.data.captureStreamInfo.modelStreamId = 70;
+    capture.data.captureStreamInfo.captureStatus = 0;
+    std::vector<MsprofCompactInfo> captureRecords{capture};
+    ASSERT_TRUE(WriteBin(captureRecords, hostDataDir,
+                         "unaging.compact.capture_stream_info.slice_0"));
+
+    MsprofAdditionalInfo mc2{};
+    auto payload = ReinterpretConvert<MsprofMc2CommInfo *>(mc2.data);
+    payload->groupName = 99;
+    payload->streamId = 52;
+    std::vector<MsprofAdditionalInfo> mc2Records{mc2};
+    ASSERT_TRUE(WriteBin(mc2Records, hostDataDir, "unaging.additional.mc2_comm_info.slice_0"));
+
+    EventGrouper grouper(hostDataDir);
+    ASSERT_TRUE(grouper.Group());
+    EXPECT_TRUE(grouper.GetCaptureStreamInfoData().empty());
+    EXPECT_TRUE(grouper.GetMc2CommInfoData().empty());
+    EXPECT_TRUE(grouper.GetThreadIdSet().empty());
+    EXPECT_FALSE(grouper.GetGroupEvents().Find(9));
+    EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));
 }
 
 // 测试文件夹中只有Api类型数据

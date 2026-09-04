@@ -264,6 +264,13 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
         case AdditionalInfoFormat::TASK_MEMORY_INFO_TYPE:
             AdapterMemoryInfo(addition, parsed);
             return true;
+        case AdditionalInfoFormat::MC2_COMM_INFO_TYPE:
+            if (memcpy_s(parsed->data, sizeof(parsed->data), addition->data, sizeof(addition->data)) != EOK)
+            {
+                ERROR("adapter mc2 comm info data failed.");
+                return false;
+            }
+            return true;
         default:
             ERROR("Unsupported Additional Info: %.", static_cast<uint32_t>(parserType));
             return false;

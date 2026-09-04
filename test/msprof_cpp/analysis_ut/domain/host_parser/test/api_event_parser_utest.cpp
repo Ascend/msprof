@@ -148,4 +148,5 @@ TEST_F(ApiEventParserUTest, TestProduceDataShouldReturnEmptyWhenPopNullptr)
     auto parser = std::make_shared<ApiEventParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserApi>();
     EXPECT_EQ(0, data.size());
+    MOCKER_CPP(&ChunkGenerator::Pop).reset();
 }

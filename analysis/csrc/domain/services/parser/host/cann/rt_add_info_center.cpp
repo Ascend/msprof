@@ -40,13 +40,17 @@ void Cann::RTAddInfoCenter::Load(const std::string& path)
     {
         LoadDB(path);
     }
-    LoadCaptureInfoDB(path);
+}
+
+void RTAddInfoCenter::SetCaptureStreamInfoData(const std::vector<CaptureStreamInfo>& data)
+{
+    captureStreamInfoData_ = data;
+    captureInfoTimeRangeDict_.clear();
     BuildCaptureInfoTimeRange();
 }
 
 void RTAddInfoCenter::Add(const RuntimeOpInfo& info)
 {
-    // 仅在 EventGrouper::Group() 内单线程调用（见头文件使用场景注释），与后续读取互不重叠
     std::string key = Utils::Join("_", info.deviceId, info.streamId, info.taskId);
     runtimeOpInfoData_[key] = info;
     dumpList_.push_back(info);
@@ -113,41 +117,6 @@ void RTAddInfoCenter::BuildCaptureInfoTimeRange()
             std::get<1>(timeRange) = info.timeStamp;  // endTime
             std::get<2>(timeRange) = info.modelId;
         }
-    }
-}
-
-void RTAddInfoCenter::LoadCaptureInfoDB(const std::string& path)
-{
-    StreamInfoDB streamInfoDB;
-    std::string hostDbDirectory = Utils::File::PathJoin({path, streamInfoDB.GetDBName()});
-    DBRunner dbRunner(hostDbDirectory);
-    if (!File::Exist(hostDbDirectory) || !dbRunner.CheckTableExists("CaptureStreamInfo"))
-    {
-        return;
-    }
-    std::string sql{
-        "SELECT model_id, timestamp, stream_id, original_stream_id, device_id, batch_id, capture_status "
-        "FROM CaptureStreamInfo"};
-    using DataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint32_t, uint32_t, uint16_t, uint32_t, uint16_t>>;
-    DataFormat result;
-    if (!dbRunner.QueryData(sql, result))
-    {
-        ERROR("Query capture stream info data failed, db path is %.", hostDbDirectory);
-        return;
-    }
-
-    for (const auto& row : result)
-    {
-        uint16_t deviceId;
-        uint32_t originalStreamId;
-        uint32_t batchId;
-        uint16_t captureStatus;
-        uint32_t streamId;
-        uint64_t modelId;
-        uint64_t timeStamp;
-        std::tie(modelId, timeStamp, streamId, originalStreamId, deviceId, batchId, captureStatus) = row;
-        CaptureStreamInfo info{modelId, timeStamp, streamId, originalStreamId, deviceId, batchId, captureStatus};
-        captureStreamInfoData_.push_back(info);
     }
 }
 

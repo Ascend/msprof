@@ -22,7 +22,6 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/dpu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/mc2_comm_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/memcpy_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
@@ -123,9 +122,8 @@ REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_TASK,
                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_DEVICE_TX)),
                             std::vector<AscendTaskData>, std::vector<MsprofTxDeviceData>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_COMPUTE_TASK_INFO,
-                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-                                      TOPO_NODE(DATA_PROCESSING, PROCESSOR_MC2_COMM_INFO)),
-                            std::vector<TaskInfoData>, std::vector<MC2CommInfoData>);
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO)),
+                            std::vector<TaskInfoData>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_MEMCPY_INFO,
                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_MEMCPY_INFO)),
                             std::vector<MemcpyInfoData>);

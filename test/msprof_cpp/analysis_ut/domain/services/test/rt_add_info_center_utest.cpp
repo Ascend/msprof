@@ -18,6 +18,8 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
+#include <algorithm>
+
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
@@ -49,6 +51,11 @@ const captureStreamDataFormat CAPTURE_STREAM_DATA{
     {0, 49, 3, 95, 0, 0, 27063567062060},
     {0, 49, 44, 11, 0, 0, 27063567062060},
     {0, 49, 43, 12, 0, 0, 27063567062060}
+};
+const std::vector<CaptureStreamInfo> DIRECT_CAPTURE_STREAM_DATA{
+    {49, 27063567062060, 95, 3, 0, 0, 0},
+    {49, 27063567062060, 11, 44, 0, 0, 0},
+    {49, 27063567062060, 12, 43, 0, 0, 0},
 };
 
 const std::string PROF_PATH = "./PROF_XXX";
@@ -89,6 +96,7 @@ protected:
 
     void SetUp() override
     {
+        RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData({});
         RtsTrackDB rtsTrackDB;
         std::string opInfo = "RuntimeOpInfo";
         CreateDB(rtsTrackDB, opInfo, RTS_TRACK_DB_PATH, DATA);
@@ -144,6 +152,7 @@ void CheckRuntimeOpInfo(RuntimeOpInfo info, RuntimeOpInfo expect)
 TEST_F(RTAddInfoCenterUTest, LoadThenTestGetWhenLoadSuccess)
 {
     HashData::GetInstance().Load(DATA_PATH);
+    RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData(DIRECT_CAPTURE_STREAM_DATA);
     RTAddInfoCenter::GetInstance().Load(SQLITE_PATH);
     // info 1 2 是有效值，3是空
     auto info1 = RTAddInfoCenter::GetInstance().Get(5, 30, 10);
@@ -165,6 +174,27 @@ TEST_F(RTAddInfoCenterUTest, LoadThenTestGetWhenLoadSuccess)
     EXPECT_EQ(modelId2, 49);
     EXPECT_EQ(modelId3, 49);
     EXPECT_EQ(modelId4, 4294967295u);
+}
+
+TEST_F(RTAddInfoCenterUTest, LoadShouldNotReadCaptureStreamInfoFromDb)
+{
+    RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData({});
+    RTAddInfoCenter::GetInstance().Load(SQLITE_PATH);
+    EXPECT_EQ(DEFAULT_MODEL_ID, RTAddInfoCenter::GetInstance().GetModelId(0, 95, 0, 27063567062061));
+}
+
+TEST_F(RTAddInfoCenterUTest, SetCaptureInfoShouldPreserveV2OriginalStreamIdWidth)
+{
+    std::vector<CaptureStreamInfo> wideData{{88, 27063567062070, 70003, 70002, 0, 0, 0}};
+    RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData(wideData);
+    RTAddInfoCenter::GetInstance().Load(SQLITE_PATH);
+    const auto &captureData = RTAddInfoCenter::GetInstance().captureStreamInfoData_;
+    auto record = std::find_if(captureData.begin(), captureData.end(), [](const CaptureStreamInfo &item) {
+        return item.modelId == 88;
+    });
+    ASSERT_NE(captureData.end(), record);
+    EXPECT_EQ(70002u, record->originalStreamId);
+    EXPECT_EQ(70003u, record->streamId);
 }
 
 TEST_F(RTAddInfoCenterUTest, AddShouldMarkLoadedFromBinaryAndKeepDumpList)

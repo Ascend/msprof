@@ -35,7 +35,7 @@ namespace
 const std::set<std::string> FILTER_TYPE = {"KERNEL_AICORE",  "KERNEL_AIVEC",     "FFTS_PLUS",        "KERNEL_MIX_AIC",
                                            "KERNEL_MIX_AIV", "PROFILING_ENABLE", "PROFILING_DISABLE"};
 
-void SepOneTask(std::vector<TimeDuration> &times, std::set<uint32_t> &mc2StreamsTable, TaskInfoData &task,
+void SepOneTask(std::vector<TimeDuration> &times, const std::set<uint32_t> &mc2StreamsTable, TaskInfoData &task,
                 std::unordered_map<uint16_t, std::vector<TimeDuration>> &compSections)
 {
     if (mc2StreamsTable.find(task.streamId) != mc2StreamsTable.end() || EndsWith(task.opName, AICPU_KERNEL) ||

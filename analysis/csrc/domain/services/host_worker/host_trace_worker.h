@@ -16,6 +16,7 @@
 
 #ifndef ANALYSIS_WORKER_HOST_TRACE_THREAD_H
 #define ANALYSIS_WORKER_HOST_TRACE_THREAD_H
+#include <cstdint>
 #include <set>
 #include <string>
 #include <utility>
@@ -23,6 +24,7 @@
 #include "analysis/csrc/domain/entities/tree/include/tree.h"
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
+#include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
 #include "analysis/csrc/infrastructure/utils/safe_unordered_map.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 
@@ -57,6 +59,10 @@ class HostTraceWorker
     void DumpModelName(ThreadPool &pool, const std::string &hostDataPath);
     void DumpHostSystemProfileData(ThreadPool &pool);
     void DumpMemcpyInfo(const std::string &hostDataPath);
+    bool DumpCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
+                               CaptureStreamInfoData &formattedCaptureData);
+    bool DumpMc2CommInfo(const std::shared_ptr<EventGrouper> &grouper,
+                         const CaptureStreamInfoData &formattedCaptureData);
 
    private:
     const uint32_t poolSize_ = 10;

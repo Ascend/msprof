@@ -75,12 +75,13 @@ protected:
         std::vector<MsprofCompactInfo> agingTraces;
         std::vector<MsprofCompactInfo> unAgingTraces;
         for (uint32_t i = 0; i < DATA_NUM; ++i) {
-            MsprofCompactInfo info;
+            MsprofCompactInfo info{};
             info.level = level;
             info.type = static_cast<uint32_t>(type);
             info.threadId = i;
             info.dataLen = dataLen;
             info.timeStamp = DATA_NUM + i;
+            info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
             if (i >= DATA_NUM - invalidDataNum) {
                 info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
             }
@@ -225,6 +226,7 @@ TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturn8Compac
     Check(compactInfo, EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL,
           DATA_NUM - flipTaskNum - maintenanceTaskNum);
     EXPECT_EQ(flipTaskNum, flipTask.size());
+    MOCKER_CPP(&Context::IsAllExport).reset();
 }
 
 TEST_F(CompactInfoParserUTest, TestTaskTrackParserProduceDataShouldReturnEmptyWhenReserveFailed)
@@ -349,12 +351,13 @@ static void GenDpuTrackData(uint16_t dataNum = DATA_NUM, uint16_t invalidDataNum
     std::vector<MsprofCompactInfo> agingTraces;
     std::vector<MsprofCompactInfo> unAgingTraces;
     for (uint32_t i = 0; i < dataNum; ++i) {
-        MsprofCompactInfo info;
+        MsprofCompactInfo info{};
         info.level = level;
         info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_DPU_TASK_TRACK);
         info.threadId = i;
         info.dataLen = dataLen;
         info.timeStamp = dataNum + i;
+        info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         if (i >= dataNum - invalidDataNum) {
             info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
         }

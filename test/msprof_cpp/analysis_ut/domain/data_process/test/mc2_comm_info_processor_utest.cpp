@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include <algorithm>
 #include "analysis/csrc/domain/data_process/ai_task/mc2_comm_info_processor.h"
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
@@ -117,4 +118,23 @@ TEST_F(Mc2CommInfoProcessorUTest, TestRunShouldReturnFalseWhenSaveToDataInventor
     .will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_MC2_COMM_INFO));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<MC2CommInfoData>).reset();
+}
+
+TEST_F(Mc2CommInfoProcessorUTest, ShouldPreserveUint32KfcStreamId)
+{
+    using WideMc2Format =
+        std::vector<std::tuple<std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string>>;
+    WideMc2Format wideData{{"99", 2, 0, 0, 70003, "70004,70005"}};
+    DBRunner dbRunner(File::PathJoin({PROF_PATH, HOST, SQLITE, DB_SUFFIX}));
+    ASSERT_TRUE(dbRunner.InsertData(TABLE_NAME, wideData));
+
+    DataInventory dataInventory;
+    auto processor = Mc2CommInfoProcessor(PROF_PATH);
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_MC2_COMM_INFO));
+    auto result = dataInventory.GetPtr<std::vector<MC2CommInfoData>>();
+    ASSERT_TRUE(result);
+    auto record = std::find_if(result->begin(), result->end(), [](const MC2CommInfoData &item) {
+        return item.aiCpuKfcStreamId == 70003;
+    });
+    EXPECT_NE(result->end(), record);
 }

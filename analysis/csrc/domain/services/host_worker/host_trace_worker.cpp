@@ -19,11 +19,14 @@
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 #include "analysis/csrc/domain/services/host_worker/host_cpu_freq_parser.h"
+#include "analysis/csrc/domain/services/parser/host/cann/capture_mc2_cpp_enable.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/dpu_task_track_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/mc2_comm_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/memcpy_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/model_name_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/runtime_op_info_dumper.h"
@@ -42,7 +45,19 @@ bool HostTraceWorker::Run()
     auto hostDataPath = Utils::File::PathJoin({hostPath_, "data"});
     std::shared_ptr<EventGrouper> grouper;
     MAKE_SHARED_RETURN_VALUE(grouper, EventGrouper, false, hostDataPath);
-    grouper->Group();
+    bool result = grouper->Group();
+    // CaptureStreamInfoData formattedCaptureData;
+    // if (Host::Cann::kEnableCaptureStreamMc2CppParser)
+    // {
+    //     if (!DumpCaptureStreamInfo(grouper, formattedCaptureData))
+    //     {
+    //         result = false;
+    //     }
+    //     if (!DumpMc2CommInfo(grouper, formattedCaptureData))
+    //     {
+    //         result = false;
+    //     }
+    // }
     auto sqlitePath = Utils::File::PathJoin({hostPath_, "sqlite"});
     RTAddInfoCenter::GetInstance().Load(sqlitePath);
     DumpRuntimeOpInfo();
@@ -75,6 +90,66 @@ bool HostTraceWorker::Run()
     apiDumpPool.WaitAllTasks();
     apiDumpPool.Stop();
     DumpMemcpyInfo(hostDataPath);  // 依赖runtime.db中的HostTask, 不能放在pool中
+    return result;
+}
+
+bool HostTraceWorker::DumpCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
+                                            CaptureStreamInfoData &formattedCaptureData)
+{
+    bool result = true;
+    RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData({});
+    const auto &captureData = grouper->GetCaptureStreamInfoData();
+    if (captureData.empty())
+    {
+        return true;
+    }
+
+    CaptureStreamInfoDumper captureDumper(hostPath_);
+    formattedCaptureData = captureDumper.FormatData(captureData);
+    if (formattedCaptureData.empty())
+    {
+        ERROR("Format capture stream info failed.");
+        return false;
+    }
+
+    std::vector<Analysis::Domain::CaptureStreamInfo> centerData;
+    if (!Utils::Reserve(centerData, formattedCaptureData.size()))
+    {
+        ERROR("Reserve capture stream info center data failed.");
+        result = false;
+    }
+    else
+    {
+        for (const auto &item : formattedCaptureData)
+        {
+            centerData.emplace_back(item.modelId, item.timeStamp, item.streamId, item.originalStreamId, item.deviceId,
+                                    static_cast<uint16_t>(item.batchId), item.captureStatus);
+        }
+        RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData(centerData);
+    }
+    if (!captureDumper.DumpData(formattedCaptureData))
+    {
+        ERROR("Dump capture stream info failed.");
+        result = false;
+    }
+    return result;
+}
+
+bool HostTraceWorker::DumpMc2CommInfo(const std::shared_ptr<EventGrouper> &grouper,
+                                      const CaptureStreamInfoData &formattedCaptureData)
+{
+    const auto &mc2Data = grouper->GetMc2CommInfoData();
+    if (mc2Data.empty())
+    {
+        return true;
+    }
+    Mc2CommInfoDumper mc2Dumper(hostPath_);
+    Mc2CommInfoInput input(mc2Data, formattedCaptureData);
+    if (!mc2Dumper.DumpData(input))
+    {
+        ERROR("Dump mc2 comm info failed.");
+        return false;
+    }
     return true;
 }
 

@@ -17,6 +17,7 @@
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/domain/services/parser/host/cann/capture_mc2_cpp_enable.h"
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
@@ -66,10 +67,47 @@ std::vector<std::shared_ptr<Adapter::FlipTask>> &EventGrouper::GetFlipTasks() { 
 std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
 std::unordered_map<uint64_t, uint64_t> &EventGrouper::GetDpuKernelNameMap() { return dpuKernelNameMap_; }
 
+const std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetCaptureStreamInfoData() const
+{
+    return captureStreamInfoData_;
+}
+
+const std::vector<std::shared_ptr<ParserAdditionalInfo>> &EventGrouper::GetMc2CommInfoData() const
+{
+    return mc2CommInfoData_;
+}
+
+void EventGrouper::ParseCaptureStreamInfo()
+{
+    Utils::TimeLogger t{"Parse CaptureStreamInfo"};
+    CaptureStreamInfoParser parser(hostPath_);
+    captureStreamInfoData_ = parser.ParseData<ParserCompactInfo>();
+    if (parser.GetStatus() == ParserStatus::ERROR)
+    {
+        ERROR("Parse capture stream info failed.");
+        result_ = false;
+    }
+}
+
+void EventGrouper::ParseMc2CommInfo()
+{
+    Utils::TimeLogger t{"Parse Mc2CommInfo"};
+    Mc2CommInfoParser parser(hostPath_);
+    mc2CommInfoData_ = parser.ParseData<ParserAdditionalInfo>();
+    if (parser.GetStatus() == ParserStatus::ERROR)
+    {
+        ERROR("Parse mc2 comm info failed.");
+        result_ = false;
+    }
+}
+
 bool EventGrouper::Group()
 {
     Utils::TimeLogger t{"Group all events"};
-    const uint32_t poolSize = 8;
+    result_ = true;
+    captureStreamInfoData_.clear();
+    mc2CommInfoData_.clear();
+    const uint32_t poolSize = 10;
     ThreadPool pool(poolSize);
     pool.Start();
     GroupTreeEvent(pool);
@@ -78,7 +116,7 @@ bool EventGrouper::Group()
     pool.Stop();
     SetApiEventKeys();
     RecordCANNWareHouses();
-    return true;
+    return result_;
 }
 
 void EventGrouper::GroupTreeEvent(ThreadPool &pool)
@@ -110,6 +148,11 @@ void EventGrouper::GroupTreeEvent(ThreadPool &pool)
             GroupEvents<NodeAttrInfoParser, ParserCompactInfo, &CANNWarehouse::nodeAttrInfoEvents>(
                 "NodeAttrInfo", EventType::EVENT_TYPE_NODE_ATTR_INFO);
         });
+    // if (kEnableCaptureStreamMc2CppParser)
+    // {
+    //     pool.AddTask([this]() { ParseCaptureStreamInfo(); });
+    //     pool.AddTask([this]() { ParseMc2CommInfo(); });
+    // }
     pool.AddTask(
         [this]()
         {

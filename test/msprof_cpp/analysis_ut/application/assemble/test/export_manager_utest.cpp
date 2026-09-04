@@ -379,13 +379,13 @@ TEST_F(ExportManagerUTest, ShouldBuildProcessorDependencyClosure)
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_OVERLAP_ANALYSIS}}, processes));
 
-    EXPECT_EQ(processes.size(), 6UL);
+    EXPECT_EQ(processes.size(), 5UL);
     bool overlapFound = false;
     for (const auto& process : processes) {
         if (process.second.processName == PROCESSOR_NAME_OVERLAP_ANALYSIS) {
             overlapFound = true;
-            EXPECT_EQ(process.second.processDependence.size(), 4UL);
-            EXPECT_EQ(process.second.paramTypes.size(), 4UL);
+            EXPECT_EQ(process.second.processDependence.size(), 3UL);
+            EXPECT_EQ(process.second.paramTypes.size(), 3UL);
         }
         EXPECT_NE(process.second.processName, "DataProcessorCollector");
     }

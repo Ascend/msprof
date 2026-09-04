@@ -42,6 +42,20 @@ enum class DevType : uint16_t
     DPU = 1,
 };
 
+const std::vector<std::string> CAPTURE_V1_PREFIXES = {
+    // "unaging.compact.capture_stream_info.slice",
+    // "aging.compact.capture_stream_info.slice",
+};
+const std::vector<std::string> CAPTURE_V2_PREFIXES = {
+    // "unaging.compact.capture_stream_info_v2.slice",
+    // "aging.compact.capture_stream_info_v2.slice",
+};
+
+bool HasCaptureData(const std::string &path, const std::vector<std::string> &prefixes)
+{
+    return !File::GetOriginData(path, prefixes, {"done", "complete"}).empty();
+}
+
 constexpr uint16_t kDevTypeShift = 12;
 constexpr uint16_t kDevTypeMask = 0xF;
 
@@ -100,6 +114,50 @@ int CompactInfoParser::ProduceData()
         if (!ParserCompactInfoAdapter::AdapterCompactInfo(compactInfo, parserCompactInfo.get(), parserType_))
         {
             ERROR("%: copy compactInfo data failed.", parserName_);
+            return ANALYSIS_ERROR;
+        }
+        compactData_.emplace_back(std::move(parserCompactInfo));
+    }
+    return ANALYSIS_OK;
+}
+
+CaptureStreamInfoParser::CaptureStreamInfoParser(const std::string &path)
+    : CompactInfoParser(path, "CaptureStreamInfoParser")
+{
+    isV2_ = !HasCaptureData(path, CAPTURE_V1_PREFIXES) && HasCaptureData(path, CAPTURE_V2_PREFIXES);
+    Init(isV2_ ? CAPTURE_V2_PREFIXES : CAPTURE_V1_PREFIXES);
+}
+
+int CaptureStreamInfoParser::ProduceData()
+{
+    if (chunkProducer_->Empty())
+    {
+        return ANALYSIS_OK;
+    }
+    if (!Reserve(compactData_, chunkProducer_->Size()))
+    {
+        ERROR("%: Reserve data failed", parserName_);
+        return ANALYSIS_ERROR;
+    }
+    const auto format = isV2_ ? CaptureStreamFormat::V2 : CaptureStreamFormat::V1;
+    while (!chunkProducer_->Empty())
+    {
+        std::unique_ptr<char[]> chunk(chunkProducer_->Pop());
+        auto compactInfo = ReinterpretConvert<MsprofCompactInfo *>(chunk.get());
+        if (!compactInfo)
+        {
+            ERROR("%: Pop chunk failed.", parserName_);
+            return ANALYSIS_ERROR;
+        }
+        if (compactInfo->magicNumber != MSPROF_DATA_HEAD_MAGIC_NUM)
+        {
+            ERROR("%: The last %th data check failed.", parserName_, chunkProducer_->Size());
+            continue;
+        }
+        auto parserCompactInfo = std::make_shared<ParserCompactInfo>();
+        if (!ParserCompactInfoAdapter::AdapterCaptureStreamInfo(compactInfo, format, parserCompactInfo.get()))
+        {
+            ERROR("%: copy captureStreamInfo data failed.", parserName_);
             return ANALYSIS_ERROR;
         }
         compactData_.emplace_back(std::move(parserCompactInfo));

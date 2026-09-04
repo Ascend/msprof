@@ -27,7 +27,6 @@
 #include "analysis/csrc/domain/data_process/ai_task/hccl_statistic_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/host_task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/kfc_task_processor.h"
-#include "analysis/csrc/domain/data_process/ai_task/mc2_comm_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/memcpy_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/metric_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/model_name_processor.h"
@@ -120,7 +119,6 @@ REGISTER_PROCESSOR(RoCETimelineProcessor, PROCESSOR_NAME_ROCE_TIMELINE, TOPO_DEP
 REGISTER_PROCESSOR(NicProcessor, PROCESSOR_NAME_NIC, TOPO_DEPS());
 REGISTER_PROCESSOR(RoCEProcessor, PROCESSOR_NAME_ROCE, TOPO_DEPS());
 REGISTER_PROCESSOR(QosProcessor, PROCESSOR_NAME_QOS, TOPO_DEPS());
-REGISTER_PROCESSOR(Mc2CommInfoProcessor, PROCESSOR_MC2_COMM_INFO, TOPO_DEPS());
 REGISTER_PROCESSOR(MetricProcessor, PROCESSOR_PMU, TOPO_DEPS());
 REGISTER_PROCESSOR(MemcpyInfoProcessor, PROCESSOR_NAME_MEMCPY_INFO, TOPO_DEPS());
 REGISTER_PROCESSOR_WITH_DATA(NpuOpMemProcessor, PROCESSOR_NAME_NPU_OP_MEM,
@@ -136,10 +134,8 @@ REGISTER_PROCESSOR(HostTaskProcessor, PROCESSOR_HOST_TASK, TOPO_DEPS());
 REGISTER_PROCESSOR_WITH_DATA(OverlapAnalysisProcessor, PROCESSOR_NAME_OVERLAP_ANALYSIS,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
                                        TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION),
-                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_MC2_COMM_INFO)),
-                             std::vector<AscendTaskData>, std::vector<TaskInfoData>, std::vector<CommunicationOpData>,
-                             std::vector<MC2CommInfoData>);
+                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION)),
+                             std::vector<AscendTaskData>, std::vector<TaskInfoData>, std::vector<CommunicationOpData>);
 REGISTER_PROCESSOR(LowPowerProcessor, PROCESSOR_NAME_LOW_POWER, TOPO_DEPS());
 REGISTER_PROCESSOR(BiuPerfProcessor, PROCESSOR_NAME_BIU_PERF, TOPO_DEPS());
 REGISTER_PROCESSOR(UbProcessor, PROCESSOR_NAME_UB, TOPO_DEPS());

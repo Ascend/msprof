@@ -24,15 +24,20 @@
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/event_queue.h"
 
-namespace Analysis {
-namespace Domain {
-namespace Host {
-namespace Cann {
+namespace Analysis
+{
+namespace Domain
+{
+namespace Host
+{
+namespace Cann
+{
 
 using EventQueue = Analysis::Domain::EventQueue;
 
 // CANN数据仓，用于存储各个Type的Events
-struct CANNWarehouse {
+struct CANNWarehouse
+{
     // API Type只在Model、Node、HCCL Level的Event
     std::shared_ptr<EventQueue> kernelEvents = nullptr;
     std::shared_ptr<EventQueue> graphIdMapEvents = nullptr;
@@ -46,8 +51,8 @@ struct CANNWarehouse {
     std::shared_ptr<EventQueue> hcclOpInfoEvents = nullptr;
 };
 
-} // namespace Cann
-} // namespace Host
-} // namespace Parser
-} // namespace Analysis
-#endif // ANALYSIS_PARSER_HOST_CANN_CANN_WAREHOUSE_H
+}  // namespace Cann
+}  // namespace Host
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_PARSER_HOST_CANN_CANN_WAREHOUSE_H

@@ -24,6 +24,7 @@
 #include "analysis/csrc/domain/services/adapter/flip.h"
 #include "analysis/csrc/domain/services/parser/host/base_parser.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 namespace Analysis
@@ -52,6 +53,19 @@ class CompactInfoParser : public BaseParser<CompactInfoParser>
     std::vector<std::shared_ptr<ParserCompactInfo>> compactData_;   // not owned
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTaskData_;  // not owned
 };  // class CompactInfoParser
+
+// capture stream info数据的解析，复用Compact数据读取流程
+class CaptureStreamInfoParser final : public CompactInfoParser
+{
+   public:
+    explicit CaptureStreamInfoParser(const std::string &path);
+
+   private:
+    int ProduceData() override;
+
+   private:
+    bool isV2_ = false;
+};  // class CaptureStreamInfoParser
 
 // 该类的作用是node basic info数据的解析
 class NodeBasicInfoParser final : public CompactInfoParser

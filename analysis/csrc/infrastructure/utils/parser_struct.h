@@ -45,6 +45,7 @@ enum class AdditionalInfoFormat : uint8_t
     MEMORY_APPLICATION_TYPE,
     MULTI_THREAD_TYPE,
     TASK_MEMORY_INFO_TYPE,
+    MC2_COMM_INFO_TYPE,
 };
 
 enum class VariableInfoFormat : uint8_t
