@@ -18,38 +18,42 @@
 #define ANALYSIS_APPLICATION_OP_SUMMARY_ASSEMBLE_H
 
 #include <cstdint>
-#include <map>
+#include <unordered_map>
+
 #include "analysis/csrc/application/summary/summary_assembler.h"
-#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/metric_summary.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
+#include "analysis/csrc/domain/valueobject/include/task_id.h"
+#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
-class OpSummaryAssembler : public SummaryAssembler {
-public:
+class OpSummaryAssembler : public SummaryAssembler
+{
+   public:
     OpSummaryAssembler() = default;
     OpSummaryAssembler(const std::string &name, const std::string &profPath);
-protected:
+
+   protected:
     void WriteToFile(const std::string &fileName, const std::set<int> &maskCols);
-private:
+
+   private:
     uint8_t AssembleData(DataInventory &dataInventory);
-    void GenerateOpBody(std::vector<AscendTaskData> &taskData, std::shared_ptr<MetricSummary> &pmu);
+    void GenerateOpBody(const AssociatedTaskCollection &associatedTasks, std::shared_ptr<MetricSummary> &pmu);
     void GenerateHcclBody(std::vector<CommunicationOpData> &opData);
-    void SplitDataByTaskId(std::vector<TaskInfoData> &taskInfo);
     std::vector<std::string> GenerateOneTaskRow(const TaskInfoData &computeTask, const AscendTaskData &task);
     void MergeTaskAndPmu(std::shared_ptr<MetricSummary> &pmu, std::vector<std::string> &row, const TaskId &id,
                          std::unordered_map<std::string, int> &indexTable);
     void AddCubeUsage(std::vector<std::string> &data, std::unordered_map<std::string, int> &indexTable);
     void CalculateWaitTime();
     std::set<int> GetMaskCols();
-private:
-    std::map<TaskId, TaskInfoData*> computeTask_;
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_OP_SUMMARY_ASSEMBLE_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_OP_SUMMARY_ASSEMBLE_H

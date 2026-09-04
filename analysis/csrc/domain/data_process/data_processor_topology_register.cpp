@@ -35,6 +35,7 @@
 #include "analysis/csrc/domain/data_process/ai_task/op_statistic_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/overlap_analysis_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/step_trace_processor.h"
+#include "analysis/csrc/domain/data_process/ai_task/task_association_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/task_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/unified_pmu_processor.h"
 #include "analysis/csrc/domain/data_process/include/data_processor_factory.h"
@@ -129,7 +130,13 @@ REGISTER_PROCESSOR(FusionOpProcessor, PROCESSOR_NAME_FUSION_OP, TOPO_DEPS());
 REGISTER_PROCESSOR(FusionTaskProcessor, PROCESSOR_NAME_FUSION_TASK, TOPO_DEPS());
 REGISTER_PROCESSOR(ModelNameProcessor, PROCESSOR_NAME_MODEL_NAME, TOPO_DEPS());
 REGISTER_PROCESSOR(HcclStatisticProcessor, PROCESSOR_NAME_COMM_STATISTIC, TOPO_DEPS());
-REGISTER_PROCESSOR(OpStatisticProcessor, PROCESSOR_NAME_OP_STATISTIC, TOPO_DEPS());
+REGISTER_PROCESSOR_WITH_DATA(TaskAssociationProcessor, PROCESSOR_NAME_TASK_ASSOCIATION,
+                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
+                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK)),
+                             std::vector<TaskInfoData>, std::vector<AscendTaskData>);
+REGISTER_PROCESSOR_WITH_DATA(OpStatisticProcessor, PROCESSOR_NAME_OP_STATISTIC,
+                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK_ASSOCIATION)),
+                             AssociatedTaskCollection);
 REGISTER_PROCESSOR(HostTaskProcessor, PROCESSOR_HOST_TASK, TOPO_DEPS());
 REGISTER_PROCESSOR_WITH_DATA(OverlapAnalysisProcessor, PROCESSOR_NAME_OVERLAP_ANALYSIS,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),

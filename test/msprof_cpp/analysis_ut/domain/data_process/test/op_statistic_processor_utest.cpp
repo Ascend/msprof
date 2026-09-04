@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -15,149 +15,223 @@
  * -------------------------------------------------------------------------*/
 
 #include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain//data_process/ai_task/op_statistic_processor.h"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/environment/context.h"
+
 #include "analysis/csrc/application/database/db_constant.h"
-#include "reserve_mock_utils.h"
+#include "analysis/csrc/domain/data_process/ai_task/op_statistic_processor.h"
+#include "analysis/csrc/domain/data_process/ai_task/task_association_processor.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
-using namespace Analysis::Domain;
-using namespace Domain::Environment;
-using namespace Analysis::Utils;
 using namespace Analysis::Application;
-using namespace Analysis::Test;
-using ProcessedFormat = std::vector<OpStatisticData>;
+using namespace Analysis::Domain;
+using namespace Analysis::Infra;
+using namespace Analysis::Utils;
 
-const std::string BASE_PATH = "./op_statistic";
-const std::string DEVICE_SUFFIX = "device_0";
-const std::string SQLITE_SUFFIX = "sqlite";
-const std::string PROF_PATH_A = File::PathJoin({BASE_PATH, "PROF_0"});
-const std::string PROF_PATH_B = File::PathJoin({BASE_PATH, "PROF_1"});
-const std::string DB_SUFFIX = "op_counter.db";
-const std::string TABLE_NAME = "op_report";
-const std::set<std::string> PROF_PATHS = {PROF_PATH_A, PROF_PATH_B};
+namespace
+{
+const std::string PROF_PATH = "./op_statistic_processor_test/PROF_0";
 
-const OriOpCountDataFormat OP_DATA = {
-    {"RmsNormTactic",                   "AI_CORE", "1610", 20218924.375, 3900.125,  12558.338121, 93541.875,  4.833029},
-    {"PagedAttentionMaskNdKernel",      "MIX_AIC", "720",  18795054.5,   23860.5,   26104.242361, 32020.75,   4.492674},
-    {"AddBF16Tactic",                   "AI_CORE", "1600", 11507650.75,  2260,      7192.281719,  51141,      2.75073},
-    {"UnpadFlashAttentionBF16NdKernel", "MIX_AIC", "80",   11179324,     137662.75, 139741.55,    147122.875, 2.672249}
+TaskInfoData makeTaskInfo(uint16_t deviceId, uint32_t streamId, uint32_t taskId, const std::string &opType,
+                          const std::string &taskType, uint32_t batchId = 0, uint32_t contextId = 0,
+                          const std::string &opName = "")
+{
+    TaskInfoData data;
+    data.deviceId = deviceId;
+    data.streamId = streamId;
+    data.taskId = taskId;
+    data.batchId = batchId;
+    data.contextId = contextId;
+    data.opType = opType;
+    data.taskType = taskType;
+    data.opName = opName;
+    return data;
+}
+
+AscendTaskData makeAscendTask(uint16_t deviceId, uint32_t streamId, uint32_t taskId, uint64_t timestamp,
+                              uint64_t end, uint32_t batchId = 0, uint32_t contextId = 0)
+{
+    AscendTaskData data;
+    data.deviceId = deviceId;
+    data.streamId = streamId;
+    data.taskId = taskId;
+    data.batchId = batchId;
+    data.contextId = contextId;
+    data.timestamp = timestamp;
+    data.end = end;
+    data.duration = 1.0;
+    return data;
+}
+
+struct AssociatedTaskInput
+{
+    AssociatedTaskInput(TaskInfoData taskInfoData, AscendTaskData ascendTaskData, bool isOpSummaryRequired = true)
+        : taskInfo(std::move(taskInfoData)), ascendTask(std::move(ascendTaskData)),
+          opSummaryRequired(isOpSummaryRequired)
+    {
+    }
+
+    TaskInfoData taskInfo;
+    AscendTaskData ascendTask;
+    bool opSummaryRequired;
 };
 
-class OpStatisticProcessorUTest : public testing::Test {
-protected:
-    virtual void SetUp()
+AssociatedTaskInput makeAssociatedTask(uint16_t deviceId, uint32_t streamId, uint32_t taskId,
+                                       const std::string &opType, const std::string &taskType, uint64_t durationNs)
+{
+    return {makeTaskInfo(deviceId, streamId, taskId, opType, taskType),
+            makeAscendTask(deviceId, streamId, taskId, 100, 100 + durationNs), true};
+}
+
+void injectAssociatedTasks(DataInventory &dataInventory, std::vector<AssociatedTaskInput> associatedTasks)
+{
+    std::vector<TaskInfoData> taskInfoData;
+    std::vector<AscendTaskData> ascendTaskData;
+    taskInfoData.reserve(associatedTasks.size());
+    ascendTaskData.reserve(associatedTasks.size());
+    for (auto &associatedTask : associatedTasks)
     {
-        if (File::Check(BASE_PATH)) {
-            File::RemoveDir(BASE_PATH, 0);
+        taskInfoData.emplace_back(std::move(associatedTask.taskInfo));
+        ascendTaskData.emplace_back(std::move(associatedTask.ascendTask));
+    }
+
+    std::shared_ptr<std::vector<TaskInfoData>> taskInfoDataPtr;
+    std::shared_ptr<std::vector<AscendTaskData>> ascendTaskDataPtr;
+    std::shared_ptr<AssociatedTaskCollection> associatedTaskCollection;
+    MAKE_SHARED_NO_OPERATION(taskInfoDataPtr, std::vector<TaskInfoData>, std::move(taskInfoData));
+    MAKE_SHARED_NO_OPERATION(ascendTaskDataPtr, std::vector<AscendTaskData>, std::move(ascendTaskData));
+    MAKE_SHARED_NO_OPERATION(associatedTaskCollection, AssociatedTaskCollection);
+    associatedTaskCollection->taskInfoData = taskInfoDataPtr;
+    associatedTaskCollection->ascendTaskData = ascendTaskDataPtr;
+    for (size_t index = 0; index < associatedTasks.size(); ++index)
+    {
+        associatedTaskCollection->records.push_back(AssociatedTaskData{
+            &associatedTaskCollection->taskInfoData->at(index), &associatedTaskCollection->ascendTaskData->at(index),
+            associatedTasks.at(index).opSummaryRequired});
+    }
+    dataInventory.Inject(associatedTaskCollection);
+}
+
+void injectSourceData(DataInventory &dataInventory, std::vector<TaskInfoData> taskInfo,
+                      std::vector<AscendTaskData> ascendTask)
+{
+    std::shared_ptr<std::vector<TaskInfoData>> taskInfoPtr;
+    MAKE_SHARED_NO_OPERATION(taskInfoPtr, std::vector<TaskInfoData>, std::move(taskInfo));
+    dataInventory.Inject(taskInfoPtr);
+    std::shared_ptr<std::vector<AscendTaskData>> ascendTaskPtr;
+    MAKE_SHARED_NO_OPERATION(ascendTaskPtr, std::vector<AscendTaskData>, std::move(ascendTask));
+    dataInventory.Inject(ascendTaskPtr);
+}
+
+const OpStatisticData *findStatistic(const std::vector<OpStatisticData> &data, uint16_t deviceId,
+                                     const std::string &opType, const std::string &coreType)
+{
+    for (const auto &item : data)
+    {
+        if (item.deviceId == deviceId && item.opType == opType && item.coreType == coreType)
+        {
+            return &item;
         }
-        EXPECT_TRUE(File::CreateDir(BASE_PATH));
-        EXPECT_TRUE(File::CreateDir(PROF_PATH_A));
-        EXPECT_TRUE(File::CreateDir(PROF_PATH_B));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX})));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX})));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX})));
-        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX})));
-        CreateOpMetricData(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), OP_DATA);
-        CreateOpMetricData(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), OP_DATA);
     }
-    virtual void TearDown()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, 0));
-    }
-    static void CreateOpMetricData(const std::string& dbPath, OriOpCountDataFormat data)
-    {
-        std::shared_ptr<OpCounterDB> database;
-        MAKE_SHARED0_RETURN_VOID(database, OpCounterDB);
-        std::shared_ptr<DBRunner> dbRunner;
-        MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
-        auto cols = database->GetTableCols(TABLE_NAME);
-        dbRunner->CreateTable(TABLE_NAME, cols);
-        dbRunner->InsertData(TABLE_NAME, data);
-    }
-};
+    return nullptr;
+}
+}  // namespace
 
-
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
+TEST(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenSourceDataNotExist)
 {
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
+    DataInventory dataInventory;
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<OpStatisticData>>());
 }
 
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenSourceTableNotExist)
+TEST(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenAssociatedTaskDataEmpty)
 {
-    auto dbPath = File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX});
-    std::shared_ptr<DBRunner> dbRunner;
-    MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
-    dbRunner->DropTable(TABLE_NAME);
-    dbPath = File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX});
-    MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
-    dbRunner->DropTable(TABLE_NAME);
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
+    DataInventory dataInventory;
+    injectAssociatedTasks(dataInventory, {});
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<OpStatisticData>>());
 }
 
-
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnFalseWhenCheckPathFailed)
+TEST(OpStatisticProcessorUTest, TestRunShouldAggregateAssociatedTasks)
 {
-    MOCKER_CPP(&Analysis::Utils::File::Check).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
-    MOCKER_CPP(&Analysis::Utils::File::Check).reset();
+    DataInventory dataInventory;
+    injectAssociatedTasks(dataInventory,
+                          {makeAssociatedTask(0, 1, 1, "MatMul", "AI_CORE", 2000),
+                           makeAssociatedTask(0, 1, 2, "MatMul", "AI_CORE", 4000),
+                           makeAssociatedTask(0, 2, 1, "Add", "MIX_AIC", 4000)});
+
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    auto result = dataInventory.GetPtr<std::vector<OpStatisticData>>();
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(2ul, result->size());
+
+    auto matmul = findStatistic(*result, 0, "MatMul", "AI_CORE");
+    ASSERT_NE(nullptr, matmul);
+    EXPECT_EQ("2", matmul->count);
+    EXPECT_DOUBLE_EQ(6.0, matmul->totalTime);
+    EXPECT_DOUBLE_EQ(2.0, matmul->min);
+    EXPECT_DOUBLE_EQ(3.0, matmul->avg);
+    EXPECT_DOUBLE_EQ(4.0, matmul->max);
+    EXPECT_DOUBLE_EQ(60.0, matmul->ratio);
+
+    auto add = findStatistic(*result, 0, "Add", "MIX_AIC");
+    ASSERT_NE(nullptr, add);
+    EXPECT_EQ("1", add->count);
+    EXPECT_DOUBLE_EQ(4.0, add->totalTime);
+    EXPECT_DOUBLE_EQ(40.0, add->ratio);
 }
 
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
+TEST(OpStatisticProcessorUTest, TestRunShouldComputeRatioPerDevice)
 {
-    std::vector<std::string> deviceList = {File::PathJoin({BASE_PATH, "test", "device_1"})};
-    MOCKER_CPP(&Utils::File::GetFilesWithPrefix).stubs().will(returnValue(deviceList));
-    auto processor = OpStatisticProcessor({File::PathJoin({BASE_PATH, "test"})});
-    auto dataInventory = DataInventory();
-    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    MOCKER_CPP(&Utils::File::GetFilesWithPrefix).reset();
+    DataInventory dataInventory;
+    injectAssociatedTasks(dataInventory,
+                          {makeAssociatedTask(0, 1, 1, "MatMul", "AI_CORE", 1000),
+                           makeAssociatedTask(1, 1, 1, "Add", "AI_CORE", 2000)});
+
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    auto result = dataInventory.GetPtr<std::vector<OpStatisticData>>();
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(2ul, result->size());
+    EXPECT_DOUBLE_EQ(100.0, findStatistic(*result, 0, "MatMul", "AI_CORE")->ratio);
+    EXPECT_DOUBLE_EQ(100.0, findStatistic(*result, 1, "Add", "AI_CORE")->ratio);
 }
 
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
+TEST(OpStatisticProcessorUTest, TestRunShouldUseCompleteOpReportForRatioAndFilterCsvRows)
 {
-    StubReserveFailureForVector<ProcessedFormat>();
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
-    ResetReserveFailureForVector<ProcessedFormat>();
+    DataInventory dataInventory;
+    auto communication = makeAssociatedTask(0, 1, 2, "AllReduce", "COMMUNICATION", 3000);
+    communication.taskInfo.opName = "opAivKernel";
+    injectAssociatedTasks(
+        dataInventory,
+        {makeAssociatedTask(0, 1, 1, "N/A", "AI_CORE", 1000), communication,
+         makeAssociatedTask(0, 1, 3, "MatMul", "AI_CORE", 2000),
+         makeAssociatedTask(0, 1, 4, "Write", "WRITE_BACK", 3000),
+         makeAssociatedTask(0, 1, 5, "Invalid", "INVALID", 4000),
+         makeAssociatedTask(0, 1, 6, "CpuTask", "HCCL_AI_CPU", 5000)});
+
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    auto result = dataInventory.GetPtr<std::vector<OpStatisticData>>();
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(1ul, result->size());
+    auto matmul = findStatistic(*result, 0, "MatMul", "AI_CORE");
+    ASSERT_NE(nullptr, matmul);
+    EXPECT_DOUBLE_EQ(20.0, matmul->ratio);
 }
 
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
+TEST(OpStatisticProcessorUTest, TestRunShouldConsumeAssociatedTasksFromPredecessor)
 {
-    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        auto dataInventory = DataInventory();
-        EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
-    MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
-}
+    DataInventory dataInventory;
+    injectSourceData(dataInventory,
+                     {makeTaskInfo(0, 1, 1, "MatMul", "AI_CORE"),
+                      makeTaskInfo(0, 1, 2, "Write", "WRITE_BACK")},
+                     {makeAscendTask(0, 1, 1, 0, 1000), makeAscendTask(0, 1, 2, 0, 3000)});
 
-TEST_F(OpStatisticProcessorUTest, TestRunShouldReturnTureWhenProcessRunSuccessAndCheckData)
-{
-    auto dataInventory = DataInventory();
-    for (auto path: PROF_PATHS) {
-        auto processor = OpStatisticProcessor(path);
-        EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
-    }
-    auto res = dataInventory.GetPtr<std::vector<OpStatisticData>>();
-    EXPECT_EQ(4ul, res->size());
-    auto data = res->at(0);
-    EXPECT_EQ("RmsNormTactic", data.opType);
-    EXPECT_EQ("1610", data.count);
+    EXPECT_TRUE(TaskAssociationProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_TASK_ASSOCIATION));
+    dataInventory.RemoveRestData({typeid(AssociatedTaskCollection)});
+    EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
+    auto result = dataInventory.GetPtr<std::vector<OpStatisticData>>();
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(1ul, result->size());
+    auto matmul = findStatistic(*result, 0, "MatMul", "AI_CORE");
+    ASSERT_NE(nullptr, matmul);
+    EXPECT_DOUBLE_EQ(25.0, matmul->ratio);
 }

@@ -20,6 +20,7 @@
 #include "analysis/csrc/application/summary/op_summary_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -143,6 +144,24 @@ static std::vector<CommunicationOpData> GenerateOpData()
     return res;
 }
 
+static AssociatedTaskCollection generateAssociatedTaskData()
+{
+    std::shared_ptr<std::vector<TaskInfoData>> taskInfoData;
+    std::shared_ptr<std::vector<AscendTaskData>> ascendTaskData;
+    MAKE_SHARED_NO_OPERATION(taskInfoData, std::vector<TaskInfoData>, GenerateTaskInfoData());
+    MAKE_SHARED_NO_OPERATION(ascendTaskData, std::vector<AscendTaskData>, GenerateTaskData());
+
+    AssociatedTaskCollection associatedTasks;
+    associatedTasks.taskInfoData = taskInfoData;
+    associatedTasks.ascendTaskData = ascendTaskData;
+    associatedTasks.records = {{&associatedTasks.taskInfoData->at(0), &associatedTasks.ascendTaskData->at(0), true},
+                               {&associatedTasks.taskInfoData->at(0), &associatedTasks.ascendTaskData->at(1), true},
+                               {&associatedTasks.taskInfoData->at(1), &associatedTasks.ascendTaskData->at(2), true},
+                               {&associatedTasks.taskInfoData->at(2), &associatedTasks.ascendTaskData->at(3), true},
+                               {&associatedTasks.taskInfoData->at(0), &associatedTasks.ascendTaskData->at(0), false}};
+    return associatedTasks;
+}
+
 static MetricSummary GenerateMetricSummary()
 {
     MetricSummary summary;
@@ -182,17 +201,13 @@ TEST_F(OpSummaryAssemblerUTest, ShouldReturnTrueWhenDataNotExist)
 TEST_F(OpSummaryAssemblerUTest, ShouldReturnTrueWhenTaskAndHcclExistWithNoStars)
 {
     DataInventory dataInventory;
-    std::shared_ptr<std::vector<AscendTaskData>> taskS;
-    std::shared_ptr<std::vector<TaskInfoData>> infoS;
+    std::shared_ptr<AssociatedTaskCollection> associatedTasksPtr;
     std::shared_ptr<std::vector<CommunicationOpData>> opDataS;
-    auto task = GenerateTaskData();
-    auto info = GenerateTaskInfoData();
+    auto associatedTasks = generateAssociatedTaskData();
     auto opData = GenerateOpData();
-    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, task);
-    MAKE_SHARED_NO_OPERATION(infoS, std::vector<TaskInfoData>, info);
+    MAKE_SHARED_NO_OPERATION(associatedTasksPtr, AssociatedTaskCollection, associatedTasks);
     MAKE_SHARED_NO_OPERATION(opDataS, std::vector<CommunicationOpData>, opData);
-    dataInventory.Inject(taskS);
-    dataInventory.Inject(infoS);
+    dataInventory.Inject(associatedTasksPtr);
     dataInventory.Inject(opDataS);
     OpSummaryAssembler assembler(PROCESSOR_OP_SUMMARY, PROF_PATH);
     EXPECT_TRUE(assembler.Run(dataInventory));
@@ -235,20 +250,16 @@ TEST_F(OpSummaryAssemblerUTest, ShouldReturnTrueWhenOnlyHcclWithStars)
 TEST_F(OpSummaryAssemblerUTest, ShouldReturnTrueWhenTaskAndHcclAndPmuExistWithStars)
 {
     DataInventory dataInventory;
-    std::shared_ptr<std::vector<AscendTaskData>> taskS;
-    std::shared_ptr<std::vector<TaskInfoData>> infoS;
+    std::shared_ptr<AssociatedTaskCollection> associatedTasksPtr;
     std::shared_ptr<std::vector<CommunicationOpData>> opDataS;
     std::shared_ptr<MetricSummary> metricDataS;
-    auto task = GenerateTaskData();
-    auto info = GenerateTaskInfoData();
+    auto associatedTasks = generateAssociatedTaskData();
     auto opData = GenerateOpData();
     auto metricSummary = GenerateMetricSummary();
-    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, task);
-    MAKE_SHARED_NO_OPERATION(infoS, std::vector<TaskInfoData>, info);
+    MAKE_SHARED_NO_OPERATION(associatedTasksPtr, AssociatedTaskCollection, associatedTasks);
     MAKE_SHARED_NO_OPERATION(opDataS, std::vector<CommunicationOpData>, opData);
     MAKE_SHARED_NO_OPERATION(metricDataS, MetricSummary, metricSummary);
-    dataInventory.Inject(taskS);
-    dataInventory.Inject(infoS);
+    dataInventory.Inject(associatedTasksPtr);
     dataInventory.Inject(opDataS);
     dataInventory.Inject(metricDataS);
     OpSummaryAssembler assembler(PROCESSOR_OP_SUMMARY, PROF_PATH);

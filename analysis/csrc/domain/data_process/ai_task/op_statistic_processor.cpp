@@ -14,95 +14,167 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
-
 #include "analysis/csrc/domain/data_process/ai_task/op_statistic_processor.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 
-namespace Analysis {
-namespace Domain {
-using namespace Analysis::Domain::Environment;
+#include <algorithm>
+#include <cstdint>
+#include <limits>
+#include <map>
+#include <string>
+#include <unordered_map>
+
+#include "analysis/csrc/application/database/db_constant.h"
+
+namespace Analysis
+{
+namespace Domain
+{
+using namespace Analysis::Application;
 using namespace Analysis::Utils;
 
-OpStatisticProcessor::OpStatisticProcessor(const std::string& profPaths) : DataProcessor(profPaths)
-{}
-OriOpCountDataFormat OpStatisticProcessor::LoadData(const DBInfo& dbInfo, const std::string& dbPath)
+namespace
 {
-    OriOpCountDataFormat oriData;
-    if (dbInfo.dbRunner == nullptr) {
-        ERROR("Create % connection failed.", dbPath);
-        return oriData;
+struct OpStatisticAggKey
+{
+    uint16_t deviceId;
+    std::string opType;
+    std::string taskType;
+
+    bool operator<(const OpStatisticAggKey &other) const
+    {
+        if (deviceId != other.deviceId)
+        {
+            return deviceId < other.deviceId;
+        }
+        if (opType != other.opType)
+        {
+            return opType < other.opType;
+        }
+        return taskType < other.taskType;
     }
-    std::string sql{
-        "SELECT op_type, core_type, occurrences,  round(total_time/1000.0, 3), round(min/1000.0, 3), "
-        "round(avg/1000.0, 3), round(max/1000.0, 3), round(ratio, 3) FROM " + dbInfo.tableName +
-            " WHERE op_type != 'N/A' and core_type not in ('WRITE_BACK', 'INVALID')"
-    };
-    if (!dbInfo.dbRunner->QueryData(sql, oriData)) {
-        ERROR("Failed to obtain data from the % table.", dbInfo.tableName);
-    }
-    return oriData;
+};
+
+struct OpStatisticAgg
+{
+    uint64_t count = 0;
+    double totalTimeNs = 0.0;
+    double minNs = std::numeric_limits<double>::infinity();
+    double maxNs = 0.0;
+};
+
+using OpStatisticAggMap = std::map<OpStatisticAggKey, OpStatisticAgg>;
+using DeviceTotalNsMap = std::unordered_map<uint16_t, double>;
+
+// Match the Python pipeline: op_report excludes communication tasks before aggregation, while N/A,
+// WRITE_BACK and INVALID remain in the ratio denominator and are filtered only from op_statistic.csv.
+bool isOpReportRequired(const AssociatedTaskData &associatedTask)
+{
+    return associatedTask.taskInfo->taskType != TASK_TYPE_COMMUNICATION &&
+           associatedTask.taskInfo->taskType != TASK_TYPE_HCCL_AI_CPU;
 }
 
-std::vector<OpStatisticData> OpStatisticProcessor::FormatData(const OriOpCountDataFormat& oriData,
-                                                              const uint16_t deviceId)
+bool isOpStatisticRequired(const OpStatisticAggKey &key)
 {
-    std::vector<OpStatisticData> processedData;
-    OpStatisticData data;
-    if (!Reserve(processedData, oriData.size())) {
-        ERROR("Reserve for Op Statistic data failed.");
-        return processedData;
-    }
-    data.deviceId = deviceId;
-    for (auto& row : oriData) {
-        std::tie(data.opType, data.coreType, data.count, data.totalTime, data.min, data.avg, data.max,
-                 data.ratio) = row;
-        processedData.push_back(data);
-    }
-    return processedData;
+    return key.opType != NA && key.taskType != TASK_TYPE_WRITE_BACK && key.taskType != TASK_TYPE_INVALID;
 }
 
-bool OpStatisticProcessor::Process(Analysis::Infra::DataInventory& dataInventory)
+double getTaskDurationNs(const AscendTaskData &ascendTask)
 {
-    bool flag = true;
-    std::vector<OpStatisticData> res;
-    auto deviceList = File::GetFilesWithPrefix(profPath_, DEVICE_PREFIX);
-    for (const auto& devicePath : deviceList) {
-        DBInfo opCounterDB("op_counter.db", "op_report");
-        std::string dbPath = File::PathJoin({devicePath, SQLITE, opCounterDB.dbName});
-        auto deviceId = Utils::GetDeviceIdByDevicePath(devicePath);
-        if (deviceId == INVALID_DEVICE_ID) {
-            ERROR("the invalid deviceId cannot to be identified, profPath is %", profPath_);
-            return false;
-        }
-        if (!opCounterDB.ConstructDBRunner(dbPath)) {
-            flag = false;
+    return static_cast<double>(ascendTask.end - ascendTask.timestamp);
+}
+
+void aggregate(const AssociatedTaskCollection &associatedTasks, OpStatisticAggMap &aggregatedData,
+               DeviceTotalNsMap &deviceTotalNs)
+{
+    for (const auto &associatedTask : associatedTasks.records)
+    {
+        if (!isOpReportRequired(associatedTask))
+        {
             continue;
         }
-        auto status = CheckPathAndTable(dbPath, opCounterDB, false);
-        if (status != CHECK_SUCCESS) {
-            if (status == CHECK_FAILED) {
-                flag = false;
-            }
-            continue;
-        }
-        auto oriData = LoadData(opCounterDB, dbPath);
-        if (oriData.empty()) {
-            WARN("Op Statistics original data has no valid type data. DBPath is %", dbPath);
-            continue;
-        }
-        auto formatData = FormatData(oriData, deviceId);
-        if (formatData.empty()) {
-            ERROR("Op Statistics data format failed, DBPath is %", dbPath);
-            flag = false;
-            continue;
-        }
-        res.insert(res.end(), formatData.begin(), formatData.end());
+        const auto &taskInfo = *associatedTask.taskInfo;
+        const auto &ascendTask = *associatedTask.ascendTask;
+        const double durationNs = getTaskDurationNs(ascendTask);
+        OpStatisticAggKey key{ascendTask.deviceId, taskInfo.opType, taskInfo.taskType};
+        OpStatisticAgg &aggregated = aggregatedData[key];
+        ++aggregated.count;
+        aggregated.totalTimeNs += durationNs;
+        aggregated.minNs = std::min(aggregated.minNs, durationNs);
+        aggregated.maxNs = std::max(aggregated.maxNs, durationNs);
+        deviceTotalNs[ascendTask.deviceId] += durationNs;
     }
-    if (!SaveToDataInventory<OpStatisticData>(std::move(res), dataInventory, PROCESSOR_NAME_OP_STATISTIC)) {
+}
+
+double getDeviceTotalNs(const DeviceTotalNsMap &deviceTotalNs, uint16_t deviceId)
+{
+    auto total = deviceTotalNs.find(deviceId);
+    return total == deviceTotalNs.end() ? 0.0 : total->second;
+}
+
+bool formatData(const OpStatisticAggMap &aggregatedData, const DeviceTotalNsMap &deviceTotalNs,
+                std::vector<OpStatisticData> &result)
+{
+    if (!Reserve(result, aggregatedData.size()))
+    {
+        ERROR("Reserve for op statistic data failed.");
+        return false;
+    }
+    const double nsToUs = static_cast<double>(NS_TO_US);
+    for (const auto &item : aggregatedData)
+    {
+        const OpStatisticAggKey &key = item.first;
+        const OpStatisticAgg &aggregated = item.second;
+        if (!isOpStatisticRequired(key))
+        {
+            continue;
+        }
+
+        const double totalNs = getDeviceTotalNs(deviceTotalNs, key.deviceId);
+        const double ratio = totalNs > 0.0 ? aggregated.totalTimeNs * static_cast<double>(PERCENTAGE) / totalNs : 0.0;
+
+        OpStatisticData data;
+        data.deviceId = key.deviceId;
+        data.opType = key.opType;
+        data.coreType = key.taskType;
+        data.count = std::to_string(aggregated.count);
+        data.totalTime = RoundToDecimalPlaces(aggregated.totalTimeNs / nsToUs);
+        data.min = RoundToDecimalPlaces(aggregated.minNs / nsToUs);
+        data.avg = aggregated.count == 0
+                       ? 0.0
+                       : RoundToDecimalPlaces(aggregated.totalTimeNs / static_cast<double>(aggregated.count) / nsToUs);
+        data.max = RoundToDecimalPlaces(aggregated.maxNs / nsToUs);
+        data.ratio = RoundToDecimalPlaces(ratio);
+        result.push_back(std::move(data));
+    }
+    return true;
+}
+}  // namespace
+
+OpStatisticProcessor::OpStatisticProcessor(const std::string &profPaths) : DataProcessor(profPaths) {}
+
+bool OpStatisticProcessor::Process(DataInventory &dataInventory)
+{
+    auto associatedTasks = dataInventory.GetPtr<AssociatedTaskCollection>();
+    if (associatedTasks == nullptr)
+    {
+        WARN("Op Statistic source data not exist.");
+        return true;
+    }
+
+    OpStatisticAggMap aggregatedData;
+    DeviceTotalNsMap deviceTotalNs;
+    aggregate(*associatedTasks, aggregatedData, deviceTotalNs);
+    std::vector<OpStatisticData> result;
+    if (!formatData(aggregatedData, deviceTotalNs, result))
+    {
+        return false;
+    }
+    if (!SaveToDataInventory<OpStatisticData>(std::move(result), dataInventory, PROCESSOR_NAME_OP_STATISTIC))
+    {
         ERROR("Save data failed, %.", PROCESSOR_NAME_OP_STATISTIC);
-        flag = false;
+        return false;
     }
-    return flag;
+    return true;
 }
-}
-}
+}  // namespace Domain
+}  // namespace Analysis

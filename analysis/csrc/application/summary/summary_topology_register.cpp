@@ -22,6 +22,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/aicpu_summary_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/communication_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/fusion_op_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/hccl_statistic_data.h"
@@ -47,13 +48,12 @@ using StringMap = std::unordered_map<std::string, std::string>;
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_OP_SUMMARY), true,
                             SummaryManager::CreateSummaryAssembler(PROCESSOR_OP_SUMMARY),
-                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-                                      TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK_ASSOCIATION),
                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION),
                                       TOPO_NODE(DATA_PROCESSING, PROCESSOR_PMU)),
                             nullptr);
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_OP_SUMMARY), std::vector<TaskInfoData>,
-                                  std::vector<AscendTaskData>, std::vector<CommunicationOpData>, MetricSummary);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_OP_SUMMARY), AssociatedTaskCollection,
+                                  std::vector<CommunicationOpData>, MetricSummary);
 
 #define REGISTER_SIMPLE_SUMMARY_NODE(Name, DataType, Dependency)                             \
     REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, Name), true,     \

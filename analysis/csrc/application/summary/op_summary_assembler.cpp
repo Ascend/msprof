@@ -62,9 +62,6 @@ const std::string AIV_TOTAL_TIME = "aiv_total_time(us)";
 const std::string DUR_IDX = "durIdx";
 const std::string USAGE_IDX = "usageIdx";
 
-// WRITE_BACK与INVALID类型不需要处理，针对helper场景, 去除运行在AI_CPU的HCCL小算子不生成op_summary,
-// 运行在AI_CORE上的HCCL小算子也不呈现在op_summary,因此这四个类型都不生成数据即可，直接排除掉
-const std::vector<std::string> INVALID_TASK_TYPE{"WRITE_BACK", "INVALID", "HCCL_AI_CPU", "COMMUNICATION"};
 const std::vector<std::string> BASE_HEADER{DEVICE_ID, MODEL_ID,  TASK_ID,         STREAM_ID,     OP_NAME,       OP_TYPE,
                                            OP_STATE,  TASK_TYPE, TASK_START_TIME, TASK_DURATION, TASK_WAIT_TIME};
 const std::vector<std::string> ADDITIONAL_TENSOR_HEADER{
@@ -120,15 +117,6 @@ void OpSummaryAssembler::GenerateHcclBody(std::vector<CommunicationOpData> &opDa
         // 业务可以保证headers的长度会超过hcclOp数据的长度
         row.insert(row.end(), len - row.size(), NA);
         res_.emplace_back(row);
-    }
-}
-
-void OpSummaryAssembler::SplitDataByTaskId(std::vector<TaskInfoData> &taskInfo)
-{
-    for (auto &data : taskInfo)
-    {
-        TaskId id{data.streamId, data.batchId, data.taskId, data.contextId, data.deviceId};
-        computeTask_[id] = &data;
     }
 }
 
@@ -195,7 +183,8 @@ void OpSummaryAssembler::MergeTaskAndPmu(std::shared_ptr<MetricSummary> &pmu, st
     }
 }
 
-void OpSummaryAssembler::GenerateOpBody(std::vector<AscendTaskData> &taskData, std::shared_ptr<MetricSummary> &pmu)
+void OpSummaryAssembler::GenerateOpBody(const AssociatedTaskCollection &associatedTasks,
+                                        std::shared_ptr<MetricSummary> &pmu)
 {
     if (pmu != nullptr)
     {
@@ -203,24 +192,17 @@ void OpSummaryAssembler::GenerateOpBody(std::vector<AscendTaskData> &taskData, s
     }
     std::unordered_map<std::string, int> indexTable{{DUR_IDX, GetIndexForVec(headers_, TASK_DURATION)},
                                                     {USAGE_IDX, GetIndexForVec(headers_, CUBE_UTILIZATION)}};
-    for (const auto &task : taskData)
+    for (const auto &item : associatedTasks.records)
     {
-        TaskId id{task.streamId, task.batchId, task.taskId, task.contextId, task.deviceId};
-        auto it = computeTask_.find(id);
-        if (it != computeTask_.end())
+        if (!item.opSummaryRequired)
         {
-            const std::string &taskType = it->second->taskType;
-            const std::string &opName = it->second->opName;
-            bool isInvalidType =
-                std::find(INVALID_TASK_TYPE.begin(), INVALID_TASK_TYPE.end(), taskType) != INVALID_TASK_TYPE.end();
-            bool isCommWithValidSuffix = (taskType == "COMMUNICATION" && EndsWith(opName, AIV_KERNEL));
-            if (!isInvalidType || isCommWithValidSuffix)
-            {
-                auto row = GenerateOneTaskRow(*it->second, task);
-                MergeTaskAndPmu(pmu, row, id, indexTable);
-                res_.emplace_back(row);
-            }
+            continue;
         }
+        auto row = GenerateOneTaskRow(*item.taskInfo, *item.ascendTask);
+        TaskId taskId{item.ascendTask->streamId, item.ascendTask->batchId, item.ascendTask->taskId,
+                      item.ascendTask->contextId, item.ascendTask->deviceId};
+        MergeTaskAndPmu(pmu, row, taskId, indexTable);
+        res_.emplace_back(row);
     }
 }
 
@@ -319,22 +301,19 @@ void OpSummaryAssembler::WriteToFile(const std::string &fileName, const std::set
 
 uint8_t OpSummaryAssembler::AssembleData(DataInventory &dataInventory)
 {
-    auto taskInfoData = dataInventory.GetPtr<std::vector<TaskInfoData>>();
-    auto ascendTaskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
+    auto associatedTasks = dataInventory.GetPtr<AssociatedTaskCollection>();
     auto hcclOpData = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
     auto metricData = dataInventory.GetPtr<MetricSummary>();
-    if ((taskInfoData == nullptr || ascendTaskData == nullptr) && hcclOpData == nullptr)
+    if (associatedTasks == nullptr && hcclOpData == nullptr)
     {
         WARN("No data to export op summary");
         return DATA_NOT_EXIST;
     }
     headers_ = BASE_HEADER;
-    // 当没有ascendTask或者没有taskInfo数据时，只生成hccl数据
-    if (taskInfoData != nullptr && ascendTaskData != nullptr)
+    if (associatedTasks != nullptr)
     {
         headers_.insert(headers_.end(), ADDITIONAL_TENSOR_HEADER.begin(), ADDITIONAL_TENSOR_HEADER.end());
-        SplitDataByTaskId(*taskInfoData);
-        GenerateOpBody(*ascendTaskData, metricData);
+        GenerateOpBody(*associatedTasks, metricData);
     }
     else
     {

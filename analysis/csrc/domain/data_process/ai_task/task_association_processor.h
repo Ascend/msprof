@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
  * MindStudio is licensed under Mulan PSL v2.
@@ -14,22 +14,20 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
-#ifndef ANALYSIS_DOMAIN_OP_STATISTIC_PROCESSOR_H
-#define ANALYSIS_DOMAIN_OP_STATISTIC_PROCESSOR_H
+#ifndef ANALYSIS_DOMAIN_TASK_ASSOCIATION_PROCESSOR_H
+#define ANALYSIS_DOMAIN_TASK_ASSOCIATION_PROCESSOR_H
 
 #include "analysis/csrc/domain/data_process/data_processor.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/op_statistic_data.h"
 
 namespace Analysis
 {
 namespace Domain
 {
-class OpStatisticProcessor : public DataProcessor
+class TaskAssociationProcessor : public DataProcessor
 {
    public:
-    OpStatisticProcessor() = default;
-    explicit OpStatisticProcessor(const std::string &profPaths);
+    TaskAssociationProcessor() = default;
+    explicit TaskAssociationProcessor(const std::string &profPaths);
 
    private:
     bool Process(DataInventory &dataInventory) override;
@@ -37,4 +35,4 @@ class OpStatisticProcessor : public DataProcessor
 }  // namespace Domain
 }  // namespace Analysis
 
-#endif  // ANALYSIS_DOMAIN_OP_STATISTIC_PROCESSOR_H
+#endif  // ANALYSIS_DOMAIN_TASK_ASSOCIATION_PROCESSOR_H
