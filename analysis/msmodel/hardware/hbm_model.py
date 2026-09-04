@@ -16,6 +16,7 @@
 
 import logging
 from abc import ABC
+from collections import Counter
 
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
@@ -29,6 +30,7 @@ class HbmModel(BaseModel, ABC):
     """
     acsq task model class
     """
+
     SCALE = 0.000030517578125  # equal to HBMC(256) / HBM_EVENT(8) / KILOBYTE(1024.0) / KILOBYTE(1024.0)
 
     def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
@@ -72,26 +74,52 @@ class HbmModel(BaseModel, ABC):
         device_list = DBManager.fetch_all_data(self.cur, device_id_sql)
         try:
             for device in device_list:
-                sql = 'select device_id,timestamp,counts,hbmId,event_type from HBMOriginalData ' \
-                      'where device_id=? group by timestamp,event_type,hbmId order by timestamp'
-                bw_data = DBManager.fetch_all_data(self.cur, sql, (device[0],))
-                if len(event_type) == 2:  # hbmProfilingEvents are read, write
-                    check_len = 8
-                elif len(event_type) == 1:  # hbmProfilingEvents is read or write:
-                    check_len = 4
-                else:
-                    logging.error("insert_bw_data failed, event_type(%s) is invalid.",
-                                  str(event_type))
+                if len(event_type) not in (1, 2):  # hbmProfilingEvents are read and/or write
+                    logging.error("insert_bw_data failed, event_type(%s) is invalid.", str(event_type))
                     raise ProfException(ProfException.PROF_SYSTEM_EXIT)
-                if len(bw_data) >= check_len:
-                    data = self._get_hbm_data(bw_data, check_len)
-                    insert_sql = 'INSERT INTO HBMbwData values (?,?,?,?,?)'
-                    DBManager.executemany_sql(self.conn, insert_sql, data)
+                sql = (
+                    'select device_id,timestamp,counts,hbmId,event_type from HBMOriginalData '
+                    'where device_id=? group by timestamp,event_type,hbmId,counts order by timestamp'
+                )
+                bw_data = DBManager.fetch_all_data(self.cur, sql, (device[0],))
+                if not bw_data:
+                    continue
+                bw_data, check_len = self._filter_abnormal_timestamps(bw_data, device[0])
+                if check_len <= 0 or not bw_data:
+                    continue
+                data = self._get_hbm_data(bw_data, check_len)
+                insert_sql = 'INSERT INTO HBMbwData values (?,?,?,?,?)'
+                DBManager.executemany_sql(self.conn, insert_sql, data)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, ZeroDivisionError) as err:
             logging.error(err, exc_info=Constant.TRACE_BACK_SWITCH)
             logging.error('Failed to insert HBM bandwidth data.')
         finally:
             pass
+
+    @staticmethod
+    def _filter_abnormal_timestamps(bw_data: list, device_id: any) -> tuple:
+        """
+        统计每个 timestamp 的数据条数，以众数（出现次数最多的条数）为基准，
+        去除条数与众数不一致的 timestamp 数据，避免丢数据导致错位。
+        :param bw_data: 按 timestamp,hbmId,event_type 排序后的原始数据
+        :param device_id: 设备 id
+        :return: (过滤后的数据, 每个 timestamp 的条数众数)
+        """
+        ts_counts = Counter(row[1] for row in bw_data)
+        count_freq = Counter(ts_counts.values())
+        max_freq = max(count_freq.values())
+        # 众数平局时取较大的条数，避免丢弃更多有效数据
+        check_len = max(cnt for cnt, freq in count_freq.items() if freq == max_freq)
+        filtered = [row for row in bw_data if ts_counts[row[1]] == check_len]
+        if len(filtered) != len(bw_data):
+            logging.warning(
+                "HBM data loss: device_id=%s total=%s check_len=%s removed=%s.",
+                device_id,
+                len(bw_data),
+                check_len,
+                len(bw_data) - len(filtered),
+            )
+        return filtered, check_len
 
     def _get_hbm_data(self: any, bw_data: list, check_len: int) -> list:
         data = []

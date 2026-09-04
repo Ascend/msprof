@@ -79,3 +79,58 @@ class TestHbmModel(unittest.TestCase):
         res[1].execute("drop table HBMOriginalData")
         res[1].execute("drop table HBMbwData")
         db_manager.destroy(res)
+
+    def _build_rows(self, timestamps, event_types=('read',)):
+        """按 (device_id, timestamp, counts, hbmId, event_type) 构造原始数据。"""
+        rows = []
+        for ts, n in timestamps:
+            for i in range(n):
+                for event_type in event_types:
+                    rows.append((5, ts, i, i, event_type))
+        return rows
+
+    def test_filter_abnormal_timestamps_no_loss(self):
+        """无丢数据：每个时间戳条数一致，全部保留。"""
+        bw_data = self._build_rows([(1000, 8), (1010, 8), (1020, 8)])
+        filtered, check_len = HbmModel._filter_abnormal_timestamps(bw_data, 5)
+        self.assertEqual(check_len, 8)
+        self.assertEqual(len(filtered), len(bw_data))
+        self.assertEqual(filtered, bw_data)
+
+    def test_filter_abnormal_timestamps_remove_anomaly(self):
+        """部分丢数据：条数与众数不一致的时间戳被去除。"""
+        bw_data = self._build_rows([(1000, 8), (1010, 8), (1020, 6)])
+        filtered, check_len = HbmModel._filter_abnormal_timestamps(bw_data, 5)
+        self.assertEqual(check_len, 8)
+        self.assertEqual(len(filtered), 16)
+        self.assertTrue(all(row[1] != 1020 for row in filtered))
+
+    def test_filter_abnormal_timestamps_mode(self):
+        """众数选取：多数时间戳的条数作为 check_len。"""
+        bw_data = self._build_rows([(1000, 8), (1010, 8), (1020, 8), (1030, 6), (1040, 4)])
+        filtered, check_len = HbmModel._filter_abnormal_timestamps(bw_data, 5)
+        self.assertEqual(check_len, 8)
+        self.assertEqual(len(filtered), 24)
+
+    def test_filter_abnormal_timestamps_log_warning(self):
+        """丢数据时打印告警日志。"""
+        bw_data = self._build_rows([(1000, 8), (1010, 6)])
+        with mock.patch(NAMESPACE + '.logging.warning') as warn:
+            HbmModel._filter_abnormal_timestamps(bw_data, 5)
+            warn.assert_called_once()
+
+    def test_filter_abnormal_timestamps_dual_event(self):
+        """混合 read+write：每个 timestamp 含 8 读+8 写=16 条，check_len=16，异常时间戳被去除。"""
+        bw_data = self._build_rows([(1000, 8), (1010, 8), (1020, 6)], event_types=('read', 'write'))
+        filtered, check_len = HbmModel._filter_abnormal_timestamps(bw_data, 5)
+        self.assertEqual(check_len, 16)
+        self.assertEqual(len(filtered), 32)
+        self.assertTrue(all(row[1] != 1020 for row in filtered))
+
+    def test_filter_abnormal_timestamps_tie_prefers_larger(self):
+        """众数平局（条数 2 与 4 各出现一次）时取较大条数，保留更多有效数据。"""
+        bw_data = self._build_rows([(1000, 2), (1010, 4)])
+        filtered, check_len = HbmModel._filter_abnormal_timestamps(bw_data, 5)
+        self.assertEqual(check_len, 4)
+        self.assertEqual(len(filtered), 4)
+        self.assertTrue(all(row[1] == 1010 for row in filtered))
