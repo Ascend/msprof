@@ -76,7 +76,7 @@ bool HashInitProcessor::ProcessHashMap(DataInventory &dataInventory)
     GeHashMap hashMap;
     std::shared_ptr<GeHashMap> res;
     // 并不是所有场景都有ge hash数据
-    auto flag = CheckPathAndTable(dbPath, hashDB);
+    auto flag = CheckPathAndTable(dbPath, hashDB, false);
     if (flag != CHECK_SUCCESS)
     {
         MAKE_SHARED_RETURN_VALUE(res, GeHashMap, false, std::move(hashMap));

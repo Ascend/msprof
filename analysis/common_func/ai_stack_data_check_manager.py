@@ -109,6 +109,8 @@ class AiStackDataCheckManager(DataCheckManager):
         The data path contain aicpu data or not
         aicpu data by hdc and all aicpu data by driver
         """
+        if cls.check_export_with_so():
+            return False
         return cls.check_data_exist(
             result_dir, file_name_manager.get_data_preprocess_compiles('AICPU'), device_id=device_id
         ) or cls.check_data_exist(result_dir, file_name_manager.get_aicpu_compiles(), device_id=device_id)
@@ -119,6 +121,8 @@ class AiStackDataCheckManager(DataCheckManager):
         The data path contain dp data or not
         dp data by hdc and all aicpu data by driver
         """
+        if cls.check_export_with_so():
+            return False
         return cls.check_data_exist(
             result_dir, file_name_manager.get_data_preprocess_compiles('DP'), device_id=device_id
         ) or cls.check_data_exist(result_dir, file_name_manager.get_aicpu_compiles(), device_id=device_id)
