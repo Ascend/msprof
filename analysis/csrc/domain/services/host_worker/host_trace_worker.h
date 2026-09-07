@@ -55,6 +55,8 @@ class HostTraceWorker
     void DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpRuntimeOpInfo();
     void DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpStreamExpandSpec(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpFlipTask(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void DumpModelName(ThreadPool &pool, const std::string &hostDataPath);
     void DumpHostSystemProfileData(ThreadPool &pool);

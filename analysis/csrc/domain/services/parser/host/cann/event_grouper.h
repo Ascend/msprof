@@ -78,6 +78,10 @@ class EventGrouper
     std::unordered_map<uint64_t, uint64_t> &GetDpuKernelNameMap();
     const std::vector<std::shared_ptr<ParserCompactInfo>> &GetCaptureStreamInfoData() const;
     const std::vector<std::shared_ptr<ParserAdditionalInfo>> &GetMc2CommInfoData() const;
+    // 获取静态图算子内存数据
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> &GetStaticOpMemData();
+    // 获取Stream扩容规格数据
+    std::vector<std::shared_ptr<ParserCompactInfo>> &GetStreamExpandSpecData();
     // ACL层建树白名单
     bool IsBuildTreeWithAcl(const std::shared_ptr<ParserApi> &trace);
 
@@ -92,9 +96,13 @@ class EventGrouper
     void GroupTreeEvent(ThreadPool &pool);
     void GroupLookup(ThreadPool &pool);
     void DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos);
+    void DispatchLookupData(EventType eventType,
+                            const std::vector<std::shared_ptr<ParserAdditionalInfo>> &additionalInfos);
     void DispatchLookupData(EventType eventType, const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks);
     void ParseRuntimeOpInfo();
     void ParseDpuTaskTrack();
+    void ParseStaticOpMem();
+    void ParseStreamExpandSpec();
 
     template <typename P, typename M, std::shared_ptr<EventQueue> CANNWarehouse::*element>
     void GroupEvents(const std::string &typeName, EventType eventType)
@@ -158,6 +166,8 @@ class EventGrouper
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTasks_;
     std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> staticOpMemData_;
+    std::vector<std::shared_ptr<ParserCompactInfo>> streamExpandSpecData_;
     std::set<uint32_t> threadIds_;
     std::string hostPath_;
     CANNWarehouses cannWarehouses_;  // 所有threadId的数据

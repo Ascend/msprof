@@ -53,6 +53,10 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertFalse(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("RuntimeOpInfoParser")
         self.assertTrue(ret)
+        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StaticOpMemParser")
+        self.assertTrue(ret)
+        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StreamExpandSpecParser")
+        self.assertTrue(ret)
 
     @mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=False)
     @mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False)

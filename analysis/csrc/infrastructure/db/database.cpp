@@ -59,6 +59,10 @@ const TableColumns StreamExpandSpec = {
     {"expand_status", SQL_NUMERIC_TYPE},
 };
 
+const TableColumns StaticOpMem = {{"op_name", SQL_TEXT_TYPE},           {"model_name", SQL_TEXT_TYPE},
+                                  {"graph_id", SQL_NUMERIC_TYPE},       {"node_index_start", SQL_NUMERIC_TYPE},
+                                  {"node_index_end", SQL_NUMERIC_TYPE}, {"op_mem_size", SQL_NUMERIC_TYPE}};
+
 const TableColumns CaptureStreamInfo = {
     {"device_id", SQL_INTEGER_TYPE}, {"model_id", SQL_INTEGER_TYPE}, {"original_stream_id", SQL_INTEGER_TYPE},
     {"stream_id", SQL_INTEGER_TYPE}, {"batch_id", SQL_INTEGER_TYPE}, {"capture_status", SQL_INTEGER_TYPE},
@@ -657,6 +661,12 @@ StreamExpandSpecDB::StreamExpandSpecDB()
 {
     dbName_ = "stream_expand_spec.db";
     tableColNames_["StreamExpandSpec"] = StreamExpandSpec;
+}
+
+StaticOpMemDB::StaticOpMemDB()
+{
+    dbName_ = "static_op_mem.db";
+    tableColNames_["StaticOpMem"] = StaticOpMem;
 }
 
 StreamInfoDB::StreamInfoDB()

@@ -49,6 +49,7 @@ protected:
         GenCompactInfoData(EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, 0, true);
         GenCompactInfoData(EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL);
         GenCompactInfoData(EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL);
+        GenStreamExpandSpecData();
     }
 
     static void TearDownTestCase()
@@ -105,6 +106,23 @@ protected:
         fakeGen->WriteBin<MsprofCompactInfo>(agingTraces, type, true);
     }
 
+    static void GenStreamExpandSpecData()
+    {
+        std::vector<MsprofCompactInfo> traces;
+        for (uint16_t status = 0; status < 2; ++status) {
+            MsprofCompactInfo info{};
+            info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+            info.level = MSPROF_REPORT_NODE_LEVEL;
+            info.dataLen = sizeof(MsprofStreamExpandSpec);
+            info.data.streamExpandSpec.expandStatus = static_cast<uint8_t>(status);
+            traces.emplace_back(info);
+        }
+        auto filePath = File::PathJoin({DATA_DIR, "host", "data",
+                                        "unaging.compact.expand_stream_spec.slice_0"});
+        FileWriter writer(filePath, std::ios::out | std::ios::binary);
+        writer.WriteText(reinterpret_cast<const char *>(traces.data()), traces.size() * sizeof(MsprofCompactInfo));
+    }
+
     static void Check(const std::vector<std::shared_ptr<ParserCompactInfo>> &data,
                       EventType type, uint16_t level, uint16_t dataNum)
     {
@@ -126,6 +144,19 @@ TEST_F(CompactInfoParserUTest, TestMemcpyInfoParserShouldReturn10DataWhenParseSu
     auto parser = std::make_shared<MemcpyInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserCompactInfo>();
     Check(data, EventType::EVENT_TYPE_MEM_CPY, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
+}
+
+TEST_F(CompactInfoParserUTest, TestStreamExpandSpecParserShouldDecodeAllCompleteRecords)
+{
+    EXPECT_EQ(sizeof(MsprofStreamExpandSpec), MSPROF_COMPACT_INFO_DATA_LENGTH);
+    EXPECT_EQ(sizeof(MsprofCompactInfo), 64U);
+    StreamExpandSpecParser parser(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto data = parser.ParseData<ParserCompactInfo>();
+
+    ASSERT_EQ(parser.GetStatus(), ParserStatus::SUCCESS);
+    ASSERT_EQ(data.size(), 2U);
+    EXPECT_EQ(data[0]->data.streamExpandSpec.expandStatus, 0U);
+    EXPECT_EQ(data[1]->data.streamExpandSpec.expandStatus, 1U);
 }
 
 TEST_F(CompactInfoParserUTest, TestCompactInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)

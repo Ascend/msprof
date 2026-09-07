@@ -561,6 +561,10 @@ TEST_F(EventGrouperUTest, TestNeedLookupAndNeedTreeBuildForDpuAndRts)
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_DPU_TASK_TRACK));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_STATIC_OP_MEM));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC));
 }
 
 TEST_F(EventGrouperUTest, TestGroupShouldPutDpuTrackToLookupNotTree)
@@ -595,4 +599,44 @@ TEST_F(EventGrouperUTest, TestGroupShouldKeepRtsTaskInTreeAndDpuKernelNameFromTa
     EXPECT_EQ(dpuNum, grouper->GetDpuKernelNameMap().size());
     EXPECT_EQ(0, grouper->GetDpuTrackData().size());
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
+}
+
+TEST_F(EventGrouperUTest, TestGroupShouldPutStaticOpMemAndStreamExpandSpecToLookupNotTree)
+{
+    const std::string fakeDataDir = "./fakeDataStaticAndStreamLookup";
+    const std::string hostDir = fakeDataDir + "/host";
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    File::RemoveDir(fakeDataDir, 0);
+    ASSERT_TRUE(File::CreateDir(fakeDataDir));
+    ASSERT_TRUE(File::CreateDir(hostDir));
+    ASSERT_TRUE(File::CreateDir(hostDataDir));
+
+    MsprofAdditionalInfo staticOpMem{};
+    staticOpMem.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    staticOpMem.dataLen = sizeof(MsprofStaticOpMem);
+    staticOpMem.staticOpMem.size = 1024;
+    staticOpMem.staticOpMem.opName = 11;
+    FileWriter staticWriter(hostDataDir + "/unaging.additional.static_op_mem.slice_0",
+                            std::ios::out | std::ios::binary);
+    staticWriter.WriteText(reinterpret_cast<const char *>(&staticOpMem), sizeof(staticOpMem));
+    staticWriter.Close();
+
+    MsprofCompactInfo streamExpand{};
+    streamExpand.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    streamExpand.dataLen = sizeof(MsprofStreamExpandSpec);
+    streamExpand.data.streamExpandSpec.expandStatus = 1;
+    FileWriter streamWriter(hostDataDir + "/unaging.compact.expand_stream_spec.slice_0",
+                            std::ios::out | std::ios::binary);
+    streamWriter.WriteText(reinterpret_cast<const char *>(&streamExpand), sizeof(streamExpand));
+    streamWriter.Close();
+
+    EventGrouper grouper(hostDataDir);
+    EXPECT_TRUE(grouper.Group());
+    ASSERT_EQ(grouper.GetStaticOpMemData().size(), 1U);
+    ASSERT_EQ(grouper.GetStreamExpandSpecData().size(), 1U);
+    EXPECT_EQ(grouper.GetStaticOpMemData()[0]->staticOpMem.opName, 11U);
+    EXPECT_EQ(grouper.GetStreamExpandSpecData()[0]->data.streamExpandSpec.expandStatus, 1U);
+    EXPECT_TRUE(grouper.GetThreadIdSet().empty());
+    EXPECT_TRUE(grouper.GetGroupEvents().Empty());
+    EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));
 }

@@ -66,6 +66,11 @@ std::vector<std::shared_ptr<Adapter::FlipTask>> &EventGrouper::GetFlipTasks() { 
 
 std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
 std::unordered_map<uint64_t, uint64_t> &EventGrouper::GetDpuKernelNameMap() { return dpuKernelNameMap_; }
+std::vector<std::shared_ptr<ParserAdditionalInfo>> &EventGrouper::GetStaticOpMemData() { return staticOpMemData_; }
+std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetStreamExpandSpecData()
+{
+    return streamExpandSpecData_;
+}
 
 const std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetCaptureStreamInfoData() const
 {
@@ -198,6 +203,14 @@ void EventGrouper::GroupLookup(ThreadPool &pool)
     {
         pool.AddTask([this]() { ParseDpuTaskTrack(); });
     }
+    if (NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM))
+    {
+        pool.AddTask([this]() { ParseStaticOpMem(); });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC))
+    {
+        pool.AddTask([this]() { ParseStreamExpandSpec(); });
+    }
 }
 
 void EventGrouper::DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos)
@@ -217,12 +230,29 @@ void EventGrouper::DispatchLookupData(EventType eventType, const std::vector<Run
 }
 
 void EventGrouper::DispatchLookupData(EventType eventType,
+                                      const std::vector<std::shared_ptr<ParserAdditionalInfo>> &additionalInfos)
+{
+    switch (eventType)
+    {
+        case EventType::EVENT_TYPE_STATIC_OP_MEM:
+            staticOpMemData_ = additionalInfos;
+            break;
+        default:
+            ERROR("Unsupported lookup EventType");
+            break;
+    }
+}
+
+void EventGrouper::DispatchLookupData(EventType eventType,
                                       const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks)
 {
     switch (eventType)
     {
         case EventType::EVENT_TYPE_DPU_TASK_TRACK:
             dpuTrackData_ = tracks;
+            break;
+        case EventType::EVENT_TYPE_STREAM_EXPAND_SPEC:
+            streamExpandSpecData_ = tracks;
             break;
         default:
             ERROR("Unsupported lookup EventType");
@@ -249,6 +279,24 @@ void EventGrouper::ParseDpuTaskTrack()
     auto tracks = parser->ParseData<ParserCompactInfo>();
     INFO("Parsed DPU task track data, size: %", tracks.size());
     DispatchLookupData(EventType::EVENT_TYPE_DPU_TASK_TRACK, tracks);
+}
+
+void EventGrouper::ParseStaticOpMem()
+{
+    std::shared_ptr<StaticOpMemParser> parser;
+    MAKE_SHARED_RETURN_VOID(parser, StaticOpMemParser, hostPath_);
+    auto data = parser->ParseData<ParserAdditionalInfo>();
+    INFO("Parsed static op memory data, size: %", data.size());
+    DispatchLookupData(EventType::EVENT_TYPE_STATIC_OP_MEM, data);
+}
+
+void EventGrouper::ParseStreamExpandSpec()
+{
+    std::shared_ptr<StreamExpandSpecParser> parser;
+    MAKE_SHARED_RETURN_VOID(parser, StreamExpandSpecParser, hostPath_);
+    auto data = parser->ParseData<ParserCompactInfo>();
+    INFO("Parsed stream expand spec data, size: %", data.size());
+    DispatchLookupData(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC, data);
 }
 
 void EventGrouper::SetApiEventKeys()

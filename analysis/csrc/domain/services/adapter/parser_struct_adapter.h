@@ -42,6 +42,7 @@ class ParserCompactInfoAdapter
     static void AdapterAttrInfo(const MsprofCompactInfo* compact, ParserCompactInfo* parsed);
     static void AdapterHcclopInfo(const MsprofCompactInfo* compact, ParserCompactInfo* parsed);
     static void AdapterMemcpyInfo(const MsprofCompactInfo* compact, ParserCompactInfo* parsed);
+    static void AdapterStreamExpandSpec(const MsprofCompactInfo* compact, ParserCompactInfo* parsed);
 };
 
 class ParserApiAdapter
@@ -61,6 +62,7 @@ class ParserAdditionalInfoAdapter
     static void AdapterHcclInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterMultiThread(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterMemoryInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
+    static void AdapterStaticOpMem(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
 };
 
 class ParserAicpuAdapter

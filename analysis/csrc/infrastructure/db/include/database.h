@@ -73,6 +73,12 @@ class StreamExpandSpecDB : public Database
     StreamExpandSpecDB();
 };
 
+class StaticOpMemDB : public Database
+{
+   public:
+    StaticOpMemDB();
+};
+
 class StreamInfoDB : public Database
 {
    public:

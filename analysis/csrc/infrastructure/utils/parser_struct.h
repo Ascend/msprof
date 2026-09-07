@@ -32,6 +32,7 @@ enum class CompactInfoFormat : uint8_t
     ATTR_INFO_TYPE,
     HCCL_OP_INFO_TYPE,
     MEMCPY_INFO_TYPE,
+    STREAM_EXPAND_SPEC_TYPE,
 };
 
 enum class AdditionalInfoFormat : uint8_t
@@ -46,6 +47,7 @@ enum class AdditionalInfoFormat : uint8_t
     MULTI_THREAD_TYPE,
     TASK_MEMORY_INFO_TYPE,
     MC2_COMM_INFO_TYPE,
+    STATIC_OP_MEM_TYPE,
 };
 
 enum class VariableInfoFormat : uint8_t
@@ -188,6 +190,11 @@ struct ParserAttrInfo
     uint64_t hashId;
 };
 
+struct ParserStreamExpandSpec
+{
+    uint16_t expandStatus;
+};
+
 const uint16_t PARSER_COMPACT_INFO_DATA_LENGTH = 104;
 struct ParserCompactInfo
 {
@@ -207,6 +214,7 @@ struct ParserCompactInfo
         ParserAttrInfo nodeAttrInfo;
         ParserHcclOPInfo hcclopInfo;
         ParserMemcpyInfo memcpyInfo;
+        ParserStreamExpandSpec streamExpandSpec;
     } data;
 };
 
@@ -498,6 +506,7 @@ struct ParserAdditionalInfo
         ParserContextIdInfo contextIdInfo;
         ParserGraphIdInfo graphIdInfo;
         ParserMemoryInfo memoryInfo;
+        ParserStaticOpMem staticOpMem;
     };
 };
 

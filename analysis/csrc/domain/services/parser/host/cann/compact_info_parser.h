@@ -188,6 +188,23 @@ class DpuTaskTrackParser final : public CompactInfoParser
     std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
 };  // class DpuTaskTrackParser
 
+// 该类的作用是解析Stream扩容规格数据
+class StreamExpandSpecParser final : public CompactInfoParser
+{
+   public:
+    explicit StreamExpandSpecParser(const std::string &path) : CompactInfoParser(path, "StreamExpandSpecParser")
+    {
+        parserType_ = CompactInfoFormat::STREAM_EXPAND_SPEC_TYPE;
+        Init(filePrefix_);
+    }
+
+   private:
+    std::vector<std::string> filePrefix_ = {
+        "unaging.compact.expand_stream_spec.slice",
+        "aging.compact.expand_stream_spec.slice",
+    };
+};  // class StreamExpandSpecParser
+
 // 该类的作用是hccl op info info数据的解析
 class HcclOpInfoParser final : public CompactInfoParser
 {

@@ -67,7 +67,9 @@ enum class EventType
     EVENT_TYPE_RUNTIME_OP_INFO,  // capture_op_info，按 device/stream/task 查找
     EVENT_TYPE_DPU_TASK_TRACK,   // dpu_track，lookup 后直接落盘，不进建树
     EVENT_TYPE_DUMMY,            // 虚拟类型，用于建树时标志虚拟节点
-    EVENT_TYPE_INVALID
+    EVENT_TYPE_INVALID,
+    EVENT_TYPE_STATIC_OP_MEM,       // static_op_mem，解析后直接落盘，不进建树
+    EVENT_TYPE_STREAM_EXPAND_SPEC,  // expand_stream_spec，解析后直接落盘，不进建树
 };
 
 inline const std::set<EventType> &TreeBuildEventTypes()
@@ -92,7 +94,8 @@ inline const std::set<EventType> &TreeBuildEventTypes()
 inline const std::set<EventType> &LookupEventTypes()
 {
     static const std::set<EventType> types = {EventType::EVENT_TYPE_RUNTIME_OP_INFO,
-                                              EventType::EVENT_TYPE_DPU_TASK_TRACK};
+                                              EventType::EVENT_TYPE_DPU_TASK_TRACK, EventType::EVENT_TYPE_STATIC_OP_MEM,
+                                              EventType::EVENT_TYPE_STREAM_EXPAND_SPEC};
     return types;
 }
 

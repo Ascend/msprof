@@ -225,6 +225,21 @@ TEST(ParserCompactInfoAdapterTest, AdapterCompactInfoShouldMapMemcpyInfo)
     EXPECT_EQ(parsed.data.memcpyInfo.memcpyDirection, 8);
 }
 
+TEST(ParserCompactInfoAdapterTest, AdapterCompactInfoShouldMapStreamExpandSpec)
+{
+    MsprofCompactInfo compact{};
+    ParserCompactInfo parsed{};
+    InitCompactInfoHeader(compact);
+    compact.data.streamExpandSpec.expandStatus = 1;
+
+    bool ret = ParserCompactInfoAdapter::AdapterCompactInfo(
+        &compact, &parsed, CompactInfoFormat::STREAM_EXPAND_SPEC_TYPE);
+
+    EXPECT_TRUE(ret);
+    ExpectCompactInfoHeader(parsed, compact);
+    EXPECT_EQ(parsed.data.streamExpandSpec.expandStatus, 1);
+}
+
 TEST(ParserCompactInfoAdapterTest, AdapterCompactInfoShouldReturnFalseForUnsupportedFormat)
 {
     MsprofCompactInfo compact{};
@@ -452,6 +467,33 @@ TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapMemoryInfo)
     EXPECT_EQ(parsed.memoryInfo.totalReserveMemory, 10);
     EXPECT_EQ(parsed.memoryInfo.deviceId, 11);
     EXPECT_EQ(parsed.memoryInfo.deviceType, 12);
+}
+
+TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapStaticOpMem)
+{
+    MsprofAdditionalInfo addition{};
+    ParserAdditionalInfo parsed{};
+    InitAdditionalInfoHeader(addition);
+    addition.staticOpMem.size = -1024;
+    addition.staticOpMem.opName = 6;
+    addition.staticOpMem.lifeStart = 7;
+    addition.staticOpMem.lifeEnd = 8;
+    addition.staticOpMem.totalAllocateMemory = 9;
+    addition.staticOpMem.dynOpName = 10;
+    addition.staticOpMem.graphId = 11;
+
+    bool ret = ParserAdditionalInfoAdapter::AdapterAdditionalInfo(
+        &addition, &parsed, AdditionalInfoFormat::STATIC_OP_MEM_TYPE);
+
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(parsed.magicNumber, addition.magicNumber);
+    EXPECT_EQ(parsed.staticOpMem.size, -1024);
+    EXPECT_EQ(parsed.staticOpMem.opName, 6);
+    EXPECT_EQ(parsed.staticOpMem.lifeStart, 7);
+    EXPECT_EQ(parsed.staticOpMem.lifeEnd, 8);
+    EXPECT_EQ(parsed.staticOpMem.totalAllocateMemory, 9);
+    EXPECT_EQ(parsed.staticOpMem.dynOpName, 10);
+    EXPECT_EQ(parsed.staticOpMem.graphId, 11);
 }
 
 TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldReturnFalseForUnsupportedFormat)

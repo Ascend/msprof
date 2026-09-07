@@ -214,6 +214,26 @@ class TaskMemoryParser final : public AdditionInfoParser
     };
 };  // class TaskMemoryParser
 
+// 该类的作用是解析静态图算子内存数据
+class StaticOpMemParser final : public AdditionInfoParser
+{
+   public:
+    explicit StaticOpMemParser(const std::string &path) : AdditionInfoParser(path, "StaticOpMemParser")
+    {
+        parserType_ = AdditionalInfoFormat::STATIC_OP_MEM_TYPE;
+        Init(filePrefix_);
+    }
+
+   private:
+    bool IsDataValid(const MsprofAdditionalInfo &additionalInfo) const override;
+
+   private:
+    std::vector<std::string> filePrefix_ = {
+        "unaging.additional.static_op_mem.slice",
+        "aging.additional.static_op_mem.slice",
+    };
+};  // class StaticOpMemParser
+
 // 该类的作用是multi thread数据的解析
 class MultiThreadParser final : public AdditionInfoParser
 {

@@ -100,6 +100,9 @@ bool ParserCompactInfoAdapter::AdapterCompactInfo(const MsprofCompactInfo* compa
         case CompactInfoFormat::MEMCPY_INFO_TYPE:
             AdapterMemcpyInfo(compact, parsed);
             return true;
+        case CompactInfoFormat::STREAM_EXPAND_SPEC_TYPE:
+            AdapterStreamExpandSpec(compact, parsed);
+            return true;
         default:
             ERROR("Unsupported CompactInfo format: %.", static_cast<uint32_t>(parserType));
             return false;
@@ -214,6 +217,11 @@ void ParserCompactInfoAdapter::AdapterMemcpyInfo(const MsprofCompactInfo* compac
     parsed->data.memcpyInfo.memcpyDirection = compact->data.memcpyInfo.memcpyDirection;
 }
 
+void ParserCompactInfoAdapter::AdapterStreamExpandSpec(const MsprofCompactInfo* compact, ParserCompactInfo* parsed)
+{
+    parsed->data.streamExpandSpec.expandStatus = compact->data.streamExpandSpec.expandStatus;
+}
+
 bool ParserApiAdapter::AdapterApi(const MsprofApi* apiData, ParserApi* parsed)
 {
     if (apiData == nullptr || parsed == nullptr)
@@ -270,6 +278,9 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
                 ERROR("adapter mc2 comm info data failed.");
                 return false;
             }
+            return true;
+        case AdditionalInfoFormat::STATIC_OP_MEM_TYPE:
+            AdapterStaticOpMem(addition, parsed);
             return true;
         default:
             ERROR("Unsupported Additional Info: %.", static_cast<uint32_t>(parserType));
@@ -377,6 +388,17 @@ void ParserAdditionalInfoAdapter::AdapterMemoryInfo(const MsprofAdditionalInfo* 
     parsed->memoryInfo.totalReserveMemory = addition->memoryInfo.totalReserveMemory;
     parsed->memoryInfo.deviceId = addition->memoryInfo.deviceId;
     parsed->memoryInfo.deviceType = addition->memoryInfo.deviceType;
+}
+
+void ParserAdditionalInfoAdapter::AdapterStaticOpMem(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed)
+{
+    parsed->staticOpMem.size = addition->staticOpMem.size;
+    parsed->staticOpMem.opName = addition->staticOpMem.opName;
+    parsed->staticOpMem.lifeStart = addition->staticOpMem.lifeStart;
+    parsed->staticOpMem.lifeEnd = addition->staticOpMem.lifeEnd;
+    parsed->staticOpMem.totalAllocateMemory = addition->staticOpMem.totalAllocateMemory;
+    parsed->staticOpMem.dynOpName = addition->staticOpMem.dynOpName;
+    parsed->staticOpMem.graphId = addition->staticOpMem.graphId;
 }
 
 bool ParserAicpuAdapter::AdapterNode(const MsprofAdditionalInfo* additionalData, AicpuData* aicpuData)

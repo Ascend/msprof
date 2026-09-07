@@ -163,6 +163,8 @@ class ConfigDataParsers:
             "CtxIdParser",
             "HcclOpInfoParser",
             "RuntimeOpInfoParser",
+            "StaticOpMemParser",
+            "StreamExpandSpecParser",
         ]:
             return True
         return False

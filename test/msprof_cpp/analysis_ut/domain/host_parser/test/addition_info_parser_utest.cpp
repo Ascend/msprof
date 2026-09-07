@@ -32,6 +32,7 @@ const uint16_t DATA_NUM = 30;
 const uint16_t TENSOR_DATA_NUM = 18000;
 const uint32_t TENSOR_NUM_TO_CONCAT = 3;
 const std::string TASK_MEMORY_DATA_DIR = "./task_memory_addition_parser_test";
+const std::string STATIC_OP_MEM_DATA_DIR = "./static_op_mem_addition_parser_test";
 
 namespace {
 std::string MakeTaskMemoryRecord(uint16_t magic, uint64_t operatorId, uint64_t addr = 1, int64_t size = 1,
@@ -57,6 +58,32 @@ std::string MakeTaskMemoryRecord(uint16_t magic, uint64_t operatorId, uint64_t a
 void WriteTaskMemoryFile(const std::string &fileName, const std::string &content)
 {
     FileWriter writer(File::PathJoin({TASK_MEMORY_DATA_DIR, fileName}), std::ios::out | std::ios::binary);
+    writer.WriteText(content.data(), content.size());
+}
+
+std::string MakeStaticOpMemRecord(uint16_t magic, int64_t size, uint64_t opName, uint64_t dynOpName,
+                                  uint32_t dataLen = sizeof(MsprofStaticOpMem))
+{
+    MsprofAdditionalInfo additionalInfo{};
+    additionalInfo.magicNumber = magic;
+    additionalInfo.level = MSPROF_REPORT_NODE_LEVEL;
+    additionalInfo.type = MSPROF_REPORT_NODE_STATIC_OP_MEM_TYPE;
+    additionalInfo.threadId = 12;
+    additionalInfo.dataLen = dataLen;
+    additionalInfo.timeStamp = 100;
+    additionalInfo.staticOpMem.size = size;
+    additionalInfo.staticOpMem.opName = opName;
+    additionalInfo.staticOpMem.lifeStart = 2;
+    additionalInfo.staticOpMem.lifeEnd = 3;
+    additionalInfo.staticOpMem.totalAllocateMemory = 4096;
+    additionalInfo.staticOpMem.dynOpName = dynOpName;
+    additionalInfo.staticOpMem.graphId = 4;
+    return std::string(reinterpret_cast<const char *>(&additionalInfo), sizeof(additionalInfo));
+}
+
+void WriteStaticOpMemFile(const std::string &fileName, const std::string &content)
+{
+    FileWriter writer(File::PathJoin({STATIC_OP_MEM_DATA_DIR, fileName}), std::ios::out | std::ios::binary);
     writer.WriteText(content.data(), content.size());
 }
 }  // namespace
@@ -190,6 +217,19 @@ protected:
     void TearDown() override
     {
         File::RemoveDir(TASK_MEMORY_DATA_DIR, 0);
+    }
+};
+
+class StaticOpMemParserUTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        File::CreateDir(STATIC_OP_MEM_DATA_DIR);
+    }
+
+    void TearDown() override
+    {
+        File::RemoveDir(STATIC_OP_MEM_DATA_DIR, 0);
     }
 };
 
@@ -402,4 +442,35 @@ TEST_F(TaskMemoryParserUTest, ParseShouldUseChunkGeneratorAgingAndSliceOrder)
     EXPECT_EQ(data[1]->memoryInfo.nodeId, 2U);
     EXPECT_EQ(data[2]->memoryInfo.nodeId, 3U);
     EXPECT_EQ(data[3]->memoryInfo.nodeId, 4U);
+}
+
+TEST_F(StaticOpMemParserUTest, ParseShouldDiscardInvalidRecordsAndDecodeValidRecord)
+{
+    WriteStaticOpMemFile("unaging.additional.static_op_mem.slice_0",
+                         MakeStaticOpMemRecord(0x1234, 1024, 1, 2) +
+                         MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2048, 3, 4,
+                                               sizeof(MsprofStaticOpMem) - 1) +
+                         MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, -3072, 5, 6));
+
+    StaticOpMemParser parser(STATIC_OP_MEM_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    ASSERT_EQ(parser.GetStatus(), ParserStatus::SUCCESS);
+    ASSERT_EQ(data.size(), 1U);
+    EXPECT_EQ(data[0]->staticOpMem.size, -3072);
+    EXPECT_EQ(data[0]->staticOpMem.opName, 5U);
+    EXPECT_EQ(data[0]->staticOpMem.lifeStart, 2U);
+    EXPECT_EQ(data[0]->staticOpMem.lifeEnd, 3U);
+    EXPECT_EQ(data[0]->staticOpMem.totalAllocateMemory, 4096U);
+    EXPECT_EQ(data[0]->staticOpMem.dynOpName, 6U);
+    EXPECT_EQ(data[0]->staticOpMem.graphId, 4U);
+}
+
+TEST_F(StaticOpMemParserUTest, ParseShouldReturnNotExistWhenTargetFileDoesNotExist)
+{
+    StaticOpMemParser parser(STATIC_OP_MEM_DATA_DIR);
+    auto data = parser.ParseData<ParserAdditionalInfo>();
+
+    EXPECT_EQ(parser.GetStatus(), ParserStatus::NOT_EXIST);
+    EXPECT_TRUE(data.empty());
 }

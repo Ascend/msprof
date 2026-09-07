@@ -576,6 +576,7 @@ extern "C"
             ProfFusionOpInfo fusionOpInfo;
             MsprofContextIdInfo contextIdInfo;
             MsprofMemoryInfo memoryInfo;
+            MsprofStaticOpMem staticOpMem;
         };
     };
     // =====================ADDITIONAL=====================
@@ -725,6 +726,13 @@ extern "C"
         uint16_t memcpyDirection;  // memcpy的方向
     };
 
+    struct MsprofStreamExpandSpec
+    {
+        uint8_t expandStatus;
+        uint8_t reserved[3];
+        uint32_t reservedInfo[9];
+    };
+
     const uint16_t MSPROF_COMPACT_INFO_DATA_LENGTH = 40;
     struct MsprofCompactInfo
     {  // for MsprofReportCompactInfo buffer data
@@ -746,6 +754,7 @@ extern "C"
             MsprofAttrInfo nodeAttrInfo;
             MsprofHcclOPInfo hcclopInfo;
             MsprofMemcpyInfo memcpyInfo;
+            MsprofStreamExpandSpec streamExpandSpec;
         } data;
     };
     // =====================COMPACT=====================

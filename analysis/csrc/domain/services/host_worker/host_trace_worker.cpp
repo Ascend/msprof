@@ -30,6 +30,8 @@
 #include "analysis/csrc/domain/services/persistence/host/memcpy_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/model_name_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/runtime_op_info_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/static_op_mem_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/stream_expand_spec_db_dumper.h"
 
 using namespace Analysis::Domain::Cann;
 
@@ -67,6 +69,8 @@ bool HostTraceWorker::Run()
     ThreadPool pool(poolSize_);
     pool.Start();
     DumpDpuTaskTrack(pool, grouper);
+    DumpStaticOpMem(pool, grouper);
+    DumpStreamExpandSpec(pool, grouper);
     DumpHostSystemProfileData(pool);
     if (!cannWarehouses_.Empty())
     {
@@ -315,6 +319,36 @@ void HostTraceWorker::DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<E
             if (!ret)
             {
                 ERROR("Dump dpu task track data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, &grouper]()
+        {
+            TimeLogger t{"Dump static op memory data start"};
+            auto staticOpMemData = grouper->GetStaticOpMemData();
+            StaticOpMemDBDumper dumper(hostPath_);
+            if (!dumper.DumpData(staticOpMemData))
+            {
+                ERROR("Dump static op memory data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpStreamExpandSpec(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, &grouper]()
+        {
+            TimeLogger t{"Dump stream expand spec data start"};
+            auto streamExpandSpecData = grouper->GetStreamExpandSpecData();
+            StreamExpandSpecDBDumper dumper(hostPath_);
+            if (!dumper.DumpData(streamExpandSpecData))
+            {
+                ERROR("Dump stream expand spec data failed");
             }
         });
 }

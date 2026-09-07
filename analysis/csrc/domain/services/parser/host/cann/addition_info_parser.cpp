@@ -130,6 +130,11 @@ bool TaskMemoryParser::IsDataValid(const MsprofAdditionalInfo &additionalInfo) c
     return additionalInfo.dataLen >= sizeof(MsprofMemoryInfo);
 }
 
+bool StaticOpMemParser::IsDataValid(const MsprofAdditionalInfo &additionalInfo) const
+{
+    return additionalInfo.dataLen >= sizeof(MsprofStaticOpMem);
+}
+
 int TensorInfoParser::ProduceData()
 {
     if (chunkProducer_->Empty())
