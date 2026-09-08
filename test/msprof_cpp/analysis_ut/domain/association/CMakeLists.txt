@@ -18,6 +18,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calcul
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator/hccl DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator/hccl/include
         DEVICE_ASSOCIATION_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context DEVICE_ASSOCIATION_SOURCE)
 
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/stubs/dfx DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/association/test DEVICE_ASSOCIATION_SOURCE)

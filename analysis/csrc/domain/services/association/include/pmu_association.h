@@ -17,18 +17,22 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_PMU_ASSOCIATION_H
 #define ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_PMU_ASSOCIATION_H
 
-#include <set>
 #include <map>
-#include "analysis/csrc/infrastructure/process/include/process.h"
+#include <set>
+
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_pmu.h"
 #include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Infra;
-class PmuAssociation : public Process {
-private:
+class PmuAssociation : public Process
+{
+   private:
     void SplitPmu(std::vector<HalPmuData>& pmuData);
     void MergeContextPmuToDeviceTask(std::vector<HalPmuData*>& pmuVec, std::vector<DeviceTask>& deviceVec,
                                      DataInventory& dataInventory, const DeviceContext& context, uint64_t& filterEnd);
@@ -36,15 +40,18 @@ private:
                                      DataInventory& dataInventory, const DeviceContext& context, uint64_t& filterEnd);
     void AssociationByPmuType(std::map<TaskId, std::vector<DeviceTask>>& deviceTask, DataInventory& dataInventory,
                               const DeviceContext& context);
-    void CalculateContextPmu(HalPmuData &pmu, DeviceTask &task, DataInventory &dataInventory,
-                              const DeviceContext &context);
+    void CalculateContextPmu(HalPmuData& pmu, DeviceTask& task, DataInventory& dataInventory,
+                             const DeviceContext& context);
+    void CalculateContextPmuV6(HalPmuData& pmu, DeviceTask& task, DataInventory& dataInventory,
+                               const DeviceContext& context);
     uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
-private:
+
+   private:
     std::map<TaskId, std::vector<HalPmuData*>> contextPmuTask_;
     std::map<TaskId, std::vector<HalPmuData*>> blockPmuTask_;
     std::unique_ptr<MetricCalculator> aicCalculator_;
     std::unique_ptr<MetricCalculator> aivCalculator_;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_PMU_ASSOCIATION_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_PMU_ASSOCIATION_H

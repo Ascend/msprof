@@ -16,62 +16,145 @@
 
 #include "analysis/csrc/domain/entities/metric/include/metric.h"
 
-namespace Analysis {
-namespace Domain {
-namespace {
-std::vector<std::string> PipeUtExHeaderString{
-    "mac_time", "mac_ratio_extra", "scalar_time", "scalar_ratio", "mte1_time", "mte1_ratio_extra", "mte2_time",
-    "mte2_ratio", "fixpipe_time", "fixpipe_ratio", "icache_miss_rate"
-};
+#include <map>
 
-std::vector<std::string> ArithMetricHeaderString{
-    "mac_fp16_ratio", "mac_int8_ratio", "vec_fp32_ratio", "vec_fp16_ratio", "vec_int32_ratio", "vec_misc_ratio",
-    "cube_fops", "vector_fops"
-};
-
-std::vector<std::string> PipeUtHeaderString{
-    "vec_time", "vec_ratio", "mac_time", "mac_ratio", "scalar_time", "scalar_ratio", "mte1_time", "mte1_ratio",
-    "mte2_time", "mte2_ratio", "mte3_time", "mte3_ratio", "icache_miss_rate"
-};
-
-std::vector<std::string> MemoryHeaderString{
-    "ub_read_bw", "ub_write_bw", "l1_read_bw", "l1_write_bw", "main_mem_read_bw", "main_mem_write_bw", "l2_read_bw",
-    "l2_write_bw"
-};
-
-std::vector<std::string> MemoryL0HeaderString{
-    "l0a_read_bw", "l0a_write_bw", "l0b_read_bw", "l0b_write_bw",
-    "l0c_read_bw", "l0c_write_bw", "l0c_read_bw_cube", "l0c_write_bw_cube"
-};
-
-std::vector<std::string> ResourceHeaderString{
-    "vec_bankgroup_cflt_ratio", "vec_bank_cflt_ratio", "vec_resc_cflt_ratio"
-};
-
-std::vector<std::string> MemoryUBHeaderString{
-    "ub_read_bw_vector", "ub_write_bw_vector", "ub_read_bw_scalar", "ub_write_bw_scalar"
-};
-
-std::vector<std::string> L2CacheHeaderString{
-    "write_cache_hit", "write_cache_miss_allocate", "r0_read_cache_hit", "r0_read_cache_miss_allocate",
-    "r1_read_cache_hit", "r1_read_cache_miss_allocate"
-};
-
-std::vector<std::string> MemoryAccessString{
-    "read_main_memory_datas", "write_main_memory_datas", "GM_to_L1_datas", "L0C_to_L1_datas", "L0C_to_GM_datas",
-    "GM_to_UB_datas", "UB_to_GM_datas"
-};
+namespace Analysis
+{
+namespace Domain
+{
+namespace
+{
+template <typename T>
+std::string LookupHeader(const std::map<T, std::string>& table, T type)
+{
+    auto it = table.find(type);
+    return it != table.end() ? it->second : INVALID_HEADER;
 }
-std::unordered_map<std::type_index, std::vector<std::string>> Metric::metricMappingStringTable{
-    {typeid(PipeUtilizationExctIndex), PipeUtExHeaderString},
-    {typeid(ArithMetricIndex), ArithMetricHeaderString},
-    {typeid(PipeLineUtIndex), PipeUtHeaderString},
-    {typeid(MemoryIndex), MemoryHeaderString},
-    {typeid(MemoryL0Index), MemoryL0HeaderString},
-    {typeid(ResourceConflictIndex), ResourceHeaderString},
-    {typeid(MemoryUBIndex), MemoryUBHeaderString},
-    {typeid(L2CacheIndex), L2CacheHeaderString},
-    {typeid(MemoryAccessIndex), MemoryAccessString}
-};
+}  // namespace
+
+std::string Metric::GetMetricHeaderString(PipeUtilizationExctIndex type)
+{
+    static const std::map<PipeUtilizationExctIndex, std::string> table = {
+        {PipeUtilizationExctIndex::MacTime, "mac_time"},
+        {PipeUtilizationExctIndex::MacRatioExtra, "mac_ratio_extra"},
+        {PipeUtilizationExctIndex::ScalarTime, "scalar_time"},
+        {PipeUtilizationExctIndex::ScalarRatio, "scalar_ratio"},
+        {PipeUtilizationExctIndex::Mte1Time, "mte1_time"},
+        {PipeUtilizationExctIndex::Mte1RatioExtra, "mte1_ratio_extra"},
+        {PipeUtilizationExctIndex::Mte2Time, "mte2_time"},
+        {PipeUtilizationExctIndex::Mte2Ratio, "mte2_ratio"},
+        {PipeUtilizationExctIndex::FixPipeTime, "fixpipe_time"},
+        {PipeUtilizationExctIndex::FixPipeRatio, "fixpipe_ratio"},
+        {PipeUtilizationExctIndex::ICacheMissRate, "icache_miss_rate"}};
+    return LookupHeader(table, type);
 }
+
+std::string Metric::GetMetricHeaderString(ArithMetricIndex type)
+{
+    static const std::map<ArithMetricIndex, std::string> table = {{ArithMetricIndex::MacFp16Ratio, "mac_fp16_ratio"},
+                                                                  {ArithMetricIndex::MacInt8Ratio, "mac_int8_ratio"},
+                                                                  {ArithMetricIndex::VecFp32Ratio, "vec_fp32_ratio"},
+                                                                  {ArithMetricIndex::VecFp16Ratio, "vec_fp16_ratio"},
+                                                                  {ArithMetricIndex::VecInt32Ratio, "vec_int32_ratio"},
+                                                                  {ArithMetricIndex::VecMiscRatio, "vec_misc_ratio"},
+                                                                  {ArithMetricIndex::CubeFops, "cube_fops"},
+                                                                  {ArithMetricIndex::VectorFops, "vector_fops"}};
+    return LookupHeader(table, type);
 }
+
+std::string Metric::GetMetricHeaderString(PipeLineUtIndex type)
+{
+    static const std::map<PipeLineUtIndex, std::string> table = {{PipeLineUtIndex::VecTime, "vec_time"},
+                                                                 {PipeLineUtIndex::VecRatio, "vec_ratio"},
+                                                                 {PipeLineUtIndex::MacTime, "mac_time"},
+                                                                 {PipeLineUtIndex::MacRatio, "mac_ratio"},
+                                                                 {PipeLineUtIndex::ScalarTime, "scalar_time"},
+                                                                 {PipeLineUtIndex::ScalarRatio, "scalar_ratio"},
+                                                                 {PipeLineUtIndex::Mte1Time, "mte1_time"},
+                                                                 {PipeLineUtIndex::Mte1Ratio, "mte1_ratio"},
+                                                                 {PipeLineUtIndex::Mte2Time, "mte2_time"},
+                                                                 {PipeLineUtIndex::Mte2Ratio, "mte2_ratio"},
+                                                                 {PipeLineUtIndex::Mte3Time, "mte3_time"},
+                                                                 {PipeLineUtIndex::Mte3Ratio, "mte3_ratio"},
+                                                                 {PipeLineUtIndex::FixPipeTime, "fixpipe_time"},
+                                                                 {PipeLineUtIndex::FixPipeRatio, "fixpipe_ratio"},
+                                                                 {PipeLineUtIndex::ICacheMissRate, "icache_miss_rate"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(MemoryIndex type)
+{
+    static const std::map<MemoryIndex, std::string> table = {{MemoryIndex::UBReadBw, "ub_read_bw"},
+                                                             {MemoryIndex::UBWriteBw, "ub_write_bw"},
+                                                             {MemoryIndex::L1ReadBw, "l1_read_bw"},
+                                                             {MemoryIndex::L1WriteBw, "l1_write_bw"},
+                                                             {MemoryIndex::MainMemReadBw, "main_mem_read_bw"},
+                                                             {MemoryIndex::MainMemWriteBw, "main_mem_write_bw"},
+                                                             {MemoryIndex::L2ReadBw, "l2_read_bw"},
+                                                             {MemoryIndex::L2WriteBw, "l2_write_bw"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(MemoryL0Index type)
+{
+    static const std::map<MemoryL0Index, std::string> table = {
+        {MemoryL0Index::L0aReadBw, "l0a_read_bw"},          {MemoryL0Index::L0aWriteBw, "l0a_write_bw"},
+        {MemoryL0Index::L0bReadBw, "l0b_read_bw"},          {MemoryL0Index::L0bWriteBw, "l0b_write_bw"},
+        {MemoryL0Index::L0cReadBw, "l0c_read_bw"},          {MemoryL0Index::L0cWriteBw, "l0c_write_bw"},
+        {MemoryL0Index::L0cReadBwCube, "l0c_read_bw_cube"}, {MemoryL0Index::L0cWriteBwCube, "l0c_write_bw_cube"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(ResourceConflictIndex type)
+{
+    static const std::map<ResourceConflictIndex, std::string> table = {
+        {ResourceConflictIndex::VecBankGroupCfltRatio, "vec_bankgroup_cflt_ratio"},
+        {ResourceConflictIndex::VecBankCfltRatio, "vec_bank_cflt_ratio"},
+        {ResourceConflictIndex::VecRescCfltRatio, "vec_resc_cflt_ratio"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(MemoryUBIndex type)
+{
+    static const std::map<MemoryUBIndex, std::string> table = {{MemoryUBIndex::UbReadBwVector, "ub_read_bw_vector"},
+                                                               {MemoryUBIndex::UbWriteBwVector, "ub_write_bw_vector"},
+                                                               {MemoryUBIndex::UbReadBwScalar, "ub_read_bw_scalar"},
+                                                               {MemoryUBIndex::UbWriteBwScalar, "ub_write_bw_scalar"},
+                                                               {MemoryUBIndex::Fixp2UbWriteBw, "fixp2ub_write_bw"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(L2CacheIndex type)
+{
+    static const std::map<L2CacheIndex, std::string> table = {
+        // V4及之前芯片的L2Cache指标
+        {L2CacheIndex::WriteCacheHit, "write_cache_hit"},
+        {L2CacheIndex::WriteCacheMissAllocate, "write_cache_miss_allocate"},
+        {L2CacheIndex::R0ReadCacheHit, "r0_read_cache_hit"},
+        {L2CacheIndex::R0ReadCacheMissAllocate, "r0_read_cache_miss_allocate"},
+        {L2CacheIndex::R1ReadCacheHit, "r1_read_cache_hit"},
+        {L2CacheIndex::R1ReadCacheMissAllocate, "r1_read_cache_miss_allocate"},
+        // V6芯片的L2Cache指标
+        {L2CacheIndex::ReadLocalL2Hit, "read_local_l2_hit"},
+        {L2CacheIndex::ReadLocalL2Miss, "read_local_l2_miss"},
+        {L2CacheIndex::ReadLocalL2Victim, "read_local_l2_victim"},
+        {L2CacheIndex::WriteLocalL2Hit, "write_local_l2_hit"},
+        {L2CacheIndex::WriteLocalL2Miss, "write_local_l2_miss"},
+        {L2CacheIndex::WriteLocalL2Victim, "write_local_l2_victim"}};
+    return LookupHeader(table, type);
+}
+
+std::string Metric::GetMetricHeaderString(MemoryAccessIndex type)
+{
+    static const std::map<MemoryAccessIndex, std::string> table = {
+        {MemoryAccessIndex::ReadMainMemoryData, "read_main_memory_datas"},
+        {MemoryAccessIndex::WriteMainMemoryData, "write_main_memory_datas"},
+        {MemoryAccessIndex::GmToL1Data, "GM_to_L1_datas"},
+        {MemoryAccessIndex::L0CToL1Data, "L0C_to_L1_datas"},
+        {MemoryAccessIndex::L0CToGmData, "L0C_to_GM_datas"},
+        {MemoryAccessIndex::GmToUbData, "GM_to_UB_datas"},
+        {MemoryAccessIndex::UbToGmData, "UB_to_GM_datas"}};
+    return LookupHeader(table, type);
+}
+}  // namespace Domain
+}  // namespace Analysis

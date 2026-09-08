@@ -18,35 +18,43 @@
 #define ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_METRIC_CALCULATOR_FACTORY_H
 
 #include <functional>
+
 #include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator.h"
 
-namespace Analysis {
-namespace Domain {
-using Creator = std::function<std::unique_ptr<MetricCalculator>()>;
+namespace Analysis
+{
+namespace Domain
+{
+using Creator = std::function<std::unique_ptr<MetricCalculator>(ChipId)>;
 
-class MetricCalculatorFactory {
-public:
-    static std::unique_ptr<MetricCalculator> GetAicCalculator(AicMetricsEventsType type)
+class MetricCalculatorFactory
+{
+   public:
+    // 芯片信息由调用方传入：DeviceContext::Instance()为thread_local，计算器在worker线程创建时无法获取正确芯片信息
+    static std::unique_ptr<MetricCalculator> GetAicCalculator(AicMetricsEventsType type, ChipId chipId = CHIP_ID_ALL)
     {
         auto it = aicEvent.find(type);
-        if (it != aicEvent.end()) {
-            return it->second();
+        if (it != aicEvent.end())
+        {
+            return it->second(chipId);
         }
         return nullptr;
     }
 
-    static std::unique_ptr<MetricCalculator> GetAivCalculator(AivMetricsEventsType type)
+    static std::unique_ptr<MetricCalculator> GetAivCalculator(AivMetricsEventsType type, ChipId chipId = CHIP_ID_ALL)
     {
         auto it = aivEvent.find(type);
-        if (it != aivEvent.end()) {
-            return it->second();
+        if (it != aivEvent.end())
+        {
+            return it->second(chipId);
         }
         return nullptr;
     }
-private:
+
+   private:
     static std::unordered_map<AicMetricsEventsType, Creator> aicEvent;
     static std::unordered_map<AivMetricsEventsType, Creator> aivEvent;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_METRIC_CALCULATOR_FACTORY_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_ASSOCIATION_METRIC_CALCULATOR_FACTORY_H

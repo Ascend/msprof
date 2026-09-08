@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -102,22 +102,42 @@ uint32_t ReadHostGEInfo(DataInventory& dataInventory, const DeviceContext& devic
     {
         return ANALYSIS_ERROR;
     }
+    bool isChipV6 = deviceContext.isChipV6();
     for (auto row : result)
     {
         uint32_t stream_id, batch_id, task_id, context_id, blockNum, mixBlockNum;
         std::tie(stream_id, batch_id, task_id, context_id, blockNum, mixBlockNum) = row;
-        TaskId id = {stream_id, batch_id, task_id, context_id};
-        auto item = deviceTaskMap->find(id);
-        if (item != deviceTaskMap->end())
+        bool found = false;
+        if (isChipV6)
         {
-            std::vector<DeviceTask>& deviceTasks = item->second;
-            for (auto& deviceTask : deviceTasks)
+            for (auto& deviceEntry : *deviceTaskMap)
             {
-                deviceTask.blockNum = (uint16_t)blockNum;
-                deviceTask.mixBlockNum = (uint16_t)mixBlockNum;
+                if (deviceEntry.first.taskId == task_id)
+                {
+                    for (auto& deviceTask : deviceEntry.second)
+                    {
+                        deviceTask.blockNum = (uint16_t)blockNum;
+                        deviceTask.mixBlockNum = (uint16_t)mixBlockNum;
+                    }
+                    found = true;
+                }
             }
         }
         else
+        {
+            TaskId id = {stream_id, batch_id, task_id, context_id};
+            auto item = deviceTaskMap->find(id);
+            if (item != deviceTaskMap->end())
+            {
+                for (auto& deviceTask : item->second)
+                {
+                    deviceTask.blockNum = (uint16_t)blockNum;
+                    deviceTask.mixBlockNum = (uint16_t)mixBlockNum;
+                }
+                found = true;
+            }
+        }
+        if (!found)
         {
             noExistCNt++;
         }
@@ -180,7 +200,7 @@ uint32_t ReadHostRuntime(DataInventory& dataInventory, const DeviceContext& devi
     }
     std::shared_ptr<HostStreamInfo> streamIdInfo;
     MAKE_SHARED_RETURN_VALUE(streamIdInfo, HostStreamInfo, ANALYSIS_ERROR);
-    if (deviceContext.GetChipID() == CHIP_V6_1_0 || deviceContext.GetChipID() == CHIP_V6_2_0)
+    if (deviceContext.isChipV6())
     {
         for (auto& task : hostRuntime)
         {

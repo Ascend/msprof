@@ -17,6 +17,8 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_METRIC_SUMMARY_PERSISTENCE_H
 
+#include <tuple>
+
 #include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
@@ -36,6 +38,8 @@ enum PmuHeaderType
     AIV_TOTAL_TIME,
     AIV_PMU_RESULT
 };
+// V6BlockPmu表落盘数据行: stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id
+using V6BlockPmuData = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, double, uint8_t, uint8_t>;
 using namespace Infra;
 using namespace Analysis::Application;
 class MetricSummaryPersistence : public Process
@@ -52,6 +56,8 @@ class MetricSummaryPersistence : public Process
                        std::unordered_map<PmuHeaderType, std::vector<double>>& result, DeviceTask& task, int aicLength,
                        int aivLength);
     void CreateConnection(const std::string& dbPath);
+    uint32_t SaveV6BlockPmuData(DataInventory& dataInventory, const DeviceContext& deviceContext,
+                                const std::string& dbPath);
 
    private:
     std::unique_ptr<MetricCalculator> aicCalculator_;

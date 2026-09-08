@@ -21,6 +21,7 @@
 
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
 {
@@ -190,6 +191,8 @@ class DeviceContext : public Infra::Context
     void Getter(DeviceStartInfo &startInfo) const { startInfo = this->deviceContextInfo.startInfo; };
 
     uint32_t GetChipID() const override { return deviceContextInfo.deviceInfo.chipID; }
+
+    bool isChipV6() const { return GetChipID() == CHIP_V6_1_0 || GetChipID() == CHIP_V6_2_0; }
 
     std::string GetDeviceFilePath() const { return this->deviceContextInfo.deviceFilePath; }
 

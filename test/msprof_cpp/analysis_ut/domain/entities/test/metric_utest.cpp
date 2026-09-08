@@ -38,5 +38,12 @@ TEST_F(MetricUTest, ShouldReturnRightHeaderStringWhenInputEnumType)
     ASSERT_EQ("mac_fp16_ratio", Metric::GetMetricHeaderString(ArithMetricIndex::MacFp16Ratio));
     ASSERT_EQ("INVALID", Metric::GetMetricHeaderString(InvalidType::TEST_INVALID));
 }
+
+TEST_F(MetricUTest, ShouldReturnChip6HeaderString)
+{
+    ASSERT_EQ("read_local_l2_hit", Metric::GetMetricHeaderString(L2CacheIndex::ReadLocalL2Hit));
+    ASSERT_EQ("write_local_l2_victim", Metric::GetMetricHeaderString(L2CacheIndex::WriteLocalL2Victim));
+    ASSERT_EQ("fixp2ub_write_bw", Metric::GetMetricHeaderString(MemoryUBIndex::Fixp2UbWriteBw));
+}
 }
 }

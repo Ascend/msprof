@@ -23,6 +23,7 @@
 #include "analysis/csrc/domain/services/parser/pmu/include/ffts_profile_parser.h"
 #include "analysis/csrc/domain/services/parser/parser_item/block_pmu_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item/chip4_pmu_parser_item.h"
+#include "analysis/csrc/domain/services/parser/parser_item/chip6_pmu_parser_item.h"
 
 using namespace testing;
 using namespace Analysis::Utils;
@@ -112,6 +113,27 @@ protected:
             blockPmu.timeList[i] = (i + 1) * 100; // 100构造时间字段值
         }
         return blockPmu;
+    }
+
+    Chip6Pmu GenerateChip6Pmu(bool isBlock)
+    {
+        Chip6Pmu chip6Pmu;
+        chip6Pmu.funcType = isBlock ? PARSER_ITEM_V6_BLOCK_PMU : PARSER_ITEM_V6_CONTEXT_PMU;
+        chip6Pmu.cnt = 0; // 0 校验位（0-15）
+        chip6Pmu.taskId = 1000; // 1000 taskId
+        chip6Pmu.totalCycle = 10000; // 10000 totalCycle
+        chip6Pmu.ctxType = 0;
+        chip6Pmu.flags = 0b010; // mix=1 与coreType组合标识MIX_AIC
+        chip6Pmu.coreType = 0; // 0 标识AIC上报
+        chip6Pmu.coreId = 0;
+        chip6Pmu.subBlockId = 1; // 1 subBlockId
+        chip6Pmu.blockId = 0; // 0 blockId
+        for (int i = 0; i < V6_PMU_LENGTH; ++i) {
+            chip6Pmu.pmuList[i] = i + 1; // PMU值
+        }
+        chip6Pmu.startTime = 100; // 100构造开始时间
+        chip6Pmu.endTime = 200;  // 200构造结束时间
+        return chip6Pmu;
     }
 
 protected:
@@ -231,6 +253,42 @@ TEST_F(FftsProfileParserUTest, ShouldParseErrorWhenResizeException)
     MOCKER_CPP(&Resize<HalPmuData>).stubs().will(returnValue(false));
     ASSERT_EQ(PARSER_PARSE_DATA_ERROR, parser.Run(dataInventory_, context));
     MOCKER_CPP(&Resize<HalPmuData>).reset();
+}
+
+TEST_F(FftsProfileParserUTest, ShouldParseV6ContextPmuWhenParserRun)
+{
+    FftsProfileParser parser;
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    std::vector<Chip6Pmu> pmu{GenerateChip6Pmu(false)};
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
+    auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    ASSERT_EQ(1ul, pmuData->size());
+    ASSERT_EQ(HalPmuType::PMU, pmuData->data()[0].type);
+    ASSERT_EQ(AcceleratorType::MIX_AIC, pmuData->data()[0].pmu.acceleratorType);
+    for (int i = 0; i < V6_PMU_LENGTH; ++i) {
+        ASSERT_EQ(static_cast<uint64_t>(i + 1), pmuData->data()[0].pmu.pmuList[i]);
+    }
+}
+
+TEST_F(FftsProfileParserUTest, ShouldParseV6BlockPmuWhenParserRun)
+{
+    FftsProfileParser parser;
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = profilePath_;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    std::vector<Chip6Pmu> pmu{GenerateChip6Pmu(true)};
+    WriteBin(pmu, File::PathJoin({profilePath_, "data"}), "ffts_profile.data.0.slice_0");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
+    auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    ASSERT_EQ(1ul, pmuData->size());
+    ASSERT_EQ(HalPmuType::BLOCK_PMU, pmuData->data()[0].type);
+    ASSERT_EQ(AcceleratorType::MIX_AIC, pmuData->data()[0].pmu.acceleratorType);
+    for (int i = 0; i < V6_PMU_LENGTH; ++i) {
+        ASSERT_EQ(static_cast<uint64_t>(i + 1), pmuData->data()[0].pmu.pmuList[i]);
+    }
 }
 }
 }

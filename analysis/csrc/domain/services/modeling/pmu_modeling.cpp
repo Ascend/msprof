@@ -15,24 +15,30 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/services/modeling/include/pmu_modeling.h"
+
 #include <algorithm>
+
 #include "analysis/csrc/domain/services/modeling/batch_id/batch_id.h"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/services/parser/pmu/include/ffts_profile_parser.h"
+#include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
-#include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
 void PmuModeling::GroupDataByStream(std::vector<HalPmuData>& originPmuData, std::vector<HalTrackData>& flipTrack)
 {
-    for (auto& pmuData : originPmuData) {
+    for (auto& pmuData : originPmuData)
+    {
         pmu_[pmuData.hd.taskId.streamId].push_back(&pmuData);
     }
-    if (!flipTrack.empty()) {
+    if (!flipTrack.empty())
+    {
         auto flipIt = GetFlipData(flipTrack);
         flipGroup_.swap(flipIt);
     }
@@ -40,9 +46,11 @@ void PmuModeling::GroupDataByStream(std::vector<HalPmuData>& originPmuData, std:
 
 void PmuModeling::GenerateBatchId()
 {
-    for (auto& pmuVec : pmu_) {
+    for (auto& pmuVec : pmu_)
+    {
         auto it = flipGroup_.find(pmuVec.first);
-        if (it != flipGroup_.end()) {
+        if (it != flipGroup_.end())
+        {
             std::sort(pmuVec.second.begin(), pmuVec.second.end(), cmp<HalPmuData>);
             std::sort(it->second.begin(), it->second.end(), cmp<HalTrackData>);
             ModelingComputeBatchIdBinary(ReinterpretConvert<HalUniData**>(pmuVec.second.data()), pmuVec.second.size(),
@@ -52,12 +60,18 @@ void PmuModeling::GenerateBatchId()
     INFO("PMU modeling has done!");
 }
 
-uint32_t PmuModeling::ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context&)
+uint32_t PmuModeling::ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context)
 {
     auto originPmuData = dataInventory.GetPtr<std::vector<HalPmuData>>();
     auto flipTrack = dataInventory.GetPtr<std::vector<HalTrackData>>();
-    if (!originPmuData) {
+    if (!originPmuData)
+    {
         INFO("There is no PMU data, can't supplement batchId");
+        return Analysis::ANALYSIS_OK;
+    }
+    // 不依赖flip边界划分多波次，无需补batch id（flip补全逻辑假设V4的16位taskId语义，对V6不适用）。
+    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0)
+    {
         return Analysis::ANALYSIS_OK;
     }
     GroupDataByStream(*originPmuData, *flipTrack);
@@ -67,6 +81,6 @@ uint32_t PmuModeling::ProcessEntry(Infra::DataInventory& dataInventory, const In
 
 REGISTER_PROCESS_SEQUENCE(PmuModeling, true, FftsProfileParser, TsTrackParser);
 REGISTER_PROCESS_DEPENDENT_DATA(PmuModeling, std::vector<HalPmuData>, std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(PmuModeling, CHIP_V4_1_0);
-}
-}
+REGISTER_PROCESS_SUPPORT_CHIP(PmuModeling, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+}  // namespace Domain
+}  // namespace Analysis

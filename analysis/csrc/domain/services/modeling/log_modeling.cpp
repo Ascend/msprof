@@ -276,7 +276,7 @@ REGISTER_PROCESS_SUPPORT_CHIP(Domain::LogModeling, CHIP_V4_1_0);
 
 namespace CHIP_V6
 {
-REGISTER_PROCESS_SEQUENCE(Domain::LogModelingV6, true, Domain::StarsSocParser, Domain::TsTrackParser);
+REGISTER_PROCESS_SEQUENCE(Domain::LogModelingV6, true, Domain::StarsSocParserV6, Domain::TsTrackParser);
 REGISTER_PROCESS_DEPENDENT_DATA(Domain::LogModelingV6, std::vector<Domain::HalLogData>,
                                 std::vector<Domain::HalTrackData>,
                                 std::map<Domain::TaskId, std::vector<Domain::DeviceTask>>);

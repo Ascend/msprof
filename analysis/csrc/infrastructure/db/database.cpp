@@ -485,7 +485,7 @@ const TableColumns OpReport = {
 const TableColumns V6BlockPmu = {{"stream_id", SQL_NUMERIC_TYPE},  {"task_id", SQL_NUMERIC_TYPE},
                                  {"subtask_id", SQL_NUMERIC_TYPE}, {"batch_id", SQL_NUMERIC_TYPE},
                                  {"start_time", SQL_NUMERIC_TYPE}, {"duration", SQL_REAL_TYPE},
-                                 {"core_type", SQL_TEXT_TYPE},     {"core_id", SQL_INTEGER_TYPE}};
+                                 {"core_type", SQL_INTEGER_TYPE},  {"core_id", SQL_INTEGER_TYPE}};
 
 const TableColumns UBBwData = {
     {"device_id", SQL_NUMERIC_TYPE},      {"port_id", SQL_NUMERIC_TYPE},      {"time_stamp", SQL_NUMERIC_TYPE},

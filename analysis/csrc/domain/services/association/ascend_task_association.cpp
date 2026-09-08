@@ -1,4 +1,4 @@
-﻿/* -------------------------------------------------------------------------
+/* -------------------------------------------------------------------------
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
@@ -227,7 +227,7 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
     auto params = GetSyscntConversionParams(deviceContext);
     auto hostTasks = dataInventory.GetPtr<std::map<TaskId, std::vector<HostTask>>>();
     auto deviceTasks = dataInventory.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
-    if (context.GetChipID() == CHIP_V6_1_0)
+    if (deviceContext.isChipV6())
     {
         auto streamIdInfo = dataInventory.GetPtr<HostStreamInfo>();
         FillDeviceTaskStreamId(streamIdInfo, deviceTasks);

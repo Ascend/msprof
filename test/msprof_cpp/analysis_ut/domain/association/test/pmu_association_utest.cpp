@@ -23,6 +23,15 @@
 #include "analysis/csrc/domain/services/association/include/pmu_association.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/arith_metric_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/pipeut_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/pipeutext_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/memory_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/memory_l0_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/memory_ub_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/resource_conflict_calculator.h"
+#include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/memory_access_calculator.h"
 #include "analysis/csrc/domain/services/association/calculator/metric/metric_calculator_group/l2_cache_calculator.h"
 
 using namespace testing;
@@ -491,6 +500,393 @@ TEST_F(PmuAssociationUTest, ShouldReturnOKWhenPMUISMemoryAccess)
     auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
     deviceTaskS->swap(deviceTask);
     ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+}
+
+/**
+ * 计算器工厂与芯片配置分发的单元测试。
+ *  - 工厂只按指标类型创建计算器，不感知芯片（芯片信息由计算器内部获取）；
+ *  - 有芯片差异的指标（L2Cache/ArithMetric等）也只实例化同一个计算器类，
+ *    差异由计算器内部的 Get*Config(chipId) switch 分发。
+ */
+template <typename Expected>
+static bool IsSameCalculatorType(const std::unique_ptr<MetricCalculator>& calculator)
+{
+    return calculator != nullptr && dynamic_cast<Expected *>(calculator.get()) != nullptr;
+}
+
+TEST_F(PmuAssociationUTest, ShouldCreateCalculatorByMetricType)
+{
+    ASSERT_TRUE(IsSameCalculatorType<ArithMetricCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_ARITHMETIC_UTILIZATION)));
+    ASSERT_TRUE(IsSameCalculatorType<PipeUtCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_PIPE_UTILIZATION)));
+    ASSERT_TRUE(IsSameCalculatorType<PipeUtExtCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_PIPE_UTILIZATION_EXCT)));
+    ASSERT_TRUE(
+        IsSameCalculatorType<MemoryCalculator>(MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_MEMORY)));
+    ASSERT_TRUE(IsSameCalculatorType<MemoryL0Calculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_MEMORY_L0)));
+    ASSERT_TRUE(IsSameCalculatorType<ResourceConflictCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_RESOURCE_CONFLICT_RATIO)));
+    ASSERT_TRUE(IsSameCalculatorType<MemoryUBCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_MEMORY_UB)));
+    ASSERT_TRUE(IsSameCalculatorType<L2CacheCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_L2_CACHE)));
+    ASSERT_TRUE(IsSameCalculatorType<MemoryAccessCalculator>(
+        MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_MEMORY_ACCESS)));
+
+    ASSERT_TRUE(IsSameCalculatorType<ArithMetricCalculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_ARITHMETIC_UTILIZATION)));
+    ASSERT_TRUE(IsSameCalculatorType<PipeUtCalculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_PIPE_UTILIZATION)));
+    ASSERT_TRUE(
+        IsSameCalculatorType<MemoryCalculator>(MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_MEMORY)));
+    ASSERT_TRUE(IsSameCalculatorType<MemoryL0Calculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_MEMORY_L0)));
+    ASSERT_TRUE(IsSameCalculatorType<ResourceConflictCalculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_RESOURCE_CONFLICT_RATIO)));
+    ASSERT_TRUE(
+        IsSameCalculatorType<MemoryUBCalculator>(MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_MEMORY_UB)));
+    ASSERT_TRUE(IsSameCalculatorType<L2CacheCalculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_L2_CACHE)));
+    ASSERT_TRUE(IsSameCalculatorType<MemoryAccessCalculator>(
+        MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_MEMORY_ACCESS)));
+
+    // 无效的指标类型返回nullptr
+    ASSERT_TRUE(MetricCalculatorFactory::GetAicCalculator(AicMetricsEventsType::AIC_METRICS_UNKNOWN) == nullptr);
+    ASSERT_TRUE(MetricCalculatorFactory::GetAivCalculator(AivMetricsEventsType::AIV_METRICS_UNKNOWN) == nullptr);
+}
+
+TEST_F(PmuAssociationUTest, ShouldUseV6ConfigForArithMetric)
+{
+    ArithMetricCalculator v6Calculator(CHIP_V6_1_0);
+    ArithMetricCalculator defaultCalculator(CHIP_V4_1_0);
+
+    // V6 仅包含 3 个算术指标（无 vector 相关指标），默认芯片包含 8 个
+    ASSERT_EQ(3ul, v6Calculator.GetPmuHeader().size());
+    ASSERT_EQ(8ul, defaultCalculator.GetPmuHeader().size());
+
+    // V6 使用新事件 ID 0x323/0x324，默认芯片不识别该事件组合
+    std::vector<uint32_t> v6Events{0x323, 0x324};
+    ASSERT_TRUE(v6Calculator.CheckMetricEventValid(v6Events));
+    ASSERT_FALSE(defaultCalculator.CheckMetricEventValid(v6Events));
+}
+
+TEST_F(PmuAssociationUTest, ShouldUseChipConfigInsideL2CacheCalculator)
+{
+    L2CacheCalculator v6Calculator(CHIP_V6_1_0);
+    L2CacheCalculator defaultCalculator(CHIP_V4_1_0);
+
+    // V6 与默认芯片的 L2Cache 指标列名不同
+    ASSERT_EQ((std::vector<std::string>{"read_local_l2_hit", "read_local_l2_miss", "read_local_l2_victim",
+                                        "write_local_l2_hit", "write_local_l2_miss", "write_local_l2_victim"}),
+              v6Calculator.GetPmuHeader());
+    ASSERT_EQ((std::vector<std::string>{"write_cache_hit", "write_cache_miss_allocate", "r0_read_cache_hit",
+                                        "r0_read_cache_miss_allocate", "r1_read_cache_hit", "r1_read_cache_miss_allocate"}),
+              defaultCalculator.GetPmuHeader());
+
+    // V6 使用寄存器 0x424~0x42c，默认芯片使用 0x500~0x50a，互不识别
+    std::vector<uint32_t> v6Events{0x424, 0x425, 0x426, 0x42a, 0x42b, 0x42c};
+    std::vector<uint32_t> defaultEvents{0x500, 0x502, 0x504, 0x506, 0x508, 0x50a};
+    ASSERT_TRUE(v6Calculator.CheckMetricEventValid(v6Events));
+    ASSERT_FALSE(v6Calculator.CheckMetricEventValid(defaultEvents));
+    ASSERT_TRUE(defaultCalculator.CheckMetricEventValid(defaultEvents));
+    ASSERT_FALSE(defaultCalculator.CheckMetricEventValid(v6Events));
+}
+
+/*
+ * V6芯片相关用例公共数据构造：
+ *   V6 PMU不携带streamId（解析时填UINT16_MAX），pmuList固定长度为V6_PMU_LENGTH(10)，
+ *   事件使用V6 ArithMetric新事件ID（0x323/0x324）
+ */
+constexpr size_t V6_TEST_PMU_LENGTH = 10;  // 与chip6_pmu_parser_item.h中V6_PMU_LENGTH一致
+constexpr uint32_t V6_TEST_STREAM_ID = 7;  // host task表中的真实streamId
+
+static void SetV6DeviceContext(DeviceContext& context)
+{
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    context.deviceContextInfo.sampleInfo.aiCoreMetrics = AicMetricsEventsType::AIC_ARITHMETIC_UTILIZATION;
+    context.deviceContextInfo.sampleInfo.aivMetrics = AivMetricsEventsType::AIV_ARITHMETIC_UTILIZATION;
+    context.deviceContextInfo.deviceInfo.aiCoreNum = 8;  // 8为cube核数
+    context.deviceContextInfo.deviceInfo.aivNum = 8;   // 8为vector核数
+    context.deviceContextInfo.deviceInfo.aicFrequency = 100;  // 100为aic频率，单位：MHZ
+    context.deviceContextInfo.deviceInfo.hwtsFrequency = 100.0;  // 100为hwts频率，单位：MHZ
+    context.deviceContextInfo.sampleInfo.aiCoreProfilingEvents = {0x323, 0x324};
+    context.deviceContextInfo.sampleInfo.aivProfilingEvents = {0x323, 0x324};
+}
+
+static std::vector<HalPmuData> GenerateV6HalPmuData(uint64_t startSyscnt, uint64_t endSyscnt)
+{
+    std::vector<HalPmuData> pmuData;
+    HalPmuData pmuInfo{};
+    pmuInfo.type = PMU;
+    pmuInfo.hd.taskId.streamId = UINT16_MAX;  // V6 PMU不携带streamId，解析时填默认值UINT16_MAX
+    pmuInfo.hd.taskId.taskId = TEST_ID;
+    pmuInfo.hd.taskId.batchId = TEST_ID;
+    pmuInfo.hd.taskId.contextId = TEST_ID;
+    pmuInfo.hd.timestamp = 100; // pmu上报时间为100
+    pmuInfo.pmu.acceleratorType = AIC;
+    pmuInfo.pmu.coreType = 0;
+    pmuInfo.pmu.totalCycle = 100; // totalCycle为100
+    pmuInfo.pmu.timeList[0] = startSyscnt;
+    pmuInfo.pmu.timeList[1] = endSyscnt;
+    pmuInfo.pmu.pmuList.resize(V6_TEST_PMU_LENGTH);
+    for (size_t j = 0; j < V6_TEST_PMU_LENGTH; ++j) {
+        pmuInfo.pmu.pmuList[j] = j;
+    }
+    pmuData.push_back(pmuInfo);
+    return pmuData;
+}
+
+static std::map<TaskId, std::vector<DeviceTask>> GenerateV6DeviceTask(uint32_t streamId)
+{
+    std::map<TaskId, std::vector<DeviceTask>> deviceTask;
+    auto& res = deviceTask[{streamId, TEST_ID, TEST_ID, TEST_ID}];  // {streamId, batchId, taskId, contextId}
+    res.emplace_back();
+    res.back().mixBlockNum = 3;  // 3为从核数
+    res.back().blockNum = 8;  // 8为主核数
+    res.back().taskStart = 50; // task开始时间为50
+    res.back().taskEnd = 150;  // task结束时间为150
+    return deviceTask;
+}
+
+/*
+ * V6芯片：PMU原始streamId为UINT16_MAX，应被host task表中的streamId替换后再与task关联
+ */
+TEST_F(PmuAssociationUTest, ShouldReplaceStreamIdByHostStreamInfoWhenChipV6)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    ASSERT_EQ(UINT16_MAX, pmuData[0].hd.taskId.streamId);
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    // task表使用替换后的streamId，原始streamId(UINT16_MAX)无法直接匹配
+    auto deviceTask = GenerateV6DeviceTask(V6_TEST_STREAM_ID);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    // host task表：taskId=1 -> streamId=7
+    auto hostStreamInfo = std::make_shared<HostStreamInfo>();
+    hostStreamInfo->streamIdMap[TEST_ID] = V6_TEST_STREAM_ID;
+    dataInventory_.Inject(hostStreamInfo);
+
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    ASSERT_EQ(1ul, result->size());
+    const auto& task = result->begin()->second.at(0);
+    auto res = dynamic_cast<PmuInfoSingleAccelerator *>(task.pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    // PMU成功关联到替换后streamId的task上，指标计算结果非空
+    EXPECT_EQ(V6_TEST_STREAM_ID, result->begin()->first.streamId);
+    EXPECT_FALSE(res->pmuResult.empty());
+}
+
+/*
+ * V6芯片：events数量(11)超过pmuList长度(10)时返回错误
+ */
+TEST_F(PmuAssociationUTest, ShouldReturnErrorWhenV6EventSizeExceedsPmuList)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    // 11个事件超过pmuList长度V6_PMU_LENGTH(10)，前两个事件保持合法以通过calculator校验
+    context.deviceContextInfo.sampleInfo.aiCoreProfilingEvents = {0x323, 0x324, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+                                                                  0x8, 0x9};
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(V6_TEST_STREAM_ID);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_ERROR, pmuAssociation.Run(dataInventory_, context));
+}
+
+/*
+ * V6芯片非mix场景：timeList合法(单调递增)时使用syscnt时间差计算totalTime：
+ *   overrideTotalTime = (endSyscnt - startSyscnt) / hwtsFrequency = (200 - 100) / 100 = 1.0
+ */
+TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeWhenV6TimeListValid)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    auto res = dynamic_cast<PmuInfoSingleAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_DOUBLE_EQ(1.0, res->totalTime);
+}
+
+/*
+ * V6芯片非mix场景：timeList回绕(endSyscnt < startSyscnt)时不使用syscnt计算，
+ *   totalTime回退为周期公式：totalCycle * FREQ_TO_Hz / freq / blockNum * ((blockNum + coreNum - 1) / coreNum)
+ *   = 100 * 1e6 / (100 * 1e6) / 8 * ((8 + 8 - 1) / 8) = 0.125
+ */
+TEST_F(PmuAssociationUTest, ShouldFallBackToCycleFormulaWhenV6TimeListWarp)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(200, 100);  // endSyscnt < startSyscnt，模拟时钟回绕
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    auto res = dynamic_cast<PmuInfoSingleAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_DOUBLE_EQ(0.125, res->totalTime);
+}
+
+/*
+ * V6芯片mix场景：task仅收到AIC单侧context PMU（AIV侧丢失）时，
+ *   关联仍成功，结果仅含AIC侧数据并打印WARN日志
+ */
+TEST_F(PmuAssociationUTest, ShouldOnlyFillAicResultWhenV6MixTaskReceiveSinglePmu)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    pmuData[0].pmu.acceleratorType = MIX_AIC;  // 仅收到MIX_AIC一侧的PMU
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    const auto& task = result->begin()->second.at(0);
+    EXPECT_EQ(MIX_AIC, task.acceleratorType);
+    auto res = dynamic_cast<PmuInfoMixAccelerator *>(task.pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_FALSE(res->aicPmuResult.empty());
+    EXPECT_TRUE(res->aivPmuResult.empty());
+}
+
+/*
+ * V6芯片mix场景：同一task先后收到AIC、AIV两条context PMU（静态图下AIC/AIV各上报一条）。验证：
+ *   1) MergeContextPmuToDeviceTask 的taskIndex推进：第二条PMU仍落在当前task窗口内，taskIndex不推进，
+ *      两条PMU都归属同一task；
+ *   2) CalculateContextPmu 的existingMix合并：第二条PMU不覆盖第一条，aic/aiv结果同时存在。
+ */
+TEST_F(PmuAssociationUTest, ShouldMergeAicAndAivPmuToSameTaskWhenV6Mix)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    pmuData[0].pmu.acceleratorType = MIX_AIC;
+    pmuData[0].hd.timestamp = 100;
+    HalPmuData aivPmu = pmuData[0];
+    aivPmu.pmu.acceleratorType = MIX_AIV;
+    aivPmu.hd.timestamp = 120;  // AIV侧PMU略晚，但与AIC同处task[50,150]窗口
+    pmuData.push_back(aivPmu);
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    ASSERT_EQ(1ul, result->size());
+    const auto& tasks = result->begin()->second;
+    ASSERT_EQ(1ul, tasks.size());
+    auto res = dynamic_cast<PmuInfoMixAccelerator *>(tasks.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    // existingMix合并成功：AIC与AIV结果同时存在，互不覆盖
+    EXPECT_FALSE(res->aicPmuResult.empty());
+    EXPECT_FALSE(res->aivPmuResult.empty());
+    EXPECT_EQ(100ul, res->aicTotalCycles);
+    EXPECT_EQ(100ul, res->aivTotalCycles);
+    // 本用例两条PMU均为从核(mst=0)：MIX_AIC从核写aivTime(周期公式0.125)，MIX_AIV从核将aiCoreTime归零
+    EXPECT_DOUBLE_EQ(0.0, res->aiCoreTime);
+    EXPECT_DOUBLE_EQ(0.125, res->aivTime);
+}
+
+/*
+ * V6芯片mix场景：主核(mst=1)使用syscnt时间差计算时间。
+ * MIX_AIC主核：aiCoreTime = (endSyscnt - startSyscnt) / hwtsFrequency = (200 - 100) / 100 = 1.0
+ */
+TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeForAicMainCoreWhenV6Mix)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    pmuData[0].pmu.acceleratorType = MIX_AIC;
+    pmuData[0].pmu.mst = 1;  // AIC为主核
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    auto res = dynamic_cast<PmuInfoMixAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_DOUBLE_EQ(1.0, res->aiCoreTime);
+    EXPECT_DOUBLE_EQ(0.0, res->aivTime);
+}
+
+/*
+ * V6芯片mix场景：MIX_AIV主核(mst=1)使用syscnt时间差计算时间。
+ * aivTime = (200 - 100) / 100 = 1.0
+ */
+TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeForAivMainCoreWhenV6Mix)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    pmuData[0].pmu.acceleratorType = MIX_AIV;
+    pmuData[0].pmu.mst = 1;  // AIV为主核
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    auto res = dynamic_cast<PmuInfoMixAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_DOUBLE_EQ(0.0, res->aiCoreTime);
+    EXPECT_DOUBLE_EQ(1.0, res->aivTime);
+}
+
+/*
+ * V6芯片mix场景：从核(mst=0)不使用syscnt时间差，回退为周期公式。
+ * MIX_AIC从核写aivTime = totalCycle * FREQ_TO_Hz / freq / blockNum * ((blockNum + coreNum - 1) / coreNum)
+ *   = 100 * 1e6 / (100 * 1e6) / 8 * ((8 + 8 - 1) / 8) = 0.125
+ */
+TEST_F(PmuAssociationUTest, ShouldUseCycleFormulaForSlaveCoreWhenV6Mix)
+{
+    PmuAssociation pmuAssociation;
+    DeviceContext context;
+    SetV6DeviceContext(context);
+    auto pmuData = GenerateV6HalPmuData(100, 200);
+    pmuData[0].pmu.acceleratorType = MIX_AIC;
+    pmuData[0].pmu.mst = 0;  // AIC为从核
+    auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
+    pmuDataS->swap(pmuData);
+    auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    deviceTaskS->swap(deviceTask);
+    ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
+    auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    auto res = dynamic_cast<PmuInfoMixAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
+    ASSERT_NE(nullptr, res);
+    EXPECT_DOUBLE_EQ(0.0, res->aiCoreTime);
+    EXPECT_DOUBLE_EQ(0.125, res->aivTime);
 }
 }
 }

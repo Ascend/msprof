@@ -18,29 +18,35 @@
 #define ANALYSIS_DOMAIN_SERVICE_PARSER_PMU_FFTS_PROFILE_PARSER_H
 
 #include <vector>
-#include "analysis/csrc/domain/services/parser/parser.h"
+
 #include "analysis/csrc/domain/entities/hal/include/hal_pmu.h"
+#include "analysis/csrc/domain/services/parser/parser.h"
+#include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Domain {
+namespace Domain
+{
 
-class FftsProfileParser : public Parser {
-private:
+class FftsProfileParser : public Parser
+{
+   private:
     uint32_t ParseDataItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* data, uint16_t expandStatus);
 
     std::vector<std::string> GetFilePattern() override;
 
     uint32_t GetTrunkSize() override;
 
-    uint32_t ParseData(Infra::DataInventory &dataInventory, const Infra::Context &context) override;
+    uint32_t ParseData(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
 
-private:
+   private:
     std::vector<HalPmuData> halUniData_;
     std::vector<std::string> filePrefix_{"ffts_profile"};
     int cnt_{-1};
+    ParserType parserType_{PMU_PARSER};
 };
 
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICE_PARSER_PMU_FFTS_PROFILE_PARSER_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICE_PARSER_PMU_FFTS_PROFILE_PARSER_H

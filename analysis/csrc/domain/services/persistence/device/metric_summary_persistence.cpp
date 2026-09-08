@@ -17,6 +17,8 @@
 #include "analysis/csrc/domain/services/persistence/device/metric_summary_persistence.h"
 
 #include "analysis/csrc/domain/services/association/include/pmu_association.h"
+#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
+#include "analysis/csrc/domain/valueobject/include/task_id.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -33,6 +35,7 @@ const int CHIP4_PMU_TIME_NUM = 2;
 const int OTHER_CHIP_PMU_TIME_NUM = 1;
 const std::string AIC_PREFIX = "aic_";
 const std::string AIV_PREFIX = "aiv_";
+const std::string V6_BLOCK_PMU_TABLE = "V6BlockPmu";
 }  // namespace
 
 MetricSummaryPersistence::~MetricSummaryPersistence()
@@ -56,8 +59,7 @@ MetricSummaryPersistence::~MetricSummaryPersistence()
 bool MetricSummaryPersistence::BindAndExecuteInsert(std::unordered_map<PmuHeaderType, std::vector<uint64_t>>& ids,
                                                     std::unordered_map<PmuHeaderType, std::vector<double>>& pmu)
 {
-    // 此处和Python表头保持强规定顺序，按照id(后续不展示，可以不用关注顺序)，AIC:time cyc, pmu, AIV:time cyc
-    // pmu的顺序绑定值
+    // 按表头顺序绑定值：id(后续不展示，可不关注顺序)，AIC: time cyc pmu, AIV: time cyc pmu
     int index = 0;
     for (auto& value : ids[TASK_ID])
     {
@@ -168,7 +170,7 @@ MetricSummaryDB::MetricSummaryDB(TableColumns columns)
 TableColumns MetricSummaryPersistence::GetTableColumn(const DeviceContext& context)
 {
     TableColumns res;
-    if (context.GetChipID() == CHIP_V4_1_0)
+    if (context.GetChipID() == CHIP_V4_1_0 || context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0)
     {
         auto aicHeader = aicCalculator_->GetPmuHeader();
         aicLength_ = static_cast<int>(aicHeader.size());
@@ -302,6 +304,61 @@ uint32_t MetricSummaryPersistence::SaveDataToDb(std::map<TaskId, std::vector<Dev
     }
 }
 
+uint32_t MetricSummaryPersistence::SaveV6BlockPmuData(DataInventory& dataInventory, const DeviceContext& deviceContext,
+                                                      const std::string& dbPath)
+{
+    // 将Block PMU数据落盘到metric_summary.db的V6BlockPmu表
+    auto pmuData = dataInventory.GetPtr<std::vector<HalPmuData>>();
+    if (!pmuData)
+    {
+        ERROR("Hal pmu data is null.");
+        return ANALYSIS_ERROR;
+    }
+    const auto params = GenerateSyscntConversionParams(deviceContext);
+    if (IsDoubleEqual(params.freq, 0.0))
+    {
+        ERROR("Invalid hwts frequency %, skip saving V6BlockPmu.", params.freq);
+        return ANALYSIS_ERROR;
+    }
+    std::vector<V6BlockPmuData> blockPmuData;
+    for (const auto& pmu : *pmuData)
+    {
+        if (pmu.type != BLOCK_PMU)
+        {
+            continue;
+        }
+        if (pmu.pmu.timeList[1] < pmu.pmu.timeList[0])
+        {
+            ERROR("Invalid pmu time range: start=%, end=%, taskId is %", pmu.pmu.timeList[0], pmu.pmu.timeList[1],
+                  pmu.hd.taskId.taskId);
+            continue;
+        }
+        double startTime = Utils::GetTimeFromSyscnt(pmu.pmu.timeList[0], params).Double();
+        double duration = static_cast<double>(pmu.pmu.timeList[1] - pmu.pmu.timeList[0]) / params.freq;
+        blockPmuData.emplace_back(pmu.hd.taskId.streamId, pmu.hd.taskId.taskId, pmu.hd.taskId.contextId,
+                                  pmu.hd.taskId.batchId, startTime, duration, pmu.pmu.coreType, pmu.pmu.coreId);
+    }
+    if (blockPmuData.empty())
+    {
+        return ANALYSIS_OK;
+    }
+    DBInfo v6BlockPmuDB("metric_summary.db", V6_BLOCK_PMU_TABLE);
+    MAKE_SHARED0_RETURN_VALUE(v6BlockPmuDB.database, Infra::MetricSummaryDB, ANALYSIS_ERROR);
+    MAKE_SHARED_RETURN_VALUE(v6BlockPmuDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
+    if (!v6BlockPmuDB.dbRunner->CreateTable(v6BlockPmuDB.tableName,
+                                            v6BlockPmuDB.database->GetTableCols(v6BlockPmuDB.tableName)))
+    {
+        ERROR("Create table % failed", v6BlockPmuDB.tableName);
+        return ANALYSIS_ERROR;
+    }
+    if (!v6BlockPmuDB.dbRunner->InsertData(v6BlockPmuDB.tableName, blockPmuData))
+    {
+        ERROR("Insert data failed, tableName: %", v6BlockPmuDB.tableName);
+        return ANALYSIS_ERROR;
+    }
+    return ANALYSIS_OK;
+}
+
 uint32_t MetricSummaryPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
@@ -314,8 +371,9 @@ uint32_t MetricSummaryPersistence::ProcessEntry(DataInventory& dataInventory, co
     SampleInfo sampleInfo;
     deviceContext.Getter(sampleInfo);
     dynamicFlag = sampleInfo.dynamic;
-    aicCalculator_ = MetricCalculatorFactory::GetAicCalculator(sampleInfo.aiCoreMetrics);
-    aivCalculator_ = MetricCalculatorFactory::GetAivCalculator(sampleInfo.aivMetrics);
+    auto chipId = static_cast<ChipId>(deviceContext.GetChipID());
+    aicCalculator_ = MetricCalculatorFactory::GetAicCalculator(sampleInfo.aiCoreMetrics, chipId);
+    aivCalculator_ = MetricCalculatorFactory::GetAivCalculator(sampleInfo.aivMetrics, chipId);
     if (aicCalculator_ == nullptr || aivCalculator_ == nullptr)
     {
         WARN("There is no PMU metric config don't need to persistence");
@@ -336,6 +394,11 @@ uint32_t MetricSummaryPersistence::ProcessEntry(DataInventory& dataInventory, co
     if (SaveDataToDb(*deviceTask, dbPath, metricSummary) == ANALYSIS_OK)
     {
         INFO("Process % done!", metricSummary.tableName);
+        // V6芯片需将Block PMU数据落盘到V6BlockPmu表
+        if (chipId == CHIP_V6_1_0 || chipId == CHIP_V6_2_0)
+        {
+            return SaveV6BlockPmuData(dataInventory, deviceContext, dbPath);
+        }
         return ANALYSIS_OK;
     }
     ERROR("Save % data failed: %", dbPath);
@@ -343,7 +406,8 @@ uint32_t MetricSummaryPersistence::ProcessEntry(DataInventory& dataInventory, co
 }
 
 REGISTER_PROCESS_SEQUENCE(MetricSummaryPersistence, false, PmuAssociation);
-REGISTER_PROCESS_DEPENDENT_DATA(MetricSummaryPersistence, std::map<TaskId, std::vector<Domain::DeviceTask>>);
+REGISTER_PROCESS_DEPENDENT_DATA(MetricSummaryPersistence, std::map<TaskId, std::vector<Domain::DeviceTask>>,
+                                std::vector<HalPmuData>, HostStreamInfo);
 REGISTER_PROCESS_SUPPORT_CHIP(MetricSummaryPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

@@ -30,6 +30,7 @@ enum ParserType
     LOG_PARSER,
     LOG_PARSER_V6,
     PMU_PARSER,
+    PMU_PARSER_V6,
     TRACK_PARSER,
     FREQ_PARSER,
     AICPU_PARSER,

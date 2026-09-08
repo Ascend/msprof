@@ -15,59 +15,62 @@
  * -------------------------------------------------------------------------*/
 
 #include "analysis/csrc/domain/services/parser/pmu/include/ffts_profile_parser.h"
-#include "analysis/csrc/domain/services/parser/parser_error_code.h"
-#include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/infrastructure/resource/chip_id.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
-#include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
+
 #include "analysis/csrc/domain/entities/hal/include/stream_expand_spec.h"
 #include "analysis/csrc/domain/services/device_context/load_stream_expand_spec_data.h"
+#include "analysis/csrc/domain/services/parser/parser_error_code.h"
+#include "analysis/csrc/domain/services/parser/parser_item_factory.h"
+#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Domain {
+namespace Domain
+{
 
 using namespace Infra;
 using namespace Analysis::Utils;
 
 #pragma pack(1)
-struct FftsProfileHeader {
+struct FftsProfileHeader
+{
     uint16_t funcType : 6;
     uint16_t resv1 : 10;
     uint16_t resv2;
 };
 #pragma pack()
 
-std::vector<std::string> FftsProfileParser::GetFilePattern()
-{
-    return this->filePrefix_;
-}
+std::vector<std::string> FftsProfileParser::GetFilePattern() { return this->filePrefix_; }
 
-uint32_t FftsProfileParser::GetTrunkSize()
-{
-    return Analysis::FFTS_PROFILE_STRUCT_SIZE;
-}
+uint32_t FftsProfileParser::GetTrunkSize() { return Analysis::FFTS_PROFILE_STRUCT_SIZE; }
 
-uint32_t FftsProfileParser::ParseDataItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* data, uint16_t expandStatus)
+uint32_t FftsProfileParser::ParseDataItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *data,
+                                          uint16_t expandStatus)
 {
-    if (binaryDataSize < sizeof(FftsProfileHeader)) {
+    if (binaryDataSize < sizeof(FftsProfileHeader))
+    {
         ERROR("The binaryDataSize is small than FftsProfileHeader");
         return ANALYSIS_ERROR;
     }
     FftsProfileHeader *header = ReinterpretConvert<FftsProfileHeader *>(binaryData);
 
     std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)> parser =
-            ParserItemFactory::GetParseItem(PMU_PARSER, header->funcType);
-    if (parser == nullptr) {
+        ParserItemFactory::GetParseItem(parserType_, header->funcType);
+    if (parser == nullptr)
+    {
         WARN("There is no Parser function to handle data! funcType is %", header->funcType);
         return ANALYSIS_OK;
     }
     int currentCnt = parser(binaryData, binaryDataSize, data, expandStatus);
-    if (cnt_ == DEFAULT_CNT) {
+    if (cnt_ == DEFAULT_CNT)
+    {
         cnt_ = currentCnt;
         return ANALYSIS_OK;
     }
-    if (currentCnt != cnt_ + 1 && cnt_ - currentCnt != VALID_CNT) {
+    if (currentCnt != cnt_ + 1 && cnt_ - currentCnt != VALID_CNT)
+    {
         WARN("CNT verification failed. prevCnt: %; nowCnt: %", cnt_, currentCnt);
     }
     cnt_ = currentCnt;
@@ -76,20 +79,27 @@ uint32_t FftsProfileParser::ParseDataItem(uint8_t* binaryData, uint32_t binaryDa
 
 uint32_t FftsProfileParser::ParseData(DataInventory &dataInventory, const Infra::Context &context)
 {
+    // V6芯片使用V6的pmu解析项（128字节record，含context和block），其余芯片走原V4解析项
+    parserType_ =
+        (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0) ? PMU_PARSER_V6 : PMU_PARSER;
     auto streamExpandSpecData = dataInventory.GetPtr<StreamExpandSpec>();
-    uint16_t expandStatus = streamExpandSpecData && streamExpandSpecData->expandStatus ? streamExpandSpecData->expandStatus : 0;
+    uint16_t expandStatus =
+        streamExpandSpecData && streamExpandSpecData->expandStatus ? streamExpandSpecData->expandStatus : 0;
     auto trunkSize = this->GetTrunkSize();
     auto structCount = this->binaryDataSize / trunkSize;
     INFO("FftsProfileData structCount is : %", structCount);
-    if (!Utils::Resize(halUniData_, structCount)) {
+    if (!Utils::Resize(halUniData_, structCount))
+    {
         ERROR("Resize for FftsProfile data failed!");
         return ANALYSIS_ERROR;
     }
     int stat{ANALYSIS_OK};
-    for (uint64_t i = 0; i < structCount; i++) {
+    for (uint64_t i = 0; i < structCount; i++)
+    {
         auto res = this->ParseDataItem(&this->binaryData[i * trunkSize], trunkSize,
                                        ReinterpretConvert<uint8_t *>(&this->halUniData_[i]), expandStatus);
-        if (res != ANALYSIS_OK) {
+        if (res != ANALYSIS_OK)
+        {
             stat = ANALYSIS_ERROR;
             ERROR("FftsProfileData parse error in %th", i);
         }
@@ -103,6 +113,6 @@ uint32_t FftsProfileParser::ParseData(DataInventory &dataInventory, const Infra:
 
 REGISTER_PROCESS_SEQUENCE(FftsProfileParser, true, LoadStreamExpandSpec);
 REGISTER_PROCESS_DEPENDENT_DATA(FftsProfileParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(FftsProfileParser, CHIP_V4_1_0);
-}
-}
+REGISTER_PROCESS_SUPPORT_CHIP(FftsProfileParser, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+}  // namespace Domain
+}  // namespace Analysis
