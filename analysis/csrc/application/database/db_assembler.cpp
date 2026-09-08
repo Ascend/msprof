@@ -84,11 +84,11 @@ using CommunicationOpDataFormat =
     std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, int32_t, int32_t, uint64_t,
                            uint64_t, uint64_t, uint64_t, uint16_t, int64_t>>;
 // 小算子数据
-// name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
+// timestampNs, name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
 // size, dataType, linkType, opId, isMaster, bandwidth
 using CommunicationTaskDataFormat =
-    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, int64_t, int64_t,
-                           uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t, double>>;
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, int64_t,
+                           int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t, double>>;
 
 enum class DevType
 {
@@ -273,9 +273,9 @@ void ConvertTaskData(CommunicationTaskDataFormat& processedTaskData, const std::
             DataProcessor::GetEnumTypeValue(item.linkType, NAME_STR(HCCL_LINK_TYPE_TABLE), HCCL_LINK_TYPE_TABLE);
         uint32_t assocId =
             IdPool::GetInstance().GetUint32Id(std::to_string(item.opId) + "_" + std::to_string(item.iterId));
-        processedTaskData.emplace_back(opName, globalTaskId, taskType, item.planeId, groupName, notifyId, rdmaType,
-                                       item.srcRank, item.dstRank, transportType, item.size, dataType, linkType,
-                                       assocId, item.isMaster,
+        processedTaskData.emplace_back(item.timestamp, opName, globalTaskId, taskType, item.planeId, groupName,
+                                       notifyId, rdmaType, item.srcRank, item.dstRank, transportType, item.size,
+                                       dataType, linkType, assocId, item.isMaster,
                                        item.bandwidth * Common::BYTES_PER_GB);  // GB/s -> B/s，字节按1024换算
     }
 }
@@ -985,9 +985,9 @@ bool SaveRoCEData(DataInventory& dataInventory, DBInfo& msprofDB, const std::str
 
 bool SaveTaskPmuData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
 {
-    // UnifiedTaskPMU deviceId, streamId, taskId, subtaskId, batchId, header, value
-    // ProcessedTaskFormat globalTaskId, header(uint64id), value
-    using PTFormat = std::vector<std::tuple<uint64_t, uint64_t, double>>;
+    // UnifiedTaskPMU deviceId, streamId, taskId, subtaskId, batchId, header, value, timestamp
+    // ProcessedTaskFormat timestampNs, globalTaskId, header(uint64id), value
+    using PTFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, double>>;
     PTFormat res;
     auto unifiedTaskPmuData = dataInventory.GetPtr<std::vector<UnifiedTaskPmu>>();
     if (unifiedTaskPmuData == nullptr)
@@ -1006,7 +1006,7 @@ bool SaveTaskPmuData(DataInventory& dataInventory, DBInfo& msprofDB, const std::
         uint64_t globalTaskId = IdPool::GetInstance().GetId(
             std::make_tuple(static_cast<uint16_t>(item.deviceId), item.streamId, item.taskId, item.subtaskId,
                             item.batchId, static_cast<uint32_t>(DevType::NPU)));
-        res.emplace_back(globalTaskId, IdPool::GetInstance().GetUint64Id(item.header), item.value);
+        res.emplace_back(item.timestamp, globalTaskId, IdPool::GetInstance().GetUint64Id(item.header), item.value);
     }
     return SaveData(res, TABLE_NAME_TASK_PMU_INFO, msprofDB);
 }
@@ -1304,7 +1304,7 @@ bool SaveDPUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
     }
 
     using DPUTaskFormat = std::vector<
-        std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
+        std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
 
     DPUTaskFormat res;
     if (!Reserve(res, dpuData->size()))
@@ -1313,6 +1313,7 @@ bool SaveDPUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
         return false;
     }
 
+    uint32_t pid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     for (const auto& data : *dpuData)
     {
         uint64_t globalTaskId = IdPool::GetInstance().GetId(std::make_tuple(
@@ -1361,8 +1362,8 @@ bool SaveDPUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
         jsonWriter.EndArray();
         std::string args = jsonWriter.GetString();
         uint64_t argsId = IdPool::GetInstance().GetUint64Id(args);
-        res.emplace_back(data.dpuDeviceId, data.threadId, data.timestamp, data.endTime, globalTaskId, data.streamId,
-                         data.taskId, opNameId, argsId);
+        res.emplace_back(data.dpuDeviceId, Utils::Contact(pid, data.threadId), data.timestamp, data.endTime,
+                         globalTaskId, data.streamId, data.taskId, opNameId, argsId);
     }
 
     return SaveData(res, TABLE_NAME_DPU_TASK, msprofDB);

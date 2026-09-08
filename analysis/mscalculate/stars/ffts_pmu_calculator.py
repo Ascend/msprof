@@ -47,7 +47,7 @@ from mscalculate.aic.aic_utils import AicPmuUtils
 from mscalculate.aic.pmu_calculator import PmuCalculator
 from mscalculate.calculate_ai_core_data import CalculateAiCoreData
 from mscalculate.flip.flip_calculator import FlipCalculator
-from msmodel.aic.aic_pmu_model import AicPmuModel
+from msmodel.aic.aic_pmu_model import FftsV1PmuModel
 from msmodel.freq.freq_parser_model import FreqParserModel
 from msmodel.iter_rec.iter_rec_model import HwtsIterModel
 from msmodel.stars.ffts_pmu_model import FftsPmuModel
@@ -225,9 +225,6 @@ class FftsPmuCalculator(PmuCalculator, MsMultiProcess):
             self.calculate_pmu_list(self.pmu_data)
         if ChipManager().is_chip_all_data_export() and InfoConfReader().is_all_export_version():
             self.pmu_data = FlipCalculator.set_device_batch_id(self.pmu_data, self._result_dir)
-        if not self._is_mix_needed:
-            # 去除timestamp字段
-            self.pmu_data = [pmu_data[:-1] for pmu_data in self.pmu_data]
 
     def save(self: any) -> None:
         """
@@ -677,7 +674,8 @@ class FftsPmuCalculator(PmuCalculator, MsMultiProcess):
                 self._block_num['mix_block_num'].setdefault(_key, []).append(int(data.mix_block_num))
 
     def __update_model_instance(self):
-        self._model = AicPmuModel(self._project_path)
+        # 非mix(7/8/11)场景：AIC表尾追加end_time
+        self._model = FftsV1PmuModel(self._project_path)
 
     def _set_ffts_table_name_list(self):
         """

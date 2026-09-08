@@ -152,6 +152,8 @@ void PmuAssociation::CalculateContextPmu(HalPmuData& pmuData, DeviceTask& task, 
 {
     task.acceleratorType = pmuData.pmu.acceleratorType;
     CalculationElements params;
+    // 始终取 context 侧 PMU 时间（hd.timestamp），换算成 wall-clock ns 后随 pmuInfo 供下游落盘
+    uint64_t contextTimeNs = GetTimeFromSyscnt(pmuData.hd.timestamp, syscntParams_).Uint64();
     if (task.acceleratorType == MIX_AIC || task.acceleratorType == MIX_AIV)
     {
         PmuInfoMixAccelerator pmuInfoMix;
@@ -170,6 +172,7 @@ void PmuAssociation::CalculateContextPmu(HalPmuData& pmuData, DeviceTask& task, 
             pmuInfoMix.aivTime = params.totalTime;
         }
         pmuInfoMix.mainTimestamp = pmuData.pmu.timeList[1];
+        pmuInfoMix.timestamp = contextTimeNs;
         task.pmuInfo = MAKE_UNIQUE_PTR<PmuInfoMixAccelerator>(pmuInfoMix);
     }
     else
@@ -187,6 +190,7 @@ void PmuAssociation::CalculateContextPmu(HalPmuData& pmuData, DeviceTask& task, 
         }
         pmuInfoNormal.totalTime = params.totalTime;
         pmuInfoNormal.pmuResult.swap(res);
+        pmuInfoNormal.timestamp = contextTimeNs;
         task.pmuInfo = MAKE_UNIQUE_PTR<PmuInfoSingleAccelerator>(pmuInfoNormal);
     }
 }
@@ -196,6 +200,8 @@ void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task
 {
     task.acceleratorType = pmuData.pmu.acceleratorType;
     CalculationElements params;
+    // 始终取 context 侧 PMU 时间（hd.timestamp），换算成 wall-clock ns 后随 pmuInfo 供下游落盘
+    uint64_t contextTimeNs = GetTimeFromSyscnt(pmuData.hd.timestamp, syscntParams_).Uint64();
     if (task.acceleratorType == MIX_AIC || task.acceleratorType == MIX_AIV)
     {
         // mix场景：同一task有两个PMU（AIC+AIV），需要合并而非覆盖
@@ -240,6 +246,7 @@ void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task
             }
         }
         pmuInfoMix.mainTimestamp = pmuData.pmu.timeList[1];
+        pmuInfoMix.timestamp = contextTimeNs;
         task.pmuInfo = MAKE_UNIQUE_PTR<PmuInfoMixAccelerator>(pmuInfoMix);
     }
     else
@@ -259,6 +266,7 @@ void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task
         }
         pmuInfoNormal.totalTime = params.totalTime;
         pmuInfoNormal.pmuResult.swap(res);
+        pmuInfoNormal.timestamp = contextTimeNs;
         task.pmuInfo = MAKE_UNIQUE_PTR<PmuInfoSingleAccelerator>(pmuInfoNormal);
     }
 }
@@ -438,6 +446,7 @@ uint32_t PmuAssociation::ProcessEntry(Infra::DataInventory& dataInventory, const
             }
         }
     }
+    syscntParams_ = deviceContext.GetSyscntConversionParams();
     SplitPmu(*pmuData);
     if (deviceContext.GetChipID() != CHIP_V4_1_0)
     {

@@ -31,9 +31,9 @@ using OSTFormat = std::vector<std::tuple<uint64_t, std::string, uint32_t>>;
 // Original Sample Summary Format:aicore/ai_vector_core中的MetricSummary
 // metric, value, coreid
 using OSSFormat = std::vector<std::tuple<std::string, double, uint32_t>>;
-// Original Task Format: 只取id + 对应字段的value
-// stream_id, task_id, subtask_id, batch_id, value
-using OTFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, double>>;
+// Original Task Format: 只取id + 对应字段的value + 时间列end_time
+// stream_id, task_id, subtask_id, batch_id, value, end_time
+using OTFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, double, uint64_t>>;
 // 手动设置task-based pmu表Format
 // aic_total_time, aic_total_cycles, aic_mac_time, aic_mac_ratio_extra,
 // aiv_total_time, aiv_total_cycles, aiv_vec_time, aiv_vec_ratio, task_id, stream_id, subtask_id,
@@ -168,6 +168,150 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnTrueWhenRunSuccess)
     auto processor = UnifiedPmuProcessor(PROF_PATH);
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_UNIFIED_PMU));
     MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+}
+
+TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeForChipV1WithoutSubtaskColumn)
+{
+    // 7/8/11(chipV1)场景：python侧FftsV1落库的metric_summary无subtask_id列、时间在表尾end_time列
+    // C++读该表应回退subtask_id为UINT32_MAX常量，并读end_time使每条metric行携带所属算子的wall-clock时间
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1701069323851824"},
+        {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},
+        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},
+        {"platform_version", "8"},
+    };
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+
+    std::string profDir = File::PathJoin({UNIFIED_PMU_DIR, "PROF_TS_V1"});
+    std::string deviceDir = File::PathJoin({profDir, DEVICE_PREFIX + "0"});
+    std::string sqliteDir = File::PathJoin({deviceDir, SQLITE});
+    EXPECT_TRUE(File::CreateDir(profDir));
+    EXPECT_TRUE(File::CreateDir(deviceDir));
+    EXPECT_TRUE(File::CreateDir(sqliteDir));
+    std::shared_ptr<DBRunner> metricRunner;
+    MAKE_SHARED0_NO_OPERATION(metricRunner, DBRunner, File::PathJoin({sqliteDir, "metric_summary.db"}));
+    ASSERT_NE(metricRunner, nullptr);
+
+    // 列顺序对齐python FftsV1 metric_summary：metric列/算子id列在前，无subtask_id列，end_time在表末尾
+    const TableColumns v1MetricSummary = {
+        {"aic_total_time", SQL_NUMERIC_TYPE},
+        {"aiv_vec_time", SQL_NUMERIC_TYPE},
+        {"stream_id", SQL_INTEGER_TYPE},
+        {"task_id", SQL_INTEGER_TYPE},
+        {"core_type", SQL_INTEGER_TYPE},
+        {"batch_id", SQL_INTEGER_TYPE},
+        {"end_time", SQL_INTEGER_TYPE},
+    };
+    // aic_total_time, aiv_vec_time, stream_id, task_id, core_type, batch_id, end_time
+    using V1TaskFormat = std::vector<std::tuple<double, double, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t>>;
+    const V1TaskFormat v1TaskData = {
+        {318.36, 75.1, 68, 22, 0, 0, 1701121739053206801},
+        {313.94, 61.91, 68, 23, 0, 0, 1701121739053206803},
+    };
+    EXPECT_TRUE(metricRunner->CreateTable("MetricSummary", v1MetricSummary));
+    EXPECT_TRUE(metricRunner->InsertData("MetricSummary", v1TaskData));
+
+    DataInventory dataInventory;
+    auto processor = UnifiedPmuProcessor(profDir);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_UNIFIED_PMU));
+
+    // 2个metric列 × 2个算子行 = 4条metric，end_time列不作为metric行落盘
+    auto pmuData = dataInventory.GetPtr<std::vector<UnifiedTaskPmu>>();
+    ASSERT_NE(pmuData, nullptr);
+    ASSERT_EQ(pmuData->size(), 4u);
+    for (const auto &item : *pmuData)
+    {
+        EXPECT_NE(item.header, "end_time");
+        // chipV1无subtask_id列，读取时统一归一到UINT32_MAX，作为op四元组(subtask)取end_time
+        EXPECT_EQ(item.subtaskId, UINT32_MAX);
+        uint64_t expectTs = 0;
+        // end_time列值为host开机monotonic ns，读侧经GetLocalTime叠加世界时偏移后才是与task对齐的时间：
+        // 偏移 = startTimeNs - baseTimeNs = 1701069323851824000 - 36470610791630 = 1701032853241032370
+        constexpr uint64_t LOCAL_TIME_OFFSET = 1701032853241032370;
+        if (item.taskId == 22) {
+            expectTs = 1701121739053206801 + LOCAL_TIME_OFFSET;
+        } else {
+            ASSERT_EQ(item.taskId, 23u);
+            expectTs = 1701121739053206803 + LOCAL_TIME_OFFSET;
+        }
+        // 同一算子的metric行携带同一end_time，不同算子各取各的
+        EXPECT_EQ(item.timestamp, expectTs);
+    }
+    MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+    EXPECT_TRUE(File::RemoveDir(profDir, 0));
+}
+
+TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeWhenMetricSummaryHasEndTimeColumn)
+{
+    // metric_summary统一以end_time为时间列(如C++侧metric_summary_persistence chipV4落库、python侧stars落库)
+    // 该场景下每条metric行都应携带所属算子的end_time，end_time列不落成metric行
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1701069323851824"},
+        {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},
+        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},
+        {"platform_version", "5"},
+    };
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+
+    std::string profDir = File::PathJoin({UNIFIED_PMU_DIR, "PROF_TS_END"});
+    std::string deviceDir = File::PathJoin({profDir, DEVICE_PREFIX + "0"});
+    std::string sqliteDir = File::PathJoin({deviceDir, SQLITE});
+    EXPECT_TRUE(File::CreateDir(profDir));
+    EXPECT_TRUE(File::CreateDir(deviceDir));
+    EXPECT_TRUE(File::CreateDir(sqliteDir));
+    std::shared_ptr<DBRunner> metricRunner;
+    MAKE_SHARED0_NO_OPERATION(metricRunner, DBRunner, File::PathJoin({sqliteDir, "metric_summary.db"}));
+    ASSERT_NE(metricRunner, nullptr);
+
+    // 列顺序对齐metric_summary：metric列/算子id列在前，end_time在表末尾
+    const TableColumns endTsMetricSummary = {
+        {"aic_total_time", SQL_NUMERIC_TYPE},
+        {"aiv_vec_time", SQL_NUMERIC_TYPE},
+        {"task_id", SQL_INTEGER_TYPE},
+        {"stream_id", SQL_INTEGER_TYPE},
+        {"subtask_id", SQL_INTEGER_TYPE},
+        {"batch_id", SQL_INTEGER_TYPE},
+        {"end_time", SQL_INTEGER_TYPE},
+    };
+    // aic_total_time, aiv_vec_time, task_id, stream_id, subtask_id, batch_id, end_time
+    using EndTsTaskFormat = std::vector<std::tuple<double, double, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t>>;
+    const EndTsTaskFormat endTsTaskData = {
+        {318.36, 75.1, 22, 68, 2344, 0, 1701121739053206801},
+        {313.94, 61.91, 22, 68, 2357, 0, 1701121739053206803},
+    };
+    EXPECT_TRUE(metricRunner->CreateTable("MetricSummary", endTsMetricSummary));
+    EXPECT_TRUE(metricRunner->InsertData("MetricSummary", endTsTaskData));
+
+    DataInventory dataInventory;
+    auto processor = UnifiedPmuProcessor(profDir);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_UNIFIED_PMU));
+
+    // 2个metric列 × 2个算子行 = 4条metric，end_time列不作为metric行落盘
+    auto pmuData = dataInventory.GetPtr<std::vector<UnifiedTaskPmu>>();
+    ASSERT_NE(pmuData, nullptr);
+    ASSERT_EQ(pmuData->size(), 4u);
+    for (const auto &item : *pmuData)
+    {
+        EXPECT_NE(item.header, "end_time");
+        uint64_t expectTs = 0;
+        // end_time列值为host开机monotonic ns，读侧经GetLocalTime叠加世界时偏移后才是与task对齐的时间：
+        // 偏移 = startTimeNs - baseTimeNs = 1701069323851824000 - 36470610791630 = 1701032853241032370
+        constexpr uint64_t LOCAL_TIME_OFFSET = 1701032853241032370;
+        if (item.subtaskId == 2344) {
+            expectTs = 1701121739053206801 + LOCAL_TIME_OFFSET;
+        } else {
+            ASSERT_EQ(item.subtaskId, 2357u);
+            expectTs = 1701121739053206803 + LOCAL_TIME_OFFSET;
+        }
+        // 同一算子的metric行携带同一end_time，不同算子各取各的
+        EXPECT_EQ(item.timestamp, expectTs);
+    }
+    MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+    EXPECT_TRUE(File::RemoveDir(profDir, 0));
 }
 
 TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenCheckColumnsFailed)

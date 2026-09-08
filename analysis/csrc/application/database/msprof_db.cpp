@@ -69,12 +69,12 @@ const TableColumns COMMUNICATION_SCHEDULE_TASK_INFO = {{"name", SQL_INTEGER_TYPE
                                                        {"opType", SQL_INTEGER_TYPE}};
 
 const TableColumns COMMUNICATION_TASK_INFO = {
-    {"name", SQL_INTEGER_TYPE},          {"globalTaskId", SQL_INTEGER_TYPE}, {"taskType", SQL_INTEGER_TYPE},
-    {"planeId", SQL_INTEGER_TYPE},       {"groupName", SQL_INTEGER_TYPE},    {"notifyId", SQL_INTEGER_TYPE},
-    {"rdmaType", SQL_INTEGER_TYPE},      {"srcRank", SQL_INTEGER_TYPE},      {"dstRank", SQL_INTEGER_TYPE},
-    {"transportType", SQL_INTEGER_TYPE}, {"size", SQL_INTEGER_TYPE},         {"dataType", SQL_INTEGER_TYPE},
-    {"linkType", SQL_INTEGER_TYPE},      {"opId", SQL_INTEGER_TYPE},         {"isMaster", SQL_INTEGER_TYPE},
-    {"bandwidth", SQL_NUMERIC_TYPE},
+    {"timestampNs", SQL_INTEGER_TYPE}, {"name", SQL_INTEGER_TYPE},          {"globalTaskId", SQL_INTEGER_TYPE},
+    {"taskType", SQL_INTEGER_TYPE},    {"planeId", SQL_INTEGER_TYPE},       {"groupName", SQL_INTEGER_TYPE},
+    {"notifyId", SQL_INTEGER_TYPE},    {"rdmaType", SQL_INTEGER_TYPE},      {"srcRank", SQL_INTEGER_TYPE},
+    {"dstRank", SQL_INTEGER_TYPE},     {"transportType", SQL_INTEGER_TYPE}, {"size", SQL_INTEGER_TYPE},
+    {"dataType", SQL_INTEGER_TYPE},    {"linkType", SQL_INTEGER_TYPE},      {"opId", SQL_INTEGER_TYPE},
+    {"isMaster", SQL_INTEGER_TYPE},    {"bandwidth", SQL_NUMERIC_TYPE},
 };
 
 const TableColumns COMMUNICATION_OP = {
@@ -132,8 +132,10 @@ const TableColumns LLC = {
     {"hitRate", SQL_REAL_TYPE},     {"throughput", SQL_INTEGER_TYPE}, {"mode", SQL_INTEGER_TYPE},
 };
 
-const TableColumns TASK_PMU_INFO = {
-    {"globalTaskId", SQL_INTEGER_TYPE}, {"name", SQL_INTEGER_TYPE}, {"value", SQL_NUMERIC_TYPE}};
+const TableColumns TASK_PMU_INFO = {{"timestampNs", SQL_INTEGER_TYPE},
+                                    {"globalTaskId", SQL_INTEGER_TYPE},
+                                    {"name", SQL_INTEGER_TYPE},
+                                    {"value", SQL_NUMERIC_TYPE}};
 
 const TableColumns SAMPLE_PMU_TIMELINE = {
     {"deviceId", SQL_INTEGER_TYPE}, {"timestampNs", SQL_INTEGER_TYPE}, {"totalCycle", SQL_INTEGER_TYPE},

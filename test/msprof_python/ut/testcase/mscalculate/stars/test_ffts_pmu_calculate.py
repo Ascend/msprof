@@ -31,6 +31,7 @@ from common_func.profiling_scene import ExportMode
 from common_func.profiling_scene import ProfilingScene
 from constant.constant import CONFIG
 from mscalculate.stars.ffts_pmu_calculator import FftsPmuCalculator
+from msmodel.aic.aic_pmu_model import FftsV1PmuModel
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.stars.ffts_block_pmu import FftsBlockPmuBean
@@ -639,6 +640,43 @@ class TestFftsPmuCalculator(TestCase):
             check.aic_table_name_list = list(pmu_value.keys())
             check.calculate_pmu_list(pmu_data_list)
             self.assertEqual(3, len(pmu_data_list))
+
+    def test_calculate_pmu_list_non_mix_should_use_ffts_v1_model_and_keep_end_time(self):
+        # 7/8/11(V1.1.x) ffts非mix：__update_model_instance应切换到FftsV1PmuModel(AIC表尾带end_time列)，
+        # 且行尾保留每算子wall-clock结束时间(此前calculate()中会被[:-1]剥掉，导致unified读取落0)
+        context_task = [
+            FftsPmuBean([0, 0, 1, 1, 0, 0, 4294967295, 8192, 0, 0, 1111, 0,
+                         0, 0, 0, 0, 0, 0, 0, 0, 10000, 10100]),
+        ]
+        pmu_value = {
+            "l0a_read_bw(GB/s)": [0],
+            "l0a_write_bw(GB/s)": [0],
+            "l0b_read_bw(GB/s)": [0],
+            "l0b_write_bw(GB/s)": [0],
+            "l0c_read_bw(GB/s)": [0],
+            "l0c_read_bw_cube(GB/s)": [0],
+            "l0c_write_bw(GB/s)": [0],
+            "l0c_write_bw_cube(GB/s)": [0],
+        }
+        pmu_data_list = [None] * len(context_task)
+        InfoConfReader()._info_json = {"DeviceInfo": [{'aic_frequency': 1500, 'hwts_frequency': 1000}]}
+        with mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value={}), \
+                mock.patch(NAMESPACE + '.FftsPmuCalculator._get_current_block', return_value=10), \
+                mock.patch(NAMESPACE + '.CalculateAiCoreData.compute_ai_core_data', return_value=[0, pmu_value]):
+            check = FftsPmuCalculator(self.file_list, CONFIG)
+            check._data_list['context_task'] = context_task
+            check._freq = 1000
+            check._core_num_dict = {
+                "aic": 1,
+                "aiv": 1,
+            }
+            check.aic_table_name_list = list(pmu_value.keys())
+            check.calculate_pmu_list(pmu_data_list)
+            self.assertIsInstance(check._model, FftsV1PmuModel)
+            # 行尾字段为timestamp(即wall-clock结束时间)，保留以按位落入表尾end_time列
+            self.assertEqual(pmu_data_list[0]._fields[-1], 'timestamp')
+            self.assertEqual(pmu_data_list[0].timestamp,
+                             InfoConfReader().time_from_syscnt(context_task[0].time_list[1]))
 
 if __name__ == '__main__':
     unittest.main()

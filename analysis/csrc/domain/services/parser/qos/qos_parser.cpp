@@ -22,7 +22,6 @@
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/parser/parser_item/qos_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
@@ -56,7 +55,7 @@ bool QosParserBase::ParseDataItem(uint8_t *binaryData,
 uint32_t QosParserBase::ParseData(Infra::DataInventory &dataInventory, const Infra::Context &context)
 {
     const DeviceContext &deviceContext = static_cast<const DeviceContext &>(context);
-    const Utils::SyscntConversionParams timeParams = GenerateSyscntConversionParams(deviceContext);
+    const Utils::SyscntConversionParams timeParams = deviceContext.GetSyscntConversionParams();
     const size_t recordCount = binaryDataSize / Analysis::QOS_STRUCT_SIZE;
     const size_t remainingBytes = binaryDataSize % Analysis::QOS_STRUCT_SIZE;
     if (remainingBytes != 0)

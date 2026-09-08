@@ -424,6 +424,7 @@ task数据，呈现所有硬件执行的算子信息。
 
 |字段名|类型| 含义                                                                     |
 |--|--|------------------------------------------------------------------------|
+|timestampNs|INTEGER| 通信小算子开始时间，单位ns                                                     |
 |name|INTEGER| 算子名，STRING_IDS(name)                                                   |
 |globalTaskId|INTEGER| 索引，索引名称CommunicationTaskIndex，全局算子任务ID，用于关联TASK表                       |
 |taskType|INTEGER| 算子类型，STRING_IDS(taskType)                                              |

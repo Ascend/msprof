@@ -64,9 +64,6 @@ class V5AicPmuModel(AicPmuModel):
     v5 pmu model.
     """
 
-    def __init__(self: any, result_dir: str) -> None:
-        super().__init__(result_dir)
-
     def create_table(self: any) -> None:
         """
         create aic and aiv table by sample.json
@@ -76,3 +73,20 @@ class V5AicPmuModel(AicPmuModel):
         aic_profiling_events = get_metrics_from_sample_config(self.result_dir)
         column_list = AicPmuUtils.remove_unused_column(aic_profiling_events)
         create_metric_table(self.conn, column_list, DBNameConstant.TABLE_METRIC_SUMMARY)
+
+
+class FftsV1PmuModel(AicPmuModel):
+    """
+    7/8/11(V1.1.x) ffts 非mix场景的MetricSummary模型。
+    在AIC表基础上于表尾追加end_time列，保存每算子context PMU的wall-clock结束时间，
+    供C++ unified task-pmu读取作为算子的时间（与chip5/chip6 python侧写end_time语义一致）。
+    """
+
+    def create_table(self: any) -> None:
+        """
+        create aic metric table and append end_time column at the tail.
+        :return:
+        """
+        super().create_table()
+        sql = "ALTER TABLE {0} ADD COLUMN end_time INT".format(DBNameConstant.TABLE_METRIC_SUMMARY)
+        DBManager.execute_sql(self.conn, sql)

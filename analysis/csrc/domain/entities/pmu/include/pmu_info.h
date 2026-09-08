@@ -19,24 +19,32 @@
 
 #include <cstdint>
 #include <vector>
+
 #include "analysis/csrc/domain/entities/hal/include/hal.h"
 #include "analysis/csrc/domain/entities/metric/include/metric.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
-struct PmuBaseInfo {
+struct PmuBaseInfo
+{
     AcceleratorType type = INVALID;
+    // 关联的 context PMU 时间，由 context 侧 syscnt 换算后的 wall-clock 时间（ns）
+    uint64_t timestamp = 0;
     virtual ~PmuBaseInfo() = default;
 };
 
-struct PmuInfoSingleAccelerator : public PmuBaseInfo {
+struct PmuInfoSingleAccelerator : public PmuBaseInfo
+{
     double totalTime = 0;
     uint64_t totalCycles = 0;
     std::vector<double> pmuResult;
 };
 
-struct PmuInfoMixAccelerator : public PmuBaseInfo {
+struct PmuInfoMixAccelerator : public PmuBaseInfo
+{
     uint32_t totalBlockCount = 0;
     uint64_t mainTimestamp = 0;
     double aiCoreTime = 0;
@@ -46,6 +54,6 @@ struct PmuInfoMixAccelerator : public PmuBaseInfo {
     std::vector<double> aicPmuResult;
     std::vector<double> aivPmuResult;
 };
-}
-}
-#endif // MSPROF_ANALYSIS_PMU_INFO_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_PMU_INFO_H

@@ -42,7 +42,6 @@ namespace
 const uint64_t DEFAULT_MODEL_ID = UINT32_MAX;
 const int32_t DEFAULT_INDEX_ID = -1;
 const int64_t DEFAULT_CONNECTION_ID = -1;
-const uint64_t MILLI_SECOND = 1000;
 const std::unordered_map<uint32_t, std::string> deviceTaskAcsqTypeMap{
     {0, "AI_CORE"},          {1, "AI_CPU"},         {2, "AIV_SQE"},           {3, "PLACE_HOLDER_SQE"},
     {4, "EVENT_RECORD_SQE"}, {5, "EVENT_WAIT_SQE"}, {6, "NOTIFY_RECORD_SQE"}, {7, "NOTIFY_WAIT_SQE"},
@@ -66,28 +65,6 @@ const std::unordered_map<uint32_t, std::string> deviceTaskFftsPlusTypeMap{{0, "A
                                                                           {13, "Load Context"},
                                                                           {15, "DSA"}};
 
-SyscntConversionParams GetSyscntConversionParams(const DeviceContext& context)
-{
-    CpuInfo cpuInfo;
-    context.Getter(cpuInfo);
-    HostStartLog hostStartLog;
-    context.Getter(hostStartLog);
-    uint64_t hostMonotonic = hostStartLog.clockMonotonicRaw;
-    DeviceInfo deviceInfo;
-    context.Getter(deviceInfo);
-    DeviceStartLog deviceStartLog;
-    context.Getter(deviceStartLog);
-    if (!IsDoubleEqual(cpuInfo.frequency, 0.0) && hostStartLog.cntVctDiff)
-    {
-        uint64_t diffTime = static_cast<uint64_t>(hostStartLog.cntVctDiff * MILLI_SECOND / cpuInfo.frequency);
-        if (UINT64_MAX - hostStartLog.clockMonotonicRaw >= diffTime)
-        {
-            hostMonotonic = hostStartLog.clockMonotonicRaw + diffTime;
-        }
-    }
-    SyscntConversionParams params{deviceInfo.hwtsFrequency, deviceStartLog.cntVct, hostMonotonic};
-    return params;
-}
 }  // namespace
 
 std::string GetDeviceTaskTypeStr(const DeviceTask& task)
@@ -224,7 +201,7 @@ void FillDeviceTaskStreamId(std::shared_ptr<HostStreamInfo> streamIdInfo,
 uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
-    auto params = GetSyscntConversionParams(deviceContext);
+    auto params = deviceContext.GetSyscntConversionParams();
     auto hostTasks = dataInventory.GetPtr<std::map<TaskId, std::vector<HostTask>>>();
     auto deviceTasks = dataInventory.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
     if (deviceContext.isChipV6())

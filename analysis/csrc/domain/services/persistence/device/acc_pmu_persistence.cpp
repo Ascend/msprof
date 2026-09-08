@@ -36,7 +36,7 @@ using ProcessedDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t,
 
 ProcessedDataFormat GenerateAccPmuData(std::vector<HalLogData>& logData, const DeviceContext& context)
 {
-    auto params = GenerateSyscntConversionParams(context);
+    auto params = context.GetSyscntConversionParams();
     ProcessedDataFormat processedData;
     for (auto& data : logData)
     {

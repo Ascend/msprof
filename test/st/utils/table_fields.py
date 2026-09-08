@@ -36,6 +36,7 @@ class TableFields:
         "rankSize",
     ]
     COMMUNICATION_TASK_INFO = [
+        "timestampNs",
         "name",
         "globalTaskId",
         "taskType",
@@ -246,7 +247,7 @@ class TableFields:
         "taskId",
         "modelId",
     ]
-    TASK_PMU_INFO = ["globalTaskId", "name", "value"]
+    TASK_PMU_INFO = ["timestampNs", "globalTaskId", "name", "value"]
     RANK_DEVICE_MAP = ["rankId", "deviceId"]
     ClusterCommunicationBandwidth = [
         "step",

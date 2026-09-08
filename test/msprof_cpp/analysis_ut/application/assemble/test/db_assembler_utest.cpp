@@ -634,6 +634,7 @@ static std::vector<UnifiedTaskPmu> GenerateUnifiedTaskPmuData()
     data.batchId = 4294967295; // batchId 4294967295
     data.header = "aic_total_time";
     data.value = 318360.0; // value 318360.0
+    data.timestamp = 1701121739053206801; // context PMU时间换算后的wall-clock ns
     res.push_back(data);
     return res;
 }
@@ -1009,17 +1010,19 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
 
     uint64_t expectName = IdPool::GetInstance().GetUint64Id("hcom_broadcast__674_0_1");
     // 小算子数据
-    // name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
-    // size, dataType, linkType, opId, isMaster, bandwidth
-    using CommunicationTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t,
-            uint64_t, uint64_t, int64_t, int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t,
-            double>>;
+    // timestampNs, name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank,
+    // transportType, size, dataType, linkType, opId, isMaster, bandwidth
+    using CommunicationTaskDataFormat =
+        std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, int64_t,
+                               int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t, double>>;
     CommunicationTaskDataFormat taskResult;
     std::string sql{"SELECT * FROM " + TABLE_NAME_COMMUNICATION_TASK_INFO};
     std::shared_ptr<DBRunner> msprofDBRunner;
     MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
     msprofDBRunner->QueryData(sql, taskResult);
-    uint64_t opName = std::get<0>(taskResult[0]);
+    ASSERT_FALSE(taskResult.empty());
+    EXPECT_EQ(std::get<0>(taskResult[0]), 1717575960213957957);
+    uint64_t opName = std::get<1>(taskResult[0]);
     EXPECT_EQ(expectName, opName);
 
     // 大算子数据
@@ -1036,11 +1039,11 @@ TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnTrueWhenRunSuccess)
 TEST_F(DBAssemblerUTest, TestRunHcclDataShouldReturnFalseWhenReserveFailed)
 {
     // 小算子数据
-    // name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank, transportType,
-    // size, dataType, linkType, opId, isMaster, bandwidth
-    using CommunicationTaskDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint32_t, uint64_t,
-            uint64_t, uint64_t, int64_t, int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t,
-            double>>;
+    // timestampNs, name, globalTaskId, taskType, planeId, groupName, notifyId, rdmaType, srcRank, dstRank,
+    // transportType, size, dataType, linkType, opId, isMaster, bandwidth
+    using CommunicationTaskDataFormat =
+        std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint32_t, uint64_t, uint64_t, uint64_t, int64_t,
+                               int64_t, uint64_t, uint64_t, uint64_t, uint64_t, int64_t, uint16_t, double>>;
     // 大算子数据
     // opName, start, end, connectionId, group_name, opId, relay, retry, data_type, alg_type, count, op_type, deviceId,
     // rank_size
@@ -1771,6 +1774,18 @@ TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnTrueWhenRunSuccess)
     MAKE_SHARED0_NO_OPERATION(dataS, std::vector<UnifiedTaskPmu>, data);
     dataInventory.Inject<std::vector<UnifiedTaskPmu>>(dataS);
     EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // 读回校验：TASK_PMU_INFO 表列为 timestampNs, globalTaskId, name(header), value
+    using TaskPmuResultFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, double>>;
+    TaskPmuResultFormat result;
+    std::string sql{"SELECT * FROM " + TABLE_NAME_TASK_PMU_INFO};
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, result));
+    ASSERT_EQ(result.size(), data.size());
+    EXPECT_EQ(std::get<0>(result[0]), data[0].timestamp);
+    EXPECT_EQ(std::get<2>(result[0]), IdPool::GetInstance().GetUint64Id(data[0].header));
+    EXPECT_DOUBLE_EQ(std::get<3>(result[0]), data[0].value);
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuTimelineDataShouldReturnTrueWhenRunSuccess)
@@ -1797,7 +1812,8 @@ TEST_F(DBAssemblerUTest, TestRunSaveSamplePmuSummaryDataShouldReturnTrueWhenRunS
 
 TEST_F(DBAssemblerUTest, TestRunSaveTaskPmuDataShouldReturnFalseWhenReserveFailedThenDataIsEmpty)
 {
-    using PTFormat = std::vector<std::tuple<uint64_t, uint64_t, double>>;
+    // 与 SaveTaskPmuData 中 PTFormat 保持一致：timestampNs, globalTaskId, name(header), value
+    using PTFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, double>>;
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();
     auto data = GenerateUnifiedTaskPmuData();
@@ -2059,7 +2075,7 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
     EXPECT_TRUE(assembler.Run(dataInventory));
 
     // dpuDeviceId, globalTid, startNs, endNs, globalTaskId, streamId, taskId, opName, args
-    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
+    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t,
         uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
     DPUDataFormat dpuResult;
     std::shared_ptr<DBRunner> msprofDBRunner;
@@ -2070,13 +2086,13 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
     EXPECT_TRUE(msprofDBRunner->QueryData(sql, dpuResult));
     ASSERT_EQ(2, dpuResult.size());
     EXPECT_EQ(2, std::get<0>(dpuResult[0]));
-    EXPECT_EQ(123, std::get<1>(dpuResult[0]));
+    EXPECT_EQ(Contact(1, 123), std::get<1>(dpuResult[0]));  // globalTid = pid(1)<<32 | threadId
     EXPECT_EQ(1717575960208020750, std::get<2>(dpuResult[0]));
     EXPECT_EQ(1717575960208021750, std::get<3>(dpuResult[0]));
     EXPECT_EQ(7, std::get<5>(dpuResult[0]));
     EXPECT_EQ(23, std::get<6>(dpuResult[0]));
     EXPECT_EQ(3, std::get<0>(dpuResult[1]));
-    EXPECT_EQ(124, std::get<1>(dpuResult[1]));
+    EXPECT_EQ(Contact(1, 124), std::get<1>(dpuResult[1]));  // globalTid = pid(1)<<32 | threadId
     EXPECT_EQ(8, std::get<5>(dpuResult[1]));
     EXPECT_EQ(24, std::get<6>(dpuResult[1]));
 
@@ -2102,9 +2118,34 @@ TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
     EXPECT_NE(std::string::npos, hcclArgs.find("1024000"));
 }
 
+TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldUseZeroPidWhenPidMissing)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPidFromInfoJson).stubs().will(returnValue(0u));
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
+    auto dataInventory = DataInventory();
+    auto data = GenerateDPUData();
+    std::shared_ptr<std::vector<DPUData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<DPUData>, data);
+    dataInventory.Inject<std::vector<DPUData>>(dataS);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t,
+        uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
+    DPUDataFormat dpuResult;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    std::string sql = "SELECT dpuDeviceId, globalTid, startNs, endNs, globalTaskId, streamId, taskId, opName, args FROM "
+        + TABLE_NAME_DPU_TASK + " ORDER BY startNs";
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, dpuResult));
+    ASSERT_EQ(2, dpuResult.size());
+    EXPECT_EQ(Contact(0, 123), std::get<1>(dpuResult[0]));
+    EXPECT_EQ(Contact(0, 124), std::get<1>(dpuResult[1]));
+}
+
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnFalseWhenReserveFailed)
 {
-    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t,
+    using DPUDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t,
         uint64_t, uint32_t, uint32_t, uint64_t, uint64_t>>;
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
     auto dataInventory = DataInventory();

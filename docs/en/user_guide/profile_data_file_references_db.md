@@ -391,6 +391,7 @@ The `--task-time`, `--hccl`, and `--ascendcl` options control the collection of 
 
 |Field|Type| Description                                                                    |
 |--|--|------------------------------------------------------------------------|
+|timestampNs|INTEGER| Start time of the small communication operator (ns).                           |
 |name|INTEGER| Operator name, which maps to `STRING_IDS(name)`.                                                  |
 |globalTaskId|INTEGER| Global operator task ID, which is used as an index named `CommunicationTaskIndex` to associate with the `TASK` table.                      |
 |taskType|INTEGER| Operator task type, which maps to `STRING_IDS(taskType)`.                                             |
@@ -507,7 +508,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |Field|Type|Description|
 |--|--|--|
 |l2BufferBwLevel|INTEGER|L2 buffer bandwidth level|
-|mataBwLevel|INTEGER|Mata bandwidth level|
+|mataBwLevel|INTEGER|Mata bandwidth level| <!-- codespell:ignore -->
 |timestampNs|NUMERIC|Local time (ns)|
 |deviceId|INTEGER|Device ID|
 

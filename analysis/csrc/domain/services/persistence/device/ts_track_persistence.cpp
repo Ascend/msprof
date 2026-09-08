@@ -124,7 +124,7 @@ bool SaveTaskFlipData(const std::vector<HalTrackData>& dataS, const DeviceContex
     MAKE_SHARED0_RETURN_VALUE(tsTrackDB.database, StepTraceDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, tsTrackDB.dbName});
     MAKE_SHARED_RETURN_VALUE(tsTrackDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
-    auto params = GenerateSyscntConversionParams(deviceContext);
+    auto params = deviceContext.GetSyscntConversionParams();
     std::vector<TaskFlipDataFormat> taskFlips;
     for (const auto& data : dataS)
     {

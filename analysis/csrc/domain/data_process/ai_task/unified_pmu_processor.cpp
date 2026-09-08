@@ -15,6 +15,7 @@
  * -------------------------------------------------------------------------*/
 #include "analysis/csrc/domain/data_process/ai_task/unified_pmu_processor.h"
 
+#include <algorithm>
 #include <unordered_set>
 
 #include "analysis/csrc/application/credential/id_pool.h"
@@ -39,6 +40,10 @@ const std::set<std::string> SAMPLE_BASED_DB_NAMES = {AI_VECTOR_CORE_DB, AI_CORE_
 const std::set<std::string> INVALID_COLUMN_NAMES = {"task_id",    "stream_id", "subtask_id", "batch_id", "task_type",
                                                     "start_time", "end_time",  "ffts_type",  "core_type"};
 const std::string TASK_BASED = "task-based";
+// metric_summary 中每算子一行的时间列，不作为 metric 行落盘，仅用于携带到每行 metric 的 timestampNs
+// 列值由写侧(GetTimeFromSyscnt/time_from_syscnt)换算到 host 开机 monotonic ns，读侧再经 GetLocalTime 转世界时；
+// C++侧metric_summary_persistence(chipV4)与python侧stars(ffts/chip6)落库的时间列名统一为 end_time
+const std::string END_TIME_COLUMN_NAME = "end_time";
 const double DOUBLE_ZERO = 0.0;
 
 struct TaskPmuData
@@ -175,12 +180,23 @@ bool UnifiedPmuProcessor::ProcessTaskBasedData(const std::unordered_map<std::str
                                                DataInventory &dataInventory)
 {
     bool flag = true;
+    // task-based 场景的 metric_summary 统一带时间列 end_time(C++ chipV4落库与python侧stars落库一致)，
+    // 每个算子一行。GetTaskBasedData 在查 metric 值的同时把该行 end_time 一并查出，FormatTaskBasedData 内
+    // 按 device 的 ProfTimeRecord 经 GetLocalTime 平移到世界时轴，使每条 metric 行携带所属算子自身的时间，
+    // 不按算子四元组单独建表 join。若某张表确实缺 end_time 列，查询会直接失败并报错(符合预期)。
     std::vector<UnifiedTaskPmu> processedData;
     for (const auto &dbPathAndDeviceId : dbPathAndDeviceIds)
     {
+        Utils::ProfTimeRecord record;
+        if (!Context::GetInstance().GetProfTimeRecordInfo(record, profPath_, dbPathAndDeviceId.second))
+        {
+            ERROR("GetProfTimeRecordInfo failed, profPath is %, device id is %.", profPath_, dbPathAndDeviceId.second);
+            flag = false;
+            continue;
+        }
         for (const auto &header : headers)
         {
-            if (!ProcessTaskBasedDataByHeader(dbPathAndDeviceId, metricDB, header, processedData))
+            if (!ProcessTaskBasedDataByHeader(dbPathAndDeviceId, metricDB, record, header, processedData))
             {
                 flag = false;
                 ERROR("Process task_based data failed, failed device is %", dbPathAndDeviceId.second);
@@ -196,7 +212,8 @@ bool UnifiedPmuProcessor::ProcessTaskBasedData(const std::unordered_map<std::str
 }
 
 bool UnifiedPmuProcessor::ProcessTaskBasedDataByHeader(const std::pair<std::string, uint16_t> &dbPathAndDeviceId,
-                                                       Analysis::Infra::DBInfo &metricDB, const std::string &header,
+                                                       Analysis::Infra::DBInfo &metricDB,
+                                                       const Utils::ProfTimeRecord &record, const std::string &header,
                                                        std::vector<UnifiedTaskPmu> &processedData)
 {
     if (INVALID_COLUMN_NAMES.find(header) != INVALID_COLUMN_NAMES.end())
@@ -205,7 +222,7 @@ bool UnifiedPmuProcessor::ProcessTaskBasedDataByHeader(const std::pair<std::stri
         return true;
     }
     OTFormat pmuData = GetTaskBasedData(dbPathAndDeviceId.first, header, metricDB);
-    if (!FormatTaskBasedData(pmuData, processedData, header, dbPathAndDeviceId.second))
+    if (!FormatTaskBasedData(pmuData, processedData, header, dbPathAndDeviceId.second, record))
     {
         ERROR("FormatData failed, dbPath is %.", dbPathAndDeviceId.first);
         return false;
@@ -235,7 +252,13 @@ UnifiedPmuProcessor::OTFormat UnifiedPmuProcessor::GetTaskBasedData(const std::s
         subtaskIdSql = "subtask_id, ";
     }
     std::string sql = "SELECT stream_id, task_id, ";
-    sql.append(subtaskIdSql).append(" batch_id, ").append(columnName).append(" FROM ").append(metricDB.tableName);
+    sql.append(subtaskIdSql)
+        .append(" batch_id, ")
+        .append(columnName)
+        .append(", ")
+        .append(END_TIME_COLUMN_NAME)
+        .append(" FROM ")
+        .append(metricDB.tableName);
     if (!metricDB.dbRunner->QueryData(sql, oriData))
     {
         ERROR("Query task-based % data failed, db path is %.", columnName, dbPath);
@@ -272,7 +295,8 @@ uint64_t UnifiedPmuProcessor::UpdateColumnName(std::string &columnName)
 }
 
 bool UnifiedPmuProcessor::FormatTaskBasedData(const OTFormat &oriData, std::vector<UnifiedTaskPmu> &processedData,
-                                              std::string columnName, const uint16_t &deviceId)
+                                              std::string columnName, const uint16_t &deviceId,
+                                              const Utils::ProfTimeRecord &record)
 {
     INFO("FormatTaskBasedData.");
     if (oriData.empty())
@@ -289,11 +313,20 @@ bool UnifiedPmuProcessor::FormatTaskBasedData(const OTFormat &oriData, std::vect
     // 1、没有考虑memory_bound或是cube utilization的计算
     auto valueScale = UpdateColumnName(columnName);
     TaskPmuData tempData;
+    uint64_t endTime = 0;
     for (const auto &row : oriData)
     {
-        std::tie(tempData.streamId, tempData.taskId, tempData.subtaskId, tempData.batchId, tempData.value) = row;
+        // OTFormat: stream_id, task_id, subtask_id, batch_id, value, end_time
+        std::tie(tempData.streamId, tempData.taskId, tempData.subtaskId, tempData.batchId, tempData.value, endTime) =
+            row;
+        // end_time 列值在写侧(GetTimeFromSyscnt/time_from_syscnt)仅换算到 host 开机 monotonic ns，尚未叠加
+        // 采集起始的“世界时”偏移。其它上 timeline 的 task/事件行写盘前都经 GetLocalTime 平移(见
+        // fusion_task_processor 同款注释)，此处对每行自身 end_time 补 GetLocalTime 后才与 task 时间对齐；
+        // 直接从 uint64 构造 HPFloat，避免经 double 丢低位精度
+        Utils::HPFloat endTimeHP(endTime);
+        uint64_t timestamp = Utils::GetLocalTime(endTimeHP, record).Uint64();
         processedData.emplace_back(deviceId, tempData.streamId, tempData.taskId, tempData.subtaskId, tempData.batchId,
-                                   columnName, tempData.value * valueScale);
+                                   columnName, tempData.value * valueScale, timestamp);
     }
     if (processedData.empty())
     {

@@ -40,29 +40,6 @@ namespace
 {
 static const std::string MI_NAME = "GetNext_dequeue_wait";
 static const std::string EMPTY_NAME;
-SyscntConversionParams GetSyscntConversionParams(const DeviceContext& context)
-{
-    CpuInfo cpuInfo;
-    context.Getter(cpuInfo);
-    HostStartLog hostStartLog;
-    context.Getter(hostStartLog);
-    uint64_t hostMonotonic = hostStartLog.clockMonotonicRaw;
-    DeviceInfo deviceInfo;
-    context.Getter(deviceInfo);
-    DeviceStartLog deviceStartLog;
-    context.Getter(deviceStartLog);
-    if (!IsDoubleEqual(cpuInfo.frequency, 0.0) && hostStartLog.cntVctDiff)
-    {
-        uint64_t diffTime = static_cast<uint64_t>(hostStartLog.cntVctDiff * MILLI_SECOND / cpuInfo.frequency);
-        if (UINT64_MAX - hostStartLog.clockMonotonicRaw >= diffTime)
-        {
-            hostMonotonic = hostStartLog.clockMonotonicRaw + diffTime;
-        }
-    }
-    SyscntConversionParams params{deviceInfo.hwtsFrequency, deviceStartLog.cntVct, hostMonotonic};
-    return params;
-}
-
 // stream_id, task_id, sys_start, sys_end, node_name, compute_time, memcpy_time, task_time, dispatch_time, total_time
 // 时间列全部为 ns；compute/memcpy/dispatch 的 payload 为 us，乘 1000 转 ns
 using NodeFormat =
@@ -767,7 +744,7 @@ uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Cont
         ERROR("There is no aicpu data, don't need to persistence");
         return ANALYSIS_ERROR;
     }
-    params_ = GetSyscntConversionParams(deviceContext);
+    params_ = deviceContext.GetSyscntConversionParams();
     hostStreamInfo_ = *hostStreamInfo;
     deviceStreamInfo_ = *deviceStreamInfo;
     geHashMap_ = *geHashMap;

@@ -89,6 +89,10 @@ bool MetricSummaryPersistence::BindAndExecuteInsert(std::unordered_map<PmuHeader
     {
         sqlite3_bind_double(stmt_, ++index, value);
     }
+    for (auto& value : ids[PMU_TIMESTAMP])
+    {
+        sqlite3_bind_int64(stmt_, ++index, value);
+    }
     auto rc = sqlite3_step(stmt_);
     if (rc != SQLITE_DONE)
     {
@@ -158,6 +162,8 @@ bool MetricSummaryPersistence::ConstructData(std::unordered_map<PmuHeaderType, s
     {
         return false;
     }
+    // end_time列绑定在表末尾，此处对齐追加，值为context PMU时间换算后的wall-clock ns
+    ids[PMU_TIMESTAMP].push_back(task.pmuInfo->timestamp);
     return true;
 }
 
@@ -192,6 +198,8 @@ TableColumns MetricSummaryPersistence::GetTableColumn(const DeviceContext& conte
         {
             res.emplace_back((AIV_PREFIX + str), SQL_NUMERIC_TYPE);
         }
+        // 附加列放到最后，避免影响原有字段顺序；列名统一为end_time，与python侧stars落库列名保持一致
+        res.emplace_back("end_time", SQL_INTEGER_TYPE);
     }
     return res;
 }
@@ -314,7 +322,7 @@ uint32_t MetricSummaryPersistence::SaveV6BlockPmuData(DataInventory& dataInvento
         ERROR("Hal pmu data is null.");
         return ANALYSIS_ERROR;
     }
-    const auto params = GenerateSyscntConversionParams(deviceContext);
+    const auto params = deviceContext.GetSyscntConversionParams();
     if (IsDoubleEqual(params.freq, 0.0))
     {
         ERROR("Invalid hwts frequency %, skip saving V6BlockPmu.", params.freq);

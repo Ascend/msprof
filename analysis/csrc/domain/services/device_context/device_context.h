@@ -22,6 +22,8 @@
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "analysis/csrc/infrastructure/utils/time_utils.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
 {
@@ -195,6 +197,27 @@ class DeviceContext : public Infra::Context
     bool isChipV6() const { return GetChipID() == CHIP_V6_1_0 || GetChipID() == CHIP_V6_2_0; }
 
     std::string GetDeviceFilePath() const { return this->deviceContextInfo.deviceFilePath; }
+
+    // 获取 syscnt 转 wall-clock 所需的换算参数，源数据取自本 context 已加载的 host/device 启动日志
+    // 内联实现以复用宿主数据的换算逻辑，避免各调用侧重复定义相同换算代码
+    Analysis::Utils::SyscntConversionParams GetSyscntConversionParams() const
+    {
+        uint64_t hostMonotonic = deviceContextInfo.hostStartLog.clockMonotonicRaw;
+        // host侧高频计数导致 host 单调时钟与实际开机时长存在偏差，用 cntVctDiff 校正
+        if (!Analysis::Utils::IsDoubleEqual(deviceContextInfo.cpuInfo.frequency, 0.0) &&
+            deviceContextInfo.hostStartLog.cntVctDiff)
+        {
+            uint64_t diffTime =
+                static_cast<uint64_t>(deviceContextInfo.hostStartLog.cntVctDiff * Analysis::Common::MILLI_SECOND /
+                                      deviceContextInfo.cpuInfo.frequency);
+            if (UINT64_MAX - deviceContextInfo.hostStartLog.clockMonotonicRaw >= diffTime)
+            {
+                hostMonotonic = deviceContextInfo.hostStartLog.clockMonotonicRaw + diffTime;
+            }
+        }
+        return Analysis::Utils::SyscntConversionParams(deviceContextInfo.deviceInfo.hwtsFrequency,
+                                                       deviceContextInfo.deviceStart.cntVct, hostMonotonic);
+    }
 
     const std::string &GetDfxStopAtName() const override { return deviceContextInfo.dfxInfo.stopAt; }
 

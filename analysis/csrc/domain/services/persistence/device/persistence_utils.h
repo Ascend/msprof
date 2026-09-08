@@ -71,8 +71,6 @@ bool SaveData(const std::vector<std::tuple<Args...>>& data, DBInfo& dbInfo, std:
     }
     return true;
 }
-
-SyscntConversionParams GenerateSyscntConversionParams(const DeviceContext& context);
 }  // namespace Domain
 }  // namespace Analysis
 #endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_PERSISTENCE_UTILS_H

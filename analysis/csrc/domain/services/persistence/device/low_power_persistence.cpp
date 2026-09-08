@@ -68,7 +68,7 @@ bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const De
         ERROR("Reserve for LowPower persistence data failed");
         return false;
     }
-    const auto params = GenerateSyscntConversionParams(context);
+    const auto params = context.GetSyscntConversionParams();
     for (const auto& item : source)
     {
         if (item.type != SOC_PROFILE_LOW_POWER)

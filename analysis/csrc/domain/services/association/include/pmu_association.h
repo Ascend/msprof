@@ -24,6 +24,7 @@
 #include "analysis/csrc/domain/entities/hal/include/hal_pmu.h"
 #include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
+#include "analysis/csrc/infrastructure/utils/time_utils.h"
 
 namespace Analysis
 {
@@ -51,6 +52,8 @@ class PmuAssociation : public Process
     std::map<TaskId, std::vector<HalPmuData*>> blockPmuTask_;
     std::unique_ptr<MetricCalculator> aicCalculator_;
     std::unique_ptr<MetricCalculator> aivCalculator_;
+    // context侧 syscnt 转 wall-clock 的换算参数，ProcessEntry 中按 deviceContext 计算一次
+    Analysis::Utils::SyscntConversionParams syscntParams_;
 };
 }  // namespace Domain
 }  // namespace Analysis

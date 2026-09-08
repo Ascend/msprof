@@ -36,7 +36,8 @@ enum PmuHeaderType
     AIC_PMU_RESULT,
     AIV_TOTAL_CYCLE,
     AIV_TOTAL_TIME,
-    AIV_PMU_RESULT
+    AIV_PMU_RESULT,
+    PMU_TIMESTAMP
 };
 // V6BlockPmu表落盘数据行: stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id
 using V6BlockPmuData = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, double, uint8_t, uint8_t>;

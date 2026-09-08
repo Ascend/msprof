@@ -18,6 +18,7 @@ from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
 from msmodel.aic.aic_pmu_model import AicPmuModel
+from msmodel.aic.aic_pmu_model import FftsV1PmuModel
 
 NAMESPACE = 'msmodel.aic.aic_pmu_model'
 
@@ -51,4 +52,14 @@ class TestPcieModel(unittest.TestCase):
             InfoConfReader()._info_json = {'devices': '0'}
             check = AicPmuModel('test')
             check.clear()
+
+    def test_ffts_v1_create_table_should_append_end_time_column(self):
+        # FftsV1PmuModel(7/8/11 ffts非mix)在AIC表基础上于表尾追加end_time，供unified task-pmu读取wall-clock时间
+        with mock.patch(NAMESPACE + '.AicPmuModel.create_table') as mock_base_create, \
+                mock.patch(NAMESPACE + '.DBManager.execute_sql') as mock_execute:
+            check = FftsV1PmuModel('test')
+            check.create_table()
+            mock_base_create.assert_called_once()
+            alter_sql = mock_execute.call_args[0][1]
+            self.assertIn('ALTER TABLE MetricSummary ADD COLUMN end_time INT', alter_sql)
 
