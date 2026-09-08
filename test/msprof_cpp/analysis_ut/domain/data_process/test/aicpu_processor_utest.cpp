@@ -252,6 +252,7 @@ TEST_F(AicpuProcessorUTest, ShouldLoadAllThreeTypesAndFillDerivedFields)
     auto dp = dataInventory.GetPtr<std::vector<AicpuDpData>>();
     ASSERT_NE(nullptr, dp);
     ASSERT_EQ(2ul, dp->size());
+    EXPECT_EQ(0u, dp->at(0).deviceId);
     EXPECT_EQ(1000000ull, dp->at(0).timestamp);
     EXPECT_EQ("enqueue", dp->at(0).action);
     EXPECT_EQ("src0", dp->at(0).source);
@@ -260,6 +261,7 @@ TEST_F(AicpuProcessorUTest, ShouldLoadAllThreeTypesAndFillDerivedFields)
     auto mi = dataInventory.GetPtr<std::vector<AicpuMiData>>();
     ASSERT_NE(nullptr, mi);
     ASSERT_EQ(2ul, mi->size());
+    EXPECT_EQ(0u, mi->at(0).deviceId);
     EXPECT_EQ("QueueA", mi->at(0).nodeName);
     EXPECT_EQ(100ull, mi->at(0).startTime);
     EXPECT_EQ(200ull, mi->at(0).endTime);
@@ -514,6 +516,7 @@ TEST_F(AicpuProcessorUTest, ShouldSucceedWhenDpOnly)
     EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AicpuSummaryData>>());
     ASSERT_NE(nullptr, dataInventory.GetPtr<std::vector<AicpuDpData>>());
     EXPECT_EQ(1ul, dataInventory.GetPtr<std::vector<AicpuDpData>>()->size());
+    EXPECT_EQ(0u, dataInventory.GetPtr<std::vector<AicpuDpData>>()->at(0).deviceId);
     EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AicpuMiData>>());
 }
 
@@ -531,6 +534,7 @@ TEST_F(AicpuProcessorUTest, ShouldSucceedWhenMiOnly)
     EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AicpuSummaryData>>());
     EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AicpuDpData>>());
     ASSERT_NE(nullptr, dataInventory.GetPtr<std::vector<AicpuMiData>>());
+    EXPECT_EQ(0u, dataInventory.GetPtr<std::vector<AicpuMiData>>()->at(0).deviceId);
     EXPECT_EQ("OnlyMi", dataInventory.GetPtr<std::vector<AicpuMiData>>()->at(0).nodeName);
 }
 

@@ -187,7 +187,13 @@ bool IsDoubleEqual(double checkDouble, double standard)
 
 std::string AddQuotation(std::string str) { return Join({"\"", str, "\""}, ""); }
 
-std::string DivideByPowersOfTenWithPrecision(uint64_t value, int accuracy, int scale)
+std::string FormatHighPrecisionForCsv(const std::string &value)
+{
+    // Excel 打开超过15位精度的数值时会丢精度，追加\t让 Excel 按文本处理该单元格
+    return value + "\t";
+}
+
+std::string DivideByPowersOfTenWithPrecision(uint64_t value, bool isHighPrecision, int accuracy, int scale)
 {
     // scale代表除以10的多少次幂，比如3就是除以10^3，accuracy代表保留位数
     std::string numStr = std::to_string(value);
@@ -199,16 +205,17 @@ std::string DivideByPowersOfTenWithPrecision(uint64_t value, int accuracy, int s
     numStr.insert(numStr.size() - scale, ".");
     if (scale == accuracy)
     {  // 精度与移位数相等，直接返回即可
-        return numStr;
+        return isHighPrecision ? FormatHighPrecisionForCsv(numStr) : numStr;
     }
     else if (accuracy > scale)
     {  // 精度比移位数大，需要末尾补0
         numStr.insert(numStr.end(), accuracy - scale, '0');
-        return numStr;
+        return isHighPrecision ? FormatHighPrecisionForCsv(numStr) : numStr;
     }
     else
     {  // 精度比移位数小，需要截取numStr.size() - (scale - accuracy)长个字符串
-        return numStr.substr(0, numStr.size() + accuracy - scale);
+        std::string res = numStr.substr(0, numStr.size() + accuracy - scale);
+        return isHighPrecision ? FormatHighPrecisionForCsv(res) : res;
     }
 }
 

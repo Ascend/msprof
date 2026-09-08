@@ -42,6 +42,7 @@ struct AicpuSummaryData
 
 struct AicpuDpData
 {
+    uint16_t deviceId = UINT16_MAX;
     uint64_t timestamp = 0;
     std::string action;
     std::string source;
@@ -50,6 +51,7 @@ struct AicpuDpData
 
 struct AicpuMiData
 {
+    uint16_t deviceId = UINT16_MAX;
     std::string nodeName;
     uint64_t startTime = 0;
     uint64_t endTime = 0;

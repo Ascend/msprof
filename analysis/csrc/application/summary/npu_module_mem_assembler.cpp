@@ -67,7 +67,7 @@ uint8_t NpuModuleMemAssembler::AssembleData(DataInventory &dataInventory)
         res_.emplace_back(std::vector<std::string>{
             std::to_string(item.deviceId),
             moduleMap_.find(item.moduleId) != moduleMap_.end() ? moduleMap_.at(item.moduleId) : UNKNOWN,
-            DivideByPowersOfTenWithPrecision(item.timestamp) + "\t",
+            DivideByPowersOfTenWithPrecision(item.timestamp, true),
             std::to_string(item.totalReserved / Analysis::Common::BYTE_SIZE), item.deviceType});
     }
     if (res_.empty())

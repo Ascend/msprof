@@ -193,7 +193,6 @@ void TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& asce
         return;
     }
 
-    const std::string DIVIDE_CHAR = "\t";
     for (auto& ascendTaskDatum : FilterAscendTaskData(ascendTaskData))
     {
         TaskId taskId{ascendTaskDatum.streamId, ascendTaskDatum.batchId, ascendTaskDatum.taskId,
@@ -222,8 +221,8 @@ void TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& asce
                     std::to_string(taskId.streamId),
                     std::to_string(taskId.taskId),
                     DivideByPowersOfTenWithPrecision(static_cast<uint64_t>(ascendTaskDatum.duration)),
-                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.timestamp) + DIVIDE_CHAR,
-                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.end) + DIVIDE_CHAR};
+                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.timestamp, true),
+                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.end, true)};
         res_.emplace_back(row);
     }
 }

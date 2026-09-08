@@ -95,8 +95,8 @@ bool AicpuProcessor::ProcessSingleDevice(const std::string &devicePath, std::vec
         return false;
     }
     bool flag = LoadAiCpuData(devicePath, deviceId, timeRecord, summaryData);
-    flag = LoadDpData(devicePath, timeRecord, dpData) && flag;
-    flag = LoadMiData(devicePath, miData) && flag;
+    flag = LoadDpData(devicePath, deviceId, timeRecord, dpData) && flag;
+    flag = LoadMiData(devicePath, deviceId, miData) && flag;
     return flag;
 }
 
@@ -157,7 +157,7 @@ bool AicpuProcessor::LoadAiCpuData(const std::string &devicePath, uint16_t devic
     return true;
 }
 
-bool AicpuProcessor::LoadDpData(const std::string &devicePath, const ProfTimeRecord &timeRecord,
+bool AicpuProcessor::LoadDpData(const std::string &devicePath, uint16_t deviceId, const ProfTimeRecord &timeRecord,
                                 std::vector<AicpuDpData> &dpData)
 {
     DBInfo dpDB(DB_NAME_AI_CPU, TABLE_NAME_AI_CPU_DP);
@@ -184,6 +184,7 @@ bool AicpuProcessor::LoadDpData(const std::string &devicePath, const ProfTimeRec
         AicpuDpData data;
         double rawTimestamp = 0;
         std::tie(rawTimestamp, data.action, data.source, data.bufferSize) = row;
+        data.deviceId = deviceId;
         HPFloat timestamp{rawTimestamp};
         data.timestamp = GetLocalTime(timestamp, timeRecord).Uint64();
         dpData.push_back(data);
@@ -191,7 +192,7 @@ bool AicpuProcessor::LoadDpData(const std::string &devicePath, const ProfTimeRec
     return true;
 }
 
-bool AicpuProcessor::LoadMiData(const std::string &devicePath, std::vector<AicpuMiData> &miData)
+bool AicpuProcessor::LoadMiData(const std::string &devicePath, uint16_t deviceId, std::vector<AicpuMiData> &miData)
 {
     DBInfo miDB(DB_NAME_DATA_PREPROCESS, TABLE_NAME_DATA_QUEUE);
     std::string dbPath = Utils::File::PathJoin({devicePath, SQLITE, miDB.dbName});
@@ -219,6 +220,7 @@ bool AicpuProcessor::LoadMiData(const std::string &devicePath, std::vector<Aicpu
         double startTime = 0;
         double endTime = 0;
         std::tie(data.nodeName, startTime, endTime, data.queueSize) = row;
+        data.deviceId = deviceId;
         data.startTime = static_cast<uint64_t>(startTime);
         data.endTime = static_cast<uint64_t>(endTime);
         miData.push_back(data);

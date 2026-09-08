@@ -131,15 +131,14 @@ void SummaryStepTraceAssembler::AssembleStepTraceData(const std::vector<TrainTra
         return;
     }
 
-    const std::string DIVIDE_CHAR = "\t";
     for (auto &trainTraceDatum : trainTraceData)
     {
         TraceId traceId = {trainTraceDatum.modelId, trainTraceDatum.iterEnd};
         std::vector<std::string> row = {std::to_string(trainTraceDatum.deviceId),
                                         std::to_string(trainTraceDatum.indexId),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.fpStart) + DIVIDE_CHAR,
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.bpEnd) + DIVIDE_CHAR,
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.iterEnd) + DIVIDE_CHAR,
+                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.fpStart, true),
+                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.bpEnd, true),
+                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.iterEnd, true),
                                         DivideByPowersOfTenWithPrecision(trainTraceDatum.iterTime),
                                         DivideByPowersOfTenWithPrecision(trainTraceDatum.fpBpTime),
                                         DivideByPowersOfTenWithPrecision(trainTraceDatum.gradRefreshBound),
@@ -151,7 +150,7 @@ void SummaryStepTraceAssembler::AssembleStepTraceData(const std::vector<TrainTra
             int count = 0;
             for (auto &allReduceData : it->second)
             {
-                row.emplace_back(allReduceData.first + DIVIDE_CHAR);
+                row.emplace_back(FormatHighPrecisionForCsv(allReduceData.first));
                 row.emplace_back(allReduceData.second);
                 ++count;
             }

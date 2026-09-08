@@ -249,16 +249,24 @@ TEST_F(UtilsUTest, TestDivideByPowersOfTenWithPrecisionShouldReturnTrueValue)
     EXPECT_EQ("0.012", DivideByPowersOfTenWithPrecision(value));
 
     value = 23456;  // 入参23456
-    EXPECT_EQ("23.4560", DivideByPowersOfTenWithPrecision(value, 4, 3)); // 长度高于3位，移动3位，精度4位
+    EXPECT_EQ("23.4560", DivideByPowersOfTenWithPrecision(value, false, 4, 3)); // 长度高于3位，移动3位，精度4位
 
     value = 58;  // 入参58
-    EXPECT_EQ("0.0580", DivideByPowersOfTenWithPrecision(value, 4, 3)); // 长度低于3位，移动3位，精度4位
+    EXPECT_EQ("0.0580", DivideByPowersOfTenWithPrecision(value, false, 4, 3)); // 长度低于3位，移动3位，精度4位
 
     value = 1234567;  // 入参1234567
-    EXPECT_EQ("1234.56", DivideByPowersOfTenWithPrecision(value, 2, 3));  // 长度高于3位，移动3位，精度2位
+    EXPECT_EQ("1234.56", DivideByPowersOfTenWithPrecision(value, false, 2, 3));  // 长度高于3位，移动3位，精度2位
 
     value = 78; // 入参78
-    EXPECT_EQ("0.07", DivideByPowersOfTenWithPrecision(value, 2, 3)); // 长度小于3位，移动3位，精度2位
+    EXPECT_EQ("0.07", DivideByPowersOfTenWithPrecision(value, false, 2, 3)); // 长度小于3位，移动3位，精度2位
+}
+
+TEST_F(UtilsUTest, TestDivideByPowersOfTenWithPrecisionShouldAppendTabWhenHighPrecision)
+{
+    // isHighPrecision 为 true 时，结果追加\t，Excel 按文本处理绝对时刻
+    EXPECT_EQ("123.456\t", DivideByPowersOfTenWithPrecision(123456, true));
+    // 精度/位数与默认值不同时同样追加\t
+    EXPECT_EQ("1234.56\t", DivideByPowersOfTenWithPrecision(1234567, true, 2, 3));
 }
 
 // =========================================================================

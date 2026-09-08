@@ -67,15 +67,16 @@ bool AicpuAssembler::WriteAicpuCsv(const std::vector<AicpuSummaryData> &data)
     {
         return false;
     }
-    headers_ = {"Timestamp(us)",     "Node",           "Compute_time(us)", "Memcpy_time(us)", "Task_time(us)",
-                "Dispatch_time(us)", "Total_time(us)", "Stream ID",        "Task ID"};
+    headers_ = {"Device_id",     "Timestamp(us)",     "Node",           "Compute_time(us)", "Memcpy_time(us)",
+                "Task_time(us)", "Dispatch_time(us)", "Total_time(us)", "Stream ID",        "Task ID"};
     res_.clear();
     for (const auto &item : data)
     {
         res_.emplace_back(std::vector<std::string>{
-            DivideByPowersOfTenWithPrecision(item.timestampNs), item.nodeName, DoubleToStr(item.computeTimeUs),
-            DoubleToStr(item.memcpyTimeUs), DoubleToStr(item.taskTimeUs), DoubleToStr(item.dispatchTimeUs),
-            DoubleToStr(item.totalTimeUs), std::to_string(item.streamId), std::to_string(item.taskId)});
+            std::to_string(item.deviceId), DivideByPowersOfTenWithPrecision(item.timestampNs, true), item.nodeName,
+            DoubleToStr(item.computeTimeUs), DoubleToStr(item.memcpyTimeUs), DoubleToStr(item.taskTimeUs),
+            DoubleToStr(item.dispatchTimeUs), DoubleToStr(item.totalTimeUs), std::to_string(item.streamId),
+            std::to_string(item.taskId)});
     }
     WriteToFile(File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, AICPU_NAME}), {});
     return true;
@@ -87,11 +88,12 @@ bool AicpuAssembler::WriteDpCsv(const std::vector<AicpuDpData> &data)
     {
         return false;
     }
-    headers_ = {"Timestamp(us)", "Action", "Source", "Cached Buffer Size"};
+    headers_ = {"Device_id", "Timestamp(us)", "Action", "Source", "Cached Buffer Size"};
     res_.clear();
     for (const auto &item : data)
     {
-        res_.emplace_back(std::vector<std::string>{DivideByPowersOfTenWithPrecision(item.timestamp), item.action,
+        res_.emplace_back(std::vector<std::string>{std::to_string(item.deviceId),
+                                                   DivideByPowersOfTenWithPrecision(item.timestamp), item.action,
                                                    item.source, std::to_string(item.bufferSize)});
     }
     WriteToFile(File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, AICPU_DP_NAME}), {});
@@ -104,12 +106,13 @@ bool AicpuAssembler::WriteMiCsv(const std::vector<AicpuMiData> &data)
     {
         return false;
     }
-    headers_ = {"Node Name", "Start Time(us)", "End Time(us)", "Queue Size"};
+    headers_ = {"Device_id", "Node Name", "Start Time(us)", "End Time(us)", "Queue Size"};
     res_.clear();
     for (const auto &item : data)
     {
-        res_.emplace_back(std::vector<std::string>{item.nodeName, std::to_string(item.startTime),
-                                                   std::to_string(item.endTime), std::to_string(item.queueSize)});
+        res_.emplace_back(std::vector<std::string>{std::to_string(item.deviceId), item.nodeName,
+                                                   std::to_string(item.startTime), std::to_string(item.endTime),
+                                                   std::to_string(item.queueSize)});
     }
     WriteToFile(File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, AICPU_MI_NAME}), {});
     return true;

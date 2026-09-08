@@ -49,7 +49,7 @@ uint8_t NpuMemoryAssembler::AssembleData(Analysis::Infra::DataInventory &dataInv
                                      std::to_string(item.ddr / Analysis::Common::BYTE_SIZE),
                                      std::to_string(item.hbm / Analysis::Common::BYTE_SIZE),
                                      std::to_string(item.memory / Analysis::Common::BYTE_SIZE),
-                                     DivideByPowersOfTenWithPrecision(item.timestamp) + "\t"});
+                                     DivideByPowersOfTenWithPrecision(item.timestamp, true)});
     }
     if (res_.empty())
     {

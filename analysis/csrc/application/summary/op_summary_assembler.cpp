@@ -287,11 +287,13 @@ void OpSummaryAssembler::CalculateWaitTime()
 void OpSummaryAssembler::WriteToFile(const std::string &fileName, const std::set<int> &maskCols)
 {
     auto timeIndex = GetIndexForVec(headers_, TASK_START_TIME);
+    // TASK_START_TIME 是绝对时刻(us)，追加\t强制Excel按文本处理避免精度丢失；
+    // 必须在CalculateWaitTime完成数字解析/排序后再打标，否则尾部\t会导致StrToDouble失败
     for (auto &row : res_)
     {
         if (timeIndex < static_cast<int>(row.size()))
         {
-            row[timeIndex].append("\t");
+            row[timeIndex] = FormatHighPrecisionForCsv(row[timeIndex]);
         }
     }
 

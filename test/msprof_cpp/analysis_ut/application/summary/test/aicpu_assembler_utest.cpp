@@ -43,10 +43,10 @@ const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 
 const std::string AICPU_HEADER =
-    "Timestamp(us),Node,Compute_time(us),Memcpy_time(us),Task_time(us),Dispatch_time(us),Total_time(us),Stream ID,Task "
-    "ID";
-const std::string DP_HEADER = "Timestamp(us),Action,Source,Cached Buffer Size";
-const std::string MI_HEADER = "Node Name,Start Time(us),End Time(us),Queue Size";
+    "Device_id,Timestamp(us),Node,Compute_time(us),Memcpy_time(us),Task_time(us),Dispatch_time(us),Total_time(us),"
+    "Stream ID,Task ID";
+const std::string DP_HEADER = "Device_id,Timestamp(us),Action,Source,Cached Buffer Size";
+const std::string MI_HEADER = "Device_id,Node Name,Start Time(us),End Time(us),Queue Size";
 
 std::string FindCsvByName(const std::string &name)
 {
@@ -114,6 +114,7 @@ std::vector<AicpuDpData> GenerateDpData()
 {
     std::vector<AicpuDpData> res;
     AicpuDpData first;
+    first.deviceId = 0;
     first.timestamp = 1000000;
     first.action = "enqueue";
     first.source = "src0";
@@ -121,6 +122,7 @@ std::vector<AicpuDpData> GenerateDpData()
     res.push_back(first);
 
     AicpuDpData second;
+    second.deviceId = 0;
     second.timestamp = 2500000;
     second.action = "dequeue";
     second.source = "src1";
@@ -133,6 +135,7 @@ std::vector<AicpuMiData> GenerateMiData()
 {
     std::vector<AicpuMiData> res;
     AicpuMiData first;
+    first.deviceId = 0;
     first.nodeName = "QueueA";
     first.startTime = 100;
     first.endTime = 200;
@@ -140,6 +143,7 @@ std::vector<AicpuMiData> GenerateMiData()
     res.push_back(first);
 
     AicpuMiData second;
+    second.deviceId = 0;
     second.nodeName = "QueueB";
     second.startTime = 300;
     second.endTime = 400;
@@ -212,20 +216,21 @@ TEST_F(AicpuAssemblerUTest, ShouldWriteThreeCsvWhenAllDataExist)
     std::vector<std::string> aicpuLines = ReadCsvLines(aicpuFile);
     ASSERT_EQ(3ul, aicpuLines.size());
     EXPECT_EQ(AICPU_HEADER, aicpuLines[0]);
-    EXPECT_EQ("1000.000,Conv2D,1.5,2.5,500,0.5,10.5,10,20", aicpuLines[1]);
-    EXPECT_EQ("2000.000,N/A,3,4,8,1,20,11,30", aicpuLines[2]);
+    // 主 aicpu 的 Timestamp(us) 列对齐 python 打\t，dp/aicpu_mi 不打
+    EXPECT_EQ("0,1000.000\t,Conv2D,1.5,2.5,500,0.5,10.5,10,20", aicpuLines[1]);
+    EXPECT_EQ("0,2000.000\t,N/A,3,4,8,1,20,11,30", aicpuLines[2]);
 
     std::vector<std::string> dpLines = ReadCsvLines(dpFile);
     ASSERT_EQ(3ul, dpLines.size());
     EXPECT_EQ(DP_HEADER, dpLines[0]);
-    EXPECT_EQ("1000.000,enqueue,src0,128", dpLines[1]);
-    EXPECT_EQ("2500.000,dequeue,src1,256", dpLines[2]);
+    EXPECT_EQ("0,1000.000,enqueue,src0,128", dpLines[1]);
+    EXPECT_EQ("0,2500.000,dequeue,src1,256", dpLines[2]);
 
     std::vector<std::string> miLines = ReadCsvLines(miFile);
     ASSERT_EQ(3ul, miLines.size());
     EXPECT_EQ(MI_HEADER, miLines[0]);
-    EXPECT_EQ("QueueA,100,200,8", miLines[1]);
-    EXPECT_EQ("QueueB,300,400,16", miLines[2]);
+    EXPECT_EQ("0,QueueA,100,200,8", miLines[1]);
+    EXPECT_EQ("0,QueueB,300,400,16", miLines[2]);
 }
 
 TEST_F(AicpuAssemblerUTest, ShouldWriteAicpuOnly)

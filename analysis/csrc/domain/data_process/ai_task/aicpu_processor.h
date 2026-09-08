@@ -49,9 +49,9 @@ class AicpuProcessor : public DataProcessor
                              std::vector<AicpuDpData> &dpData, std::vector<AicpuMiData> &miData);
     bool LoadAiCpuData(const std::string &devicePath, uint16_t deviceId, const Utils::ProfTimeRecord &timeRecord,
                        std::vector<AicpuSummaryData> &summaryData);
-    bool LoadDpData(const std::string &devicePath, const Utils::ProfTimeRecord &timeRecord,
+    bool LoadDpData(const std::string &devicePath, uint16_t deviceId, const Utils::ProfTimeRecord &timeRecord,
                     std::vector<AicpuDpData> &dpData);
-    bool LoadMiData(const std::string &devicePath, std::vector<AicpuMiData> &miData);
+    bool LoadMiData(const std::string &devicePath, uint16_t deviceId, std::vector<AicpuMiData> &miData);
     void MatchBatchId(std::vector<AicpuSummaryData> &summaryData, const std::vector<AscendTaskData> &ascendTasks);
     void MatchNodeName(std::vector<AicpuSummaryData> &summaryData, const std::vector<TaskInfoData> &taskInfos,
                        bool isChipV6);

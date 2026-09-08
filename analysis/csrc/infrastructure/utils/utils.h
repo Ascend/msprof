@@ -52,7 +52,13 @@ bool IsNumber(const std::string &s);
 uint64_t Contact(uint32_t high, uint32_t low);
 bool IsDoubleEqual(double checkDouble, double standard);
 std::string AddQuotation(std::string str);
-std::string DivideByPowersOfTenWithPrecision(uint64_t value, int scale = ACCURACY_THREE, int accuracy = ACCURACY_THREE);
+// Excel 对超过15位的数字会丢精度，绝对时刻(us)转字符串后追加\t可强制按文本处理，与python format_high_precision_for_csv
+// 对齐
+std::string FormatHighPrecisionForCsv(const std::string &value);
+// scale代表除以10的多少次幂（如3即除以10^3），accuracy代表保留位数；
+// isHighPrecision为true时结果追加\t，用于绝对时刻列
+std::string DivideByPowersOfTenWithPrecision(uint64_t value, bool isHighPrecision = false,
+                                             int accuracy = ACCURACY_THREE, int scale = ACCURACY_THREE);
 bool EndsWith(const std::string &str, const std::string &suffix);
 std::string DoubleToStr(const double &value, const uint16_t &scale = ACCURACY_THREE);
 double RoundToDecimalPlaces(const double num, int decimalPlaces = ACCURACY_THREE);
