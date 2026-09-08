@@ -66,3 +66,56 @@ class TestMc2CommInfoParser(unittest.TestCase):
             check.save()
         self.assertEqual(1, len(check._communication_info))
         self.assertEqual("7466789422691968299", check._communication_info[0].group_name)
+
+    def test_reformat_data_should_append_invalid_stream_when_chip_v6_level0(self):
+        check = Mc2CommInfoParser(self.file_list, self.CONFIG)
+        bean = mock.Mock()
+        bean.group_name = "1"
+        bean.rank_size = 2
+        bean.rank_id = 0
+        bean.usr_rank_id = 0
+        bean.stream_id = 20
+        bean.comm_stream_ids = "100,101"
+        check._communication_info = [bean]
+        with mock.patch(NAMESPACE + '.ChipManager') as mock_chip, \
+                mock.patch(NAMESPACE + '.InfoConfReader') as mock_info:
+            mock_chip.return_value.is_chip_v6.return_value = True
+            mock_info.return_value.is_level0.return_value = True
+            rows = check.reformat_data()
+        self.assertEqual(2, len(rows))
+        self.assertEqual(20, rows[0][4])
+        self.assertEqual(20, rows[1][4])
+        self.assertEqual("100,101", rows[0][5])
+        self.assertEqual(str(Mc2CommInfoParser.INVALID_STREAM_ID), rows[1][5])
+        self.assertEqual(rows[0][0], rows[1][0])
+        self.assertEqual(rows[0][1:4], rows[1][1:4])
+
+    def test_reformat_data_should_append_one_invalid_stream_row_per_stream_when_chip_v6_level0(self):
+        check = Mc2CommInfoParser(self.file_list, self.CONFIG)
+        bean1 = mock.Mock()
+        bean1.group_name = "1"
+        bean1.rank_size = 2
+        bean1.rank_id = 0
+        bean1.usr_rank_id = 0
+        bean1.stream_id = 20
+        bean1.comm_stream_ids = "100,101"
+        bean2 = mock.Mock()
+        bean2.group_name = "1"
+        bean2.rank_size = 2
+        bean2.rank_id = 0
+        bean2.usr_rank_id = 0
+        bean2.stream_id = 20
+        bean2.comm_stream_ids = "100"
+        check._communication_info = [bean1, bean2]
+        with mock.patch(NAMESPACE + '.ChipManager') as mock_chip, \
+                mock.patch(NAMESPACE + '.InfoConfReader') as mock_info:
+            mock_chip.return_value.is_chip_v6.return_value = True
+            mock_info.return_value.is_level0.return_value = True
+            rows = check.reformat_data()
+        self.assertEqual(3, len(rows))
+        self.assertEqual(20, rows[0][4])
+        self.assertEqual(20, rows[1][4])
+        self.assertEqual(20, rows[2][4])
+        self.assertEqual("100,101", rows[0][5])
+        self.assertEqual(str(Mc2CommInfoParser.INVALID_STREAM_ID), rows[1][5])
+        self.assertEqual("100", rows[2][5])

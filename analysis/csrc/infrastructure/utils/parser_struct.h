@@ -418,6 +418,18 @@ struct ParserMemoryInfo
     uint32_t deviceType;
 };
 
+struct ParserMc2CommInfo
+{
+    uint64_t groupName;
+    uint32_t rankSize;
+    uint32_t rankId;
+    uint32_t usrRankId;
+    uint32_t aicpuKfcStreamId;
+    uint32_t commStreamSize;
+    uint32_t commStreamIds[MSPROF_COMM_STREAM_MAX_NUM];
+    uint32_t reserve;
+};
+
 struct ParserStaticOpMem
 {
     int64_t size;                  // op memory size
@@ -507,6 +519,7 @@ struct ParserAdditionalInfo
         ParserGraphIdInfo graphIdInfo;
         ParserMemoryInfo memoryInfo;
         ParserStaticOpMem staticOpMem;
+        ParserMc2CommInfo mc2CommInfo;
     };
 };
 

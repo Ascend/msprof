@@ -20,9 +20,9 @@
 #include <tuple>
 #include <vector>
 
-#include "analysis/csrc/domain/services/parser/host/cann/addition_info_parser.h"
 #include "analysis/csrc/domain/services/persistence/host/base_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
@@ -30,26 +30,19 @@ namespace Domain
 {
 
 using Mc2CommInfoData = std::vector<std::tuple<std::string, uint32_t, uint32_t, uint32_t, uint32_t, std::string>>;
-
-struct Mc2CommInfoInput
-{
-    Mc2CommInfoInput(const std::vector<std::shared_ptr<ParserAdditionalInfo>> &mc2Data,
-                     const CaptureStreamInfoData &captureData)
-        : mc2Data(mc2Data), captureData(captureData)
-    {
-    }
-
-    bool empty() const { return mc2Data.empty(); }
-
-    const std::vector<std::shared_ptr<ParserAdditionalInfo>> &mc2Data;
-    const CaptureStreamInfoData &captureData;
-};
+using Mc2RawData = std::vector<std::shared_ptr<ParserAdditionalInfo>>;
 
 class Mc2CommInfoDumper : public BaseDumper<Mc2CommInfoDumper>
 {
    public:
-    explicit Mc2CommInfoDumper(const std::string &hostPath);
-    Mc2CommInfoData GenerateData(const Mc2CommInfoInput &input);
+    explicit Mc2CommInfoDumper(const std::string &hostPath, CaptureStreamInfoData captureData = {});
+    Mc2CommInfoData GenerateData(const Mc2RawData &mc2Data);
+
+   private:
+    bool NeedMapInvalidStreamId() const;
+
+    CaptureStreamInfoData captureData_;
+    std::string hostPath_;
 };
 
 }  // namespace Domain

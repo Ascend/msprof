@@ -50,27 +50,59 @@ context_id, graph_id_map, fusion_op_info, task_track, mem_cpy
 
  */
 
+// 单一数据源：枚举成员与展示名必须一一对应，新增类型只需在 EVENT_TYPE_LIST 加一行
+// (枚举名, 展示名)，EventType 与 EventTypeNames() 由同一清单生成，二者永不漂移。
+// 展示名非机械派生（如 MEM_CPY->MemoryCopy），勿改为代码内推导。
+#define EVENT_TYPE_LIST(ENTRY)                                                                                         \
+    ENTRY(EVENT_TYPE_API, "Api")                                                                                       \
+    ENTRY(EVENT_TYPE_EVENT, "Event") /* 两个EVENT_TYPE_EVENT可以拼出一个EVENT_TYPE_API */                      \
+    ENTRY(EVENT_TYPE_NODE_BASIC_INFO, "NodeBasicInfo")                                                                 \
+    ENTRY(EVENT_TYPE_NODE_ATTR_INFO, "NodeAttrInfo")                                                                   \
+    ENTRY(EVENT_TYPE_TENSOR_INFO, "TensorInfo")                                                                        \
+    ENTRY(EVENT_TYPE_HCCL_INFO, "HcclInfo")                                                                            \
+    ENTRY(EVENT_TYPE_CONTEXT_ID, "ContextId")                                                                          \
+    ENTRY(EVENT_TYPE_GRAPH_ID_MAP, "GraphIdMap") /* graph_id_map，lookup 后落盘 ModelName */                       \
+    ENTRY(EVENT_TYPE_FUSION_OP_INFO, "FusionOpInfo")                                                                   \
+    ENTRY(EVENT_TYPE_TASK_TRACK, "TaskTrack")                                                                          \
+    ENTRY(EVENT_TYPE_HCCL_OP_INFO, "HcclOpInfo")                                                                       \
+    ENTRY(EVENT_TYPE_MEM_CPY, "MemoryCopy")            /* memcpy_info，lookup 后落盘 */                            \
+    ENTRY(EVENT_TYPE_RUNTIME_OP_INFO, "RuntimeOpInfo") /* capture_op_info */                                           \
+    ENTRY(EVENT_TYPE_DPU_TASK_TRACK, "DpuTaskTrack")   /* dpu_track */                                                 \
+    ENTRY(EVENT_TYPE_CAPTURE_STREAM_INFO, "CaptureStreamInfo")                                                         \
+    ENTRY(EVENT_TYPE_MC2_COMM_INFO, "Mc2CommInfo")                                                                     \
+    ENTRY(EVENT_TYPE_STATIC_OP_MEM, "StaticOpMem") /* C++ parser/dumper 已落地，入口未使能，仍走 Python */ \
+    ENTRY(EVENT_TYPE_STREAM_EXPAND_SPEC, "StreamExpandSpec") /* expand_stream_spec，解析后直接落盘 */          \
+    ENTRY(EVENT_TYPE_DUMMY, "Dummy")                         /* 虚拟类型，用于建树时标志虚拟节点 */    \
+    ENTRY(EVENT_TYPE_INVALID, "Invalid")
+
 enum class EventType
 {
-    EVENT_TYPE_API = 0,
-    EVENT_TYPE_EVENT,  // 两个EVENT_TYPE_EVENT可以拼出一个EVENT_TYPE_API
-    EVENT_TYPE_NODE_BASIC_INFO,
-    EVENT_TYPE_NODE_ATTR_INFO,
-    EVENT_TYPE_TENSOR_INFO,
-    EVENT_TYPE_HCCL_INFO,
-    EVENT_TYPE_CONTEXT_ID,
-    EVENT_TYPE_GRAPH_ID_MAP,
-    EVENT_TYPE_FUSION_OP_INFO,
-    EVENT_TYPE_TASK_TRACK,
-    EVENT_TYPE_HCCL_OP_INFO,
-    EVENT_TYPE_MEM_CPY,
-    EVENT_TYPE_RUNTIME_OP_INFO,  // capture_op_info，按 device/stream/task 查找
-    EVENT_TYPE_DPU_TASK_TRACK,   // dpu_track，lookup 后直接落盘，不进建树
-    EVENT_TYPE_DUMMY,            // 虚拟类型，用于建树时标志虚拟节点
-    EVENT_TYPE_INVALID,
-    EVENT_TYPE_STATIC_OP_MEM,       // static_op_mem，解析后直接落盘，不进建树
-    EVENT_TYPE_STREAM_EXPAND_SPEC,  // expand_stream_spec，解析后直接落盘，不进建树
+#define EVENT_TYPE_ENUM_ENTRY(enumName, displayName) enumName,
+    EVENT_TYPE_LIST(EVENT_TYPE_ENUM_ENTRY)
+#undef EVENT_TYPE_ENUM_ENTRY
 };
+
+// EventType 对应的展示名表，顺序与枚举一一对应
+inline const std::vector<std::string> &EventTypeNames()
+{
+    static const std::vector<std::string> names = {
+#define EVENT_TYPE_NAME_ENTRY(enumName, displayName) displayName,
+        EVENT_TYPE_LIST(EVENT_TYPE_NAME_ENTRY)
+#undef EVENT_TYPE_NAME_ENTRY
+    };
+    return names;
+}
+
+// 越界防御：type 非枚举成员时返回 "Invalid"，避免整型转枚举后数组越界
+inline const std::string &EventTypeToString(EventType type)
+{
+    static const std::string invalidType = "Invalid";
+    const size_t index = static_cast<size_t>(type);
+    const auto &names = EventTypeNames();
+    return (index < names.size()) ? names[index] : invalidType;
+}
+
+#undef EVENT_TYPE_LIST
 
 inline const std::set<EventType> &TreeBuildEventTypes()
 {
@@ -82,20 +114,22 @@ inline const std::set<EventType> &TreeBuildEventTypes()
         EventType::EVENT_TYPE_TENSOR_INFO,
         EventType::EVENT_TYPE_HCCL_INFO,
         EventType::EVENT_TYPE_CONTEXT_ID,
-        EventType::EVENT_TYPE_GRAPH_ID_MAP,
         EventType::EVENT_TYPE_FUSION_OP_INFO,
         EventType::EVENT_TYPE_TASK_TRACK,
         EventType::EVENT_TYPE_HCCL_OP_INFO,
-        EventType::EVENT_TYPE_MEM_CPY,
     };
     return types;
 }
 
 inline const std::set<EventType> &LookupEventTypes()
 {
-    static const std::set<EventType> types = {EventType::EVENT_TYPE_RUNTIME_OP_INFO,
-                                              EventType::EVENT_TYPE_DPU_TASK_TRACK, EventType::EVENT_TYPE_STATIC_OP_MEM,
-                                              EventType::EVENT_TYPE_STREAM_EXPAND_SPEC};
+    static const std::set<EventType> types = {
+        EventType::EVENT_TYPE_RUNTIME_OP_INFO,     EventType::EVENT_TYPE_DPU_TASK_TRACK,
+        EventType::EVENT_TYPE_CAPTURE_STREAM_INFO, EventType::EVENT_TYPE_MC2_COMM_INFO,
+        EventType::EVENT_TYPE_GRAPH_ID_MAP,        EventType::EVENT_TYPE_MEM_CPY,
+        EventType::EVENT_TYPE_STREAM_EXPAND_SPEC,
+        // EventType::EVENT_TYPE_STATIC_OP_MEM,  // C++ 入口未使能，仍走 Python；使能时打开并加入 Python 白名单
+    };
     return types;
 }
 

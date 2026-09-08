@@ -325,7 +325,7 @@ TEST_F(EventGrouperUTest, TestGroupShouldReturnEmptyWhenDataDirEmpty)
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }
 
-TEST_F(EventGrouperUTest, ShouldSkipCaptureAndMc2InGroupWhenCppParserDisabled)
+TEST_F(EventGrouperUTest, ShouldLookupCaptureAndMc2WithoutBuildingTree)
 {
     const std::string fakeDataDir = "./fakeCaptureData";
     const std::string hostDataDir = fakeDataDir + "/host/data";
@@ -343,20 +343,20 @@ TEST_F(EventGrouperUTest, ShouldSkipCaptureAndMc2InGroupWhenCppParserDisabled)
     capture.data.captureStreamInfo.modelStreamId = 70;
     capture.data.captureStreamInfo.captureStatus = 0;
     std::vector<MsprofCompactInfo> captureRecords{capture};
-    ASSERT_TRUE(WriteBin(captureRecords, hostDataDir,
-                         "unaging.compact.capture_stream_info.slice_0"));
+    ASSERT_TRUE(WriteBin(captureRecords, hostDataDir, "unaging.compact.capture_stream_info.slice_0"));
 
     MsprofAdditionalInfo mc2{};
-    auto payload = ReinterpretConvert<MsprofMc2CommInfo *>(mc2.data);
-    payload->groupName = 99;
-    payload->streamId = 52;
+    mc2.mc2CommInfo.groupName = 99;
+    mc2.mc2CommInfo.aicpuKfcStreamId = 52;
     std::vector<MsprofAdditionalInfo> mc2Records{mc2};
     ASSERT_TRUE(WriteBin(mc2Records, hostDataDir, "unaging.additional.mc2_comm_info.slice_0"));
 
     EventGrouper grouper(hostDataDir);
     ASSERT_TRUE(grouper.Group());
-    EXPECT_TRUE(grouper.GetCaptureStreamInfoData().empty());
-    EXPECT_TRUE(grouper.GetMc2CommInfoData().empty());
+    ASSERT_EQ(1ul, grouper.GetDumpWarehouse().captureStreamInfoData.size());
+    EXPECT_EQ(70u, grouper.GetDumpWarehouse().captureStreamInfoData[0]->data.captureStreamInfo.streamId);
+    ASSERT_EQ(1ul, grouper.GetDumpWarehouse().mc2CommInfoData.size());
+    EXPECT_EQ(99ULL, grouper.GetDumpWarehouse().mc2CommInfoData[0]->mc2CommInfo.groupName);
     EXPECT_TRUE(grouper.GetThreadIdSet().empty());
     EXPECT_FALSE(grouper.GetGroupEvents().Find(9));
     EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));
@@ -418,7 +418,8 @@ TEST_F(EventGrouperUTest, TestGroupShouldGroupCorrespondingEventsWhenDataDirHasA
     EXPECT_EQ(MaxNum, tids.size());
 
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "kernelEvents"));
-    EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "graphIdMapEvents"));
+    EXPECT_EQ(MaxNum, grouper->GetDumpWarehouse().graphIdMapData.size());
+    EXPECT_EQ(0, g_getCannEventsNum(tids, res, "graphIdMapEvents"));
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "fusionOpInfoEvents"));
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "nodeBasicInfoEvents"));
     EXPECT_EQ(MaxNum, g_getCannEventsNum(tids, res, "nodeAttrInfoEvents"));
@@ -561,10 +562,18 @@ TEST_F(EventGrouperUTest, TestNeedLookupAndNeedTreeBuildForDpuAndRts)
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_DPU_TASK_TRACK));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_RUNTIME_OP_INFO));
-    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM));
+    EXPECT_FALSE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_STATIC_OP_MEM));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_CAPTURE_STREAM_INFO));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_CAPTURE_STREAM_INFO));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_MC2_COMM_INFO));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_MC2_COMM_INFO));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_GRAPH_ID_MAP));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_GRAPH_ID_MAP));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_MEM_CPY));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_MEM_CPY));
 }
 
 TEST_F(EventGrouperUTest, TestGroupShouldPutDpuTrackToLookupNotTree)
@@ -578,7 +587,7 @@ TEST_F(EventGrouperUTest, TestGroupShouldPutDpuTrackToLookupNotTree)
     grouper->Group();
     auto tids = grouper->GetThreadIdSet();
     auto res = grouper->GetGroupEvents();
-    EXPECT_EQ(num, grouper->GetDpuTrackData().size());
+    EXPECT_EQ(num, grouper->GetDumpWarehouse().dpuTrackData.size());
     EXPECT_EQ(0, g_getCannEventsNum(tids, res, "taskTrackEvents"));
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }
@@ -597,29 +606,19 @@ TEST_F(EventGrouperUTest, TestGroupShouldKeepRtsTaskInTreeAndDpuKernelNameFromTa
     auto res = grouper->GetGroupEvents();
     EXPECT_EQ(npuNum, g_getCannEventsNum(tids, res, "taskTrackEvents"));
     EXPECT_EQ(dpuNum, grouper->GetDpuKernelNameMap().size());
-    EXPECT_EQ(0, grouper->GetDpuTrackData().size());
+    EXPECT_EQ(0, grouper->GetDumpWarehouse().dpuTrackData.size());
     EXPECT_EQ(true, File::RemoveDir(fakeDataDir, 0));
 }
 
-TEST_F(EventGrouperUTest, TestGroupShouldPutStaticOpMemAndStreamExpandSpecToLookupNotTree)
+TEST_F(EventGrouperUTest, TestGroupShouldPutStreamExpandSpecToDumpWarehouseNotTree)
 {
-    const std::string fakeDataDir = "./fakeDataStaticAndStreamLookup";
+    const std::string fakeDataDir = "./fakeDataStreamExpandLookup";
     const std::string hostDir = fakeDataDir + "/host";
     const std::string hostDataDir = fakeDataDir + "/host/data";
     File::RemoveDir(fakeDataDir, 0);
     ASSERT_TRUE(File::CreateDir(fakeDataDir));
     ASSERT_TRUE(File::CreateDir(hostDir));
     ASSERT_TRUE(File::CreateDir(hostDataDir));
-
-    MsprofAdditionalInfo staticOpMem{};
-    staticOpMem.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
-    staticOpMem.dataLen = sizeof(MsprofStaticOpMem);
-    staticOpMem.staticOpMem.size = 1024;
-    staticOpMem.staticOpMem.opName = 11;
-    FileWriter staticWriter(hostDataDir + "/unaging.additional.static_op_mem.slice_0",
-                            std::ios::out | std::ios::binary);
-    staticWriter.WriteText(reinterpret_cast<const char *>(&staticOpMem), sizeof(staticOpMem));
-    staticWriter.Close();
 
     MsprofCompactInfo streamExpand{};
     streamExpand.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
@@ -632,10 +631,8 @@ TEST_F(EventGrouperUTest, TestGroupShouldPutStaticOpMemAndStreamExpandSpecToLook
 
     EventGrouper grouper(hostDataDir);
     EXPECT_TRUE(grouper.Group());
-    ASSERT_EQ(grouper.GetStaticOpMemData().size(), 1U);
-    ASSERT_EQ(grouper.GetStreamExpandSpecData().size(), 1U);
-    EXPECT_EQ(grouper.GetStaticOpMemData()[0]->staticOpMem.opName, 11U);
-    EXPECT_EQ(grouper.GetStreamExpandSpecData()[0]->data.streamExpandSpec.expandStatus, 1U);
+    ASSERT_EQ(1U, grouper.GetDumpWarehouse().streamExpandSpecData.size());
+    EXPECT_EQ(1U, grouper.GetDumpWarehouse().streamExpandSpecData[0]->data.streamExpandSpec.expandStatus);
     EXPECT_TRUE(grouper.GetThreadIdSet().empty());
     EXPECT_TRUE(grouper.GetGroupEvents().Empty());
     EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));

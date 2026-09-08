@@ -17,7 +17,6 @@
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/domain/services/parser/host/cann/capture_mc2_cpp_enable.h"
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
@@ -64,54 +63,17 @@ std::vector<std::shared_ptr<Event>> &EventGrouper::GetApiTraces() { return apiTr
 
 std::vector<std::shared_ptr<Adapter::FlipTask>> &EventGrouper::GetFlipTasks() { return flipTasks_; }
 
-std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetDpuTrackData() { return dpuTrackData_; }
 std::unordered_map<uint64_t, uint64_t> &EventGrouper::GetDpuKernelNameMap() { return dpuKernelNameMap_; }
-std::vector<std::shared_ptr<ParserAdditionalInfo>> &EventGrouper::GetStaticOpMemData() { return staticOpMemData_; }
-std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetStreamExpandSpecData()
-{
-    return streamExpandSpecData_;
-}
 
-const std::vector<std::shared_ptr<ParserCompactInfo>> &EventGrouper::GetCaptureStreamInfoData() const
-{
-    return captureStreamInfoData_;
-}
+CANNDumpWarehouse &EventGrouper::GetDumpWarehouse() { return dumpWarehouse_; }
 
-const std::vector<std::shared_ptr<ParserAdditionalInfo>> &EventGrouper::GetMc2CommInfoData() const
-{
-    return mc2CommInfoData_;
-}
-
-void EventGrouper::ParseCaptureStreamInfo()
-{
-    Utils::TimeLogger t{"Parse CaptureStreamInfo"};
-    CaptureStreamInfoParser parser(hostPath_);
-    captureStreamInfoData_ = parser.ParseData<ParserCompactInfo>();
-    if (parser.GetStatus() == ParserStatus::ERROR)
-    {
-        ERROR("Parse capture stream info failed.");
-        result_ = false;
-    }
-}
-
-void EventGrouper::ParseMc2CommInfo()
-{
-    Utils::TimeLogger t{"Parse Mc2CommInfo"};
-    Mc2CommInfoParser parser(hostPath_);
-    mc2CommInfoData_ = parser.ParseData<ParserAdditionalInfo>();
-    if (parser.GetStatus() == ParserStatus::ERROR)
-    {
-        ERROR("Parse mc2 comm info failed.");
-        result_ = false;
-    }
-}
+const CANNDumpWarehouse &EventGrouper::GetDumpWarehouse() const { return dumpWarehouse_; }
 
 bool EventGrouper::Group()
 {
     Utils::TimeLogger t{"Group all events"};
     result_ = true;
-    captureStreamInfoData_.clear();
-    mc2CommInfoData_.clear();
+    dumpWarehouse_ = {};
     const uint32_t poolSize = 10;
     ThreadPool pool(poolSize);
     pool.Start();
@@ -132,12 +94,6 @@ void EventGrouper::GroupTreeEvent(ThreadPool &pool)
     pool.AddTask(
         [this]()
         {
-            GroupEvents<GraphIdParser, ParserAdditionalInfo, &CANNWarehouse::graphIdMapEvents>(
-                "GraphIdMap", EventType::EVENT_TYPE_GRAPH_ID_MAP);
-        });
-    pool.AddTask(
-        [this]()
-        {
             GroupEvents<FusionOpInfoParser, ParserAdditionalInfo, &CANNWarehouse::fusionOpInfoEvents>(
                 "FusionOpInfo", EventType::EVENT_TYPE_FUSION_OP_INFO);
         });
@@ -153,11 +109,6 @@ void EventGrouper::GroupTreeEvent(ThreadPool &pool)
             GroupEvents<NodeAttrInfoParser, ParserCompactInfo, &CANNWarehouse::nodeAttrInfoEvents>(
                 "NodeAttrInfo", EventType::EVENT_TYPE_NODE_ATTR_INFO);
         });
-    // if (kEnableCaptureStreamMc2CppParser)
-    // {
-    //     pool.AddTask([this]() { ParseCaptureStreamInfo(); });
-    //     pool.AddTask([this]() { ParseMc2CommInfo(); });
-    // }
     pool.AddTask(
         [this]()
         {
@@ -201,62 +152,55 @@ void EventGrouper::GroupLookup(ThreadPool &pool)
     }
     if (NeedLookup(EventType::EVENT_TYPE_DPU_TASK_TRACK))
     {
-        pool.AddTask([this]() { ParseDpuTaskTrack(); });
+        pool.AddTask(
+            [this]()
+            { GroupEvents<DpuTaskTrackParser, ParserCompactInfo, &CANNDumpWarehouse::dpuTrackData>("DpuTaskTrack"); });
     }
-    if (NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM))
+    if (NeedLookup(EventType::EVENT_TYPE_CAPTURE_STREAM_INFO))
     {
-        pool.AddTask([this]() { ParseStaticOpMem(); });
+        pool.AddTask(
+            [this]()
+            {
+                GroupEvents<CaptureStreamInfoParser, ParserCompactInfo, &CANNDumpWarehouse::captureStreamInfoData>(
+                    "CaptureStreamInfo");
+            });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_MC2_COMM_INFO))
+    {
+        pool.AddTask(
+            [this]() {
+                GroupEvents<Mc2CommInfoParser, ParserAdditionalInfo, &CANNDumpWarehouse::mc2CommInfoData>(
+                    "Mc2CommInfo");
+            });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_GRAPH_ID_MAP))
+    {
+        pool.AddTask(
+            [this]()
+            { GroupEvents<GraphIdParser, ParserAdditionalInfo, &CANNDumpWarehouse::graphIdMapData>("GraphIdMap"); });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_MEM_CPY))
+    {
+        pool.AddTask(
+            [this]()
+            { GroupEvents<MemcpyInfoParser, ParserCompactInfo, &CANNDumpWarehouse::memcpyInfoData>("MemcpyInfo"); });
     }
     if (NeedLookup(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC))
     {
-        pool.AddTask([this]() { ParseStreamExpandSpec(); });
-    }
-}
-
-void EventGrouper::DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos)
-{
-    switch (eventType)
-    {
-        case EventType::EVENT_TYPE_RUNTIME_OP_INFO:
-            for (const auto &info : opInfos)
+        pool.AddTask(
+            [this]()
             {
-                RTAddInfoCenter::GetInstance().Add(info);
-            }
-            break;
-        default:
-            ERROR("Unsupported lookup EventType");
-            break;
+                GroupEvents<StreamExpandSpecParser, ParserCompactInfo, &CANNDumpWarehouse::streamExpandSpecData>(
+                    "StreamExpandSpec");
+            });
     }
-}
-
-void EventGrouper::DispatchLookupData(EventType eventType,
-                                      const std::vector<std::shared_ptr<ParserAdditionalInfo>> &additionalInfos)
-{
-    switch (eventType)
+    if (NeedLookup(EventType::EVENT_TYPE_STATIC_OP_MEM))
     {
-        case EventType::EVENT_TYPE_STATIC_OP_MEM:
-            staticOpMemData_ = additionalInfos;
-            break;
-        default:
-            ERROR("Unsupported lookup EventType");
-            break;
-    }
-}
-
-void EventGrouper::DispatchLookupData(EventType eventType,
-                                      const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks)
-{
-    switch (eventType)
-    {
-        case EventType::EVENT_TYPE_DPU_TASK_TRACK:
-            dpuTrackData_ = tracks;
-            break;
-        case EventType::EVENT_TYPE_STREAM_EXPAND_SPEC:
-            streamExpandSpecData_ = tracks;
-            break;
-        default:
-            ERROR("Unsupported lookup EventType");
-            break;
+        pool.AddTask(
+            [this]() {
+                GroupEvents<StaticOpMemParser, ParserAdditionalInfo, &CANNDumpWarehouse::staticOpMemData>(
+                    "StaticOpMem");
+            });
     }
 }
 
@@ -269,34 +213,11 @@ void EventGrouper::ParseRuntimeOpInfo()
         ERROR("Parse capture_op_info failed");
         return;
     }
-    DispatchLookupData(EventType::EVENT_TYPE_RUNTIME_OP_INFO, parser->GetOpInfo());
-}
-
-void EventGrouper::ParseDpuTaskTrack()
-{
-    std::shared_ptr<DpuTaskTrackParser> parser;
-    MAKE_SHARED_RETURN_VOID(parser, DpuTaskTrackParser, hostPath_);
-    auto tracks = parser->ParseData<ParserCompactInfo>();
-    INFO("Parsed DPU task track data, size: %", tracks.size());
-    DispatchLookupData(EventType::EVENT_TYPE_DPU_TASK_TRACK, tracks);
-}
-
-void EventGrouper::ParseStaticOpMem()
-{
-    std::shared_ptr<StaticOpMemParser> parser;
-    MAKE_SHARED_RETURN_VOID(parser, StaticOpMemParser, hostPath_);
-    auto data = parser->ParseData<ParserAdditionalInfo>();
-    INFO("Parsed static op memory data, size: %", data.size());
-    DispatchLookupData(EventType::EVENT_TYPE_STATIC_OP_MEM, data);
-}
-
-void EventGrouper::ParseStreamExpandSpec()
-{
-    std::shared_ptr<StreamExpandSpecParser> parser;
-    MAKE_SHARED_RETURN_VOID(parser, StreamExpandSpecParser, hostPath_);
-    auto data = parser->ParseData<ParserCompactInfo>();
-    INFO("Parsed stream expand spec data, size: %", data.size());
-    DispatchLookupData(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC, data);
+    // Add 同时写入 lookup map 和 dumpList，HostTraceWorker::DumpRuntimeOpInfo 负责落盘
+    for (const auto &info : parser->GetOpInfo())
+    {
+        RTAddInfoCenter::GetInstance().Add(info);
+    }
 }
 
 void EventGrouper::SetApiEventKeys()

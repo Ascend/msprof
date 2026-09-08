@@ -16,110 +16,147 @@
 
 #include "analysis/csrc/domain/services/persistence/host/mc2_comm_info_dumper.h"
 
+#include <cstdint>
 #include <map>
 #include <set>
-#include <sstream>
+#include <string>
+#include <vector>
+
+#include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
 {
 namespace Domain
 {
-using Host::Cann::MC2_COMM_STREAM_MAX_NUM;
-using Host::Cann::MsprofMc2CommInfo;
+using Environment::Context;
 
 namespace
 {
-std::string JoinCommStreamIds(const MsprofMc2CommInfo &payload)
+std::string FormatCommStreamIds(const ParserMc2CommInfo &payload)
 {
-    if (payload.streamSize > MC2_COMM_STREAM_MAX_NUM)
+    if (payload.commStreamSize > MSPROF_COMM_STREAM_MAX_NUM)
     {
         return "";
     }
-    std::ostringstream stream;
-    for (uint32_t i = 0; i < payload.streamSize; ++i)
+    std::vector<std::string> ids;
+    ids.reserve(payload.commStreamSize);
+    for (uint32_t i = 0; i < payload.commStreamSize; ++i)
     {
-        if (i > 0)
-        {
-            stream << ',';
-        }
-        stream << payload.commStreamIds[i];
+        ids.emplace_back(std::to_string(payload.commStreamIds[i]));
     }
-    return stream.str();
+    return Utils::Join(ids, ",");
 }
 }  // namespace
 
-Mc2CommInfoDumper::Mc2CommInfoDumper(const std::string &hostPath)
-    : BaseDumper<Mc2CommInfoDumper>(hostPath, "Mc2CommInfo")
+Mc2CommInfoDumper::Mc2CommInfoDumper(const std::string &hostPath, CaptureStreamInfoData captureData)
+    : BaseDumper<Mc2CommInfoDumper>(hostPath, "Mc2CommInfo"), captureData_(std::move(captureData)), hostPath_(hostPath)
 {
     MAKE_SHARED0_NO_OPERATION(database_, Mc2CommInfoDB);
 }
 
-Mc2CommInfoData Mc2CommInfoDumper::GenerateData(const Mc2CommInfoInput &input)
+// 适配15 16 level0 device无streamId场景
+bool Mc2CommInfoDumper::NeedMapInvalidStreamId() const
+{
+    auto &ctx = Context::GetInstance();
+    if (!Context::IsChipV6(ctx.GetPlatformVersion()))
+    {
+        return false;
+    }
+    return ctx.IsLevel0(Utils::File::PathJoin({hostPath_, ".."}));
+}
+
+Mc2CommInfoData Mc2CommInfoDumper::GenerateData(const Mc2RawData &mc2Data)
 {
     std::map<uint32_t, std::set<uint32_t>> captureStreamMap;
-    for (const auto &capture : input.captureData)
+    for (const auto &capture : captureData_)
     {
         captureStreamMap[capture.originalStreamId].insert(capture.streamId);
     }
 
+    const bool mapInvalidStreamId = NeedMapInvalidStreamId();
     size_t supplementSize = 0;
-    for (const auto &info : input.mc2Data)
+    std::set<uint32_t> invalidMappedStreamIds;  // 去重：同一 aicpuKfcStreamId 只补一条 65535 映射
+    for (const auto &info : mc2Data)
     {
         if (!info)
         {
             continue;
         }
-        const auto payload = Utils::ReinterpretConvert<const MsprofMc2CommInfo *>(info->data);
-        auto captureIt = captureStreamMap.find(payload->streamId);
+        const auto &payload = info->mc2CommInfo;
+        auto captureIt = captureStreamMap.find(payload.aicpuKfcStreamId);
         if (captureIt != captureStreamMap.end())
         {
             supplementSize += captureIt->second.size();
         }
+        if (mapInvalidStreamId)
+        {
+            invalidMappedStreamIds.insert(payload.aicpuKfcStreamId);
+        }
     }
+    supplementSize += invalidMappedStreamIds.size();
 
     Mc2CommInfoData output;
-    if (!Utils::Reserve(output, input.mc2Data.size() + supplementSize))
+    if (!Utils::Reserve(output, mc2Data.size() + supplementSize))
     {
         ERROR("Mc2CommInfoDumper: Reserve data failed.");
         return {};
     }
     uint64_t invalidStreamSizeNum = 0;
-    for (const auto &info : input.mc2Data)
+    for (const auto &info : mc2Data)
     {
         if (!info)
         {
             continue;
         }
-        const auto payload = Utils::ReinterpretConvert<const MsprofMc2CommInfo *>(info->data);
-        if (payload->streamSize > MC2_COMM_STREAM_MAX_NUM)
+        const auto &payload = info->mc2CommInfo;
+        if (payload.commStreamSize > MSPROF_COMM_STREAM_MAX_NUM)
         {
             ++invalidStreamSizeNum;
         }
-        output.emplace_back(std::to_string(payload->groupName), payload->rankSize, payload->rankId, payload->usrRankId,
-                            payload->streamId, JoinCommStreamIds(*payload));
+        output.emplace_back(std::to_string(payload.groupName), payload.rankSize, payload.rankId, payload.usrRankId,
+                            payload.aicpuKfcStreamId, FormatCommStreamIds(payload));
     }
-    for (const auto &info : input.mc2Data)
+    for (const auto &info : mc2Data)
     {
         if (!info)
         {
             continue;
         }
-        const auto payload = Utils::ReinterpretConvert<const MsprofMc2CommInfo *>(info->data);
-        auto captureIt = captureStreamMap.find(payload->streamId);
+        const auto &payload = info->mc2CommInfo;
+        auto captureIt = captureStreamMap.find(payload.aicpuKfcStreamId);
         if (captureIt == captureStreamMap.end())
         {
             continue;
         }
         for (auto modelStreamId : captureIt->second)
         {
-            output.emplace_back(std::to_string(payload->groupName), payload->rankSize, payload->rankId,
-                                payload->usrRankId, modelStreamId, JoinCommStreamIds(*payload));
+            output.emplace_back(std::to_string(payload.groupName), payload.rankSize, payload.rankId, payload.usrRankId,
+                                modelStreamId, FormatCommStreamIds(payload));
+        }
+    }
+    if (mapInvalidStreamId)
+    {
+        for (const auto &info : mc2Data)
+        {
+            if (!info)
+            {
+                continue;
+            }
+            const auto &payload = info->mc2CommInfo;
+            // aicpuKfcStreamId 不变，单独补一条 comm stream=65535 的映射；同一流只补一条
+            if (invalidMappedStreamIds.erase(payload.aicpuKfcStreamId) == 0)
+            {
+                continue;
+            }
+            output.emplace_back(std::to_string(payload.groupName), payload.rankSize, payload.rankId, payload.usrRankId,
+                                payload.aicpuKfcStreamId, std::to_string(UINT16_MAX));
         }
     }
     if (invalidStreamSizeNum > 0)
     {
         ERROR("Mc2CommInfoDumper: % records have stream size greater than max stream size %.", invalidStreamSizeNum,
-              MC2_COMM_STREAM_MAX_NUM);
+              MSPROF_COMM_STREAM_MAX_NUM);
     }
     return output;
 }

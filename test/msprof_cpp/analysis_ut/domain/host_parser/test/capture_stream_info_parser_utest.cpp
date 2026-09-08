@@ -50,7 +50,7 @@ protected:
     }
 };
 
-TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV1CaptureSlice)
+TEST_F(CaptureStreamInfoParserUTest, ShouldParseV1CaptureSlice)
 {
     MsprofCompactInfo info{};
     info.timeStamp = 101;
@@ -64,11 +64,17 @@ TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV1CaptureSlice)
 
     CaptureStreamInfoParser parser(CAPTURE_DATA_PATH);
     auto output = parser.ParseData<ParserCompactInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(101ul, output[0]->timeStamp);
+    EXPECT_EQ(2, output[0]->data.captureStreamInfo.deviceId);
+    EXPECT_EQ(3u, output[0]->data.captureStreamInfo.modelId);
+    EXPECT_EQ(4u, output[0]->data.captureStreamInfo.originalStreamId);
+    EXPECT_EQ(5u, output[0]->data.captureStreamInfo.streamId);
+    EXPECT_EQ(0, output[0]->data.captureStreamInfo.captureStatus);
 }
 
-TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupCaptureSlicesWhenBothVersionsExist)
+TEST_F(CaptureStreamInfoParserUTest, ShouldPreferV1WhenBothVersionsExist)
 {
     MsprofCompactInfo v1{};
     v1.timeStamp = 100;
@@ -78,17 +84,19 @@ TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupCaptureSlicesWhenBothVersion
 
     MsprofCompactInfo v2{};
     v2.timeStamp = 200;
-    v2.data.captureStreamInfo.modelId = 22;
+    v2.data.captureStreamInfoV2.modelId = 22;
     std::vector<MsprofCompactInfo> v2Input{v2};
     ASSERT_TRUE(WriteBin(v2Input, CAPTURE_DATA_PATH, "unaging.compact.capture_stream_info_v2.slice_0"));
 
     CaptureStreamInfoParser parser(CAPTURE_DATA_PATH);
     auto output = parser.ParseData<ParserCompactInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(100ul, output[0]->timeStamp);
+    EXPECT_EQ(11u, output[0]->data.captureStreamInfo.modelId);
 }
 
-TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV2CaptureSlice)
+TEST_F(CaptureStreamInfoParserUTest, ShouldParseV2CaptureSliceWhenV1Missing)
 {
     MsprofCompactInfo info{};
     info.timeStamp = 202;
@@ -102,14 +110,19 @@ TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV2CaptureSlice)
 
     CaptureStreamInfoParser parser(CAPTURE_DATA_PATH);
     auto output = parser.ParseData<ParserCompactInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(202ul, output[0]->timeStamp);
+    EXPECT_EQ(6, output[0]->data.captureStreamInfo.deviceId);
+    EXPECT_EQ(70001u, output[0]->data.captureStreamInfo.modelId);
+    EXPECT_EQ(70002u, output[0]->data.captureStreamInfo.originalStreamId);
+    EXPECT_EQ(70003u, output[0]->data.captureStreamInfo.streamId);
+    EXPECT_EQ(1, output[0]->data.captureStreamInfo.captureStatus);
 }
 
-TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV2WhenV1MarkerExists)
+TEST_F(CaptureStreamInfoParserUTest, ShouldUseV2WhenOnlyV1DoneMarkerExists)
 {
-    std::ofstream marker(File::PathJoin({CAPTURE_DATA_PATH,
-                                        "unaging.compact.capture_stream_info.slice_0.done"}));
+    std::ofstream marker(File::PathJoin({CAPTURE_DATA_PATH, "unaging.compact.capture_stream_info.slice_0.done"}));
     ASSERT_TRUE(marker.good());
     marker.close();
 
@@ -120,8 +133,9 @@ TEST_F(CaptureStreamInfoParserUTest, ShouldNotLookupV2WhenV1MarkerExists)
 
     CaptureStreamInfoParser parser(CAPTURE_DATA_PATH);
     auto output = parser.ParseData<ParserCompactInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(70001u, output[0]->data.captureStreamInfo.modelId);
 }
 
 TEST_F(CaptureStreamInfoParserUTest, ShouldSkipRecordWithInvalidMagic)
@@ -145,13 +159,13 @@ TEST_F(CaptureStreamInfoParserUTest, ShouldReturnTrueAndEmptyWhenNoFileExists)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(CaptureStreamInfoParserUTest, ShouldReturnTrueAndEmptyWhenTruncatedRecordExists)
+TEST_F(CaptureStreamInfoParserUTest, ShouldReturnErrorWhenTruncatedRecordExists)
 {
     std::vector<uint8_t> input(sizeof(MsprofCompactInfo) - 1, 0);
     ASSERT_TRUE(WriteBin(input, CAPTURE_DATA_PATH, "unaging.compact.capture_stream_info.slice_0"));
 
     CaptureStreamInfoParser parser(CAPTURE_DATA_PATH);
     auto output = parser.ParseData<ParserCompactInfo>();
-    EXPECT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
+    EXPECT_EQ(Analysis::Domain::ParserStatus::ERROR, parser.GetStatus());
     EXPECT_TRUE(output.empty());
 }

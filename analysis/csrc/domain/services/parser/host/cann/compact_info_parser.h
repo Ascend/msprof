@@ -58,13 +58,35 @@ class CompactInfoParser : public BaseParser<CompactInfoParser>
 class CaptureStreamInfoParser final : public CompactInfoParser
 {
    public:
-    explicit CaptureStreamInfoParser(const std::string &path);
+    explicit CaptureStreamInfoParser(const std::string &path) : CompactInfoParser(path, "CaptureStreamInfoParser")
+    {
+        // v1优先：优先使用v1格式数据，v1不存在则使用v2
+        std::vector<std::string> selected = filePrefix_;
+        if (!Analysis::Utils::File::GetOriginData(path, filePrefix_, {"done", "complete"}).empty())
+        {
+            isV2_ = false;
+        }
+        else if (!Analysis::Utils::File::GetOriginData(path, filePrefixV2_, {"done", "complete"}).empty())
+        {
+            selected = filePrefixV2_;
+            isV2_ = true;
+        }
+        Init(selected);
+    }
 
    private:
     int ProduceData() override;
 
    private:
     bool isV2_ = false;
+    std::vector<std::string> filePrefix_ = {
+        "unaging.compact.capture_stream_info.slice",
+        "aging.compact.capture_stream_info.slice",
+    };
+    std::vector<std::string> filePrefixV2_ = {
+        "unaging.compact.capture_stream_info_v2.slice",
+        "aging.compact.capture_stream_info_v2.slice",
+    };
 };  // class CaptureStreamInfoParser
 
 // 该类的作用是node basic info数据的解析

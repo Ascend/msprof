@@ -33,23 +33,6 @@ namespace Host
 namespace Cann
 {
 
-constexpr uint32_t MC2_COMM_STREAM_MAX_NUM = 8;
-constexpr uint32_t MC2_COMM_RESERVED_UINT32_NUM = 43;
-
-struct MsprofMc2CommInfo
-{
-    uint64_t groupName;
-    uint32_t rankSize;
-    uint32_t rankId;
-    uint32_t usrRankId;
-    uint32_t streamId;
-    uint32_t streamSize;
-    uint32_t commStreamIds[MC2_COMM_STREAM_MAX_NUM];
-    uint32_t reserved[MC2_COMM_RESERVED_UINT32_NUM];
-};
-
-static_assert(sizeof(MsprofMc2CommInfo) == 232, "MC2 payload must match the 256-byte additional record");
-
 // 该类的作用是Addition数据的解析
 class AdditionInfoParser : public BaseParser<AdditionInfoParser>
 {
@@ -83,8 +66,8 @@ class Mc2CommInfoParser final : public AdditionInfoParser
 
    private:
     std::vector<std::string> filePrefix_ = {
-        // "unaging.additional.mc2_comm_info.slice",
-        // "aging.additional.mc2_comm_info.slice",
+        "unaging.additional.mc2_comm_info.slice",
+        "aging.additional.mc2_comm_info.slice",
     };
 };  // class Mc2CommInfoParser
 

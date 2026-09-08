@@ -48,13 +48,13 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("HashDicParser")
         self.assertTrue(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("CaptureStreamInfoParser")
-        self.assertFalse(ret)
+        self.assertTrue(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("Mc2CommInfoParser")
-        self.assertFalse(ret)
+        self.assertTrue(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("RuntimeOpInfoParser")
         self.assertTrue(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StaticOpMemParser")
-        self.assertTrue(ret)
+        self.assertFalse(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StreamExpandSpecParser")
         self.assertTrue(ret)
 
@@ -74,7 +74,7 @@ class TestConfigDataParsers(unittest.TestCase):
 
     @mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=False)
     @mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=True)
-    def test_get_parsers_should_keep_capture_and_mc2_when_host_cpp_is_enabled(
+    def test_get_parsers_should_skip_capture_and_mc2_when_host_cpp_is_enabled(
             self, _host_cpp_enable, _device_cpp_enable):
         InfoConfReader()._sample_json = {'devices': str(64)}
 
@@ -83,8 +83,10 @@ class TestConfigDataParsers(unittest.TestCase):
                 ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V3_3_0.value), False)
 
         parser_names = self._parser_names(parsers)
-        self.assertIn("CaptureStreamInfoParser", parser_names)
-        self.assertIn("Mc2CommInfoParser", parser_names)
+        self.assertNotIn("CaptureStreamInfoParser", parser_names)
+        self.assertNotIn("Mc2CommInfoParser", parser_names)
+        self.assertNotIn("RuntimeOpInfoParser", parser_names)
+        self.assertIn("StaticOpMemParser", parser_names)
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_in_whitelist(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0

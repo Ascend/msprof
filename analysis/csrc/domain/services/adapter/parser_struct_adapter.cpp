@@ -273,11 +273,7 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
             AdapterMemoryInfo(addition, parsed);
             return true;
         case AdditionalInfoFormat::MC2_COMM_INFO_TYPE:
-            if (memcpy_s(parsed->data, sizeof(parsed->data), addition->data, sizeof(addition->data)) != EOK)
-            {
-                ERROR("adapter mc2 comm info data failed.");
-                return false;
-            }
+            AdapterMc2CommInfo(addition, parsed);
             return true;
         case AdditionalInfoFormat::STATIC_OP_MEM_TYPE:
             AdapterStaticOpMem(addition, parsed);
@@ -399,6 +395,21 @@ void ParserAdditionalInfoAdapter::AdapterStaticOpMem(const MsprofAdditionalInfo*
     parsed->staticOpMem.totalAllocateMemory = addition->staticOpMem.totalAllocateMemory;
     parsed->staticOpMem.dynOpName = addition->staticOpMem.dynOpName;
     parsed->staticOpMem.graphId = addition->staticOpMem.graphId;
+}
+
+void ParserAdditionalInfoAdapter::AdapterMc2CommInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed)
+{
+    parsed->mc2CommInfo.groupName = addition->mc2CommInfo.groupName;
+    parsed->mc2CommInfo.rankSize = addition->mc2CommInfo.rankSize;
+    parsed->mc2CommInfo.rankId = addition->mc2CommInfo.rankId;
+    parsed->mc2CommInfo.usrRankId = addition->mc2CommInfo.usrRankId;
+    parsed->mc2CommInfo.aicpuKfcStreamId = addition->mc2CommInfo.aicpuKfcStreamId;
+    parsed->mc2CommInfo.commStreamSize = addition->mc2CommInfo.commStreamSize;
+    parsed->mc2CommInfo.reserve = addition->mc2CommInfo.reserve;
+    for (uint32_t i = 0; i < MSPROF_COMM_STREAM_MAX_NUM; i++)
+    {
+        parsed->mc2CommInfo.commStreamIds[i] = addition->mc2CommInfo.commStreamIds[i];
+    }
 }
 
 bool ParserAicpuAdapter::AdapterNode(const MsprofAdditionalInfo* additionalData, AicpuData* aicpuData)

@@ -19,7 +19,6 @@
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 #include "analysis/csrc/domain/services/host_worker/host_cpu_freq_parser.h"
-#include "analysis/csrc/domain/services/parser/host/cann/capture_mc2_cpp_enable.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
@@ -43,69 +42,88 @@ namespace Domain
 bool HostTraceWorker::Run()
 {
     TimeLogger t{"HostTraceWorker"};
-    // 1. 解析生成CANNWarehouse
     auto hostDataPath = Utils::File::PathJoin({hostPath_, "data"});
     std::shared_ptr<EventGrouper> grouper;
     MAKE_SHARED_RETURN_VALUE(grouper, EventGrouper, false, hostDataPath);
     bool result = grouper->Group();
-    // CaptureStreamInfoData formattedCaptureData;
-    // if (Host::Cann::kEnableCaptureStreamMc2CppParser)
-    // {
-    //     if (!DumpCaptureStreamInfo(grouper, formattedCaptureData))
-    //     {
-    //         result = false;
-    //     }
-    //     if (!DumpMc2CommInfo(grouper, formattedCaptureData))
-    //     {
-    //         result = false;
-    //     }
-    // }
-    auto sqlitePath = Utils::File::PathJoin({hostPath_, "sqlite"});
-    RTAddInfoCenter::GetInstance().Load(sqlitePath);
-    DumpRuntimeOpInfo();
-
+    CaptureStreamInfoData formattedCaptureData;
+    PrepareLookupData(grouper, formattedCaptureData);
     cannWarehouses_ = grouper->GetGroupEvents();
     threadIds_ = grouper->GetThreadIdSet();
-    ThreadPool pool(poolSize_);
-    pool.Start();
-    DumpDpuTaskTrack(pool, grouper);
-    DumpStaticOpMem(pool, grouper);
-    DumpStreamExpandSpec(pool, grouper);
-    DumpHostSystemProfileData(pool);
-    if (!cannWarehouses_.Empty())
-    {
-        DumpFlipTask(pool, grouper);
-        DumpModelName(pool, hostDataPath);
-        pool.AddTask(
-            [this]()
-            {
-                // 建树
-                // 建树前已经对KernelEvents排序
-                MultiThreadBuildTree();
-                // 分析树 & DB Dump
-                MultiThreadAnalyzeTreeDumpData();
-            });
-    }
-    pool.WaitAllTasks();
-    pool.Stop();
-    ThreadPool apiDumpPool(1);
-    apiDumpPool.Start();
-    DumpApiEvent(apiDumpPool, grouper);
-    apiDumpPool.WaitAllTasks();
-    apiDumpPool.Stop();
-    DumpMemcpyInfo(hostDataPath);  // 依赖runtime.db中的HostTask, 不能放在pool中
+    DumpHostData(grouper, formattedCaptureData);
     return result;
 }
 
-bool HostTraceWorker::DumpCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
-                                            CaptureStreamInfoData &formattedCaptureData)
+void HostTraceWorker::PrepareLookupData(const std::shared_ptr<EventGrouper> &grouper,
+                                        CaptureStreamInfoData &formattedCaptureData)
 {
-    bool result = true;
+    // 建树 GetModelId 依赖内存中的 Capture 时间窗，必须在 dump/建树前注入
+    PrepareCaptureStreamInfo(grouper, formattedCaptureData);
+    auto sqlitePath = Utils::File::PathJoin({hostPath_, "sqlite"});
+    RTAddInfoCenter::GetInstance().Load(sqlitePath);
+}
+
+void HostTraceWorker::DumpHostData(const std::shared_ptr<EventGrouper> &grouper,
+                                   const CaptureStreamInfoData &formattedCaptureData)
+{
+    ThreadPool pool(poolSize_);
+    pool.Start();
+    DumpAsyncHostData(pool, grouper, formattedCaptureData);
+    pool.WaitAllTasks();
+    pool.Stop();
+    DumpMemcpyInfo(grouper);  // 依赖runtime.db中的HostTask, 不能放在pool中
+}
+
+void HostTraceWorker::DumpAsyncHostData(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper,
+                                        const CaptureStreamInfoData &formattedCaptureData)
+{
+    DumpCaptureStreamInfo(pool, formattedCaptureData);
+    DumpMc2CommInfo(pool, grouper, formattedCaptureData);
+    DumpDpuTaskTrack(pool, grouper);
+    DumpStreamExpandSpec(pool, grouper);
+    // DumpStaticOpMem(pool, grouper);
+    DumpHostSystemProfileData(pool);
+    DumpApiEvent(pool, grouper);
+    DumpRtsTrackData(pool, grouper);
+    DumpModelName(pool, grouper);
+    DumpCannTrace(pool);
+}
+
+void HostTraceWorker::DumpRtsTrackData(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, grouper]()
+        {
+            DumpRuntimeOpInfo();
+            if (!cannWarehouses_.Empty())
+            {
+                DumpFlipTask(grouper);
+            }
+        });
+}
+
+void HostTraceWorker::DumpCannTrace(ThreadPool &pool)
+{
+    if (cannWarehouses_.Empty())
+    {
+        return;
+    }
+    pool.AddTask(
+        [this]()
+        {
+            MultiThreadBuildTree();
+            MultiThreadAnalyzeTreeDumpData();
+        });
+}
+
+void HostTraceWorker::PrepareCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
+                                               CaptureStreamInfoData &formattedCaptureData)
+{
     RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData({});
-    const auto &captureData = grouper->GetCaptureStreamInfoData();
+    const auto &captureData = grouper->GetDumpWarehouse().captureStreamInfoData;
     if (captureData.empty())
     {
-        return true;
+        return;
     }
 
     CaptureStreamInfoDumper captureDumper(hostPath_);
@@ -113,48 +131,57 @@ bool HostTraceWorker::DumpCaptureStreamInfo(const std::shared_ptr<EventGrouper> 
     if (formattedCaptureData.empty())
     {
         ERROR("Format capture stream info failed.");
-        return false;
+        return;
     }
 
     std::vector<Analysis::Domain::CaptureStreamInfo> centerData;
     if (!Utils::Reserve(centerData, formattedCaptureData.size()))
     {
         ERROR("Reserve capture stream info center data failed.");
-        result = false;
+        return;
     }
-    else
+    for (const auto &item : formattedCaptureData)
     {
-        for (const auto &item : formattedCaptureData)
-        {
-            centerData.emplace_back(item.modelId, item.timeStamp, item.streamId, item.originalStreamId, item.deviceId,
-                                    static_cast<uint16_t>(item.batchId), item.captureStatus);
-        }
-        RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData(centerData);
+        centerData.emplace_back(item.modelId, item.timeStamp, item.streamId, item.originalStreamId, item.deviceId,
+                                static_cast<uint16_t>(item.batchId), item.captureStatus);
     }
-    if (!captureDumper.DumpData(formattedCaptureData))
-    {
-        ERROR("Dump capture stream info failed.");
-        result = false;
-    }
-    return result;
+    RTAddInfoCenter::GetInstance().SetCaptureStreamInfoData(centerData);
 }
 
-bool HostTraceWorker::DumpMc2CommInfo(const std::shared_ptr<EventGrouper> &grouper,
+void HostTraceWorker::DumpCaptureStreamInfo(ThreadPool &pool, const CaptureStreamInfoData &formattedCaptureData)
+{
+    if (formattedCaptureData.empty())
+    {
+        return;
+    }
+    pool.AddTask(
+        [this, formattedCaptureData]()
+        {
+            CaptureStreamInfoDumper captureDumper(hostPath_);
+            if (!captureDumper.DumpData(formattedCaptureData))
+            {
+                ERROR("Dump capture stream info failed.");
+            }
+        });
+}
+
+void HostTraceWorker::DumpMc2CommInfo(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper,
                                       const CaptureStreamInfoData &formattedCaptureData)
 {
-    const auto &mc2Data = grouper->GetMc2CommInfoData();
-    if (mc2Data.empty())
-    {
-        return true;
-    }
-    Mc2CommInfoDumper mc2Dumper(hostPath_);
-    Mc2CommInfoInput input(mc2Data, formattedCaptureData);
-    if (!mc2Dumper.DumpData(input))
-    {
-        ERROR("Dump mc2 comm info failed.");
-        return false;
-    }
-    return true;
+    pool.AddTask(
+        [this, grouper, formattedCaptureData]()
+        {
+            const auto &mc2Data = grouper->GetDumpWarehouse().mc2CommInfoData;
+            if (mc2Data.empty())
+            {
+                return;
+            }
+            Mc2CommInfoDumper mc2Dumper(hostPath_, formattedCaptureData);
+            if (!mc2Dumper.DumpData(mc2Data))
+            {
+                ERROR("Dump mc2 comm info failed.");
+            }
+        });
 }
 
 void HostTraceWorker::DumpHostSystemProfileData(ThreadPool &pool)
@@ -163,6 +190,7 @@ void HostTraceWorker::DumpHostSystemProfileData(ThreadPool &pool)
         [this]()
         {
             INFO("Start parse host system profile data");
+            // 后续host数据解析统一重构
             if (HostCpuFreqParser(hostPath_).Run() != ANALYSIS_OK)
             {
                 ERROR("Host cpu freq parse failed");
@@ -266,37 +294,28 @@ void HostTraceWorker::DumpApiEvent(ThreadPool &pool, const std::shared_ptr<Event
         });
 }
 
-void HostTraceWorker::DumpFlipTask(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+void HostTraceWorker::DumpFlipTask(const std::shared_ptr<EventGrouper> &grouper)
 {
-    pool.AddTask(
-        [this, &grouper]()
-        {
-            TimeLogger t{"Dump flip tasks data start"};
-            // flip tasks 数据落盘
-            auto flipTasks = grouper->GetFlipTasks();
-            std::shared_ptr<FlipTaskDBDumper> flipDumper;
-            MAKE_SHARED_RETURN_VOID(flipDumper, FlipTaskDBDumper, hostPath_);
-            auto ret = flipDumper->DumpData(flipTasks);
-            if (!ret)
-            {
-                ERROR("Dump flip tasks data failed");
-            }
-        });
+    TimeLogger t{"Dump flip tasks data start"};
+    auto flipTasks = grouper->GetFlipTasks();
+    std::shared_ptr<FlipTaskDBDumper> flipDumper;
+    MAKE_SHARED_RETURN_VOID(flipDumper, FlipTaskDBDumper, hostPath_);
+    auto ret = flipDumper->DumpData(flipTasks);
+    if (!ret)
+    {
+        ERROR("Dump flip tasks data failed");
+    }
 }
 
-void HostTraceWorker::DumpModelName(ThreadPool &pool, const std::string &hostDataPath)
+void HostTraceWorker::DumpModelName(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
 {
     pool.AddTask(
-        [this, &hostDataPath]()
+        [this, grouper]()
         {
             TimeLogger t{"Dump model name data start"};
-            std::shared_ptr<GraphIdParser> parser;
-            MAKE_SHARED_RETURN_VOID(parser, GraphIdParser, hostDataPath);
-            auto traces = parser->ParseData<ParserAdditionalInfo>();
-            // ModelName 数据落盘
             std::shared_ptr<ModelNameDBDumper> modelNameDumper;
             MAKE_SHARED_RETURN_VOID(modelNameDumper, ModelNameDBDumper, hostPath_);
-            auto ret = modelNameDumper->DumpData(traces);
+            auto ret = modelNameDumper->DumpData(grouper->GetDumpWarehouse().graphIdMapData);
             if (!ret)
             {
                 ERROR("Dump model name data failed");
@@ -310,7 +329,7 @@ void HostTraceWorker::DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<E
         [this, &grouper]()
         {
             TimeLogger t{"Dump dpu task track data start"};
-            auto dpuTrackData = grouper->GetDpuTrackData();
+            auto dpuTrackData = grouper->GetDumpWarehouse().dpuTrackData;
             auto &dpuKernelNameMap = grouper->GetDpuKernelNameMap();
             std::shared_ptr<DpuTaskTrackDBDumper> dpuDumper;
             MAKE_SHARED_RETURN_VOID(dpuDumper, DpuTaskTrackDBDumper, hostPath_);
@@ -323,46 +342,40 @@ void HostTraceWorker::DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<E
         });
 }
 
-void HostTraceWorker::DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
-{
-    pool.AddTask(
-        [this, &grouper]()
-        {
-            TimeLogger t{"Dump static op memory data start"};
-            auto staticOpMemData = grouper->GetStaticOpMemData();
-            StaticOpMemDBDumper dumper(hostPath_);
-            if (!dumper.DumpData(staticOpMemData))
-            {
-                ERROR("Dump static op memory data failed");
-            }
-        });
-}
-
 void HostTraceWorker::DumpStreamExpandSpec(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
 {
     pool.AddTask(
-        [this, &grouper]()
+        [this, grouper]()
         {
             TimeLogger t{"Dump stream expand spec data start"};
-            auto streamExpandSpecData = grouper->GetStreamExpandSpecData();
             StreamExpandSpecDBDumper dumper(hostPath_);
-            if (!dumper.DumpData(streamExpandSpecData))
+            if (!dumper.DumpData(grouper->GetDumpWarehouse().streamExpandSpecData))
             {
                 ERROR("Dump stream expand spec data failed");
             }
         });
 }
 
-void HostTraceWorker::DumpMemcpyInfo(const std::string &hostDataPath)
+void HostTraceWorker::DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, grouper]()
+        {
+            TimeLogger t{"Dump static op memory data start"};
+            StaticOpMemDBDumper dumper(hostPath_);
+            if (!dumper.DumpData(grouper->GetDumpWarehouse().staticOpMemData))
+            {
+                ERROR("Dump static op memory data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpMemcpyInfo(const std::shared_ptr<EventGrouper> &grouper)
 {
     TimeLogger t{"Dump memcpy info data start"};
-    std::shared_ptr<MemcpyInfoParser> parser;
-    MAKE_SHARED_RETURN_VOID(parser, MemcpyInfoParser, hostDataPath);
-    auto traces = parser->ParseData<ParserCompactInfo>();
-    // MemcpyInfo 数据落盘
     std::shared_ptr<MemcpyInfoDumper> memcpyInfoDumper;
     MAKE_SHARED_RETURN_VOID(memcpyInfoDumper, MemcpyInfoDumper, hostPath_);
-    auto ret = memcpyInfoDumper->DumpData(traces);
+    auto ret = memcpyInfoDumper->DumpData(grouper->GetDumpWarehouse().memcpyInfoData);
     if (!ret)
     {
         ERROR("Dump memcpy info data failed");

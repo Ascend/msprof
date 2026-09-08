@@ -58,9 +58,9 @@ struct DeviceKfcOp
     uint32_t iterId = 0;
     std::string opName;
     std::string groupName;
-    std::string opType;
-    std::string dataType;
-    std::string algType;
+    std::string opType = NA;
+    std::string dataType = NA;
+    std::string algType = NA;
 };
 
 // 对齐 TABLE_AICPU_MASTER_STREAM_HCCL_TASK：主流/LAST/FIRST aicpu 任务，用于修正 kernel 的 start/end

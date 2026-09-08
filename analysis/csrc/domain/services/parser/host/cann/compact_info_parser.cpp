@@ -42,20 +42,6 @@ enum class DevType : uint16_t
     DPU = 1,
 };
 
-const std::vector<std::string> CAPTURE_V1_PREFIXES = {
-    // "unaging.compact.capture_stream_info.slice",
-    // "aging.compact.capture_stream_info.slice",
-};
-const std::vector<std::string> CAPTURE_V2_PREFIXES = {
-    // "unaging.compact.capture_stream_info_v2.slice",
-    // "aging.compact.capture_stream_info_v2.slice",
-};
-
-bool HasCaptureData(const std::string &path, const std::vector<std::string> &prefixes)
-{
-    return !File::GetOriginData(path, prefixes, {"done", "complete"}).empty();
-}
-
 constexpr uint16_t kDevTypeShift = 12;
 constexpr uint16_t kDevTypeMask = 0xF;
 
@@ -119,13 +105,6 @@ int CompactInfoParser::ProduceData()
         compactData_.emplace_back(std::move(parserCompactInfo));
     }
     return ANALYSIS_OK;
-}
-
-CaptureStreamInfoParser::CaptureStreamInfoParser(const std::string &path)
-    : CompactInfoParser(path, "CaptureStreamInfoParser")
-{
-    isV2_ = !HasCaptureData(path, CAPTURE_V1_PREFIXES) && HasCaptureData(path, CAPTURE_V2_PREFIXES);
-    Init(isV2_ ? CAPTURE_V2_PREFIXES : CAPTURE_V1_PREFIXES);
 }
 
 int CaptureStreamInfoParser::ProduceData()

@@ -496,6 +496,37 @@ TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapStaticOpMem)
     EXPECT_EQ(parsed.staticOpMem.graphId, 11);
 }
 
+TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldMapMc2CommInfo)
+{
+    MsprofAdditionalInfo addition{};
+    ParserAdditionalInfo parsed{};
+    InitAdditionalInfoHeader(addition);
+    addition.mc2CommInfo.groupName = 6;
+    addition.mc2CommInfo.rankSize = 7;
+    addition.mc2CommInfo.rankId = 8;
+    addition.mc2CommInfo.usrRankId = 9;
+    addition.mc2CommInfo.aicpuKfcStreamId = 10;
+    addition.mc2CommInfo.commStreamSize = 2;
+    addition.mc2CommInfo.commStreamIds[0] = 11;
+    addition.mc2CommInfo.commStreamIds[1] = 12;
+    addition.mc2CommInfo.reserve = 13;
+
+    bool ret = ParserAdditionalInfoAdapter::AdapterAdditionalInfo(&addition, &parsed,
+                                                                  AdditionalInfoFormat::MC2_COMM_INFO_TYPE);
+
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(parsed.magicNumber, addition.magicNumber);
+    EXPECT_EQ(parsed.mc2CommInfo.groupName, 6);
+    EXPECT_EQ(parsed.mc2CommInfo.rankSize, 7);
+    EXPECT_EQ(parsed.mc2CommInfo.rankId, 8);
+    EXPECT_EQ(parsed.mc2CommInfo.usrRankId, 9);
+    EXPECT_EQ(parsed.mc2CommInfo.aicpuKfcStreamId, 10);
+    EXPECT_EQ(parsed.mc2CommInfo.commStreamSize, 2);
+    EXPECT_EQ(parsed.mc2CommInfo.commStreamIds[0], 11);
+    EXPECT_EQ(parsed.mc2CommInfo.commStreamIds[1], 12);
+    EXPECT_EQ(parsed.mc2CommInfo.reserve, 13);
+}
+
 TEST(ParserAdditionalInfoAdapterTest, AdapterAdditionalInfoShouldReturnFalseForUnsupportedFormat)
 {
     MsprofAdditionalInfo addition{};

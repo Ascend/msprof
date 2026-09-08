@@ -31,15 +31,14 @@ const std::string MC2_DATA_PATH = File::PathJoin({MC2_ROOT, "host", "data"});
 MsprofAdditionalInfo MakeMc2Info(uint64_t groupName, uint32_t streamSize)
 {
     MsprofAdditionalInfo info{};
-    auto payload = ReinterpretConvert<MsprofMc2CommInfo *>(info.data);
-    payload->groupName = groupName;
-    payload->rankSize = 8;
-    payload->rankId = 1;
-    payload->usrRankId = 2;
-    payload->streamId = 52;
-    payload->streamSize = streamSize;
-    for (uint32_t i = 0; i < MC2_COMM_STREAM_MAX_NUM; ++i) {
-        payload->commStreamIds[i] = 100 + i;
+    info.mc2CommInfo.groupName = groupName;
+    info.mc2CommInfo.rankSize = 8;
+    info.mc2CommInfo.rankId = 1;
+    info.mc2CommInfo.usrRankId = 2;
+    info.mc2CommInfo.aicpuKfcStreamId = 52;
+    info.mc2CommInfo.commStreamSize = streamSize;
+    for (uint32_t i = 0; i < MSPROF_COMM_STREAM_MAX_NUM; ++i) {
+        info.mc2CommInfo.commStreamIds[i] = 100 + i;
     }
     return info;
 }
@@ -65,29 +64,34 @@ protected:
     }
 };
 
-TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupMc2CommInfoSlice)
+TEST_F(Mc2CommInfoParserUTest, ShouldParseMc2CommInfoSlice)
 {
     std::vector<MsprofAdditionalInfo> input{MakeMc2Info(7466789422691968299ULL, 8)};
     ASSERT_TRUE(WriteBin(input, MC2_DATA_PATH, "unaging.additional.mc2_comm_info.slice_0"));
 
     Mc2CommInfoParser parser(MC2_DATA_PATH);
     auto output = parser.ParseData<ParserAdditionalInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(7466789422691968299ULL, output[0]->mc2CommInfo.groupName);
+    EXPECT_EQ(8u, output[0]->mc2CommInfo.commStreamSize);
+    EXPECT_EQ(52u, output[0]->mc2CommInfo.aicpuKfcStreamId);
 }
 
-TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupAgingMc2CommInfoSlice)
+TEST_F(Mc2CommInfoParserUTest, ShouldParseAgingMc2CommInfoSlice)
 {
     std::vector<MsprofAdditionalInfo> input{MakeMc2Info(1, 9)};
     ASSERT_TRUE(WriteBin(input, MC2_DATA_PATH, "aging.additional.mc2_comm_info.slice_0"));
 
     Mc2CommInfoParser parser(MC2_DATA_PATH);
     auto output = parser.ParseData<ParserAdditionalInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(1ULL, output[0]->mc2CommInfo.groupName);
+    EXPECT_EQ(9u, output[0]->mc2CommInfo.commStreamSize);
 }
 
-TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupMc2SlicesInAnyOrder)
+TEST_F(Mc2CommInfoParserUTest, ShouldParseMc2SlicesUnagingBeforeAgingBySliceNum)
 {
     std::vector<MsprofAdditionalInfo> unaging0{MakeMc2Info(10, 0)};
     std::vector<MsprofAdditionalInfo> unaging1{MakeMc2Info(11, 1)};
@@ -98,8 +102,11 @@ TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupMc2SlicesInAnyOrder)
 
     Mc2CommInfoParser parser(MC2_DATA_PATH);
     auto output = parser.ParseData<ParserAdditionalInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(3ul, output.size());
+    EXPECT_EQ(10ULL, output[0]->mc2CommInfo.groupName);
+    EXPECT_EQ(11ULL, output[1]->mc2CommInfo.groupName);
+    EXPECT_EQ(20ULL, output[2]->mc2CommInfo.groupName);
 }
 
 TEST_F(Mc2CommInfoParserUTest, ShouldSkipRecordWithInvalidMagic)
@@ -115,7 +122,7 @@ TEST_F(Mc2CommInfoParserUTest, ShouldSkipRecordWithInvalidMagic)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupMixedValidAndInvalidMagicRecords)
+TEST_F(Mc2CommInfoParserUTest, ShouldKeepValidRecordWhenMixedWithInvalidMagic)
 {
     auto invalid = MakeMc2Info(1, 1);
     invalid.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
@@ -125,8 +132,9 @@ TEST_F(Mc2CommInfoParserUTest, ShouldNotLookupMixedValidAndInvalidMagicRecords)
 
     Mc2CommInfoParser parser(MC2_DATA_PATH);
     auto output = parser.ParseData<ParserAdditionalInfo>();
-    ASSERT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
-    EXPECT_TRUE(output.empty());
+    ASSERT_EQ(Analysis::Domain::ParserStatus::SUCCESS, parser.GetStatus());
+    ASSERT_EQ(1ul, output.size());
+    EXPECT_EQ(2ULL, output[0]->mc2CommInfo.groupName);
 }
 
 TEST_F(Mc2CommInfoParserUTest, ShouldReturnTrueAndEmptyWhenNoFileExists)
@@ -137,13 +145,13 @@ TEST_F(Mc2CommInfoParserUTest, ShouldReturnTrueAndEmptyWhenNoFileExists)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(Mc2CommInfoParserUTest, ShouldReturnTrueAndEmptyWhenTruncatedRecordExists)
+TEST_F(Mc2CommInfoParserUTest, ShouldReturnErrorWhenTruncatedRecordExists)
 {
     std::vector<uint8_t> input(sizeof(MsprofAdditionalInfo) - 1, 0);
     ASSERT_TRUE(WriteBin(input, MC2_DATA_PATH, "unaging.additional.mc2_comm_info.slice_0"));
 
     Mc2CommInfoParser parser(MC2_DATA_PATH);
     auto output = parser.ParseData<ParserAdditionalInfo>();
-    EXPECT_TRUE((parser.GetStatus() != Analysis::Domain::ParserStatus::ERROR));
+    EXPECT_EQ(Analysis::Domain::ParserStatus::ERROR, parser.GetStatus());
     EXPECT_TRUE(output.empty());
 }

@@ -20,9 +20,11 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/event_queue.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
 {
@@ -49,6 +51,18 @@ struct CANNWarehouse
     std::shared_ptr<EventQueue> hcclInfoEvents = nullptr;
     std::shared_ptr<EventQueue> taskTrackEvents = nullptr;
     std::shared_ptr<EventQueue> hcclOpInfoEvents = nullptr;
+};
+
+// 不建树、只解析后落盘的数据仓
+struct CANNDumpWarehouse
+{
+    std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData;
+    std::vector<std::shared_ptr<ParserCompactInfo>> captureStreamInfoData;
+    std::vector<std::shared_ptr<ParserCompactInfo>> memcpyInfoData;
+    std::vector<std::shared_ptr<ParserCompactInfo>> streamExpandSpecData;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2CommInfoData;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> graphIdMapData;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> staticOpMemData;
 };
 
 }  // namespace Cann

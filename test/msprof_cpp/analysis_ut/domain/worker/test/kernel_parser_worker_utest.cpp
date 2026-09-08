@@ -26,7 +26,6 @@
 #include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 #include "analysis/csrc/domain/services/host_worker/host_trace_worker.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
-#include "analysis/csrc/domain/services/parser/host/cann/capture_mc2_cpp_enable.h"
 #include "test/msprof_cpp/analysis_ut/domain/data_process/test/reserve_mock_utils.h"
 #include "test/msprof_cpp/analysis_ut/domain/services/test/fake_generator.h"
 
@@ -128,10 +127,8 @@ TEST_F(KernelParserWorkerUtest, TestKernelParserWorkerShouldReturnErrorWhenConte
     EXPECT_EQ(res, 1);
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureParseWhenCppParserDisabledEvenIfTruncatedRecordExists)
+TEST_F(KernelParserWorkerUtest, ShouldNotCreateCaptureDbWhenRecordIsTruncated)
 {
-    // C++ Capture/MC2 默认关闭：截断 bin 不会进入 Host C++ 解析，Host 其它输出仍成功。
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     std::vector<uint8_t> truncatedInput{0};
     ASSERT_TRUE(WriteBin(truncatedInput, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
@@ -144,9 +141,8 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureParseWhenCppParserDisabledEvenI
     EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldSkipMc2ParseWhenCppParserDisabledEvenIfTruncatedRecordExists)
+TEST_F(KernelParserWorkerUtest, ShouldNotCreateMc2DbWhenRecordIsTruncated)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     std::vector<uint8_t> truncatedInput{0};
     ASSERT_TRUE(WriteBin(truncatedInput, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
@@ -159,9 +155,8 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipMc2ParseWhenCppParserDisabledEvenIfTru
     EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldNotInvokeCaptureDumperWhenCppParserDisabled)
+TEST_F(KernelParserWorkerUtest, ShouldDumpCaptureStreamInfoWhenCaptureSliceExists)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofCompactInfo capture{};
     capture.timeStamp = 123;
@@ -174,41 +169,35 @@ TEST_F(KernelParserWorkerUtest, ShouldNotInvokeCaptureDumperWhenCppParserDisable
     ASSERT_TRUE(WriteBin(captureInput, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.compact.capture_stream_info.slice_0"));
     StubPlatformVersion(Analysis::Domain::Environment::Chip::CHIP_V3_1_0);
-    ASSERT_TRUE(File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"})));
-    // 即使预置与 dumper 冲突的路径，默认关闭时也不会走 Capture dump。
-    ASSERT_TRUE(File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
 
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     EXPECT_EQ(ANALYSIS_OK, worker.Run());
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldNotInvokeMc2DumperWhenCppParserDisabled)
+TEST_F(KernelParserWorkerUtest, ShouldDumpMc2CommInfoWhenMc2SliceExists)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofAdditionalInfo mc2{};
-    auto payload = ReinterpretConvert<Analysis::Domain::Host::Cann::MsprofMc2CommInfo *>(mc2.data);
-    payload->groupName = 99;
-    payload->rankSize = 2;
-    payload->streamId = 52;
-    payload->streamSize = 1;
-    payload->commStreamIds[0] = 100;
+    mc2.mc2CommInfo.groupName = 99;
+    mc2.mc2CommInfo.rankSize = 2;
+    mc2.mc2CommInfo.aicpuKfcStreamId = 52;
+    mc2.mc2CommInfo.commStreamSize = 1;
+    mc2.mc2CommInfo.commStreamIds[0] = 100;
     std::vector<MsprofAdditionalInfo> mc2Input{mc2};
     ASSERT_TRUE(WriteBin(mc2Input, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.additional.mc2_comm_info.slice_0"));
     StubPlatformVersion(Analysis::Domain::Environment::Chip::CHIP_V3_3_0);
-    ASSERT_TRUE(File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"})));
-    ASSERT_TRUE(File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     EXPECT_EQ(ANALYSIS_OK, worker.Run());
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureFormattingWhenCppParserDisabled)
+TEST_F(KernelParserWorkerUtest, ShouldContinueWhenCaptureFormattingReserveFails)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofCompactInfo capture{};
     capture.timeStamp = 123;
@@ -228,17 +217,15 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureFormattingWhenCppParserDisabled
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldSkipMc2FormattingWhenCppParserDisabled)
+TEST_F(KernelParserWorkerUtest, ShouldContinueWhenMc2FormattingReserveFails)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofAdditionalInfo mc2{};
-    auto payload = ReinterpretConvert<Analysis::Domain::Host::Cann::MsprofMc2CommInfo *>(mc2.data);
-    payload->groupName = 99;
-    payload->rankSize = 2;
-    payload->streamId = 52;
-    payload->streamSize = 1;
-    payload->commStreamIds[0] = 100;
+    mc2.mc2CommInfo.groupName = 99;
+    mc2.mc2CommInfo.rankSize = 2;
+    mc2.mc2CommInfo.aicpuKfcStreamId = 52;
+    mc2.mc2CommInfo.commStreamSize = 1;
+    mc2.mc2CommInfo.commStreamIds[0] = 100;
     std::vector<MsprofAdditionalInfo> mc2Input{mc2};
     ASSERT_TRUE(WriteBin(mc2Input, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.additional.mc2_comm_info.slice_0"));
@@ -252,9 +239,8 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipMc2FormattingWhenCppParserDisabled)
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldNotCreateCaptureAndMc2DatabasesWhenCppParserDisabled)
+TEST_F(KernelParserWorkerUtest, ShouldDumpCaptureAndMc2DatabasesWhenBothSlicesExist)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofCompactInfo capture{};
     capture.timeStamp = 123;
@@ -268,15 +254,14 @@ TEST_F(KernelParserWorkerUtest, ShouldNotCreateCaptureAndMc2DatabasesWhenCppPars
                          "unaging.compact.capture_stream_info_v2.slice_0"));
 
     MsprofAdditionalInfo mc2{};
-    auto payload = ReinterpretConvert<Analysis::Domain::Host::Cann::MsprofMc2CommInfo *>(mc2.data);
-    payload->groupName = 99;
-    payload->rankSize = 2;
-    payload->rankId = 0;
-    payload->usrRankId = 0;
-    payload->streamId = 70002;
-    payload->streamSize = 2;
-    payload->commStreamIds[0] = 70004;
-    payload->commStreamIds[1] = 70005;
+    mc2.mc2CommInfo.groupName = 99;
+    mc2.mc2CommInfo.rankSize = 2;
+    mc2.mc2CommInfo.rankId = 0;
+    mc2.mc2CommInfo.usrRankId = 0;
+    mc2.mc2CommInfo.aicpuKfcStreamId = 70002;
+    mc2.mc2CommInfo.commStreamSize = 2;
+    mc2.mc2CommInfo.commStreamIds[0] = 70004;
+    mc2.mc2CommInfo.commStreamIds[1] = 70005;
     std::vector<MsprofAdditionalInfo> mc2Input{mc2};
     ASSERT_TRUE(WriteBin(mc2Input, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.additional.mc2_comm_info.slice_0"));
@@ -285,13 +270,12 @@ TEST_F(KernelParserWorkerUtest, ShouldNotCreateCaptureAndMc2DatabasesWhenCppPars
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     ASSERT_EQ(ANALYSIS_OK, worker.Run());
 
-    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
-    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureAndMc2WhenCppParserDisabledOnAnyPlatform)
+TEST_F(KernelParserWorkerUtest, ShouldDumpCaptureAndMc2OnAnyPlatform)
 {
-    ASSERT_FALSE(Host::Cann::kEnableCaptureStreamMc2CppParser);
     UseRealHostTraceWorker();
     MsprofCompactInfo capture{};
     capture.data.captureStreamInfo.modelStreamId = 70;
@@ -300,8 +284,7 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureAndMc2WhenCppParserDisabledOnAn
                          "unaging.compact.capture_stream_info.slice_0"));
 
     MsprofAdditionalInfo mc2{};
-    auto payload = ReinterpretConvert<Analysis::Domain::Host::Cann::MsprofMc2CommInfo *>(mc2.data);
-    payload->streamId = 52;
+    mc2.mc2CommInfo.aicpuKfcStreamId = 52;
     std::vector<MsprofAdditionalInfo> mc2Input{mc2};
     ASSERT_TRUE(WriteBin(mc2Input, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.additional.mc2_comm_info.slice_0"));
@@ -309,6 +292,6 @@ TEST_F(KernelParserWorkerUtest, ShouldSkipCaptureAndMc2WhenCppParserDisabledOnAn
 
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     ASSERT_EQ(ANALYSIS_OK, worker.Run());
-    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
-    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "stream_info.db"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 }

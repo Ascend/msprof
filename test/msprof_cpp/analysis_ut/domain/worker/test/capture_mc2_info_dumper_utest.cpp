@@ -17,12 +17,12 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/mc2_comm_info_dumper.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
 
 using namespace Analysis::Domain;
-using namespace Analysis::Domain::Host::Cann;
 using namespace mockcpp;
 
 namespace {
@@ -45,15 +45,14 @@ std::shared_ptr<ParserAdditionalInfo> MakeMc2Info(uint64_t groupName, uint32_t r
                                                   uint32_t usrRankId, uint32_t streamId, uint32_t streamSize)
 {
     auto info = std::make_shared<ParserAdditionalInfo>();
-    auto payload = Analysis::Utils::ReinterpretConvert<MsprofMc2CommInfo *>(info->data);
-    payload->groupName = groupName;
-    payload->rankSize = rankSize;
-    payload->rankId = rankId;
-    payload->usrRankId = usrRankId;
-    payload->streamId = streamId;
-    payload->streamSize = streamSize;
-    for (uint32_t i = 0; i < MC2_COMM_STREAM_MAX_NUM; ++i) {
-        payload->commStreamIds[i] = 100 + i;
+    info->mc2CommInfo.groupName = groupName;
+    info->mc2CommInfo.rankSize = rankSize;
+    info->mc2CommInfo.rankId = rankId;
+    info->mc2CommInfo.usrRankId = usrRankId;
+    info->mc2CommInfo.aicpuKfcStreamId = streamId;
+    info->mc2CommInfo.commStreamSize = streamSize;
+    for (uint32_t i = 0; i < MSPROF_COMM_STREAM_MAX_NUM; ++i) {
+        info->mc2CommInfo.commStreamIds[i] = 100 + i;
     }
     return info;
 }
@@ -140,9 +139,8 @@ TEST(Mc2CommInfoDumperUTest, ShouldKeepRawRowsAndAppendOneToManyCaptureMappedRow
         {0, 1, 20, 22, 0, 0, 4},
     };
 
-    Mc2CommInfoDumper dumper(".");
-    Mc2CommInfoInput input(mc2Data, captureInput);
-    auto output = dumper.GenerateData(input);
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
     ASSERT_EQ(5ul, output.size());
     EXPECT_EQ("5862276093215481612", std::get<0>(output[0]));
     EXPECT_EQ(20u, std::get<4>(output[0]));
@@ -160,9 +158,8 @@ TEST(Mc2CommInfoDumperUTest, ShouldNotAppendCaptureRowsWhenKfcStreamDoesNotMatch
     std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{MakeMc2Info(1, 2, 0, 0, 99, 1)};
     CaptureStreamInfoData captureInput{{0, 1, 20, 32, 0, 0, 1}};
 
-    Mc2CommInfoDumper dumper(".");
-    Mc2CommInfoInput input(mc2Data, captureInput);
-    auto output = dumper.GenerateData(input);
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
     ASSERT_EQ(1ul, output.size());
     EXPECT_EQ(99u, std::get<4>(output[0]));
 }
@@ -178,9 +175,8 @@ TEST(Mc2CommInfoDumperUTest, ShouldLogInvalidStreamSizeCountOnce)
     };
     CaptureStreamInfoData captureData;
 
-    Mc2CommInfoDumper dumper(".");
-    Mc2CommInfoInput input(mc2Data, captureData);
-    auto output = dumper.GenerateData(input);
+    Mc2CommInfoDumper dumper(".", captureData);
+    auto output = dumper.GenerateData(mc2Data);
 
     ASSERT_EQ(2ul, output.size());
     EXPECT_TRUE(std::get<5>(output[0]).empty());
@@ -193,13 +189,104 @@ TEST(Mc2CommInfoDumperUTest, ShouldMatchPythonWhenInvalidStreamSizeHasCaptureMap
     std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{MakeMc2Info(1, 2, 0, 0, 20, 9)};
     CaptureStreamInfoData captureData{{0, 1, 20, 32, 0, 0, 1}};
 
-    Mc2CommInfoDumper dumper(".");
-    Mc2CommInfoInput input(mc2Data, captureData);
-    auto output = dumper.GenerateData(input);
+    Mc2CommInfoDumper dumper(".", captureData);
+    auto output = dumper.GenerateData(mc2Data);
 
     ASSERT_EQ(2ul, output.size());
     EXPECT_EQ(20u, std::get<4>(output[0]));
     EXPECT_EQ(32u, std::get<4>(output[1]));
     EXPECT_TRUE(std::get<5>(output[0]).empty());
     EXPECT_TRUE(std::get<5>(output[1]).empty());
+}
+
+TEST(Mc2CommInfoDumperUTest, ShouldAppendInvalidStreamIdWhenChipV6AndLevel0)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
+        .stubs()
+        .will(returnValue(static_cast<uint16_t>(Analysis::Domain::Environment::Chip::CHIP_V6_1_0)));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(true));
+
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{
+        MakeMc2Info(1, 2, 0, 0, 20, 2),
+        MakeMc2Info(9, 4, 1, 1, 99, 1),
+    };
+    CaptureStreamInfoData captureInput{
+        {0, 1, 20, 32, 0, 0, 1},
+        {0, 1, 20, 21, 0, 0, 2},
+    };
+
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
+    ASSERT_EQ(6ul, output.size());
+    EXPECT_EQ(20u, std::get<4>(output[0]));
+    EXPECT_EQ(99u, std::get<4>(output[1]));
+    EXPECT_EQ(21u, std::get<4>(output[2]));
+    EXPECT_EQ(32u, std::get<4>(output[3]));
+    EXPECT_EQ(20u, std::get<4>(output[4]));
+    EXPECT_EQ(99u, std::get<4>(output[5]));
+    EXPECT_EQ("65535", std::get<5>(output[4]));
+    EXPECT_EQ("65535", std::get<5>(output[5]));
+    EXPECT_EQ("1", std::get<0>(output[4]));
+    EXPECT_EQ("9", std::get<0>(output[5]));
+    GlobalMockObject::verify();
+}
+
+TEST(Mc2CommInfoDumperUTest, ShouldAppendOnlyOneInvalidStreamRowForSameAicpuStreamWhenChipV6AndLevel0)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
+        .stubs()
+        .will(returnValue(static_cast<uint16_t>(Analysis::Domain::Environment::Chip::CHIP_V6_1_0)));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(true));
+
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{
+        MakeMc2Info(1, 2, 0, 0, 20, 2),
+        MakeMc2Info(1, 2, 0, 0, 20, 1),
+    };
+    CaptureStreamInfoData captureInput;
+
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
+    ASSERT_EQ(3ul, output.size());
+    EXPECT_EQ(20u, std::get<4>(output[0]));
+    EXPECT_EQ(20u, std::get<4>(output[1]));
+    EXPECT_EQ(20u, std::get<4>(output[2]));
+    EXPECT_EQ("100,101", std::get<5>(output[0]));
+    EXPECT_EQ("100", std::get<5>(output[1]));
+    EXPECT_EQ("65535", std::get<5>(output[2]));
+    GlobalMockObject::verify();
+}
+
+TEST(Mc2CommInfoDumperUTest, ShouldNotAppendInvalidStreamIdWhenNotChipV6)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
+        .stubs()
+        .will(returnValue(static_cast<uint16_t>(Analysis::Domain::Environment::Chip::CHIP_V3_3_0)));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(true));
+
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{MakeMc2Info(1, 2, 0, 0, 20, 1)};
+    CaptureStreamInfoData captureInput{{0, 1, 20, 32, 0, 0, 1}};
+
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
+    ASSERT_EQ(2ul, output.size());
+    EXPECT_EQ(20u, std::get<4>(output[0]));
+    EXPECT_EQ(32u, std::get<4>(output[1]));
+    GlobalMockObject::verify();
+}
+
+TEST(Mc2CommInfoDumperUTest, ShouldNotAppendInvalidStreamIdWhenChipV6ButNotLevel0)
+{
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
+        .stubs()
+        .will(returnValue(static_cast<uint16_t>(Analysis::Domain::Environment::Chip::CHIP_V6_2_0)));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(false));
+
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2Data{MakeMc2Info(1, 2, 0, 0, 20, 1)};
+    CaptureStreamInfoData captureInput{{0, 1, 20, 32, 0, 0, 1}};
+
+    Mc2CommInfoDumper dumper(".", captureInput);
+    auto output = dumper.GenerateData(mc2Data);
+    ASSERT_EQ(2ul, output.size());
+    EXPECT_EQ(32u, std::get<4>(output[1]));
+    GlobalMockObject::verify();
 }

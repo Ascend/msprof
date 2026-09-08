@@ -72,16 +72,10 @@ class EventGrouper
     std::vector<std::shared_ptr<Event>> &GetApiTraces();
     // 获取FlipTask数据
     std::vector<std::shared_ptr<Adapter::FlipTask>> &GetFlipTasks();
-    // 获取DpuTrack数据
-    std::vector<std::shared_ptr<ParserCompactInfo>> &GetDpuTrackData();
     // 获取DpuKernelNameMap
     std::unordered_map<uint64_t, uint64_t> &GetDpuKernelNameMap();
-    const std::vector<std::shared_ptr<ParserCompactInfo>> &GetCaptureStreamInfoData() const;
-    const std::vector<std::shared_ptr<ParserAdditionalInfo>> &GetMc2CommInfoData() const;
-    // 获取静态图算子内存数据
-    std::vector<std::shared_ptr<ParserAdditionalInfo>> &GetStaticOpMemData();
-    // 获取Stream扩容规格数据
-    std::vector<std::shared_ptr<ParserCompactInfo>> &GetStreamExpandSpecData();
+    CANNDumpWarehouse &GetDumpWarehouse();
+    const CANNDumpWarehouse &GetDumpWarehouse() const;
     // ACL层建树白名单
     bool IsBuildTreeWithAcl(const std::shared_ptr<ParserApi> &trace);
 
@@ -89,20 +83,21 @@ class EventGrouper
     bool isKernelApiEvent(const std::shared_ptr<ParserApi> &trace);
     void InitLastKernelTimes(const std::set<uint32_t> &threadIds);
     void RecordCANNWareHouses();
-    void ParseCaptureStreamInfo();
-    void ParseMc2CommInfo();
     void SetApiEventKeys();
 
     void GroupTreeEvent(ThreadPool &pool);
     void GroupLookup(ThreadPool &pool);
-    void DispatchLookupData(EventType eventType, const std::vector<RuntimeOpInfo> &opInfos);
-    void DispatchLookupData(EventType eventType,
-                            const std::vector<std::shared_ptr<ParserAdditionalInfo>> &additionalInfos);
-    void DispatchLookupData(EventType eventType, const std::vector<std::shared_ptr<ParserCompactInfo>> &tracks);
     void ParseRuntimeOpInfo();
-    void ParseDpuTaskTrack();
-    void ParseStaticOpMem();
-    void ParseStreamExpandSpec();
+
+    // 解析后挂到 CANNDumpWarehouse，供后续 dump，不入 CANNWarehouse 建树
+    template <typename P, typename M, std::vector<std::shared_ptr<M>> CANNDumpWarehouse::*storage>
+    void GroupEvents(const std::string &typeName)
+    {
+        Utils::TimeLogger t{"Group " + typeName};
+        std::shared_ptr<P> parser;
+        MAKE_SHARED_RETURN_VOID(parser, P, hostPath_);
+        dumpWarehouse_.*storage = parser->template ParseData<M>();
+    }
 
     template <typename P, typename M, std::shared_ptr<EventQueue> CANNWarehouse::*element>
     void GroupEvents(const std::string &typeName, EventType eventType)
@@ -164,15 +159,11 @@ class EventGrouper
     std::vector<std::shared_ptr<Event>> apiTraces_;
     std::unordered_map<uint32_t, std::vector<std::shared_ptr<Event>>> taskTrackTraces_;
     std::vector<std::shared_ptr<Adapter::FlipTask>> flipTasks_;
-    std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
     std::unordered_map<uint64_t, uint64_t> dpuKernelNameMap_;
-    std::vector<std::shared_ptr<ParserAdditionalInfo>> staticOpMemData_;
-    std::vector<std::shared_ptr<ParserCompactInfo>> streamExpandSpecData_;
     std::set<uint32_t> threadIds_;
     std::string hostPath_;
-    CANNWarehouses cannWarehouses_;  // 所有threadId的数据
-    std::vector<std::shared_ptr<ParserCompactInfo>> captureStreamInfoData_;
-    std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2CommInfoData_;
+    CANNWarehouses cannWarehouses_;    // 建树用，按 threadId 分仓
+    CANNDumpWarehouse dumpWarehouse_;  // 不建树，解析后直接落盘
     std::atomic<bool> result_{true};
     // 记录已经处理好的kernelEvents的最晚时间（threadId, level, time）
     std::unordered_map<uint32_t, std::unordered_map<uint16_t, std::pair<uint64_t, uint64_t>>> lastKernelTimes_;

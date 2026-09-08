@@ -26,16 +26,6 @@ namespace Analysis
 namespace Domain
 {
 
-namespace
-{
-// EventType类型对应字符串的映射关系
-// EventType和EventTypeString一一对应
-std::vector<std::string> EventTypeString{"Api",           "Event",        "NodeBasicInfo", "NodeAttrInfo",
-                                         "TensorInfo",    "HcclInfo",     "ContextId",     "GraphIdMap",
-                                         "FusionOpInfo",  "TaskTrack",    "HcclOpInfo",    "MemoryCopy",
-                                         "RuntimeOpInfo", "DpuTaskTrack", "Dummy",         "Invalid"};
-}  // namespace
-
 std::shared_ptr<TreeNode> Tree::GetRoot() const { return root_; }
 
 std::string Tree::GetTreeLevelStr(const std::shared_ptr<TreeNode> &node) const
@@ -43,8 +33,7 @@ std::string Tree::GetTreeLevelStr(const std::shared_ptr<TreeNode> &node) const
     std::string lstr;
     for (const auto &r : node->records)
     {
-        lstr += "[" + EventTypeString[static_cast<unsigned long>(r->info.type)] +
-                Utils::Join("_", r->info.start, r->info.end) + "] ";
+        lstr += "[" + EventTypeToString(r->info.type) + Utils::Join("_", r->info.start, r->info.end) + "] ";
     }
     return lstr;
 }
@@ -66,7 +55,7 @@ std::vector<std::string> Tree::Show()
         {
             std::shared_ptr<TreeNode> node = q.front();
             q.pop();
-            lstr += EventTypeString[static_cast<unsigned long>(node->event->info.type)] +
+            lstr += EventTypeToString(node->event->info.type) +
                     Utils::Join("_", node->event->info.start, node->event->info.end) + " ";
             lstr += GetTreeLevelStr(node);
             for (const auto &child : node->children)

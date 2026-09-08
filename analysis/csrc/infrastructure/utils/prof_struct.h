@@ -403,6 +403,19 @@ extern "C"
         uint32_t reserve2;
     };
 
+    const uint32_t MSPROF_COMM_STREAM_MAX_NUM = 8;
+    struct ProfilingDeviceCommResInfo
+    {
+        uint64_t groupName;                                  // 通信域
+        uint32_t rankSize;                                   // 通信域内rank总数
+        uint32_t rankId;                                     // 当前device rankId，通信域内编号
+        uint32_t usrRankId;                                  // 当前device rankId，全局编号
+        uint32_t aicpuKfcStreamId;                           // MC2中launch aicpu kfc算子的stream
+        uint32_t commStreamSize;                             // 当前device侧使用的通信stream数量
+        uint32_t commStreamIds[MSPROF_COMM_STREAM_MAX_NUM];  // 具体streamId
+        uint32_t reserve;
+    };
+
     const uint16_t MSPROF_MULTI_THREAD_MAX_NUM = 25;
     struct MsprofMultiThread
     {
@@ -577,6 +590,7 @@ extern "C"
             MsprofContextIdInfo contextIdInfo;
             MsprofMemoryInfo memoryInfo;
             MsprofStaticOpMem staticOpMem;
+            ProfilingDeviceCommResInfo mc2CommInfo;
         };
     };
     // =====================ADDITIONAL=====================

@@ -50,21 +50,28 @@ class HostTraceWorker
     bool Run();
 
    private:
+    void PrepareLookupData(const std::shared_ptr<EventGrouper> &grouper, CaptureStreamInfoData &formattedCaptureData);
+    void PrepareCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
+                                  CaptureStreamInfoData &formattedCaptureData);
+    void DumpHostData(const std::shared_ptr<EventGrouper> &grouper, const CaptureStreamInfoData &formattedCaptureData);
+    void DumpAsyncHostData(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper,
+                           const CaptureStreamInfoData &formattedCaptureData);
+    void DumpCaptureStreamInfo(ThreadPool &pool, const CaptureStreamInfoData &formattedCaptureData);
+    void DumpMc2CommInfo(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper,
+                         const CaptureStreamInfoData &formattedCaptureData);
+    void DumpRtsTrackData(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpRuntimeOpInfo();
+    void DumpFlipTask(const std::shared_ptr<EventGrouper> &grouper);
+    void DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpModelName(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpHostSystemProfileData(ThreadPool &pool);
+    void DumpCannTrace(ThreadPool &pool);
+    void DumpMemcpyInfo(const std::shared_ptr<EventGrouper> &grouper);
+    void DumpStreamExpandSpec(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
+    void DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
     void MultiThreadBuildTree();
     void MultiThreadAnalyzeTreeDumpData();
-    void DumpApiEvent(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
-    void DumpRuntimeOpInfo();
-    void DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
-    void DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
-    void DumpStreamExpandSpec(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
-    void DumpFlipTask(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper);
-    void DumpModelName(ThreadPool &pool, const std::string &hostDataPath);
-    void DumpHostSystemProfileData(ThreadPool &pool);
-    void DumpMemcpyInfo(const std::string &hostDataPath);
-    bool DumpCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
-                               CaptureStreamInfoData &formattedCaptureData);
-    bool DumpMc2CommInfo(const std::shared_ptr<EventGrouper> &grouper,
-                         const CaptureStreamInfoData &formattedCaptureData);
 
    private:
     const uint32_t poolSize_ = 10;
