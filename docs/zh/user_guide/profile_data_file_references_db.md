@@ -1001,8 +1001,22 @@ Host侧CPU利用率数据。
 |字段名|类型|含义|
 |--|--|--|
 |timestampNs|NUMERIC|采样时的本地时间，单位ns|
-|cpuId|NUMERIC|cpu编号|
+|cpuId|NUMERIC|CPU编号|
 |usage|NUMERIC|利用率(%)|
+
+## CPU\_FREQ
+
+Host侧CPU频率。
+
+由--host-sys=cpu开关控制。
+
+**表 1**  格式
+
+| 字段名      | 类型    | 含义                     |
+| ----------- | ------- | ------------------------ |
+| timestampNs | NUMERIC | 采样时的本地时间，单位ns |
+| cpuId       | NUMERIC | CPU编号                  |
+| freq        | NUMERIC | 频率，单位MHz            |
 
 ## HOST\_MEM\_USAGE
 

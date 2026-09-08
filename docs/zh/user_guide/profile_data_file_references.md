@@ -3013,6 +3013,48 @@ host\_cpu\_usage\_\*.csv文件内容格式示例如下：
 |Occupied Cpu Numbers|进程占用的CPU核数。|
 |Recommend Cpu Numbers|使用中的CPU核数，虚拟化场景中为CPU核数资源的推荐分配值。|
 
+#### CPU Freq（Host侧CPU频率）<a name="ZH-CN_TOPIC_0000002477463249"></a>
+
+Host侧CPU频率数据在msprof\_\*.json文件的CPU Freq层级展示，无summary信息。
+
+**产品支持情况**
+
+<!-- npu="950" id1 -->
+
+- 昇腾950PR&950DT系列产品：支持
+  <!-- end id1 -->
+  <!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+  <!-- end id2 -->
+  <!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+  <!-- end id3 -->
+  <!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+  <!-- end id4 -->
+  <!-- npu="310p" id5 -->
+- 昇腾310P系列产品：支持
+  <!-- end id5 -->
+  <!-- npu="910" id6 -->
+- 昇腾910系列产品：支持
+  <!-- end id6 -->
+
+**msprof\_\*.json文件的CPU Freq层级数据说明**
+
+msprof\_\*.json文件CPU Freq层级数据如下图所示。
+
+**图 1**  CPU Freq层  
+
+![cpu_freq](../figures/cpu_freq.png)
+
+上图中记录采集过程中每个时刻的CPU频率。
+
+**表 1**  字段说明
+
+| 字段名   | 字段含义 |
+| -------- | -------- |
+| CPU {ID} | CPU ID。 |
+
 #### host\_mem\_usage（Host侧内存利用率）<a name="ZH-CN_TOPIC_0000002509383213"></a>
 
 Host侧内存利用率数据timeline信息在msprof\_\*.json文件的Memory Usage层级展示，summary信息在host\_mem\_usage\_\*.csv文件汇总。
