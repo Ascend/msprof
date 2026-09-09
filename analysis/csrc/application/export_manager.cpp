@@ -29,6 +29,7 @@
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
+#include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
@@ -52,7 +53,9 @@ std::string CreateOutputPath(const std::string& profPath)
     return outputPath;
 }
 
-bool HasExportedMsprofDB(const std::string& profPath)
+}  // namespace
+
+bool ExportManager::HasExportedMsprofDB(const std::string& profPath)
 {
     const std::string dbSuffix = ".db";
     const std::vector<std::string> dbFiles = File::GetFilesWithPrefix(profPath, DB_NAME_MSPROF_DB + "_");
@@ -64,7 +67,29 @@ bool HasExportedMsprofDB(const std::string& profPath)
                        });
 }
 
+namespace
+{
+bool IsResultPathPythonParseComplete(const std::string& resultPath)
+{
+    const std::string completePath = File::PathJoin({resultPath, "data", "all_file.complete"});
+    const std::string sqlitePath = File::PathJoin({resultPath, "sqlite"});
+    return File::Exist(completePath) && File::IsDirNotEmpty(sqlitePath);
+}
 }  // namespace
+
+bool ExportManager::IsPythonParseComplete(const std::string& profPath)
+{
+    std::vector<std::string> resultPaths;
+    const std::string hostPath = File::PathJoin({profPath, "host"});
+    if (File::Exist(hostPath) && File::CheckDir(hostPath))
+    {
+        resultPaths.emplace_back(hostPath);
+    }
+    const std::vector<std::string> devicePaths = Analysis::Domain::GetDeviceDirectories(profPath);
+    resultPaths.insert(resultPaths.end(), devicePaths.begin(), devicePaths.end());
+    return !resultPaths.empty() && std::all_of(resultPaths.begin(), resultPaths.end(), [](const std::string& resultPath)
+                                               { return IsResultPathPythonParseComplete(resultPath); });
+}
 
 bool ExportManager::CheckProfDirsValid()
 {

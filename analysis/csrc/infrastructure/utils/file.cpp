@@ -164,6 +164,27 @@ bool File::CheckDir(const std::string &path)
     return true;
 }
 
+bool File::IsDirNotEmpty(const std::string &path)
+{
+    DIR *dir = opendir(path.c_str());
+    if (dir == nullptr)
+    {
+        return false;
+    }
+    dirent *entry;
+    while ((entry = readdir(dir)) != nullptr)
+    {
+        const std::string entryName(entry->d_name);
+        if (entryName != "." && entryName != "..")
+        {
+            closedir(dir);
+            return true;
+        }
+    }
+    closedir(dir);
+    return false;
+}
+
 bool File::CreateDir(const std::string &path, const mode_t &mode)
 {
     if (path.empty())
@@ -601,6 +622,20 @@ std::string File::BaseName(const std::string &path)
         return path;
     }
     return Split(path, "/").back();
+}
+
+std::string File::ParentPath(const std::string &path)
+{
+    const std::size_t pos = path.find_last_of("/\\");
+    if (pos == std::string::npos)
+    {
+        return path;
+    }
+    if (pos == 0)
+    {
+        return path.substr(0, 1);
+    }
+    return path.substr(0, pos);
 }
 
 }  // namespace Utils

@@ -36,6 +36,8 @@ PyObject *WrapExportUnifiedDB(PyObject *self, PyObject *args);
 PyObject *WrapExportTimeline(PyObject *self, PyObject *args);
 // op_summary导出入口的外层包装，解析Python侧传入路径后调用exportSummary启动导出流程，获取返回状态码后返回Python侧
 PyObject *WrapExportSummary(PyObject *self, PyObject *args);
+// 一键串联C化处理流程，按flags顺序执行host、device及各导出阶段并返回状态码
+PyObject *WrapRunPipeline(PyObject *self, PyObject *args);
 }  // namespace Interface
 }  // namespace Analysis
 

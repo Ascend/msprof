@@ -20,7 +20,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/application/credential SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/application SOURCES)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/application/assemble/test SOURCES)
 
-list(APPEND SOURCES "${TOP_DIR}/analysis/csrc/domain/services/device_context/load_host_data.cpp")
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context DEVICE_CONTEXT_SOURCES)
+list(APPEND SOURCES ${DEVICE_CONTEXT_SOURCES})
 
 add_executable(export_assemble_utest
         ${SOURCES}

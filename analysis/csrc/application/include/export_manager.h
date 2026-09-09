@@ -46,6 +46,8 @@ class ExportManager
     }
     bool Run(const std::set<ExportMode>& exportModeSet);
     bool GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection);
+    static bool HasExportedMsprofDB(const std::string& profPath);
+    static bool IsPythonParseComplete(const std::string& profPath);
 
    private:
     bool Init();

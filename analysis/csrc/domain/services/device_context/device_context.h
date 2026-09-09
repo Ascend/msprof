@@ -17,7 +17,9 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_DEVICE_CONTEXT_DEVICE_CONTEXT_H
 #define ANALYSIS_DOMAIN_SERVICES_DEVICE_CONTEXT_DEVICE_CONTEXT_H
 #include <cstdint>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"

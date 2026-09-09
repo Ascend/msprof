@@ -98,6 +98,17 @@ TEST_F(FileUTest, TestCheckDir)
     EXPECT_TRUE(File::DeleteFile("test_dir_soft_link"));
 }
 
+TEST_F(FileUTest, TestIsDirNotEmpty)
+{
+    EXPECT_FALSE(File::IsDirNotEmpty("test_dir_not_exist"));
+    EXPECT_TRUE(File::CreateDir("test_dir"));
+    EXPECT_FALSE(File::IsDirNotEmpty("test_dir"));
+    FileWriter fileWriter(File::PathJoin({"test_dir", "file"}));
+    fileWriter.WriteText("content");
+    EXPECT_TRUE(File::IsDirNotEmpty("test_dir"));
+    EXPECT_TRUE(File::RemoveDir("test_dir", 0));
+}
+
 TEST_F(FileUTest, TestCreateDir)
 {
     const std::string workDir = "file_utest_create_dir";
@@ -139,6 +150,15 @@ TEST_F(FileUTest, TestPathJoinShouldReturnJoinedPath)
 {
     EXPECT_EQ("", File::PathJoin({}));
     EXPECT_EQ("/test_dir//test_subdir/test_file", File::PathJoin({"/test_dir/", "test_subdir", "test_file"}));
+}
+
+TEST_F(FileUTest, TestParentPathShouldReturnExpectedParentPath)
+{
+    EXPECT_EQ("", File::ParentPath(""));
+    EXPECT_EQ("device_0", File::ParentPath("device_0"));
+    EXPECT_EQ("/", File::ParentPath("/device_0"));
+    EXPECT_EQ("PROF_0", File::ParentPath("PROF_0/device_0"));
+    EXPECT_EQ("PROF_0", File::ParentPath("PROF_0\\device_0"));
 }
 
 TEST_F(FileUTest, TestGetFilesWithPrefixShouldReturn2SubFilesWhenGetFileMatchPrefix)

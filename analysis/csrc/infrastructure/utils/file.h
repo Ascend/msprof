@@ -45,9 +45,11 @@ class File
     static bool CreateDir(const std::string &path, const mode_t &mode = 0750);
     static bool RemoveDir(const std::string &path, int depth);
     static bool CheckDir(const std::string &path);
+    static bool IsDirNotEmpty(const std::string &path);
     static bool Chmod(const std::string &path, const mode_t &mode);
     static std::string PathJoin(const std::vector<std::string> &paths);
     static std::string BaseName(const std::string &path);
+    static std::string ParentPath(const std::string &path);
     static std::vector<std::string> GetFilesWithPrefix(const std::string &path, const std::string &prefix);
     static std::vector<std::string> FilterFileWithSuffix(const std::vector<std::string> &files,
                                                          const std::string &suffix);

@@ -1,14 +1,56 @@
-add_executable(
-    xxx_utest
-    test/main.cpp
-    test/xxx_utest.cpp
-    ${TOP_DIR}/analysis/csrc/xxx/xxx.cpp
-)
+find_package(Python REQUIRED COMPONENTS Development)
 
-target_include_directories(add_utest PRIVATE
-    ${GTEST_INCLUDE_DIR}
-    ${MOCKCPP_INCLUDE_DIR}
-    ${TOP_DIR}/
-)
+aux_source_directory(${TOP_DIR}/analysis/csrc/application SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/application/credential SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/application/summary SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/application/timeline SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/application/database SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/ai_task SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/system SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/hal SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/json_trace SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/metric SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/tree SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/adapter SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator/hccl SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator/metric SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/cann SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/host_worker SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/init SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/batch_id SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/step_trace SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host/cann SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/log SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/parser_item SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pmu SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/aicpu SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/track SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/persistence/device SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/persistence/host SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/data_inventory SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dfx SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dump_tools SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dump_tools/csv_tool SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dump_tools/json_tool SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/process SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/utils SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/interface/py_interface SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/viewer/database/finals SOURCES)
+aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/py_interface/test SOURCES)
 
-run_test(xxx_utest)
+add_executable(py_init_parser_utest ${SOURCES})
+
+target_include_directories(py_init_parser_utest PRIVATE ${Python_INCLUDE_DIRS})
+target_link_libraries(py_init_parser_utest PRIVATE -lsqlite3 ${Python_LIBRARIES})
+
+run_test(py_init_parser_utest)

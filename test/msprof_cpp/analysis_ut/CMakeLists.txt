@@ -99,6 +99,7 @@ function(run_test test_case)
     )
 endfunction()
 
+add_subdirectory(py_interface)
 add_subdirectory(viewer)
 add_subdirectory(infrastructure)
 add_subdirectory(domain)

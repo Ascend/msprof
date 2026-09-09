@@ -22,11 +22,22 @@ import sys
 from common_func.config_mgr import ConfigMgr
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_multi_process import run_in_subprocess
+from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import DeviceParseScene, ExportDBScene
 from common_func.file_manager import check_so_valid
 
 SO_DIR = os.path.join(os.path.dirname(__file__), "..", "lib64")
+
+MSPROF_OK = 0
+MSPROF_ERROR = 1
+MSPROF_INVALID_PARAM = 101
+
+MSPROF_PIPELINE_CANN_TRACE = 0x01
+MSPROF_PIPELINE_DEVICE_DATA = 0x02
+MSPROF_PIPELINE_DB = 0x04
+MSPROF_PIPELINE_TIMELINE = 0x08
+MSPROF_PIPELINE_SUMMARY = 0x10
 
 
 def _dump_cann_trace(project_path: str):
@@ -64,6 +75,20 @@ def _export_summary(project_path: str):
     msprof_analysis_module.parser.export_summary(project_path)
 
 
+def _run_pipeline(prof_path: str, flags: int, cann_trace_path=None, device_path=None, reports_json=None) -> int:
+    so_path = os.path.join(os.path.realpath(SO_DIR), "msprof_analysis.so")
+    if not check_so_valid(so_path):
+        logging.warning("There is no msprof_analysis.so available!")
+        return MSPROF_ERROR
+    sys.path.append(os.path.realpath(SO_DIR))
+    try:
+        msprof_analysis_module = importlib.import_module("msprof_analysis")
+    except (ImportError, OSError):
+        logging.warning("Load msprof_analysis.so failed!")
+        return MSPROF_ERROR
+    return msprof_analysis_module.parser.run_pipeline(prof_path, flags, cann_trace_path, device_path, reports_json)
+
+
 def _export_platform(platform_uncore_trace: str, output_path: str):
     if not check_so_valid(os.path.join(SO_DIR, "platform_analysis.so")):
         logging.warning("There is no platform_analysis.so available!")
@@ -92,11 +117,16 @@ def export_summary(project_path: str):
     run_in_subprocess(_export_summary, project_path)
 
 
+def run_pipeline(prof_path: str, flags: int, cann_trace_path=None, device_path=None, reports_json=None) -> int:
+    """按 flags 串联执行 C 化处理流程并返回 C++ 侧状态码。"""
+    return _run_pipeline(prof_path, flags, cann_trace_path, device_path, reports_json)
+
+
 def dump_device_data(device_path: str) -> None:
     """
     调用device c化
     """
-    if not DeviceParseScene().is_cpp_enable():
+    if not ChipManager().is_chip_v4():
         logging.info("Do not support parsing by msprof_analysis.so!")
         return
     if ConfigMgr.is_ai_core_sample_based(device_path):
@@ -106,7 +136,7 @@ def dump_device_data(device_path: str) -> None:
         logging.warning("Device Data in custom pmu scene will not be parsed by msprof_analysis.so!")
         return
     all_export_flag = ProfilingScene().is_all_export() and InfoConfReader().is_all_export_version()
-    if all_export_flag:
+    if DeviceParseScene().is_cpp_enable() and all_export_flag:
         run_in_subprocess(_dump_device_data, device_path)
     else:
         logging.warning("Device Data will not be parsed by msprof_analysis.so!")
