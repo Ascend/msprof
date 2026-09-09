@@ -23,6 +23,7 @@
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/ccu_add_info_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/dpu_task_track_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/mc2_comm_info_dumper.h"
@@ -83,6 +84,7 @@ void HostTraceWorker::DumpAsyncHostData(ThreadPool &pool, const std::shared_ptr<
     DumpStreamExpandSpec(pool, grouper);
     // DumpStaticOpMem(pool, grouper);
     DumpHostSystemProfileData(pool);
+    DumpCcuAddInfo(pool, grouper);
     DumpApiEvent(pool, grouper);
     DumpRtsTrackData(pool, grouper);
     DumpModelName(pool, grouper);
@@ -366,6 +368,24 @@ void HostTraceWorker::DumpStaticOpMem(ThreadPool &pool, const std::shared_ptr<Ev
             if (!dumper.DumpData(grouper->GetDumpWarehouse().staticOpMemData))
             {
                 ERROR("Dump static op memory data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpCcuAddInfo(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, grouper]()
+        {
+            TimeLogger t{"Dump CCU add-info data start"};
+            CcuAddInfoDBDumper dumper(hostPath_);
+            for (const auto &data : grouper->GetDumpWarehouse().ccuInfoData)
+            {
+                if (!data || !dumper.DumpData(*data))
+                {
+                    ERROR("Dump CCU add-info data failed");
+                    return;
+                }
             }
         });
 }

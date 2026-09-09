@@ -64,6 +64,9 @@ class ParserAdditionalInfoAdapter
     static void AdapterMemoryInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterStaticOpMem(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
     static void AdapterMc2CommInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
+    static void AdapterCcuTaskInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
+    static void AdapterCcuWaitSignalInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
+    static void AdapterCcuGroupInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed);
 };
 
 class ParserAicpuAdapter

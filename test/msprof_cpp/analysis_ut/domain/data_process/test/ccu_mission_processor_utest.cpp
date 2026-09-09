@@ -49,11 +49,11 @@ const std::string CHANNEL_TABLE = "OriginChannel";
 const std::string WAIT_TABLE = "CCUWaitSignalInfo";
 const std::string GROUP_TABLE = "CCUGroupInfo";
 
-using MissionSeedData = std::vector<std::tuple<uint16_t, uint32_t, uint16_t, uint16_t, uint32_t, uint64_t, uint64_t,
+using MissionSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint64_t, uint64_t,
     uint64_t, uint64_t>>;
 using ChannelSeedData = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-using WaitSeedData = std::vector<std::tuple<uint16_t, uint32_t, uint16_t, uint16_t, uint32_t, uint16_t>>;
-using GroupSeedData = std::vector<std::tuple<uint16_t, uint32_t, uint16_t, uint16_t, std::string, std::string,
+using WaitSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint16_t>>;
+using GroupSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, std::string, std::string,
     std::string, uint64_t>>;
 
 MissionSeedData BuildMissionData()
@@ -110,6 +110,17 @@ const CCUMissionTimelineData *FindByType(const std::vector<CCUMissionTimelineDat
 {
     for (const auto &data : datas) {
         if (data.timeType == type) {
+            return &data;
+        }
+    }
+    return nullptr;
+}
+
+const CCUMissionTimelineData *FindByStreamAndType(const std::vector<CCUMissionTimelineData> &datas,
+                                                  uint32_t streamId, const std::string &type)
+{
+    for (const auto &data : datas) {
+        if (data.streamId == streamId && data.timeType == type) {
             return &data;
         }
     }
@@ -246,9 +257,11 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldUsePrefixMaxDelayForChannelZero)
     MAKE_SHARED_RETURN_VOID(ccuDbRunner, DBRunner, CCU_DB_PATH);
     ChannelSeedData channelData {
         {0, 7900, 0, 0, 77},
-        {4, 7500, 0, 0, 120},
+        {4, 7500, 0, 0, 150},
+        {0, 7000, 0, 0, 75},
         {0, 7000, 0, 0, 150},
         {0, 8000, 0, 0, 999},
+        {0, 8000, 0, 0, 500},
         {0, 9000, 0, 0, 1000}
     };
     EXPECT_TRUE(ccuDbRunner->DeleteData("DELETE FROM " + CHANNEL_TABLE));
@@ -257,9 +270,9 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldUsePrefixMaxDelayForChannelZero)
     std::shared_ptr<DBRunner> addInfoDbRunner;
     MAKE_SHARED_RETURN_VOID(addInfoDbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
     WaitSeedData waitData {
+        {1, 10, 200, 0, 255, 4},
         {1, 10, 200, 0, 255, 0},
-        {1, 10, 200, 0, 255, 0},
-        {1, 10, 200, 0, 255, 4}
+        {1, 10, 200, 0, 255, 0}
     };
     EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + WAIT_TABLE));
     EXPECT_TRUE(addInfoDbRunner->InsertData(WAIT_TABLE, waitData));
@@ -275,6 +288,69 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldUsePrefixMaxDelayForChannelZero)
     EXPECT_TRUE(waitTimelineData->hasDelayChannel);
     EXPECT_EQ(0, waitTimelineData->maxDelayChannel);
     EXPECT_EQ(150u, waitTimelineData->maxChannelDelay);
+}
+
+TEST_F(CcuMissionProcessorUTest, TestRunShouldIncludeStreamIdWhenAssociatingHostAddInfo)
+{
+    std::shared_ptr<DBRunner> ccuDbRunner;
+    MAKE_SHARED_RETURN_VOID(ccuDbRunner, DBRunner, CCU_DB_PATH);
+    MissionSeedData missionData {
+        {1, 10, 100, 0, 0, 0, 1000, 0, 4000},
+        {1, 10, 0, 200, 5, 2000, 0, 6000, 0},
+        {70000, 10, 100, 0, 0, 0, 1000, 0, 4000},
+        {70000, 10, 0, 200, 6, 2000, 0, 6000, 0}
+    };
+    EXPECT_TRUE(ccuDbRunner->DeleteData("DELETE FROM " + MISSION_TABLE));
+    EXPECT_TRUE(ccuDbRunner->InsertData(MISSION_TABLE, missionData));
+
+    std::shared_ptr<DBRunner> addInfoDbRunner;
+    MAKE_SHARED_RETURN_VOID(addInfoDbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
+    WaitSeedData waitData {{70000, 10, 200, 0, 255, 3}};
+    GroupSeedData groupData {{70000, 10, 100, 0, "SUM", "FP16", "FP16", 1024}};
+    EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + WAIT_TABLE));
+    EXPECT_TRUE(addInfoDbRunner->InsertData(WAIT_TABLE, waitData));
+    EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + GROUP_TABLE));
+    EXPECT_TRUE(addInfoDbRunner->InsertData(GROUP_TABLE, groupData));
+
+    DataInventory dataInventory;
+    CCUMissionProcessor processor(PROF_PATH);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CCU_MISSION));
+
+    auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
+    ASSERT_NE(nullptr, ccuData);
+    ASSERT_EQ(4ul, ccuData->size());
+    const auto *streamOneLoop = FindByStreamAndType(*ccuData, 1, CCU_TIME_TYPE_LOOP_GROUP);
+    const auto *streamLargeLoop = FindByStreamAndType(*ccuData, 70000, CCU_TIME_TYPE_LOOP_GROUP);
+    const auto *streamOneWait = FindByStreamAndType(*ccuData, 1, CCU_TIME_TYPE_WAIT);
+    const auto *streamLargeWait = FindByStreamAndType(*ccuData, 70000, CCU_TIME_TYPE_WAIT);
+    ASSERT_NE(nullptr, streamOneLoop);
+    ASSERT_NE(nullptr, streamLargeLoop);
+    ASSERT_NE(nullptr, streamOneWait);
+    ASSERT_NE(nullptr, streamLargeWait);
+    EXPECT_FALSE(streamOneLoop->hasDataSize);
+    EXPECT_TRUE(streamLargeLoop->hasDataSize);
+    EXPECT_FALSE(streamOneWait->hasMask);
+    EXPECT_TRUE(streamLargeWait->hasMask);
+}
+
+TEST_F(CcuMissionProcessorUTest, TestRunShouldOmitLoopBandwidthForNonpositiveDuration)
+{
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_DB_PATH);
+    MissionSeedData missionData {{1, 10, 100, 0, 0, 0, 4000, 0, 1000}};
+    EXPECT_TRUE(dbRunner->DeleteData("DELETE FROM " + MISSION_TABLE));
+    EXPECT_TRUE(dbRunner->InsertData(MISSION_TABLE, missionData));
+
+    DataInventory dataInventory;
+    CCUMissionProcessor processor(PROF_PATH);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CCU_MISSION));
+
+    auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
+    ASSERT_NE(nullptr, ccuData);
+    ASSERT_EQ(1ul, ccuData->size());
+    EXPECT_DOUBLE_EQ(0.0, ccuData->front().duration);
+    EXPECT_TRUE(ccuData->front().hasDataSize);
+    EXPECT_FALSE(ccuData->front().hasBandwidth);
 }
 
 TEST_F(CcuMissionProcessorUTest, TestRunShouldIgnoreChannelSamplesAtOrAfterMissionEnd)

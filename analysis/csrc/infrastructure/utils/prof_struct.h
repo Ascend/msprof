@@ -560,6 +560,75 @@ extern "C"
 #pragma pack()
 
     const uint16_t MSPROF_ADDITIONAL_INFO_DATA_LENGTH = 232;
+
+#pragma pack(push, 1)
+    struct MsprofCcuTaskInfo
+    {
+        uint8_t version;
+        uint8_t workFlowMode;
+        uint8_t reserved0[6];
+        uint64_t itemId;
+        uint64_t groupName;
+        uint32_t rankId;
+        uint32_t rankSize;
+        uint16_t streamId;
+        uint16_t reserved1;
+        uint32_t taskId;
+        uint8_t dieId;
+        uint8_t missionId;
+        uint16_t instrId;
+        uint8_t reserved2[188];
+    };
+
+    struct MsprofCcuWaitSignalInfo
+    {
+        uint8_t version;
+        uint8_t reserved0[7];
+        uint64_t itemId;
+        uint64_t groupName;
+        uint32_t rankId;
+        uint32_t rankSize;
+        uint8_t workFlowMode;
+        uint8_t reserved1;
+        uint16_t streamId;
+        uint32_t taskId;
+        uint8_t dieId;
+        uint8_t reserved2;
+        uint16_t instrId;
+        uint8_t missionId;
+        uint8_t reserved3[3];
+        uint32_t ckeId;
+        uint32_t mask;
+        uint16_t channelIds[16];
+        uint32_t remoteRankIds[16];
+        uint8_t reserved4[80];
+    };
+
+    struct MsprofCcuGroupInfo
+    {
+        uint8_t version;
+        uint8_t reserved0[7];
+        uint64_t itemId;
+        uint64_t groupName;
+        uint32_t rankId;
+        uint32_t rankSize;
+        uint8_t workFlowMode;
+        uint8_t reserved1;
+        uint16_t streamId;
+        uint32_t taskId;
+        uint8_t dieId;
+        uint8_t reserved2;
+        uint16_t instrId;
+        uint8_t missionId;
+        uint8_t reduceOpType;
+        uint8_t inputDataType;
+        uint8_t outputDataType;
+        uint64_t dataSize;
+        uint16_t channelIds[16];
+        uint32_t remoteRankIds[16];
+        uint8_t reserved3[80];
+    };
+#pragma pack(pop)
     struct MsprofAdditionalInfo
     {  // for MsprofReportAdditionalInfo buffer data
         uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
@@ -591,6 +660,9 @@ extern "C"
             MsprofMemoryInfo memoryInfo;
             MsprofStaticOpMem staticOpMem;
             ProfilingDeviceCommResInfo mc2CommInfo;
+            MsprofCcuTaskInfo ccuTaskInfo;
+            MsprofCcuWaitSignalInfo ccuWaitSignalInfo;
+            MsprofCcuGroupInfo ccuGroupInfo;
         };
     };
     // =====================ADDITIONAL=====================

@@ -22,7 +22,6 @@ import sys
 from common_func.config_mgr import ConfigMgr
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_multi_process import run_in_subprocess
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import DeviceParseScene, ExportDBScene
 from common_func.file_manager import check_so_valid
@@ -64,6 +63,7 @@ def _export_summary(project_path: str):
     msprof_analysis_module = importlib.import_module("msprof_analysis")
     msprof_analysis_module.parser.export_summary(project_path)
 
+
 def _export_platform(platform_uncore_trace: str, output_path: str):
     if not check_so_valid(os.path.join(SO_DIR, "platform_analysis.so")):
         logging.warning("There is no platform_analysis.so available!")
@@ -96,7 +96,7 @@ def dump_device_data(device_path: str) -> None:
     """
     调用device c化
     """
-    if not ChipManager().is_chip_v4():
+    if not DeviceParseScene().is_cpp_enable():
         logging.info("Do not support parsing by msprof_analysis.so!")
         return
     if ConfigMgr.is_ai_core_sample_based(device_path):
@@ -106,7 +106,7 @@ def dump_device_data(device_path: str) -> None:
         logging.warning("Device Data in custom pmu scene will not be parsed by msprof_analysis.so!")
         return
     all_export_flag = ProfilingScene().is_all_export() and InfoConfReader().is_all_export_version()
-    if DeviceParseScene().is_cpp_enable() and all_export_flag:
+    if all_export_flag:
         run_in_subprocess(_dump_device_data, device_path)
     else:
         logging.warning("Device Data will not be parsed by msprof_analysis.so!")
@@ -121,6 +121,7 @@ def export_unified_db(project_path: str):
         logging.warning("Does not support exporting the msprof.db!")
         return
     run_in_subprocess(_export_unified_db, project_path)
+
 
 def export_platform(platform_uncore_trace: str, output_path: str):
     run_in_subprocess(_export_platform, platform_uncore_trace, output_path)

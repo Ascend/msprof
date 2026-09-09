@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 
+#include <cstddef>
 #include <vector>
 
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
@@ -48,6 +49,9 @@ enum class AdditionalInfoFormat : uint8_t
     TASK_MEMORY_INFO_TYPE,
     MC2_COMM_INFO_TYPE,
     STATIC_OP_MEM_TYPE,
+    CCU_TASK_INFO_TYPE,
+    CCU_WAIT_SIGNAL_INFO_TYPE,
+    CCU_GROUP_INFO_TYPE,
 };
 
 enum class VariableInfoFormat : uint8_t
@@ -488,6 +492,44 @@ struct ParserKfcInfos
     ParserAicpuHcclTaskInfo infos[KFC_INFOS_NUM];
 };
 
+// Normalized host CCU payload; independent of device chip protocols.
+static_assert(sizeof(MsprofCcuTaskInfo) == MSPROF_ADDITIONAL_INFO_DATA_LENGTH, "Invalid CCU payload size");
+static_assert(sizeof(MsprofCcuWaitSignalInfo) == MSPROF_ADDITIONAL_INFO_DATA_LENGTH, "Invalid CCU payload size");
+static_assert(sizeof(MsprofCcuGroupInfo) == MSPROF_ADDITIONAL_INFO_DATA_LENGTH, "Invalid CCU payload size");
+static_assert(offsetof(MsprofCcuTaskInfo, streamId) == 32, "Invalid CCU streamId offset");
+static_assert(offsetof(MsprofCcuTaskInfo, instrId) == 42, "Invalid CCU instrId offset");
+static_assert(offsetof(MsprofCcuWaitSignalInfo, streamId) == 34, "Invalid CCU streamId offset");
+static_assert(offsetof(MsprofCcuWaitSignalInfo, ckeId) == 48, "Invalid CCU ckeId offset");
+static_assert(offsetof(MsprofCcuWaitSignalInfo, channelIds) == 56, "Invalid CCU channelIds offset");
+static_assert(offsetof(MsprofCcuWaitSignalInfo, remoteRankIds) == 88, "Invalid CCU remoteRankIds offset");
+static_assert(offsetof(MsprofCcuGroupInfo, dataSize) == 48, "Invalid CCU dataSize offset");
+static_assert(offsetof(MsprofCcuGroupInfo, channelIds) == 56, "Invalid CCU channelIds offset");
+static_assert(offsetof(MsprofCcuGroupInfo, remoteRankIds) == 88, "Invalid CCU remoteRankIds offset");
+
+struct ParserCcuInfo
+{
+    uint64_t itemId;
+    uint64_t groupName;
+    uint64_t dataSize;
+    uint32_t rankId;
+    uint32_t rankSize;
+    uint32_t streamId;
+    uint32_t taskId;
+    uint32_t ckeId;
+    uint32_t mask;
+    uint32_t remoteRankIds[16];
+    uint16_t channelIds[16];
+    uint16_t instrId;
+    uint8_t version;
+    uint8_t workFlowMode;
+    uint8_t dieId;
+    uint8_t missionId;
+    uint8_t reduceOpType;
+    uint8_t inputDataType;
+    uint8_t outputDataType;
+};
+static_assert(sizeof(ParserCcuInfo) <= MSPROF_ADDITIONAL_INFO_DATA_LENGTH, "CCU payload exceeds additional buffer");
+
 struct ParserAdditionalInfo
 {  // for MsprofReportAdditionalInfo buffer data
     uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
@@ -520,6 +562,7 @@ struct ParserAdditionalInfo
         ParserMemoryInfo memoryInfo;
         ParserStaticOpMem staticOpMem;
         ParserMc2CommInfo mc2CommInfo;
+        ParserCcuInfo ccuInfo;
     };
 };
 

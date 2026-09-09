@@ -24,6 +24,7 @@
 
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/event_queue.h"
+#include "analysis/csrc/domain/services/parser/host/cann/ccu_add_info_parser.h"
 #include "analysis/csrc/infrastructure/utils/parser_struct.h"
 
 namespace Analysis
@@ -63,6 +64,7 @@ struct CANNDumpWarehouse
     std::vector<std::shared_ptr<ParserAdditionalInfo>> mc2CommInfoData;
     std::vector<std::shared_ptr<ParserAdditionalInfo>> graphIdMapData;
     std::vector<std::shared_ptr<ParserAdditionalInfo>> staticOpMemData;
+    std::vector<std::shared_ptr<CcuInfoData>> ccuInfoData;
 };
 
 }  // namespace Cann

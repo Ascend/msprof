@@ -85,8 +85,7 @@ class CCUAddInfoBean(StructDecoder):
     def instr_id(self: any) -> int:
         return self._instr_id
 
-    @classmethod
-    def construct_bean(cls: any, *args: any) -> bool:
+    def construct_bean(self: any, *args: any) -> bool:
         """
         refresh the CCU add info data
         :param args: CCU Task Info bin data
@@ -99,9 +98,6 @@ class CCUTaskInfoBean(CCUAddInfoBean):
     """
     ccu channel data bean for the data parsing by ccu task info parser
     """
-
-    def __init__(self: any) -> None:
-        super().__init__()
 
     def decode(self: any, bin_data: any, **kwargs) -> any:
         """
@@ -141,7 +137,7 @@ class CCUTaskInfoBean(CCUAddInfoBean):
 
 class CCUWaitSignalInfoBean(CCUAddInfoBean):
     """
-    ccu channel data bean for the data parsing by ccu wait sigal info parser
+    ccu channel data bean for the data parsing by ccu wait signal info parser
     """
 
     def __init__(self: any) -> None:
@@ -227,7 +223,7 @@ class CCUGroupInfoBean(CCUAddInfoBean):
         try:
             reduce_op_type = ReduceOpType(self._reduce_op_type).name
         except ValueError:
-            logging.warning("Invalid ccu reduce op type, type enum is {}, please check!".format(self._reduce_op_type))
+            logging.warning("Invalid ccu reduce op type, type enum is %s, please check!", self._reduce_op_type)
             reduce_op_type = self._reduce_op_type
         return reduce_op_type
 
@@ -236,7 +232,7 @@ class CCUGroupInfoBean(CCUAddInfoBean):
         try:
             input_data_type = DataType(self._input_data_type).name
         except ValueError:
-            logging.warning("Invalid ccu input data type, type enum is {}, please check!".format(self._input_data_type))
+            logging.warning("Invalid ccu input data type, type enum is %s, please check!", self._input_data_type)
             input_data_type = self._input_data_type
         return input_data_type
 
@@ -245,8 +241,7 @@ class CCUGroupInfoBean(CCUAddInfoBean):
         try:
             output_data_type = DataType(self._output_data_type).name
         except ValueError:
-            logging.warning("Invalid ccu output data type,"
-                            " type enum is {}, please check!".format(self._output_data_type))
+            logging.warning("Invalid ccu output data type, type enum is %s, please check!", self._output_data_type)
             output_data_type = self._output_data_type
         return output_data_type
 

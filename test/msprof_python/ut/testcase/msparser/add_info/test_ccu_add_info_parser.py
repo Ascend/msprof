@@ -20,8 +20,10 @@ import shutil
 import unittest
 from unittest import mock
 
+from common_func.ms_constant.number_constant import NumberConstant
 from common_func.info_conf_reader import InfoConfReader
 from msparser.add_info.ccu_add_info_parser import CCUAddInfoParser
+from msparser.add_info.ccu_add_info_bean import CCUGroupInfoBean
 from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.prof_enum.data_tag import DataTag
@@ -31,6 +33,11 @@ NAMESPACE = 'msparser.add_info.ccu_add_info_parser'
 
 
 class TestCcuAddInfoParser(unittest.TestCase):
+    def test_reduce_product_should_match_native_mul(self):
+        bean = CCUGroupInfoBean()
+        bean._reduce_op_type = 1
+        self.assertEqual("MUL", bean.reduce_op_type)
+
     file_list = {
         DataTag.CCU_TASK: [
             'unaging.additional.ccu_task_info.slice_0'
@@ -51,19 +58,21 @@ class TestCcuAddInfoParser(unittest.TestCase):
     }
 
     @classmethod
-    def setup_class(cls):
-        if not os.path.exists(cls.DIR_PATH):
-            os.mkdir(cls.DIR_PATH)
-        if not os.path.exists(cls.SQLITE_PATH):
-            os.mkdir(cls.SQLITE_PATH)
-        if not os.path.exists(cls.DATA_PATH):
-            os.mkdir(cls.DATA_PATH)
-            cls.make_ccu_task_info_data()
-            cls.make_ccu_wait_signal_info_data()
-            cls.make_ccu_group_info_data()
+    def _reset_fixture(cls):
+        if os.path.exists(cls.DIR_PATH):
+            shutil.rmtree(cls.DIR_PATH)
+        os.mkdir(cls.DIR_PATH)
+        os.mkdir(cls.SQLITE_PATH)
+        os.mkdir(cls.DATA_PATH)
+        cls.make_ccu_task_info_data()
+        cls.make_ccu_wait_signal_info_data()
+        cls.make_ccu_group_info_data()
+
+    def setUp(self):
+        self._reset_fixture()
 
     @classmethod
-    def teardown_class(cls):
+    def tearDownClass(cls):
         if os.path.exists(cls.DIR_PATH):
             shutil.rmtree(cls.DIR_PATH)
 
@@ -210,6 +219,26 @@ class TestCcuAddInfoParser(unittest.TestCase):
                           0, 2, 1, 1, 0, 1, 197, 255, 'RESERVED', 'RESERVED', 'RESERVED', 8192, 2, 1], group_data[1])
         InfoConfReader()._info_json = {}
         self.init_data()
+
+    def test_sqlite_integer_overflow_should_fail_before_opening_model(self):
+        check = CCUAddInfoParser(self.file_list, self.CONFIG)
+        check._ccu_add_info_data[DataTag.CCU_TASK] = [
+            [0, 1, '1', '2', 0, 2, 1, 0, 1, 1, 0]
+        ]
+        check._ccu_add_info_data[DataTag.CCU_GROUP] = [
+            [0, '1', '2', 0, 2, 1, 1, 0, 1, 119, 255, 'SUM', 'INT32', 'INT32',
+             NumberConstant.INT64_MAX + 1, 2, 1]
+        ]
+        task_model = mock.MagicMock()
+        group_model = mock.MagicMock()
+        check._model_dict[DataTag.CCU_TASK] = task_model
+        check._model_dict[DataTag.CCU_GROUP] = group_model
+
+        with self.assertRaisesRegex(RuntimeError, "SQLite integer range"):
+            check.save()
+
+        task_model.__enter__.assert_not_called()
+        group_model.__enter__.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

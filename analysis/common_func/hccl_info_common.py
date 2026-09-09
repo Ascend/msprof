@@ -125,7 +125,7 @@ class ReduceOpType(Enum):
     """
 
     SUM = 0
-    PROD = 1
+    MUL = 1
     MAX = 2
     MIN = 3
     RESERVED = 255

@@ -278,10 +278,76 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
         case AdditionalInfoFormat::STATIC_OP_MEM_TYPE:
             AdapterStaticOpMem(addition, parsed);
             return true;
+        case AdditionalInfoFormat::CCU_TASK_INFO_TYPE:
+            AdapterCcuTaskInfo(addition, parsed);
+            return true;
+        case AdditionalInfoFormat::CCU_WAIT_SIGNAL_INFO_TYPE:
+            AdapterCcuWaitSignalInfo(addition, parsed);
+            return true;
+        case AdditionalInfoFormat::CCU_GROUP_INFO_TYPE:
+            AdapterCcuGroupInfo(addition, parsed);
+            return true;
         default:
             ERROR("Unsupported Additional Info: %.", static_cast<uint32_t>(parserType));
             return false;
     }
+}
+
+namespace
+{
+template <typename T>
+void CopyCcuCommonFields(const T& source, ParserCcuInfo& info)
+{
+    info = {};
+    info.version = source.version;
+    info.workFlowMode = source.workFlowMode;
+    info.itemId = source.itemId;
+    info.groupName = source.groupName;
+    info.rankId = source.rankId;
+    info.rankSize = source.rankSize;
+    info.streamId = source.streamId;
+    info.taskId = source.taskId;
+    info.dieId = source.dieId;
+    info.missionId = source.missionId;
+    info.instrId = source.instrId;
+}
+
+template <typename T>
+void CopyCcuChannels(const T& source, ParserCcuInfo& info)
+{
+    for (size_t i = 0; i < 16; ++i)
+    {
+        info.channelIds[i] = source.channelIds[i];
+        info.remoteRankIds[i] = source.remoteRankIds[i];
+    }
+}
+}  // namespace
+
+void ParserAdditionalInfoAdapter::AdapterCcuTaskInfo(const MsprofAdditionalInfo* addition, ParserAdditionalInfo* parsed)
+{
+    CopyCcuCommonFields(addition->ccuTaskInfo, parsed->ccuInfo);
+}
+
+void ParserAdditionalInfoAdapter::AdapterCcuWaitSignalInfo(const MsprofAdditionalInfo* addition,
+                                                           ParserAdditionalInfo* parsed)
+{
+    const auto& source = addition->ccuWaitSignalInfo;
+    CopyCcuCommonFields(source, parsed->ccuInfo);
+    CopyCcuChannels(source, parsed->ccuInfo);
+    parsed->ccuInfo.ckeId = source.ckeId;
+    parsed->ccuInfo.mask = source.mask;
+}
+
+void ParserAdditionalInfoAdapter::AdapterCcuGroupInfo(const MsprofAdditionalInfo* addition,
+                                                      ParserAdditionalInfo* parsed)
+{
+    const auto& source = addition->ccuGroupInfo;
+    CopyCcuCommonFields(source, parsed->ccuInfo);
+    CopyCcuChannels(source, parsed->ccuInfo);
+    parsed->ccuInfo.reduceOpType = source.reduceOpType;
+    parsed->ccuInfo.inputDataType = source.inputDataType;
+    parsed->ccuInfo.outputDataType = source.outputDataType;
+    parsed->ccuInfo.dataSize = source.dataSize;
 }
 
 void ParserAdditionalInfoAdapter::AdapterContextIdInfo(const MsprofAdditionalInfo* addition,

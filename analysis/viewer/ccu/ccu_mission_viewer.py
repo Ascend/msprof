@@ -16,6 +16,7 @@
 
 import os
 from abc import ABC
+from bisect import bisect_left
 from collections import defaultdict
 
 from viewer.interface.base_viewer import BaseViewer
@@ -81,23 +82,50 @@ class CCUMissionViewer(BaseViewer, ABC):
         ]
 
     @staticmethod
-    def get_max_delay_channel_and_channel_delay(host_data: list, mission_data: any, channel_data: dict) -> any:
-        if not channel_data:
+    def build_channel_delay_index(channel_data: list) -> dict:
+        grouped_channel_data = defaultdict(list)
+        for channel in channel_data:
+            grouped_channel_data[channel.channel_id].append(channel)
+
+        channel_delay_index = {}
+        for channel_id, records in grouped_channel_data.items():
+            records.sort(key=lambda record: record.timestamp)
+            timestamps = []
+            prefix_max_delays = []
+            max_delay = 0
+            for record in records:
+                max_delay = max(max_delay, record.avg_bw)
+                timestamps.append(record.timestamp)
+                prefix_max_delays.append(max_delay)
+            channel_delay_index[channel_id] = (timestamps, prefix_max_delays)
+        return channel_delay_index
+
+    @staticmethod
+    def get_max_delay_channel_and_channel_delay(host_data: list, mission_data: any, channel_delay_index: dict) -> any:
+        if not channel_delay_index:
             return None, None
+        max_delay_channel = None
+        max_channel_delay = 0
         host_channel_ids = {channel.channel_id for channel in host_data}
-
-        within_channel = []
-        for host_channel_id in host_channel_ids:
-            if host_channel_id in channel_data:
-                within_channel.extend(channel_data[host_channel_id])
-        if not within_channel:
+        for channel_id in host_channel_ids:
+            channel_records = channel_delay_index.get(channel_id)
+            if not channel_records:
+                continue
+            timestamps, prefix_max_delays = channel_records
+            record_index = bisect_left(timestamps, mission_data.end_time) - 1
+            if record_index < 0:
+                continue
+            channel_delay = prefix_max_delays[record_index]
+            if channel_delay > max_channel_delay or (
+                channel_delay == max_channel_delay
+                and channel_delay > 0
+                and (max_delay_channel is None or channel_id < max_delay_channel)
+            ):
+                max_delay_channel = channel_id
+                max_channel_delay = channel_delay
+        if max_delay_channel is None:
             return None, None
-
-        seq_channel = [channel for channel in within_channel if channel.timestamp < mission_data.end_time]
-        if seq_channel:
-            max_delay_channel = max(seq_channel, key=lambda x: x.avg_bw)
-            return max_delay_channel.channel_id, max_delay_channel.avg_bw
-        return None, None
+        return max_delay_channel, max_channel_delay
 
     def get_timeline_header(self) -> list:
         header = [
@@ -184,12 +212,12 @@ class CCUMissionViewer(BaseViewer, ABC):
             return result
         grouped_loop_data = defaultdict(list)
         for item in device_loop_data:
-            key = (item.task_id, item.lp_instr_id)
+            key = (item.stream_id, item.task_id, item.lp_instr_id)
             grouped_loop_data[key] = item
 
         grouped_group_data = defaultdict(list)
         for item in group_data:
-            key = (item.task_id, item.instr_id)
+            key = (item.stream_id, item.task_id, item.instr_id)
             grouped_group_data[key].append(item)
 
         for key, data in grouped_loop_data.items():
@@ -199,7 +227,7 @@ class CCUMissionViewer(BaseViewer, ABC):
             args = {"Physic Stream Id": data.stream_id, "Task Id": data.task_id, "Instruction ID": data.lp_instr_id}
             if host_data:
                 args.update({"Die Id": host_data[0].die_id, "Data Size": host_data[0].data_size})
-                if duration != 0:
+                if duration > 0:
                     args.update({"Bandwidth (MB/s)": host_data[0].data_size / duration * Constant.BYTE_US_TO_MB_S})
                 if host_data[0].reduce_op_type != CCUMissionViewer.RESERVED:
                     args.update(
@@ -216,23 +244,19 @@ class CCUMissionViewer(BaseViewer, ABC):
         result = []
         if not wait_data:
             return result
-        grouped_loop_data = defaultdict(list)
+        grouped_wait_data = defaultdict(list)
         for item in wait_data:
-            key = (item.task_id, item.setckebit_instr_id)
-            grouped_loop_data[key].append(item)
+            key = (item.stream_id, item.task_id, item.setckebit_instr_id)
+            grouped_wait_data[key].append(item)
 
         grouped_wait_signal_data = defaultdict(list)
         for item in wait_signal_data:
-            key = (item.task_id, item.instr_id)
+            key = (item.stream_id, item.task_id, item.instr_id)
             grouped_wait_signal_data[key].append(item)
 
-        # channel data is classified by channel_id for easy access when calculating max delay channel and channel delay
-        channel_data_classified = defaultdict(list)
-        for item in channel_data:
-            key = item.channel_id
-            channel_data_classified[key].append(item)
+        channel_delay_index = self.build_channel_delay_index(channel_data)
 
-        for key, data_list in grouped_loop_data.items():
+        for key, data_list in grouped_wait_data.items():
             latest_data = max(data_list, key=lambda x: x.end_time)
             start_time = InfoConfReader().trans_syscnt_into_local_time(latest_data.start_time)
             duration = InfoConfReader().duration_from_syscnt(latest_data.end_time - latest_data.start_time)
@@ -246,9 +270,9 @@ class CCUMissionViewer(BaseViewer, ABC):
             if host_data:
                 args.update({"Die Id": host_data[0].die_id, "Mask": host_data[0].mask})
                 max_delay_channel, max_channel_delay = self.get_max_delay_channel_and_channel_delay(
-                    host_data, latest_data, channel_data_classified
+                    host_data, latest_data, channel_delay_index
                 )
-                if max_delay_channel and max_channel_delay:
+                if max_delay_channel is not None and max_channel_delay is not None:
                     args.update(
                         {"Maximum Delay Channel": max_delay_channel, "Maximum Channel Delay": max_channel_delay}
                     )

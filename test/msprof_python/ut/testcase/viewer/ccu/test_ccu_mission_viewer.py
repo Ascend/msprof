@@ -28,6 +28,7 @@ from profiling_bean.db_dto.ccu.ccu_add_info_dto import OriginWaitSignalInfoDto
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from viewer.ccu.ccu_mission_viewer import CCUMissionViewer
 from profiling_bean.prof_enum.data_tag import DataTag
+from profiling_bean.prof_enum.chip_model import ChipModel
 from msparser.add_info.ccu_add_info_parser import CCUAddInfoParser
 from msparser.hardware.ccu_mission_parser import CCUMissionParser
 from msparser.hardware.ccu_channel_parser import CCUChannelParser
@@ -48,20 +49,14 @@ class TestCCUMissionViewer(unittest.TestCase):
     }
     DEVICE_CONFIG = {
         'result_dir': DEVICE_PATH, 'device_id': '0', 'iter_id': IterationRange(0, 1, 1),
-        'job_id': 'job_default', 'model_id': -1
+        'job_id': 'job_default', 'model_id': -1, 'chip_model': str(ChipModel.CHIP_V6_1_0.value)
     }
 
     def setUp(self):
-        if not os.path.exists(self.DIR_PATH):
-            os.mkdir(self.DIR_PATH)
-        if not os.path.exists(self.HOST_PATH):
-            os.mkdir(self.HOST_PATH)
-        if not os.path.exists(self.DEVICE_PATH):
-            os.mkdir(self.DEVICE_PATH)
-        if not os.path.exists(self.HOST_SQLITE_PATH):
-            os.mkdir(self.HOST_SQLITE_PATH)
-        if not os.path.exists(self.DEVICE_SQLITE_PATH):
-            os.mkdir(self.DEVICE_SQLITE_PATH)
+        if os.path.exists(self.DIR_PATH):
+            shutil.rmtree(self.DIR_PATH)
+        os.makedirs(self.HOST_SQLITE_PATH)
+        os.makedirs(self.DEVICE_SQLITE_PATH)
         if os.path.exists(self.HOST_SQLITE_PATH):
             add_info_parser = CCUAddInfoParser(self.file_list, self.HOST_CONFIG)
             add_info_parser._ccu_add_info_data = {
@@ -92,9 +87,10 @@ class TestCCUMissionViewer(unittest.TestCase):
             ]
             check.save()
 
-    def teardown_class(self):
-        if os.path.exists(self.DIR_PATH):
-            shutil.rmtree(self.DIR_PATH)
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.DIR_PATH):
+            shutil.rmtree(cls.DIR_PATH)
 
     def test_ccu_mission_viewer_should_return_true_when_run_get_timeline_data_success(self):
         InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
@@ -231,3 +227,91 @@ class TestCCUMissionViewer(unittest.TestCase):
             check = CCUMissionViewer({}, params)
             ret = check.get_trace_timeline(ccu_data_dict)
             self.assertEqual(7, len(ret))
+
+    def test_host_add_info_association_should_include_stream_id(self):
+        viewer = CCUMissionViewer.__new__(CCUMissionViewer)
+        viewer.pid = 1
+        viewer.tid = 1
+        loop_data = [
+            OriginMissionDto(stream_id=1, task_id=10, lp_instr_id=100, start_time=1000, end_time=4000,
+                             time_type='LoopGroup'),
+            OriginMissionDto(stream_id=2, task_id=10, lp_instr_id=100, start_time=1000, end_time=4000,
+                             time_type='LoopGroup')
+        ]
+        group_data = [
+            OriginGroupInfoDto(stream_id=1, task_id=10, instr_id=100, die_id=0, data_size=1024,
+                               reduce_op_type='SUM', input_data_type='FP16', output_data_type='FP16')
+        ]
+        wait_data = [
+            OriginMissionDto(stream_id=1, task_id=10, setckebit_instr_id=200, rel_id=5, start_time=2000,
+                             end_time=6000, time_type='Wait'),
+            OriginMissionDto(stream_id=2, task_id=10, setckebit_instr_id=200, rel_id=6, start_time=2000,
+                             end_time=6000, time_type='Wait')
+        ]
+        wait_signal_data = [
+            OriginWaitSignalInfoDto(stream_id=1, task_id=10, instr_id=200, die_id=0, mask=255, channel_id=3)
+        ]
+
+        with mock.patch.object(InfoConfReader(), 'trans_syscnt_into_local_time', return_value=1), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=3):
+            loop_result = viewer.get_formatted_loop_data(loop_data, group_data)
+            wait_result = viewer.get_formatted_wait_data(wait_data, wait_signal_data, [])
+
+        loop_args = {event[5]['Physic Stream Id']: event[5] for event in loop_result}
+        self.assertIn('Data Size', loop_args[1])
+        self.assertNotIn('Data Size', loop_args[2])
+        wait_args = {event[5]['Physic Stream Id']: event[5] for event in wait_result}
+        self.assertIn('Mask', wait_args[1])
+        self.assertNotIn('Mask', wait_args[2])
+
+    def test_channel_delay_should_use_strict_boundary_prefix_max_and_smallest_channel_tie_break(self):
+        viewer = CCUMissionViewer.__new__(CCUMissionViewer)
+        viewer.pid = 1
+        viewer.tid = 1
+        wait_data = [
+            OriginMissionDto(stream_id=1, task_id=10, setckebit_instr_id=200, rel_id=5, start_time=2000,
+                             end_time=8000, time_type='Wait')
+        ]
+        wait_signal_data = [
+            OriginWaitSignalInfoDto(stream_id=1, task_id=10, instr_id=200, die_id=0, mask=255, channel_id=4),
+            OriginWaitSignalInfoDto(stream_id=1, task_id=10, instr_id=200, die_id=0, mask=255, channel_id=0),
+            OriginWaitSignalInfoDto(stream_id=1, task_id=10, instr_id=200, die_id=0, mask=255, channel_id=0)
+        ]
+        channel_data = [
+            OriginChannelDto(channel_id=0, timestamp=7900, avg_bw=77),
+            OriginChannelDto(channel_id=4, timestamp=7500, avg_bw=150),
+            OriginChannelDto(channel_id=0, timestamp=7000, avg_bw=75),
+            OriginChannelDto(channel_id=0, timestamp=7000, avg_bw=150),
+            OriginChannelDto(channel_id=0, timestamp=8000, avg_bw=999),
+            OriginChannelDto(channel_id=0, timestamp=8000, avg_bw=500),
+            OriginChannelDto(channel_id=0, timestamp=9000, avg_bw=1000)
+        ]
+
+        with mock.patch.object(InfoConfReader(), 'trans_syscnt_into_local_time', return_value=2), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=6):
+            result = viewer.get_formatted_wait_data(wait_data, wait_signal_data, channel_data)
+
+        self.assertEqual(1, len(result))
+        self.assertEqual(0, result[0][5]['Maximum Delay Channel'])
+        self.assertEqual(150, result[0][5]['Maximum Channel Delay'])
+
+    def test_loop_bandwidth_should_be_omitted_for_nonpositive_duration(self):
+        viewer = CCUMissionViewer.__new__(CCUMissionViewer)
+        viewer.pid = 1
+        viewer.tid = 1
+        loop_data = [
+            OriginMissionDto(stream_id=1, task_id=10, lp_instr_id=100, start_time=4000, end_time=1000,
+                             time_type='LoopGroup')
+        ]
+        group_data = [
+            OriginGroupInfoDto(stream_id=1, task_id=10, instr_id=100, die_id=0, data_size=1024,
+                               reduce_op_type='SUM', input_data_type='FP16', output_data_type='FP16')
+        ]
+
+        with mock.patch.object(InfoConfReader(), 'trans_syscnt_into_local_time', return_value=4), \
+                mock.patch.object(InfoConfReader(), 'duration_from_syscnt', return_value=-3):
+            result = viewer.get_formatted_loop_data(loop_data, group_data)
+
+        self.assertEqual(0, result[0][4])
+        self.assertIn('Data Size', result[0][5])
+        self.assertNotIn('Bandwidth (MB/s)', result[0][5])

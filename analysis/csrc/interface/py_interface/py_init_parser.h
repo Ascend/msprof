@@ -18,8 +18,10 @@
 #define ANALYSIS_PY_INTERFACE_PY_INIT_PARSER_H
 
 #include <Python.h>
-namespace Analysis {
-namespace Interface {
+namespace Analysis
+{
+namespace Interface
+{
 // 该方法供注册python接口使用，用于收集PyMethodDef供注册时挂载module
 // 挂载接口格式如下： Get{模块名}Methods
 PyMethodDef *GetParserMethods();
@@ -34,7 +36,7 @@ PyObject *WrapExportUnifiedDB(PyObject *self, PyObject *args);
 PyObject *WrapExportTimeline(PyObject *self, PyObject *args);
 // op_summary导出入口的外层包装，解析Python侧传入路径后调用exportSummary启动导出流程，获取返回状态码后返回Python侧
 PyObject *WrapExportSummary(PyObject *self, PyObject *args);
-} // Interface
-} // Analyzer
+}  // namespace Interface
+}  // namespace Analysis
 
-#endif // ANALYSIS_PY_INTERFACE_PY_INIT_PARSER_H
+#endif  // ANALYSIS_PY_INTERFACE_PY_INIT_PARSER_H

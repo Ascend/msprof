@@ -16,6 +16,7 @@
 
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
+from msmodel.ccu_model import insert_ccu_data_to_db
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
 from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginMissionDto
@@ -26,16 +27,13 @@ class CCUMissionModel(ParserModel):
     ccu mission model class
     """
 
-    def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
-        super().__init__(result_dir, db_name, table_list)
-
-    def flush(self: any, data_list: list, table_name: str) -> None:
+    def flush(self: any, data_list: list, table_name: str) -> bool:
         """
         flush ccu mission data to db
         :param data_list: ccu mission origin data list
-        :return: None
+        :return: whether the insert transaction was committed
         """
-        self.insert_data_to_db(table_name, data_list)
+        return insert_ccu_data_to_db(self.conn, table_name, data_list)
 
 
 class CCUViewerMissionModel(ViewModel):
@@ -51,12 +49,13 @@ class CCUViewerMissionModel(ViewModel):
         get ccu mission data
         :return: list
         """
-        sql = ("SELECT stream_id, task_id, lp_instr_id, setckebit_instr_id, rel_id, " \
-               "CASE WHEN setckebit_start_time <> 0 THEN setckebit_start_time ELSE lp_start_time END AS start_time, " \
-               "CASE WHEN setckebit_start_time <> 0 THEN rel_end_time ELSE lp_end_time END AS end_time, " \
-               "CASE WHEN setckebit_start_time <> 0 THEN 'Wait' ELSE 'LoopGroup' END AS time_type FROM {} " \
-               "WHERE setckebit_start_time <> 0 OR lp_start_time <> 0;"
-               .format(DBNameConstant.TABLE_CCU_MISSION))
+        sql = (
+            "SELECT stream_id, task_id, lp_instr_id, setckebit_instr_id, rel_id, "
+            "CASE WHEN setckebit_start_time <> 0 THEN setckebit_start_time ELSE lp_start_time END AS start_time, "
+            "CASE WHEN setckebit_start_time <> 0 THEN rel_end_time ELSE lp_end_time END AS end_time, "
+            "CASE WHEN setckebit_start_time <> 0 THEN 'Wait' ELSE 'LoopGroup' END AS time_type FROM {} "
+            "WHERE setckebit_start_time <> 0 OR lp_start_time <> 0;".format(DBNameConstant.TABLE_CCU_MISSION)
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=OriginMissionDto)
 
     def get_summary_data(self: any) -> list:
@@ -64,7 +63,10 @@ class CCUViewerMissionModel(ViewModel):
         get ccu mission data
         :return: list
         """
-        sql = "select stream_id, task_id, lp_instr_id, lp_start_time, lp_end_time, " \
-              "setckebit_instr_id, setckebit_start_time, rel_id, rel_end_time from {};" \
-            .format(DBNameConstant.TABLE_CCU_MISSION)
+        sql = (
+            "select stream_id, task_id, lp_instr_id, lp_start_time, lp_end_time, "
+            "setckebit_instr_id, setckebit_start_time, rel_id, rel_end_time from {};".format(
+                DBNameConstant.TABLE_CCU_MISSION
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=OriginMissionDto)

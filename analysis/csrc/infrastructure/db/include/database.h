@@ -49,6 +49,18 @@ class Database
     std::unordered_map<std::string, TableColumns> tableColNames_;
 };
 
+class CcuInfoDB : public Database
+{
+   public:
+    CcuInfoDB();
+};
+
+class CcuDB : public Database
+{
+   public:
+    CcuDB();
+};
+
 class ApiEventDB : public Database
 {
    public:

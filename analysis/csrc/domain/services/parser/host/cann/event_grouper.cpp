@@ -146,6 +146,11 @@ void EventGrouper::GroupTreeEvent(ThreadPool &pool)
 
 void EventGrouper::GroupLookup(ThreadPool &pool)
 {
+    if (NeedLookup(EventType::EVENT_TYPE_CCU_INFO))
+    {
+        pool.AddTask([this]()
+                     { GroupEvents<CcuAddInfoParser, CcuInfoData, &CANNDumpWarehouse::ccuInfoData>("CcuAddInfo"); });
+    }
     if (NeedLookup(EventType::EVENT_TYPE_RUNTIME_OP_INFO))
     {
         pool.AddTask([this]() { ParseRuntimeOpInfo(); });

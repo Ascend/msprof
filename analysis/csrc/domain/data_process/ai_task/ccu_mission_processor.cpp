@@ -126,7 +126,12 @@ CCUDelayChannel GetMaxDelayChannel(const std::vector<CCUWaitSignalInfo> &hostDat
             continue;
         }
         --recordIter;
-        if (!found || recordIter->maxDelay > maxDelay.channelDelay)
+        if (recordIter->maxDelay == 0)
+        {
+            continue;
+        }
+        if (!found || recordIter->maxDelay > maxDelay.channelDelay ||
+            (recordIter->maxDelay == maxDelay.channelDelay && recordIter->channelId < maxDelay.channelId))
         {
             maxDelay.channelId = recordIter->channelId;
             maxDelay.channelDelay = recordIter->maxDelay;
@@ -139,7 +144,6 @@ CCUDelayChannel GetMaxDelayChannel(const std::vector<CCUWaitSignalInfo> &hostDat
 CCUChannelIndex BuildChannelIndex(const std::vector<CCUChannelInfo> &channelInfo)
 {
     std::unordered_map<uint16_t, std::vector<CCUChannelInfo>> groupedChannelInfo;
-    groupedChannelInfo.reserve(channelInfo.size());
     for (const auto &channel : channelInfo)
     {
         groupedChannelInfo[channel.channelId].emplace_back(channel);

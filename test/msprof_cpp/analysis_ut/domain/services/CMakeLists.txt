@@ -23,6 +23,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db DEVICE_PARSER_SO
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db/include DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/tree DEVICE_PARSER_SOURCE)
 list(APPEND DEVICE_PARSER_SOURCE
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/ccu_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/persistence_utils.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/qos_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/ub_persistence.cpp

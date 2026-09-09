@@ -25,6 +25,7 @@ from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import CannCalculatorScene, DeviceParseScene
 from common_func.utils import Utils
 from msconfig.config_manager import ConfigManager
+from profiling_bean.prof_enum.chip_model import ChipModel
 
 
 class ConfigDataParsers:
@@ -149,6 +150,7 @@ class ConfigDataParsers:
         """
         if section in [
             "ApiEventParser",
+            "CCUAddInfoParser",
             "HashDicParser",
             "TaskTrackParser",
             "MemcpyInfoParser",
@@ -177,6 +179,8 @@ class ConfigDataParsers:
         load can cpp parse
         :param section: parser name config in the config file
         """
+        if ChipManager().chip_id == ChipModel.CHIP_V6_1_0 and section in ["CCUMissionParser", "CCUChannelParser"]:
+            return True
         if ChipManager().is_chip_v4() and section in [
             "AscendTaskCalculator",
             "StarsLogCalCulator",

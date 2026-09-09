@@ -15,6 +15,7 @@
 # -------------------------------------------------------------------------
 
 from msconfig.meta_config import MetaConfig
+from profiling_bean.hardware.ccu_profile import CcuHardwareProfileRegistry
 
 
 class DataParsersConfig(MetaConfig):
@@ -306,12 +307,12 @@ class DataParsersConfig(MetaConfig):
         ],
         'CCUMissionParser': [
             ('path', 'msparser.hardware.ccu_mission_parser'),
-            ('chip_model', '15,16'),
+            ('chip_model', CcuHardwareProfileRegistry.supported_chip_models_csv()),
             ('position', 'D'),
         ],
         'CCUChannelParser': [
             ('path', 'msparser.hardware.ccu_channel_parser'),
-            ('chip_model', '15,16'),
+            ('chip_model', CcuHardwareProfileRegistry.supported_chip_models_csv()),
             ('position', 'D'),
         ],
         'CCUAddInfoParser': [

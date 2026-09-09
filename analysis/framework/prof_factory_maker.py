@@ -53,7 +53,9 @@ class ProfFactoryMaker:
 
         _chip_model = self._get_chip_model()
         if _chip_model:
-            parser_factory = ParserFactory(self._file_list, self._sample_config, str(_chip_model.value))
+            parser_config = dict(self._sample_config)
+            parser_config[StrConstant.SAMPLE_CONFIG_CHIP_MODEL] = str(_chip_model.value)
+            parser_factory = ParserFactory(self._file_list, parser_config, str(_chip_model.value))
             parser_factory.run()
 
     def create_calculator_factory(self: any, file_list: dict) -> None:

@@ -29,6 +29,48 @@ const TableColumns ApiEventData = {{"struct_type", SQL_TEXT_TYPE}, {"id", SQL_TE
                                    {"end", SQL_INTEGER_TYPE},      {"connection_id", SQL_INTEGER_TYPE},
                                    {"key", SQL_INTEGER_TYPE}};
 
+const TableColumns CcuTaskInfo = {
+    {"version", SQL_NUMERIC_TYPE},    {"work_flow_mode", SQL_NUMERIC_TYPE}, {"item_id", SQL_TEXT_TYPE},
+    {"group_name", SQL_TEXT_TYPE},    {"rank_id", SQL_NUMERIC_TYPE},        {"rank_size", SQL_NUMERIC_TYPE},
+    {"stream_id", SQL_NUMERIC_TYPE},  {"task_id", SQL_NUMERIC_TYPE},        {"die_id", SQL_NUMERIC_TYPE},
+    {"mission_id", SQL_NUMERIC_TYPE}, {"instr_id", SQL_NUMERIC_TYPE},
+};
+
+const TableColumns CcuWaitSignalInfo = {
+    {"version", SQL_NUMERIC_TYPE},   {"item_id", SQL_TEXT_TYPE},       {"group_name", SQL_TEXT_TYPE},
+    {"rank_id", SQL_NUMERIC_TYPE},   {"rank_size", SQL_NUMERIC_TYPE},  {"work_flow_mode", SQL_NUMERIC_TYPE},
+    {"stream_id", SQL_NUMERIC_TYPE}, {"task_id", SQL_NUMERIC_TYPE},    {"die_id", SQL_NUMERIC_TYPE},
+    {"instr_id", SQL_NUMERIC_TYPE},  {"mission_id", SQL_NUMERIC_TYPE}, {"cke_id", SQL_NUMERIC_TYPE},
+    {"mask", SQL_NUMERIC_TYPE},      {"channel_id", SQL_NUMERIC_TYPE}, {"remote_rank_id", SQL_NUMERIC_TYPE},
+};
+
+const TableColumns CcuGroupInfo = {
+    {"version", SQL_NUMERIC_TYPE},         {"item_id", SQL_TEXT_TYPE},
+    {"group_name", SQL_TEXT_TYPE},         {"rank_id", SQL_NUMERIC_TYPE},
+    {"rank_size", SQL_NUMERIC_TYPE},       {"work_flow_mode", SQL_NUMERIC_TYPE},
+    {"stream_id", SQL_NUMERIC_TYPE},       {"task_id", SQL_NUMERIC_TYPE},
+    {"die_id", SQL_NUMERIC_TYPE},          {"instr_id", SQL_NUMERIC_TYPE},
+    {"mission_id", SQL_NUMERIC_TYPE},      {"reduce_op_type", SQL_NUMERIC_TYPE},
+    {"input_data_type", SQL_NUMERIC_TYPE}, {"output_data_type", SQL_NUMERIC_TYPE},
+    {"data_size", SQL_NUMERIC_TYPE},       {"channel_id", SQL_NUMERIC_TYPE},
+    {"remote_rank_id", SQL_NUMERIC_TYPE},
+};
+
+const TableColumns CcuMission = {{"stream_id", SQL_NUMERIC_TYPE},
+                                 {"task_id", SQL_NUMERIC_TYPE},
+                                 {"lp_instr_id", SQL_NUMERIC_TYPE},
+                                 {"lp_start_time", SQL_NUMERIC_TYPE},
+                                 {"lp_end_time", SQL_NUMERIC_TYPE},
+                                 {"setckebit_instr_id", SQL_NUMERIC_TYPE},
+                                 {"setckebit_start_time", SQL_NUMERIC_TYPE},
+                                 {"rel_id", SQL_NUMERIC_TYPE},
+                                 {"rel_end_time", SQL_NUMERIC_TYPE}};
+
+const TableColumns CcuChannel = {
+    {"channel_id", SQL_NUMERIC_TYPE}, {"timestamp", SQL_NUMERIC_TYPE}, {"max_bw", SQL_NUMERIC_TYPE},
+    {"min_bw", SQL_NUMERIC_TYPE},     {"avg_bw", SQL_NUMERIC_TYPE},
+};
+
 const TableColumns HostTask = {
     {"model_id", SQL_INTEGER_TYPE},  {"request_id", SQL_INTEGER_TYPE},    {"stream_id", SQL_INTEGER_TYPE},
     {"task_id", SQL_INTEGER_TYPE},   {"context_ids", SQL_TEXT_TYPE},      {"batch_id", SQL_INTEGER_TYPE},
@@ -641,6 +683,21 @@ ApiEventDB::ApiEventDB()
 {
     dbName_ = "api_event.db";
     tableColNames_["ApiData"] = ApiEventData;
+}
+
+CcuInfoDB::CcuInfoDB()
+{
+    dbName_ = "ccu_add_info.db";
+    tableColNames_["CCUTaskInfo"] = CcuTaskInfo;
+    tableColNames_["CCUWaitSignalInfo"] = CcuWaitSignalInfo;
+    tableColNames_["CCUGroupInfo"] = CcuGroupInfo;
+}
+
+CcuDB::CcuDB()
+{
+    dbName_ = "ccu.db";
+    tableColNames_["OriginMission"] = CcuMission;
+    tableColNames_["OriginChannel"] = CcuChannel;
 }
 
 RuntimeDB::RuntimeDB()

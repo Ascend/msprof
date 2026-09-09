@@ -57,6 +57,7 @@ class StrConstant:
 
     # constant within sample config
     SAMPLE_CONFIG_PROJECT_PATH = "result_dir"
+    SAMPLE_CONFIG_CHIP_MODEL = "chip_model"
     TIME_PATTERN = r'\d+\.\d+'
     SAMPLE_CONFIG = "sample_config"
 

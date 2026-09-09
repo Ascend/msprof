@@ -32,6 +32,38 @@ from profiling_bean.prof_enum.chip_model import ChipModel
 
 
 class TestConfigDataParsers(unittest.TestCase):
+    def test_ccu_uses_existing_device_scene_gates(self):
+        for enabled, all_export, version, task in (
+                (True, True, True, True), (False, True, True, True),
+                (True, False, True, True), (True, True, False, True),
+                (True, True, True, False)):
+            with self.subTest(enabled=enabled, all_export=all_export, version=version, task=task), \
+                    mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=enabled), \
+                    mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
+                    mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
+                    mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=version), \
+                    mock.patch.object(ProfilingScene(), "is_all_export", return_value=all_export), \
+                    mock.patch.object(ChipManager(), "chip_id", ChipModel.CHIP_V6_1_0), \
+                    mock.patch.object(ChipManager(), "is_chip_v4", return_value=False):
+                names = self._parser_names(ConfigDataParsers.get_parsers(
+                    ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V6_1_0.value), task))
+                for name in ("CCUMissionParser", "CCUChannelParser"):
+                    self.assertEqual(name in names, not (enabled and all_export and version and task))
+                self.assertIn("AicpuAddInfoParser", names)
+
+    def test_device_scene_whitelist_keeps_v61_disabled_until_unified_switch(self):
+        self.assertNotIn(ChipModel.CHIP_V6_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
+        self.assertIn(ChipModel.CHIP_V4_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
+        self.assertNotIn(ChipModel.CHIP_V6_2_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
+
+    def test_ccu_native_ownership_is_limited_to_v61(self):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0):
+            with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
+                for parser in ("CCUMissionParser", "CCUChannelParser"):
+                    self.assertEqual(
+                        ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
+                        chip == ChipModel.CHIP_V6_1_0)
+
     @staticmethod
     def _parser_names(parsers):
         return {parser.__name__ for level_parsers in parsers.values() for parser in level_parsers}
@@ -56,6 +88,8 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StaticOpMemParser")
         self.assertFalse(ret)
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("StreamExpandSpecParser")
+        self.assertTrue(ret)
+        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_host_data("CCUAddInfoParser")
         self.assertTrue(ret)
 
     @mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=False)
@@ -96,4 +130,11 @@ class TestConfigDataParsers(unittest.TestCase):
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_not_in_whitelist(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NpuMemParser")
+        self.assertFalse(ret)
+
+    def test_load_can_cpp_parse_or_calculate_device_data_should_return_false_for_v6_1(self):
+        with mock.patch('framework.config_data_parsers.ChipManager') as chip_manager:
+            chip_manager.return_value.chip_id = ChipModel.CHIP_V6_1_0
+            chip_manager.return_value.is_chip_v4.return_value = False
+            ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("AscendTaskCalculator")
         self.assertFalse(ret)

@@ -32,17 +32,25 @@ NAMESPACE = 'mscalculate.cann.cann_calculator'
 class TestClusterLinkCalculate(unittest.TestCase):
 
     def test_ms_run(self):
-        with mock.patch(NAMESPACE + '.CANNCalculator.calculate'), \
-                mock.patch(NAMESPACE + '.CANNCalculator.save'):
+        with mock.patch(NAMESPACE + '.CannCalculatorScene.is_cpp_enable', return_value=False), \
+                mock.patch(NAMESPACE + '.RTAddInfoCenter'), \
+                mock.patch(NAMESPACE + '.CANNCalculator.calculate') as calculate, \
+                mock.patch(NAMESPACE + '.CANNCalculator.save') as save, \
+                mock.patch(NAMESPACE + '.dump_cann_trace') as dump_cann_trace:
             CANNCalculator({}, CONFIG).ms_run()
-            with mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('os.path.islink', return_value=False), \
-                    mock.patch('os.access', return_value=True), \
-                    mock.patch('common_func.file_manager.is_other_writable', return_value=False), \
-                    mock.patch('common_func.file_manager.check_path_owner', return_value=True), \
-                    mock.patch('msinterface.msprof_c_interface.run_in_subprocess'), \
-                    mock.patch('importlib.import_module'):
-                CANNCalculator({}, CONFIG).ms_run()
+        calculate.assert_called_once_with()
+        save.assert_called_once_with()
+        dump_cann_trace.assert_not_called()
+
+    def test_ms_run_should_use_native_parser_when_enabled(self):
+        with mock.patch(NAMESPACE + '.CannCalculatorScene.is_cpp_enable', return_value=True), \
+                mock.patch(NAMESPACE + '.CANNCalculator.calculate') as calculate, \
+                mock.patch(NAMESPACE + '.CANNCalculator.save') as save, \
+                mock.patch(NAMESPACE + '.dump_cann_trace') as dump_cann_trace:
+            CANNCalculator({}, CONFIG).ms_run()
+        dump_cann_trace.assert_called_once_with(CONFIG['result_dir'])
+        calculate.assert_not_called()
+        save.assert_not_called()
 
     def test_calculate(self):
         InfoConfReader()._info_json = {'pid': '0'}

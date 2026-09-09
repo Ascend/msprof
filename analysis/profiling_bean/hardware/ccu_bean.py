@@ -17,8 +17,8 @@
 import logging
 import struct
 
-from profiling_bean.stars.stars_common import StarsCommon
 from msparser.data_struct_size_constant import StructFmt
+from profiling_bean.stars.stars_common import StarsCommon
 from profiling_bean.struct_info.struct_decoder import StructDecoder
 
 
@@ -27,7 +27,7 @@ class CCUMissionBean(StructDecoder):
     ccu mission data bean for the data parsing by ccu mission parser
     """
 
-    def __init__(self: any) -> None:
+    def __init__(self: any, relative_time_scale: int = 4) -> None:
         self._stream_id = None
         self._task_id = None
         self._lp_instr_id = None
@@ -36,6 +36,7 @@ class CCUMissionBean(StructDecoder):
         self._setckebit_instr_id = None
         self._setckebit_start_time = None
         self._rel_end_time = []
+        self._relative_time_scale = relative_time_scale
 
     @property
     def stream_id(self: any) -> str:
@@ -90,7 +91,7 @@ class CCUMissionBean(StructDecoder):
         data_lens = 23
         if mission_data and len(mission_data) == data_lens:
             self._stream_id = mission_data[21]
-            self._task_id = StarsCommon.set_task_id(mission_data[21], mission_data[22])
+            self._task_id = StarsCommon.set_unique_task_id(mission_data[21], mission_data[22])
             self._lp_instr_id = mission_data[20]
             self._lp_start_time = mission_data[19]
             self._lp_end_time = mission_data[18]
@@ -100,8 +101,7 @@ class CCUMissionBean(StructDecoder):
             for i in range(0, 16):
                 if setckebit_start_syscnt != 0:
                     device_id = 15 - i
-                    # for mission_data bit problems, post fix it with mul 4
-                    end_time = setckebit_start_syscnt + mission_data[i] * 4
+                    end_time = setckebit_start_syscnt + mission_data[i] * self._relative_time_scale
                     self._rel_end_time.append((device_id, end_time))
             return True
         logging.error("CCU mission data struct is incomplete, please check the file.")

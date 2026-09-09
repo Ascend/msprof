@@ -72,7 +72,8 @@ context_id, graph_id_map, fusion_op_info, task_track, mem_cpy
     ENTRY(EVENT_TYPE_MC2_COMM_INFO, "Mc2CommInfo")                                                                     \
     ENTRY(EVENT_TYPE_STATIC_OP_MEM, "StaticOpMem") /* C++ parser/dumper 已落地，入口未使能，仍走 Python */ \
     ENTRY(EVENT_TYPE_STREAM_EXPAND_SPEC, "StreamExpandSpec") /* expand_stream_spec，解析后直接落盘 */          \
-    ENTRY(EVENT_TYPE_DUMMY, "Dummy")                         /* 虚拟类型，用于建树时标志虚拟节点 */    \
+    ENTRY(EVENT_TYPE_CCU_INFO, "CcuInfo")                    /* CCU lookup data, not a tree event */                   \
+    ENTRY(EVENT_TYPE_DUMMY, "Dummy")                         /* Virtual tree node */                                   \
     ENTRY(EVENT_TYPE_INVALID, "Invalid")
 
 enum class EventType
@@ -127,7 +128,7 @@ inline const std::set<EventType> &LookupEventTypes()
         EventType::EVENT_TYPE_RUNTIME_OP_INFO,     EventType::EVENT_TYPE_DPU_TASK_TRACK,
         EventType::EVENT_TYPE_CAPTURE_STREAM_INFO, EventType::EVENT_TYPE_MC2_COMM_INFO,
         EventType::EVENT_TYPE_GRAPH_ID_MAP,        EventType::EVENT_TYPE_MEM_CPY,
-        EventType::EVENT_TYPE_STREAM_EXPAND_SPEC,
+        EventType::EVENT_TYPE_STREAM_EXPAND_SPEC,  EventType::EVENT_TYPE_CCU_INFO,
         // EventType::EVENT_TYPE_STATIC_OP_MEM,  // C++ 入口未使能，仍走 Python；使能时打开并加入 Python 白名单
     };
     return types;
