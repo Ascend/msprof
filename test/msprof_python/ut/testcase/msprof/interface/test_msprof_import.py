@@ -18,6 +18,7 @@ from argparse import Namespace
 from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
+from common_func.msprof_exception import ProfException
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ExportMode, ProfilingScene
 from msinterface.msprof_import import ImportCommand
@@ -26,6 +27,46 @@ NAMESPACE = 'msinterface.msprof_import'
 
 
 class TestImportCommand(unittest.TestCase):
+    def test_prepare_for_cluster_parse_should_prepare_root_without_loading_device_info(self):
+        command = ImportCommand(Namespace(collection_path="test", cluster_flag=True))
+        with mock.patch(NAMESPACE + '.os.path.exists', return_value=False), \
+                mock.patch(NAMESPACE + '.prepare_for_parse') as prepare, \
+                mock.patch('framework.load_info_manager.LoadInfoManager.load_info') as load_info:
+            command._prepare_for_cluster_parse()
+        prepare.assert_called_once_with(command.collection_path)
+        load_info.assert_not_called()
+
+    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+        command = ImportCommand(Namespace(collection_path="test", cluster_flag=False))
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+                mock.patch.object(command, '_process_sub_dirs'), \
+                self.assertRaises(ProfException) as context:
+            command.process()
+
+        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+
+    def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
+        args = Namespace(collection_path="test", cluster_flag=False)
+        command = ImportCommand(args)
+        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                        return_value=[('device_0', 'valid/device_0', True)]), \
+                mock.patch.object(command, '_start_parse') as start_parse:
+            command._process_sub_dirs()
+
+        self.assertEqual(command.valid_data_count, 1)
+        start_parse.assert_called_once()
+
+    def test_process_sub_dirs_should_propagate_profiling_data_parse_error(self):
+        command = ImportCommand(Namespace(collection_path="test", cluster_flag=False))
+        expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                        return_value=[('device_0', 'valid/device_0', True)]), \
+                mock.patch.object(command, '_start_parse', side_effect=expected_error), \
+                self.assertRaises(ProfException) as context:
+            command._process_sub_dirs()
+
+        self.assertIs(context.exception, expected_error)
+
     def test_do_import(self):
         result_dir = '123'
         args_dic = {"collection_path": "test", "cluster_flag": False}
@@ -43,11 +84,9 @@ class TestImportCommand(unittest.TestCase):
         with mock.patch(NAMESPACE + '.check_path_valid'):
             args_dic = {"collection_path": "test", "cluster_flag": False}
             args = Namespace(**args_dic)
-            with mock.patch(NAMESPACE + '.LoadInfoManager.load_info'), \
-                    mock.patch(NAMESPACE + '.ImportCommand._parse_data'), \
-                    mock.patch(NAMESPACE + '.get_path_dir', return_value=['host', 'device_1', 'device_2']), \
-                    mock.patch(NAMESPACE + '.get_valid_sub_path', return_value='host'), \
-                    mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True), \
+            with mock.patch(NAMESPACE + '.ImportCommand._parse_data'), \
+                    mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                               return_value=[('host', 'host', True)]), \
                     mock.patch('os.path.join', return_value=True), \
                     mock.patch('os.path.realpath', return_value='home\\process'), \
                     mock.patch('msinterface.msprof_c_interface.dump_device_data'), \
@@ -55,17 +94,19 @@ class TestImportCommand(unittest.TestCase):
                 ChipManager().chip_id = 5
                 key = ImportCommand(args)
                 key.process()
-                with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False), \
+                with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', return_value=[]), \
                         mock.patch(NAMESPACE + '.warn'), \
                         mock.patch('os.listdir', return_value=['123']):
                     key = ImportCommand(args)
-                    key.process()
+                    with self.assertRaises(ProfException) as context:
+                        key.process()
+                    self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
 
     def test_parse_unresolved_dirs(self):
         unresolved_dirs = {'pro_dir': ['result_dir']}
         args_dic = {"collection_path": "test", "cluster_flag": False}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + '.LoadInfoManager.load_info'), \
+        with mock.patch(NAMESPACE + '.prepare_and_load_info'), \
                 mock.patch('os.path.join', return_value='test\\path'), \
                 mock.patch(NAMESPACE + '.get_path_dir', return_value=['host', 'device_1', 'device_2', 'device_3']), \
                 mock.patch(NAMESPACE + '.get_valid_sub_path'), \

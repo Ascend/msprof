@@ -108,6 +108,37 @@ class DtoData:
 
 
 class TestExportCommand(unittest.TestCase):
+    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+        command = ExportCommand("summary", Namespace(collection_path="test"))
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+                mock.patch.object(command, '_process_sub_dirs'), \
+                self.assertRaises(ProfException) as context:
+            command.process()
+
+        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+
+    def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
+        args = Namespace(collection_path="test")
+        command = ExportCommand("summary", args)
+        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                        return_value=[('device_0', 'valid/device_0', True)]), \
+                mock.patch(NAMESPACE + '.run_in_subprocess') as run_in_subprocess:
+            command._process_sub_dirs()
+
+        self.assertEqual(command.valid_data_count, 1)
+        run_in_subprocess.assert_called_once()
+
+    def test_process_sub_dirs_should_propagate_profiling_data_export_error(self):
+        command = ExportCommand("summary", Namespace(collection_path="test"))
+        expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                        return_value=[('device_0', 'valid/device_0', True)]), \
+                mock.patch(NAMESPACE + '.run_in_subprocess', side_effect=expected_error), \
+                self.assertRaises(ProfException) as context:
+            command._process_sub_dirs()
+
+        self.assertIs(context.exception, expected_error)
+
 
     def tearDown(self) -> None:
         _db_manager = DBManager()
@@ -426,8 +457,7 @@ class TestExportCommand(unittest.TestCase):
     def test_handle_export_without_set_clear_mode(self):
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + ".prepare_for_parse"), \
-                mock.patch(NAMESPACE + ".ExportCommand._export_data"):
+        with mock.patch(NAMESPACE + ".ExportCommand._export_data"):
             test = ExportCommand("timeline", args)
             test.list_map = {'export_type_list': ['acl'], 'devices_list': []}
             test._handle_export("")
@@ -437,8 +467,7 @@ class TestExportCommand(unittest.TestCase):
     def test_handle_export_set_clear_mode_false(self):
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "clear_mode": False}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + ".prepare_for_parse"), \
-                mock.patch(NAMESPACE + ".ExportCommand._export_data"):
+        with mock.patch(NAMESPACE + ".ExportCommand._export_data"):
             test = ExportCommand("timeline", args)
             test.list_map = {'export_type_list': ['acl'], 'devices_list': []}
             test._handle_export("")
@@ -448,8 +477,7 @@ class TestExportCommand(unittest.TestCase):
     def test_handle_export_set_clear_mode_true_clear_data_and_sqlite(self):
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "clear_mode": True}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + ".prepare_for_parse"), \
-                mock.patch(NAMESPACE + ".ExportCommand._export_data"), \
+        with mock.patch(NAMESPACE + ".ExportCommand._export_data"), \
                 mock.patch('os.path.exists', return_value=True), \
                 mock.patch('os.path.join', return_value='JOB/device_0'), \
                 mock.patch(NAMESPACE + '.check_dir_writable'), \
@@ -463,60 +491,75 @@ class TestExportCommand(unittest.TestCase):
     def test_process(self):
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "iteration_count": 1}
         args = Namespace(**args_dic)
-        with mock.patch('os.path.join', return_value='JOB/device_0'), \
-                mock.patch('os.path.realpath', return_value='JOB/device_0'), \
-                mock.patch('os.listdir', return_value=[]), \
-                mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.ExportCommand._handle_export'), \
-                mock.patch(NAMESPACE + '.get_valid_sub_path'), \
-                mock.patch(NAMESPACE + '.ExportCommand._process_sub_dirs'):
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', retrun_value=True):
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+                mock.patch('common_func.data_check_manager.get_path_dir', return_value=['device_0']), \
+                mock.patch('common_func.msprof_common.check_path_valid'), \
+                mock.patch(NAMESPACE + '.run_in_subprocess'):
+            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
                 test.process()
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', retrun_value=False):
+                self.assertEqual(test.valid_data_count, 1)
+            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
-                test.process()
+                with self.assertRaises(ProfException) as context:
+                    test.process()
+                self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+                self.assertEqual(test.valid_data_count, 0)
+
+    def test_calculate_data_should_prepare_info_before_dispatch(self):
+        command = ExportCommand('summary', Namespace(collection_path='test'))
+        calls = mock.Mock()
+        with mock.patch(NAMESPACE + '.prepare_and_load_info', calls.prepare), \
+                mock.patch.object(command, '_update_list_map', calls.update), \
+                mock.patch.object(command, '_get_sample_json', return_value={}), \
+                mock.patch(NAMESPACE + '.FileDispatch') as dispatch:
+            calls.attach_mock(dispatch.return_value.dispatch_calculator, 'calculate')
+            command._calculate_data('test/device_0')
+        self.assertEqual(calls.mock_calls, [mock.call.prepare('test/device_0'),
+                                           mock.call.update('test/device_0'), mock.call.calculate()])
 
     def test_test_process_test_when_command_type_is_summary(self):
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "iteration_count": 1}
         args = Namespace(**args_dic)
-        with mock.patch('os.path.join', return_value='JOB/device_0'), \
-                mock.patch('os.path.realpath', return_value='JOB/device_0'), \
-                mock.patch('os.listdir', return_value=[]), \
-                mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.ExportCommand._handle_export'), \
-                mock.patch(NAMESPACE + '.MsprofOutputSummary._is_in_prof_file', return_value=False), \
-                mock.patch(NAMESPACE + '.get_path_dir', return_value=[]), \
-                mock.patch(NAMESPACE + '.get_valid_sub_path'):
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', retrun_value=True):
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+                mock.patch('common_func.data_check_manager.get_path_dir', return_value=['device_0']), \
+                mock.patch('common_func.msprof_common.check_path_valid'), \
+                mock.patch(NAMESPACE + '.ExportCommand._start_parse'), \
+                mock.patch(NAMESPACE + '.ExportCommand._start_calculate'), \
+                mock.patch(NAMESPACE + '.ExportCommand._start_view') as start_view, \
+                mock.patch(NAMESPACE + '.run_in_subprocess', side_effect=lambda func, *args: func(*args)):
+            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
                 test.process()
+                self.assertEqual(test.valid_data_count, 1)
+                start_view.assert_called_once()
 
     def test_process_when_command_type_is_summary_in_cluster(self):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
-        with mock.patch('os.path.exists', return_value=True), \
-                mock.patch('os.path.isdir', return_value=True), \
-                mock.patch('os.access', return_value=True), \
-                mock.patch('os.stat', return_value=Mock(st_mode=0o000, st_uid=0)), \
-                mock.patch('common_func.msprof_common.check_path_valid'), \
-                mock.patch(NAMESPACE + '.ExportCommand._process_sub_dirs'), \
-                mock.patch('tuning.cluster_tuning.ClusterTuning.run'), \
-                mock.patch('tuning.cluster.cluster_tuning_facade.ClusterTuningFacade.process'):
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                           side_effect=[[('PROF_1', 'test/PROF_1', False)],
+                                        [('device_0', 'test/PROF_1/device_0', True)]]), \
+                mock.patch(NAMESPACE + '.run_in_subprocess'), \
+                mock.patch('tuning.cluster_tuning.ClusterTuning.run') as cluster_run, \
+                mock.patch('tuning.cluster.cluster_tuning_facade.ClusterTuningFacade.process') as cluster_process:
             test = ExportCommand("summary", args)
-            test._cluster_params = {'is_cluster_scene': True, 'cluster_path': []}
             test.process()
+            self.assertEqual(test.valid_data_count, 1)
+            self.assertTrue(test._cluster_params['is_cluster_scene'])
+            cluster_run.assert_called_once()
+            cluster_process.assert_called_once()
 
     def test_test_process_test_when_command_type_is_db(self):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.get_path_dir', return_value=['host', 'device_1', 'device_2']), \
-                mock.patch(NAMESPACE + '.get_valid_sub_path', return_value='host'), \
-                mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True), \
+                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                           return_value=[('host', 'host', True)]), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_parse'), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_calculate'), \
                 mock.patch(NAMESPACE + '.LoadInfoManager.load_info'):
@@ -538,12 +581,16 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.get_path_dir', return_value=['host', 'device_1', 'device_2']), \
-                mock.patch(NAMESPACE + '.get_valid_sub_path', return_value='host'):
+                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                           return_value=[('host', 'host', False)]):
             # 无info_json
             test = ExportCommand("timeline", args)
-            test.process()
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True), \
+            with self.assertRaises(ProfException) as context:
+                test.process()
+            self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+            self.assertEqual(test.valid_data_count, 0)
+            with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                            return_value=[('host', 'host', True)]), \
                     mock.patch('common_func.msprof_common.prepare_log'), \
                     mock.patch('framework.file_dispatch.FileDispatch.dispatch_calculator'), \
                     mock.patch(NAMESPACE + '.LoadInfoManager.load_info'), \

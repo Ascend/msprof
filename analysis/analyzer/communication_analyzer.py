@@ -33,7 +33,6 @@ from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_common import get_path_dir
 from common_func.msprof_common import prepare_for_analyze
 from common_func.msprof_common import prepare_log
-from common_func.msprof_common import get_valid_sub_path
 from common_func.msprof_exception import ProfException
 from common_func.msvp_common import create_json_for_dict
 from common_func.path_manager import PathManager
@@ -56,6 +55,7 @@ class CommunicationAnalyzer:
         self.collection_path = collection_path
         self.rank_hccl_data_dict = {}
         self.export_type = export_type
+        self.valid_data_count = 0
 
     @staticmethod
     def _process_dict(dict_data: dict) -> dict:
@@ -73,6 +73,9 @@ class CommunicationAnalyzer:
     def process(self):
         """Analyzing Communication Data"""
         self._process_sub_dirs()
+        if not self.valid_data_count:
+            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
+            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
 
     def _get_hccl_data_from_db(self: any, rank_path: str):
         """
@@ -152,11 +155,16 @@ class CommunicationAnalyzer:
         collect_path = self.collection_path
         if sub_path:
             collect_path = os.path.join(self.collection_path, sub_path)
-        sub_dirs = sorted(get_path_dir(collect_path), reverse=True)
+        sub_dirs = sorted(get_path_dir(collect_path, skip_invalid=is_cluster), reverse=True)
         for sub_dir in sub_dirs:  # result_dir
             if sub_dir not in (StrConstant.TIMELINE_PATH, self.HOST_PATH):
-                sub_path = get_valid_sub_path(collect_path, sub_dir, False)
-                if DataCheckManager.contain_info_json_data(sub_path):
+                sub_path, contain_info_json = DataCheckManager.get_valid_profiling_sub_path(
+                    collect_path, sub_dir, self.FILE_NAME
+                )
+                if not sub_path:
+                    continue
+                if contain_info_json:
+                    self.valid_data_count += 1
                     LoadInfoManager.load_info(sub_path)
                     self._communication_analyze(sub_path)
                 elif sub_path and is_cluster:

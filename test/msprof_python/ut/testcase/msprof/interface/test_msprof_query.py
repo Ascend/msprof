@@ -18,6 +18,7 @@ from argparse import Namespace
 from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
+from common_func.msprof_exception import ProfException
 from constant.constant import INFO_JSON
 from msinterface.msprof_query import QueryCommand
 from profiling_bean.basic_info.query_data_bean import QueryDataBean
@@ -26,6 +27,42 @@ NAMESPACE = 'msinterface.msprof_query'
 
 
 class TestQueryCommand(unittest.TestCase):
+    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+        args = Namespace(collection_path="test", id=None, data_type=None, model_id=None, iteration_id=None)
+        command = QueryCommand(args)
+        with mock.patch.object(command, 'check_argument_valid'), \
+                mock.patch.object(command, '_check_cluster_query', return_value=False), \
+                mock.patch.object(command, '_get_query_data', return_value=[]), \
+                self.assertRaises(ProfException) as context:
+            command.process()
+
+        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+
+    def test_get_query_data_should_skip_invalid_child_and_process_valid_child(self):
+        args = Namespace(collection_path="test")
+        command = QueryCommand(args)
+        expected_data = [[0, 1, 2, 3]]
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['invalid', 'valid']), \
+                mock.patch(NAMESPACE + '.DataCheckManager.get_valid_profiling_sub_path',
+                           side_effect=[('', False), ('valid', True)]), \
+                mock.patch.object(command, '_do_get_query_data', return_value=expected_data):
+            result = command._get_query_data_from_sub_dir('test')
+
+        self.assertEqual(result, expected_data)
+        self.assertEqual(command.valid_data_count, 1)
+
+    def test_get_query_data_should_propagate_profiling_data_query_error(self):
+        command = QueryCommand(Namespace(collection_path="test"))
+        expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['device_0']), \
+                mock.patch(NAMESPACE + '.DataCheckManager.get_valid_profiling_sub_path',
+                           return_value=('valid/device_0', True)), \
+                mock.patch.object(command, '_do_get_query_data', side_effect=expected_error), \
+                self.assertRaises(ProfException) as context:
+            command._get_query_data_from_sub_dir('test')
+
+        self.assertIs(context.exception, expected_error)
+
     args_dic = {"collection_path": "123", "id": None, "data_type": None, "model_id": None, "iteration_id": None}
     args = Namespace(**args_dic)
 
@@ -101,13 +138,13 @@ class TestQueryCommand(unittest.TestCase):
     def test_get_query_data_with_sub_dir(self):
         args_dic = {"collection_path": "123"}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data',
-                        side_effect=(False, True, False)), \
+        with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False), \
+             mock.patch(NAMESPACE + '.DataCheckManager.get_valid_profiling_sub_path',
+                        side_effect=[('home\\process', True), ('home\\process', False)]), \
              mock.patch(NAMESPACE + '.warn'), \
              mock.patch(NAMESPACE + '.get_path_dir', return_value=[1, 2]), \
              mock.patch('os.path.join', return_value=True), \
              mock.patch('os.path.realpath', return_value='home\\process'), \
-             mock.patch(NAMESPACE + '.get_valid_sub_path'), \
              mock.patch('os.listdir', return_value=['123']), \
              mock.patch(NAMESPACE + '.QueryCommand._do_get_query_data', return_value=[1, 2]):
             key = QueryCommand(args)

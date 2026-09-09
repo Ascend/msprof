@@ -18,13 +18,13 @@ import json
 import os
 from enum import IntEnum
 
-from common_func.common import print_msg
+from common_func.common import print_msg, warn
 from common_func.constant import Constant
 from common_func.data_check_manager import DataCheckManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.msprof_common import get_path_dir, prepare_log
+from common_func.msprof_common import get_path_dir, get_valid_sub_path, prepare_log
 from common_func.msprof_exception import ProfException
 from common_func.path_manager import PathManager
 from msmodel.cluster_info.cluster_info_model import ClusterInfoViewModel
@@ -55,6 +55,7 @@ class MsprofQuerySummaryManager:
     """
     The class for dispatching query summary data task.
     """
+
     CLUSTER_SCENE = '1'
     NOT_CLUSTER_SCENE = '0'
     FILE_NAME = os.path.basename(__file__)
@@ -82,7 +83,7 @@ class MsprofQuerySummaryManager:
             "npu_id": self.npu_id,
             "model_id": self.model_id,
             "iteration_id": self.iteration_id,
-            "data_type": self.data_type
+            "data_type": self.data_type,
         }
 
     @staticmethod
@@ -92,11 +93,17 @@ class MsprofQuerySummaryManager:
     @staticmethod
     def check_cluster_scene(collection_path: str) -> None:
         if MsprofQuerySummaryManager.check_rank_device_id(collection_path):
-            print_msg(json.dumps({'status': NumberConstant.SUCCESS, 'info': '', 'data':
-                MsprofQuerySummaryManager.CLUSTER_SCENE}))
+            print_msg(
+                json.dumps(
+                    {'status': NumberConstant.SUCCESS, 'info': '', 'data': MsprofQuerySummaryManager.CLUSTER_SCENE}
+                )
+            )
         else:
-            print_msg(json.dumps({'status': NumberConstant.SUCCESS, 'info': '', 'data':
-                MsprofQuerySummaryManager.NOT_CLUSTER_SCENE}))
+            print_msg(
+                json.dumps(
+                    {'status': NumberConstant.SUCCESS, 'info': '', 'data': MsprofQuerySummaryManager.NOT_CLUSTER_SCENE}
+                )
+            )
 
     @classmethod
     def check_rank_device_id(cls: any, collection_path: str) -> bool:
@@ -105,24 +112,34 @@ class MsprofQuerySummaryManager:
         check device id: if rank id are all N/A, check device id,
         if all device ids are different from each other and count of devices more than 1, return True
         """
+        # The user-supplied root must be accessible; only invalid children are skipped.
         prof_dirs = get_path_dir(collection_path)
         rank_id_list = []
         device_id_list = []
         for prof_dir in prof_dirs:
-            prof_path = os.path.join(collection_path, prof_dir)
-            if not os.path.isdir(prof_path):
+            prof_path = get_valid_sub_path(collection_path, prof_dir, False, skip_invalid=True)
+            if not prof_path:
                 continue
-            device_dirs = os.listdir(prof_path)
+            try:
+                device_dirs = os.listdir(prof_path)
+            except OSError:
+                warn(cls.FILE_NAME, 'Skip invalid directory "%s" because it cannot be accessed.' % prof_dir)
+                continue
             for device_dir in device_dirs:
-                device_path = os.path.join(prof_path, device_dir)
-                if not DataCheckManager.contain_info_json_data(device_path, device_info_only=True):
+                device_path, contain_info_json = DataCheckManager.get_valid_profiling_sub_path(
+                    prof_path, device_dir, cls.FILE_NAME, device_info_only=True
+                )
+                if not device_path:
+                    continue
+                if not contain_info_json:
                     continue
                 InfoConfReader().load_info(device_path)
                 rank_id_list.append(InfoConfReader().get_rank_id())
                 device_id_list.append(InfoConfReader().get_device_id())
         rank_id_na_check = rank_id_list.count(Constant.DEFAULT_INVALID_VALUE) == len(rank_id_list)
-        return cls.check_every_id_differs_and_no_na(rank_id_list) or \
-            (rank_id_na_check and cls.check_every_id_differs_and_no_na(device_id_list) and len(device_id_list) > 1)
+        return cls.check_every_id_differs_and_no_na(rank_id_list) or (
+            rank_id_na_check and cls.check_every_id_differs_and_no_na(device_id_list) and len(device_id_list) > 1
+        )
 
     def process(self: any) -> None:
         self._check_data_type_valid()
@@ -146,5 +163,6 @@ class MsprofQuerySummaryManager:
 
     def _check_data_type_valid(self: any) -> None:
         if self.data_type is None or self.data_type not in QueryDataType.__members__.values():
-            raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR,
-                                "The query data type is wrong. Please enter a valid value.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PARAM_ERROR, "The query data type is wrong. Please enter a valid value."
+            )

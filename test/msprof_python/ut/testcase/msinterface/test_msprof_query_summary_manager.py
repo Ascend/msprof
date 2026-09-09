@@ -43,6 +43,23 @@ class TestMsprofQuerySummaryManager(unittest.TestCase):
         ret = MsprofQuerySummaryManager.check_rank_device_id(self.DIR_PATH)
         self.assertFalse(ret)
 
+    def test_check_rank_device_id_should_skip_inaccessible_prof_dir(self):
+        with mock.patch(NAMESPACE + ".get_path_dir", return_value=["invalid_prof", "PROF1"]), \
+                mock.patch(NAMESPACE + ".get_valid_sub_path",
+                           side_effect=[os.path.join(self.DIR_PATH, "invalid_prof"),
+                                        os.path.join(self.DIR_PATH, "PROF1"),
+                                        os.path.join(self.DIR_PATH, "PROF1", "device_0")]), \
+                mock.patch(NAMESPACE + ".os.listdir", side_effect=[PermissionError, ["device_0"]]), \
+                mock.patch(NAMESPACE + ".DataCheckManager.contain_info_json_data", return_value=False):
+            ret = MsprofQuerySummaryManager.check_rank_device_id(self.DIR_PATH)
+        self.assertFalse(ret)
+
+    def test_check_rank_device_id_should_reject_inaccessible_root(self):
+        with mock.patch('common_func.msprof_common.os.listdir', side_effect=PermissionError), \
+                self.assertRaises(ProfException) as context:
+            MsprofQuerySummaryManager.check_rank_device_id(self.DIR_PATH)
+        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+
     def test_process_should_return_empty_when_data_type_invalid(self):
         args_dic = {"collection_path": self.DIR_PATH,
                     "id": 1,

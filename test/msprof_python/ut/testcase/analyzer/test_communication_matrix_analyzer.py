@@ -46,6 +46,39 @@ class HcclEvent:
 
 
 class TestCommunicationMatrixAnalyzer(unittest.TestCase):
+    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+        analyzer = CommunicationMatrixAnalyzer(self.collection_path, 'text')
+        with mock.patch.object(analyzer, '_process_sub_dirs'), \
+                self.assertRaises(ProfException) as context:
+            analyzer.process()
+
+        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+
+    def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
+        analyzer = CommunicationMatrixAnalyzer(self.collection_path, 'text')
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['invalid', 'device_0']), \
+                mock.patch(NAMESPACE + '.DataCheckManager.get_valid_profiling_sub_path',
+                           side_effect=[('', False), ('valid/device_0', True)]), \
+                mock.patch(NAMESPACE + '.LoadInfoManager.load_info'), \
+                mock.patch.object(analyzer, '_communication_matrix_analyze') as communication_analyze:
+            analyzer._process_sub_dirs()
+
+        self.assertEqual(analyzer.valid_data_count, 1)
+        communication_analyze.assert_called_once_with('valid/device_0')
+
+    def test_process_sub_dirs_should_propagate_profiling_data_analysis_error(self):
+        analyzer = CommunicationMatrixAnalyzer(self.collection_path, 'text')
+        expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['device_0']), \
+                mock.patch(NAMESPACE + '.DataCheckManager.get_valid_profiling_sub_path',
+                           return_value=('valid/device_0', True)), \
+                mock.patch(NAMESPACE + '.LoadInfoManager.load_info'), \
+                mock.patch.object(analyzer, '_communication_matrix_analyze', side_effect=expected_error), \
+                self.assertRaises(ProfException) as context:
+            analyzer._process_sub_dirs()
+
+        self.assertIs(context.exception, expected_error)
+
     collection_path = 'test'
     analyzed_data = [
         {

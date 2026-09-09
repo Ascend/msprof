@@ -20,8 +20,8 @@ import sys
 
 from common_func.common import call_sys_exit
 from common_func.common import error, warn
-from common_func.file_manager import check_parent_dir_invalid, is_root_user
-from common_func.msprof_common import check_path_valid, get_all_subdir
+from common_func.file_manager import is_root_user
+from common_func.msprof_common import check_path_valid
 from common_func.msprof_common import check_path_char_valid
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.msprof_exception import ProfException
@@ -38,23 +38,34 @@ class MsprofEntrance:
     """
     entrance of msprof
     """
+
     FILE_NAME = os.path.basename(__file__)
 
     @staticmethod
     def _add_collect_path_argument(parser: any) -> None:
         parser.add_argument(
-            '-dir', '--collection-dir', dest='collection_path',
-            default='', metavar='<dir>',
-            type=MsprofEntrance._expanduser_for_argument_path, help='<Mandatory> Specify the directory that is used'
-            ' for creating data collection results.', required=True)
+            '-dir',
+            '--collection-dir',
+            dest='collection_path',
+            default='',
+            metavar='<dir>',
+            type=MsprofEntrance._expanduser_for_argument_path,
+            help='<Mandatory> Specify the directory that is used for creating data collection results.',
+            required=True,
+        )
 
     @staticmethod
     def _add_reports_argument(parser: any) -> None:
         parser.add_argument(
-            '-reports', dest='reports_path',
-            default='', metavar='reports',
-            type=MsprofEntrance._expanduser_for_argument_path, help='<Optional> Path of the reports JSON configuration'
-            ' file, which is used to control the export scope of collection results.', required=False)
+            '-reports',
+            dest='reports_path',
+            default='',
+            metavar='reports',
+            type=MsprofEntrance._expanduser_for_argument_path,
+            help='<Optional> Path of the reports JSON configuration'
+            ' file, which is used to control the export scope of collection results.',
+            required=False,
+        )
 
     @staticmethod
     def _handle_export_command(parser: any, args: any) -> None:
@@ -118,8 +129,6 @@ class MsprofEntrance:
         try:
             check_path_char_valid(args.collection_path)
             check_path_valid(args.collection_path, False)
-            real_path = os.path.realpath(args.collection_path)
-            check_parent_dir_invalid(get_all_subdir(real_path))
         except ProfException as err:
             if err.message:
                 error(self.FILE_NAME, str(err))
@@ -129,27 +138,27 @@ class MsprofEntrance:
             self._set_export_mode(args)
             # 'iteration-id' and 'model-id' must be set simultaneously
             if (args.model_id is None) ^ (args.iteration_id is None):
-                error(self.FILE_NAME,
-                      "Please set 'model-id' and 'iteration-id' simultaneously "
-                      "(recommend using 'query' to obtain proper 'model-id' and 'iteration-id' values).")
+                error(
+                    self.FILE_NAME,
+                    "Please set 'model-id' and 'iteration-id' simultaneously "
+                    "(recommend using 'query' to obtain proper 'model-id' and 'iteration-id' values).",
+                )
                 call_sys_exit(ProfException.PROF_INVALID_PARAM_ERROR)
 
         command_handler = {
-            'export': {'parser': export_parser,
-                       'handler': self._handle_export_command},
-            'query': {'parser': query_parser,
-                      'handler': self._handle_query_command},
-            'import': {'parser': import_parser,
-                       'handler': self._handle_import_command},
-            'analyze': {'parser': analyze_parser,
-                        'handler': self._handle_analyze_command}
+            'export': {'parser': export_parser, 'handler': self._handle_export_command},
+            'query': {'parser': query_parser, 'handler': self._handle_query_command},
+            'import': {'parser': import_parser, 'handler': self._handle_import_command},
+            'analyze': {'parser': analyze_parser, 'handler': self._handle_analyze_command},
         }
         handler = command_handler.get(sys.argv[1])
 
         # parsing data with analysis should inform user of security warning
         if is_root_user():
-            warn(self.FILE_NAME, "Msprof analysis is parsing data as root, "
-                                 "which may cause potential system security risks.")
+            warn(
+                self.FILE_NAME,
+                "Msprof analysis is parsing data as root, which may cause potential system security risks.",
+            )
         try:
             handler.get('handler')(handler.get('parser'), args)
         except ProfException as err:
@@ -168,12 +177,9 @@ class MsprofEntrance:
         """
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
-        import_parser = subparsers.add_parser(
-            'import', help='Parse original profiling data by collected data.')
-        export_parser = subparsers.add_parser(
-            'export', help='Export profiling data by collected data.')
-        query_parser = subparsers.add_parser(
-            'query', help='Query specified info.')
+        import_parser = subparsers.add_parser('import', help='Parse original profiling data by collected data.')
+        export_parser = subparsers.add_parser('export', help='Export profiling data by collected data.')
+        query_parser = subparsers.add_parser('query', help='Query specified info.')
         analyzer_parser = subparsers.add_parser(
             'analyze', help='Analyze parsed profiling data and generate analysis report.'
         )
@@ -189,47 +195,68 @@ class MsprofEntrance:
         data_type_tips = ", ".join(map(str, data_type_values))
         self._add_collect_path_argument(query_parser)
         query_parser.add_argument(
-            '--id', dest='id', default=None, metavar='<id>',
-            type=int, help='<Optional> the npu device ID')
+            '--id', dest='id', default=None, metavar='<id>', type=int, help='<Optional> the npu device ID'
+        )
         query_parser.add_argument(
-            '--data-type', dest='data_type', default=None, metavar='<data_type>',
-            type=int, choices=data_type_values,
-            help='<Optional> the data type to query, support {}.'.format(data_type_tips))
+            '--data-type',
+            dest='data_type',
+            default=None,
+            metavar='<data_type>',
+            type=int,
+            choices=data_type_values,
+            help='<Optional> the data type to query, support {}.'.format(data_type_tips),
+        )
         query_parser.add_argument(
-            '--model-id', dest='model_id', default=None, metavar='<model_id>',
-            type=int, help='<Optional> the model ID')
+            '--model-id', dest='model_id', default=None, metavar='<model_id>', type=int, help='<Optional> the model ID'
+        )
         query_parser.add_argument(
-            '--iteration-id', dest='iteration_id', default=None, metavar='<iteration_id>',
-            type=int, help='<Optional> the iteration ID')
+            '--iteration-id',
+            dest='iteration_id',
+            default=None,
+            metavar='<iteration_id>',
+            type=int,
+            help='<Optional> the iteration ID',
+        )
 
     def _add_export_argument(self: any, parser: any) -> None:
         self._add_collect_path_argument(parser)
         parser.add_argument(
-            '--iteration-id', dest='iteration_id', default=None,
+            '--iteration-id',
+            dest='iteration_id',
+            default=None,
             metavar='<iteration_id>',
-            type=int, help='<Optional> the iteration ID')
+            type=int,
+            help='<Optional> the iteration ID',
+        )
         parser.add_argument(
-            '--model-id', dest='model_id', default=None,
-            metavar='<model_id>',
-            type=int, help='<Optional> the model ID')
+            '--model-id', dest='model_id', default=None, metavar='<model_id>', type=int, help='<Optional> the model ID'
+        )
         parser.add_argument(
-            '--iteration-count', dest='iteration_count', default=1,
+            '--iteration-count',
+            dest='iteration_count',
+            default=1,
             metavar='<iteration_count>',
-            type=int, help='<Optional> the number of iterations exported')
+            type=int,
+            help='<Optional> the number of iterations exported',
+        )
         parser.add_argument(
-            '--clear', dest='clear_mode', action='store_true',
-            default=False, help='<Optional> the clear mode flag')
+            '--clear', dest='clear_mode', action='store_true', default=False, help='<Optional> the clear mode flag'
+        )
 
     def _export_parser(self: any, export_parser: any) -> None:
         subparsers = export_parser.add_subparsers()
         summary_parser = subparsers.add_parser('summary', help='Get summary data.')
-        timeline_parser = subparsers.add_parser(
-            'timeline', help='Get timeline data.')
+        timeline_parser = subparsers.add_parser('timeline', help='Get timeline data.')
         self._add_export_argument(summary_parser)
         summary_parser.add_argument(
-            '--format', dest='export_format', default='csv',
-            metavar='<export_format>', choices=['csv', 'json'],
-            type=str, help='<Optional> the format for export, supports csv and json.')
+            '--format',
+            dest='export_format',
+            default='csv',
+            metavar='<export_format>',
+            choices=['csv', 'json'],
+            type=str,
+            help='<Optional> the format for export, supports csv and json.',
+        )
         self._add_export_argument(timeline_parser)
         self._add_reports_argument(timeline_parser)
         db_parser = subparsers.add_parser('db', help='Get db data.')
@@ -238,21 +265,33 @@ class MsprofEntrance:
     def _import_parser(self: any, import_parser: any) -> None:
         self._add_collect_path_argument(import_parser)
         import_parser.add_argument(
-            '--cluster', dest='cluster_flag',
-            action='store_true', default=False,
-            help='<Optional> the cluster scene flag')
+            '--cluster',
+            dest='cluster_flag',
+            action='store_true',
+            default=False,
+            help='<Optional> the cluster scene flag',
+        )
 
     def _analyze_parser(self: any, analyze_parser: any) -> None:
         self._add_collect_path_argument(analyze_parser)
         analyze_parser.add_argument(
-            '--rule', '-r', type=self._validate_analyze_rule, required=True,
+            '--rule',
+            '-r',
+            type=self._validate_analyze_rule,
+            required=True,
             help='Switch specified rule for using msprof to analyze collecting data. '
-                 'The options are: [communication, communication_matrix], they can be set at the same time '
-                 'and separated by a comma (,), for example, :--rule=communication,communication_matrix.')
+            'The options are: [communication, communication_matrix], they can be set at the same time '
+            'and separated by a comma (,), for example, :--rule=communication,communication_matrix.',
+        )
         analyze_parser.add_argument(
-            '--clear', dest='clear_mode', action='store_true',
-            default=False, help='<Optional> the clear mode flag')
+            '--clear', dest='clear_mode', action='store_true', default=False, help='<Optional> the clear mode flag'
+        )
         analyze_parser.add_argument(
-            '--type', dest='export_type',
-            type=str, help='Specify the output file type, db or text', required=False,
-            default="text", choices=['db', 'text'])
+            '--type',
+            dest='export_type',
+            type=str,
+            help='Specify the output file type, db or text',
+            required=False,
+            default="text",
+            choices=['db', 'text'],
+        )

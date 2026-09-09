@@ -135,6 +135,20 @@ def test_get_path_dir():
         unittest.TestCase().assertEqual(err.value.args, (2,))
 
 
+def test_get_path_dir_should_skip_invalid_child_when_scan_fails():
+    with mock.patch('os.listdir', side_effect=PermissionError), \
+            mock.patch(NAMESPACE + '.warn') as mock_warn:
+        unittest.TestCase().assertEqual(get_path_dir('invalid', skip_invalid=True), [])
+        mock_warn.assert_called_once()
+
+
+def test_get_path_dir_should_raise_path_error_when_root_scan_fails():
+    with mock.patch('os.listdir', side_effect=PermissionError), \
+            pytest.raises(ProfException) as err:
+        get_path_dir('invalid')
+    unittest.TestCase().assertEqual(err.value.code, ProfException.PROF_INVALID_PATH_ERROR)
+
+
 def test_get_valid_sub_path_should_return_real_path_when_collect_path_and_sub_dir_exist():
     collect_path = '/host/host'
     sub_dir = 'msprof_export_folder'
@@ -159,6 +173,14 @@ def test_get_valid_sub_path_should_return_equal_real_path_when_collect_path_and_
             mock.patch('os.stat', return_value=Mock(st_mode=0o000, st_uid=0)):
         unittest.TestCase().assertEqual(get_valid_sub_path(collect_path, sub_dir, is_file),
                                         os.path.realpath(joined_path))
+
+
+def test_get_valid_sub_path_should_skip_invalid_child_when_validation_fails():
+    with mock.patch(NAMESPACE + '.check_path_valid',
+                    side_effect=ProfException(ProfException.PROF_INVALID_PATH_ERROR)), \
+            mock.patch(NAMESPACE + '.warn') as mock_warn:
+        unittest.TestCase().assertEqual(get_valid_sub_path('root', 'invalid', False, skip_invalid=True), '')
+        mock_warn.assert_called_once()
 
 
 def test_check_collection_dir():

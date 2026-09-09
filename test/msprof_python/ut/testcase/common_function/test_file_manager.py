@@ -25,7 +25,7 @@ from unittest.mock import Mock
 
 from common_func.common import is_linux
 from common_func.constant import Constant
-from common_func.file_manager import FileManager, is_root_user, check_parent_dir_invalid
+from common_func.file_manager import FileManager, is_root_user
 from common_func.file_manager import check_db_path_valid
 from common_func.file_manager import check_dir_readable
 from common_func.file_manager import check_dir_writable
@@ -335,10 +335,3 @@ class TestFileManager(unittest.TestCase):
                 self.assertFalse(is_root_user())
         else:
             self.assertTrue(is_root_user())
-
-    def test_check_parent_dir_invalid_should_return_true_when_check_path_valid_failed(self):
-        try:
-            check_parent_dir_invalid([""])
-        except ProfException as e:
-            self.assertEqual(e.code, ProfException.PROF_INVALID_PARAM_ERROR)
-            self.assertEqual(str(e),"The path is empty. Please enter a valid path.")

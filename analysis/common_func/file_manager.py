@@ -340,11 +340,6 @@ def check_path_owner(path: str) -> bool:
         return current_uid == stat_info.st_uid
 
 
-def check_parent_dir_invalid(paths: list) -> None:
-    for path in paths:
-        check_path_valid(path, False)
-
-
 def check_so_valid(path: str) -> bool:
     """
     check so file is file and executable

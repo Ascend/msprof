@@ -42,9 +42,7 @@ from common_func.ms_multi_process import run_in_subprocess
 from common_func.msprof_common import MsProfCommonConstant
 from common_func.msprof_common import analyze_collect_data
 from common_func.msprof_common import check_path_valid
-from common_func.msprof_common import get_path_dir
-from common_func.msprof_common import prepare_for_parse
-from common_func.msprof_common import get_valid_sub_path
+from common_func.msprof_common import prepare_and_load_info
 from common_func.msprof_exception import ProfException
 from common_func.msvp_common import check_dir_writable
 from common_func.path_manager import PathManager
@@ -257,6 +255,7 @@ class ExportCommand:
         self.clear_mode = getattr(args, "clear_mode", False)
         self.is_data_analyzed = False
         self.reports_path = getattr(args, "reports_path", "")
+        self.valid_data_count = 0
 
     @staticmethod
     def get_model_id_set(result_dir: str, db_name: str, table_name: str) -> any:
@@ -337,6 +336,9 @@ class ExportCommand:
         if self.reports_path:
             check_file_readable(self.reports_path)
         self._process_sub_dirs()
+        if not self.valid_data_count:
+            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
+            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
         if self._cluster_params.get('is_cluster_scene', False):
             self._show_cluster_tuning()
 
@@ -695,19 +697,19 @@ class ExportCommand:
         collect_path = self.collection_path
         if sub_path:
             collect_path = os.path.join(self.collection_path, sub_path)
-        sub_dirs = sorted(get_path_dir(collect_path), reverse=True)
         path_table = {StrConstant.HOST_PATH: "", StrConstant.DEVICE_PATH: []}
-        for sub_dir in sub_dirs:  # result_dir
-            sub_path = get_valid_sub_path(collect_path, sub_dir, False)
-            if DataCheckManager.contain_info_json_data(sub_path):
-                self._update_cluster_params(sub_path, is_cluster)
+        for sub_dir, valid_sub_path, contain_info_json in DataCheckManager.iter_valid_profiling_sub_paths(
+            collect_path, self.FILE_NAME, skip_invalid=is_cluster
+        ):
+            if contain_info_json:
+                self._update_cluster_params(valid_sub_path, is_cluster)
                 # 统一收集合法路径 后续统一处理
                 if sub_dir == StrConstant.HOST_PATH:
-                    path_table[StrConstant.HOST_PATH] = sub_path
+                    path_table[StrConstant.HOST_PATH] = valid_sub_path
                 else:
-                    path_table[StrConstant.DEVICE_PATH].append(sub_path)
+                    path_table[StrConstant.DEVICE_PATH].append(valid_sub_path)
                 path_table.setdefault("collection_path", collect_path)
-            elif sub_path and is_cluster:
+            elif valid_sub_path and is_cluster:
                 warn(
                     self.FILE_NAME,
                     'Invalid parsing dir("%s"), -dir must be profiling data dir '
@@ -716,6 +718,9 @@ class ExportCommand:
             else:
                 self._process_sub_dirs(sub_dir, is_cluster=True)
             self.list_map['devices_list'] = ''
+        if path_table.get(StrConstant.HOST_PATH) or path_table.get(StrConstant.DEVICE_PATH):
+            self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
+            self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
         run_in_subprocess(self._process_data, path_table)
 
     def _process_data(self, path_table: dict):
@@ -757,8 +762,7 @@ class ExportCommand:
     def _parse_data(self, device_path: str):
         if not device_path:
             return
-        prepare_for_parse(device_path)
-        LoadInfoManager.load_info(device_path)
+        prepare_and_load_info(device_path)
         self._analyse_sample_config(device_path)
         self._analyse_data(device_path)
 
@@ -776,8 +780,7 @@ class ExportCommand:
     def _calculate_data(self, device_path: str):
         if not device_path:
             return
-        prepare_for_parse(device_path)
-        LoadInfoManager.load_info(device_path)
+        prepare_and_load_info(device_path)
         self._update_list_map(device_path)
         file_dispatch = FileDispatch(self._get_sample_json(device_path))
         file_dispatch.dispatch_calculator()

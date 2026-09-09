@@ -17,11 +17,13 @@
 import os
 
 from common_func import file_name_manager
+from common_func.common import warn
 from common_func.constant import Constant
 from common_func.file_manager import check_dir_readable
 from common_func.path_manager import PathManager
 from common_func.config_mgr import ConfigMgr
 from common_func.msprof_common import get_path_dir
+from common_func.msprof_common import get_valid_sub_path
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.profiling_scene import ProfilingScene
 from common_func.cpp_enable_scene import DataCheckScene
@@ -84,6 +86,30 @@ class DataCheckManager:
                 if info_json_compile.match(file_name):
                     return True
         return False
+
+    @classmethod
+    def get_valid_profiling_sub_path(
+        cls: any, collect_path: str, sub_dir: str, file_name: str, device_info_only: bool = False
+    ) -> tuple:
+        """Return a validated child path and whether it contains profiling metadata."""
+        sub_path = get_valid_sub_path(collect_path, sub_dir, False, skip_invalid=True)
+        if not sub_path:
+            return "", False
+        try:
+            contain_info_json = cls.contain_info_json_data(sub_path, device_info_only=device_info_only)
+        except OSError:
+            warn(file_name, 'Skip invalid directory "%s" because it cannot be accessed.' % sub_dir)
+            return "", False
+        return sub_path, contain_info_json
+
+    @classmethod
+    def iter_valid_profiling_sub_paths(cls: any, collect_path: str, file_name: str, skip_invalid: bool = False):
+        """Yield accessible child paths together with their profiling metadata status."""
+        sub_dirs = sorted(get_path_dir(collect_path, skip_invalid=skip_invalid), reverse=True)
+        for sub_dir in sub_dirs:
+            sub_path, contain_info_json = cls.get_valid_profiling_sub_path(collect_path, sub_dir, file_name)
+            if sub_path:
+                yield sub_dir, sub_path, contain_info_json
 
     @classmethod
     def _check_file_size(cls: any, file_name: str, data_dir: str) -> bool:

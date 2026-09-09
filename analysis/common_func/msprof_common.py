@@ -40,6 +40,7 @@ from common_func.file_manager import is_link
 from common_func.path_manager import PathManager
 from framework.collection_engine import AI
 from framework.file_dispatch import FileDispatch
+from framework.load_info_manager import LoadInfoManager
 
 
 class MsProfCommonConstant:
@@ -178,6 +179,12 @@ def prepare_for_parse(output_path: str) -> None:
     prepare_log(output_path)
 
 
+def prepare_and_load_info(output_path: str) -> None:
+    """Prepare the parsing environment and load profiling device information."""
+    prepare_for_parse(output_path)
+    LoadInfoManager.load_info(output_path)
+
+
 def prepare_for_analyze(out_path):
     """
     create analyze log directories
@@ -284,29 +291,60 @@ def get_info_by_key(path: str, key: any) -> str:
         return InfoConfReader().get_root_data(key)
 
 
-def get_path_dir(path: str) -> list:
+def get_path_dir(path: str, skip_invalid: bool = False) -> list:
     """
     check result path exist JOB dir
-    path : result path
+    :param path: result path
+    :param skip_invalid: whether an inaccessible child path can be skipped
     """
-    path_dir_filter = filter(partial(_path_dir_filter_func, root_dir=path), os.listdir(path))
-    sub_dirs = list(path_dir_filter)
+    try:
+        path_dir_filter = filter(partial(_path_dir_filter_func, root_dir=path), os.listdir(path))
+        sub_dirs = list(path_dir_filter)
+    except OSError as ex:
+        if skip_invalid:
+            warn(
+                MsProfCommonConstant.COMMON_FILE_NAME,
+                'Skip invalid directory "%s" because it cannot be accessed.' % os.path.basename(path),
+            )
+            return []
+        message = f'Failed to scan the path "{path}". Please check that the path is accessible.'
+        raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message) from ex
     if not sub_dirs:
+        if skip_invalid:
+            warn(
+                MsProfCommonConstant.COMMON_FILE_NAME,
+                'Skip invalid directory "%s" because it does not contain a profiling directory.'
+                % os.path.basename(path),
+            )
+            return []
         message = f"The path \"{path}\" does not have PROF dir. Please check the path."
         raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
     return sub_dirs
 
 
-def get_valid_sub_path(collect_path: str, sub_dir: str, is_file: bool) -> str:
+def get_valid_sub_path(collect_path: str, sub_dir: str, is_file: bool, skip_invalid: bool = False) -> str:
     """
     join collect_path and sub_dir to form joined_path
     check joined_path is valid
     get sub_path
+    :param collect_path: parent directory
+    :param sub_dir: child directory name
+    :param is_file: whether the child path must be a file
+    :param skip_invalid: whether an invalid child path can be skipped
     """
-    joined_path = os.path.join(collect_path, sub_dir)
-    sub_path = os.path.realpath(joined_path)
-    check_path_valid(joined_path, is_file)
-    return sub_path
+    try:
+        joined_path = os.path.join(collect_path, sub_dir)
+        sub_path = os.path.realpath(joined_path)
+        check_path_valid(joined_path, is_file)
+        return sub_path
+    except (ProfException, OSError):
+        if not skip_invalid:
+            raise
+        warn(
+            MsProfCommonConstant.COMMON_FILE_NAME,
+            'Skip invalid directory "%s" because it cannot be accessed.' % os.path.basename(sub_dir),
+        )
+        return ''
 
 
 def _path_dir_filter_func(sub_path, root_dir):

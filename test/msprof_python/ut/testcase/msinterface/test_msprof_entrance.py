@@ -20,8 +20,11 @@ function:
 Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 """
 import os
+import tempfile
 import unittest
 from argparse import Namespace, ArgumentTypeError
+from contextlib import ExitStack
+from pathlib import Path
 from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
@@ -56,6 +59,47 @@ class TestMsprofEntrance(unittest.TestCase):
                 mock.patch(NAMESPACE + '.check_path_valid'), \
                 mock.patch('sys.exit'):
             MsprofEntrance().main()
+
+    def test_main_should_dispatch_all_commands_when_child_dir_cannot_be_scanned(self):
+        command_cases = (
+            (["import"], 'msinterface.msprof_import.ImportCommand._start_parse'),
+            (["export", "summary"], 'msinterface.msprof_export.ExportCommand._start_parse'),
+            (["query"], 'msinterface.msprof_query.QueryCommand._do_get_query_data'),
+            (["analyze", "--rule", "communication"],
+             'analyzer.communication_analyzer.CommunicationAnalyzer._communication_analyze'),
+        )
+        real_listdir = os.listdir
+        with tempfile.TemporaryDirectory() as root:
+            device_path = os.path.join(root, 'device_0')
+            invalid_path = os.path.join(root, 'invalid_dir')
+            os.mkdir(device_path)
+            os.mkdir(invalid_path)
+            Path(device_path, 'info.json.0').write_text('{}', encoding='utf-8')
+
+            def listdir_with_invalid_child(path):
+                if os.path.realpath(path) == invalid_path:
+                    raise PermissionError('invalid child directory')
+                return real_listdir(path)
+
+            for command_args, processing_path in command_cases:
+                with self.subTest(command=command_args[0]), ExitStack() as stack:
+                    stack.enter_context(mock.patch('sys.argv', ['msprof.py', *command_args, '-dir', root]))
+                    scan = stack.enter_context(mock.patch('os.listdir', side_effect=listdir_with_invalid_child))
+                    stack.enter_context(mock.patch('framework.load_info_manager.LoadInfoManager.load_info'))
+                    stack.enter_context(mock.patch('msinterface.msprof_export.run_in_subprocess',
+                                                   side_effect=lambda func, *args: func(*args)))
+                    stack.enter_context(mock.patch('msinterface.msprof_export.ExportCommand._start_calculate'))
+                    stack.enter_context(mock.patch('msinterface.msprof_export.ExportCommand._start_view'))
+                    processing = stack.enter_context(mock.patch(processing_path, return_value=[]))
+                    with self.assertRaises(SystemExit) as context:
+                        MsprofEntrance().main()
+                    self.assertEqual(context.exception.code, 0)
+                    scan.assert_any_call(invalid_path)
+                    processing.assert_called_once()
+                    if command_args[0] in ('import', 'export'):
+                        self.assertEqual(processing.call_args.args[0]['device'], [device_path])
+                    else:
+                        processing.assert_called_once_with(device_path)
 
     def test_main_should_set_all_export_false_when_set_model_id_and_iteration_id(self):
         args = ["msprof.py", "export", "summary", "-dir", "test_entrance_dir", "--model-id", "1", "--iteration-id", "2"]
@@ -101,9 +145,7 @@ class TestMsprofEntrance(unittest.TestCase):
                 mock.patch('common_func.common.error'), \
                 mock.patch(NAMESPACE + '.check_path_valid'), \
                 mock.patch(NAMESPACE + '.check_path_char_valid'), \
-                mock.patch(NAMESPACE + '.ExportCommand.process'), \
-                mock.patch(NAMESPACE + '.get_all_subdir'), \
-                mock.patch(NAMESPACE + '.check_parent_dir_invalid', return_value=False):
+                mock.patch(NAMESPACE + '.ExportCommand.process'):
             with self.assertRaises(SystemExit):
                 MsprofEntrance().main()
 
