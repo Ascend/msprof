@@ -19,8 +19,6 @@ import logging
 import math
 import os
 import re
-from datetime import datetime
-from datetime import timezone
 
 from common_func.common import warn
 from common_func.constant import Constant
@@ -29,10 +27,7 @@ from common_func.file_manager import FileOpen
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_common import MsProfCommonConstant
-from common_func.msvp_common import create_csv
 from common_func.msvp_common import create_json
-from common_func.msvp_constant import MsvpConstant
-from common_func.file_manager import check_file_readable
 from common_func.file_manager import check_file_writable
 from common_func.file_slice_helper import FileSliceHelper
 from common_func.path_manager import PathManager
@@ -45,9 +40,10 @@ class MsprofDataStorage:
     """
     This class is used to slicing a timeline json file.
     """
-    SLICE_CONFIG_PATH = os.path.join(MsvpConstant.CONFIG_PATH, 'msprof_slice.json')
+
+    SLICE_CONFIG_PATH = FileSliceHelper.SLICE_CONFIG_PATH
     DATA_TO_FILE = 1024 * 1024
-    DEFAULT_SETTING = ('off', 0, 0)
+    DEFAULT_SETTING = FileSliceHelper.DEFAULT_SLICE_SETTING
     SETTING = None
     DEFAULT_SLICE_SIZE = 200 * 1024 * 1024  # MB
     MAX_JSON_FILE_SIZE = 20 * 1024 * 1024 * 1024  # 20G
@@ -63,16 +59,21 @@ class MsprofDataStorage:
     def slice_msprof_json_for_so(trace_file: str, params: dict) -> None:
         if not trace_file:
             return
-        if not MsprofDataStorage.SETTING:
-            MsprofDataStorage.SETTING = MsprofDataStorage().read_slice_config()
-        slice_switch, limit_size, method = MsprofDataStorage.SETTING
+        setting = MsprofDataStorage.SETTING
+        if not setting:
+            setting = MsprofDataStorage().read_slice_config()
+            MsprofDataStorage.SETTING = setting
+        slice_switch, limit_size, method = setting
         data_size = os.path.getsize(trace_file)
         if slice_switch == 'off':
             return
         if data_size < limit_size or data_size < MsprofDataStorage.DEFAULT_SLICE_SIZE:
-            warn(MsProfCommonConstant.COMMON_FILE_NAME, "Data can be sliced only when the data size "
-                 "exceeds 200 MB. The current data size is less than 200 MB or the threshold you set in the "
-                 "configuration file, won't be sliced.")
+            warn(
+                MsProfCommonConstant.COMMON_FILE_NAME,
+                "Data can be sliced only when the data size "
+                "exceeds 200 MB. The current data size is less than 200 MB or the threshold you set in the "
+                "configuration file, won't be sliced.",
+            )
             return
         device_count = PathManager.get_device_count(params.get(StrConstant.PARAM_EXPORT_DUMP_FOLDER))
         with FileOpen(trace_file, 'r', MsprofDataStorage.MAX_JSON_FILE_SIZE) as fr:
@@ -90,10 +91,13 @@ class MsprofDataStorage:
         :return: result
         """
         if not timeline_data:
-            return json.dumps({"status": NumberConstant.WARN,
-                               "info": "Unable to get %s data. Maybe the data is not "
-                                       "collected, or the data may fail to be analyzed."
-                                       % params.get(StrConstant.PARAM_DATA_TYPE)})
+            return json.dumps(
+                {
+                    "status": NumberConstant.WARN,
+                    "info": "Unable to get %s data. Maybe the data is not "
+                    "collected, or the data may fail to be analyzed." % params.get(StrConstant.PARAM_DATA_TYPE),
+                }
+            )
 
         if 'status' in timeline_data:
             return json.dumps(timeline_data)
@@ -101,10 +105,8 @@ class MsprofDataStorage:
         sliced_timeline_data = MsprofDataStorage().slice_data_list(timeline_data, device_count)
         error_code, data_path = MsprofDataStorage.write_json_files(sliced_timeline_data, params)
         if error_code:
-            return json.dumps({"status": NumberConstant.ERROR,
-                               "info": "message error: %s" % data_path})
-        return json.dumps({'status': NumberConstant.SUCCESS,
-                           'data': data_path})
+            return json.dumps({"status": NumberConstant.ERROR, "info": "message error: %s" % data_path})
+        return json.dumps({'status': NumberConstant.SUCCESS, 'data': data_path})
 
     @staticmethod
     def write_json_files(json_data: tuple, params: dict, is_clear: bool = True) -> tuple:
@@ -126,8 +128,7 @@ class MsprofDataStorage:
                 with FdOpen(timeline_file_path) as trace_file:
                     trace_file.write(json.dumps(json_data[1][slice_time]))
                     data_path.append(timeline_file_path)
-            except (OSError, SystemError, ValueError, TypeError,
-                    RuntimeError) as err:
+            except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
                 logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
                 return NumberConstant.ERROR, err
         return NumberConstant.SUCCESS, data_path
@@ -151,10 +152,13 @@ class MsprofDataStorage:
                 return create_json(summary_file_path, headers, data, save_old_file=False)
         if data:
             return data
-        return json.dumps({"status": NumberConstant.WARN,
-                           "info": "Unable to get %s data. Maybe the data is not "
-                                   "collected, or the data may fail to be analyzed."
-                                   % params.get(StrConstant.PARAM_DATA_TYPE)})
+        return json.dumps(
+            {
+                "status": NumberConstant.WARN,
+                "info": "Unable to get %s data. Maybe the data is not "
+                "collected, or the data may fail to be analyzed." % params.get(StrConstant.PARAM_DATA_TYPE),
+            }
+        )
 
     @staticmethod
     def clear_timeline_dir(params: dict) -> None:
@@ -168,7 +172,8 @@ class MsprofDataStorage:
                 if params.get(StrConstant.PARAM_ITER_ID) is not None:
                     file_suffix += "_" + str(params.get(StrConstant.PARAM_ITER_ID))
             if re.match(
-                    r'^{0}{1}(_slice_\d+)?.json'.format(params.get(StrConstant.PARAM_DATA_TYPE), file_suffix), file):
+                r'^{0}{1}(_slice_\d+)?.json'.format(params.get(StrConstant.PARAM_DATA_TYPE), file_suffix), file
+            ):
                 check_file_writable(os.path.join(timeline_dir, file))
                 os.remove(os.path.join(timeline_dir, file))
 
@@ -216,9 +221,11 @@ class MsprofDataStorage:
         except (TypeError, ValueError) as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
             return False, [self.timeline_head + data_list]
-        if not MsprofDataStorage.SETTING:
-            MsprofDataStorage.SETTING = self.read_slice_config()
-        slice_switch, limit_size, method = MsprofDataStorage.SETTING
+        setting = MsprofDataStorage.SETTING
+        if not setting:
+            setting = self.read_slice_config()
+            MsprofDataStorage.SETTING = setting
+        slice_switch, limit_size, method = setting
         if slice_switch == 'off':
             return False, [self.timeline_head + data_list]
         slice_count = self.get_slice_times(limit_size, method, device_count, data_size)
@@ -227,7 +234,7 @@ class MsprofDataStorage:
         slice_point = len(data_list) // slice_count
         slice_data = []
         for i in range(slice_count):
-            slice_data.append(self.timeline_head + data_list[i * slice_point:(i + 1) * slice_point])
+            slice_data.append(self.timeline_head + data_list[i * slice_point : (i + 1) * slice_point])
         return True, slice_data
 
     def set_tid(self: any):
@@ -245,28 +252,7 @@ class MsprofDataStorage:
         :return: params: limit_size specifies the size of the split file. (MB)
         :return: params: slice_switch priority (0: granularity first,1: loading time first)
         """
-        check_file_readable(self.SLICE_CONFIG_PATH)
-        try:
-            with FileOpen(self.SLICE_CONFIG_PATH, "r") as rule_reader:
-                config_json = json.load(rule_reader.file_reader)
-        except (OSError, ValueError):
-            logging.warning("Read slice config failed: %s", os.path.basename(self.SLICE_CONFIG_PATH))
-            return self.DEFAULT_SETTING
-        slice_switch = config_json.get('slice_switch', 'on')
-        switch_range = ('on', 'off')
-        if slice_switch not in switch_range:
-            logging.warning("slice_switch should be on or off")
-            return self.DEFAULT_SETTING
-        limit_size = config_json.get('slice_file_size(MB)', 0)
-        if not isinstance(limit_size, int) or limit_size < 0:
-            logging.warning("limit_size should be a number which is not smaller than 0")
-            return self.DEFAULT_SETTING
-        method = config_json.get('strategy', 0)
-        method_range = [item.value for item in TimeLineSliceStrategy]
-        if not isinstance(method, int) or method not in method_range:
-            logging.warning("strategy should be 0 or 1")
-            return self.DEFAULT_SETTING
-        return slice_switch, limit_size, method
+        return FileSliceHelper.read_slice_config(self.SLICE_CONFIG_PATH)
 
     def get_slice_times(self: any, limit_size: int = 0, method: int = 0, device_count: int = 1, data_size: int = 0):
         """

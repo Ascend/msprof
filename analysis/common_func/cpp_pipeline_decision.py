@@ -21,22 +21,34 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import FrozenSet, Mapping, Optional, Tuple
+from typing import FrozenSet, List, Mapping, Optional, Pattern, Tuple
 
 from common_func.constant import Constant
 from common_func.file_manager import FileOpen
+from common_func.file_manager import check_dir_readable
+from common_func.file_manager import check_dir_writable
+from common_func.file_manager import check_so_valid
 from common_func.file_name_manager import FileNameManagerConstant
+from common_func.file_name_manager import get_file_name_pattern_match
+from common_func.file_name_manager import get_info_json_compiles
+from common_func.file_name_manager import get_sample_json_compiles
+from common_func.file_slice_helper import FileSliceHelper
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
+from common_func.msprof_exception import ProfException
+from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ExportMode
 from framework.file_dispatch import FileDispatch
 from msconfig.cpp_pipeline_capability_config import CapabilityRegistry
+from msconfig.cpp_pipeline_capability_config import CommandCapability
 from msconfig.cpp_pipeline_capability_config import DataPosition
 from msconfig.cpp_pipeline_capability_config import DEFAULT_CAPABILITY_REGISTRY
+from msconfig.cpp_pipeline_capability_config import FEATURE_REASON_CODES
 from msconfig.cpp_pipeline_capability_config import PipelineCommand
-from msconfig.cpp_pipeline_capability_config import PipelineStage
+from msconfig.cpp_pipeline_capability_config import PipelineFeature
 from profiling_bean.prof_enum.chip_model import ChipModel
+from profiling_bean.prof_enum.data_tag import DataTag
 
 
 class DecisionDimension:
@@ -76,13 +88,13 @@ class CppPipelineDecisionRequest:
         command_type: Optional[str],
         path_table: Mapping[str, object],
         **kwargs,
-    ):
+    ) -> "CppPipelineDecisionRequest":
         return cls(
             command=command,
             command_type=command_type,
             collection_path=str(path_table.get("collection_path", "")),
-            host_path=str(path_table.get("host", "") or ""),
-            device_paths=tuple(path_table.get("device", ()) or ()),
+            host_path=str(path_table.get(StrConstant.HOST_PATH, "") or ""),
+            device_paths=tuple(path_table.get(StrConstant.DEVICE_PATH, ()) or ()),
             **kwargs,
         )
 
@@ -113,7 +125,6 @@ class ResultPathFacts:
     ai_core_mode: Optional[str]
     aiv_mode: Optional[str]
     custom_pmu_fields: Tuple[str, ...]
-    analyzed: bool
     raw_tags: FrozenSet[str]
     unknown_raw_files: Tuple[str, ...]
 
@@ -123,74 +134,59 @@ class CollectionFacts:
     result_paths: Tuple[ResultPathFacts, ...]
     slice_enabled: bool
     issues: Tuple[DecisionIssue, ...] = ()
-    existing_export_outputs: Tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class RuntimeProbeResult:
-    issues: Tuple[DecisionIssue, ...] = ()
 
 
 class RuntimeProbe:
     MODULE_NAME = "msprof_analysis"
+    LOAD_ERRORS = (ImportError, OSError, SystemError, ValueError, TypeError, RuntimeError)
 
     def __init__(self, so_path: Optional[str] = None):
         analysis_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self._so_path = so_path or os.path.join(analysis_dir, "lib64", "msprof_analysis.so")
 
-    def probe(self) -> RuntimeProbeResult:
-        if not os.path.isfile(self._so_path) or not os.access(self._so_path, os.R_OK):
-            return RuntimeProbeResult((self._issue("SO_NOT_FOUND", "msprof_analysis.so is missing or unreadable."),))
+    def probe(self) -> Optional[DecisionIssue]:
+        if not check_so_valid(self._so_path):
+            return self._issue("SO_NOT_FOUND", "msprof_analysis.so is missing or invalid.")
         module = sys.modules.get(self.MODULE_NAME)
         try:
             if module is None:
                 spec = importlib.util.spec_from_file_location(self.MODULE_NAME, self._so_path)
                 if spec is None or spec.loader is None:
-                    return RuntimeProbeResult((self._issue("SO_LOAD_FAILED", "Cannot create an SO module loader."),))
+                    return self._issue("SO_LOAD_FAILED", "Cannot create an SO module loader.")
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.MODULE_NAME] = module
                 try:
                     spec.loader.exec_module(module)
-                except (ImportError, OSError, SystemError, ValueError, TypeError, RuntimeError):
+                except self.LOAD_ERRORS:
                     sys.modules.pop(self.MODULE_NAME, None)
                     raise
-        except (
-            ImportError,
-            OSError,
-            SystemError,
-            ValueError,
-            TypeError,
-            RuntimeError,
-        ) as error:
+        except self.LOAD_ERRORS as error:
             logging.warning("Failed to load full C pipeline runtime: %s", error, exc_info=True)
-            return RuntimeProbeResult(
-                (
-                    self._issue(
-                        "SO_LOAD_FAILED",
-                        "msprof_analysis.so cannot be loaded.",
-                        {"error": str(error)},
-                    ),
-                )
+            return self._issue(
+                "SO_LOAD_FAILED",
+                "msprof_analysis.so cannot be loaded.",
+                {"error": str(error)},
             )
         loaded_path = os.path.realpath(getattr(module, "__file__", ""))
         if loaded_path != os.path.realpath(self._so_path):
-            return RuntimeProbeResult(
-                (
-                    self._issue(
-                        "SO_WRONG_MODULE",
-                        "Loaded msprof_analysis module does not match the configured SO.",
-                        {"loaded_path": loaded_path},
-                    ),
-                )
+            return self._issue(
+                "SO_WRONG_MODULE",
+                "Loaded msprof_analysis module does not match the configured SO.",
+                {"loaded_path": loaded_path},
             )
-        return RuntimeProbeResult()
+        if not callable(getattr(getattr(module, "parser", None), "run_pipeline", None)):
+            return self._issue(
+                "PIPELINE_INTERFACE_MISSING",
+                "msprof_analysis.parser.run_pipeline is not available.",
+            )
+        return None
 
     def _issue(
         self,
         reason_code: str,
         message: str,
         details: Optional[Mapping[str, object]] = None,
-    ):
+    ) -> DecisionIssue:
         issue_details = {"so_path": self._so_path}
         issue_details.update(details or {})
         return DecisionIssue(DecisionDimension.ENVIRONMENT, reason_code, message, issue_details)
@@ -222,8 +218,7 @@ class CollectionFactsCollector:
     )
 
     def __init__(self, slice_config_path: Optional[str] = None):
-        analysis_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        self._slice_config_path = slice_config_path or os.path.join(analysis_dir, "msconfig", "msprof_slice.json")
+        self._slice_config_path = slice_config_path or FileSliceHelper.SLICE_CONFIG_PATH
 
     def collect(self, request: CppPipelineDecisionRequest) -> CollectionFacts:
         issues = []
@@ -259,28 +254,45 @@ class CollectionFactsCollector:
             )
         result_facts = []
         for path, position in path_items:
-            facts, path_issues = self._collect_result_path(path, position)
-            issues.extend(path_issues)
+            try:
+                facts = self._collect_result_path(path, position, issues)
+            except (OSError, ProfException) as error:
+                # 单个路径不可读时保留已有原因，并继续检查其他路径。
+                logging.warning("Failed to collect full C pipeline facts from %s: %s", path, error)
+                issues.append(
+                    DecisionIssue(
+                        DecisionDimension.ENVIRONMENT,
+                        "RESULT_PATH_READ_FAILED",
+                        "Cannot read profiling data from the result path.",
+                        {"path": path, "position": position, "error": str(error)},
+                    )
+                )
+                continue
             if facts is not None:
                 result_facts.append(facts)
+        is_export = request.command == PipelineCommand.EXPORT
         return CollectionFacts(
-            tuple(result_facts),
-            self._read_slice_enabled(),
-            tuple(issues),
-            self._collect_export_outputs(request.collection_path),
+            result_paths=tuple(result_facts),
+            slice_enabled=is_export and request.command_type == "timeline" and self._read_slice_enabled(),
+            issues=tuple(issues),
         )
 
-    def _collect_result_path(self, path: str, position: str):
+    def _collect_result_path(
+        self,
+        path: str,
+        position: str,
+        issues: List[DecisionIssue],
+    ) -> Optional[ResultPathFacts]:
         if not self._is_readable_dir(path):
-            return None, (
+            issues.append(
                 DecisionIssue(
                     DecisionDimension.ENVIRONMENT,
                     "RESULT_PATH_INVALID",
                     "Result path is missing, unreadable, or not a directory.",
                     {"path": path, "position": position},
-                ),
+                )
             )
-        issues = []
+            return None
         if not self._is_writable_dir(path):
             issues.append(
                 DecisionIssue(
@@ -290,10 +302,10 @@ class CollectionFactsCollector:
                     {"path": path, "position": position},
                 )
             )
-        info, info_issue = self._read_config(path, re.compile(r"^info\.json(?:\.\d+)?$"), "info.json")
-        sample, sample_issue = self._read_config(path, re.compile(r"^sample\.json$"), "sample.json")
+        info_json, info_issue = self._read_config(path, get_info_json_compiles(), "info.json")
+        sample_config, sample_issue = self._read_config(path, get_sample_json_compiles(), "sample.json")
         issues.extend(item for item in (info_issue, sample_issue) if item is not None)
-        data_dir = os.path.join(path, "data")
+        data_dir = PathManager.get_data_dir(path)
         if not self._is_readable_dir(data_dir):
             issues.append(
                 DecisionIssue(
@@ -325,50 +337,50 @@ class CollectionFactsCollector:
                     )
                 )
         chip_manager = ChipManager()
-        chip_model = chip_manager.CHIP_RELATION_MAP.get(str(info.get(Constant.PLATFORM_VERSION)))
-        driver_version = self._to_int(info.get("drvVersion"))
-        custom_fields = tuple(
+        chip_model = chip_manager.CHIP_RELATION_MAP.get(str(info_json.get(Constant.PLATFORM_VERSION)))
+        driver_version = self._to_int(info_json.get("drvVersion"))
+        custom_pmu_fields = tuple(
             field_name
-            for field_name in ("ai_core_metrics", "aiv_metrics")
-            if str(sample.get(field_name, "")).startswith("Custom")
+            for field_name in (StrConstant.AI_CORE_PROFILING_METRICS, StrConstant.AIV_PROFILING_METRICS)
+            if str(sample_config.get(field_name, "")).startswith("Custom")
         )
-        sqlite_dir = os.path.join(path, "sqlite")
-        has_complete_marker = os.path.isfile(os.path.join(data_dir, FileNameManagerConstant.ALL_FILE_TAG))
-        has_sqlite_data = bool(os.listdir(sqlite_dir) if os.path.isdir(sqlite_dir) else [])
-        facts = ResultPathFacts(
+        return ResultPathFacts(
             path=path,
             position=position,
             chip_model=chip_model,
-            collection_version=info.get("version"),
+            collection_version=info_json.get("version"),
             driver_version=driver_version,
             all_data_export_supported=chip_model is not None
             and chip_model not in chip_manager.ALL_DATA_EXPORT_CHIP_BLACKLIST,
-            ai_core_mode=sample.get("ai_core_profiling_mode"),
-            aiv_mode=sample.get("aiv_profiling_mode"),
-            custom_pmu_fields=custom_fields,
-            analyzed=has_complete_marker or has_sqlite_data,
+            ai_core_mode=sample_config.get(StrConstant.AICORE_PROFILING_MODE),
+            aiv_mode=sample_config.get(StrConstant.AIV_PROFILING_MODE),
+            custom_pmu_fields=custom_pmu_fields,
             raw_tags=raw_tags,
             unknown_raw_files=unknown_files,
         )
-        return facts, tuple(issues)
 
-    def _read_config(self, path: str, pattern, display_name: str):
-        matches = sorted(name for name in os.listdir(path) if pattern.match(name))
-        if not matches:
-            return {}, DecisionIssue(
-                DecisionDimension.ENVIRONMENT,
-                "METADATA_MISSING",
-                "%s is missing." % display_name,
-                {"path": path, "file": display_name},
-            )
-        config_path = os.path.join(path, matches[0])
+    def _read_config(
+        self,
+        path: str,
+        patterns: Tuple[Pattern[str], ...],
+        display_name: str,
+    ) -> Tuple[Mapping[str, object], Optional[DecisionIssue]]:
+        config_path = path
         try:
+            config_path = InfoConfReader().get_conf_file_path(path, patterns)
+            if not config_path:
+                return {}, DecisionIssue(
+                    DecisionDimension.ENVIRONMENT,
+                    "METADATA_MISSING",
+                    "%s is missing." % display_name,
+                    {"path": path, "file": display_name},
+                )
             with FileOpen(config_path, "r") as config_file:
                 data = json.load(config_file.file_reader)
             if not isinstance(data, dict):
                 raise ValueError("JSON root must be an object")
             return data, None
-        except (OSError, ValueError, TypeError) as error:
+        except (OSError, ValueError, TypeError, ProfException) as error:
             logging.warning("Failed to read full C pipeline metadata %s: %s", config_path, error)
             return {}, DecisionIssue(
                 DecisionDimension.ENVIRONMENT,
@@ -377,7 +389,7 @@ class CollectionFactsCollector:
                 {"path": config_path, "error": str(error)},
             )
 
-    def _collect_raw_data(self, data_dir: str):
+    def _collect_raw_data(self, data_dir: str) -> Tuple[FrozenSet[str], Tuple[str, ...]]:
         raw_tags = set()
         unknown_files = []
         for name in sorted(os.listdir(data_dir)):
@@ -387,42 +399,29 @@ class CollectionFactsCollector:
             matched_tags = {
                 data_tag.name
                 for data_tag, patterns in FileDispatch.FILES_FILTER_MAP.items()
-                if any(pattern.match(name) for pattern in patterns)
+                if get_file_name_pattern_match(name, *patterns)
             }
-            matched_tags.update(tag for tag, pattern in self.HOST_SYSTEM_PATTERNS.items() if pattern.match(name))
+            matched_tags.update(
+                tag for tag, pattern in self.HOST_SYSTEM_PATTERNS.items() if get_file_name_pattern_match(name, pattern)
+            )
+            # 仅消除同一文件的规则重叠，不能删除其他独立文件贡献的标签。
+            if DataTag.FFTS_PMU.name in matched_tags:
+                matched_tags.discard(DataTag.AI_CORE.name)
+            if DataTag.FREQ.name in matched_tags:
+                matched_tags.discard(DataTag.LPM_INFO.name)
             if matched_tags:
                 raw_tags.update(matched_tags)
             elif self._is_nonempty(path):
                 unknown_files.append(name)
-        if "FFTS_PMU" in raw_tags:
-            raw_tags.discard("AI_CORE")
-        if "FREQ" in raw_tags:
-            raw_tags.discard("LPM_INFO")
         return frozenset(raw_tags), tuple(unknown_files)
 
-    def _read_slice_enabled(self):
+    def _read_slice_enabled(self) -> bool:
         try:
-            with FileOpen(self._slice_config_path, "r") as config_file:
-                config = json.load(config_file.file_reader)
-            return config.get("slice_switch", "on") == "on"
-        except (OSError, ValueError, TypeError):
+            return FileSliceHelper.read_slice_config(self._slice_config_path)[0] == "on"
+        except (OSError, ValueError, TypeError, ProfException):
             # Existing export behavior falls back to slicing off for an invalid config.
             logging.warning("Failed to read timeline slice configuration for full C pipeline decision.")
             return False
-
-    @staticmethod
-    def _collect_export_outputs(collection_path: str) -> Tuple[str, ...]:
-        if not os.path.isdir(collection_path):
-            return ()
-        outputs = []
-        for name in sorted(os.listdir(collection_path)):
-            path = os.path.join(collection_path, name)
-            if name.startswith("msprof_") and name.endswith(".db"):
-                outputs.append(path)
-            elif name == "mindstudio_profiler_output" and os.path.isdir(path):
-                if os.listdir(path):
-                    outputs.append(path)
-        return tuple(outputs)
 
     @classmethod
     def _is_control_file(cls, name: str) -> bool:
@@ -432,11 +431,21 @@ class CollectionFactsCollector:
 
     @staticmethod
     def _is_readable_dir(path: str) -> bool:
-        return bool(path) and os.path.isdir(path) and os.access(path, os.R_OK)
+        try:
+            check_dir_readable(path)
+        except (OSError, ProfException):
+            return False
+        # 公共检查对 root 跳过权限判断，判定模块仍保留实际访问权限预检。
+        return os.access(path, os.R_OK)
 
     @staticmethod
     def _is_writable_dir(path: str) -> bool:
-        return bool(path) and os.access(path, os.W_OK | os.X_OK)
+        try:
+            check_dir_writable(path)
+        except (OSError, ProfException):
+            return False
+        # 创建目录项同时需要写权限和执行权限，公共检查仅检查写权限。
+        return os.access(path, os.W_OK | os.X_OK)
 
     @staticmethod
     def _is_nonempty(path: str) -> bool:
@@ -484,18 +493,8 @@ class CppPipelineDecider:
 
     def _decide(self, request: CppPipelineDecisionRequest) -> CppPipelineDecisionResult:
         key = (request.command, request.command_type)
-        requirement = self._registry.requirements.get(key)
         capability = self._registry.command_capabilities.get(key)
         issues = []
-        if requirement is None:
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.COMMAND,
-                    "COMMAND_INVALID",
-                    "The command or export command_type is not part of the Python contract.",
-                    {"command": request.command, "command_type": request.command_type},
-                )
-            )
         if capability is None:
             issues.append(
                 DecisionIssue(
@@ -505,18 +504,13 @@ class CppPipelineDecider:
                     {"command": request.command, "command_type": request.command_type},
                 )
             )
-        issues.extend(self._runtime_probe.probe().issues)
+        else:
+            runtime_issue = self._runtime_probe.probe()
+            if runtime_issue is not None:
+                issues.append(runtime_issue)
+        # 已发现问题仍继续检查，向调用方一次返回所有可判定的回退原因。
         facts = self._collector.collect(request)
         issues.extend(facts.issues)
-        if request.command == PipelineCommand.EXPORT and facts.existing_export_outputs:
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.SCENE,
-                    "EXPORT_OUTPUT_ALREADY_EXISTS",
-                    "Existing export outputs make full C pipeline rollback ambiguous.",
-                    {"paths": list(facts.existing_export_outputs)},
-                )
-            )
         if request.is_cluster and (capability is None or not capability.supports_cluster):
             issues.append(
                 DecisionIssue(
@@ -525,7 +519,7 @@ class CppPipelineDecider:
                     "The full C pipeline does not support cluster data.",
                 )
             )
-        if request.command == PipelineCommand.EXPORT and not self._is_all_export(request.export_mode):
+        if request.command == PipelineCommand.EXPORT and request.export_mode != ExportMode.ALL_EXPORT:
             issues.append(
                 DecisionIssue(
                     DecisionDimension.SCENE,
@@ -534,7 +528,23 @@ class CppPipelineDecider:
                     {"export_mode": str(request.export_mode)},
                 )
             )
-        if request.reports_path and not self._is_readable_file(request.reports_path):
+        if capability is not None:
+            self._check_command_options(request, facts, capability, issues)
+        self._check_result_paths(facts, issues)
+        return CppPipelineDecisionResult(not issues, tuple(issues), self._registry.version)
+
+    def _check_command_options(
+        self,
+        request: CppPipelineDecisionRequest,
+        facts: CollectionFacts,
+        capability: CommandCapability,
+        issues: List[DecisionIssue],
+    ) -> None:
+        if (
+            PipelineFeature.REPORTS_FILTER in capability.applicable_features
+            and request.reports_path
+            and not self._is_readable_file(request.reports_path)
+        ):
             issues.append(
                 DecisionIssue(
                     DecisionDimension.ENVIRONMENT,
@@ -543,48 +553,7 @@ class CppPipelineDecider:
                     {"path": request.reports_path},
                 )
             )
-        if requirement is not None and capability is not None:
-            self._check_command_contract(request, facts, requirement, capability, issues)
-        self._check_result_paths(facts, requirement, capability, issues)
-        return CppPipelineDecisionResult(not issues, tuple(issues), self._registry.version)
-
-    def _check_command_contract(self, request, facts, requirement, capability, issues):
-        positions = set()
-        if request.host_path:
-            positions.add(DataPosition.HOST)
-        if request.device_paths:
-            positions.add(DataPosition.DEVICE)
-        required_stages = self._get_required_stages(requirement, positions)
-        missing_stages = sorted(required_stages - capability.stages)
-        if missing_stages:
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.COMMAND,
-                    "STAGE_UNSUPPORTED",
-                    "The C command capability is missing required stages.",
-                    {"stages": missing_stages},
-                )
-            )
-        missing_deliverables = sorted(requirement.deliverables - capability.deliverables)
-        if missing_deliverables:
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.COMMAND,
-                    "DELIVERABLE_UNSUPPORTED",
-                    "The C command capability is missing required deliverables.",
-                    {"deliverables": missing_deliverables},
-                )
-            )
-        if request.export_format not in requirement.formats:
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.COMMAND,
-                    "EXPORT_FORMAT_INVALID",
-                    "The requested output format is not part of the Python command contract.",
-                    {"format": request.export_format},
-                )
-            )
-        elif request.export_format not in capability.formats:
+        if request.export_format not in capability.supported_formats:
             issues.append(
                 DecisionIssue(
                     DecisionDimension.COMMAND,
@@ -593,22 +562,31 @@ class CppPipelineDecider:
                     {"format": request.export_format},
                 )
             )
-        for conditional in requirement.conditional_requirements:
-            source = request if conditional.source == "request" else facts
-            value = getattr(source, conditional.field)
-            matched = bool(value) if conditional.expected == "nonempty" else value == conditional.expected
-            if matched and conditional.feature not in capability.features:
+        # 新增功能需同步启用条件、原因码及命令适用范围；此处顺序决定原因输出顺序。
+        requested_features = {
+            PipelineFeature.CLEAR_RAW_DATA: request.clear_mode,
+            PipelineFeature.PARTIAL_EXPORT: request.has_export_selection,
+            PipelineFeature.REPORTS_FILTER: bool(request.reports_path),
+            PipelineFeature.TIMELINE_SLICING: facts.slice_enabled,
+        }
+        unsupported_features = capability.applicable_features - capability.supported_features
+        for feature, enabled in requested_features.items():
+            if enabled and feature in unsupported_features:
                 issues.append(
                     DecisionIssue(
                         DecisionDimension.COMMAND,
-                        conditional.reason_code,
+                        FEATURE_REASON_CODES[feature],
                         "A requested Python-flow feature is not supported by the C command capability.",
-                        {"feature": conditional.feature},
+                        {"feature": feature},
                     )
                 )
 
-    def _check_result_paths(self, facts, requirement, capability, issues):
-        chip_models = {item.chip_model for item in facts.result_paths if item.chip_model is not None}
+    def _check_result_paths(
+        self,
+        facts: CollectionFacts,
+        issues: List[DecisionIssue],
+    ) -> None:
+        chip_models = {path_facts.chip_model for path_facts in facts.result_paths if path_facts.chip_model is not None}
         if len(chip_models) > 1:
             issues.append(
                 DecisionIssue(
@@ -618,104 +596,91 @@ class CppPipelineDecider:
                     {"chips": sorted(chip.name for chip in chip_models)},
                 )
             )
-        for item in facts.result_paths:
-            profile = self._registry.chip_profiles.get(item.chip_model)
-            if profile is None:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.CHIP,
-                        "CHIP_UNSUPPORTED",
-                        "The chip has no full C pipeline capability profile.",
-                        {
-                            "path": item.path,
-                            "chip": item.chip_model.name if item.chip_model else None,
-                        },
-                    )
+        for path_facts in facts.result_paths:
+            self._check_result_path(path_facts, issues)
+
+    def _check_result_path(
+        self,
+        path_facts: ResultPathFacts,
+        issues: List[DecisionIssue],
+    ) -> None:
+        supported_tags_by_position = self._registry.supported_tags_by_chip.get(path_facts.chip_model)
+        if supported_tags_by_position is None:
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.CHIP,
+                    "CHIP_UNSUPPORTED",
+                    "The chip has no full C pipeline capability profile.",
+                    {
+                        "path": path_facts.path,
+                        "chip": path_facts.chip_model.name if path_facts.chip_model else None,
+                    },
                 )
-            if item.collection_version != CollectionFactsCollector.ANALYSIS_VERSION:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.VERSION,
-                        "COLLECTION_VERSION_MISMATCH",
-                        "The collection data version does not match this analyzer.",
-                        {
-                            "path": item.path,
-                            "actual": item.collection_version,
-                            "expected": CollectionFactsCollector.ANALYSIS_VERSION,
-                        },
-                    )
+            )
+        if path_facts.collection_version != CollectionFactsCollector.ANALYSIS_VERSION:
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.VERSION,
+                    "COLLECTION_VERSION_MISMATCH",
+                    "The collection data version does not match this analyzer.",
+                    {
+                        "path": path_facts.path,
+                        "actual": path_facts.collection_version,
+                        "expected": CollectionFactsCollector.ANALYSIS_VERSION,
+                    },
                 )
-            if item.driver_version is None or item.driver_version < CollectionFactsCollector.ALL_EXPORT_DRIVER_VERSION:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.VERSION,
-                        "DRIVER_VERSION_UNSUPPORTED",
-                        "The driver version does not support all-data export.",
-                        {"path": item.path, "driver_version": item.driver_version},
-                    )
+            )
+        if (
+            path_facts.driver_version is None
+            or path_facts.driver_version < CollectionFactsCollector.ALL_EXPORT_DRIVER_VERSION
+        ):
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.VERSION,
+                    "DRIVER_VERSION_UNSUPPORTED",
+                    "The driver version does not support all-data export.",
+                    {"path": path_facts.path, "driver_version": path_facts.driver_version},
                 )
-            if not item.all_data_export_supported:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.CHIP,
-                        "ALL_DATA_EXPORT_UNSUPPORTED",
-                        "The chip does not support all-data export.",
-                        {"path": item.path},
-                    )
+            )
+        if path_facts.chip_model is not None and not path_facts.all_data_export_supported:
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.CHIP,
+                    "ALL_DATA_EXPORT_UNSUPPORTED",
+                    "The chip does not support all-data export.",
+                    {"path": path_facts.path},
                 )
-            self._check_profiling_scene(item, issues)
-            if item.analyzed:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.SCENE,
-                        "DATA_ALREADY_ANALYZED",
-                        "The result path has already been analyzed.",
-                        {"path": item.path},
-                    )
+            )
+        self._check_profiling_scene(path_facts, issues)
+        if path_facts.unknown_raw_files:
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.DATA,
+                    "UNKNOWN_RAW_DATA",
+                    "Non-empty raw files cannot be mapped to a known data tag.",
+                    {"path": path_facts.path, "files": list(path_facts.unknown_raw_files)},
                 )
-            if item.unknown_raw_files:
-                issues.append(
-                    DecisionIssue(
-                        DecisionDimension.DATA,
-                        "UNKNOWN_RAW_DATA",
-                        "Non-empty raw files cannot be mapped to a known data tag.",
-                        {"path": item.path, "files": list(item.unknown_raw_files)},
-                    )
+            )
+        if supported_tags_by_position is None:
+            return
+        unsupported_tags = sorted(
+            path_facts.raw_tags - supported_tags_by_position.get(path_facts.position, frozenset())
+        )
+        if unsupported_tags:
+            issues.append(
+                DecisionIssue(
+                    DecisionDimension.DATA,
+                    "DATA_TAG_UNSUPPORTED",
+                    "Some raw data tags do not have an active C parser for this chip and position.",
+                    {"path": path_facts.path, "tags": unsupported_tags, "position": path_facts.position},
                 )
-            if profile is not None:
-                unsupported_tags = sorted(tag for tag in item.raw_tags if not profile.supports_data(tag, item.position))
-                if unsupported_tags:
-                    issues.append(
-                        DecisionIssue(
-                            DecisionDimension.DATA,
-                            "DATA_TAG_UNSUPPORTED",
-                            "Some raw data tags do not have an active C parser for this chip and position.",
-                            {
-                                "path": item.path,
-                                "tags": unsupported_tags,
-                                "position": item.position,
-                            },
-                        )
-                    )
-                if requirement is not None and capability is not None:
-                    missing_profile_stages = sorted(
-                        self._get_required_stages(requirement, {item.position}) - profile.stages
-                    )
-                    if missing_profile_stages:
-                        issues.append(
-                            DecisionIssue(
-                                DecisionDimension.CHIP,
-                                "CHIP_STAGE_UNSUPPORTED",
-                                "The chip capability profile is missing required stages.",
-                                {"path": item.path, "stages": missing_profile_stages},
-                            )
-                        )
+            )
 
     @staticmethod
-    def _check_profiling_scene(item, issues):
-        for field_name, mode in (
-            ("ai_core", item.ai_core_mode),
-            ("aiv", item.aiv_mode),
+    def _check_profiling_scene(path_facts: ResultPathFacts, issues: List[DecisionIssue]) -> None:
+        for engine, mode in (
+            ("ai_core", path_facts.ai_core_mode),
+            ("aiv", path_facts.aiv_mode),
         ):
             if mode == CollectionFactsCollector.SAMPLE_BASED:
                 issues.append(
@@ -723,7 +688,7 @@ class CppPipelineDecider:
                         DecisionDimension.SCENE,
                         "SAMPLE_BASED_UNSUPPORTED",
                         "Sample-based profiling is not supported by the full C pipeline.",
-                        {"path": item.path, "engine": field_name},
+                        {"path": path_facts.path, "engine": engine},
                     )
                 )
             elif mode not in (None, "", CollectionFactsCollector.TASK_BASED):
@@ -732,31 +697,18 @@ class CppPipelineDecider:
                         DecisionDimension.SCENE,
                         "PROFILING_MODE_UNSUPPORTED",
                         "The profiling mode is not recognized as task-based.",
-                        {"path": item.path, "engine": field_name, "mode": mode},
+                        {"path": path_facts.path, "engine": engine, "mode": mode},
                     )
                 )
-        if item.custom_pmu_fields:
+        if path_facts.custom_pmu_fields:
             issues.append(
                 DecisionIssue(
                     DecisionDimension.SCENE,
                     "CUSTOM_PMU_UNSUPPORTED",
                     "Custom PMU metrics are not supported by the full C pipeline.",
-                    {"path": item.path, "fields": list(item.custom_pmu_fields)},
+                    {"path": path_facts.path, "fields": list(path_facts.custom_pmu_fields)},
                 )
             )
-
-    @staticmethod
-    def _get_required_stages(requirement, positions):
-        required_stages = set(requirement.stages)
-        if DataPosition.HOST in positions:
-            required_stages.add(PipelineStage.HOST_PARSE)
-        if DataPosition.DEVICE in positions:
-            required_stages.add(PipelineStage.DEVICE_PARSE)
-        return frozenset(required_stages)
-
-    @staticmethod
-    def _is_all_export(export_mode: ExportMode) -> bool:
-        return export_mode == ExportMode.ALL_EXPORT
 
     @staticmethod
     def _is_readable_file(path: str) -> bool:

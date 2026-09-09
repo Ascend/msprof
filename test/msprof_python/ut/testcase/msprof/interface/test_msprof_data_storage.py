@@ -103,11 +103,11 @@ class TestMsprofDataStorage(unittest.TestCase):
         params = {"export_format": "csv"}
         with mock.patch(NAMESPACE + '.FileSliceHelper.make_export_file_name', return_value="test_01_1"), \
                 mock.patch(NAMESPACE + '.check_file_writable'), \
-                mock.patch(NAMESPACE + '.create_csv', return_value=1):
+                mock.patch(NAMESPACE + '.FileSliceHelper.slice_and_dump_summary_data_as_csv', return_value=1) as dump_csv:
             key = MsprofDataStorage()
             result = key.export_summary_data(headers, data, params)
-        json_dump = '{"status": 1, "info": "bak or mkdir json dir failed", "data": ""}'
-        self.assertEqual(result, json_dump)
+        dump_csv.assert_called_once_with()
+        self.assertEqual(result, 1)
 
     def test_export_summary_data_2(self):
         headers = 1

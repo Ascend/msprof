@@ -26,26 +26,6 @@ class PipelineCommand:
     IMPORT = "import"
 
 
-class PipelineStage:
-    HOST_PARSE = "host_parse"
-    DEVICE_PARSE = "device_parse"
-    CALCULATE = "calculate"
-    DB_EXPORT = "db_export"
-    TIMELINE_EXPORT = "timeline_export"
-    SUMMARY_EXPORT = "summary_export"
-
-
-class PipelineDeliverable:
-    TIMELINE = "timeline"
-    SUMMARY = "summary"
-    UNIFIED_DB = "unified_db"
-    SQLITE = "sqlite"
-    LOG = "log"
-    COMPLETE_MARKER = "all_file.complete"
-    PERMISSIONS = "permissions"
-    TEMP_DIR_CLEANUP = "temporary_directory_cleanup"
-
-
 class PipelineFeature:
     CLEAR_RAW_DATA = "clear_raw_data"
     PARTIAL_EXPORT = "partial_export"
@@ -58,194 +38,53 @@ class DataPosition:
     DEVICE = "device"
 
 
-@dataclass(frozen=True)
-class ConditionalRequirement:
-    source: str
-    field: str
-    expected: object
-    feature: str
-    reason_code: str
-
-
-@dataclass(frozen=True)
-class CommandRequirement:
-    command: str
-    command_type: Optional[str]
-    stages: FrozenSet[str]
-    deliverables: FrozenSet[str]
-    formats: FrozenSet[Optional[str]]
-    conditional_requirements: Tuple[ConditionalRequirement, ...] = ()
+FEATURE_REASON_CODES = {
+    PipelineFeature.CLEAR_RAW_DATA: "CLEAR_UNSUPPORTED",
+    PipelineFeature.PARTIAL_EXPORT: "EXPORT_SELECTION_UNSUPPORTED",
+    PipelineFeature.REPORTS_FILTER: "REPORTS_FILTER_UNSUPPORTED",
+    PipelineFeature.TIMELINE_SLICING: "TIMELINE_SLICING_UNSUPPORTED",
+}
 
 
 @dataclass(frozen=True)
 class CommandCapability:
-    command: str
-    command_type: Optional[str]
-    stages: FrozenSet[str]
-    deliverables: FrozenSet[str]
-    formats: FrozenSet[Optional[str]]
-    features: FrozenSet[str]
+    supported_formats: FrozenSet[Optional[str]]
+    applicable_features: FrozenSet[str]
+    supported_features: FrozenSet[str]
     supports_cluster: bool = False
-
-
-@dataclass(frozen=True)
-class DataCapability:
-    tag: str
-    positions: FrozenSet[str]
-
-
-@dataclass(frozen=True)
-class ChipCapabilityProfile:
-    chip_model: ChipModel
-    stages: FrozenSet[str]
-    data_capabilities: Tuple[DataCapability, ...]
-
-    def supports_data(self, tag: str, position: str) -> bool:
-        return any(item.tag == tag and position in item.positions for item in self.data_capabilities)
 
 
 @dataclass(frozen=True)
 class CapabilityRegistry:
     version: str
-    requirements: Mapping[Tuple[str, Optional[str]], CommandRequirement]
     command_capabilities: Mapping[Tuple[str, Optional[str]], CommandCapability]
-    chip_profiles: Mapping[ChipModel, ChipCapabilityProfile]
+    supported_tags_by_chip: Mapping[ChipModel, Mapping[str, FrozenSet[str]]]
 
 
-COMMON_PARSE_DELIVERABLES = frozenset(
-    {
-        PipelineDeliverable.SQLITE,
-        PipelineDeliverable.LOG,
-        PipelineDeliverable.COMPLETE_MARKER,
-        PipelineDeliverable.PERMISSIONS,
-    }
-)
+TIMELINE_SUMMARY_FEATURES = frozenset({PipelineFeature.CLEAR_RAW_DATA, PipelineFeature.PARTIAL_EXPORT})
 
-COMMON_EXPORT_DELIVERABLES = COMMON_PARSE_DELIVERABLES | frozenset({PipelineDeliverable.TEMP_DIR_CLEANUP})
-
-EXPORT_CONDITIONS = (
-    ConditionalRequirement(
-        source="request",
-        field="clear_mode",
-        expected=True,
-        feature=PipelineFeature.CLEAR_RAW_DATA,
-        reason_code="CLEAR_UNSUPPORTED",
-    ),
-    ConditionalRequirement(
-        source="request",
-        field="has_export_selection",
-        expected=True,
-        feature=PipelineFeature.PARTIAL_EXPORT,
-        reason_code="EXPORT_SELECTION_UNSUPPORTED",
-    ),
-)
-
-COMMAND_REQUIREMENTS = {
-    (PipelineCommand.EXPORT, "timeline"): CommandRequirement(
-        command=PipelineCommand.EXPORT,
-        command_type="timeline",
-        stages=frozenset(
-            {
-                PipelineStage.CALCULATE,
-                PipelineStage.DB_EXPORT,
-                PipelineStage.TIMELINE_EXPORT,
-            }
-        ),
-        deliverables=COMMON_EXPORT_DELIVERABLES
-        | frozenset({PipelineDeliverable.TIMELINE, PipelineDeliverable.UNIFIED_DB}),
-        formats=frozenset({None}),
-        conditional_requirements=EXPORT_CONDITIONS
-        + (
-            ConditionalRequirement(
-                source="request",
-                field="reports_path",
-                expected="nonempty",
-                feature=PipelineFeature.REPORTS_FILTER,
-                reason_code="REPORTS_FILTER_UNSUPPORTED",
-            ),
-            ConditionalRequirement(
-                source="facts",
-                field="slice_enabled",
-                expected=True,
-                feature=PipelineFeature.TIMELINE_SLICING,
-                reason_code="TIMELINE_SLICING_UNSUPPORTED",
-            ),
-        ),
-    ),
-    (PipelineCommand.EXPORT, "summary"): CommandRequirement(
-        command=PipelineCommand.EXPORT,
-        command_type="summary",
-        stages=frozenset(
-            {
-                PipelineStage.CALCULATE,
-                PipelineStage.DB_EXPORT,
-                PipelineStage.SUMMARY_EXPORT,
-            }
-        ),
-        deliverables=COMMON_EXPORT_DELIVERABLES
-        | frozenset({PipelineDeliverable.SUMMARY, PipelineDeliverable.UNIFIED_DB}),
-        formats=frozenset({"csv", "json"}),
-        conditional_requirements=EXPORT_CONDITIONS,
-    ),
-    (PipelineCommand.EXPORT, "db"): CommandRequirement(
-        command=PipelineCommand.EXPORT,
-        command_type="db",
-        stages=frozenset(
-            {
-                PipelineStage.CALCULATE,
-                PipelineStage.DB_EXPORT,
-            }
-        ),
-        deliverables=COMMON_EXPORT_DELIVERABLES | frozenset({PipelineDeliverable.UNIFIED_DB}),
-        formats=frozenset({None}),
-    ),
-    (PipelineCommand.IMPORT, None): CommandRequirement(
-        command=PipelineCommand.IMPORT,
-        command_type=None,
-        stages=frozenset(),
-        deliverables=COMMON_PARSE_DELIVERABLES,
-        formats=frozenset({None}),
-    ),
-}
-
-# Side-effect deliverables are part of the unified entry contract.
-UNIFIED_EXPORT_DELIVERABLES = COMMON_EXPORT_DELIVERABLES | frozenset({PipelineDeliverable.UNIFIED_DB})
-
+# 仅声明 C 支持的命令选项，参数合法性由 Python 入口校验。
 COMMAND_CAPABILITIES = {
     (PipelineCommand.EXPORT, "timeline"): CommandCapability(
-        command=PipelineCommand.EXPORT,
-        command_type="timeline",
-        stages=COMMAND_REQUIREMENTS[(PipelineCommand.EXPORT, "timeline")].stages
-        | frozenset({PipelineStage.HOST_PARSE, PipelineStage.DEVICE_PARSE}),
-        deliverables=UNIFIED_EXPORT_DELIVERABLES | frozenset({PipelineDeliverable.TIMELINE}),
-        formats=frozenset({None}),
-        features=frozenset({PipelineFeature.REPORTS_FILTER}),
+        supported_formats=frozenset({None}),
+        applicable_features=TIMELINE_SUMMARY_FEATURES
+        | frozenset({PipelineFeature.REPORTS_FILTER, PipelineFeature.TIMELINE_SLICING}),
+        supported_features=frozenset({PipelineFeature.REPORTS_FILTER}),
     ),
     (PipelineCommand.EXPORT, "summary"): CommandCapability(
-        command=PipelineCommand.EXPORT,
-        command_type="summary",
-        stages=COMMAND_REQUIREMENTS[(PipelineCommand.EXPORT, "summary")].stages
-        | frozenset({PipelineStage.HOST_PARSE, PipelineStage.DEVICE_PARSE}),
-        deliverables=UNIFIED_EXPORT_DELIVERABLES | frozenset({PipelineDeliverable.SUMMARY}),
-        formats=frozenset({"csv"}),
-        features=frozenset(),
+        supported_formats=frozenset({"csv"}),
+        applicable_features=TIMELINE_SUMMARY_FEATURES,
+        supported_features=frozenset(),
     ),
     (PipelineCommand.EXPORT, "db"): CommandCapability(
-        command=PipelineCommand.EXPORT,
-        command_type="db",
-        stages=COMMAND_REQUIREMENTS[(PipelineCommand.EXPORT, "db")].stages
-        | frozenset({PipelineStage.HOST_PARSE, PipelineStage.DEVICE_PARSE}),
-        deliverables=UNIFIED_EXPORT_DELIVERABLES,
-        formats=frozenset({None}),
-        features=frozenset(),
+        supported_formats=frozenset({None}),
+        applicable_features=frozenset(),
+        supported_features=frozenset(),
     ),
     (PipelineCommand.IMPORT, None): CommandCapability(
-        command=PipelineCommand.IMPORT,
-        command_type=None,
-        stages=frozenset({PipelineStage.HOST_PARSE, PipelineStage.DEVICE_PARSE}),
-        deliverables=COMMON_PARSE_DELIVERABLES,
-        formats=frozenset({None}),
-        features=frozenset(),
+        supported_formats=frozenset({None}),
+        applicable_features=frozenset(),
+        supported_features=frozenset(),
     ),
 }
 
@@ -277,30 +116,11 @@ V4_DEVICE_TAGS = frozenset(
     }
 )
 
-V4_STAGES = frozenset(
-    {
-        PipelineStage.HOST_PARSE,
-        PipelineStage.DEVICE_PARSE,
-        PipelineStage.CALCULATE,
-        PipelineStage.DB_EXPORT,
-        PipelineStage.TIMELINE_EXPORT,
-        PipelineStage.SUMMARY_EXPORT,
-    }
-)
-
-V4_PROFILE = ChipCapabilityProfile(
-    chip_model=ChipModel.CHIP_V4_1_0,
-    stages=V4_STAGES,
-    data_capabilities=tuple(
-        [DataCapability(tag, frozenset({DataPosition.HOST})) for tag in sorted(V4_HOST_TAGS)]
-        + [DataCapability(tag, frozenset({DataPosition.DEVICE})) for tag in sorted(V4_DEVICE_TAGS)]
-    ),
-)
-
 # 当前全 C 流程仅放行 V4，其他芯片待对应 SO 能力交付后再补充注册。
 DEFAULT_CAPABILITY_REGISTRY = CapabilityRegistry(
     version="1.0",
-    requirements=COMMAND_REQUIREMENTS,
     command_capabilities=COMMAND_CAPABILITIES,
-    chip_profiles={ChipModel.CHIP_V4_1_0: V4_PROFILE},
+    supported_tags_by_chip={
+        ChipModel.CHIP_V4_1_0: {DataPosition.HOST: V4_HOST_TAGS, DataPosition.DEVICE: V4_DEVICE_TAGS},
+    },
 )

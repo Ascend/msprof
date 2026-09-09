@@ -21,11 +21,15 @@ from datetime import timezone
 
 from common_func.constant import Constant
 from common_func.file_manager import FdOpen
+from common_func.file_manager import FileOpen
+from common_func.file_manager import check_file_readable
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_common import MsProfCommonConstant
 from common_func.msvp_common import create_csv
+from common_func.msvp_constant import MsvpConstant
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.profiling_scene import ProfilingScene
+from profiling_bean.prof_enum.timeline_slice_strategy import TimeLineSliceStrategy
 
 
 class FileSliceHelper:
@@ -38,6 +42,8 @@ class FileSliceHelper:
     # json file size less than 200M, 300 means a record is 300 Bytes
     JSON_LIMIT = 200 * 1024 * 1024 // 300
     COUNT_INIT = 0
+    SLICE_CONFIG_PATH = os.path.join(MsvpConstant.CONFIG_PATH, "msprof_slice.json")
+    DEFAULT_SLICE_SETTING = ("off", 0, 0)
 
     def __init__(self: any, params: dict, header: list, data_list: list) -> None:
         """
@@ -50,6 +56,32 @@ class FileSliceHelper:
         # self.file_name_slice used to get the right file name
         self.file_name_slice = self.COUNT_INIT
         self.connection_id_set = set()
+
+    @staticmethod
+    def read_slice_config(path: str = SLICE_CONFIG_PATH) -> tuple:
+        check_file_readable(path)
+        try:
+            with FileOpen(path, "r") as rule_reader:
+                config = json.load(rule_reader.file_reader)
+        except (OSError, ValueError):
+            logging.warning("Read slice config failed: %s", os.path.basename(path))
+            return FileSliceHelper.DEFAULT_SLICE_SETTING
+        if not isinstance(config, dict):
+            logging.warning("Slice config must be a JSON object")
+            return FileSliceHelper.DEFAULT_SLICE_SETTING
+        slice_switch = config.get("slice_switch", "on")
+        if slice_switch not in ("on", "off"):
+            logging.warning("slice_switch should be on or off")
+            return FileSliceHelper.DEFAULT_SLICE_SETTING
+        limit_size = config.get("slice_file_size(MB)", 0)
+        if not isinstance(limit_size, int) or limit_size < 0:
+            logging.warning("limit_size should be a number which is not smaller than 0")
+            return FileSliceHelper.DEFAULT_SLICE_SETTING
+        method = config.get("strategy", 0)
+        if not isinstance(method, int) or method not in [item.value for item in TimeLineSliceStrategy]:
+            logging.warning("strategy should be 0 or 1")
+            return FileSliceHelper.DEFAULT_SLICE_SETTING
+        return slice_switch, limit_size, method
 
     @staticmethod
     def get_current_time_str() -> str:

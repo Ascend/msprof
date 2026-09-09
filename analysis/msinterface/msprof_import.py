@@ -20,6 +20,7 @@ import shutil
 from common_func.common import warn, print_info
 from common_func.config_mgr import ConfigMgr
 from common_func.constant import Constant
+from common_func.cpp_pipeline_decision import CppPipelineDecisionRequest
 from common_func.data_check_manager import DataCheckManager
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_common import MsProfCommonConstant
@@ -29,7 +30,9 @@ from common_func.msprof_common import get_path_dir
 from common_func.msprof_common import get_valid_sub_path
 from common_func.msprof_exception import ProfException
 from common_func.path_manager import PathManager
+from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from msinterface.msprof_c_interface import dump_device_data
+from msinterface.msprof_cpp_pipeline import try_full_cpp_pipeline
 from msparser.cluster.cluster_info_parser import ClusterInfoParser, ClusterBasicInfo
 from msparser.cluster.cluster_step_trace_parser import ClusterStepTraceParser
 from msparser.parallel.cluster_parallel_collector import ClusterParallelCollector
@@ -100,7 +103,12 @@ class ImportCommand:
         collect_path = self.collection_path
         if subdir:
             collect_path = os.path.join(self.collection_path, subdir)
-        path_table = {StrConstant.HOST_PATH: "", StrConstant.DEVICE_PATH: []}
+        path_table = {
+            StrConstant.HOST_PATH: "",
+            StrConstant.DEVICE_PATH: [],
+            "collection_path": collect_path,
+            "is_cluster": is_cluster or self.is_cluster_scene,
+        }
         for sub_dir, valid_sub_path, contain_info_json in DataCheckManager.iter_valid_profiling_sub_paths(
             collect_path, self.FILE_NAME, skip_invalid=is_cluster
         ):
@@ -125,6 +133,14 @@ class ImportCommand:
         self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
         self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
         # start parse
+        request = CppPipelineDecisionRequest.from_path_table(
+            PipelineCommand.IMPORT,
+            None,
+            path_table,
+            is_cluster=path_table.get("is_cluster", self.is_cluster_scene),
+        )
+        if try_full_cpp_pipeline(request):
+            return
         self._start_parse(path_table)
 
     def _start_parse(self, path_table: dict):
@@ -135,7 +151,8 @@ class ImportCommand:
         for device_path in path_table.get(StrConstant.DEVICE_PATH):
             self._parse_data(device_path)
         # device 执行完后执行device c化
-        dump_device_data(host_path if host_path else path_table.get(StrConstant.DEVICE_PATH)[0])
+        dump_path = host_path if host_path else path_table.get(StrConstant.DEVICE_PATH)[0]
+        dump_device_data(dump_path)
 
     def _parse_data(self, device_path: str):
         if not device_path:

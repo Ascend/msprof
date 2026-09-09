@@ -27,6 +27,7 @@ from common_func.common import print_info
 from common_func.common import warn
 from common_func.config_mgr import ConfigMgr
 from common_func.constant import Constant
+from common_func.cpp_pipeline_decision import CppPipelineDecisionRequest
 from common_func.data_check_manager import DataCheckManager
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
@@ -54,11 +55,13 @@ from common_func.system_data_check_manager import SystemDataCheckManager
 from common_func.utils import Utils
 from framework.file_dispatch import FileDispatch
 from framework.load_info_manager import LoadInfoManager
+from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from msinterface.msprof_c_interface import export_unified_db
 from msinterface.msprof_c_interface import dump_device_data
 from msinterface.msprof_c_interface import export_timeline
 from msinterface.msprof_c_interface import export_summary
 from msinterface.msprof_data_storage import MsprofDataStorage
+from msinterface.msprof_cpp_pipeline import try_full_cpp_pipeline
 from msinterface.msprof_export_data import MsProfExportDataUtils
 from msinterface.msprof_output_summary import MsprofOutputSummary
 from msinterface.msprof_timeline import MsprofTimeline
@@ -239,6 +242,7 @@ class ExportCommand:
         self.command_type = command_type
         self.collection_path = os.path.realpath(args.collection_path)
         self.iteration_id = getattr(args, "iteration_id", NumberConstant.DEFAULT_ITER_ID)
+        self._requested_iteration_id = getattr(args, "iteration_id", None)
         if self.iteration_id is None:
             self.iteration_id = NumberConstant.DEFAULT_ITER_ID
         self.iteration_count = getattr(args, "iteration_count", NumberConstant.DEFAULT_ITER_COUNT)
@@ -721,7 +725,27 @@ class ExportCommand:
         if path_table.get(StrConstant.HOST_PATH) or path_table.get(StrConstant.DEVICE_PATH):
             self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
             self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
+        if self._try_full_cpp_pipeline(path_table):
+            return
         run_in_subprocess(self._process_data, path_table)
+
+    def _try_full_cpp_pipeline(self, path_table: dict) -> bool:
+        if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):
+            return False
+        request = CppPipelineDecisionRequest.from_path_table(
+            PipelineCommand.EXPORT,
+            self.command_type,
+            path_table,
+            is_cluster=self._cluster_params.get('is_cluster_scene', False),
+            export_mode=ProfilingScene().get_mode(),
+            export_format=self.export_format,
+            reports_path=self.reports_path,
+            model_id=self.list_map['model_id'],
+            iteration_id=self._requested_iteration_id,
+            iteration_count=self.iteration_count,
+            clear_mode=self.clear_mode,
+        )
+        return try_full_cpp_pipeline(request)
 
     def _process_data(self, path_table: dict):
         if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):

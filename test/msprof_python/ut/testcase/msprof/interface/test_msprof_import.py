@@ -80,7 +80,8 @@ class TestImportCommand(unittest.TestCase):
             key = ImportCommand(args)
             key.do_import(result_dir)
 
-    def test_process(self):
+    @mock.patch(NAMESPACE + '.try_full_cpp_pipeline', return_value=False)
+    def test_process(self, _pipeline):
         with mock.patch(NAMESPACE + '.check_path_valid'):
             args_dic = {"collection_path": "test", "cluster_flag": False}
             args = Namespace(**args_dic)
@@ -102,7 +103,8 @@ class TestImportCommand(unittest.TestCase):
                         key.process()
                     self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
 
-    def test_parse_unresolved_dirs(self):
+    @mock.patch(NAMESPACE + '.try_full_cpp_pipeline', return_value=False)
+    def test_parse_unresolved_dirs(self, _pipeline):
         unresolved_dirs = {'pro_dir': ['result_dir']}
         args_dic = {"collection_path": "test", "cluster_flag": False}
         args = Namespace(**args_dic)
