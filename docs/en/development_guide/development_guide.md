@@ -6,33 +6,33 @@ This document is intended for MindStudio Profiler developers and maintenance per
 
 msProf provides capabilities for collecting, parsing, and exporting AI task execution profile data and Ascend AI processor system data. Development work is generally categorized into the following areas.
 
-| Development Object| Typical Content|
+| Development Object | Typical Content |
 | --- | --- |
-| Data collection| `msprof` command-line parameters, collection process, and raw data persistence|
-| Data parsing| `msprof --export`, `msprof.py (import/query/export)`, and communication data parsing|
-| Export deliverables| `msprof_*.json`, `op_summary_*.csv`, and `msprof_*.db`|
-| Packaging and release| Building the `mindstudio-profiler_<version>_<arch>.run` package by using `build/build.sh`|
-| Documentation| Installation guide, quick start, parsing description, data file reference, and extended features|
+| Data collection | `msprof` command-line parameters, collection process, and raw data persistence |
+| Data parsing | `msprof --export`, `msprof.py (import/query/export)`, and communication data parsing |
+| Export deliverables | `msprof_*.json`, `op_summary_*.csv`, and `msprof_*.db` |
+| Packaging and release | Building the `mindstudio-profiler_<version>_<arch>.run` package by using `build/build.sh` |
+| Documentation | Installation guide, quick start, parsing description, data file reference, and extended features |
 
 ## 2. Code Directory
 
 The following table describes the primary directories in the msProf project repository.
 
-| Directory| Description|
+| Directory | Description |
 | --- | --- |
-| `analysis` | Main directory for data parsing|
-| `analysis/analyzer` | Communication data parsing directory|
-| `analysis/framework` | Main parsing process directory|
-| `analysis/interface` | Parsing interfaces directory|
-| `analysis/msinterface` | Command-line option parsing directory|
-| `analysis/msmodel` | .db data processing directory|
-| `analysis/msparser` | Binary data parsing process management directory|
-| `analysis/msprof` | Entry point for msProf|
-| `analysis/viewer` | Directory storing export deliverables such as timeline, summary, and .db files|
-| `build` | Build directory containing `build.sh`|
-| `scripts` | Scripts related to third-party dependency download and runfile installation/upgrade|
-| `test` | C++ and Python test code|
-| `docs/en` | English documentation|
+| `analysis` | Main directory for data parsing |
+| `analysis/analyzer` | Communication data parsing directory |
+| `analysis/framework` | Main parsing process directory |
+| `analysis/interface` | Parsing interfaces directory |
+| `analysis/msinterface` | Command-line option parsing directory |
+| `analysis/msmodel` | .db data processing directory |
+| `analysis/msparser` | Binary data parsing process management directory |
+| `analysis/msprof` | Entry point for msProf |
+| `analysis/viewer` | Directory storing export deliverables such as timeline, summary, and .db files |
+| `build` | Build directory containing `build.sh` |
+| `scripts` | Scripts related to third-party dependency download and runfile installation/upgrade |
+| `test` | C++ and Python test code |
+| `docs/en` | English documentation |
 
 Before starting development, identify the specific layer that your changes will affect:
 
@@ -43,65 +43,16 @@ Before starting development, identify the specific layer that your changes will 
 
 ## 3. Development Environment Settings
 
-### 3.1 Option 1: One-Click devcontainer Setup (Recommended)
+### 3.1 Foundational Software
 
-msprof includes a pre-configured [devcontainer](https://containers.dev/) environment. Open the repository in VS Code and enter a fully standardized container with a single click — no manual dependency installation required. The container automatically handles:
-
-- Python 3 environment and build toolchain (GCC 11.2.0, CMake 3.14+)
-- System dependencies (python3-devel, pip packages including pytest/coverage)
-- Third-party dependency pre-download (googletest, mockcpp, boost, protobuf, json, rapidjson, securec)
-- pre-commit auto-installation (including gitleaks secret scanning)
-- clangd C++ language server
-- Git identity sync
-
-**Prerequisites:**
-
-| Environment | Requirement |
-|------|------|
-| PC | VS Code with Dev Containers and Remote-SSH extensions installed |
-| Linux Server | Docker service running |
-
-**Steps:**
-
-1. Clone the msprof repository to a Linux server
-2. Connect VS Code to the server via Remote-SSH and open the repository folder
-3. VS Code will auto-detect the `.devcontainer` configuration; click **"Reopen in Container"** in the bottom-left corner
-4. The container starts and runs `post-create.sh` automatically (~1-2 minutes)
-5. Press `Ctrl+Shift+P` → `Tasks: Run Task` to select a build task
-
-**Built-in VS Code Tasks:**
-
-| Task | Shortcut | Description |
-|------|--------|------|
-| `Build: Release Mode` | `Ctrl+Shift+B` | One-click Release build (equivalent to `bash build/build.sh`) |
-| `Build: Debug Mode` | — | Debug build (with debug symbols) |
-| `Test: Run Unit Tests` | — | Run C++ and Python unit tests |
-| `Clean: All Workspace` | — | Clean all build artifacts (build/CMakeFiles, prefix, output, test/build_llt, etc.) |
-
-**Code Navigation:**
-
-- C++: Cross-file jump-to-definition (F12), find references (Shift+F12), and code completion via clangd after building
-- Python: Semantic navigation and type inference via Pylance
-
-**Graphical Debugging:**
-
-- Open a Python source file, press `F5`, select `Python: Debug Active File` to start debugpy debugging
-- Breakpoints, variable inspection, and call stacks work as expected
-
-### 3.2 Option 2: Manual Environment Setup
-
-If devcontainer is not available, follow the manual setup steps below.
-
-#### 3.2.1 Foundational Software
-
-| Software| Version Requirement| Purpose|
+| Software | Version Requirement | Purpose |
 | --- | --- | --- |
-| Git | No specific requirement| Code pulling and committing|
-| Python | 3.7.5 or later| Parsing script execution|
-| SQLite3 | Building dependency| Parsing-related capabilities|
-| Bash | Recommended for Linux environments| Build and script execution|
+| Git | No specific requirement | Code pulling and committing |
+| Python | 3.7.5 or later | Parsing script execution |
+| SQLite3 | Building dependency | Parsing-related capabilities |
+| Bash | Recommended for Linux environments | Build and script execution |
 
-#### 3.2.2 Prerequisites
+### 3.2 Prerequisites
 
 1. A compatible version of the CANN environment has been installed.
 2. The `cann` installation directory is available.
@@ -139,11 +90,11 @@ bash scripts/download_thirdparty.sh
 
 `build/build.sh` allows you to specify the capability to be included in the runfile by using `--mode`.
 
-| Mode| Description|
+| Mode | Description |
 | --- | --- |
-| `all` | Builds a full-featured runfile with collection and parsing capabilities.|
-| `collector` | Builds a runfile with only collection capabilities.|
-| `analysis` | Builds a runfile with only parsing capabilities.|
+| `all` | Builds a full-featured runfile with collection and parsing capabilities. |
+| `collector` | Builds a runfile with only collection capabilities. |
+| `analysis` | Builds a runfile with only parsing capabilities. |
 
 Example:
 
@@ -187,12 +138,12 @@ If a change involves command-line parameters for `msprof` or `msprof.py`, perfor
 
 The following table describes the common documents to be updated.
 
-| Change Type| Document to Update|
+| Change Type | Document to Update |
 | --- | --- |
-| `msprof --export` parameters| `en/user_guide/msprof_parsing_instruct.md`|
-| `msprof.py import/query/export` parameters| `en/user_guide/extended_functions.md`|
-| Installation, uninstallation, and verification parameters| `en/getting_started/msprof_install_guide.md`|
-| Quick Start paths or basic examples| `en/getting_started/quick_start.md`|
+| `msprof --export` parameters | `en/user_guide/msprof_parsing_instruct.md` |
+| `msprof.py import/query/export` parameters | `en/user_guide/extended_functions.md` |
+| Installation, uninstallation, and verification parameters | `en/install_guide/msprof_install_guide.md` |
+| Quick Start paths or basic examples | `en/quick_start/msprof_quick_start.md` |
 
 ### 5.2 Adding Parsing Capabilities
 
@@ -215,11 +166,11 @@ If a change introduces or modifies deliverables (such as adding `xx_*.csv` files
 
 The following table describes the key documents to be updated.
 
-| Change Object| Document to Update|
+| Change Object | Document to Update |
 | --- | --- |
-| Timeline, summary, or text deliverables| `en/user_guide/profile_data_file_references.md`|
-| Database tables or fields| `en/user_guide/profile_data_file_references_db.md`|
-| User-visible new capabilities| `en/user_guide/extended_functions.md`|
+| Timeline, summary, or text deliverables | `en/user_guide/profile_data_file_references.md` |
+| Database tables or fields | `en/user_guide/profile_data_file_references_db.md` |
+| User-visible new capabilities | `en/user_guide/extended_functions.md` |
 
 ## 6. Development & Verification
 
@@ -287,15 +238,14 @@ Focus on the following items:
 
 Development changes to msProf directly impact user documentation. Updating code without corresponding documentation updates is strictly prohibited. Use the following table to identify documents that require updates.
 
-| Change Content| Document to Update|
+| Change Content | Document to Update |
 | --- | --- |
-| Installation methods, dependencies, or packaging parameters| `en/getting_started/msprof_install_guide.md`|
-| Basic usage workflows or examples| `en/getting_started/quick_start.md`|
-| Parsing workflows or command-line parameters| `en/user_guide/msprof_parsing_instruct.md`|
-| Script capabilities or advanced usage| `en/user_guide/extended_functions.md`|
-| Exported files, fields, or layers| `en/user_guide/profile_data_file_references.md`|
-| DB data structure descriptions| `en/user_guide/profile_data_file_references_db.md`|
-| Product or capability overview| `en/overview.md`|
+| Installation methods, dependencies, or packaging parameters | `en/install_guide/msprof_install_guide.md` |
+| Basic usage workflows or examples | `en/quick_start/msprof_quick_start.md` |
+| Parsing workflows or command-line parameters | `en/user_guide/msprof_parsing_instruct.md` |
+| Script capabilities or advanced usage | `en/user_guide/extended_functions.md` |
+| Exported files, fields, or layers | `en/user_guide/profile_data_file_references.md` |
+| DB data structure descriptions | `en/user_guide/profile_data_file_references_db.md` |
 
 If the change involves new screenshots or diagrams:
 
@@ -307,14 +257,14 @@ If the change involves new screenshots or diagrams:
 
 Before submission, perform at least the following checks.
 
-| Check Item| Description|
+| Check Item | Description |
 | --- | --- |
-| Build check| Check whether the runfile can be successfully compiled.|
-| Installation check| Check whether the runfile can be successfully installed and whether `msprof --help` functions as expected.|
-| Collection check| Check whether the `PROF_XXX` directory can be generated.|
-| Export check| Check whether the JSON, CSV, or DB deliverables can be generated as expected.|
-| Document check| Check whether the parameters, examples, and output descriptions have been updated accordingly.|
-| Compatibility check| Check whether the default scenarios are regression-free and whether existing parameter behavior remains unchanged.|
+| Build check | Check whether the runfile can be successfully compiled. |
+| Installation check | Check whether the runfile can be successfully installed and whether `msprof --help` functions as expected. |
+| Collection check | Check whether the `PROF_XXX` directory can be generated. |
+| Export check | Check whether the JSON, CSV, or DB deliverables can be generated as expected. |
+| Document check | Check whether the parameters, examples, and output descriptions have been updated accordingly. |
+| Compatibility check | Check whether the default scenarios are regression-free and whether existing parameter behavior remains unchanged. |
 
 If the change involves user-visible behavior, clearly specify the following information in the commit message:
 

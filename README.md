@@ -7,10 +7,12 @@
  [![AI问答 DeepWiki](https://badgen.net/badge/AI问答/DeepWiki/blue)](https://deepwiki.com/Ascend/msprof)
  [![AI问答 ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/Ascend/msprof)
  [![精确搜索](https://badgen.net/badge/精确搜索/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io/zh-cn/latest/msprof/)
- [![昇腾社区](https://badgen.net/badge/昇腾社区/Community/blue)](https://www.hiascend.com/cn/developer/software/mindstudio) 
+ [![昇腾社区](https://badgen.net/badge/昇腾社区/Community/blue)](https://www.hiascend.com/cn/developer/software/mindstudio)
  [![报告问题](https://badgen.net/badge/报告问题/Issues/blue)](https://gitcode.com/Ascend/msprof/issues)
 
 </div>
+
+简体中文 | [English](./README_EN.md)
 
 ## ✨ 最新消息
 
@@ -33,10 +35,10 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 
 ## 🚀 快速入门
 
-**10分钟实战体验**  
+**10分钟实战体验**
 以 ResNet50 训练为例，覆盖**数据采集、解析导出与性能分析**全流程。点击立即开始：《[msProf 快速入门](docs/zh/quick_start/msprof_quick_start.md)》。
 
-**极简命令行速查**  
+**极简命令行速查**
 若已熟悉操作流程，可直接执行采集命令。通用格式为 `msprof --output=<输出目录> --application="<启动命令>"`，示例如下：
 
 ```bash

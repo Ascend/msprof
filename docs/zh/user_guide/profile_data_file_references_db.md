@@ -648,6 +648,7 @@ RoCE通信接口带宽数据。
 
 |字段名|类型|含义|
 |--|--|--|
+|timestampNs|INTEGER|本地时间，单位ns|
 |globalTaskId|INTEGER|全局算子任务ID，用于关联TASK表|
 |name|INTEGER|PMU metric指标名，STRING_IDS(name)|
 |value|NUMERIC|对应指标名的数值|
