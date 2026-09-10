@@ -82,6 +82,29 @@ class TestParsingFftsAICoreSampleData(unittest.TestCase):
                         'db_name': 'ai_vector_core_0.db', 'event': ['0x55'], 'metrics_key': 'l2_cache'}}
             check.save()
 
+    def test_insert_ai_core_data_core_id_boundary_chip_v6_2_0(self):
+        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        check = ParsingFftsAICoreSampleData(self.file_list, CONFIG)
+        check._fmt_size = 1
+        check._decoder = mock.Mock()
+        with mock.patch(NAMESPACE + '.InfoConfReader'), \
+                mock.patch.object(check, '_calculate_timestamp', return_value=0.0):
+            # core_id == 69 (max ai core id) should be classified as aic
+            check._decoder.decode.return_value = mock.Mock(
+                count_num=0, mode=0, timestamp=0, core_id=69, task_cyc=0, event_count=[])
+            check._insert_ai_core_data(1, [1])
+            self.assertEqual(len(check.data_dict['aic']['data_list']), 1)
+            self.assertEqual(check.data_dict['aic']['data_list'][0][4], 69)
+            self.assertEqual(len(check.data_dict['aiv']['data_list']), 0)
+
+            # core_id == 70 (over max ai core id) should be classified as aiv
+            check._decoder.decode.return_value = mock.Mock(
+                count_num=0, mode=0, timestamp=0, core_id=70, task_cyc=0, event_count=[])
+            check._insert_ai_core_data(1, [1])
+            self.assertEqual(len(check.data_dict['aiv']['data_list']), 1)
+            self.assertEqual(check.data_dict['aiv']['data_list'][0][4], 70)
+
 
 class TestParsingAICoreSampleData(unittest.TestCase):
     file_list = {DataTag.AI_CORE: ['aicore.data.0.slice_0']}
