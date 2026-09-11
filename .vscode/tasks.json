@@ -4,7 +4,7 @@
     {
       "label": "Build: Release Mode",
       "type": "shell",
-      "command": "python3 build.py local",
+      "command": "python3 build.py",
       "group": {
         "kind": "build",
         "isDefault": true

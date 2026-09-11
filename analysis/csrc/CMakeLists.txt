@@ -58,8 +58,13 @@ add_library(msprof_analysis SHARED ${SOURCES})
 find_package(Python REQUIRED COMPONENTS Development)
 find_package(SQLite3 REQUIRED)
 
-# 从 find_package 找到的绝对路径中提取库目录，用于构建时链接器搜索
-# 链接仍使用 -lsqlite3，避免将构建镜像的绝对路径嵌入 NEEDED，保证运行时可在 LD_LIBRARY_PATH 中查找
+# 有 patchelf 时在链接完成后检查并统一 SQLite3 的 DT_NEEDED。
+set(MSPROF_SQLITE3_TARGET_SONAME "libsqlite3.so.0")
+find_program(PATCHELF_EXECUTABLE NAMES patchelf)
+if(NOT PATCHELF_EXECUTABLE)
+    message(WARNING "patchelf was not found; SQLite3 DT_NEEDED will not be normalized")
+endif()
+
 get_filename_component(SQLite3_LIB_DIR ${SQLite3_LIBRARIES} DIRECTORY)
 
 target_include_directories(msprof_analysis PRIVATE
@@ -107,6 +112,17 @@ target_link_libraries(msprof_analysis PRIVATE
     -lpthread
     c_sec
 )
+if(PATCHELF_EXECUTABLE)
+    add_custom_command(TARGET msprof_analysis POST_BUILD
+        COMMAND "${CMAKE_COMMAND}"
+            "-DPATCHELF_EXECUTABLE=${PATCHELF_EXECUTABLE}"
+            "-DTARGET_FILE=$<TARGET_FILE:msprof_analysis>"
+            "-DTARGET_SONAME=${MSPROF_SQLITE3_TARGET_SONAME}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/normalize_sqlite_needed.cmake"
+        COMMENT "Normalizing SQLite3 DT_NEEDED to ${MSPROF_SQLITE3_TARGET_SONAME}"
+        VERBATIM
+    )
+endif()
 # 去掉lib前缀
 set_target_properties(msprof_analysis PROPERTIES PREFIX  "")
 # 指定安装路径
