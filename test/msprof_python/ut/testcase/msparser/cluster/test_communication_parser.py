@@ -144,7 +144,7 @@ class TestCommunicationParser(unittest.TestCase):
         with pytest.raises(ProfException) as err:
             CommunicationParser({}).op_time_parser(err_hccl_data_ffts, OP_NAME, 0)
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
-        # test whether Idle Time(ms) = Elapse Time(ms) - Transit Time(ms) - Wait Time(ms)
+        # RDMA payload span is transit; Notify_Wait before first transit is wait/sync
         # when all event's 'is_master' is 1
         events = [
             HcclTask(op_name='hcom_allReduce__721_0_1', hccl_name='Memcpy', rdma_type='INVALID_TYPE',
@@ -195,6 +195,7 @@ class TestCommunicationParser(unittest.TestCase):
         self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 0.00002)
         self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 0.48856930468750026)
         self.assertAlmostEqual(op_time_dict["Synchronization Time(ms)"], 0.00002)
+        # this fixture has no wait after first transit, so wait/transit/idle still partition elapse
         self.assertAlmostEqual(op_time_dict["Transit Time(ms)"] + op_time_dict["Wait Time(ms)"] +
                                op_time_dict["Idle Time(ms)"], op_time_dict['Elapse Time(ms)'])
 
@@ -557,8 +558,45 @@ class TestCommunicationParser(unittest.TestCase):
         ]
         op_time_dict = CommunicationParser({}).op_time_parser(events, 'hcom_allReduce_ub', 4000000)
         self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 1.0)
+        # Notify_Wait after the first transit still belongs to Wait(total); only the leading part is Synchronization
         self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 2.0)
+        self.assertAlmostEqual(op_time_dict["Synchronization Time(ms)"], 0.0)
         self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 1.0)
+
+    def test_op_time_parser_overlapping_notify_wait(self):
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce__0', hccl_name='Notify_Wait', timestamp=0, duration=1000000,
+                is_master=1, plane_id=0
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__0', hccl_name='Memcpy', timestamp=1000000, duration=1000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1, plane_id=0
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__0', hccl_name='Notify_Wait', timestamp=500000, duration=1000000,
+                is_master=1, plane_id=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__0', hccl_name='Memcpy', timestamp=1500000, duration=1000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1, plane_id=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__0', hccl_name='Notify_Wait', timestamp=0, duration=5000000,
+                is_master=0, plane_id=2
+            ),
+        ]
+        op_time_dict = CommunicationParser({}).op_time_parser(events, 'hcom_allReduce__0', 3000000)
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 1.5)
+        # one-drop rule: the [1, 1.5]ms where plane1 waits while plane0 is in memcpy counts as transit,
+        # so wait keeps only the Notify_Wait not covered by any transit -> [0, 1]ms = 1.0ms
+        self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 1.0)
+        # the remaining wait is entirely before the first transit, so it all falls into Synchronization
+        self.assertAlmostEqual(op_time_dict["Synchronization Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 0.5)
+        self.assertAlmostEqual(op_time_dict["Elapse Time(ms)"], 3.0)
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"] + op_time_dict["Wait Time(ms)"] +
+                               op_time_dict["Idle Time(ms)"], op_time_dict['Elapse Time(ms)'])
 
     def test_op_bandwidth_parser_ub(self):
         events = [
@@ -589,3 +627,126 @@ class TestCommunicationParser(unittest.TestCase):
         self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Size(MB)"], 1.0)
         self.assertAlmostEqual(op_bandwidth_dict[StrConstant.UB]["Transit Time(ms)"], 1.0)
         self.assertEqual(op_bandwidth_dict[StrConstant.SDMA]["Transit Size(MB)"], 0)
+
+    @staticmethod
+    def _sec(start_ns, end_ns):
+        return CommunicationParser._make_event_time_section(
+            HcclTask(timestamp=start_ns, duration=end_ns - start_ns, is_master=1)
+        )
+
+    def _assert_sections(self, actual, expected):
+        self.assertEqual(
+            [(item.start_time, item.end_time) for item in actual],
+            expected,
+        )
+
+    def test_subtract_sections_empty_remove(self):
+        base = [self._sec(0, 10), self._sec(20, 30)]
+        self._assert_sections(CommunicationParser._subtract_sections(base, []), [(0, 10), (20, 30)])
+
+    def test_subtract_sections_remove_contains_base(self):
+        base = [self._sec(10, 20)]
+        remove = [self._sec(0, 30)]
+        self._assert_sections(CommunicationParser._subtract_sections(base, remove), [])
+
+    def test_subtract_sections_touching_boundary(self):
+        # end_time == start_time is adjacent, not overlapping; wait [0,10] minus transit [10,20] stays [0,10]
+        base = [self._sec(0, 10)]
+        remove = [self._sec(10, 20)]
+        self._assert_sections(CommunicationParser._subtract_sections(base, remove), [(0, 10)])
+
+    def test_subtract_sections_wait_split_by_multiple_transit(self):
+        base = [self._sec(0, 100)]
+        remove = [self._sec(10, 20), self._sec(40, 50), self._sec(80, 90)]
+        self._assert_sections(
+            CommunicationParser._subtract_sections(base, remove),
+            [(0, 10), (20, 40), (50, 80), (90, 100)],
+        )
+
+    def test_clip_sections_to_window_start_before_window(self):
+        # memcpy [0, 2ms] clipped to window [1ms, 3ms] keeps [1, 2]; remaining 1ms of the 2ms elapse is idle
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce__clip', hccl_name='Memcpy', timestamp=0, duration=2000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1
+            ),
+        ]
+        op_time_dict = CommunicationParser({}).op_time_parser(
+            events, 'hcom_allReduce__clip', 2000000, window_start=1000000
+        )
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 0.0)
+        self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 1.0)
+        self.assertAlmostEqual(
+            op_time_dict["Transit Time(ms)"] + op_time_dict["Wait Time(ms)"] + op_time_dict["Idle Time(ms)"],
+            op_time_dict["Elapse Time(ms)"],
+        )
+
+    def test_clip_sections_to_window_entirely_outside(self):
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce__clip', hccl_name='Memcpy', timestamp=0, duration=1000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__clip', hccl_name='Notify_Wait', timestamp=1000000, duration=1000000,
+                is_master=1
+            ),
+        ]
+        op_time_dict = CommunicationParser({}).op_time_parser(
+            events, 'hcom_allReduce__clip', 2000000, window_start=5000000
+        )
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 0.0)
+        self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 0.0)
+        self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 2.0)
+        self.assertAlmostEqual(op_time_dict["Elapse Time(ms)"], 2.0)
+
+    def test_parse_ops_window_identity(self):
+        # production path: parse_ops always passes bundle.start as window_start
+        tasks = [
+            HcclTask(
+                op_name='hcom_allReduce__win', hccl_name='Memcpy', timestamp=1000000, duration=1000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__win', hccl_name='Notify_Wait', timestamp=2500000, duration=500000,
+                is_master=1
+            ),
+        ]
+        bundle = OpTaskBundle(tasks=tasks, op_name='hcom_allReduce__win', start=1000000, end=4000000)
+        parser = CommunicationParser({})
+        with mock.patch("msparser.cluster.meta_parser.HcclAnalysisTool.get_standard_bandwidth", return_value={}):
+            parser.parse_ops({0: bundle}, 'hcom_allReduce__win')
+        time_info = parser.op_info['hcom_allReduce__win'][0][StrConstant.COMMUNICATION_TIME_INFO]
+        self.assertAlmostEqual(time_info["Transit Time(ms)"], 1.0)
+        self.assertAlmostEqual(time_info["Wait Time(ms)"], 0.5)
+        self.assertAlmostEqual(time_info["Idle Time(ms)"], 1.5)
+        self.assertAlmostEqual(
+            time_info["Transit Time(ms)"] + time_info["Wait Time(ms)"] + time_info["Idle Time(ms)"],
+            time_info["Elapse Time(ms)"],
+        )
+
+    def test_op_time_parser_idle_excludes_non_wait_non_memcpy(self):
+        """非 Notify_Wait、非 memcpy/RDMA payload 的任务不得计入 wait，否则 idle 会被吃成 0。"""
+        events = [
+            HcclTask(
+                op_name='hcom_allReduce__idle', hccl_name='Memcpy', timestamp=0, duration=1000000,
+                transport_type=StrConstant.SDMA, link_type=StrConstant.HCCS, is_master=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__idle', hccl_name='Notify_Record', timestamp=1000000, duration=2000000,
+                is_master=1
+            ),
+            HcclTask(
+                op_name='hcom_allReduce__idle', hccl_name='Notify_Wait', timestamp=3000000, duration=1000000,
+                is_master=1
+            ),
+        ]
+        op_time_dict = CommunicationParser({}).op_time_parser(events, 'hcom_allReduce__idle', 4000000)
+        self.assertAlmostEqual(op_time_dict["Transit Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_time_dict["Wait Time(ms)"], 1.0)
+        self.assertAlmostEqual(op_time_dict["Idle Time(ms)"], 2.0)
+        self.assertAlmostEqual(
+            op_time_dict["Transit Time(ms)"] + op_time_dict["Wait Time(ms)"] + op_time_dict["Idle Time(ms)"],
+            op_time_dict["Elapse Time(ms)"],
+        )

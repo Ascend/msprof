@@ -23,8 +23,13 @@ from common_func.ms_constant.str_constant import OpBandWidthType
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
 from common_func.info_conf_reader import InfoConfReader
+from common_func.msprof_object import CustomizedNamedtupleFactory
+from common_func.section_calculator import SectionCalculator
 from msparser.cluster.meta_parser import HcclAnalysisTool
 from msparser.cluster.meta_parser import MetaParser
+from profiling_bean.db_dto.time_section_dto import TimeSectionDto
+
+_TimeSection = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(TimeSectionDto, [])
 
 
 class CommunicationParser(MetaParser):
@@ -111,7 +116,7 @@ class CommunicationParser(MetaParser):
                 raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
             logging.info("Start to get no.%s rank events info", str(rank_id))
             self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_TIME_INFO] = self.op_time_parser(
-                bundle.tasks, bundle.op_name, bundle.end - bundle.start
+                bundle.tasks, bundle.op_name, bundle.end - bundle.start, bundle.start
             )
             self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_TIME_INFO][OpAnalysisType.START_TIME] = float(
                 InfoConfReader().trans_into_local_time(bundle.start)
@@ -172,16 +177,18 @@ class CommunicationParser(MetaParser):
             else:
                 HcclAnalysisTool.analyze_bandwidth_info(total_dict, transport_type)
 
-    def op_time_parser(self, events: list, op_name: str, duration: int) -> dict:
+    def op_time_parser(self: any, events: list, op_name: str, duration: int, window_start=None) -> dict:
         """
-        time info parser
+        Parse communication time by a wall-clock one-drop partition of the master-stream slices:
+        - any instant covered by a transit slice (SDMA/UB memcpy, RDMA payload span) counts as transit;
+        - otherwise an instant covered by a Notify_Wait counts as wait;
+        - wait before the first transit is also reported separately as synchronization;
+        - idle is elapse minus transit and wait, so transit + wait + idle == elapse.
+        A task is attributed to this op when its end time falls inside the op window, so a busy slice
+        may start before the window opens; only the part inside the window counts for this op.
         """
-        # in case there exists keys that never use, init dict first
         values = [value for key, value in OpAnalysisType.__dict__.items() if '__' not in key]
         op_time_dict = HcclAnalysisTool.init_dict(values)
-        wait_flag = True
-        idx = 0
-        # only choose master stream for op time analysis parser
         master_events = [event for event in events if event.is_master == 1]
         if not master_events:
             logging.error("Fail to get master events info, communication parser is interrupted")
@@ -189,39 +196,144 @@ class CommunicationParser(MetaParser):
         rdma_transit_op_num = NumberConstant.RDMA_NO_BARRIER_TASK_NUM
         if not HcclAnalysisTool.is_send_or_recv_op(op_name):
             rdma_transit_op_num = NumberConstant.RDMA_WITH_BARRIER_TASK_NUM
-        while idx < len(master_events):
-            event = master_events[idx]
+        transit_sections = []
+        wait_sections = []
+        task_dict = defaultdict(list)
+        for task in master_events:
+            task_dict[task.plane_id].append(task)
+        for plane_tasks in task_dict.values():
+            # keep the plane's original (logical) task order: RDMA payload-group detection depends on the
+            # adjacency of consecutive payload tasks, so a timestamp reorder must not be applied here
+            plane_transit, plane_wait = self._collect_plane_time_sections(plane_tasks, op_name, rdma_transit_op_num)
+            transit_sections.extend(plane_transit)
+            wait_sections.extend(plane_wait)
+        elapse_ms = duration / NumberConstant.NS_TO_MS
+        # 生产侧按"任务结束时间落在 op 窗口内即归属该 op"上报，wait/transit 切片可能开始于窗口之外。
+        # busy 只统计落在 [window_start, window_end] 内的部分（窗外部分归相邻区间/前序 op），
+        # 保证 transit + wait + idle == elapse 且 idle >= 0。无窗口信息时不裁剪，保持原行为。
+        if window_start is not None:
+            window_end = window_start + duration
+            transit_sections = self._clip_sections_to_window(transit_sections, window_start, window_end)
+            wait_sections = self._clip_sections_to_window(wait_sections, window_start, window_end)
+        merged_transit = SectionCalculator.merge_continuous_intervals(transit_sections)
+        merged_wait = SectionCalculator.merge_continuous_intervals(wait_sections)
+        op_time_dict[OpAnalysisType.TRANSIT_TIME] = self._sections_duration_ms(merged_transit)
+        # one-drop rule: each wall-clock instant is owned by exactly one category. When any plane is in
+        # transit (memcpy) at an instant, that instant counts as transit, so the wait time is the union of
+        # Notify_Wait intervals with the transit-covered parts removed.
+        effective_wait = self._subtract_sections(merged_wait, merged_transit)
+        op_time_dict[OpAnalysisType.WAIT_TIME] = self._sections_duration_ms(effective_wait)
+        if merged_transit:
+            sync_sections = self._clip_sections_before(effective_wait, merged_transit[0].start_time)
+        else:
+            sync_sections = effective_wait
+        op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME] = self._sections_duration_ms(sync_sections)
+        op_time_dict[OpAnalysisType.ELAPSE_TIME] = elapse_ms
+        busy_union_ms = self._sections_duration_ms(
+            SectionCalculator.merge_continuous_intervals(transit_sections + wait_sections)
+        )
+        op_time_dict[OpAnalysisType.IDLE_TIME] = elapse_ms - busy_union_ms
+        HcclAnalysisTool.update_time_ratio(op_time_dict, op_name)
+        return op_time_dict
+
+    def _collect_plane_time_sections(self, plane_tasks: list, op_name: str, rdma_transit_op_num: int) -> tuple:
+        transit_sections = []
+        wait_sections = []
+        idx = 0
+        while idx < len(plane_tasks):
+            event = plane_tasks[idx]
             if CommunicationParser.is_transit_sdma_event(event) or CommunicationParser.is_transit_ub_event(event):
-                wait_flag = False
-                op_time_dict[OpAnalysisType.TRANSIT_TIME] += (
-                    HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS
-                )
-            if event.rdma_type == 'RDMA_SEND_PAYLOAD':
-                payload_cnt = HcclAnalysisTool.find_consecutive_payload_tasks_count(master_events, idx)
+                transit_sections.append(self._make_event_time_section(event))
+            if event.rdma_type == StrConstant.RDMA_SEND_PAYLOAD:
+                payload_cnt = HcclAnalysisTool.find_consecutive_payload_tasks_count(plane_tasks, idx)
                 rdma_transit_result = HcclAnalysisTool.calculate_consecutive_payload_tasks_info(
-                    master_events, idx, payload_cnt, rdma_transit_op_num, op_name
+                    plane_tasks, idx, payload_cnt, rdma_transit_op_num, op_name
                 )
                 if not rdma_transit_result:
                     idx += payload_cnt
                     continue
-                op_time_dict[OpAnalysisType.TRANSIT_TIME] += rdma_transit_result[0]
+                last_event = plane_tasks[idx + payload_cnt + rdma_transit_op_num - 2]
+                span_section = self._make_span_time_section(event, last_event)
+                transit_sections.append(span_section)
                 idx += rdma_transit_op_num + payload_cnt - 1
-                wait_flag = False
                 continue
             if event.hccl_name == StrConstant.NOTIFY_WAIT:
-                wait_time = HcclAnalysisTool.get_value(event.duration, "duration") / NumberConstant.NS_TO_MS
-                if wait_flag:
-                    op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME] += wait_time
-                op_time_dict[OpAnalysisType.WAIT_TIME] += wait_time
+                wait_sections.append(self._make_event_time_section(event))
             idx += 1
-        op_time_dict[OpAnalysisType.ELAPSE_TIME] = duration / NumberConstant.NS_TO_MS
-        op_time_dict[OpAnalysisType.IDLE_TIME] = (
-            op_time_dict[OpAnalysisType.ELAPSE_TIME]
-            - op_time_dict[OpAnalysisType.TRANSIT_TIME]
-            - op_time_dict[OpAnalysisType.WAIT_TIME]
+        return transit_sections, wait_sections
+
+    @staticmethod
+    def _make_event_time_section(event):
+        start_time = HcclAnalysisTool.get_value(event.timestamp, "timestamp")
+        return _TimeSection(
+            start_time=start_time,
+            end_time=start_time + HcclAnalysisTool.get_value(event.duration, "duration"),
         )
-        HcclAnalysisTool.update_time_ratio(op_time_dict, op_name)
-        return op_time_dict
+
+    @staticmethod
+    def _make_span_time_section(first_event, last_event):
+        start_time = HcclAnalysisTool.get_value(first_event.timestamp, "timestamp")
+        end_time = HcclAnalysisTool.get_value(last_event.timestamp, "timestamp") + HcclAnalysisTool.get_value(
+            last_event.duration, "duration"
+        )
+        return _TimeSection(start_time=start_time, end_time=end_time)
+
+    @staticmethod
+    def _sections_duration_ms(sections: list) -> float:
+        return sum((item.end_time - item.start_time) for item in sections) / NumberConstant.NS_TO_MS
+
+    @staticmethod
+    def _clip_sections_before(sections: list, bound) -> list:
+        clipped = []
+        for section in sections:
+            if section.start_time >= bound:
+                continue
+            end_time = min(section.end_time, bound)
+            if end_time > section.start_time:
+                clipped.append(section.replace(end_time=end_time))
+        return clipped
+
+    @staticmethod
+    def _clip_sections_to_window(sections: list, window_start, window_end) -> list:
+        """Keep only the part of each section inside [window_start, window_end]; drop empty ones."""
+        clipped = []
+        for section in sections:
+            start_time = max(section.start_time, window_start)
+            end_time = min(section.end_time, window_end)
+            if end_time > start_time:
+                clipped.append(section.replace(start_time=start_time, end_time=end_time))
+        return clipped
+
+    @staticmethod
+    def _subtract_sections(base_sections: list, remove_sections: list) -> list:
+        """Keep the parts of base_sections not covered by remove_sections.
+
+        Both inputs must be merged (sorted, non-overlapping) continuous intervals, in nanoseconds.
+        Two pointers only move forward, so the scan is O(n + m).
+        """
+        if not remove_sections:
+            return base_sections
+        remaining = []
+        remove_idx = 0
+        n_remove = len(remove_sections)
+        for section in base_sections:
+            cursor = section.start_time
+            while remove_idx < n_remove and remove_sections[remove_idx].end_time <= cursor:
+                remove_idx += 1
+            scan_idx = remove_idx
+            while scan_idx < n_remove and remove_sections[scan_idx].start_time < section.end_time:
+                remove_section = remove_sections[scan_idx]
+                if remove_section.start_time > cursor:
+                    remaining.append(
+                        section.replace(start_time=cursor, end_time=min(remove_section.start_time, section.end_time))
+                    )
+                cursor = max(cursor, remove_section.end_time)
+                if cursor >= section.end_time:
+                    break
+                scan_idx += 1
+            if cursor < section.end_time:
+                remaining.append(section.replace(start_time=cursor, end_time=section.end_time))
+        return remaining
 
     def op_bandwidth_parser(self, events: list, op_name: str) -> dict:
         """
@@ -243,7 +355,7 @@ class CommunicationParser(MetaParser):
                     self._calculate_sdma_bw(op_bandwidth_dict, event)
                 if CommunicationParser.is_transit_ub_event(event):
                     self._calculate_ub_bw(op_bandwidth_dict, event)
-                if event.rdma_type == 'RDMA_SEND_PAYLOAD':
+                if event.rdma_type == StrConstant.RDMA_SEND_PAYLOAD:
                     idx = self._calculate_rdma_bw(op_bandwidth_dict, plane_id_tasks, idx, rdma_transit_op_num, op_name)
                     continue
                 idx += 1

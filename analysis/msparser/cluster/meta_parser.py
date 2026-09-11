@@ -131,7 +131,7 @@ class HcclAnalysisTool:
     @classmethod
     def find_consecutive_payload_tasks_count(cls: any, events: list, idx: int) -> int:
         count = 0
-        while idx < len(events) and events[idx].rdma_type == 'RDMA_SEND_PAYLOAD':
+        while idx < len(events) and events[idx].rdma_type == StrConstant.RDMA_SEND_PAYLOAD:
             idx += 1
             count += 1
         return count
