@@ -190,6 +190,7 @@ class ConfigDataParsers:
             "FreqParser",
             "AicpuAddInfoParser",
             "KfcCalculator",
+            "LpmInfoConvParser",
         ]:
             return True
         return False

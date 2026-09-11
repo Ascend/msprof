@@ -121,5 +121,8 @@ uint32_t LpmInfoPersistence::ProcessEntry(DataInventory& dataInventory, const Co
     return ANALYSIS_OK;
 }
 
+REGISTER_PROCESS_SEQUENCE(LpmInfoPersistence, true, LpmInfoParser);
+REGISTER_PROCESS_DEPENDENT_DATA(LpmInfoPersistence, HalLpmInfoData);
+REGISTER_PROCESS_SUPPORT_CHIP(LpmInfoPersistence, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis

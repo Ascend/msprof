@@ -162,5 +162,7 @@ uint32_t LpmInfoParser::ParseData(DataInventory& dataInventory, const Infra::Con
     return ANALYSIS_OK;
 }
 
+REGISTER_PROCESS_SEQUENCE(LpmInfoParser, true);
+REGISTER_PROCESS_SUPPORT_CHIP(LpmInfoParser, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis

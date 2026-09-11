@@ -26,7 +26,7 @@ from typing import FrozenSet, List, Mapping, Optional, Pattern, Tuple
 from common_func.constant import Constant
 from common_func.file_manager import FileOpen
 from common_func.file_manager import check_dir_readable
-from common_func.file_manager import check_dir_writable
+from common_func.file_manager import check_dir_can_create_entry
 from common_func.file_manager import check_so_valid
 from common_func.file_name_manager import FileNameManagerConstant
 from common_func.file_name_manager import get_file_name_pattern_match
@@ -194,6 +194,7 @@ class RuntimeProbe:
 
 class CollectionFactsCollector:
     ANALYSIS_VERSION = InfoConfReader().ANALYSIS_VERSION
+    IGNORED_UNTAGGED_PATTERNS = ("stream_sq_info",)
     ALL_EXPORT_DRIVER_VERSION = InfoConfReader().ALL_EXPORT_VERSION
     SAMPLE_BASED = StrConstant.AIC_SAMPLE_BASED_MODE
     TASK_BASED = StrConstant.AIC_TASK_BASED_MODE
@@ -435,17 +436,15 @@ class CollectionFactsCollector:
             check_dir_readable(path)
         except (OSError, ProfException):
             return False
-        # 公共检查对 root 跳过权限判断，判定模块仍保留实际访问权限预检。
-        return os.access(path, os.R_OK)
+        return True
 
     @staticmethod
     def _is_writable_dir(path: str) -> bool:
         try:
-            check_dir_writable(path)
+            check_dir_can_create_entry(path)
         except (OSError, ProfException):
             return False
-        # 创建目录项同时需要写权限和执行权限，公共检查仅检查写权限。
-        return os.access(path, os.W_OK | os.X_OK)
+        return True
 
     @staticmethod
     def _is_nonempty(path: str) -> bool:
@@ -652,13 +651,20 @@ class CppPipelineDecider:
                 )
             )
         self._check_profiling_scene(path_facts, issues)
-        if path_facts.unknown_raw_files:
+        # Files without a FileDispatch tag (for example stream_sq_info) are ignored
+        # by the parsing flow and must not reject otherwise supported data.
+        unknown_files = [
+            name
+            for name in path_facts.unknown_raw_files
+            if not any(pattern in name for pattern in CollectionFactsCollector.IGNORED_UNTAGGED_PATTERNS)
+        ]
+        if unknown_files:
             issues.append(
                 DecisionIssue(
                     DecisionDimension.DATA,
                     "UNKNOWN_RAW_DATA",
                     "Non-empty raw files cannot be mapped to a known data tag.",
-                    {"path": path_facts.path, "files": list(path_facts.unknown_raw_files)},
+                    {"path": path_facts.path, "files": unknown_files},
                 )
             )
         if supported_tags_by_position is None:

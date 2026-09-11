@@ -16,13 +16,17 @@
 
 import logging
 import multiprocessing
+import os
 
+from common_func.common import print_info
 from common_func.cpp_pipeline_decision import CppPipelineDecisionRequest
 from common_func.cpp_pipeline_decision import decide_cpp_pipeline
 from common_func.msprof_common import prepare_log
 from common_func.msprof_exception import ProfException
 from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from msinterface import msprof_c_interface
+
+FILE_NAME = os.path.basename(__file__)
 
 
 class CppPipelineRunner:
@@ -73,17 +77,25 @@ def try_full_cpp_pipeline(request: CppPipelineDecisionRequest) -> bool:
         prepare_log(result_path)
     decision = decide_cpp_pipeline(request)
     if not decision.can_run_in_cpp:
-        logging.info(
-            "Full C pipeline is unavailable for %s: %s",
-            request.collection_path,
-            "; ".join(issue.reason_code for issue in decision.issues),
+        reason_codes = ",".join(issue.reason_code for issue in decision.issues) or "unknown"
+        reasons = "; ".join(
+            "%s: %s details=%s" % (issue.reason_code, issue.message, dict(issue.details)) for issue in decision.issues
         )
+        message = "Full C pipeline is unavailable for %s; fall back to the existing flow: %s" % (
+            request.collection_path,
+            reasons,
+        )
+        logging.info(message)
+        print_info(FILE_NAME, "Full C pipeline is unavailable (%s); fall back to the existing flow." % reason_codes)
         return False
     logging.info("Run full C pipeline for %s.", request.collection_path)
+    print_info(FILE_NAME, "Run full C pipeline.")
     try:
         CppPipelineRunner().run(request)
     except (OSError, ProfException):
         logging.exception("Full C pipeline failed for %s.", request.collection_path)
+        print_info(FILE_NAME, "Full C pipeline failed (NATIVE_EXECUTION_ERROR).")
         raise
     logging.info("Full C pipeline completed for %s.", request.collection_path)
+    print_info(FILE_NAME, "Full C pipeline completed.")
     return True

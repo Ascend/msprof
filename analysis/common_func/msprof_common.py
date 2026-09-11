@@ -239,7 +239,7 @@ def add_all_file_complete(collect_path: str) -> None:
     try:
         with FdOpen(file_path):
             os.chmod(file_path, FileManager.FILE_AUTHORITY)
-    except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
+    except (OSError, SystemError, ValueError, TypeError, RuntimeError, ProfException) as err:
         error(os.path.basename(__file__), err)
     finally:
         pass

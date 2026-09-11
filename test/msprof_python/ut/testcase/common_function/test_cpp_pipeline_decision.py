@@ -187,7 +187,6 @@ class TestCppPipelineDecider(unittest.TestCase):
                 "SAMPLE_BASED_UNSUPPORTED",
                 "CUSTOM_PMU_UNSUPPORTED",
                 "DATA_TAG_UNSUPPORTED",
-                "UNKNOWN_RAW_DATA",
                 "MIXED_CHIP_MODELS",
                 "CHIP_UNSUPPORTED",
             }.issubset(self.reason_codes(result))
@@ -290,12 +289,59 @@ class TestCollectionFactsCollector(unittest.TestCase):
         self.assertEqual(facts.result_paths[0].raw_tags, frozenset({DataTag.STARS_LOG.name}))
         self.assertEqual(facts.result_paths[0].unknown_raw_files, ())
 
+    def test_stream_sq_info_is_ignored_but_unsupported_tags_still_reject(self):
+        self._write_raw("stars_soc.data.0.slice_0")
+        self._write_raw("unaging.additional.stream_sq_info.slice_0")
+        facts = self.collector.collect(self._request())
+        self.assertEqual(facts.result_paths[0].raw_tags, frozenset({DataTag.STARS_LOG.name}))
+        decider = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe())
+        result = decider.decide(self._request())
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+
+        self._write_raw("aicore.data.0.slice_0")
+        result = decider.decide(self._request())
+        self.assertFalse(result.can_run_in_cpp)
+        self.assertEqual([issue.reason_code for issue in result.issues], ["DATA_TAG_UNSUPPORTED"])
+        self.assertEqual(result.issues[0].details["tags"], [DataTag.AI_CORE.name])
+        self.assertEqual(result.issues[0].details["path"], self.result_path)
+
+    def test_enabled_host_tags_pass_but_disabled_static_op_mem_rejects(self):
+        cases = (
+            ("compact.expand_stream_spec", DataTag.STREAM_EXPAND),
+            ("compact.capture_stream_info", DataTag.CAPTURE_STREAM_INFO),
+            ("compact.capture_stream_info_v2", DataTag.CAPTURE_STREAM_INFO),
+            ("additional.mc2_comm_info", DataTag.MC2_COMM_INFO),
+            ("additional.capture_op_info", DataTag.RUNTIME_OP_INFO),
+            ("variable.capture_op_info", DataTag.RUNTIME_OP_INFO),
+            ("additional.ccu_task_info", DataTag.CCU_TASK),
+            ("additional.ccu_wait_signal_info", DataTag.CCU_WAIT_SIGNAL),
+            ("additional.ccu_group_info", DataTag.CCU_GROUP),
+        )
+        request = replace(self._request(), host_path=self.result_path, device_paths=())
+        decider = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe())
+        expected_tags = set()
+        self._write_raw("unaging.additional.stream_sq_info.slice_0")
+        for file_type, tag in cases:
+            with self.subTest(file_type=file_type):
+                self._write_raw("unaging.%s.slice_0" % file_type)
+                expected_tags.add(tag.name)
+                facts = self.collector.collect(request)
+                self.assertEqual(facts.result_paths[0].raw_tags, frozenset(expected_tags))
+                result = decider.decide(request)
+                self.assertTrue(result.can_run_in_cpp, result.issues)
+        self._write_raw("unaging.additional.static_op_mem.slice_0")
+        result = decider.decide(request)
+        self.assertFalse(result.can_run_in_cpp)
+        self.assertEqual(result.issues[0].details["tags"], [DataTag.STATIC_OP_MEM.name])
+
     def test_unknown_data_and_invalid_metadata_are_reported(self):
         self._write_raw("unknown.raw")
         self._write_raw("empty.raw", b"")
         os.remove(os.path.join(self.result_path, "sample.json"))
         facts = self.collector.collect(self._request())
         self.assertEqual(facts.result_paths[0].unknown_raw_files, ("unknown.raw",))
+        result = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe()).decide(self._request())
+        self.assertIn("UNKNOWN_RAW_DATA", {issue.reason_code for issue in result.issues})
         self.assertIn("METADATA_MISSING", {issue.reason_code for issue in facts.issues})
         invalid_facts = self.collector.collect(self._request("/missing"))
         self.assertIn("RESULT_PATH_INVALID", {issue.reason_code for issue in invalid_facts.issues})
@@ -334,9 +380,9 @@ class TestCollectionFactsCollector(unittest.TestCase):
 
     def test_unwritable_directories_are_reported(self):
         self._write_raw("stars_soc.data.0.slice_0")
-        with mock.patch(
-            "common_func.cpp_pipeline_decision.os.access",
-            side_effect=lambda _path, mode: mode == os.R_OK,
+        with (
+            mock.patch("common_func.file_manager.is_root_user", return_value=False),
+            mock.patch("common_func.file_manager.os.access", side_effect=lambda _path, mode: mode == os.R_OK),
         ):
             facts = self.collector.collect(self._request())
         self.assertTrue(

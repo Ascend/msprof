@@ -28,6 +28,7 @@ from common_func.constant import Constant
 from common_func.file_manager import FileManager, is_root_user
 from common_func.file_manager import check_db_path_valid
 from common_func.file_manager import check_dir_readable
+from common_func.file_manager import check_dir_can_create_entry
 from common_func.file_manager import check_dir_writable
 from common_func.file_manager import check_file_readable
 from common_func.file_manager import check_file_writable
@@ -267,6 +268,19 @@ class TestFileManager(unittest.TestCase):
              mock.patch('os.path.exists', return_value=True), \
              mock.patch(NAMESPACE + '.is_root_user', return_value=True):
             self.assertIsNone(check_dir_writable(path))
+
+    def test_check_dir_writable_allows_write_without_search_permission(self):
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+             mock.patch(NAMESPACE + '.is_root_user', return_value=False), \
+             mock.patch('os.access', side_effect=lambda _path, mode: mode == os.W_OK):
+            check_dir_writable('/path/host/writable')
+
+    def test_check_dir_can_create_entry_requires_search_permission(self):
+        with mock.patch(NAMESPACE + '.check_path_valid'), \
+             mock.patch(NAMESPACE + '.is_root_user', return_value=False), \
+             mock.patch('os.access', side_effect=lambda _path, mode: mode == os.W_OK):
+            with self.assertRaises(ProfException):
+                check_dir_can_create_entry('/path/host/writable')
 
     def test_check_dir_writable_should_return_error_when_path_has_no_permission_to_write(self):
         path = '/path/host/writable'

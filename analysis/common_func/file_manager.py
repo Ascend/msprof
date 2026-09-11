@@ -317,6 +317,17 @@ def check_dir_writable(path: str) -> None:
         )
 
 
+def check_dir_can_create_entry(path: str) -> None:
+    """Check that a directory permits creating entries."""
+    check_dir_writable(path)
+    if is_root_user() or os.access(path, os.X_OK):
+        return
+    raise ProfException(
+        ProfException.PROF_INVALID_PATH_ERROR,
+        f'The path "{path}" does not have permission to access directory entries.',
+    )
+
+
 def is_other_writable(path: str) -> bool:
     """
     check whether others can write

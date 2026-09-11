@@ -14,12 +14,14 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import io
 import logging
 import os
 import sys
 import tempfile
 import unittest
 from argparse import Namespace
+from contextlib import redirect_stdout
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -183,13 +185,20 @@ class TestPipelineLogging(unittest.TestCase):
                     str(host) if has_host else "",
                     (str(device), str(collection / "device_3")),
                 )
-                issue = DecisionIssue("environment", "SO_NOT_FOUND", "Runtime unavailable")
+                issue = DecisionIssue(
+                    "data",
+                    "DATA_TAG_UNSUPPORTED",
+                    "No active C parser for this chip and position.",
+                    {"tags": ["QOS", "AI_CORE"], "path": str(device), "position": "device"},
+                )
 
                 def decide(_request):
                     logging.warning("Runtime probe diagnostic")
                     return CppPipelineDecisionResult(outcome != "fallback", (issue,), "1.0")
 
+                console = io.StringIO()
                 with (
+                    redirect_stdout(console),
                     mock.patch(NAMESPACE + ".decide_cpp_pipeline", side_effect=decide),
                     mock.patch(NAMESPACE + ".CppPipelineRunner.run") as run,
                 ):
@@ -208,11 +217,19 @@ class TestPipelineLogging(unittest.TestCase):
                 self.assertIn("Runtime probe diagnostic", content)
                 self.assertIn(str(collection), content)
                 if outcome == "fallback":
-                    self.assertIn("SO_NOT_FOUND", content)
+                    for detail in (issue.message, "QOS", "AI_CORE", str(device), "device"):
+                        self.assertIn(detail, content)
+                    self.assertIn("Full C pipeline is unavailable", console.getvalue())
+                    self.assertIn("DATA_TAG_UNSUPPORTED", console.getvalue())
+                    self.assertIn("msprof_cpp_pipeline.py", console.getvalue())
+                    self.assertNotIn(str(collection), console.getvalue())
                 elif outcome == "success":
                     self.assertIn("Full C pipeline completed", content)
+                    self.assertIn("Run full C pipeline", console.getvalue())
+                    self.assertIn("Full C pipeline completed", console.getvalue())
                 else:
                     self.assertIn("Full C pipeline failed", content)
+                    self.assertIn("Full C pipeline failed", console.getvalue())
                     self.assertNotIn("Full C pipeline completed", content)
                 self.assertEqual(list(log_dir.iterdir()), [log_file])
 

@@ -88,6 +88,8 @@ COMMAND_CAPABILITIES = {
     ),
 }
 
+# Match enabled TreeBuildEventTypes/LookupEventTypes and HostTraceWorker dumpers.
+# STATIC_OP_MEM remains disabled in both native entry points.
 V4_HOST_TAGS = frozenset(
     {
         DataTag.API_EVENT.name,
@@ -103,6 +105,13 @@ V4_HOST_TAGS = frozenset(
         DataTag.CTX_ID.name,
         DataTag.HCCL_OP_INFO.name,
         DataTag.DPU_TASK_TRACK.name,
+        DataTag.RUNTIME_OP_INFO.name,
+        DataTag.CAPTURE_STREAM_INFO.name,
+        DataTag.MC2_COMM_INFO.name,
+        DataTag.STREAM_EXPAND.name,
+        DataTag.CCU_TASK.name,
+        DataTag.CCU_WAIT_SIGNAL.name,
+        DataTag.CCU_GROUP.name,
     }
 )
 
@@ -113,6 +122,7 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.TS_TRACK.name,
         DataTag.FREQ.name,
         DataTag.AICPU_ADD_INFO.name,
+        DataTag.LPM_INFO.name,
     }
 )
 
