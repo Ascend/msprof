@@ -158,7 +158,7 @@ TEST_F(PyInitParserUtest, TestRunPipelineSkipsDBWhenMsprofDBExists)
               Analysis::ANALYSIS_OK);
 }
 
-TEST_F(PyInitParserUtest, TestRunPipelineSkipsHostAndDeviceWhenPythonParseIsComplete)
+TEST_F(PyInitParserUtest, TestRunPipelineSkipsHostAndDeviceWhenSqliteIsNonEmpty)
 {
     MOCKER_CPP(&ExportManager::IsPythonParseComplete).stubs().will(returnValue(true));
     MOCKER_CPP(&KernelParserWorker::Run).expects(never());
@@ -166,28 +166,20 @@ TEST_F(PyInitParserUtest, TestRunPipelineSkipsHostAndDeviceWhenPythonParseIsComp
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA), Analysis::ANALYSIS_OK);
 }
 
-TEST_F(PyInitParserUtest, TestIsPythonParseCompleteReturnsTrueWhenPythonParseIsComplete)
+TEST_F(PyInitParserUtest, TestIsPythonParseCompleteReturnsTrueWhenSqliteIsNonEmpty)
 {
-    const std::string dataPath = File::PathJoin({HOST_PATH, "data"});
     const std::string sqlitePath = File::PathJoin({HOST_PATH, "sqlite"});
-    EXPECT_TRUE(File::CreateDir(dataPath));
     EXPECT_TRUE(File::CreateDir(sqlitePath));
-    FileWriter(File::PathJoin({dataPath, "all_file.complete"})).WriteText("");
     FileWriter(File::PathJoin({sqlitePath, "op_summary.db"})).WriteText("");
     EXPECT_TRUE(ExportManager::IsPythonParseComplete(PROF_PATH));
-    EXPECT_TRUE(File::RemoveDir(dataPath, 0));
     EXPECT_TRUE(File::RemoveDir(sqlitePath, 0));
 }
 
 TEST_F(PyInitParserUtest, TestIsPythonParseCompleteReturnsFalseWhenSqliteIsEmpty)
 {
-    const std::string dataPath = File::PathJoin({HOST_PATH, "data"});
     const std::string sqlitePath = File::PathJoin({HOST_PATH, "sqlite"});
-    EXPECT_TRUE(File::CreateDir(dataPath));
     EXPECT_TRUE(File::CreateDir(sqlitePath));
-    FileWriter(File::PathJoin({dataPath, "all_file.complete"})).WriteText("");
     EXPECT_FALSE(ExportManager::IsPythonParseComplete(PROF_PATH));
-    EXPECT_TRUE(File::RemoveDir(dataPath, 0));
     EXPECT_TRUE(File::RemoveDir(sqlitePath, 0));
 }
 

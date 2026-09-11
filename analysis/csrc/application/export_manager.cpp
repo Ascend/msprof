@@ -71,9 +71,8 @@ namespace
 {
 bool IsResultPathPythonParseComplete(const std::string& resultPath)
 {
-    const std::string completePath = File::PathJoin({resultPath, "data", "all_file.complete"});
     const std::string sqlitePath = File::PathJoin({resultPath, "sqlite"});
-    return File::Exist(completePath) && File::IsDirNotEmpty(sqlitePath);
+    return File::IsDirNotEmpty(sqlitePath);
 }
 }  // namespace
 

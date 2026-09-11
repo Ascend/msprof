@@ -17,6 +17,7 @@
 #include "analysis/csrc/interface/py_interface/py_init_parser.h"
 
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -49,14 +50,25 @@ constexpr int PIPELINE_SUMMARY = 0x10;
 constexpr int PIPELINE_ALL =
     PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY;
 
+std::string GetPipelineFlagsString(int flags)
+{
+    std::ostringstream oss;
+    oss << "0x" << std::hex << flags;
+    return oss.str();
+}
+
 int RunCannTrace(const std::string &cannTracePath)
 {
     if (cannTracePath.empty() || !File::CheckDir(cannTracePath))
     {
+        ERROR("Host CANN trace parsing path is invalid, path: %.", cannTracePath);
         return ANALYSIS_INVALID_PARAM;
     }
+    INFO("Start host CANN trace parsing, path: %.", cannTracePath);
     KernelParserWorker parserWorker(cannTracePath);
-    return parserWorker.Run();
+    const int ret = parserWorker.Run();
+    INFO("Host CANN trace parsing finished, path: %, ret: %.", cannTracePath, ret);
+    return ret;
 }
 
 int RunDeviceData(const std::string &devicePath)
@@ -64,9 +76,12 @@ int RunDeviceData(const std::string &devicePath)
     const std::string targetDir = File::ParentPath(devicePath);
     if (!File::CheckDir(targetDir))
     {
+        ERROR("Device data parsing path is invalid, path: %.", targetDir);
         return ANALYSIS_INVALID_PARAM;
     }
+    INFO("Start device data parsing, path: %.", targetDir);
     DeviceContextEntry(targetDir.c_str(), "");
+    INFO("Device data parsing finished, path: %.", targetDir);
     return ANALYSIS_OK;
 }
 
@@ -128,9 +143,16 @@ int RunPipeline(const char *profPath, int flags, const char *cannTracePath, cons
         ERROR("Context load failed, path is %.", profPathStr);
         return ANALYSIS_ERROR;
     }
+    const std::string flagsStr = GetPipelineFlagsString(flags);
+    INFO("Start C pipeline, prof path: %, flags: %.", profPathStr, flagsStr);
     const bool isPythonParseComplete = Analysis::Application::ExportManager::IsPythonParseComplete(profPathStr);
     const bool hasExportStage = (flags & (PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY)) != 0;
-    bool needDbExport = hasExportStage && !Analysis::Application::ExportManager::HasExportedMsprofDB(profPathStr);
+    const bool hasExportedMsprofDB = Analysis::Application::ExportManager::HasExportedMsprofDB(profPathStr);
+    bool needDbExport = hasExportStage && !hasExportedMsprofDB;
+    if (hasExportStage && hasExportedMsprofDB)
+    {
+        INFO("The exported msprof db already exists, skip DB export, prof path: %.", profPathStr);
+    }
     if ((flags & PIPELINE_CANN_TRACE) != 0 && !isPythonParseComplete)
     {
         const int ret = RunCannTrace(ResolveCannTracePath(profPathStr, cannTracePath));
@@ -155,10 +177,13 @@ int RunPipeline(const char *profPath, int flags, const char *cannTracePath, cons
     {
         INFO("Python parse is complete, skip device data parsing.");
     }
-    if ((flags & PIPELINE_DB) != 0 && needDbExport &&
-        RunExport(profPathStr, "", {Analysis::Application::ExportMode::DB}) != ANALYSIS_OK)
+    if ((flags & PIPELINE_DB) != 0 && needDbExport)
     {
-        return ANALYSIS_ERROR;
+        INFO("Start DB export, prof path: %.", profPathStr);
+        if (RunExport(profPathStr, "", {Analysis::Application::ExportMode::DB}) != ANALYSIS_OK)
+        {
+            return ANALYSIS_ERROR;
+        }
     }
     if ((flags & PIPELINE_DB) != 0)
     {
@@ -171,6 +196,7 @@ int RunPipeline(const char *profPath, int flags, const char *cannTracePath, cons
             needDbExport ? std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::TIMELINE,
                                                                        Analysis::Application::ExportMode::DB}
                          : std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::TIMELINE};
+        INFO("Start timeline export, prof path: %, export DB: %.", profPathStr, needDbExport ? "true" : "false");
         if (RunExport(profPathStr, reportsJsonPath, exportModes) != ANALYSIS_OK)
         {
             return ANALYSIS_ERROR;
@@ -183,11 +209,13 @@ int RunPipeline(const char *profPath, int flags, const char *cannTracePath, cons
             needDbExport ? std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::SUMMARY,
                                                                        Analysis::Application::ExportMode::DB}
                          : std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::SUMMARY};
+        INFO("Start summary export, prof path: %, export DB: %.", profPathStr, needDbExport ? "true" : "false");
         if (RunExport(profPathStr, "", exportModes) != ANALYSIS_OK)
         {
             return ANALYSIS_ERROR;
         }
     }
+    INFO("C pipeline finished, prof path: %, flags: %.", profPathStr, flagsStr);
     return ANALYSIS_OK;
 }
 }  // namespace
