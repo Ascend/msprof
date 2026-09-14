@@ -349,6 +349,7 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                     mock.patch.object(command, "_update_cluster_params"),
                     mock.patch("msinterface.msprof_export.try_full_cpp_pipeline") as run,
                     mock.patch("msinterface.msprof_export.run_in_subprocess") as hybrid,
+                    mock.patch("msinterface.msprof_export.HostPlatformAnalysis.ms_run") as platform,
                 ):
                     if isinstance(outcome, Exception):
                         run.side_effect = outcome
@@ -359,3 +360,4 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                         command._process_sub_dirs()
                     self.assertEqual(hybrid.call_count, int(outcome is False))
                     self.assertEqual(command.valid_data_count, 1)
+                    platform.assert_called_once_with()

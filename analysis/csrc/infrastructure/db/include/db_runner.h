@@ -52,6 +52,7 @@ class DBRunner
     bool QueryData(const std::string &sql, std::vector<std::tuple<Args...>> &result) const;
     bool UpdateData(const std::string &sql) const;
     std::vector<TableColumn> GetTableColumns(const std::string &tableName);
+    const std::string &GetPath() const { return path_; }
 
    private:
     std::string path_;

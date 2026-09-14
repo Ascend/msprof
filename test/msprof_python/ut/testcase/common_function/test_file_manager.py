@@ -36,12 +36,19 @@ from common_func.file_manager import check_path_valid
 from common_func.file_manager import check_so_valid
 from common_func.file_manager import is_link
 from common_func.file_name_manager import FileNameManagerConstant
+from common_func.file_name_manager import get_file_name_pattern_match
+from common_func.file_name_manager import get_host_platform_core_compiles
 from common_func.msprof_exception import ProfException
 
 NAMESPACE = 'common_func.file_manager'
 
 
 class TestFileManager(unittest.TestCase):
+
+    def test_host_platform_core_file_name_should_match_core_pattern(self):
+        compiles = get_host_platform_core_compiles()
+        self.assertTrue(get_file_name_pattern_match("host_platform_core.bin", *compiles))
+        self.assertFalse(get_file_name_pattern_match("host_platform_uncore.bin", *compiles))
 
     def test_is_analyzed_data(self):
         os.mkdir("test_file_manager", 0o777)

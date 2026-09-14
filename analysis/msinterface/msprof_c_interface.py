@@ -89,14 +89,14 @@ def _run_pipeline(prof_path: str, flags: int, cann_trace_path=None, device_path=
     return msprof_analysis_module.parser.run_pipeline(prof_path, flags, cann_trace_path, device_path, reports_json)
 
 
-def _export_platform(platform_uncore_trace: str, output_path: str):
+def _export_platform(data_type: int, trace_path: str, output_path: str):
     if not check_so_valid(os.path.join(SO_DIR, "platform_analysis.so")):
         logging.warning("There is no platform_analysis.so available!")
         return
     sys.path.append(os.path.realpath(SO_DIR))
     logging.info("Platform data will be exported by platform_analysis.so")
     platform_analysis_module = importlib.import_module("platform_analysis")
-    platform_analysis_module.process_platform_data(platform_uncore_trace, output_path)
+    platform_analysis_module.process_platform_data(data_type, trace_path, output_path)
 
 
 def dump_cann_trace(project_path: str):
@@ -153,5 +153,5 @@ def export_unified_db(project_path: str):
     run_in_subprocess(_export_unified_db, project_path)
 
 
-def export_platform(platform_uncore_trace: str, output_path: str):
-    run_in_subprocess(_export_platform, platform_uncore_trace, output_path)
+def export_platform(data_type: int, trace_path: str, output_path: str):
+    run_in_subprocess(_export_platform, data_type, trace_path, output_path)

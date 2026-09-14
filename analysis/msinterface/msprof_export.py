@@ -55,6 +55,7 @@ from common_func.system_data_check_manager import SystemDataCheckManager
 from common_func.utils import Utils
 from framework.file_dispatch import FileDispatch
 from framework.load_info_manager import LoadInfoManager
+from host_prof.host_platform.host_platform_analysis import HostPlatformAnalysis
 from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from msinterface.msprof_c_interface import export_unified_db
 from msinterface.msprof_c_interface import dump_device_data
@@ -725,6 +726,9 @@ class ExportCommand:
         if path_table.get(StrConstant.HOST_PATH) or path_table.get(StrConstant.DEVICE_PATH):
             self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
             self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
+        host_path = path_table.get(StrConstant.HOST_PATH)
+        if host_path:
+            HostPlatformAnalysis({"result_dir": host_path}).ms_run()
         if self._try_full_cpp_pipeline(path_table):
             return
         run_in_subprocess(self._process_data, path_table)

@@ -450,6 +450,44 @@ const TableColumns Syscall = {
     {"runtime_api_name", SQL_TEXT_TYPE}, {"runtime_start_time", SQL_REAL_TYPE},  {"runtime_duration", SQL_REAL_TYPE},
     {"runtime_end_time", SQL_REAL_TYPE}, {"runtime_trans_start", SQL_REAL_TYPE}, {"runtime_trans_end", SQL_REAL_TYPE}};
 
+const TableColumns NumaLevelsHierarchyNamesTable = {{"id", SQL_INTEGER_TYPE},
+                                                    {"title0_id", SQL_INTEGER_TYPE},
+                                                    {"title1_id", SQL_INTEGER_TYPE},
+                                                    {"title2_id", SQL_INTEGER_TYPE}};
+
+const TableColumns NumaMetricsTable = {
+    {"id", SQL_INTEGER_TYPE}, {"ts", SQL_INTEGER_TYPE}, {"value", SQL_REAL_TYPE}, {"levels_id", SQL_INTEGER_TYPE}};
+
+const TableColumns NumaScalingValuesTable = {
+    {"id", SQL_INTEGER_TYPE}, {"level_id", SQL_INTEGER_TYPE}, {"max_value", SQL_REAL_TYPE}};
+
+const TableColumns NumaTitlesNamesTable = {{"id", SQL_INTEGER_TYPE},
+                                           {"name", SQL_TEXT_TYPE},
+                                           {"description", SQL_TEXT_TYPE},
+                                           {"summary_flag", SQL_INTEGER_TYPE},
+                                           {"measurement_unit", SQL_TEXT_TYPE},
+                                           {"unique_id", SQL_INTEGER_TYPE}};
+
+const TableColumns HostCoreMetricTable = {{"id", SQL_INTEGER_TYPE},     {"ts", SQL_INTEGER_TYPE},
+                                          {"value", SQL_REAL_TYPE},     {"desc_id", SQL_INTEGER_TYPE},
+                                          {"tid_id", SQL_INTEGER_TYPE}, {"cpu_id", SQL_INTEGER_TYPE}};
+
+const TableColumns HostCoreMetricDescTable = {{"id", SQL_INTEGER_TYPE},
+                                              {"name", SQL_TEXT_TYPE},
+                                              {"description", SQL_TEXT_TYPE},
+                                              {"measurement_unit", SQL_TEXT_TYPE}};
+
+const TableColumns HostCoreProcessTable = {{"id", SQL_INTEGER_TYPE},
+                                           {"pid", SQL_INTEGER_TYPE},
+                                           {"name", SQL_TEXT_TYPE},
+                                           {"start_ts", SQL_INTEGER_TYPE},
+                                           {"end_ts", SQL_INTEGER_TYPE}};
+
+const TableColumns HostCoreThreadTable = {{"id", SQL_INTEGER_TYPE},        {"tid", SQL_INTEGER_TYPE},
+                                          {"name", SQL_TEXT_TYPE},         {"process_id", SQL_INTEGER_TYPE},
+                                          {"parent_id", SQL_INTEGER_TYPE}, {"start_ts", SQL_INTEGER_TYPE},
+                                          {"end_ts", SQL_INTEGER_TYPE}};
+
 const TableColumns PaLinkInfo = {{"pa_link_id", SQL_INTEGER_TYPE},
                                  {"pa_link_traffic_monit_rx", SQL_TEXT_TYPE},
                                  {"pa_link_traffic_monit_tx", SQL_TEXT_TYPE},
@@ -976,6 +1014,24 @@ HostRuntimeApi::HostRuntimeApi()
 {
     dbName_ = "host_runtime_api.db";
     tableColNames_["Syscall"] = Syscall;
+}
+
+HostNuma::HostNuma()
+{
+    dbName_ = "platform.db";
+    tableColNames_["NUMA_LEVELS_HIERARCHY_NAMES"] = NumaLevelsHierarchyNamesTable;
+    tableColNames_["NUMA_METRICS"] = NumaMetricsTable;
+    tableColNames_["NUMA_SCALING_VALUES"] = NumaScalingValuesTable;
+    tableColNames_["NUMA_TITLES_NAMES"] = NumaTitlesNamesTable;
+}
+
+HostCore::HostCore()
+{
+    dbName_ = "thread.db";
+    tableColNames_["HOST_CORE_METRIC"] = HostCoreMetricTable;
+    tableColNames_["HOST_CORE_METRIC_DESC"] = HostCoreMetricDescTable;
+    tableColNames_["HOST_CORE_PROCESS"] = HostCoreProcessTable;
+    tableColNames_["HOST_CORE_THREAD"] = HostCoreThreadTable;
 }
 
 ChipTransDB::ChipTransDB()

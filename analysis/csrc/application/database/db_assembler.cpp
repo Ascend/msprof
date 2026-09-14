@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "analysis/csrc/application/credential/id_pool.h"
@@ -39,6 +40,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_usage_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/llc_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
@@ -1510,6 +1512,100 @@ bool SaveCCUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
 
     return SaveData(res, TABLE_NAME_CCU, msprofDB);
 }
+
+bool SaveHostPlatformData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string&)
+{
+    const auto hierarchies = dataInventory.GetPtr<std::vector<NumaLevelsHierarchyData>>();
+    const auto numaMetrics = dataInventory.GetPtr<std::vector<NumaMetricsData>>();
+    const auto scalingValues = dataInventory.GetPtr<std::vector<NumaScalingValuesData>>();
+    const auto titlesNames = dataInventory.GetPtr<std::vector<NumaTitlesNamesData>>();
+    const auto threads = dataInventory.GetPtr<std::vector<HostCoreThreadData>>();
+    const auto processes = dataInventory.GetPtr<std::vector<HostCoreProcessData>>();
+    const auto metricDescs = dataInventory.GetPtr<std::vector<HostCoreMetricDescData>>();
+    const auto metrics = dataInventory.GetPtr<std::vector<HostCoreMetricData>>();
+    if (hierarchies != nullptr && !hierarchies->empty())
+    {
+        std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>> data;
+        for (const auto& item : *hierarchies)
+            data.emplace_back(item.id, item.title0_id, item.title1_id, item.title2_id);
+        if (!SaveData(data, TABLE_NAME_NUMA_LEVELS_HIERARCHY_NAMES, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (numaMetrics != nullptr && !numaMetrics->empty())
+    {
+        std::vector<std::tuple<uint64_t, uint64_t, double, uint64_t>> data;
+        for (const auto& item : *numaMetrics) data.emplace_back(item.id, item.ts, item.value, item.levels_id);
+        if (!SaveData(data, TABLE_NAME_NUMA_METRICS, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (scalingValues != nullptr && !scalingValues->empty())
+    {
+        std::vector<std::tuple<uint64_t, uint64_t, double>> data;
+        for (const auto& item : *scalingValues) data.emplace_back(item.id, item.level_id, item.max_value);
+        if (!SaveData(data, TABLE_NAME_NUMA_SCALING_VALUES, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (titlesNames != nullptr && !titlesNames->empty())
+    {
+        std::vector<std::tuple<uint64_t, std::string, std::string, uint64_t, std::string, uint64_t>> data;
+        for (const auto& item : *titlesNames)
+            data.emplace_back(item.id, item.name, item.description, item.summary_flag, item.measurement_unit,
+                              item.unique_id);
+        if (!SaveData(data, TABLE_NAME_NUMA_TITLES_NAMES, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (threads != nullptr && !threads->empty())
+    {
+        std::vector<std::tuple<int64_t, int64_t, std::string, int64_t, int64_t, int64_t, int64_t>> data;
+        for (const auto& item : *threads)
+        {
+            data.emplace_back(item.id, item.tid, item.name, item.processId, item.parentId, item.startTs, item.endTs);
+        }
+        if (!SaveData(data, TABLE_NAME_HOST_CORE_THREAD, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (processes != nullptr && !processes->empty())
+    {
+        std::vector<std::tuple<int64_t, int64_t, std::string, int64_t, int64_t>> data;
+        for (const auto& item : *processes) data.emplace_back(item.id, item.pid, item.name, item.startTs, item.endTs);
+        if (!SaveData(data, TABLE_NAME_HOST_CORE_PROCESS, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (metricDescs != nullptr && !metricDescs->empty())
+    {
+        std::vector<std::tuple<int64_t, std::string, std::string, std::string>> data;
+        for (const auto& item : *metricDescs)
+            data.emplace_back(item.id, item.name, item.description, item.measurementUnit);
+        if (!SaveData(data, TABLE_NAME_HOST_CORE_METRIC_DESC, msprofDB))
+        {
+            return false;
+        }
+    }
+    if (metrics != nullptr && !metrics->empty())
+    {
+        std::vector<std::tuple<int64_t, int64_t, double, int64_t, int64_t, int64_t>> data;
+        for (const auto& item : *metrics)
+            data.emplace_back(item.id, item.timestamp, item.value, item.descId, item.tidId, item.cpuId);
+        if (!SaveData(data, TABLE_NAME_HOST_CORE_METRIC, msprofDB))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 const std::string DB_PREFIX = "DB:";
 const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
 const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
@@ -1521,6 +1617,7 @@ const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_ENUM, SaveEnumData},
     {PROCESSOR_NAME_HBM, SaveHbmData},
     {PROCESSOR_NAME_HOST_INFO, SaveHostInfoData},
+    {PROCESSOR_NAME_HOST_PLATFORM, SaveHostPlatformData},
     {PROCESSOR_NAME_HCCS, SaveHccsData},
     {PROCESSOR_NAME_NETDEV_STATS, SaveNetDevStatsData},
     {PROCESSOR_NAME_LLC, SaveLlcData},

@@ -187,6 +187,34 @@ bool IsDoubleEqual(double checkDouble, double standard)
 
 std::string AddQuotation(std::string str) { return Join({"\"", str, "\""}, ""); }
 
+std::string QuoteSqlLiteral(const std::string &value)
+{
+    std::string result = "'";
+    for (const char character : value)
+    {
+        result += character;
+        if (character == '\'')
+        {
+            result += '\'';
+        }
+    }
+    return result + "'";
+}
+
+std::string QuoteSqlIdentifier(const std::string &value)
+{
+    std::string escaped;
+    for (const char character : value)
+    {
+        escaped += character;
+        if (character == '\"')
+        {
+            escaped += '\"';
+        }
+    }
+    return AddQuotation(escaped);
+}
+
 std::string FormatHighPrecisionForCsv(const std::string &value)
 {
     // Excel 打开超过15位精度的数值时会丢精度，追加\t让 Excel 按文本处理该单元格

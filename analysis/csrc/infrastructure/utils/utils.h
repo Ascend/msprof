@@ -52,6 +52,9 @@ bool IsNumber(const std::string &s);
 uint64_t Contact(uint32_t high, uint32_t low);
 bool IsDoubleEqual(double checkDouble, double standard);
 std::string AddQuotation(std::string str);
+// SQLite SQL 字面量和标识符转义。
+std::string QuoteSqlLiteral(const std::string &value);
+std::string QuoteSqlIdentifier(const std::string &value);
 // Excel 对超过15位的数字会丢精度，绝对时刻(us)转字符串后追加\t可强制按文本处理，与python format_high_precision_for_csv
 // 对齐
 std::string FormatHighPrecisionForCsv(const std::string &value);

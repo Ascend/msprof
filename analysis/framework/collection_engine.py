@@ -34,7 +34,6 @@ from host_prof.host_disk_usage.disk_usage_analysis import DiskUsageAnalysis
 from host_prof.host_mem_usage.mem_usage_analysis import MemUsageAnalysis
 from host_prof.host_network_usage.network_usage_analysis import NetworkUsageAnalysis
 from host_prof.host_syscall.host_syscall_analysis import HostSyscallAnalysis
-from host_prof.host_platform.host_platform_analysis import HostPlatformAnalysis
 
 
 class AI:
@@ -128,6 +127,5 @@ class AI:
                     DiskUsageAnalysis,
                     NetworkUsageAnalysis,
                     HostSyscallAnalysis,
-                    HostPlatformAnalysis,
                 ]
             )

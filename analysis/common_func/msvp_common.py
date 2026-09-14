@@ -429,7 +429,8 @@ def clear_project_dirs(project_dir: str) -> None:
     """
     if os.path.exists(PathManager.get_sql_dir(project_dir)):
         for file_name in os.listdir(PathManager.get_sql_dir(project_dir)):
-            os.remove(os.path.join(PathManager.get_sql_dir(project_dir), file_name))
+            if file_name not in ("thread.db", "platform.db"):
+                os.remove(os.path.join(PathManager.get_sql_dir(project_dir), file_name))
     for file_name in os.listdir(PathManager.get_data_dir(project_dir)):
         if file_name.endswith(Constant.COMPLETE_TAG):
             os.remove(os.path.join(PathManager.get_data_dir(project_dir), file_name))

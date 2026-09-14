@@ -38,6 +38,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_usage_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/llc_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_mem_data.h"
@@ -2400,6 +2401,118 @@ TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
     ASSERT_NE(stringIdsSaver, nullptr);
     EXPECT_EQ(stringIdsSaver->processDependence.size(), dbNodeCount);
     EXPECT_TRUE(stringIdsSaver->paramTypes.empty());
+}
+
+TEST_F(DBAssemblerUTest, ShouldSaveHostPlatformDataFromDataInventory)
+{
+    DataInventory dataInventory;
+    NumaLevelsHierarchyData hierarchy;
+    hierarchy.id = 1;
+    hierarchy.title0_id = 2;
+    hierarchy.title1_id = 3;
+    hierarchy.title2_id = 4;
+    NumaMetricsData numaMetric;
+    numaMetric.id = 5;
+    numaMetric.ts = 6;
+    numaMetric.value = 7.5;
+    numaMetric.levels_id = 1;
+    NumaScalingValuesData scalingValue;
+    scalingValue.id = 8;
+    scalingValue.level_id = 2;
+    scalingValue.max_value = 9.5;
+    NumaTitlesNamesData titlesName;
+    titlesName.id = 10;
+    titlesName.name = "title";
+    titlesName.description = "description";
+    titlesName.summary_flag = 1;
+    titlesName.measurement_unit = "ns";
+    titlesName.unique_id = 11;
+    HostCoreThreadData thread;
+    thread.id = 1;
+    thread.tid = 2;
+    thread.name = "thread";
+    thread.processId = 3;
+    thread.startTs = 4;
+    thread.endTs = 5;
+    HostCoreProcessData process;
+    process.id = 3;
+    process.pid = 4;
+    process.name = "process";
+    process.startTs = 5;
+    process.endTs = 6;
+    HostCoreMetricDescData metricDesc;
+    metricDesc.id = 7;
+    metricDesc.name = "metric";
+    metricDesc.description = "description";
+    metricDesc.measurementUnit = "ns";
+    HostCoreMetricData metric;
+    metric.id = 8;
+    metric.timestamp = 9;
+    metric.value = 1.5;
+    metric.descId = 7;
+    metric.tidId = 1;
+
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<NumaLevelsHierarchyData>>(
+        std::vector<NumaLevelsHierarchyData>{hierarchy})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<NumaMetricsData>>(
+        std::vector<NumaMetricsData>{numaMetric})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<NumaScalingValuesData>>(
+        std::vector<NumaScalingValuesData>{scalingValue})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<NumaTitlesNamesData>>(
+        std::vector<NumaTitlesNamesData>{titlesName})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<HostCoreThreadData>>(
+        std::vector<HostCoreThreadData>{thread})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<HostCoreProcessData>>(
+        std::vector<HostCoreProcessData>{process})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<HostCoreMetricDescData>>(
+        std::vector<HostCoreMetricDescData>{metricDesc})));
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<HostCoreMetricData>>(
+        std::vector<HostCoreMetricData>{metric})));
+
+    DBAssembler assembler(PROF, File::PathJoin({PROF, OUTPUT_PATH}));
+    ASSERT_TRUE(assembler.RunSaver(PROCESSOR_NAME_HOST_PLATFORM, dataInventory));
+
+    DBRunner dbRunner(GetMsprofDbPath());
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_NUMA_LEVELS_HIERARCHY_NAMES));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_NUMA_METRICS));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_NUMA_SCALING_VALUES));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_NUMA_TITLES_NAMES));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_HOST_CORE_THREAD));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_HOST_CORE_PROCESS));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_HOST_CORE_METRIC_DESC));
+    EXPECT_TRUE(dbRunner.CheckTableExists(TABLE_NAME_HOST_CORE_METRIC));
+    std::vector<std::tuple<int64_t, int64_t, std::string>> threads;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT id, tid, name FROM HOST_CORE_THREAD", threads));
+    ASSERT_EQ(threads.size(), 1UL);
+    EXPECT_EQ(std::get<2>(threads[0]), "thread");
+    std::vector<std::tuple<int64_t, std::string>> processes;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT pid, name FROM HOST_CORE_PROCESS", processes));
+    ASSERT_EQ(processes.size(), 1UL);
+    EXPECT_EQ(std::get<0>(processes[0]), 4);
+    std::vector<std::tuple<std::string, std::string>> metricDescs;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT description, measurementUnit FROM HOST_CORE_METRIC_DESC", metricDescs));
+    ASSERT_EQ(metricDescs.size(), 1UL);
+    EXPECT_EQ(std::get<1>(metricDescs[0]), "ns");
+    std::vector<std::tuple<int64_t, double, int64_t>> metrics;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT ts, value, cpuId FROM HOST_CORE_METRIC", metrics));
+    ASSERT_EQ(metrics.size(), 1UL);
+    EXPECT_DOUBLE_EQ(std::get<1>(metrics[0]), 1.5);
+    std::vector<std::tuple<uint64_t, uint64_t>> hierarchies;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT title0Id, title2Id FROM NUMA_LEVELS_HIERARCHY_NAMES", hierarchies));
+    ASSERT_EQ(hierarchies.size(), 1UL);
+    EXPECT_EQ(std::get<1>(hierarchies[0]), 4U);
+    std::vector<std::tuple<uint64_t, double>> numaMetrics;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT ts, value FROM NUMA_METRICS", numaMetrics));
+    ASSERT_EQ(numaMetrics.size(), 1UL);
+    EXPECT_DOUBLE_EQ(std::get<1>(numaMetrics[0]), 7.5);
+    std::vector<std::tuple<uint64_t, double>> scalingValues;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT levelId, maxValue FROM NUMA_SCALING_VALUES", scalingValues));
+    ASSERT_EQ(scalingValues.size(), 1UL);
+    EXPECT_DOUBLE_EQ(std::get<1>(scalingValues[0]), 9.5);
+    std::vector<std::tuple<std::string, uint64_t>> titlesNames;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT measurementUnit, uniqueId FROM NUMA_TITLES_NAMES", titlesNames));
+    ASSERT_EQ(titlesNames.size(), 1UL);
+    EXPECT_EQ(std::get<0>(titlesNames[0]), "ns");
 }
 
 TEST_F(DBAssemblerUTest, ShouldRejectExecutionListNodeWithoutRegistration)

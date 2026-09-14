@@ -312,3 +312,13 @@ TEST_F(UtilsUTest, TestResizeShouldReturnFalseWhenSizeExceedsMax)
     EXPECT_FALSE(Resize(vec, std::numeric_limits<size_t>::max()));
     EXPECT_EQ(vec.size(), static_cast<size_t>(3));
 }
+
+TEST_F(UtilsUTest, TestQuoteSqlLiteralShouldEscapeSingleQuote)
+{
+    EXPECT_EQ("'O''Reilly'", QuoteSqlLiteral("O'Reilly"));
+}
+
+TEST_F(UtilsUTest, TestQuoteSqlIdentifierShouldEscapeDoubleQuote)
+{
+    EXPECT_EQ("\"column\"\"name\"", QuoteSqlIdentifier("column\"name"));
+}

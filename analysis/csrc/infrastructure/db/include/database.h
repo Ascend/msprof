@@ -313,6 +313,18 @@ class HostRuntimeApi : public Database
     HostRuntimeApi();
 };
 
+class HostNuma : public Database
+{
+   public:
+    HostNuma();
+};
+
+class HostCore : public Database
+{
+   public:
+    HostCore();
+};
+
 class ChipTransDB : public Database
 {
    public:

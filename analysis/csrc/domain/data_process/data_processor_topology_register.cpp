@@ -47,6 +47,7 @@
 #include "analysis/csrc/domain/data_process/system/ddr_processor.h"
 #include "analysis/csrc/domain/data_process/system/hbm_processor.h"
 #include "analysis/csrc/domain/data_process/system/hccs_processor.h"
+#include "analysis/csrc/domain/data_process/system/host_platform_processor.h"
 #include "analysis/csrc/domain/data_process/system/host_usage_processor.h"
 #include "analysis/csrc/domain/data_process/system/llc_processor.h"
 #include "analysis/csrc/domain/data_process/system/low_power_processor.h"
@@ -105,6 +106,11 @@ REGISTER_PROCESSOR(HostMemUsageProcessor, PROCESSOR_NAME_MEM_USAGE, TOPO_DEPS())
 REGISTER_PROCESSOR(HostDiskUsageProcessor, PROCESSOR_NAME_DISK_USAGE, TOPO_DEPS());
 REGISTER_PROCESSOR(HostNetworkUsageProcessor, PROCESSOR_NAME_NETWORK_USAGE, TOPO_DEPS());
 REGISTER_PROCESSOR(OSRuntimeApiProcessor, PROCESSOR_NAME_OSRT_API, TOPO_DEPS());
+REGISTER_PROCESSOR_WITH_DATA(HostPlatformProcessor, PROCESSOR_NAME_HOST_PLATFORM, TOPO_DEPS(),
+                             std::vector<NumaLevelsHierarchyData>, std::vector<NumaMetricsData>,
+                             std::vector<NumaScalingValuesData>, std::vector<NumaTitlesNamesData>,
+                             std::vector<HostCoreThreadData>, std::vector<HostCoreProcessData>,
+                             std::vector<HostCoreMetricDescData>, std::vector<HostCoreMetricData>);
 REGISTER_PROCESSOR(LLcProcessor, PROCESSOR_NAME_LLC, TOPO_DEPS());
 REGISTER_PROCESSOR(NpuMemProcessor, PROCESSOR_NAME_NPU_MEM, TOPO_DEPS());
 REGISTER_PROCESSOR(PCIeProcessor, PROCESSOR_NAME_PCIE, TOPO_DEPS());

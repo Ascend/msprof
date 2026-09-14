@@ -30,6 +30,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_usage_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/llc_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
@@ -84,6 +85,12 @@ REGISTER_DB_SAVER(PROCESSOR_NAME_ENUM, TOPO_DEPS());
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_HBM, TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HBM)),
                             std::vector<HbmData>);
 REGISTER_DB_SAVER(PROCESSOR_NAME_HOST_INFO, TOPO_DEPS());
+REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_HOST_PLATFORM,
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HOST_PLATFORM)),
+                            std::vector<NumaLevelsHierarchyData>, std::vector<NumaMetricsData>,
+                            std::vector<NumaScalingValuesData>, std::vector<NumaTitlesNamesData>,
+                            std::vector<HostCoreThreadData>, std::vector<HostCoreProcessData>,
+                            std::vector<HostCoreMetricDescData>, std::vector<HostCoreMetricData>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_HCCS, TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HCCS)),
                             std::vector<HccsData>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_NETDEV_STATS,

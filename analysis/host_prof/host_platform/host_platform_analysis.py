@@ -24,8 +24,10 @@ from common_func.path_manager import PathManager
 from common_func.file_manager import check_dir_writable
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.file_name_manager import get_host_platform_compiles
+from common_func.file_name_manager import get_host_platform_core_compiles
 from common_func.file_name_manager import get_file_name_pattern_match
 from msinterface.msprof_c_interface import export_platform
+
 
 class HostPlatformAnalysis(MsMultiProcess):
     """
@@ -33,6 +35,10 @@ class HostPlatformAnalysis(MsMultiProcess):
     """
 
     PLATFORM = "PLATFORM_"
+    NUMA_PLATFORM_DATA_TYPE = 1
+    THREAD_PLATFORM_DATA_TYPE = 2
+    PLATFORM_DB_NAME = "platform.db"
+    THREAD_DB_NAME = "thread.db"
     PROF_RESULT_PATTERN = r".*?PROF_\d{1,10}_\d{1,20}_[A-Z0-9]{5,20}\/"
     PROF_NAME_PATTERN = r"PROF_\d{1,10}_\d{1,20}_[A-Z0-9]{5,20}"
 
@@ -68,33 +74,56 @@ class HostPlatformAnalysis(MsMultiProcess):
                     try:
                         os.mkdir(platform_path)
                     except Exception as e:
-                        logging.warning("Can't create directory for the platform analysis data: " + str(e))
+                        logging.warning("Can't create directory for the platform analysis data: %s", e)
                         return ""
                     return str(platform_path)
         return ""
-    
+
+    @staticmethod
+    def create_sqlite_dir(result_dir: str) -> str:
+        sqlite_dir = pathlib.Path(PathManager.get_sql_dir(result_dir))
+        try:
+            check_dir_writable(str(sqlite_dir.parent))
+            sqlite_dir.mkdir(exist_ok=True)
+        except Exception as e:
+            logging.warning("Can't create directory for the platform analysis database: %s", e)
+            return ""
+        return str(sqlite_dir)
+
     def ms_run(self: any) -> None:
         """
         run function
         """
         if not os.path.exists(self.result_dir):
-            logging.error(self.result_dir + " directory doesn't exist.")
+            logging.error("%s directory doesn't exist.", self.result_dir)
             return
-        
+
         data_dir = PathManager.get_data_dir(self.result_dir)
         if not os.path.exists(data_dir):
-            logging.error(data_dir + " directory doesn't exist.")
+            logging.error("%s directory doesn't exist.", data_dir)
             return
 
         file_list = get_data_dir_sorted_files(data_dir)
         host_platform_compiles = get_host_platform_compiles()
+        host_platform_core_compiles = get_host_platform_core_compiles()
 
+        uncore_trace = ""
+        core_trace = ""
         for file_name in file_list:
-            host_platform_result = get_file_name_pattern_match(file_name, *host_platform_compiles)
-            if host_platform_result:
-                platform_dir = HostPlatformAnalysis.create_platform_dir(data_dir)
-                if platform_dir:
-                    file_path = str(pathlib.Path(data_dir).joinpath(file_name))
-                    export_platform(file_path, platform_dir)
+            if get_file_name_pattern_match(file_name, *host_platform_compiles):
+                uncore_trace = str(pathlib.Path(data_dir).joinpath(file_name))
+            if get_file_name_pattern_match(file_name, *host_platform_core_compiles):
+                core_trace = str(pathlib.Path(data_dir).joinpath(file_name))
+            if uncore_trace and core_trace:
                 break
-
+        if not uncore_trace and not core_trace:
+            return
+        sqlite_dir = HostPlatformAnalysis.create_sqlite_dir(self.result_dir)
+        if not sqlite_dir:
+            return
+        if uncore_trace:
+            platform_db = str(pathlib.Path(sqlite_dir).joinpath(self.PLATFORM_DB_NAME))
+            export_platform(self.NUMA_PLATFORM_DATA_TYPE, uncore_trace, platform_db)
+        if core_trace:
+            thread_db = str(pathlib.Path(sqlite_dir).joinpath(self.THREAD_DB_NAME))
+            export_platform(self.THREAD_PLATFORM_DATA_TYPE, core_trace, thread_db)

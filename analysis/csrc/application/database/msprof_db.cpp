@@ -39,6 +39,41 @@ const TableColumns RANK_DEVICE_MAP = {{"rankId", SQL_INTEGER_TYPE}, {"deviceId",
 
 const TableColumns HOST_INFO = {{"hostUid", SQL_TEXT_TYPE}, {"hostName", SQL_TEXT_TYPE}};
 
+const TableColumns NumaLevelsHierarchyNamesTable = {{"id", SQL_INTEGER_TYPE},
+                                                    {"title0Id", SQL_INTEGER_TYPE},
+                                                    {"title1Id", SQL_INTEGER_TYPE},
+                                                    {"title2Id", SQL_INTEGER_TYPE}};
+
+const TableColumns NumaMetricsTable = {
+    {"id", SQL_INTEGER_TYPE}, {"ts", SQL_INTEGER_TYPE}, {"value", SQL_REAL_TYPE}, {"levelsId", SQL_INTEGER_TYPE}};
+
+const TableColumns NumaScalingValuesTable = {
+    {"id", SQL_INTEGER_TYPE}, {"levelId", SQL_INTEGER_TYPE}, {"maxValue", SQL_REAL_TYPE}};
+
+const TableColumns NumaTitlesNamesTable = {{"id", SQL_INTEGER_TYPE},           {"name", SQL_TEXT_TYPE},
+                                           {"description", SQL_TEXT_TYPE},     {"summaryFlag", SQL_INTEGER_TYPE},
+                                           {"measurementUnit", SQL_TEXT_TYPE}, {"uniqueId", SQL_INTEGER_TYPE}};
+
+const TableColumns HOST_CORE_THREAD = {{"id", SQL_INTEGER_TYPE, true}, {"tid", SQL_INTEGER_TYPE},
+                                       {"name", SQL_TEXT_TYPE},        {"processId", SQL_INTEGER_TYPE},
+                                       {"parentId", SQL_INTEGER_TYPE}, {"startTs", SQL_INTEGER_TYPE},
+                                       {"endTs", SQL_INTEGER_TYPE}};
+
+const TableColumns HOST_CORE_PROCESS = {{"id", SQL_INTEGER_TYPE, true},
+                                        {"pid", SQL_INTEGER_TYPE},
+                                        {"name", SQL_TEXT_TYPE},
+                                        {"startTs", SQL_INTEGER_TYPE},
+                                        {"endTs", SQL_INTEGER_TYPE}};
+
+const TableColumns HOST_CORE_METRIC_DESC = {{"id", SQL_INTEGER_TYPE, true},
+                                            {"name", SQL_TEXT_TYPE},
+                                            {"description", SQL_TEXT_TYPE},
+                                            {"measurementUnit", SQL_TEXT_TYPE}};
+
+const TableColumns HOST_CORE_METRIC = {{"id", SQL_INTEGER_TYPE, true}, {"ts", SQL_INTEGER_TYPE},
+                                       {"value", SQL_REAL_TYPE},       {"descId", SQL_INTEGER_TYPE},
+                                       {"tidId", SQL_INTEGER_TYPE},    {"cpuId", SQL_INTEGER_TYPE}};
+
 const TableColumns TASK = {
     {"startNs", SQL_INTEGER_TYPE},      {"endNs", SQL_INTEGER_TYPE},        {"deviceId", SQL_INTEGER_TYPE},
     {"connectionId", SQL_INTEGER_TYPE}, {"globalTaskId", SQL_INTEGER_TYPE}, {"globalPid", SQL_INTEGER_TYPE},
@@ -277,6 +312,14 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_NPU_INFO, NPU_INFO},
                       {TABLE_NAME_RANK_DEVICE_MAP, RANK_DEVICE_MAP},
                       {TABLE_NAME_HOST_INFO, HOST_INFO},
+                      {TABLE_NAME_NUMA_LEVELS_HIERARCHY_NAMES, NumaLevelsHierarchyNamesTable},
+                      {TABLE_NAME_NUMA_METRICS, NumaMetricsTable},
+                      {TABLE_NAME_NUMA_SCALING_VALUES, NumaScalingValuesTable},
+                      {TABLE_NAME_NUMA_TITLES_NAMES, NumaTitlesNamesTable},
+                      {TABLE_NAME_HOST_CORE_THREAD, HOST_CORE_THREAD},
+                      {TABLE_NAME_HOST_CORE_PROCESS, HOST_CORE_PROCESS},
+                      {TABLE_NAME_HOST_CORE_METRIC_DESC, HOST_CORE_METRIC_DESC},
+                      {TABLE_NAME_HOST_CORE_METRIC, HOST_CORE_METRIC},
                       {TABLE_NAME_TASK, TASK},
                       {TABLE_NAME_COMPUTE_TASK_INFO, COMPUTE_TASK_INFO},
                       {TABLE_NAME_COMMUNICATION_SCHEDULE_TASK_INFO, COMMUNICATION_SCHEDULE_TASK_INFO},
