@@ -81,7 +81,113 @@ protected:
         FileWriter sampleWriter(File::PathJoin({filePath, SAMPLE_JSON}));
         sampleWriter.WriteText(sample.dump());
     }
+
+    static void WriteInfoJson(const std::string &filePath, const nlohmann::json &version)
+    {
+        nlohmann::json info = {
+            {"platform_version", "5"},
+            {"devices", "0"},
+            {"DeviceInfo", {{{"hwts_frequency", "49.000000"},
+                             {"aic_frequency", "1850"},
+                             {"aiv_frequency", "1850"},
+                             {"ai_core_num", 25},
+                             {"aiv_num", 25}}}}
+        };
+        if (!version.is_null()) {
+            info["version"] = version;
+        }
+        FileWriter writer(File::PathJoin({filePath, INFO_JSON}));
+        writer.WriteText(info.dump());
+    }
+
+    static void WriteSampleJson(const std::string &filePath, const nlohmann::json &llcProfiling,
+                                const std::string &aiCoreProfilingMode = "")
+    {
+        nlohmann::json sample = {
+            {"ai_core_profiling", "off"},
+            {"ai_core_metrics", ""},
+            {"ai_core_profiling_events", ""},
+            {"ai_core_profiling_mode", aiCoreProfilingMode},
+            {"aicore_sampling_interval", 10},
+            {"aiv_profiling", "off"},
+            {"aiv_metrics", ""},
+            {"aiv_profiling_events", ""},
+            {"aiv_profiling_mode", ""},
+            {"aiv_sampling_interval", 10}
+        };
+        if (!llcProfiling.is_null()) {
+            sample["llc_profiling"] = llcProfiling;
+        }
+        FileWriter writer(File::PathJoin({filePath, SAMPLE_JSON}));
+        writer.WriteText(sample.dump());
+    }
 };
+
+TEST_F(DeviceContextUTest, ShouldReadCollectionVersionOneFromInfoJson)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteInfoJson(deviceDir, "1.0");
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetInfoJson());
+    EXPECT_EQ("1.0", context.deviceContextInfo.deviceInfo.collectionVersion);
+}
+
+TEST_F(DeviceContextUTest, ShouldReadCollectionVersionTwoFromInfoJson)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteInfoJson(deviceDir, "2.0");
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetInfoJson());
+    EXPECT_EQ("2.0", context.deviceContextInfo.deviceInfo.collectionVersion);
+}
+
+TEST_F(DeviceContextUTest, ShouldMarkCollectionVersionUnavailableWhenInfoJsonOmitsVersion)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteInfoJson(deviceDir, nullptr);
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetInfoJson());
+    EXPECT_EQ("N/A", context.deviceContextInfo.deviceInfo.collectionVersion);
+}
+
+TEST_F(DeviceContextUTest, ShouldReadLlcReadModeFromSampleJson)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteSampleJson(deviceDir, "read");
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetSampleJson());
+    EXPECT_EQ("read", context.deviceContextInfo.sampleInfo.llcProfiling);
+}
+
+TEST_F(DeviceContextUTest, ShouldReadLlcWriteModeFromSampleJson)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteSampleJson(deviceDir, "write");
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetSampleJson());
+    EXPECT_EQ("write", context.deviceContextInfo.sampleInfo.llcProfiling);
+}
+
+TEST_F(DeviceContextUTest, ShouldDefaultLlcModeWhenSampleJsonOmitsField)
+{
+    const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
+    WriteSampleJson(deviceDir, nullptr);
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = deviceDir;
+
+    ASSERT_TRUE(context.GetSampleJson());
+    EXPECT_TRUE(context.deviceContextInfo.sampleInfo.llcProfiling.empty());
+}
 
 TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldReturn1DataInventoryWhenInfoJsonInvalid)
 {
@@ -124,4 +230,3 @@ TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldReturnEmptyVectorWhenNoPr
 
 }  // Domain
 }  // Analysis
-

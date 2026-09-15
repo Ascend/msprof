@@ -12,6 +12,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pmu DEVICE_
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/track DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/llc DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pcie DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/qos DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/ub DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/parser_item DEVICE_PARSER_SOURCE)

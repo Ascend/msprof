@@ -96,7 +96,7 @@ static std::map<TaskId, std::vector<HostTask>> GeneratorHostTask()
 TEST_F(AscendTaskAssociationUTest, ShouldGenerateAscendTaskWhenProcessRun)
 {
     AscendTaskAssociation association;
-    Context context;
+    DeviceContext context;
     auto hostDataS = dataInventory_.GetPtr<std::map<TaskId, std::vector<HostTask>>>();
     auto deviceDataS = dataInventory_.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
     auto hostData = GeneratorHostTask();

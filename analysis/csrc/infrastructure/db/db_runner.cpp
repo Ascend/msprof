@@ -81,6 +81,34 @@ bool DBRunner::CreateTableWithConstraints(const std::string &tableName, const st
     return true;
 }
 
+bool DBRunner::CreateTableWithPrimaryKeys(const std::string &tableName, const std::vector<TableColumn> &cols,
+                                          const std::vector<std::string> &primaryKeys) const
+{
+    if (tableName.empty() || primaryKeys.empty())
+    {
+        ERROR("The tableName or primaryKeys is empty");
+        return false;
+    }
+    std::string valuesStr = GetColumnsString(cols);
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + valuesStr + ", PRIMARY KEY (" +
+                      Join(primaryKeys, ", ") + "));";
+    INFO("Start create %, sql is %.", tableName, sql);
+    std::shared_ptr<Connection> conn;
+    MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
+    if (!conn->IsDBOpened())
+    {
+        ERROR("Create Connection failed, path is %d", path_);
+        return false;
+    }
+    if (!conn->ExecuteCreateTable(sql))
+    {
+        ERROR("Create % failed", tableName);
+        return false;
+    }
+    INFO("create % success", tableName);
+    return true;
+}
+
 bool DBRunner::CreateIndex(const std::string &tableName, const std::string &indexName,
                            const std::vector<std::string> &colNames) const
 {

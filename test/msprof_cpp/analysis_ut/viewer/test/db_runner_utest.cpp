@@ -99,15 +99,56 @@ TEST_F(DBRunnerUtest, CreateTable)
     EXPECT_EQ(rc, true);
 }
 
+TEST_F(DBRunnerUtest, CreateTableWithPrimaryKeysShouldSupportCompositePrimaryKey)
+{
+    std::string path = "./a.db";
+    auto dbRunner = std::make_shared<DBRunner>(path);
+    std::vector<TableColumn> tableCols = {TableColumn("device_id", "INTEGER"), TableColumn("l3tid", "INTEGER"),
+                                          TableColumn("timestamp", "REAL")};
+    ASSERT_TRUE(
+        dbRunner->CreateTableWithPrimaryKeys("composite_key_table", tableCols, {"device_id", "l3tid", "timestamp"}));
+    ASSERT_TRUE(
+        dbRunner->InsertData("composite_key_table", std::vector<std::tuple<uint32_t, uint32_t, double>>{{0, 0, 1.0}}));
+    EXPECT_FALSE(
+        dbRunner->InsertData("composite_key_table", std::vector<std::tuple<uint32_t, uint32_t, double>>{{0, 0, 1.0}}));
+}
+
+TEST_F(DBRunnerUtest, InsertAndQueryDataShouldPreserveNullValues)
+{
+    std::string path = "./a.db";
+    auto dbRunner = std::make_shared<DBRunner>(path);
+    const std::string tableName = "nullable_value_table";
+    if (dbRunner->CheckTableExists(tableName))
+    {
+        ASSERT_TRUE(dbRunner->DropTable(tableName));
+    }
+    std::vector<TableColumn> tableCols = {TableColumn("id", "INTEGER"), TableColumn("value", "INTEGER")};
+    ASSERT_TRUE(dbRunner->CreateTable(tableName, tableCols));
+    using NullableRow = std::tuple<uint32_t, NullableValue<uint64_t>>;
+    std::vector<NullableRow> inputRows;
+    inputRows.emplace_back(1, NullableValue<uint64_t>(7));
+    inputRows.emplace_back(2, NullableValue<uint64_t>());
+    ASSERT_TRUE(dbRunner->InsertData(tableName, inputRows));
+
+    using QueryRow = std::tuple<uint32_t, uint64_t, uint32_t>;
+    std::vector<QueryRow> rows;
+    ASSERT_TRUE(dbRunner->QueryData(
+        "SELECT id, COALESCE(value, 0), value IS NULL FROM nullable_value_table ORDER BY id", rows));
+    ASSERT_EQ(2UL, rows.size());
+    EXPECT_EQ(1U, std::get<0>(rows[0]));
+    EXPECT_EQ(7U, std::get<1>(rows[0]));
+    EXPECT_EQ(0U, std::get<2>(rows[0]));
+    EXPECT_EQ(2U, std::get<0>(rows[1]));
+    EXPECT_EQ(0U, std::get<1>(rows[1]));
+    EXPECT_EQ(1U, std::get<2>(rows[1]));
+}
+
 TEST_F(DBRunnerUtest, CreateTableShouldReturnFalseWhenCreateConnectionFailed)
 {
     std::string path = "./a.db";
     auto dbRunner = std::make_shared<DBRunner>(path);
-    std::vector<TableColumn> cols = {
-        TableColumn("id", "INT"),
-        TableColumn("name", "VARCHAR(255)"),
-        TableColumn("age", "INT")
-    };
+    std::vector<TableColumn> cols = {TableColumn("id", "INT"), TableColumn("name", "VARCHAR(255)"),
+                                     TableColumn("age", "INT")};
     MOCKER_CPP(&Connection::IsDBOpened).stubs().will(returnValue(false));
     auto rc = dbRunner->CreateTable("tb3", cols);
     EXPECT_EQ(rc, false);
@@ -118,11 +159,8 @@ TEST_F(DBRunnerUtest, CreateIndexWhenNoThisColThenReturnFalse)
 {
     std::string path = "./a.db";
     auto dbRunner = std::make_shared<DBRunner>(path);
-    std::vector<TableColumn> cols = {
-        TableColumn("id", "INT"),
-        TableColumn("name", "VARCHAR(255)"),
-        TableColumn("age", "INT")
-    };
+    std::vector<TableColumn> cols = {TableColumn("id", "INT"), TableColumn("name", "VARCHAR(255)"),
+                                     TableColumn("age", "INT")};
     auto rc = dbRunner->CreateTable("tb3", cols);
     EXPECT_EQ(rc, true);
     rc = dbRunner->CreateIndex("tb3", "a", {"a"});

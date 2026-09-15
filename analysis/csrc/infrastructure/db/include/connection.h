@@ -74,6 +74,16 @@ struct IndexSequenceMaker<0, S...>
 template <size_t N>
 using MakeIndexSequence = typename IndexSequenceMaker<N>::Type;
 
+template <typename T>
+struct NullableValue
+{
+    NullableValue() = default;
+    NullableValue(const T &input) : hasValue(true), value(input) {}
+
+    bool hasValue = false;
+    T value{};
+};
+
 // 数据库连接对象，当前版本以sqlite3实现
 class Connection
 {
@@ -103,6 +113,8 @@ class Connection
     void BindParameters(uint32_t value);
     void BindParameters(double value);
     void BindParameters(std::string value);
+    template <typename T>
+    void BindParameters(const NullableValue<T> &value);
     void BindParameters(std::nullptr_t value);
     template <typename T, size_t... S>
     void ExecuteInsertHelper(T &row, IndexSequence<S...>);
@@ -131,6 +143,17 @@ class Connection
     sqlite3 *db_ = nullptr;
     sqlite3_stmt *stmt_ = nullptr;
 };
+
+template <typename T>
+void Connection::BindParameters(const NullableValue<T> &value)
+{
+    if (!value.hasValue)
+    {
+        sqlite3_bind_null(stmt_, ++index_);
+        return;
+    }
+    BindParameters(value.value);
+}
 
 template <typename T>
 int Connection::ExecuteInsertHelperHelper(T t)

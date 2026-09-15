@@ -161,6 +161,7 @@ struct adl_serializer<SampleInfo>
         jsonData.at("aiv_sampling_interval").get_to(infoData.aivSamplingInterval);
         std::string dynamicStr = jsonData.value("dynamic", "off");
         infoData.dynamic = (dynamicStr == "on");
+        infoData.llcProfiling = jsonData.value("llc_profiling", "");
 
         std::string profLevel = jsonData.value("profLevel", "l0");
         std::string profLevelHisi = jsonData.value("prof_level", "level0");

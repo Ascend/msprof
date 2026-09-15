@@ -1,0 +1,6 @@
+#ifndef LLC_PCIE_CPP_ENABLE_H
+#define LLC_PCIE_CPP_ENABLE_H
+#ifndef ENABLE_NON_MINI_LLC_PCIE_CPP
+#define ENABLE_NON_MINI_LLC_PCIE_CPP 0
+#endif
+#endif

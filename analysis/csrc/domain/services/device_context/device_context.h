@@ -24,6 +24,7 @@
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
@@ -103,6 +104,7 @@ struct DeviceInfo
     uint32_t aivFrequency;
     uint32_t aivNum;
     double hwtsFrequency;
+    std::string collectionVersion;
 };
 
 struct CpuInfo
@@ -132,6 +134,9 @@ struct SampleInfo
     // dynamic
     bool dynamic = false;
     bool isLevel0 = false;
+
+    // llc
+    std::string llcProfiling;
 
     SampleInfo() : aiCoreProfilingEvents(DEFAULT_PMU_LENGTH), aivProfilingEvents(DEFAULT_PMU_LENGTH) {}
 };
@@ -230,7 +235,7 @@ class DeviceContext : public Infra::Context
    private:
     DeviceContextInfo deviceContextInfo;
     bool isInitialized_;  // 标记是否已初始化
-    DeviceContext() : isInitialized_(false) { deviceContextInfo.deviceInfo = {0, 0, 0, 0, 0, 0, 0}; };
+    DeviceContext() : isInitialized_(false) { deviceContextInfo.deviceInfo = {0, 0, 0, 0, 0, 0, 0, NA}; };
     ~DeviceContext() = default;
     bool GetInfoJson();
     bool GetSampleJson();

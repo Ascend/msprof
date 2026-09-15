@@ -341,10 +341,23 @@ const TableColumns DDRMetricData = {{"device_id", SQL_INTEGER_TYPE}, {"replayid"
                                     {"flux_write", SQL_REAL_TYPE},   {"fluxid_read", SQL_REAL_TYPE},
                                     {"fluxid_write", SQL_REAL_TYPE}};
 
-const TableColumns LLCOriginData = {
-    {"device_id", SQL_INTEGER_TYPE}, {"l3tid", SQL_INTEGER_TYPE},   {"timestamp", SQL_REAL_TYPE},
-    {"hitrate", SQL_REAL_TYPE},      {"throughput", SQL_REAL_TYPE},
-};
+const TableColumns LLCOriginalData = {{"device_id", SQL_INTEGER_TYPE},
+                                      {"timestamp", SQL_REAL_TYPE},
+                                      {"counts", SQL_INTEGER_TYPE},
+                                      {"event", SQL_INTEGER_TYPE},
+                                      {"l3tid", SQL_INTEGER_TYPE}};
+
+const TableColumns LLCEvents = {
+    {"device_id", SQL_INTEGER_TYPE}, {"l3tid", SQL_INTEGER_TYPE},  {"timestamp", SQL_REAL_TYPE},
+    {"event0", SQL_INTEGER_TYPE},    {"event1", SQL_INTEGER_TYPE}, {"event2", SQL_INTEGER_TYPE},
+    {"event3", SQL_INTEGER_TYPE},    {"event4", SQL_INTEGER_TYPE}, {"event5", SQL_INTEGER_TYPE},
+    {"event6", SQL_INTEGER_TYPE},    {"event7", SQL_INTEGER_TYPE}};
+
+const TableColumns LLCMetrics = {{"device_id", SQL_INTEGER_TYPE},
+                                 {"l3tid", SQL_INTEGER_TYPE},
+                                 {"timestamp", SQL_REAL_TYPE},
+                                 {"hitrate", SQL_REAL_TYPE},
+                                 {"throughput", SQL_REAL_TYPE}};
 
 const TableColumns SampleAICoreOriginalData = {
     {"mode", SQL_INTEGER_TYPE},   {"replayid", SQL_INTEGER_TYPE}, {"timestamp", SQL_NUMERIC_TYPE},
@@ -884,7 +897,9 @@ DDRDB::DDRDB()
 LLCDB::LLCDB()
 {
     dbName_ = "llc.db";
-    tableColNames_["LLCMetrics"] = LLCOriginData;
+    tableColNames_["LLCOriginalData"] = LLCOriginalData;
+    tableColNames_["LLCEvents"] = LLCEvents;
+    tableColNames_["LLCMetrics"] = LLCMetrics;
 }
 AccPmuDB::AccPmuDB()
 {

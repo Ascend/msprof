@@ -39,6 +39,8 @@ class DBRunner
     explicit DBRunner(const std::string &dbPath) : path_(dbPath) {};
     bool CheckTableExists(const std::string &tableName);
     bool CreateTable(const std::string &tableName, const std::vector<TableColumn> &cols) const;
+    bool CreateTableWithPrimaryKeys(const std::string &tableName, const std::vector<TableColumn> &cols,
+                                    const std::vector<std::string> &primaryKeys) const;
     bool CreateTableWithConstraints(const std::string &tableName, const std::vector<TableColumn> &cols,
                                     const std::vector<std::string> &constraints) const;
     bool CreateIndex(const std::string &tableName, const std::string &indexName,
