@@ -108,14 +108,54 @@ class DtoData:
 
 
 class TestExportCommand(unittest.TestCase):
-    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+    def test_process_should_not_start_worker_when_all_children_are_empty(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.mkdir(os.path.join(root, 'ordinary_dir'))
+            command = ExportCommand('summary', Namespace(collection_path=root))
+            with mock.patch(NAMESPACE + '.run_in_subprocess') as worker, \
+                    mock.patch.object(command, '_try_full_cpp_pipeline', return_value=False) as cpp_pipeline, \
+                    mock.patch(NAMESPACE + '.warn') as warning:
+                command.process()
+
+            worker.assert_not_called()
+            cpp_pipeline.assert_not_called()
+            self.assertEqual(command.valid_data_count, 0)
+            warning.assert_any_call(
+                command.FILE_NAME,
+                f'The path "{command.collection_path}" does not contain valid profiling data.'
+            )
+
+    def test_process_sub_dirs_should_skip_empty_tables_after_valid_child(self):
+        command = ExportCommand('summary', Namespace(collection_path='test'))
+        # The valid child runs first, so the parent and empty sibling see a nonzero total.
+        def scan(path, *_args, **_kwargs):
+            if path == command.collection_path:
+                return [('PROF_1', 'PROF_1', False), ('ordinary_dir', 'ordinary_dir', False)]
+            if path == os.path.join(command.collection_path, 'PROF_1'):
+                return [('device_0', 'valid/device_0', True)]
+            return []
+
+        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', side_effect=scan), \
+                mock.patch.object(command, '_try_full_cpp_pipeline', return_value=False) as cpp_pipeline, \
+                mock.patch(NAMESPACE + '.run_in_subprocess') as worker:
+            command._process_sub_dirs()
+
+        self.assertEqual(command.valid_data_count, 1)
+        cpp_pipeline.assert_called_once()
+        worker.assert_called_once()
+        self.assertEqual(worker.call_args.args[1]['device'], ['valid/device_0'])
+
+    def test_process_should_warn_when_all_children_are_invalid(self):
         command = ExportCommand("summary", Namespace(collection_path="test"))
         with mock.patch(NAMESPACE + '.check_path_valid'), \
                 mock.patch.object(command, '_process_sub_dirs'), \
-                self.assertRaises(ProfException) as context:
+                mock.patch(NAMESPACE + '.warn') as warning:
             command.process()
 
-        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+        warning.assert_called_once_with(
+            command.FILE_NAME,
+            f'The path "{command.collection_path}" does not contain valid profiling data.'
+        )
 
     def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
         args = Namespace(collection_path="test")
@@ -503,9 +543,12 @@ class TestExportCommand(unittest.TestCase):
             with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
-                with self.assertRaises(ProfException) as context:
+                with mock.patch(NAMESPACE + '.warn') as warning:
                     test.process()
-                self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+                warning.assert_any_call(
+                    test.FILE_NAME,
+                    f'The path "{test.collection_path}" does not contain valid profiling data.'
+                )
                 self.assertEqual(test.valid_data_count, 0)
 
     def test_calculate_data_should_prepare_info_before_dispatch(self):
@@ -585,9 +628,12 @@ class TestExportCommand(unittest.TestCase):
                            return_value=[('host', 'host', False)]):
             # 无info_json
             test = ExportCommand("timeline", args)
-            with self.assertRaises(ProfException) as context:
+            with mock.patch(NAMESPACE + '.warn') as warning:
                 test.process()
-            self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+            warning.assert_any_call(
+                test.FILE_NAME,
+                f'The path "{test.collection_path}" does not contain valid profiling data.'
+            )
             self.assertEqual(test.valid_data_count, 0)
             with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                             return_value=[('host', 'host', True)]), \

@@ -33,6 +33,7 @@ class CommonConstant:
     """
     common constant class
     """
+
     CLIENT_NUM = 16
     SAMPLE_JSON = "sample.json"
     INFO_JSON_PATTERN = re.compile(r"info.json.(\d+)$")
@@ -77,9 +78,11 @@ def error(file_name: str, msg: str) -> None:
     """
     if file_name is None or msg is None:
         return
-    print_msg(time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
-              + f"[ERROR] [MSVP] [{str(os.getpid())}] {file_name}: {msg}",
-              flush=True)
+    print_msg(
+        time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
+        + f"[ERROR] [MSVP] [{str(os.getpid())}] {file_name}: {msg}",
+        flush=True,
+    )
 
 
 def print_info(file_name: str, msg: str) -> None:
@@ -88,20 +91,24 @@ def print_info(file_name: str, msg: str) -> None:
     """
     if file_name is None or msg is None:
         return
-    print_msg(time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
-              + "[INFO] [MSVP] [{0}] {1}: {2}".format(str(os.getpid()), file_name, str(msg)),
-              flush=True)
+    print_msg(
+        time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
+        + "[INFO] [MSVP] [{0}] {1}: {2}".format(str(os.getpid()), file_name, str(msg)),
+        flush=True,
+    )
 
 
 def warn(file_name: str, msg: str) -> None:
     """
-    print error message
+    print warning message
     """
     if file_name is None or msg is None:
         return
-    print_msg(time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
-              + "[WARNING] [MSVP] [{0}] {1}: {2}".format(str(os.getpid()), file_name, str(msg)),
-              flush=True)
+    print_msg(
+        time.strftime("%a %d %b %Y %H:%M:%S ", time.localtime())
+        + "[WARNING] [MSVP] [{0}] {1}: {2}".format(str(os.getpid()), file_name, str(msg)),
+        flush=True,
+    )
 
 
 def print_msg(*args: any, **kwargs: any) -> None:
@@ -129,15 +136,17 @@ class Log:
         self.log_name = os.path.join(self.log_path, "collection.log")
         for log in self.logger.handlers:
             self.logger.removeHandler(log)
-        file_handler = RotatingFileHandler(self.log_name, 'a', CommonConstant.MAX_LOG_BYTES,
-                                           CommonConstant.MAX_LOG_BACKUPS)
+        file_handler = RotatingFileHandler(
+            self.log_name, 'a', CommonConstant.MAX_LOG_BYTES, CommonConstant.MAX_LOG_BACKUPS
+        )
         os.chmod(self.log_name, CommonConstant.OPEN_AUTHORITY)
         file_handler.setLevel(logging.INFO)
 
         # Handler format.
-        formatter = logging.Formatter('[%(asctime)s]  [%(levelname)s] [MSVP] '
-                                      '[%(process)d] [%(filename)s:%(lineno)d] %(message)s',
-                                      '%a, %d %b %Y %H:%M:%S')
+        formatter = logging.Formatter(
+            '[%(asctime)s]  [%(levelname)s] [MSVP] [%(process)d] [%(filename)s:%(lineno)d] %(message)s',
+            '%a, %d %b %Y %H:%M:%S',
+        )
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
         file_handler.close()
@@ -159,6 +168,7 @@ class LogFactory:
     """
     Build a logger
     """
+
     loggers = {}
 
     @staticmethod
@@ -229,7 +239,7 @@ def get_data_dir_sorted_files(data_path: str) -> list:
 
 
 def _strip_and_split_str_with_char(item: any, ch: str) -> list:
-    return str(item).strip().split(ch)[0].split('.')
+    return str(item).strip().split(ch, maxsplit=1)[0].split('.')
 
 
 def check_number_valid(item: any) -> bool:
@@ -242,7 +252,7 @@ def check_number_valid(item: any) -> bool:
         return False
     danger_list = ["rm", "reboot", "chown", "chmod", "shutdown", "halt", ">", "<"]
     sum_split = sum(n.isdigit() for n in _strip_and_split_str_with_char(item, "e")) != 2
-    sum_danger_list = str(item).strip().split("e")[-1] in danger_list
+    sum_danger_list = str(item).strip().rsplit("e", maxsplit=1)[-1] in danger_list
     if not str(item).isdigit() and (sum_split or sum_danger_list):
         logging.error("invalid item %s", item)
         return False
@@ -276,11 +286,11 @@ def init_log(output_path: str) -> None:
         root_logger.removeHandler(log)
     logging.basicConfig(
         level=CommonConstant.LOG_LEVEL,
-        format='%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] -'
-               ' %(message)s',
+        format='%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         filename=log_path,
-        filemode='a+')
+        filemode='a+',
+    )
 
 
 def get_data_file_memory(result_dir: str) -> float:
@@ -323,12 +333,13 @@ def check_free_memory(result_dir: str) -> None:
     free_memory = get_free_memory(result_dir)
     need_free_memory = data_file_memory * CommonConstant.MEMORY_BUFFER_NUM
     if free_memory < CommonConstant.MINIMUM_DISK_MEMORY:
-        warn(os.path.basename(__file__),
-             "The disk space is less than 512 MB, please check")
+        warn(os.path.basename(__file__), "The disk space is less than 512 MB, please check")
     if free_memory < need_free_memory:
-        warn(os.path.basename(__file__),
-             "Requires {:.2f}MB of space to store parsed data, actually only {:.2f}MB, "
-             "parsed data may not be complete.".format(need_free_memory, free_memory))
+        warn(
+            os.path.basename(__file__),
+            "Requires {:.2f}MB of space to store parsed data, actually only {:.2f}MB, "
+            "parsed data may not be complete.".format(need_free_memory, free_memory),
+        )
 
 
 def call_sys_exit(status: any = None) -> None:

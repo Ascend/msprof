@@ -74,8 +74,7 @@ class CommunicationAnalyzer:
         """Analyzing Communication Data"""
         self._process_sub_dirs()
         if not self.valid_data_count:
-            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
+            warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
 
     def _get_hccl_data_from_db(self: any, rank_path: str):
         """

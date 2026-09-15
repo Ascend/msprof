@@ -37,6 +37,66 @@ NAMESPACE = 'msinterface.msprof_entrance'
 
 class TestMsprofEntrance(unittest.TestCase):
 
+    NO_INPUT_COMMAND_CASES = (
+        (['import'], 'msinterface.msprof_import'),
+        (['export', 'summary'], 'msinterface.msprof_export'),
+        (['query'], 'msinterface.msprof_query'),
+        (['analyze', '--rule', 'communication'], 'analyzer.communication_analyzer'),
+        (['analyze', '--rule', 'communication_matrix'], 'analyzer.communication_matrix_analyzer'),
+    )
+
+    def _assert_no_input_warning(self, root, arguments, namespace):
+        with mock.patch('sys.argv', ['msprof.py', *arguments, '-dir', root]), \
+                mock.patch(namespace + '.warn') as warning, \
+                mock.patch(NAMESPACE + '.error') as error:
+            with self.assertRaises(SystemExit) as context:
+                MsprofEntrance().main()
+            self.assertEqual(context.exception.code, 0)
+            error.assert_not_called()
+            warning.assert_any_call(
+                namespace.rsplit('.', 1)[-1] + '.py',
+                f'The path "{os.path.realpath(root)}" does not contain valid profiling data.'
+            )
+
+    def test_main_should_warn_and_exit_zero_when_no_input_is_recognized(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.mkdir(os.path.join(root, 'invalid_dir'))
+            for arguments, namespace in self.NO_INPUT_COMMAND_CASES:
+                with self.subTest(command=arguments):
+                    self._assert_no_input_warning(root, arguments, namespace)
+
+    def test_main_should_warn_and_exit_zero_when_only_child_is_inaccessible(self):
+        real_listdir = os.listdir
+        with tempfile.TemporaryDirectory() as root:
+            invalid_path = os.path.join(root, 'invalid_dir')
+            os.mkdir(invalid_path)
+
+            def listdir_with_invalid_child(path):
+                if os.path.realpath(path) == os.path.realpath(invalid_path):
+                    raise PermissionError('invalid child directory')
+                return real_listdir(path)
+
+            for arguments, namespace in self.NO_INPUT_COMMAND_CASES:
+                with self.subTest(command=arguments), \
+                        mock.patch('os.listdir', side_effect=listdir_with_invalid_child) as scan:
+                    self._assert_no_input_warning(root, arguments, namespace)
+                    scan.assert_any_call(invalid_path)
+
+    def test_query_parent_should_warn_without_error_when_info_is_in_grandchild(self):
+        with tempfile.TemporaryDirectory() as root:
+            device_path = Path(root, 'PROF_1', 'device_0')
+            device_path.mkdir(parents=True)
+            (device_path / 'info.json.0').write_text('{}', encoding='utf-8')
+            with mock.patch('sys.argv', ['msprof.py', 'query', '-dir', root]), \
+                    mock.patch('msinterface.msprof_query.warn') as warning, \
+                    mock.patch(NAMESPACE + '.error') as error:
+                with self.assertRaises(SystemExit) as context:
+                    MsprofEntrance().main()
+                self.assertEqual(context.exception.code, 0)
+                error.assert_not_called()
+                self.assertTrue(any('does not contain valid profiling data' in str(call)
+                                    for call in warning.call_args_list))
+
     @classmethod
     def setUpClass(cls):
         if os.path.exists("test_entrance_dir"):

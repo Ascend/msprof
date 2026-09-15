@@ -27,16 +27,19 @@ NAMESPACE = 'msinterface.msprof_query'
 
 
 class TestQueryCommand(unittest.TestCase):
-    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+    def test_process_should_warn_when_all_children_are_invalid(self):
         args = Namespace(collection_path="test", id=None, data_type=None, model_id=None, iteration_id=None)
         command = QueryCommand(args)
         with mock.patch.object(command, 'check_argument_valid'), \
                 mock.patch.object(command, '_check_cluster_query', return_value=False), \
                 mock.patch.object(command, '_get_query_data', return_value=[]), \
-                self.assertRaises(ProfException) as context:
+                mock.patch(NAMESPACE + '.warn') as warning:
             command.process()
 
-        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+        warning.assert_called_once_with(
+            command.FILE_NAME,
+            f'The path "{command.collection_path}" does not contain valid profiling data.'
+        )
 
     def test_get_query_data_should_skip_invalid_child_and_process_valid_child(self):
         args = Namespace(collection_path="test")

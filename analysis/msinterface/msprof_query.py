@@ -152,8 +152,8 @@ class QueryCommand:
                 if table_data:
                     self.valid_data_count = max(self.valid_data_count, 1)
             if not self.valid_data_count:
-                message = f'The path "{self.collection_path}" does not contain valid profiling data.'
-                raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
+                warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
+                return
             sorted_table_data = sorted(table_data, key=itemgetter(0, 3))
             self._format_print(sorted_table_data)
 

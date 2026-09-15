@@ -342,8 +342,8 @@ class ExportCommand:
             check_file_readable(self.reports_path)
         self._process_sub_dirs()
         if not self.valid_data_count:
-            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
+            warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
+            return
         if self._cluster_params.get('is_cluster_scene', False):
             self._show_cluster_tuning()
 
@@ -723,9 +723,10 @@ class ExportCommand:
             else:
                 self._process_sub_dirs(sub_dir, is_cluster=True)
             self.list_map['devices_list'] = ''
-        if path_table.get(StrConstant.HOST_PATH) or path_table.get(StrConstant.DEVICE_PATH):
-            self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
-            self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
+        if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):
+            return
+        self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
+        self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
         host_path = path_table.get(StrConstant.HOST_PATH)
         if host_path:
             HostPlatformAnalysis({"result_dir": host_path}).ms_run()

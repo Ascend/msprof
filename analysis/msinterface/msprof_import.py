@@ -96,8 +96,7 @@ class ImportCommand:
         check_path_valid(self.collection_path, False)
         self._process_sub_dirs()
         if not self.valid_data_count:
-            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
+            warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
 
     def _process_sub_dirs(self: any, subdir: str = '', is_cluster: bool = False) -> None:
         collect_path = self.collection_path

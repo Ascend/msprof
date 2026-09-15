@@ -60,8 +60,7 @@ class CommunicationMatrixAnalyzer:
         """Analyzing Communication Data"""
         self._process_sub_dirs()
         if not self.valid_data_count:
-            message = f'The path "{self.collection_path}" does not contain valid profiling data.'
-            raise ProfException(ProfException.PROF_INVALID_PATH_ERROR, message)
+            warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
 
     def _process_output(self, output_data: list) -> dict:
         """Delete unnecessary fields in dict"""

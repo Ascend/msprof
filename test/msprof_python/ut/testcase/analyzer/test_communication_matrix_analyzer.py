@@ -46,13 +46,16 @@ class HcclEvent:
 
 
 class TestCommunicationMatrixAnalyzer(unittest.TestCase):
-    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+    def test_process_should_warn_when_all_children_are_invalid(self):
         analyzer = CommunicationMatrixAnalyzer(self.collection_path, 'text')
         with mock.patch.object(analyzer, '_process_sub_dirs'), \
-                self.assertRaises(ProfException) as context:
+                mock.patch(NAMESPACE + '.warn') as warning:
             analyzer.process()
 
-        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+        warning.assert_called_once_with(
+            analyzer.FILE_NAME,
+            f'The path "{analyzer.collection_path}" does not contain valid profiling data.'
+        )
 
     def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
         analyzer = CommunicationMatrixAnalyzer(self.collection_path, 'text')

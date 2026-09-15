@@ -36,14 +36,17 @@ class TestImportCommand(unittest.TestCase):
         prepare.assert_called_once_with(command.collection_path)
         load_info.assert_not_called()
 
-    def test_process_should_raise_path_error_when_all_children_are_invalid(self):
+    def test_process_should_warn_when_all_children_are_invalid(self):
         command = ImportCommand(Namespace(collection_path="test", cluster_flag=False))
         with mock.patch(NAMESPACE + '.check_path_valid'), \
                 mock.patch.object(command, '_process_sub_dirs'), \
-                self.assertRaises(ProfException) as context:
+                mock.patch(NAMESPACE + '.warn') as warning:
             command.process()
 
-        self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+        warning.assert_called_once_with(
+            command.FILE_NAME,
+            f'The path "{command.collection_path}" does not contain valid profiling data.'
+        )
 
     def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
         args = Namespace(collection_path="test", cluster_flag=False)
@@ -99,9 +102,12 @@ class TestImportCommand(unittest.TestCase):
                         mock.patch(NAMESPACE + '.warn'), \
                         mock.patch('os.listdir', return_value=['123']):
                     key = ImportCommand(args)
-                    with self.assertRaises(ProfException) as context:
+                    with mock.patch(NAMESPACE + '.warn') as warning:
                         key.process()
-                    self.assertEqual(context.exception.code, ProfException.PROF_INVALID_PATH_ERROR)
+                    warning.assert_any_call(
+                        key.FILE_NAME,
+                        f'The path "{key.collection_path}" does not contain valid profiling data.'
+                    )
 
     @mock.patch(NAMESPACE + '.try_full_cpp_pipeline', return_value=False)
     def test_parse_unresolved_dirs(self, _pipeline):
