@@ -132,6 +132,11 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("AscendTaskCalculator")
         self.assertTrue(ret)
 
+    def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_tstrack_parser(self):
+        ChipManager().chip_id = ChipModel.CHIP_V4_1_0
+        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser")
+        self.assertTrue(ret)
+
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_not_in_whitelist(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NpuMemParser")

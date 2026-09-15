@@ -31,6 +31,12 @@ namespace
 {
 const std::string HEADER_REDUCE_START = "Reduce Start(us)";
 const std::string HEADER_REDUCE_DURATION = "Reduce Duration(us)";
+
+// 与 Python StepTraceViewer.get_step_trace_data 的 SQL 语义对齐：训练数据缺失时落盘哨兵为 0，导出时应渲染为 N/A。
+std::string FormatMissingFieldAsNa(uint64_t value, bool isHighPrecision = false)
+{
+    return value == 0 ? NA : DivideByPowersOfTenWithPrecision(value, isHighPrecision);
+}
 }  // namespace
 
 void SummaryStepTraceAssembler::AddAllReduceHeaders()
@@ -134,15 +140,17 @@ void SummaryStepTraceAssembler::AssembleStepTraceData(const std::vector<TrainTra
     for (auto &trainTraceDatum : trainTraceData)
     {
         TraceId traceId = {trainTraceDatum.modelId, trainTraceDatum.iterEnd};
+        // FP Start / BP End / Iteration Time / FP to BP Time / Iteration Refresh / Data Aug Bound 缺失时为 0，
+        // 与 Python 导出一致渲染为 N/A；Iteration End 与 Model ID 无哨兵语义，保持原样格式化。
         std::vector<std::string> row = {std::to_string(trainTraceDatum.deviceId),
                                         std::to_string(trainTraceDatum.indexId),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.fpStart, true),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.bpEnd, true),
+                                        FormatMissingFieldAsNa(trainTraceDatum.fpStart, true),
+                                        FormatMissingFieldAsNa(trainTraceDatum.bpEnd, true),
                                         DivideByPowersOfTenWithPrecision(trainTraceDatum.iterEnd, true),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.iterTime),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.fpBpTime),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.gradRefreshBound),
-                                        DivideByPowersOfTenWithPrecision(trainTraceDatum.dataAugBound),
+                                        FormatMissingFieldAsNa(trainTraceDatum.iterTime),
+                                        FormatMissingFieldAsNa(trainTraceDatum.fpBpTime),
+                                        FormatMissingFieldAsNa(trainTraceDatum.gradRefreshBound),
+                                        FormatMissingFieldAsNa(trainTraceDatum.dataAugBound),
                                         std::to_string(trainTraceDatum.modelId)};
         auto it = formatedAllReduceData_.find(traceId);
         if (it != formatedAllReduceData_.end())

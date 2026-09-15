@@ -191,6 +191,7 @@ class ConfigDataParsers:
             "AicpuAddInfoParser",
             "KfcCalculator",
             "LpmInfoConvParser",
+            "TstrackParser",  # 写 step_trace.db/trace.db 共 10 张表，对应 C++ TsTrack/StepTrace/TracePersistence
         ]:
             return True
         return False

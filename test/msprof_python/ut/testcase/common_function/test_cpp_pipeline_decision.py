@@ -305,6 +305,20 @@ class TestCollectionFactsCollector(unittest.TestCase):
         self.assertEqual(result.issues[0].details["tags"], [DataTag.AI_CORE.name])
         self.assertEqual(result.issues[0].details["path"], self.result_path)
 
+    def test_memmng_info_is_ignored_as_untagged_data(self):
+        self._write_raw("stars_soc.data.0.slice_0")
+        self._write_raw("unaging.compact.memmng_info.slice_0")
+        self._write_raw("aging.compact.memmng_info.slice_1")
+        facts = self.collector.collect(self._request())
+        self.assertEqual(facts.result_paths[0].raw_tags, frozenset({DataTag.STARS_LOG.name}))
+        self.assertEqual(
+            facts.result_paths[0].unknown_raw_files,
+            ("aging.compact.memmng_info.slice_1", "unaging.compact.memmng_info.slice_0"),
+        )
+        decider = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe())
+        result = decider.decide(self._request())
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+
     def test_enabled_host_tags_pass_but_disabled_static_op_mem_rejects(self):
         cases = (
             ("compact.expand_stream_spec", DataTag.STREAM_EXPAND),

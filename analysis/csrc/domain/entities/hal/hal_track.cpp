@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
+#include <tuple>
 
 namespace Analysis
 {
@@ -60,6 +62,9 @@ StepTraceDataVectorFormat GenerateStepTime(std::vector<HalTrackData>& halTraceTa
 {
     StepTraceDataVectorFormat processedData;
     std::map<uint32_t, std::vector<HalTrackData>> stepTime;
+    // 与 Python 侧 select DISTINCT index_id, model_id, timestamp, tag_id, stream_id 对齐，
+    // 避免单次输入中的重复打点使同一 indexId 的记录数不等于 2 而整条 Step 被丢弃
+    std::set<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint32_t>> uniqueStepTag;
     std::vector<HalTrackData> halTraceTasksBackup = halTraceTasks;
     std::sort(halTraceTasksBackup.begin(), halTraceTasksBackup.end(), [](const HalTrackData& t1, const HalTrackData& t2)
               { return t1.stepTrace.timestamp < t2.stepTrace.timestamp; });
@@ -68,6 +73,13 @@ StepTraceDataVectorFormat GenerateStepTime(std::vector<HalTrackData>& halTraceTa
         if (trackData.type == STEP_TRACE &&
             (trackData.stepTrace.tagId == STEP_START_TAG || trackData.stepTrace.tagId == STEP_END_TAG))
         {
+            auto uniqueKey =
+                std::make_tuple(trackData.stepTrace.indexId, trackData.stepTrace.modelId, trackData.stepTrace.timestamp,
+                                trackData.stepTrace.tagId, trackData.hd.taskId.streamId);
+            if (!uniqueStepTag.insert(uniqueKey).second)
+            {
+                continue;
+            }
             stepTime[trackData.stepTrace.indexId].emplace_back(trackData);
         }
     }

@@ -170,9 +170,17 @@ TEST_F(StepTraceProcessorUTest, ShouldReturnFalseWhenCheckFailed)
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     MOCKER_CPP(&Context::GetSyscntConversionParams).reset();
     MOCKER_CPP(&Utils::FileReader::Check).reset();
+}
 
+TEST_F(StepTraceProcessorUTest, ShouldSkipWhenTableNotExists)
+{
+    DataInventory dataInventory;
+    auto processor = StepTraceProcessor(PROF_PATH_A);
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
     MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(true));
     MOCKER_CPP(&DBRunner::CheckTableExists).stubs().will(returnValue(false));
-    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_STEP_TRACE));
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AllReduceData>>());
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<GetNextData>>());
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<TrainTraceData>>());
 }

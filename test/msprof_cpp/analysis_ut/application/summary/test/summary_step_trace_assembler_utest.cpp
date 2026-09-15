@@ -72,6 +72,25 @@ static std::vector<TrainTraceData> GenerateTrainData()
     return res;
 }
 
+static std::vector<TrainTraceData> GenerateTrainDataWithMissingFields()
+{
+    std::vector<TrainTraceData> res;
+    TrainTraceData data;
+    data.deviceId = 0; // deviceId 0
+    data.modelId = 13; // modelId 13
+    data.indexId = 1; // indexId 1
+    data.fpStart = 0; // 缺失字段，落盘哨兵为 0
+    data.bpEnd = 0; // 缺失字段，落盘哨兵为 0
+    data.iterEnd = 830082823198; // iterEnd 830082823198
+    data.iterTime = 0; // 缺失字段，落盘哨兵为 0
+    data.fpBpTime = 0; // 缺失字段，落盘哨兵为 0
+    data.gradRefreshBound = 0; // 缺失字段，落盘哨兵为 0
+    data.dataAugBound = 0; // 缺失字段，落盘哨兵为 0
+    data.timestamp = data.iterEnd - data.iterTime; // start time
+    res.push_back(data);
+    return res;
+}
+
 static std::vector<AllReduceData> GenerateReduceData()
 {
     std::vector<AllReduceData> res;
@@ -151,5 +170,26 @@ TEST_F(SummaryStepTraceAssemblerUTest, ShouldReturnTrueWhenExistTraceAndAllReduc
 
     std::string expectOneRow = {"0,1,830074691.065\t,830082803.479\t,830082823.198\t,9598.772,8112.414,19.719,"
                                 "7134923.284,13,830082637.434\t,18446744073709521.304,830082804.063\t,6.556"};
+    EXPECT_EQ(expectOneRow, res[1]);
+}
+
+TEST_F(SummaryStepTraceAssemblerUTest, ShouldRenderMissingFieldsAsNaWhenSentinelsAreZero)
+{
+    DataInventory dataInventory;
+    std::shared_ptr<std::vector<TrainTraceData>> trainTraceS;
+    auto trainData = GenerateTrainDataWithMissingFields();
+    MAKE_SHARED_NO_OPERATION(trainTraceS, std::vector<TrainTraceData>, trainData);
+    dataInventory.Inject(trainTraceS);
+    SummaryStepTraceAssembler assembler(PROCESSOR_NAME_STEP_TRACE, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+    auto files = File::GetOriginData(RESULT_PATH, {"step_trace"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    EXPECT_EQ(2ul, res.size());
+    // FP Start/BP End/Iteration Time/FP to BP Time/Iteration Refresh/Data Aug Bound 为 0 时渲染 N/A；
+    // Iteration End 与 Model ID 无哨兵语义，保持原值格式化。
+    std::string expectOneRow = {"0,1,N/A,N/A,830082823.198\t,N/A,N/A,N/A,N/A,13"};
     EXPECT_EQ(expectOneRow, res[1]);
 }

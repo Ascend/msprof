@@ -69,7 +69,9 @@ class StepTraceProcessor : public DataProcessor
         {
             return false;
         }
-        auto status = CheckPathAndTable(dbPath, info);
+        // trace.db 的 training_trace/get_next/all_reduce 由现场数据决定，未必同时存在，
+        // 缺表按无数据处理（WARN 后跳过），不阻断导出流程；db 损坏等真实异常仍返回失败。
+        auto status = CheckPathAndTable(dbPath, info, false);
         if (status == CHECK_FAILED)
         {
             return false;

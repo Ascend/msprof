@@ -194,7 +194,7 @@ class RuntimeProbe:
 
 class CollectionFactsCollector:
     ANALYSIS_VERSION = InfoConfReader().ANALYSIS_VERSION
-    IGNORED_UNTAGGED_PATTERNS = ("stream_sq_info",)
+    IGNORED_UNTAGGED_PATTERNS = ("stream_sq_info", "memmng_info")
     ALL_EXPORT_DRIVER_VERSION = InfoConfReader().ALL_EXPORT_VERSION
     SAMPLE_BASED = StrConstant.AIC_SAMPLE_BASED_MODE
     TASK_BASED = StrConstant.AIC_TASK_BASED_MODE

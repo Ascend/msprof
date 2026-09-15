@@ -103,3 +103,47 @@ TEST_F(HalTrackUTest, ShouldGenerateStepTimeFromStepTraceRecordsOnly)
     EXPECT_EQ(10ul, std::get<2>(result.front()));
     EXPECT_EQ(20ul, std::get<3>(result.front()));
 }
+
+TEST_F(HalTrackUTest, ShouldDedupDuplicatedStepTraceRecords)
+{
+    HalTrackData start{};
+    start.type = STEP_TRACE;
+    start.stepTrace.indexId = 1;
+    start.stepTrace.modelId = 7;
+    start.stepTrace.timestamp = 100;
+    start.stepTrace.tagId = 60000;
+    HalTrackData end = start;
+    end.stepTrace.timestamp = 200;
+    end.stepTrace.tagId = 60001;
+
+    // 单次输入中开始/结束打点各重复一次，去重后仍应配成一对
+    std::vector<HalTrackData> data{start, end, start, end};
+    auto result = GenerateStepTime(data);
+    ASSERT_EQ(1ul, result.size());
+    EXPECT_EQ(1u, std::get<0>(result.front()));
+    EXPECT_EQ(7ul, std::get<1>(result.front()));
+    EXPECT_EQ(100ul, std::get<2>(result.front()));
+    EXPECT_EQ(200ul, std::get<3>(result.front()));
+}
+
+TEST_F(HalTrackUTest, ShouldNotDedupStepTraceRecordsWithDifferentStreamId)
+{
+    HalTrackData start{};
+    start.type = STEP_TRACE;
+    start.stepTrace.indexId = 1;
+    start.stepTrace.modelId = 7;
+    start.stepTrace.timestamp = 100;
+    start.stepTrace.tagId = 60000;
+    start.hd.taskId.streamId = 1;
+    HalTrackData otherStreamStart = start;
+    otherStreamStart.hd.taskId.streamId = 2;
+    HalTrackData end = start;
+    end.stepTrace.timestamp = 200;
+    end.stepTrace.tagId = 60001;
+
+    // stream_id 同属去重键，与 Python 的 select DISTINCT index_id, model_id, timestamp, tag_id, stream_id 一致，
+    // 不同 stream_id 的记录不合并，此处仍为 3 条记录，配不成一对
+    std::vector<HalTrackData> data{start, otherStreamStart, end};
+    auto result = GenerateStepTime(data);
+    EXPECT_EQ(0ul, result.size());
+}

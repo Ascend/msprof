@@ -20,6 +20,7 @@
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
 {
@@ -37,17 +38,6 @@ using BlockNumDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint32_t>;
 // stream_id timestamp task_id flip_num
 using TaskFlipDataFormat = std::tuple<uint32_t, double, uint32_t, uint16_t>;
 
-template <typename DataFormat>
-bool ReplaceAndSaveData(const std::vector<DataFormat>& data, DBInfo& dbInfo, std::string& dbPath)
-{
-    if (dbInfo.dbRunner->CheckTableExists(dbInfo.tableName) && !dbInfo.dbRunner->DropTable(dbInfo.tableName))
-    {
-        ERROR("Drop table % failed", dbInfo.tableName);
-        return false;
-    }
-    return SaveData(data, dbInfo, dbPath);
-}
-
 bool SaveTaskTypeData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
 {
     DBInfo tsTrackDB("step_trace.db", "TaskType");
@@ -63,7 +53,7 @@ bool SaveTaskTypeData(const std::vector<HalTrackData>& dataS, const DeviceContex
                                taskType.taskStatus);
     }
     INFO("Process % done!", tsTrackDB.tableName);
-    return ReplaceAndSaveData(taskTypeS, tsTrackDB, dbPath);
+    return SaveData(taskTypeS, tsTrackDB, dbPath);
 }
 
 bool SaveStepTraceData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
@@ -81,7 +71,7 @@ bool SaveStepTraceData(const std::vector<HalTrackData>& dataS, const DeviceConte
                                     data.hd.taskId.streamId, data.hd.taskId.taskId, stepTraceTask.tagId);
     }
     INFO("Process % done!", tsTrackDB.tableName);
-    return ReplaceAndSaveData(stepTraceTasks, tsTrackDB, dbPath);
+    return SaveData(stepTraceTasks, tsTrackDB, dbPath);
 }
 
 bool SaveTsMemcpyData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
@@ -98,7 +88,7 @@ bool SaveTsMemcpyData(const std::vector<HalTrackData>& dataS, const DeviceContex
         tsMemecpyTasks.emplace_back(data.hd.timestamp, data.hd.taskId.streamId, data.hd.taskId.taskId,
                                     taskMemcpy.taskStatus);
     }
-    return ReplaceAndSaveData(tsMemecpyTasks, tsTrackDB, dbPath);
+    return SaveData(tsMemecpyTasks, tsTrackDB, dbPath);
 }
 
 bool SaveBlockNumData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
@@ -115,7 +105,7 @@ bool SaveBlockNumData(const std::vector<HalTrackData>& dataS, const DeviceContex
         blockNumTaskS.emplace_back(data.hd.timestamp, data.hd.taskId.streamId, data.hd.taskId.taskId,
                                    blockNum.blockNum);
     }
-    return ReplaceAndSaveData(blockNumTaskS, tsTrackDB, dbPath);
+    return SaveData(blockNumTaskS, tsTrackDB, dbPath);
 }
 
 bool SaveTaskFlipData(const std::vector<HalTrackData>& dataS, const DeviceContext& deviceContext)
@@ -131,7 +121,7 @@ bool SaveTaskFlipData(const std::vector<HalTrackData>& dataS, const DeviceContex
         auto timestamp = GetTimeFromSyscnt(data.hd.timestamp, params);
         taskFlips.emplace_back(data.hd.taskId.streamId, timestamp.Double(), data.hd.taskId.taskId, data.flip.flipNum);
     }
-    return ReplaceAndSaveData(taskFlips, tsTrackDB, dbPath);
+    return SaveData(taskFlips, tsTrackDB, dbPath);
 }
 
 static const std::unordered_map<int, std::function<bool(const std::vector<HalTrackData>&, const DeviceContext&)>>
@@ -188,6 +178,8 @@ uint32_t TsTrackPersistence::ProcessEntry(DataInventory& dataInventory, const Co
     ERROR("Save tsTrack data failed");
     return ANALYSIS_ERROR;
 }
-
+REGISTER_PROCESS_SEQUENCE(TsTrackPersistence, true, TsTrackParser);
+REGISTER_PROCESS_DEPENDENT_DATA(TsTrackPersistence, std::vector<HalTrackData>);
+REGISTER_PROCESS_SUPPORT_CHIP(TsTrackPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis
