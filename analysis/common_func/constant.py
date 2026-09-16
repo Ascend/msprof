@@ -494,6 +494,7 @@ class Constant:
         'mindstudio_profiler_output',
     ]
     NA = 'N/A'
+    REFER_TO_KERNEL_NAME = 'Refer_to_kernelName'
     TASK_TYPE_OTHER = "Other"
     TASK_TYPE_AI_CORE = "AI_CORE"
     TASK_TYPE_AI_CPU = "AI_CPU"

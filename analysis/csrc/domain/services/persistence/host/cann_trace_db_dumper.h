@@ -72,6 +72,7 @@ class CANNTraceDBDumper
 
     void AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskInfoData &data, bool isLevel0);
     void AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTask> &task, TaskInfoData &data, bool isLevel0);
+    void AddTaskInfoForReferToKernelName(const std::shared_ptr<HostTask> &task, TaskInfoData &data);
 
     void AddTensorShapeInfo(const std::shared_ptr<ParserConcatTensorInfo> &tensorDesc,
                             const ParserNodeBasicInfo *nodeBasicInfo, TaskInfoData &data,

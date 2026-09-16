@@ -76,6 +76,15 @@ class CANNGear:
     def set_db(self, db: CANNThreadDB):
         self.db = db
 
+    @staticmethod
+    def resolve_task_op_name(item_id: str, kernel_name: str, fallback_op_name: str) -> str:
+        if item_id != Constant.REFER_TO_KERNEL_NAME:
+            return fallback_op_name
+        if not kernel_name or kernel_name == Constant.NA:
+            logging.warning("itemId is Refer_to_kernelName but kernelName is empty")
+            return Constant.NA
+        return kernel_name
+
 
 class RootGear(CANNGear):
     def __init__(self, project_path):
@@ -258,6 +267,7 @@ class TaskGear(CANNGear):
     KERNEL_AIVEC = "KERNEL_AIVEC"
     KERNEL_MIX_AIC = "KERNEL_MIX_AIC"
     KERNEL_MIX_AIV = "KERNEL_MIX_AIV"
+    KERNEL_SIMT = "KERNEL_SIMT"
     CONTEXT_ID_WHITE_LIST = [KERNEL_AICORE, KERNEL_AIVEC, KERNEL_FFTS_PLUS_TASK_TYPE, KERNEL_MIX_AIC, KERNEL_MIX_AIV]
     RTS_TASK_TYPE_MAP = {
         KERNEL_AICORE: GeTaskType.AI_CORE.name,
@@ -265,6 +275,7 @@ class TaskGear(CANNGear):
         KERNEL_MIX_AIC: GeTaskType.MIX_AIC.name,
         KERNEL_MIX_AIV: GeTaskType.MIX_AIV.name,
         KERNEL_AICPU: GeTaskType.AI_CPU.name,
+        KERNEL_SIMT: GeTaskType.AI_VECTOR_CORE.name,  # KERNEL_SIMT类型算子是aiv类型的
     }
 
     class RuntimeApi:
@@ -657,6 +668,9 @@ class TaskGear(CANNGear):
 
         node_descs = self.get_node_descs(node_event)
         if not node_descs:
+            if node_dto.item_id == Constant.REFER_TO_KERNEL_NAME and not self.is_hccl_task(hccl_event, add_dto):
+                self.add_kernel_task_refer_to_kernel_name([node_dto, self.NodeDesc()], add_dto, [model_id, request_id])
+                return
             logging.error("Can't find node desc for api: %s, timestamp is %d", node_dto.item_id, add_dto.timestamp)
             return
 
@@ -664,6 +678,9 @@ class TaskGear(CANNGear):
             node_basic_info_dto: NodeBasicInfoDto = node_desc.node_basic_info
 
             if node_basic_info_dto.task_type is None:
+                if node_dto.item_id == Constant.REFER_TO_KERNEL_NAME and not self.is_hccl_task(hccl_event, add_dto):
+                    self.add_kernel_task_refer_to_kernel_name([node_dto, node_desc], add_dto, [model_id, request_id])
+                    continue
                 # this happens when prof data is collected in level 0 with ffts plus
                 self.add_kernel_task_l0([node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id])
                 continue
@@ -686,6 +703,7 @@ class TaskGear(CANNGear):
         ctx_id_dto: CtxIdDto = node_desc.ctx_info
         cxt_ids = str(ctx_id_dto.ctx_id).split(',')
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
+        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
         task_type = Constant.NA
         if self.is_hccl_task(hccl_event, add_dto):
             op_name = hccl_dto.item_id
@@ -736,6 +754,7 @@ class TaskGear(CANNGear):
         node_attr_info: NodeAttrInfoDto = node_desc.node_attr_info
         cxt_ids = str(ctx_id_dto.ctx_id).split(',')
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
+        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
         task_type = node_basic_info_dto.task_type
         if self.is_hccl_task(hccl_event, add_dto):
             # notice: reduce TBE op
@@ -774,6 +793,53 @@ class TaskGear(CANNGear):
                     int(cxt_id),
                     "YES" if node_basic_info_dto.op_flag else "NO",
                     Constant.NA if not node_attr_info.hashid else node_attr_info.hashid,
+                    Constant.NA,
+                    Constant.NA,
+                ]
+            )
+
+    def add_kernel_task_refer_to_kernel_name(self, node_info: list, add_dto: TaskTrackDto, model_info: list):
+        node_dto = node_info[0]
+        node_desc = node_info[1]
+        model_id = model_info[0]
+        request_id = model_info[1]
+        tensor_info_dto: TensorInfoDto = node_desc.tensor_info
+        has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0
+        ctx_id_dto: CtxIdDto = node_desc.ctx_info
+        cxt_ids = str(ctx_id_dto.ctx_id).split(',')
+        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, node_dto.item_id)
+        op_type = op_name
+        task_type = self.RTS_TASK_TYPE_MAP.get(add_dto.task_type, add_dto.task_type)
+        # 本路径与C++ AddTaskInfoForReferToKernelName保持相同的列结构，但runtime track四列取值不同：
+        # C++侧由runtimeTrackDesc经ProcessRuntimeTrackInfo解析出blockNum/mixBlockNum/gridDim/blockDim；
+        # Python侧TaskTrackDto不含该rtsTrack信息，故对应4列按0/NA落库，属两侧数据源差异，非逻辑遗漏
+        for cxt_id in cxt_ids:
+            self.task_info.append(
+                [
+                    model_id,
+                    op_name,
+                    add_dto.stream_id,
+                    add_dto.task_id,
+                    0,
+                    0,
+                    Constant.NA,
+                    task_type,
+                    op_type,
+                    request_id,
+                    add_dto.thread_id,
+                    add_dto.timestamp,
+                    add_dto.batch_id,
+                    tensor_info_dto.tensor_num if has_tensor_info else 0,
+                    tensor_info_dto.input_formats if has_tensor_info else Constant.NA,
+                    tensor_info_dto.input_data_types if has_tensor_info else Constant.NA,
+                    tensor_info_dto.input_shapes if has_tensor_info else Constant.NA,
+                    tensor_info_dto.output_formats if has_tensor_info else Constant.NA,
+                    tensor_info_dto.output_data_types if has_tensor_info else Constant.NA,
+                    tensor_info_dto.output_shapes if has_tensor_info else Constant.NA,
+                    add_dto.device_id,
+                    int(cxt_id),
+                    Constant.NA,
+                    Constant.NA,
                     Constant.NA,
                     Constant.NA,
                 ]

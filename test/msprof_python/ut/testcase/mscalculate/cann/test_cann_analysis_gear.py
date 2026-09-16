@@ -28,6 +28,7 @@ from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.ge_enum_constant import GeTaskType
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.path_manager import PathManager
 from common_func.rt_add_info_center import RTAddInfoCenter
@@ -711,6 +712,146 @@ class TestTaskGear(TestCANNAnalysisGear):
         hccl_event = Event.invalid_event()
         hccl_event.struct_type = "2"
         self.assertTrue(gear.is_hccl_task(hccl_event, task_track))
+
+    def _make_refer_task_track(self):
+        task_dto = TaskTrackDto()
+        task_dto.task_id = 15
+        task_dto.struct_type = "1"
+        task_dto.task_type = "KERNEL_AICORE"
+        task_dto.kernel_name = "actual_kernel"
+        task_dto.stream_id = 1
+        task_dto.thread_id = 3
+        task_dto.timestamp = 125
+        task_dto.batch_id = 0
+        task_dto.device_id = 0
+        return task_dto
+
+    def test_task_gear_should_use_kernel_name_when_l0_item_id_is_refer_to_kernel_name(self):
+        gear = TaskGear("")
+        node_dto = ApiDataDto()
+        node_dto.item_id = Constant.REFER_TO_KERNEL_NAME
+        add_dto = self._make_refer_task_track()
+        gear.add_kernel_task_l0(
+            [node_dto, TaskGear.NodeDesc()],
+            add_dto,
+            [Event.invalid_event(), ApiDataDto()],
+            [4, -1],
+        )
+        self.assertEqual(gear.task_info[0][1], "actual_kernel")
+        self.assertEqual(gear.task_info[0][7], Constant.NA)
+        self.assertEqual(gear.task_info[0][8], Constant.NA)
+
+    def test_task_gear_should_keep_normal_op_name_when_l0_item_id_is_not_refer(self):
+        gear = TaskGear("")
+        node_dto = ApiDataDto()
+        node_dto.item_id = "normal_op"
+        add_dto = self._make_refer_task_track()
+        gear.add_kernel_task_l0(
+            [node_dto, TaskGear.NodeDesc()],
+            add_dto,
+            [Event.invalid_event(), ApiDataDto()],
+            [4, -1],
+        )
+        self.assertEqual(gear.task_info[0][1], "normal_op")
+
+    def test_task_gear_should_dump_when_l1_refer_to_kernel_name_without_node_desc(self):
+        gear = TaskGear(self.PROF_HOST_DIR)
+        api_db = ApiDataDatabase(1)
+        record_db = AdditionalRecordDatabase(1)
+        db = CANNThreadDB(1, api_db=api_db, record_db=record_db)
+        gear.set_db(db)
+        event1 = self.create_api_event(self.event_col(Constant.TASK_LEVEL, 1, 120, 130, "api", 0), api_db)
+        task_dto = self._make_refer_task_track()
+        event1.additional_record = [self.create_addition_record(task_dto, 125, record_db)]
+        event2 = self.create_api_event(
+            self.event_col(Constant.NODE_LEVEL, 1, 110, 140, "launch", Constant.REFER_TO_KERNEL_NAME), api_db
+        )
+        RTAddInfoCenter("./test")
+        gear.run(
+            event1,
+            {
+                Constant.MODEL_LEVEL: Event.invalid_event(),
+                Constant.NODE_LEVEL: event2,
+                Constant.HCCL_LEVEL: Event.invalid_event(),
+            },
+        )
+        self.assertEqual(len(gear.task_info), 1)
+        self.assertEqual(gear.task_info[0][1], "actual_kernel")
+        self.assertEqual(gear.task_info[0][7], "AI_CORE")
+        self.assertEqual(gear.task_info[0][8], "actual_kernel")
+        self.assertEqual(gear.task_info[0][6], Constant.NA)
+        self.assertEqual(gear.task_info[0][4], 0)
+        self.assertEqual(gear.task_info[0][22], Constant.NA)
+
+    def test_task_gear_should_skip_when_l1_has_no_node_desc_and_item_id_is_not_refer(self):
+        gear = TaskGear(self.PROF_HOST_DIR)
+        api_db = ApiDataDatabase(1)
+        record_db = AdditionalRecordDatabase(1)
+        db = CANNThreadDB(1, api_db=api_db, record_db=record_db)
+        gear.set_db(db)
+        event1 = self.create_api_event(self.event_col(Constant.TASK_LEVEL, 1, 120, 130, "api", 0), api_db)
+        task_dto = self._make_refer_task_track()
+        event1.additional_record = [self.create_addition_record(task_dto, 125, record_db)]
+        event2 = self.create_api_event(self.event_col(Constant.NODE_LEVEL, 1, 110, 140, "launch", "normal_op"), api_db)
+        RTAddInfoCenter("./test")
+        gear.run(
+            event1,
+            {
+                Constant.MODEL_LEVEL: Event.invalid_event(),
+                Constant.NODE_LEVEL: event2,
+                Constant.HCCL_LEVEL: Event.invalid_event(),
+            },
+        )
+        self.assertEqual(len(gear.task_info), 0)
+
+    def test_task_gear_should_dump_tensor_when_l1_refer_without_node_basic_info(self):
+        gear = TaskGear(self.PROF_HOST_DIR)
+        api_db = ApiDataDatabase(1)
+        record_db = AdditionalRecordDatabase(1)
+        db = CANNThreadDB(1, api_db=api_db, record_db=record_db)
+        gear.set_db(db)
+        event1 = self.create_api_event(self.event_col(Constant.TASK_LEVEL, 1, 120, 130, "api", 0), api_db)
+        task_dto = self._make_refer_task_track()
+        event1.additional_record = [self.create_addition_record(task_dto, 125, record_db)]
+        event2 = self.create_api_event(
+            self.event_col(Constant.NODE_LEVEL, 1, 110, 140, "launch", Constant.REFER_TO_KERNEL_NAME), api_db
+        )
+        tensor_info_dto = TensorInfoDto()
+        tensor_info_dto.tensor_num = 2
+        tensor_info_dto.input_formats = "NCHW"
+        tensor_info_dto.input_data_types = "FLOAT16"
+        tensor_info_dto.input_shapes = '"1,2"'
+        tensor_info_dto.output_formats = "ND"
+        tensor_info_dto.output_data_types = "FLOAT32"
+        tensor_info_dto.output_shapes = '"3,4"'
+        event2.additional_record = [self.create_addition_record(tensor_info_dto, 140, record_db)]
+        RTAddInfoCenter("./test")
+        gear.run(
+            event1,
+            {
+                Constant.MODEL_LEVEL: Event.invalid_event(),
+                Constant.NODE_LEVEL: event2,
+                Constant.HCCL_LEVEL: Event.invalid_event(),
+            },
+        )
+        self.assertEqual(len(gear.task_info), 1)
+        self.assertEqual(gear.task_info[0][1], "actual_kernel")
+        self.assertEqual(gear.task_info[0][7], "AI_CORE")
+        self.assertEqual(gear.task_info[0][8], "actual_kernel")
+        self.assertEqual(gear.task_info[0][13:20], [2, "NCHW", "FLOAT16", '"1,2"', "ND", "FLOAT32", '"3,4"'])
+        self.assertEqual(gear.task_info[0][6], Constant.NA)
+        self.assertEqual(gear.task_info[0][22], Constant.NA)
+
+    def test_task_gear_should_map_simt_to_aiv_when_refer_to_kernel_name(self):
+        gear = TaskGear("")
+        node_dto = ApiDataDto()
+        node_dto.item_id = Constant.REFER_TO_KERNEL_NAME
+        add_dto = self._make_refer_task_track()
+        add_dto.task_type = TaskGear.KERNEL_SIMT
+        gear.add_kernel_task_refer_to_kernel_name([node_dto, TaskGear.NodeDesc()], add_dto, [4, -1])
+        self.assertEqual(len(gear.task_info), 1)
+        self.assertEqual(gear.task_info[0][7], GeTaskType.AI_VECTOR_CORE.name)
+        self.assertEqual(gear.task_info[0][7], "AI_VECTOR_CORE")
 
 
 if __name__ == '__main__':

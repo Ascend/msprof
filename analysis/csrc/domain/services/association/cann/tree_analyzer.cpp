@@ -22,6 +22,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 
 namespace Analysis
 {
@@ -74,6 +75,21 @@ const std::set<std::string> KERNEL_COMPUTE_WHITE_LIST = {
     KERNEL_AI_CORE_TASK_TYPE, KERNEL_AI_VECTOR_CORE_TASK_TYPE,
     KERNEL_AI_CPU_TASK_TYPE,  Analysis::Common::KERNEL_SIMT_TASK_TYPE,
     KERNEL_MIX_AIC_TASK_TYPE, KERNEL_MIX_AIV_TASK_TYPE};
+
+void BindLaunchItemIdWhenReferToKernelName(ComputeOpDescs &ops, uint64_t launchItemId)
+{
+    if (HashData::GetInstance().Get(launchItemId) != Analysis::REFER_TO_KERNEL_NAME)
+    {
+        return;
+    }
+    for (auto &pair : ops)
+    {
+        if (pair.second && pair.second->type != OpType::OPTYPE_INVALID)
+        {
+            pair.second->name = launchItemId;
+        }
+    }
+}
 
 uint64_t GetModelId(const std::shared_ptr<ParserCompactInfo> &track, const std::shared_ptr<ParserApi> &api,
                     uint16_t deviceId, uint32_t streamId, uint32_t batchId, uint64_t timestamp)
@@ -560,6 +576,11 @@ HostTasks TreeAnalyzer::GetComputeTaskDescs(const std::shared_ptr<TreeNode> &nod
     else if (type == KERNEL_AI_CPU_TASK_TYPE)
     {
         UpdateComputeDescForHelperSituation(ops);
+    }
+
+    if (!IsHcclTask() && nodeNode->event && nodeNode->event->apiPtr)
+    {
+        BindLaunchItemIdWhenReferToKernelName(ops, nodeNode->event->apiPtr->itemId);
     }
 
     auto results = GenComputeHostTasks(ops, track, nodeNode->event->id);

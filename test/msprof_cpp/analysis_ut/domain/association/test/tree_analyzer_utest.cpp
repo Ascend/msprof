@@ -61,6 +61,7 @@ protected:
         hashInfo.WriteText("22222:Matmul\n");           // Matmul
         hashInfo.WriteText("33333:hcom_allReduce_\n");  // hcom_allReduce_
         hashInfo.WriteText("44444:NA\n");               // NA
+        hashInfo.WriteText("55555:Refer_to_kernelName\n");  // Refer_to_kernelName
         hashInfo.Close();
     }
     // 所有测试用例之后执行
@@ -79,8 +80,9 @@ struct HostTaskCompCtx {
 };
 
 // 生成建树所需的三层节点
-std::shared_ptr<EventQueue> GenKernelEventQueue(std::unordered_map<
-    std::string, std::vector<std::pair<uint64_t, uint64_t>>> &apiEvents)
+std::shared_ptr<EventQueue> GenKernelEventQueue(
+    std::unordered_map<std::string, std::vector<std::pair<uint64_t, uint64_t>>> &apiEvents,
+    const std::unordered_map<std::string, uint64_t> &itemIds = {})
 {
     auto kernelEvents = std::make_shared<EventQueue>(1, 100);
     std::vector<std::string> levels{"Model", "Node", "Communication"};
@@ -91,11 +93,13 @@ std::shared_ptr<EventQueue> GenKernelEventQueue(std::unordered_map<
     };
     for (const auto &le: levels) {
         for (auto range: apiEvents[le]) {
+            auto itemId = itemIds.find(le) == itemIds.end() ? 0 : itemIds.at(le);
             if (le == "Model") {
                 FakeEventGenerator::AddApiEvent(kernelEvents, levelNum[le], range.first, range.second,
                                                 range.second, range.second);
             } else {
-                FakeEventGenerator::AddApiEvent(kernelEvents, levelNum[le], range.first, range.second);
+                FakeEventGenerator::AddApiEvent(kernelEvents, levelNum[le], range.first, range.second,
+                                                0, itemId);
             }
         }
     }
@@ -951,8 +955,94 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerGenComputeHostTasks)
 {
     auto ana = GetAnalyzerForScenarioEmptyPath();
     std::unordered_map<std::string, std::shared_ptr<Operator>> ops{};
-    
+
     HostTasks ht = ana -> GenComputeHostTasks(ops, nullptr, 0);
     EXPECT_EQ(ht, HostTasks{});
 }
 
+const uint64_t REFER_TO_KERNEL_NAME_HASH = 55555;
+const uint64_t TENSOR_OP_NAME_HASH = 50;
+
+// Refer_to_kernelName场景：node层的launch itemId为Refer_to_kernelName
+// Model : [1,        200]
+// Node  : [2, 99]  launch itemId = nodeItemId
+// Hccl  : [10, 60] (可选)
+// Runtime: tk(50) KERNEL_AICORE
+std::shared_ptr<TreeAnalyzer> GetAnalyzerForReferToKernelNameScenario(uint64_t nodeItemId, bool withTensor,
+                                                                     bool withHccl)
+{
+    std::unordered_map<std::string, std::vector<std::pair<uint64_t, uint64_t>>> apiEvents{
+        {"Model", {{1, 200}}},
+        {"Node", {{2, 99}}},
+    };
+    if (withHccl) {
+        apiEvents["Communication"] = {{10, 60}};
+    }
+    // 建树行为依赖TypeData，先加载字典，避免用例执行顺序影响结果
+    TypeData::GetInstance().Load("./");
+    HashData::GetInstance().Load("./");
+
+    auto kernelEvents = GenKernelEventQueue(apiEvents, {{"Node", nodeItemId}});
+    auto taskTrackEvents = GenTaskTrackEventQueue({{50, 0}});
+
+    auto cannWarehouse = std::make_shared<CANNWarehouse>();
+    cannWarehouse->kernelEvents = kernelEvents;
+    cannWarehouse->taskTrackEvents = taskTrackEvents;
+    if (withTensor) {
+        // tensor记录的opName为50，用于确认Refer场景下算子名被刷成node launch的itemId
+        cannWarehouse->tensorInfoEvents = GenTensorInfoEventQueue({TENSOR_OP_NAME_HASH});
+    }
+
+    // 建树
+    auto treeBuilder = std::make_shared<TreeBuilder>(cannWarehouse, 1);
+    auto treeNode = treeBuilder->Build();
+
+    // 分析树
+    return std::make_shared<TreeAnalyzer>(treeNode, 1);
+}
+
+// Refer_to_kernelName场景：node层无nodeBasicInfo，只有tensor记录时，算子名刷成node launch的itemId
+TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldBindLaunchItemIdWhenReferToKernelName)
+{
+    auto ana = GetAnalyzerForReferToKernelNameScenario(REFER_TO_KERNEL_NAME_HASH, true, false);
+    ana->Analyze();
+
+    auto computeTasks = ana->GetComputeTasks();
+    ASSERT_EQ(computeTasks.size(), 1);
+    EXPECT_EQ(computeTasks[0]->op->name, REFER_TO_KERNEL_NAME_HASH);
+}
+
+// Refer_to_kernelName场景：node层无任何补充信息，算子描述走ops.empty()兜底，算子名取node launch的itemId
+TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldUseLaunchItemIdWhenReferToKernelNameWithoutAnyNodeRecord)
+{
+    auto ana = GetAnalyzerForReferToKernelNameScenario(REFER_TO_KERNEL_NAME_HASH, false, false);
+    ana->Analyze();
+
+    auto computeTasks = ana->GetComputeTasks();
+    ASSERT_EQ(computeTasks.size(), 1);
+    EXPECT_EQ(computeTasks[0]->op->name, REFER_TO_KERNEL_NAME_HASH);
+}
+
+// 非Refer场景：算子名保持原有取值，不被node launch的itemId覆盖
+// itemId=0未注册在hash_dic中，HashData::Get反查失败（打印ERROR并回退为"0"字符串），
+// 因此该用例同时覆盖了"哨兵值反查失败时不触发改名"这一边界
+TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldKeepOpNameWhenNotReferToKernelName)
+{
+    auto ana = GetAnalyzerForReferToKernelNameScenario(0, true, false);
+    ana->Analyze();
+
+    auto computeTasks = ana->GetComputeTasks();
+    ASSERT_EQ(computeTasks.size(), 1);
+    EXPECT_EQ(computeTasks[0]->op->name, TENSOR_OP_NAME_HASH);
+}
+
+// hccl场景：算子名由hccl逻辑刷新，不参与Refer_to_kernelName的绑定
+TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldNotBindLaunchItemIdWhenHcclTask)
+{
+    auto ana = GetAnalyzerForReferToKernelNameScenario(REFER_TO_KERNEL_NAME_HASH, true, true);
+    ana->Analyze();
+
+    auto computeTasks = ana->GetComputeTasks();
+    ASSERT_EQ(computeTasks.size(), 1);
+    EXPECT_EQ(computeTasks[0]->op->name, TENSOR_OP_NAME_HASH);
+}

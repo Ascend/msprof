@@ -67,6 +67,33 @@ std::string TransTaskTypeFromRtsToGe(uint64_t rtsTaskType)
     return (it != RtsTaskTypeMap.end()) ? NumberMapping::Get(MappingType::GE_TASK_TYPE, it->second) : taskType;
 }
 
+bool IsReferToKernelName(uint64_t hash) { return HashData::GetInstance().Get(hash) == REFER_TO_KERNEL_NAME; }
+
+// 算子名为Refer_to_kernelName时，无nodeBasicInfo可查，算子名以实际的kernelName为准
+std::string ResolveKernelName(const std::shared_ptr<HostTask> &task)
+{
+    if (task->kernelName == 0)
+    {
+        WARN("itemId is Refer_to_kernelName but kernelName is empty, streamId is %, taskId is %, timestamp is %.",
+             task->streamId, task->taskId, task->timeStamp);
+        return NA;
+    }
+    return HashData::GetInstance().Get(task->kernelName);
+}
+
+std::string ResolveTaskOpName(const std::shared_ptr<HostTask> &task, const std::string &opName)
+{
+    if (!task || !task->op)
+    {
+        return opName;
+    }
+    if (!IsReferToKernelName(task->op->name))
+    {
+        return opName;
+    }
+    return ResolveKernelName(task);
+}
+
 void AddHcclOpDumpData(HCCLOpsDumpData &data, const std::shared_ptr<Analysis::Domain::Operator> &op)
 {
     auto bigOpDesc = op->hcclBigOpDesc;
@@ -273,7 +300,8 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ParserConcatTen
     auto desc = task->op->opDesc;
     auto attr = desc->nodeAttr;
     const bool hasNodeBasicInfo = nodeBasicInfo != nullptr;
-    auto opName = HashData::GetInstance().Get(hasNodeBasicInfo ? nodeBasicInfo->opName : task->op->name);
+    auto opName =
+        ResolveTaskOpName(task, HashData::GetInstance().Get(hasNodeBasicInfo ? nodeBasicInfo->opName : task->op->name));
     auto hashId = hasNodeBasicInfo && attr ? std::to_string(attr->data.nodeAttrInfo.hashId) : NA;
     uint32_t blockNum = hasNodeBasicInfo ? nodeBasicInfo->blockNum & 0xffff : 0;
     auto mixBlockNum = hasNodeBasicInfo ? blockNum * (nodeBasicInfo->blockNum >> 16) : 0;
@@ -359,6 +387,42 @@ void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTa
     }
 }
 
+void CANNTraceDBDumper::AddTaskInfoForReferToKernelName(const std::shared_ptr<HostTask> &task, TaskInfoData &data)
+{
+    // 调用方已判定算子名为Refer_to_kernelName，此处直接取kernelName
+    std::string opName = ResolveKernelName(task);
+    std::string opType = opName;
+    std::string taskType = TransTaskTypeFromRtsToGe(task->taskType);
+    uint32_t blockNum = 0;
+    uint32_t mixBlockNum = 0;
+    std::string gridDim = NA;
+    std::string blockDim = NA;
+    auto desc = task->op->opDesc;
+    ProcessRuntimeTrackInfo(desc->runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
+    uint32_t tensorNum = 0;
+    std::string inputFormats = NA;
+    std::string inputDataTypes = NA;
+    std::string inputShapes = NA;
+    std::string outputFormats = NA;
+    std::string outputDataTypes = NA;
+    std::string outputShapes = NA;
+    if (desc->tensorDesc && desc->tensorDesc->tensorNum > 0)
+    {
+        tensorNum = desc->tensorDesc->tensorNum;
+        auto tensorFields = TensorDescFormatter::Format(desc->tensorDesc->tensorData, tensorNum);
+        inputFormats = tensorFields.inputFormats;
+        inputDataTypes = tensorFields.inputDataTypes;
+        inputShapes = tensorFields.inputShapes;
+        outputFormats = tensorFields.outputFormats;
+        outputDataTypes = tensorFields.outputDataTypes;
+        outputShapes = tensorFields.outputShapes;
+    }
+    data.emplace_back(task->modelId, opName, task->streamId, task->taskId, blockNum, mixBlockNum, NA, taskType, opType,
+                      task->requestId, task->threadId, task->timeStamp, task->batchId, tensorNum, inputFormats,
+                      inputDataTypes, inputShapes, outputFormats, outputDataTypes, outputShapes, task->deviceId,
+                      task->contextId, NA, NA, gridDim, blockDim);
+}
+
 void CANNTraceDBDumper::ProcessRuntimeTrackInfo(const std::shared_ptr<ParserCompactInfo> &runtimeTrack,
                                                 uint32_t &blockNum, uint32_t &mixBlockNum, std::string &gridDim,
                                                 std::string &blockDim)
@@ -412,7 +476,7 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
         uint32_t mixBlockNum = 0;
         std::string gridDim = NA;
         std::string blockDim = NA;
-        auto name = HashData::GetInstance().Get(task->op->name);
+        auto name = ResolveTaskOpName(task, HashData::GetInstance().Get(task->op->name));
         ProcessRuntimeTrackInfo(task->op->opDesc->runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
         data.emplace_back(task->modelId, name, task->streamId, task->taskId, blockNum, mixBlockNum, NA, NA, NA,
                           task->requestId, task->threadId, task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA,
@@ -421,8 +485,14 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
     }
 
     auto desc = task->op->opDesc;
-    if (!desc or !desc->nodeDesc)
+    // 此处desc必非空，函数开头已校验
+    if (!desc->nodeDesc)
     {
+        if (IsReferToKernelName(task->op->name))
+        {
+            AddTaskInfoForReferToKernelName(task, data);
+            return;
+        }
         ERROR("Can't find node desc for api: %, timestamp is %", task->kernelName, task->timeStamp);
         return;
     }
@@ -441,8 +511,8 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
         std::string gridDim = NA;
         std::string blockDim = NA;
         ProcessRuntimeTrackInfo(runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
-        data.emplace_back(task->modelId, HashData::GetInstance().Get(nodeBasicInfo.opName), task->streamId,
-                          task->taskId, blockNum, mixBlockNum, opState,
+        data.emplace_back(task->modelId, ResolveTaskOpName(task, HashData::GetInstance().Get(nodeBasicInfo.opName)),
+                          task->streamId, task->taskId, blockNum, mixBlockNum, opState,
                           NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeBasicInfo.taskType),
                           HashData::GetInstance().Get(nodeBasicInfo.opType), task->requestId, task->threadId,
                           task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA, task->deviceId, task->contextId,

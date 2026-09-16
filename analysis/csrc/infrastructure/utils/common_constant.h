@@ -35,6 +35,7 @@ const std::string KERNEL_MIX_AIV_TASK_TYPE = "KERNEL_MIX_AIV";
 const std::string KERNEL_SIMT_TASK_TYPE = "KERNEL_SIMT";
 
 const std::string NA = "N/A";
+const std::string REFER_TO_KERNEL_NAME = "Refer_to_kernelName";
 const int32_t INVALID_VALUE = -1;
 const std::string UNKNOWN = "UNKNOWN";
 const uint64_t NS_TO_US = 1000;
@@ -70,6 +71,7 @@ using Common::NANO_SECOND;
 using Common::NS_TO_US;
 using Common::OUTPUT_PATH;
 using Common::PERCENTAGE;
+using Common::REFER_TO_KERNEL_NAME;
 using Common::SQLITE;
 using Common::UNKNOWN;
 

@@ -23,6 +23,7 @@
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
 
 
@@ -33,7 +34,11 @@ using namespace  Analysis::Domain;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain::Cann;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
+using HashData = Analysis::Domain::Host::Cann::HashData;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
+const uint64_t REFER_HASH = 0xA11;
+const uint64_t KERNEL_HASH = 0xB22;
+const std::string KERNEL_NAME_STR = "actual_kernel";
 const uint32_t TENSOR_NUM_POSITION = 13;
 const uint32_t INPUT_DATA_TYPE_POSITION = 15;
 const uint32_t INPUT_SHAPE_POSITION = 16;
@@ -530,4 +535,140 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenTaskHasSimtRuntimeTr
     EXPECT_EQ(std::get<5>(taskInfoData[1]), 300u);
     EXPECT_EQ(std::get<24>(taskInfoData[1]), "N/A");
     EXPECT_EQ(std::get<25>(taskInfoData[1]), "N/A");
+}
+
+static void InjectReferToKernelNameHash()
+{
+    HashData::GetInstance().GetAll()[REFER_HASH] = REFER_TO_KERNEL_NAME;
+    HashData::GetInstance().GetAll()[KERNEL_HASH] = KERNEL_NAME_STR;
+}
+
+static std::shared_ptr<HostTask> MakeComputeTaskWithoutNodeDesc()
+{
+    auto kernelTask = std::make_shared<HostTask>();
+    auto kernelDesc = std::make_shared<OpDesc>();
+    kernelTask->op = std::make_shared<Operator>(kernelDesc, REFER_HASH, OpType::OPTYPE_COMPUTE);
+    kernelTask->kernelName = KERNEL_HASH;
+    kernelTask->taskType = 0;
+    kernelTask->streamId = 1;
+    kernelTask->taskId = 2;
+    kernelTask->threadId = 3;
+    kernelTask->timeStamp = 100;
+    kernelTask->deviceId = 0;
+    kernelTask->modelId = 4;
+    kernelTask->requestId = -1;
+    kernelTask->contextId = 0xFFFFFFFF;
+    return kernelTask;
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldUseKernelNameWhenL0ItemIdIsReferToKernelName)
+{
+    InjectReferToKernelNameHash();
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto hostTaskPtr = MakeComputeTaskWithoutNodeDesc();
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, true);
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<1>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<6>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<22>(taskInfoData[0]), NA);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldDumpWhenL1ReferToKernelNameWithoutNodeDesc)
+{
+    InjectReferToKernelNameHash();
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICORE")));
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto hostTaskPtr = MakeComputeTaskWithoutNodeDesc();
+    auto runtimeTrackDesc = std::make_shared<ParserCompactInfo>();
+    runtimeTrackDesc->dataLen = MSPROF_COMPACT_INFO_DATA_LENGTH;
+    runtimeTrackDesc->data.runtimeTrack.taskType = 0;
+    runtimeTrackDesc->data.runtimeTrack.kernelInfo.numBlocks = 8;
+    runtimeTrackDesc->data.runtimeTrack.kernelInfo.ratio = 2;
+    hostTaskPtr->op->opDesc->runtimeTrackDesc = runtimeTrackDesc;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, false);
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<1>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<4>(taskInfoData[0]), 8u);
+    EXPECT_EQ(std::get<5>(taskInfoData[0]), 16u);
+    EXPECT_EQ(std::get<6>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), "AI_CORE");
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<22>(taskInfoData[0]), NA);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldSkipWhenL1HasNoNodeDescAndItemIdIsNotRefer)
+{
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto kernelTask = std::make_shared<HostTask>();
+    auto kernelDesc = std::make_shared<OpDesc>();
+    kernelTask->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
+    kernelTask->kernelName = KERNEL_HASH;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(kernelTask, taskInfoData, false);
+    EXPECT_EQ(taskInfoData.size(), 0ul);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldKeepNormalOpNameWhenL0ItemIdIsNotRefer)
+{
+    HashData::GetInstance().GetAll()[KERNEL_HASH] = KERNEL_NAME_STR;
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto kernelTask = std::make_shared<HostTask>();
+    auto kernelDesc = std::make_shared<OpDesc>();
+    kernelTask->op = std::make_shared<Operator>(kernelDesc, KERNEL_HASH, OpType::OPTYPE_COMPUTE);
+    kernelTask->kernelName = 0;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(kernelTask, taskInfoData, true);
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<1>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), NA);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldDumpTensorWhenL1ReferWithoutNodeDesc)
+{
+    InjectReferToKernelNameHash();
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICORE")));
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto hostTaskPtr = MakeComputeTaskWithoutNodeDesc();
+    auto tensorDesc = std::make_shared<ParserConcatTensorInfo>();
+    tensorDesc->tensorNum = 2;
+    ParserTensorData tensorInput = {0, 1, 1, {1, 2, 3, 0}};
+    ParserTensorData tensorOutput = {1, 1, 1, {4, 5, 6, 0}};
+    tensorDesc->tensorData = {tensorInput, tensorOutput};
+    hostTaskPtr->op->opDesc->tensorDesc = tensorDesc;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, false);
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<1>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), "AI_CORE");
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<6>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<22>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<TENSOR_NUM_POSITION>(taskInfoData[0]), 2u);
+    EXPECT_EQ(std::get<INPUT_SHAPE_POSITION>(taskInfoData[0]), "\"1,2,3\"");
+    EXPECT_EQ(std::get<OUTPUT_SHAPE_POSITION>(taskInfoData[0]), "\"4,5,6\"");
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldUseKernelNameWhenL0ReferHasTensorWithoutNodeDesc)
+{
+    InjectReferToKernelNameHash();
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto hostTaskPtr = MakeComputeTaskWithoutNodeDesc();
+    auto tensorDesc = std::make_shared<ParserConcatTensorInfo>();
+    tensorDesc->tensorNum = 2;
+    ParserTensorData tensorInput = {0, 1, 1, {1, 2, 3, 0}};
+    ParserTensorData tensorOutput = {1, 1, 1, {4, 5, 6, 0}};
+    tensorDesc->tensorData = {tensorInput, tensorOutput};
+    hostTaskPtr->op->opDesc->tensorDesc = tensorDesc;
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(hostTaskPtr, taskInfoData, true);
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<1>(taskInfoData[0]), KERNEL_NAME_STR);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<8>(taskInfoData[0]), NA);
+    EXPECT_EQ(std::get<TENSOR_NUM_POSITION>(taskInfoData[0]), 2u);
 }
