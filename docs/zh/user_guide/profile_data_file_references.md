@@ -59,22 +59,22 @@
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 timeline数据总表文件为msprof\_\*.json。
@@ -131,13 +131,13 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 支持的产品：
 
 <!-- npu="310b" id15 -->
-- 昇腾310B系列产品
+- Atlas 200I/500 A2 推理产品
 <!-- end id15 -->
 <!-- npu="910b" id16 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id16 -->
 <!-- npu="A3" id17 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id17 -->
 
 msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任务的过程中频率的变化情况，如[图4](#zh-cn_topic_0000001751419248_fig66071155154219)所示。
@@ -156,17 +156,17 @@ msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任�
 支持的产品：
 
 <!-- npu="910b" id19 -->
-- 对于昇腾A2系列产品，该数据均为0，不具有参考性。
+- 对于Atlas A2 系列产品，该数据均为0，不具有参考性。
 <!-- end id19 -->
 <!-- npu="A3" id20 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id20 -->
 
 msprof\_\*.json下的“SIO”层级展示通道间传输带宽的信息。
 
-昇腾A3系列产品中，SIO数据的每条流使用两条虚拟通道，die 0和die 1。
+Atlas A3 系列产品中，SIO数据的每条流使用两条虚拟通道，die 0和die 1。
 
-**图 5**  SIO（昇腾A3系列产品）<a name="zh-cn_topic_0000001751419248_fig1090119416103"></a>  
+**图 5**  SIO（Atlas A3 系列产品）<a name="zh-cn_topic_0000001751419248_fig1090119416103"></a>  
 ![](../figures/SIO.png "SIO")
 
 图中色块横坐标对应时间Time，单位ms，纵坐标对应带宽Value，单位MB/s。
@@ -193,10 +193,10 @@ msprof\_\*.json下的“QoS”层级展示设备QoS带宽信息。
 支持的产品：
 
 <!-- npu="910b" id22 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id22 -->
 <!-- npu="A3" id23 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id23 -->
 
 **图 6**  QoS OTHERS<a name="zh-cn_topic_0000001751419248_fig109246157107"></a>  
@@ -211,10 +211,10 @@ msprof\_\*.json下的“QoS”层级展示设备QoS带宽信息。
 支持的产品：
 
 <!-- npu="310p" id25 -->
-- 昇腾310P系列产品
+- Atlas 推理系列产品
 <!-- end id25 -->
 <!-- npu="910b" id26 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id26 -->
 
 存在计算和通信算子融合的场景。
@@ -264,10 +264,10 @@ msprof\_\*.json下的“Voltage Info”层级展示设备电压变压信息。
 支持的产品：
 
 <!-- npu="910b" id28 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id28 -->
 <!-- npu="A3" id29 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id29 -->
 
 变压特性曲线结果示例如下：
@@ -292,7 +292,7 @@ msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息�
 
 支持的产品：
 
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 
 **表 4**  字段说明<a name="zh-cn_topic_0000001751419248_table21964325015"></a>
 
@@ -308,7 +308,7 @@ msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息�
 | Notify Id              | 集合通信任务等待的ID。                                       |
 | Duration Estimated(us) | 预估任务持续时间                                             |
 | Src Rank               | 源Rank。                                                     |
-| Dst Rank               | 目的Rank。<br>对于昇腾950PR&950DT系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。 |
+| Dst Rank               | 目的Rank。<br>对于Ascend 950PR&950DT 系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。 |
 | Transport Type         | 传输类型，包含：LOCAL、SDMA、RDMA、UB和ROCE等。              |
 | Size(Byte)             | 数据量，单位Byte。在task type为notify类型时无效，填充为0。   |
 | Bandwidth(GB/s)        | 带宽大小，单位GB/s。                                         |
@@ -324,7 +324,7 @@ msprof\_\*.json下的“Fusion Task”层级展示Fusion任务数据。
 
 支持的产品：
 
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 
 **图 9**  fusion_task<a name="zh-cn_topic_0000001751419248_fig12628420371"></a>  
 ![](../figures/fusion_task.png "fusion_task")
@@ -346,7 +346,7 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 
 支持的产品：
 
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 
 **表 6**  字段说明<a name="zh-cn_topic_0000001751419248_table21964325015"></a>
 
@@ -369,13 +369,13 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 支持的产品：
 
 <!-- npu="910b" id30 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id30 -->
 <!-- npu="A3" id31 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id31 -->
 <!-- npu="950" id32 -->
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 <!-- end id32 -->
 
 **图 10**  Ascend Hardware采集间隙<a name="zh-cn_topic_0000001751419248_fig12628420271"></a>  
@@ -394,22 +394,22 @@ AI Core、AI Vector Core和AI CPU算子汇总信息无timeline信息，summary�
 **产品支持情况<a name="zh-cn_topic_0000001686107246_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **op\_summary\_\*.csv文件说明<a name="zh-cn_topic_0000001686107246_section1214520215155"></a>**
@@ -428,7 +428,7 @@ Task Duration字段为算子耗时信息，可以按照Task Duration排序，找
 > - task\_time配置为l0或off时，op\_summary\_\*.csv不呈现AI Core、AI Vector Core的PMU数据。
 >
 <!-- npu="A3,910b" id33 -->
-> - 昇腾A2系列产品、昇腾A3系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
+> - Atlas A2 系列产品、Atlas A3 系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
 <!-- end id33 -->
 >
 > - 对于部分算子，执行时间过长，导致metric相关数据失准，不再具有参考意义，此类数据统一置为N/A，不做相关呈现。
@@ -472,8 +472,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |Output Formats|算子输出数据格式。task_time为l0时，不采集该字段，显示为N/A。|
 |Context ID|Context ID，用于标识Sub Task粒度的小算子，不存在小算子时显示为N/A。|
 |aiv_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Vector Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Vector Core上的实际执行时间。--task-time=l1、--aic-mode=task-based时生成。|
-|aicore_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Core上的实际执行时间。<br>当AI Core频率变化（比如进行手动调频、功耗超出阈值时动态调频以及Atlas 300V/Atlas 300I Pro产品）时该数据不准确，不建议参考。<br>昇腾310B系列产品、昇腾A2系列产品、昇腾A3系列产品、昇腾950PR&950DT系列产品具体频率变化点请参考[查看AI Core频率](#zh-cn_topic_0000001751419248_section9194165318231)。<br>--task-time=l1、--aic-mode=task-based时生成。|
-|total_cycles|该Task在AI Core上执行的cycle总数，由所有的Block的执行cycle数累加而成。<br>--task-time=l1、--aic-mode=task-based时生成。<br>对于昇腾310B系列产品、昇腾A2系列产品、昇腾A3系列产品、昇腾950PR&950DT系列产品拆分为aic_total_cycles（该Task在AI Cube Core上执行的cycle总数）和aiv_total_cycles（该Task在AI Vector Core上执行的cycle总数）。|
+|aicore_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Core上的实际执行时间。<br>当AI Core频率变化（比如进行手动调频、功耗超出阈值时动态调频以及Atlas 300V/Atlas 300I Pro产品）时该数据不准确，不建议参考。<br>Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品、Ascend 950PR&950DT 系列产品具体频率变化点请参考[查看AI Core频率](#zh-cn_topic_0000001751419248_section9194165318231)。<br>--task-time=l1、--aic-mode=task-based时生成。|
+|total_cycles|该Task在AI Core上执行的cycle总数，由所有的Block的执行cycle数累加而成。<br>--task-time=l1、--aic-mode=task-based时生成。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品、Ascend 950PR&950DT 系列产品拆分为aic_total_cycles（该Task在AI Cube Core上执行的cycle总数）和aiv_total_cycles（该Task在AI Vector Core上执行的cycle总数）。|
 |寄存器值|自定义采集的寄存器的数值。由--aic-metrics配置自定义寄存器控制。|
 
 下列字段均在--task-time=l1、--aic-mode=task-based时生成，--task-time为l0时，不采集该字段，显示为N/A。生成的数据由aic\_metrics参数取值控制。
@@ -482,8 +482,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_vec_time(us)|vec类型指令（向量类运算指令）耗时，单位us。昇腾310B系列产品不支持该字段，给予默认值N/A。|
-|*_vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|*_vec_time(us)|vec类型指令（向量类运算指令）耗时，单位us。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 |*_mac_time(us)|cube类型指令（矩阵类运算指令）耗时，单位us。|
 |*_mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |*_scalar_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
@@ -508,14 +508,14 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-| *_mac_fp16_ratio  | cube fp16类型指令的cycle数在total cycle数中的占用比。昇腾950PR&950DT系列产品仅支持aic_mac_fp16_ratio。 |
-| *_mac_int8_ratio  | cube int8类型指令的cycle数在total cycle数中的占用比。昇腾950PR&950DT系列产品仅支持aic_mac_int8_ratio。 |
-| *_vec_fp32_ratio  | vec fp32类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。 |
-| *_vec_fp16_ratio  | vec fp16类型指令的cycle数在total cycle数中的占用比。昇腾950PR&950DT系列产品不支持该字段。 |
-| *_vec_int32_ratio | vec int32类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。 |
-| *_vec_misc_ratio  | vec misc类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。 |
-| *_cube_fops       | cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。昇腾950PR&950DT系列产品仅支持aic_cube_fops。 |
-| *_vector_fops     | vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。昇腾950PR&950DT系列产品不支持该字段。 |
+| *_mac_fp16_ratio  | cube fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品仅支持aic_mac_fp16_ratio。 |
+| *_mac_int8_ratio  | cube int8类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品仅支持aic_mac_int8_ratio。 |
+| *_vec_fp32_ratio  | vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| *_vec_fp16_ratio  | vec fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| *_vec_int32_ratio | vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| *_vec_misc_ratio  | vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| *_cube_fops       | cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品仅支持aic_cube_fops。 |
+| *_vector_fops     | vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品不支持该字段。 |
 
 > [!NOTE]
 >
@@ -525,14 +525,14 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
-|*_ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|*_ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 |*_l1_read_bw(GB/s)|l1读带宽速率，单位GB/s。|
 |*_l1_write_bw(GB/s)|l1写带宽速率，单位GB/s。|
-|*_l2_read_bw|l2读带宽速率，单位GB/s。昇腾950PR&950DT系列产品不支持该字段。|
-|*_l2_write_bw|l2写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
+|*_l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
+|*_l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
 |*_main_mem_read_bw(GB/s)|主存储器读带宽速率，单位GB/s。|
-|*_main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|*_main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 
 > [!NOTE]
 >
@@ -547,7 +547,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_l0b_read_bw(GB/s)|l0b读带宽速率，单位GB/s。|
 |*_l0b_write_bw(GB/s)|l0b写带宽速率，单位GB/s。|
 |*_l0c_read_bw(GB/s)|vector从l0c读带宽速率，单位GB/s。|
-|*_l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。昇腾950PR&950DT系列产品不支持该字段。|
+|*_l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
 |*_l0c_read_bw_cube(GB/s)|cube从l0c读带宽速率，单位GB/s。|
 |*_l0c_write_bw_cube(GB/s)|cube向l0c写带宽速率，单位GB/s。|
 
@@ -564,7 +564,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_ub_write_bw_vector(GB/s)|vector向ub写带宽速率，单位GB/s。|
 |*_ub_read_bw_scalar(GB/s)|scalar从ub读带宽速率，单位GB/s。|
 |*_ub_write_bw_scalar(GB/s)|scalar向ub写带宽速率，单位GB/s。|
-|*_ub_fixp2ub_write_bw(GB/s)|vector fixpipe向ub写带宽速率（排除ub反压），单位GB/s。仅昇腾950PR&950DT系列产品支持该字段。|
+|*_ub_fixp2ub_write_bw(GB/s)|vector fixpipe向ub写带宽速率（排除ub反压），单位GB/s。仅Ascend 950PR&950DT 系列产品支持该字段。|
 
 > [!NOTE]
 >
@@ -574,9 +574,9 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
-|*_vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。昇腾310B系列产品不支持该字段，给予默认值N/A。|
-|*_vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|*_vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|*_vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 
 > [!NOTE]
 >
@@ -602,10 +602,10 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 > 支持的产品：
 >
 <!-- npu="910b" id35 -->
-> - 昇腾A2系列产品
+> - Atlas A2 系列产品
 <!-- end id35 -->
 <!-- npu="A3" id36 -->
-> - 昇腾A3系列产品
+> - Atlas A3 系列产品
 <!-- end id36 -->
 <!-- end id34 -->
 
@@ -614,16 +614,16 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 | 字段名                          | 字段含义                                                     |
 | ------------------------------- | ------------------------------------------------------------ |
-| `*_write_cache_hit`             | 写cache命中的次数。昇腾950PR&950DT系列产品不支持该字段。   |
-| `*_write_cache_miss_allocate`   | 写cache缺失后重新分配缓存的次数。昇腾950PR&950DT系列产品不支持该字段。 |
-| `*_r*_read_cache_hit`           | 读r*通道cache命中次数。昇腾950PR&950DT系列产品不支持该字段。 |
-| `*_r*_read_cache_miss_allocate` | 读r*通道cache缺失后重新分配的次数。昇腾950PR&950DT系列产品不支持该字段。 |
-| `*_read_local_l2_hit`           | 读Cache命中的次数。仅昇腾950PR&950DT系列产品支持该字段。   |
-| `*_read_local_l2_miss`          | 读Cache缺失次数。仅昇腾950PR&950DT系列产品支持该字段。     |
-| `*_read_local_l2_victim`        | 读Cache未命中并触发Cache中数据被换出的次数。仅昇腾950PR&950DT系列产品支持该字段。 |
-| `*_write_local_l2_hit`          | 写Cache命中的次数。仅昇腾950PR&950DT系列产品支持该字段。   |
-| `*_write_local_l2_miss`         | 写Cache缺失次数。仅昇腾950PR&950DT系列产品支持该字段。     |
-| `*_write_local_l2_victim`       | 写Cache未命中并触发Cache中数据被换出的次数。仅昇腾950PR&950DT系列产品支持该字段。 |
+| `*_write_cache_hit`             | 写cache命中的次数。Ascend 950PR&950DT 系列产品不支持该字段。   |
+| `*_write_cache_miss_allocate`   | 写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| `*_r*_read_cache_hit`           | 读r*通道cache命中次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| `*_r*_read_cache_miss_allocate` | 读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| `*_read_local_l2_hit`           | 读Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。   |
+| `*_read_local_l2_miss`          | 读Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。     |
+| `*_read_local_l2_victim`        | 读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。 |
+| `*_write_local_l2_hit`          | 写Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。   |
+| `*_write_local_l2_miss`         | 写Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。     |
+| `*_write_local_l2_victim`       | 写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。 |
 
 > [!NOTE]
 >
@@ -633,16 +633,16 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 支持的产品：
 
 <!-- npu="910b" id37 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id37 -->
 <!-- npu="A3" id38 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id38 -->
 <!-- npu="950" id39 -->
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 <!-- end id39 -->
 <!-- npu="310b" id40 -->
-- 昇腾310B系列产品
+- Atlas 200I/500 A2 推理产品
 <!-- end id40 -->
 <!-- end id11 -->
 
@@ -652,7 +652,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |字段名|字段含义|
 |--|--|
 |vec_exe_time(us)|vec类型指令（向量类运算指令）耗时，单位us。|
-|vec_exe_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|vec_exe_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 |mac_exe_time(us)|cube类型指令（fp16及s16矩阵类运算指令）耗时，单位us。|
 |mac_exe_ratio|cube类型指令（fp16及s16矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_exe_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
@@ -668,7 +668,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
 |cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：`cube_utilization = total_cycles / (freq * core_num * task_duration)`。|
 
-支持的产品：昇腾310B系列产品
+支持的产品：Atlas 200I/500 A2 推理产品
 <!-- end id41 -->
 
 #### op\_statistic（算子调用次数及耗时）<a name="ZH-CN_TOPIC_0000002509383189"></a>
@@ -678,22 +678,22 @@ AI Core和AI CPU算子调用的次数及耗时数据无timeline信息，summary�
 **产品支持情况<a name="zh-cn_topic_0000001686266978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **op\_statistic\_\*.csv文件数据说明<a name="zh-cn_topic_0000001686266978_section142961814104116"></a>**
@@ -729,22 +729,22 @@ API耗时信息统计数据timeline信息在msprof\_\*.json文件的CANN层级�
 **产品支持情况<a name="zh-cn_topic_0000001656264690_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CANN层级数据说明<a name="zh-cn_topic_0000001656264690_section344219426541"></a>**
@@ -795,22 +795,22 @@ api\_statistic\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001798418925_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **总体说明<a name="zh-cn_topic_0000001798418925_section132087265710"></a>**
@@ -882,22 +882,22 @@ msprof\_tx\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001679380154_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件中的任务调度信息数据说明<a name="zh-cn_topic_0000001679380154_section11622953115117"></a>**
@@ -963,22 +963,22 @@ task\_time\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001706482137_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **step\_trace\_\*.json文件说明<a name="zh-cn_topic_0000001706482137_section8123844101012"></a>**
@@ -1067,22 +1067,22 @@ step\_trace\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001658339478_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Communication层级数据说明<a name="zh-cn_topic_0000001658339478_section8123844101012"></a>**
@@ -1115,8 +1115,8 @@ msprof\_\*.json文件Communication层数据如下图所示。
 |data_type|数据类型。|
 |alg_type|通信算子各阶段的算法类型，包含：MESH、RING、NB、HD、NHR、PIPELINE、PAIRWISE、STAR等。|
 |count|数据传输的数量。|
-|relay|通信算子是否发生借轨。显示为yes（表示发生了借轨）或no（表示没有发生借轨）。支持型号：<br>昇腾A2系列产品：仅显示为no，无意义<br>昇腾A3系列产品|
-|retry|通信算子是否发生重执行。显示为yes（表示发生了重执行）或no（表示没有发生重执行）。支持型号：<br>昇腾A2系列产品<br>昇腾A3系列产品|
+|relay|通信算子是否发生借轨。显示为yes（表示发生了借轨）或no（表示没有发生借轨）。支持型号：<br>Atlas A2 系列产品：仅显示为no，无意义<br>Atlas A3 系列产品|
+|retry|通信算子是否发生重执行。显示为yes（表示发生了重执行）或no（表示没有发生重执行）。支持型号：<br>Atlas A2 系列产品<br>Atlas A3 系列产品|
 |**通信小算子信息**||
 |notify id|notify唯一ID。notify id仅对task type为notify类型及用于传输notify record信号的RDMA send类的task有效；其他task type时无效，显示为18446744073709551615。|
 |duration estimated(us)|预估任务持续时间，单位us。|
@@ -1124,7 +1124,7 @@ msprof\_\*.json文件Communication层数据如下图所示。
 |task id|Task任务的ID。|
 |task type|Task类型。|
 |src rank|源Rank。|
-|dst rank|目的Rank。<br>对于昇腾950PR&950DT系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。|
+|dst rank|目的Rank。<br>对于Ascend 950PR&950DT 系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。|
 |transport type|传输类型，包含：LOCAL、SDMA、RDMA、UB和ROCE等。|
 |size(Byte)|数据量，单位Byte。获取不到size时，统一显示为0。|
 |data type|数据类型。|
@@ -1180,22 +1180,22 @@ CANN算子的内存占用记录无timeline信息，summary信息在memory\_recor
 **产品支持情况<a name="zh-cn_topic_000000170451978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **memory\_record\_\*.csv文件数据说明<a name="zh-cn_topic_000000170451978_section104048511517"></a>**
@@ -1223,22 +1223,22 @@ CANN算子的内存占用明细无timeline信息，summary信息在operator\_mem
 **产品支持情况<a name="zh-cn_topic_0000001752279281_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **operator\_memory\_\*.csv文件数据说明<a name="zh-cn_topic_0000001752279281_section104048511517"></a>**
@@ -1283,22 +1283,22 @@ NPU内存占用数据timeline信息在msprof\_\*.json文件的NPU MEM层级展�
 **产品支持情况<a name="zh-cn_topic_0000001704360086_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的NPU MEM层级数据说明<a name="zh-cn_topic_0000001704360086_section11622953115117"></a>**
@@ -1326,22 +1326,22 @@ NPU组件内存占用数据无timeline信息，summary信息在npu\_module\_mem\
 **产品支持情况<a name="zh-cn_topic_0000001797276317_section165442389381"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **npu\_module\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001797276317_section104048511517"></a>**
@@ -1373,19 +1373,19 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001752181593_section91616487538"></a>**
 
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：不支持
+- Atlas A3 系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：不支持
+- Atlas A2 系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **dp\_\*.csv文件说明<a name="zh-cn_topic_0000001752181593_section5874203112014"></a>**
@@ -1413,22 +1413,22 @@ AI Core指令占比数据timeline信息在msprof\_\*.json文件的AI Core Utiliz
 **产品支持情况<a name="zh-cn_topic_0000001731321225_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的AI Core指令占比数据说明<a name="zh-cn_topic_0000001731321225_section432932191111"></a>**
@@ -1464,15 +1464,15 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 |字段名|字段含义|
 |--|--|
-|vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾A2系列产品不支持该字段。昇腾A3系列产品不支持该字段。|
+|vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
 |mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_ratio|scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
 |mte1_ratio|mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
 |mte2_ratio|mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。|
-|mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。昇腾A2系列产品不支持该字段。昇腾A3系列产品不支持该字段。|
+|mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
 |icache_miss_rate|icache是为instruction预留的L2 Cache，icache_miss_rate数值高代表AI Core读取指令的效率低。|
 |fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
-|memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。昇腾A2系列产品不支持该字段。昇腾A3系列产品不支持该字段。|
+|memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
 
 **表 3**  字段说明（ArithmeticUtilization）
 
@@ -1480,25 +1480,25 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |--|--|
 |mac_fp16_ratio|cube fp16类型指令的cycle数在total cycle数中的占用比。|
 |mac_int8_ratio|cube int8类型指令的cycle数在total cycle数中的占用比。|
-|vec_fp32_ratio|vec fp32类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
-|vec_fp16_ratio|vec fp16类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
-|vec_int32_ratio|vec int32类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
-|vec_misc_ratio|vec misc类型指令的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
+|vec_fp32_ratio|vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vec_fp16_ratio|vec fp16类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vec_int32_ratio|vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vec_misc_ratio|vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
 |cube_fops|cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。|
-|vector_fops|vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。昇腾950PR&950DT系列产品不支持该字段。|
+|vector_fops|vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品不支持该字段。|
 
 **表 4**  字段说明（Memory）
 
 |字段名|字段含义|
 |--|--|
-|ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
-|ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 |l1_read_bw(GB/s)|l1读带宽速率，单位GB/s。|
 |l1_write_bw(GB/s)|l1写带宽速率，单位GB/s。|
-|l2_read_bw|l2读带宽速率，单位GB/s。昇腾950PR&950DT系列产品不支持该字段。|
-|l2_write_bw|l2写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
+|l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
+|l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
 |main_mem_read_bw(GB/s)|主存储器读带宽速率，单位GB/s。|
-|main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 
 **表 5**  字段说明（MemoryL0）
 
@@ -1509,7 +1509,7 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |l0b_read_bw(GB/s)|l0b读带宽速率，单位GB/s。|
 |l0b_write_bw(GB/s)|l0b写带宽速率，单位GB/s。|
 |l0c_read_bw(GB/s)|vector从l0c读带宽速率，单位GB/s。|
-|l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。昇腾950PR&950DT系列产品不支持该字段。|
+|l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
 |l0c_read_bw_cube(GB/s)|cube从l0c读带宽速率，单位GB/s。|
 |l0c_write_bw_cube(GB/s)|cube向l0c写带宽速率，单位GB/s。|
 
@@ -1530,39 +1530,39 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 |字段名|字段含义|
 |--|--|
-|vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。昇腾310B系列产品不支持该字段，给予默认值N/A。昇腾950PR&950DT系列产品不支持该字段。|
-|vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。昇腾310B系列产品不支持该字段，给予默认值N/A。|
-|vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 
 <!-- npu="950,A3,910b,310b" id12 -->
 **表 8**  字段说明（L2Cache）
 
 |字段名|字段含义|
 |--|--|
-|write_cache_hit|写cache命中的次数。昇腾950PR&950DT系列产品不支持该字段。|
-|write_cache_miss_allocate|写cache缺失后重新分配缓存的次数。昇腾950PR&950DT系列产品不支持该字段。|
-|r*_read_cache_hit|读r*通道cache命中次数。昇腾950PR&950DT系列产品不支持该字段。|
-|r*_read_cache_miss_allocate|读r*通道cache缺失后重新分配的次数。昇腾950PR&950DT系列产品不支持该字段。|
-|read_local_l2_hit|读Cache命中的次数。仅昇腾950PR&950DT系列产品支持该字段。|
-|read_local_l2_miss|读Cache缺失次数。仅昇腾950PR&950DT系列产品支持该字段。|
-|read_local_l2_victim|读Cache未命中并触发Cache中数据被换出的次数。仅昇腾950PR&950DT系列产品支持该字段。|
-|write_local_l2_hit|写Cache命中的次数。仅昇腾950PR&950DT系列产品支持该字段。|
-|write_local_l2_miss|写Cache缺失次数。仅昇腾950PR&950DT系列产品支持该字段。|
-|write_local_l2_victim|写Cache未命中并触发Cache中数据被换出的次数。仅昇腾950PR&950DT系列产品支持该字段。|
+|write_cache_hit|写cache命中的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
+|write_cache_miss_allocate|写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
+|r*_read_cache_hit|读r*通道cache命中次数。Ascend 950PR&950DT 系列产品不支持该字段。|
+|r*_read_cache_miss_allocate|读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
+|read_local_l2_hit|读Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|read_local_l2_miss|读Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|read_local_l2_victim|读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|write_local_l2_hit|写Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|write_local_l2_miss|写Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|write_local_l2_victim|写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
 
 支持的产品：
 
 <!-- npu="910b" id42 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id42 -->
 <!-- npu="A3" id43 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id43 -->
 <!-- npu="950" id44 -->
-- 昇腾950PR&950DT系列产品
+- Ascend 950PR&950DT 系列产品
 <!-- end id44 -->
 <!-- npu="310b" id45 -->
-- 昇腾310B系列产品
+- Atlas 200I/500 A2 推理产品
 <!-- end id45 -->
 <!-- end id12 -->
 
@@ -1582,10 +1582,10 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 支持的产品：
 
 <!-- npu="910b" id47 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id47 -->
 <!-- npu="A3" id48 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id48 -->
 <!-- end id46 -->
 
@@ -1597,22 +1597,22 @@ AI Vector Core指令占比数据无timeline信息，summary信息在ai\_vector\_
 **产品支持情况<a name="zh-cn_topic_0000001750641108_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **ai\_vector\_core\_utilization\_\*.csv文件说明<a name="zh-cn_topic_0000001750641108_section44809124408"></a>**
@@ -1626,14 +1626,14 @@ ai\_vector\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 |字段名|字段含义|
 |--|--|
-|vec_ratio|代表vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。昇腾310B系列产品不支持该字段，给予默认值N/A。|
+|vec_ratio|代表vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
 |mac_ratio|代表cube类型指令（fp16及s16矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_ratio|代表scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
 |mte1_ratio|代表mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
-|mte2_ratio|代表mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（昇腾310B系列产品）|
-|mte2_ratio|代表mte2类型指令（片上内存->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（昇腾A2系列产品）（昇腾A3系列产品）|
-|mte3_ratio|代表mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。（昇腾310B系列产品）|
-|mte3_ratio|代表mte3类型指令（AICORE->片上内存搬运类指令）的cycle数在total cycle数中的占用比。（昇腾A2系列产品）（昇腾A3系列产品）|
+|mte2_ratio|代表mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2 推理产品）|
+|mte2_ratio|代表mte2类型指令（片上内存->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2 系列产品）（Atlas A3 系列产品）|
+|mte3_ratio|代表mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2 推理产品）|
+|mte3_ratio|代表mte3类型指令（AICORE->片上内存搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2 系列产品）（Atlas A3 系列产品）|
 |icache_miss_rate|代表icache缺失率，即未命中指令的L1 cache，数值越小越好。|
 |memory_bound|用于识别AI Vector Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示有Memory瓶颈，且数值越大瓶颈越严重。|
 
@@ -1649,22 +1649,22 @@ aicpu算子详细耗时数据无timeline信息，summary信息在aicpu\_\*.csv�
 **产品支持情况<a name="zh-cn_topic_0000001752101817_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **aicpu\_\*.csv文件说明<a name="zh-cn_topic_0000001752101817_section98641131621"></a>**
@@ -1698,22 +1698,22 @@ AI CPU数据aicpu\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000002013989984_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **aicpu\_mi\_\*.csv文件说明<a name="zh-cn_topic_0000002013989984_section98641131621"></a>**
@@ -1744,22 +1744,22 @@ L2 Cache数据无timeline信息，summary信息在l2\_cache\_\*.csv文件汇总�
 **产品支持情况<a name="zh-cn_topic_0000001704262430_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **l2\_cache\_\*.csv文件说明<a name="zh-cn_topic_0000001704262430_section98641131621"></a>**
@@ -1773,10 +1773,10 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 对于下列产品：
 
 <!-- npu="310p" id49 -->
-- 昇腾310P系列产品
+- Atlas 推理系列产品
 <!-- end id49 -->
 <!-- npu="910" id50 -->
-- 昇腾910系列产品
+- Atlas 训练系列产品
 <!-- end id50 -->
 
 该文件中第一个算子的Hit Rate和Victim Rate数据不作为参考。
@@ -1786,13 +1786,13 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 对于下列产品
 
 <!-- npu="310b" id51 -->
-- 昇腾310B系列产品
+- Atlas 200I/500 A2 推理产品
 <!-- end id51 -->
 <!-- npu="910b" id52 -->
-- 昇腾A2系列产品
+- Atlas A2 系列产品
 <!-- end id52 -->
 <!-- npu="A3" id53 -->
-- 昇腾A3系列产品
+- Atlas A3 系列产品
 <!-- end id53 -->
 
 该文件中第一个算子数据缺失，不影响整体的性能分析。
@@ -1805,8 +1805,8 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 |Device_id|设备ID。|
 |Stream Id|该Task所处的Stream ID。|
 |Task Id|Task任务的ID。|
-|Hit Rate|内存访问请求命中L2次数与内存访问请求总次数的比值。<br>对于昇腾310B系列产品、昇腾A2系列产品、昇腾A3系列产品，Hit Rate数据推荐使用aic_metrics的L2 Cache分组实现，此采集方式下Hit Rate数据在op\_summary\_\*.csv文件中呈现。|
-|Victim Rate|内存访问请求未命中并触发Cache中数据被换出的次数与内存访问请求总次数的比值。<br>对于昇腾310B系列产品、昇腾A2系列产品、昇腾A3系列产品，Victim Rate数据可能出现大于1的情况。|
+|Hit Rate|内存访问请求命中L2次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品，Hit Rate数据推荐使用aic_metrics的L2 Cache分组实现，此采集方式下Hit Rate数据在op\_summary\_\*.csv文件中呈现。|
+|Victim Rate|内存访问请求未命中并触发Cache中数据被换出的次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品，Victim Rate数据可能出现大于1的情况。|
 |Op Name|算子名称。|
 
 #### fusion\_op（算子融合信息）<a name="ZH-CN_TOPIC_0000002477463230"></a>
@@ -1818,22 +1818,22 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001704421886_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **fusion\_op\_\*.csv文件说明<a name="zh-cn_topic_0000001704421886_section98641131621"></a>**
@@ -1865,22 +1865,22 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001924444106_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **static\_op\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001924444106_section104048511517"></a>**
@@ -1913,22 +1913,22 @@ static\_op\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001751484586_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **sys\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751484586_section104048511517"></a>**
@@ -1960,22 +1960,22 @@ sys\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001798284369_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **process\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798284369_section104048511517"></a>**
@@ -2003,22 +2003,22 @@ AI CPU（执行AI CPU算子）、Ctrl CPU（执行Driver任务）利用率数据
 **产品支持情况<a name="zh-cn_topic_0000001798325329_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798325329_section104048511517"></a>**
@@ -2048,22 +2048,22 @@ cpu\_usage\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001751325670_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751325670_section104048511517"></a>**
@@ -2089,22 +2089,22 @@ process\_cpu\_usage\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_000000170451974_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的片上内存数据说明<a name="zh-cn_topic_000000170451974_section1861610200457"></a>**
@@ -2159,22 +2159,22 @@ HCCS集合通信带宽数据timeline信息在msprof\_\*.json文件的HCCS层级�
 **产品支持情况<a name="zh-cn_topic_0000001752359493_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的HCCS层级数据说明<a name="zh-cn_topic_0000001752359493_section279614455011"></a>**
@@ -2216,22 +2216,22 @@ hccs\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001750414058_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的NIC层级数据说明<a name="zh-cn_topic_0000001750414058_section10870339706"></a>**
@@ -2283,22 +2283,22 @@ RoCE通信接口带宽数据timeline信息在msprof\_\*.json文件的RoCE层级�
 **产品支持情况<a name="zh-cn_topic_0000001750572972_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的RoCE层级数据说明<a name="zh-cn_topic_0000001750572972_section11622953115117"></a>**
@@ -2350,22 +2350,22 @@ PCIe带宽数据timeline信息在msprof\_\*.json文件的PCIe层级展示，summ
 **产品支持情况<a name="zh-cn_topic_0000001797493789_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的PCIe层级数据说明<a name="zh-cn_topic_0000001797493789_section11622953115117"></a>**
@@ -2408,27 +2408,27 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 **产品支持情况<a name="zh-cn_topic_0000001797600917_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的biu\_group、aic\_core\_group、aiv\_core\_group层级数据说明<a name="zh-cn_topic_0000001797600917_section432932191111"></a>**
 
-以昇腾A3系列产品和昇腾A2系列产品数据为例。
+以Atlas A3 系列产品和Atlas A2 系列产品数据为例。
 
 **图 1**  biu\_group<a name="zh-cn_topic_0000001797600917_fig13198121214588"></a>  
 ![](../figures/biu_group.png "biu_group")
@@ -2451,7 +2451,7 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 <!-- npu="950" id13 -->
 > [!NOTE]
 >
-> 以上biu_group层级为昇腾A3系列产品和昇腾A2系列产品数据，对于昇腾950PR&950DT系列产品，则为Biu Perf层级（BIU指令流水），下层则是以Group{id}-{核id}的维度进行分组，例如Group0-aiv0，分组下的字段和biu_group层级一致。
+> 以上biu_group层级为Atlas A3 系列产品和Atlas A2 系列产品数据，对于Ascend 950PR&950DT 系列产品，则为Biu Perf层级（BIU指令流水），下层则是以Group{id}-{核id}的维度进行分组，例如Group0-aiv0，分组下的字段和biu_group层级一致。
 <!-- end id13 -->
 
 **表 2**  字段说明（aic_core_group）
@@ -2482,22 +2482,22 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 **产品支持情况<a name="zh-cn_topic_0000001750723840_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Acc PMU层级数据说明<a name="zh-cn_topic_0000001750723840_section432932191111"></a>**
@@ -2525,22 +2525,22 @@ SoC传输带宽信息数据无summary信息，timeline信息在msprof\_\*.json�
 **产品支持情况<a name="zh-cn_topic_0000001797682569_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Soc Info层级数据说明<a name="zh-cn_topic_0000001797682569_section432932191111"></a>**
@@ -2566,22 +2566,22 @@ msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 **产品支持情况<a name="zh-cn_topic_0000001750882752_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Chip Trans层级数据说明<a name="zh-cn_topic_0000001750882752_section11622953115117"></a>**
@@ -2595,10 +2595,10 @@ msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 
 |字段名|字段含义|
 |--|--|
-|PA Link Rx|PA流量接收级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。昇腾950PR&950DT系列产品不支持此数据。|
-|PA Link Tx|PA流量发送级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。昇腾950PR&950DT系列产品不支持此数据。|
-|PCIE Read Bandwidth|PCIe读带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅昇腾950PR&950DT系列产品支持此数据。|
-|PCIE Write Bandwidth|PCIe写带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅昇腾950PR&950DT系列产品支持此数据。|
+|PA Link Rx|PA流量接收级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT 系列产品不支持此数据。|
+|PA Link Tx|PA流量发送级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT 系列产品不支持此数据。|
+|PCIE Read Bandwidth|PCIe读带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT 系列产品支持此数据。|
+|PCIE Write Bandwidth|PCIe写带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT 系列产品支持此数据。|
 <!-- end id64 -->
 
 #### llc\_read\_write（三级缓存读写速率）<a name="ZH-CN_TOPIC_0000002477463240"></a>
@@ -2608,22 +2608,22 @@ msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 **产品支持情况<a name="zh-cn_topic_0000001750960004_section1413114612162"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的LLC层级数据说明<a name="zh-cn_topic_0000001750960004_section12203141812107"></a>**
@@ -2667,22 +2667,22 @@ DVPP数据无timeline信息，summary信息在dvpp\_\*.csv文件汇总。
 **产品支持情况<a name="zh-cn_topic_0000001798325341_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **dvpp\_\*.csv文件说明<a name="zh-cn_topic_0000001798325341_section11791341554"></a>**
@@ -2712,22 +2712,22 @@ AI CPU热点函数数据无timeline信息，summary信息在ai\_cpu\_top\_functi
 **产品支持情况<a name="zh-cn_topic_0000001798284377_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ai\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284377_section11791341554"></a>**
@@ -2754,22 +2754,22 @@ AI CPU PMU事件数据无timeline信息，summary信息在ai\_cpu\_pmu\_events\_
 **产品支持情况<a name="zh-cn_topic_0000001751325686_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ai\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325686_section11791341554"></a>**
@@ -2795,22 +2795,22 @@ Ctrl CPU热点函数数据无timeline信息，summary信息在ctrl\_cpu\_top\_fu
 **产品支持情况<a name="zh-cn_topic_0000001798325349_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ctrl\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798325349_section11791341554"></a>**
@@ -2837,22 +2837,22 @@ Ctrl CPU PMU事件数据无timeline信息，summary信息在ctrl\_cpu\_pmu\_even
 **产品支持情况<a name="zh-cn_topic_0000001751484602_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ctrl\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751484602_section11791341554"></a>**
@@ -2879,22 +2879,22 @@ TS CPU热点函数数据无timeline信息，summary信息在ts\_cpu\_top\_functi
 **产品支持情况<a name="zh-cn_topic_0000001798284385_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ts\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284385_section11791341554"></a>**
@@ -2922,22 +2922,22 @@ TS CPU PMU事件数据无timeline信息，summary信息在ts\_cpu\_pmu\_events\_
 **产品支持情况<a name="zh-cn_topic_0000001751325694_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：不支持
+- Ascend 950PR&950DT 系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **ts\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325694_section11791341554"></a>**
@@ -2964,22 +2964,22 @@ Host侧CPU利用率数据在msprof\_\*.json文件的CPU Usage层级展示，summ
 **产品支持情况<a name="zh-cn_topic_0000001751778214_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CPU Usage层级数据说明<a name="zh-cn_topic_0000001751778214_section11622953115117"></a>**
@@ -3021,22 +3021,22 @@ Host侧CPU频率数据在msprof\_\*.json文件的CPU Freq层级展示，无summa
 
 <!-- npu="950" id1 -->
 
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
   <!-- end id1 -->
   <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
   <!-- end id2 -->
   <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
   <!-- end id3 -->
   <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
   <!-- end id4 -->
   <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
   <!-- end id5 -->
   <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
   <!-- end id6 -->
 
 **msprof\_\*.json文件的CPU Freq层级数据说明**
@@ -3062,22 +3062,22 @@ Host侧内存利用率数据timeline信息在msprof\_\*.json文件的Memory Usag
 **产品支持情况<a name="zh-cn_topic_0000001751619310_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Memory Usage层级数据说明<a name="zh-cn_topic_0000001751619310_section11622953115117"></a>**
@@ -3116,22 +3116,22 @@ Host侧磁盘I/O利用率数据timeline信息在msprof\_\*.json文件的Disk Usa
 **产品支持情况<a name="zh-cn_topic_0000001798578961_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Disk Usage层级数据说明<a name="zh-cn_topic_0000001798578961_section11622953115117"></a>**
@@ -3171,22 +3171,22 @@ Host侧网络I/O利用率数据timeline信息在msprof\_\*.json文件的Network 
 **产品支持情况<a name="zh-cn_topic_0000001798698005_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Network Usage层级数据说明<a name="zh-cn_topic_0000001798698005_section11622953115117"></a>**
@@ -3225,22 +3225,22 @@ Host侧syscall和pthreadcall数据timeline信息在msprof\_\*.json文件的OS Ru
 **产品支持情况<a name="zh-cn_topic_0000001751778218_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的OS Runtime API层级数据说明<a name="zh-cn_topic_0000001751778218_section11622953115117"></a>**
@@ -3285,22 +3285,22 @@ Host侧系统CPU利用率数据无timeline信息，summary信息在cpu\_usage\_\
 **产品支持情况<a name="zh-cn_topic_0000001751619314_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001751619314_section11791341554"></a>**
@@ -3330,22 +3330,22 @@ Host侧进程CPU利用率数据无timeline信息，summary信息在process\_cpu\
 **产品支持情况<a name="zh-cn_topic_0000001798578965_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001798578965_section11791341554"></a>**
@@ -3371,22 +3371,22 @@ Host侧系统内存利用率数据无timeline信息，summary信息在sys\_mem\_
 **产品支持情况<a name="zh-cn_topic_0000001798698009_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **sys\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001798698009_section11791341554"></a>**
@@ -3418,22 +3418,22 @@ Host侧进程内存利用率数据无timeline信息，summary信息在process\_m
 **产品支持情况<a name="zh-cn_topic_0000001800355893_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **process\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001800355893_section11791341554"></a>**
@@ -3463,22 +3463,22 @@ TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录�
 **产品支持情况<a name="section1568858014"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
@@ -3512,22 +3512,22 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 **产品支持情况<a name="section156885801410"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514482"></a>**
@@ -3554,22 +3554,22 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 **产品支持情况<a name="section156885801411"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：不支持
+- Atlas A3 系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：不支持
+- Atlas A2 系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CCU层级数据说明<a name="section11622953115117"></a>**
@@ -3608,22 +3608,22 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 **产品支持情况<a name="section156885801412"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：不支持
+- Atlas A3 系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：不支持
+- Atlas A2 系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
@@ -3652,22 +3652,22 @@ UB带宽数据timeline信息在msprof\_\*.json文件的UB层级展示，summary�
 **产品支持情况<a name="section156885801414"></a>**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：不支持
+- Atlas A3 系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：不支持
+- Atlas A2 系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：不支持
+- Atlas 200I/500 A2 推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：不支持
+- Atlas 推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：不支持
+- Atlas 训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof_\*.json文件的UB层级数据说明**
@@ -3714,22 +3714,22 @@ ub_*.csv文件内容格式示例如下：
 **产品支持情况**
 
 <!-- npu="950" id1 -->
-- 昇腾950PR&950DT系列产品：支持
+- Ascend 950PR&950DT 系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- 昇腾A3系列产品：支持
+- Atlas A3 系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- 昇腾A2系列产品：支持
+- Atlas A2 系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- 昇腾310B系列产品：支持
+- Atlas 200I/500 A2 推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- 昇腾310P系列产品：支持
+- Atlas 推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- 昇腾910系列产品：支持
+- Atlas 训练系列产品：支持
 <!-- end id6 -->
 
 **metrics.csv文件说明**
