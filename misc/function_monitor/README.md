@@ -9,7 +9,7 @@
  **使用流程**
 
 1. 通过 Python 装饰器或 with 语句实现对指定函数的执行时间及 CPU PMU 指标采集，支持基于耗时阈值进行数据过滤，并将采集结果持久化写入日志文件。
-2. 将采集的日志文件后处理，转换为 Chrome Trace Json 格式。
+2. 将采集的日志文件进行后处理，转换为 Chrome Trace Json 格式。
 3. 导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)，进行可视化展示，分析函数执行耗时与 CPU PMU 指标之间的关系。
 
 ## 注意事项
@@ -29,9 +29,9 @@
 
 | 环境变量 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| ENABLE_FUNCTION_MONITOR | 可选 | 指定是否开启 Function Monitor 函数监控采集，支持设置为 True 或 False，若需要开启函数监控采集，必须设置为 True，默认值为 False， 表示不开启 |
-| ENABLE_LIBKPERF | 可选 | 指定是否使用 libkperf 采集 CPU PMU 指标，支持设置为 True 或 False，默认值为 False， 表示不开启 |
-| FUNCTION_MONITOR_LOG_PATH | 可选 | 指定函数监控采集日志文件的存储路径，若未指定，则默认存储在当前用户主目录下的 function_monitor_log 目录（如 /home/user/function_monitor_log） |
+| ENABLE_FUNCTION_MONITOR | 可选 | 指定是否开启 Function Monitor 函数监控采集，支持设置为 True 或 False，若需要开启函数监控采集，必须设置为 True，默认值为 False，表示不开启。 |
+| ENABLE_LIBKPERF | 可选 | 指定是否使用 libkperf 采集 CPU PMU 指标，支持设置为 True 或 False，默认值为 False，表示不开启。 |
+| FUNCTION_MONITOR_LOG_PATH | 可选 | 指定函数监控采集日志文件的存储路径，若未指定，则默认存储在当前用户主目录下的 function_monitor_log 目录（如 /home/user/function_monitor_log）。 |
 
 当设置 **ENABLE_LIBKPERF** 环境变量为 True 时，采集 CPU PMU 指标时，用户可在 `function_monitor.py` 中 `PerformanceMonitor` 类的 `evt_list` 参数中指定要采集的 perf event 列表，默认值为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
 
@@ -53,7 +53,7 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
 
 **使用示例**
 
-1. 设置环境变量
+1. 设置环境变量。
 
     ```bash
     export ENABLE_FUNCTION_MONITOR=True
@@ -61,7 +61,7 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
     export FUNCTION_MONITOR_LOG_PATH=${HOME}/function_monitor_log
     ```
 
-2. 修改 function_monitor.py 中 `PerformanceMonitor` 类的 `evt_list` 参数，指定要采集的 perf event 列表为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**
+2. 修改 function_monitor.py 中 `PerformanceMonitor` 类的 `evt_list` 参数，指定要采集的 perf event 列表为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
 
     ```python
     class PerformanceMonitor:
@@ -79,24 +79,24 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
                 self.monitor_enabled = False
     ```
 
-3. 在 PyTorch 模型脚本中引入 `@function_monitor` 装饰器，将需要采集数据的函数进行装饰
+3. 在 PyTorch 模型脚本中引入 `@function_monitor` 装饰器，将需要采集数据的函数进行装饰。
 
     ```python
     import os
     import torch
     from function_monitor import function_monitor
-
+    
     @function_monitor(func_name='model_run', threshold_ms=1)
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-
+    
         for i in range(10):
             C = torch.matmul(A, B)
             D = torch.nn.functional.relu(C)
             E = torch.nn.functional.layer_norm(D, D.size()[1:])
-
+    
     if __name__ == '__main__':
         for i in range(10):
             model_run()
@@ -114,13 +114,13 @@ function_monitor.py 中还提供了上下文管理器 `FunctionMonitorContext`�
 
 | 参数 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| func_name | 必选 | 设置要采集数据的函数名称 |
-| process_name | 可选 | 设置采集数据的进程名称，若未指定，则默认为当前进程名称 |
-| threshold_ms | 可选 | 设置采集数据的耗时阈值，只有函数执行耗时大于该阈值，才会记录到日志文件中，单位为 ms，若未指定，则默认为 1 |
+| func_name | 必选 | 设置要采集数据的函数名称。 |
+| process_name | 可选 | 设置采集数据的进程名称，若未指定，则默认为当前进程名称。 |
+| threshold_ms | 可选 | 设置采集数据的耗时阈值，只有函数执行耗时大于该阈值，才会记录到日志文件中，单位为 ms，若未指定，则默认为 1。 |
 
 **使用示例**
 
-1. 设置环境变量
+1. 设置环境变量。
 
     ```bash
     export ENABLE_FUNCTION_MONITOR=True
@@ -128,7 +128,7 @@ function_monitor.py 中还提供了上下文管理器 `FunctionMonitorContext`�
     export FUNCTION_MONITOR_LOG_PATH=${HOME}/function_monitor_log
     ```
 
-2. 修改 function_monitor.py 中 `PerformanceMonitor` 类的 `evt_list` 参数，指定要采集的 perf event 列表为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**
+2. 修改 function_monitor.py 中 `PerformanceMonitor` 类的 `evt_list` 参数，指定要采集的 perf event 列表为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
 
     ```python
     class PerformanceMonitor:
@@ -146,24 +146,24 @@ function_monitor.py 中还提供了上下文管理器 `FunctionMonitorContext`�
                 self.monitor_enabled = False
     ```
 
-3. 在 PyTorch 模型脚本中引入 `FunctionMonitorContext` 上下文管理器，将需要采集数据的代码块封装在 with 语句块中
+3. 在 PyTorch 模型脚本中引入 `FunctionMonitorContext` 上下文管理器，将需要采集数据的代码块封装在 with 语句块中。
 
     ```python
     import os
     import torch
     from function_monitor import FunctionMonitorContext
-
+    
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-
+    
         with FunctionMonitorContext(func_name='torch_operator_run', threshold_ms=1):
             for i in range(10):
                 C = torch.matmul(A, B)
                 D = torch.nn.functional.relu(C)
                 E = torch.nn.functional.layer_norm(D, D.size()[1:])
-
+    
     if __name__ == '__main__':
         for i in range(10):
             model_run()
@@ -187,8 +187,8 @@ python log2trace.py --input <input_file> --output <output_file>
 
 | 参数 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| --input | 必选 | 指定输入的 function_monitor 采集日志文件路径，需指定到文件名 |
-| --output | 可选 | 指定输出的 Chrome Trace Json 文件路径，需指定到文件名，若未指定，则默认在当前目录下生成与输入文件名相同但后缀为 '_trace.json' 的文件 |
+| --input | 必选 | 指定输入的 function_monitor 采集日志文件路径，需指定到文件名。 |
+| --output | 可选 | 指定输出的 Chrome Trace Json 文件路径，需指定到文件名，若未指定，则默认在当前目录下生成与输入文件名相同但后缀为 '_trace.json' 的文件。 |
 
 **使用示例**
 

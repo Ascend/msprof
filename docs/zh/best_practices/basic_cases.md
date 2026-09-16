@@ -6,12 +6,12 @@
 
 ## 1.1 环境要求
 
-- 已安装**CANN Toolkit开发套件包**和**ops算子包**
-- 已安装**MindStudio Insight**可视化分析工具
+- 已安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
+- 已安装MindStudio Insight可视化分析工具，请参见昇腾社区MindStudio[下载](https://www.hiascend.com/developer/software/mindstudio/download)页面。
 
 ## 1.2 配置环境变量
 
-执行以下命令配置CANN环境变量(以cann-9.1.0为例)：
+执行以下命令配置CANN环境变量（以CANN 9.1.0为例）。
 
 ```bash
 source /usr/local/Ascend/cann/set_env.sh
@@ -19,13 +19,13 @@ source /usr/local/Ascend/cann/set_env.sh
 
 ## 1.3 验证工具可用性
 
-执行以下命令确认msProf工具版本正常：
+执行以下命令确认msProf工具版本正常。
 
 ```bash
 msprof --version
 ```
 
-同时验证NPU设备状态，确保设备可正常调用：
+同时验证NPU设备状态，确保设备可正常使用。
 
 ```bash
 npu-smi info
@@ -39,20 +39,20 @@ npu-smi info
 
 ## 2.1 性能数据采集
 
-使用msProf命令行工具采集推理模型的性能数据：
+使用msProf命令行工具采集推理模型的性能数据。
 
 ```bash
 msprof --output="./prof_data" --task-time=l1 python3 resnet50_infer.py
 ```
 
-![图一](../figures/msprof_collection_result.png)
-
-**参数说明**：
-
 | 参数 | 说明 |
 |------|------|
-| `--output` | 性能数据的存放路径，默认为AI任务文件所在目录 |
-| `--task-time` | 采集数据级别，默认为l0级别 |
+| `--output` | 性能数据的存放路径，默认为AI任务文件所在目录。 |
+| `--task-time` | 采集数据级别，默认为l0级别。 |
+
+命令执行打印信息如下：
+
+![图一](../figures/msprof_collection_result.png)
 
 **其他常见命令示例**：
 
@@ -72,7 +72,7 @@ msprof --output=/home/projects/output /home/projects/MyApp/out/sample_run.sh par
 
 ## 2.2 性能数据解析
 
-采集完成后，执行以下命令解析性能数据，生成可分析的报告：
+采集完成后，执行以下命令解析性能数据，生成可分析的报告。
 
 ```bash
 msprof --export=on --output="./prof_data"
@@ -82,7 +82,7 @@ msprof --export=on --output="./prof_data"
 
 ## 2.3 查看性能数据
 
-1. 查看生成的文件结构
+1. 查看生成的文件结构。
 
     ```bash
     ls -la ./prof_data/PROF_XXX/
@@ -90,8 +90,10 @@ msprof --export=on --output="./prof_data"
 
     ![图二](../figures/prof_data_structure.png)
 
-    采集解析数据格式和交付件请参见《[profile_data_file_references](../user_guide/profile_data_file_references.md)》
+    采集解析数据格式和交付件请参见《[性能数据文件参考](../user_guide/profile_data_file_references.md)》。
 
-2. 使用MindStudio Insight可视化分析
+2. 使用MindStudio Insight可视化分析。
 
     进入`PROF_XXX/mindstudio_profiler_output`目录，将性能数据导入MindStudio Insight工具进行可视化分析。MindStudio Insight提供了多种数据呈现形式，包括时间线视图、通信分析、计算耗时等可视化呈现，帮助用户快速定位性能瓶颈。
+    
+    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》。

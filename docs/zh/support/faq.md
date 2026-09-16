@@ -2,7 +2,7 @@
 
 ## 一、故障排查
 
-- **Q：为什么PROF文件夹拖入insight没有任何呈现？**
+- **Q：为什么PROF文件夹拖入insight没有任何显示？**
 - A：确认PROF目录下是否存在mindstudio_profiler_output目录，若不存在相关目录，则使用msprof --export=on --output={PROF路径}进行数据解析。
 
 - **Q：PLOG日志在哪里？如何配置？**
@@ -28,7 +28,7 @@
   - 目录没有相关操作权限
 
 - **Q：msprof动态采集，配置完成后实际当前路径没有采集到相关数据？**
-- A：优先查看prof_dir的路径，如果是相对路径则是相对于脚本的路径，而不是相对于profiler_config.json的路径；
+- A：优先查看prof_dir的路径，如果是相对路径则是相对于脚本的路径，而不是相对于profiler_config.json的路径。
 
 - **Q：安装 `mindstudio-profiler_26.0.0_aarch64.run --install` 时提示 `Not enough space left in /root` 怎么处理？**
 - A：这是安装包在解压阶段默认使用了 `/root` 作为临时目录，但 `/root` 剩余空间不足导致安装失败，并不是 `.run` 包本身损坏。

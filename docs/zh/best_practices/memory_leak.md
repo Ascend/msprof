@@ -2,11 +2,9 @@
 
 ## 1. 问题背景
 
-【问题来源】
-CANN 包版本升级（A版本 → B版本），推理场景。
+问题来源：CANN 包版本升级（A版本 → B版本），推理场景。
 
-【问题现象】
-稳定复现。B版本运行约 12 小时后，在第 471 个 step 出现 OOM。该问题在 A 版本上未复现，且在 GPU 上同样未出现，仅在 NPU B 版本上复现。已确认开启了虚拟内存。
+问题现象：稳定复现。B版本运行约 12 小时后，在第 471 个 step 出现 OOM。该问题在 A 版本上未复现，且在 GPU 上同样未出现，仅在 NPU B 版本上复现。已确认开启了虚拟内存。
 
 ## 2. 定位过程
 
@@ -78,8 +76,8 @@ with torch_npu.profiler.profile(
 
 筛选 `operator_memory.csv` 后发现：
 
-- `aten::empty` 算子申请了约 47MB 内存但全程未记录到对应的释放操作
-- 调用栈显示该 `aten::empty` 来自 `custom_attention_forward` 算子内部的中间 tensor 分配
+- `aten::empty` 算子申请了约 47MB 内存但全程未记录到对应的释放操作。
+- 调用栈显示该 `aten::empty` 来自 `custom_attention_forward` 算子内部的中间 tensor 分配。
 
 进一步代码审查发现，B版本中 `custom_attention_forward` 的 KV-cache 实现存在引用计数问题：中间 tensor 被 cache 内部引用后，Python 侧引用计数未正确递减，导致 step 结束后 tensor 不会被 GC 回收，累积在内存池中。
 
@@ -100,6 +98,6 @@ B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数�
 
 ## 5. 对工具的改进建议
 
-- `operator_memory.csv` 目前需要手动对比申请和释放记录来识别泄漏算子，建议增加"未释放算子"的自动标注能力
-- profiling 工具可增加跨 step 的 `allocated` 趋势图自动生成，降低泄漏累积的识别门槛
-- 建议在 profiler 中增加算子级内存生命周期跟踪，自动关联申请与释放，直接标记异常
+- `operator_memory.csv` 目前需要手动对比申请和释放记录来识别泄漏算子，建议增加"未释放算子"的自动标注能力。
+- profiling 工具可增加跨 step 的 `allocated` 趋势图自动生成，降低泄漏累积的识别门槛。
+- 建议在 profiler 中增加算子级内存生命周期跟踪，自动关联申请与释放，直接标记异常。

@@ -2188,7 +2188,8 @@ msprof\_\*.json文件HCCS层级数据如下图所示。
 
 |字段名|字段含义|
 |--|--|
-|Rx、Tx|接收带宽、发送带宽，单位MB/s。|
+|Rx|接收带宽，单位MB/s。|
+|Tx|发送带宽，单位MB/s。|
 
 **hccs\_\*.csv文件说明<a name="zh-cn_topic_0000001752359493_section12139135285518"></a>**
 
@@ -3014,11 +3015,11 @@ host\_cpu\_usage\_\*.csv文件内容格式示例如下：
 |Recommend Cpu Numbers|使用中的CPU核数，虚拟化场景中为CPU核数资源的推荐分配值。|
 
 #### CPU Freq（Host侧CPU频率）<a name="ZH-CN_TOPIC_0000002477463249"></a>
-
+ 
 Host侧CPU频率数据在msprof\_\*.json文件的CPU Freq层级展示，无summary信息。
-
+ 
 **产品支持情况**
-
+ 
 <!-- npu="950" id1 -->
 
 - Ascend 950PR&950DT 系列产品：支持
@@ -3038,19 +3039,19 @@ Host侧CPU频率数据在msprof\_\*.json文件的CPU Freq层级展示，无summa
   <!-- npu="910" id6 -->
 - Atlas 训练系列产品：支持
   <!-- end id6 -->
-
+ 
 **msprof\_\*.json文件的CPU Freq层级数据说明**
-
+ 
 msprof\_\*.json文件CPU Freq层级数据如下图所示。
-
+ 
 **图 1**  CPU Freq层  
-
+ 
 ![cpu_freq](../figures/cpu_freq.png)
-
+ 
 上图中记录采集过程中每个时刻的CPU频率。
-
+ 
 **表 1**  字段说明
-
+ 
 | 字段名   | 字段含义 |
 | -------- | -------- |
 | CPU {ID} | CPU ID。 |

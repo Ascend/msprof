@@ -135,7 +135,7 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 
 **使用示例**
 
-指定性能数据文件目录的为/home/profiler\_data/PROF\_XXX目录，执行导出命令。
+指定性能数据文件目录为/home/profiler\_data/PROF\_XXX目录，执行导出命令。
 
 ```bash
 msprof --export=on --output=/home/profiler_data/PROF_XXX
@@ -197,7 +197,7 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
 }
 ```
 
-以上为控制相应性能数据的开关，可配置开启（true）或关闭（false或删除字段）。控制的性能数据包括msprof\_\*.json文件的timeline数据层级（包括CANN，Ascend Hardware、AI Core Freq、片上内存、Communication、Overlap Analysis、NPU\_MEM层级等）。
+以上为控制相应性能数据的开关，可配置开启（true）或关闭（false或删除字段）。控制的性能数据包括msprof\_\*.json文件的timeline数据层级（包括CANN、Ascend Hardware、AI Core Freq、片上内存、Communication、Overlap Analysis、NPU\_MEM层级等）。
 
 >[!NOTE]
 >
@@ -269,9 +269,26 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
 
 ## 4. 查询性能数据文件信息
 
-**产品支持情况<a name="zh-cn_topic_0000001265069802_section026513436147"></a>**
+**产品支持情况**
 
-同[解析并导出性能数据](#解析并导出性能数据)中的支持范围。
+<!-- npu="950" id1 -->
+- Ascend 950PR&950DT 系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 推理产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas 推理系列产品：支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas 训练系列产品：支持
+<!-- end id6 -->
 
 **功能说明<a name="zh-cn_topic_0000001265069802_section145530158016"></a>**
 
@@ -334,9 +351,27 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --model-id=3 --iteratio
 
 ## 5. 解析性能数据
 
-**产品支持情况<a name="zh-cn_topic_0000001265229730_zh-cn_topic_0000002111094444_section5889102116569"></a>**
+**产品支持情况**
 
-同[解析并导出性能数据](#解析并导出性能数据)中的支持范围。
+<!-- npu="950" id1 -->
+
+- Ascend 950PR&950DT 系列产品：支持
+  <!-- end id1 -->
+  <!-- npu="A3" id2 -->
+- Atlas A3 系列产品：支持
+  <!-- end id2 -->
+  <!-- npu="910b" id3 -->
+- Atlas A2 系列产品：支持
+  <!-- end id3 -->
+  <!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 推理产品：支持
+  <!-- end id4 -->
+  <!-- npu="310p" id5 -->
+- Atlas 推理系列产品：支持
+  <!-- end id5 -->
+  <!-- npu="910" id6 -->
+- Atlas 训练系列产品：支持
+  <!-- end id6 -->
 
 **功能说明<a name="zh-cn_topic_0000001265229730_section180511375811"></a>**
 

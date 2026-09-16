@@ -74,7 +74,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 🛠️ 贡献指南
 
-欢迎参与项目贡献，请参见 《[贡献指南](docs/zh/contributing/contributing_guide.md)》。
+欢迎参与项目贡献，请参见《[贡献指南](docs/zh/contributing/contributing_guide.md)》。
 
 ## ⚖️ 相关说明
 

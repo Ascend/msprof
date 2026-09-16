@@ -310,7 +310,7 @@ msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_
 |1|COMMUNICATION|
 |2|COMM_NOT_OVERLAP_COMP|
 |3|FREE|
-|65535|RESERVE|
+|65535|RESERVED|
 
 ## STRING_IDS
 
@@ -460,7 +460,7 @@ task数据，呈现所有硬件执行的算子信息。
 | opId        |INTEGER|索引，通信大算子Id，用于关联COMMUNICATION_TASK_INFO表|
 | relay       |INTEGER|借轨通信标识|
 | retry       |INTEGER|重传标识|
-| dataType    |INTEGER|大算子传输的数据类型，如（INT8，FP32），ENUM_HCCL_DATA_TYPE(dataType)|
+| dataType    |INTEGER|大算子传输的数据类型，如（INT8、FP32），ENUM_HCCL_DATA_TYPE(dataType)|
 | algType     |INTEGER|通信算子使用的算法，可分为多个阶段，STRING_IDS(algType)，如（HD-MESH）|
 | count       |NUMERIC|算子传输的dataType类型的数据量|
 | opType      |INTEGER|算子类型，STRING_IDS(opType)，例：hcom_broadcast_|
@@ -912,7 +912,7 @@ PCIe带宽数据。
 |txNonpostLatencyAvg|NUMERIC|发送端PCIe Non-Post模式下的传输时延平均值，单位ns|
 |rxPostMin|NUMERIC|接收端PCIe Post数据传输带宽最小值，单位Byte/s|
 |rxPostMax|NUMERIC|接收端PCIe Post数据传输带宽最大值，单位Byte/s|
-|rxPostAvg|NUMERIC|接收端PCIe Post数据传输带宽平均值，单位Byte/s。|
+|rxPostAvg|NUMERIC|接收端PCIe Post数据传输带宽平均值，单位Byte/s|
 |rxNonpostMin|NUMERIC|接收端PCIe Non-Post数据传输带宽最小值，单位Byte/s|
 |rxNonpostMax|NUMERIC|接收端PCIe Non-Post数据传输带宽最大值，单位Byte/s|
 |rxNonpostAvg|NUMERIC|接收端PCIe Non-Post数据传输带宽平均值，单位Byte/s|

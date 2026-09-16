@@ -46,7 +46,7 @@
        data_simplification=False,
        host_sys=[torch_npu.profiler.HostSystem.OSRT], # 采集进程级别的系统调用
    )
-
+   
    # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
    with torch_npu.profiler.profile(
        activities=[
@@ -56,14 +56,14 @@
        schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),    # 与prof.step()配套使用
        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
        experimental_config=experimental_config) as prof:
-
+   
        # 启动性能数据采集
        for step in range(steps):    # 训练迭代
            train_one_step()         # 训练函数
            prof.step()              # 与schedule配套使用
    ```
 
-   在 Profiler 交付件 trace_view.json 文件中，OS Runtime API层级数据如下图所示:
+   在 Profiler 交付件 trace_view.json 文件中，OS Runtime API层级数据如下图所示：
 
    ![OS Runtime API层级数据](../figures/profiler_case_os_runtime_api.png)
 
@@ -87,16 +87,16 @@
 
    字段说明：
 
-    | 字段名 | 字段含义 |
-    | --- | --- |
-    | Device_id | 设备 ID。Host 侧数据时显示为 host。
-    | Process ID | 进程 ID。
-    | Thread ID | 线程 ID。
-    | Name | API 接口名称。
-    | Time | 该接口耗时占比。
-    | Time(us) | 该接口总耗时，单位 us。
-    | Count | 该接口调用次数。
-    | Avg(us) 、Max(us) 、Min(us) | 该接口调用平均耗时、最大耗时、最小耗时，单位us。 |
+   | 字段名 | 字段含义 |
+   | --- | --- |
+   | Device_id | 设备 ID。Host 侧数据时显示为 host。|
+   | Process ID | 进程 ID。|
+   | Thread ID | 线程 ID。|
+   | Name | API 接口名称。|
+   | Time | 该接口耗时占比。|
+   | Time(us) | 该接口总耗时，单位 us。|
+   | Count | 该接口调用次数。|
+   | Avg(us)、Max(us)、Min(us) | 该接口调用平均耗时、最大耗时、最小耗时，单位us。 |
 
    可以看到 futex、ioctl、pthread_mutex_unlock 等系统调用耗时较长，需要进行进一步分析。
 
@@ -114,6 +114,4 @@ Linux 透明大页（THP）通过自动合并小内存页为大页，减少 TLB 
 
 ## 7. 对工具的改进建议
 
-1. 数据整合与联动分析
-
-   本案例中，系统调用高耗时问题的定位需结合昇腾模型性能数据与 OS 内核数据进行综合分析。当前各工具独立运行，缺乏数据联动与端到端全链路视角，难以支撑复杂问题高效分析。多源数据整合与联动分析是性能诊断工具的未来方向，需在后续建设中重点加强。
+数据整合与联动分析：本案例中，系统调用高耗时问题的定位需结合昇腾模型性能数据与 OS 内核数据进行综合分析。当前各工具独立运行，缺乏数据联动与端到端全链路视角，难以支撑复杂问题高效分析。多源数据整合与联动分析是性能诊断工具的未来方向，需在后续建设中重点加强。

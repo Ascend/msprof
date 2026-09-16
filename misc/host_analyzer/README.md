@@ -16,9 +16,9 @@
 
 #### 功能说明
 
-提供自定义绑核能力，根据用户输入json中的配置方案完成进程/线程级绑核；缺省输入时以经验最优方案进行绑核: 
+提供自定义绑核能力，根据用户输入json中的配置方案完成进程/线程级绑核；缺省输入时以经验最优方案进行绑核：
 
-  - 为每张卡的关键线程 acl_thread/release_thread 单独分配一个 CPU 核，dev[i]_sq_task 单独分配一个 CPU 核（宿主机可绑，未查询到时跳过），算子相关中断 sq_send_trigger_irq 和 cq_update_irq 各单独分配一个 CPU 核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到 6 个 CPU 核上，即每张 NPU 卡绑定到 11 个 CPU 核（分配 CPU 时考虑 NPU 亲和及跨 NUMA 内存访问时延）。
+为每张卡的关键线程 acl_thread/release_thread 单独分配一个 CPU 核，dev[i]_sq_task 单独分配一个 CPU 核（宿主机可绑，未查询到时跳过），算子相关中断 sq_send_trigger_irq 和 cq_update_irq 各单独分配一个 CPU 核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到 6 个 CPU 核上，即每张 NPU 卡绑定到 11 个 CPU 核（分配 CPU 时考虑 NPU 亲和性及跨 NUMA 内存访问时延）。
 
 #### 命令格式
 
@@ -28,24 +28,24 @@ python3 entrance.py bind [-l] [-c <config_path>]
 
 #### 参数说明
 
-| 参数             | 可选/必选 | 说明                                              |
-|----------------|-------|-------------------------------------------------|
-| -l/--log-level | 可选    | 指定打印时的日志等级，类型为int，可选值为[0, 1, 2, 3]，默认值为1        |
-| -c/--config    | 可选    | 指定自定义绑核所需的json配置文件，缺省时按默认策略进行绑核，类型为str，默认值为None |
+| 参数           | 可选/必选 | 说明                                                         |
+| -------------- | --------- | ------------------------------------------------------------ |
+| -l/--log-level | 可选      | 指定打印时的日志等级，类型为int，可选值为[0, 1, 2, 3]，默认值为1。 |
+| -c/--config    | 可选      | 指定自定义绑核所需的json配置文件，缺省时按默认策略进行绑核，类型为str，默认值为None。 |
 
 #### json配置文件参数说明
 
-| 参数               | 可选/必选 | 说明                                                                                                                                          |
-|------------------|-------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| custom_bind      | 必选    | json键值，类型为str，对应value需要为List[Dict]，将每一组绑核对象存放在List中                                                                                         |
-| process_name     | 可选    | 需要绑定的进程或线程名称，类型为str，由is_thread参数决定是进程或线程，指定非NPU卡对应进程或线程时进程数或线程数应等于cpu_list参数长度 <br/>默认值为None                                                |
-| pid              | 可选    | 需要绑定的PID号，可以是一个或多个PID，该参数长度应等于cpu_list参数长度，类型为List[int] <br/>默认值为[]                                                                         |
-| cpu_list         | 必选    | 绑定CPU列表，可以是一个或多个CPU区间，类型为List[str] <br/>默认值为[]                                                                                              |
-| mem_bind         | 可选    | 选择是否需要在绑定CPU后将内存迁移至对应NUMA节点，类型为bool，取值为：<br/>&bull; true：表示绑核后将内存迁移至对应NUMA节点<br/>&bull; false：表示绑核后不需要将内存迁移至对应NUMA节点<br/>默认值为false      |
-| is_thread        | 可选    | 选择绑定的ID是进程ID还是线程ID，类型为bool，取值为：<br/>&bull; true：表示绑定线程ID<br/>&bull; false：表示绑定进程ID<br/>默认值为false                                            |
-| is_irq           | 可选    | 选择绑定的是否为硬件中断，类型为bool，取值为：<br/>&bull; true：表示绑定的是硬件中断<br/>&bull; false：表示绑定的不是硬件中断<br/>默认值为false                                             |
-| irq_id           | 可选    | 需要绑定的硬件中断的中断号，类型为List[int]                                                                                                                  |
-| bind_sub_process | 可选    | 选择绑核时是否需要绑定进程ID或线程ID的所有子线程，类型为bool，取值为：<br/>&bull; true：表示绑核时需要同时绑定进程ID或线程ID的所有子线程<br/>&bull; false：表示绑核时不需要绑定进程ID或线程ID的所有子线程<br/>默认值为false |
+| 参数             | 可选/必选 | 说明                                                         |
+| ---------------- | --------- | ------------------------------------------------------------ |
+| custom_bind      | 必选      | json键值，类型为str，对应value需要为List[Dict]，将每一组绑核对象存放在List中。 |
+| process_name     | 可选      | 需要绑定的进程或线程名称，类型为str，由is_thread参数决定是进程或线程，指定非NPU卡对应进程或线程时进程数或线程数应等于cpu_list参数长度。<br/>默认值为None。 |
+| pid              | 可选      | 需要绑定的PID号，可以是一个或多个PID，该参数长度应等于cpu_list参数长度，类型为List[int]。<br/>默认值为[]。 |
+| cpu_list         | 必选      | 绑定CPU列表，可以是一个或多个CPU区间，类型为List[str]。<br/>默认值为[]。 |
+| mem_bind         | 可选      | 选择是否需要在绑定CPU后将内存迁移至对应NUMA节点，类型为bool，取值为：<br/>&bull; true：表示绑核后将内存迁移至对应NUMA节点。<br/>&bull; false：表示绑核后不需要将内存迁移至对应NUMA节点。<br/>默认值为false。 |
+| is_thread        | 可选      | 选择绑定的ID是进程ID还是线程ID，类型为bool，取值为：<br/>&bull; true：表示绑定线程ID。<br/>&bull; false：表示绑定进程ID。<br/>默认值为false。 |
+| is_irq           | 可选      | 选择绑定的是否为硬件中断，类型为bool，取值为：<br/>&bull; true：表示绑定的是硬件中断。<br/>&bull; false：表示绑定的不是硬件中断。<br/>默认值为false。 |
+| irq_id           | 可选      | 需要绑定的硬件中断的中断号，类型为List[int]。                |
+| bind_sub_process | 可选      | 选择绑核时是否需要绑定进程ID或线程ID的所有子线程，类型为bool，取值为：<br/>&bull; true：表示绑核时需要同时绑定进程ID或线程ID的所有子线程。<br/>&bull; false：表示绑核时不需要绑定进程ID或线程ID的所有子线程。<br/>默认值为false。 |
 
 #### json配置文件示例
 
@@ -91,7 +91,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
 
 - 使用示例1
 
-  ```python
+  ```bash
   python3 entrance.py bind -c ./bind_design.json
   ```
   

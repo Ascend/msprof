@@ -45,7 +45,7 @@ msProf 提供 AI 任务运行性能数据和昇腾 AI 处理器系统数据的�
 
 ### 3.1 方式一：devcontainer 一键开发环境（推荐）
 
-msprof 已内置 [devcontainer](https://containers.dev/) 开发环境配置，开发者通过 VS Code 打开仓库后可一键进入标准化容器，无需手工安装任何依赖。容器自动完成以下准备：
+msProf 已内置 [devcontainer](https://containers.dev/) 开发环境配置，开发者通过 VS Code 打开仓库后可一键进入标准化容器，无需手工安装任何依赖。容器自动完成以下准备：
 
 - Python 3 环境与编译工具链（GCC 11.2.0、CMake 3.14+）
 - 系统依赖安装（python3-devel、pip 包含 pytest/coverage）
@@ -58,7 +58,7 @@ msprof 已内置 [devcontainer](https://containers.dev/) 开发环境配置，�
 
 | 环境 | 要求 |
 |------|------|
-| PC | VS Code，安装 Dev Containers 插件 和 Remote-SSH 插件 |
+| PC | VS Code，安装 Dev Containers 插件和 Remote-SSH 插件 |
 | Linux 服务器 | Docker 服务运行中 |
 
 **使用步骤：**
@@ -90,7 +90,7 @@ msprof 已内置 [devcontainer](https://containers.dev/) 开发环境配置，�
 
 ### 3.2 方式二：手动环境配置
 
-如果不能使用 devcontainer，请按按照《[msProf 安装指南 — 源码安装](../install_guide/msprof_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
+如果不能使用 devcontainer，请按照《[msProf 安装指南 — 源码安装](../install_guide/msprof_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
 
 > **说明：** 环境镜像的构建方法及配套软件版本由 MindStudio 统一镜像制作指南维护，本仓库不重复定义。
 

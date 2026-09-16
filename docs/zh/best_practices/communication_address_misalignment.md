@@ -15,7 +15,7 @@
 
 ## 3. 定位过程
 
-### 3.1 采集 profiling，确认通信瓶颈
+### 3.1 采集性能数据确认通信瓶颈
 
 使用 `torch_npu.profiler` 采集完整训练 step 的 profiling 数据，确认通信耗时占比及具体算子。
 
@@ -42,8 +42,8 @@ with torch_npu.profiler.profile(
 
 从 timeline 可观察到，AllReduce 算子耗时存在两种截然不同的模式：
 
-- 模式 A（正常）：AllReduce 耗时约 200ms，hccl 内部直接发起集合通信
-- 模式 B（异常）：AllReduce 耗时约 400ms，hccl 内部多了一段 memcpy 操作
+- 模式 A（正常）：AllReduce 耗时约 200ms，HCCL 内部直接发起集合通信。
+- 模式 B（异常）：AllReduce 耗时约 400ms，HCCL 内部多了一段 memcpy 操作。
 
 <div align="center"><img src="../figures/profiler_case_align_timeline.png" /></div>
 <div align="center"><b>图2：AllReduce 两种模式 timeline 对比</b></div>
@@ -52,7 +52,7 @@ with torch_npu.profiler.profile(
 
 ### 3.2 确认地址不对齐特征
 
-步骤 1 中 timeline 观察到的额外 memcpy 本身就是地址不对齐的典型特征——HCCL 通信库要求输入数据 128 字节对齐，未对齐时内部自动执行对齐拷贝，该操作在 timeline 中表现为 AllReduce 算子内的额外 memcpy。正常 step 中因内存分配恰好对齐，AllReduce 算子内仅有集合通信，无 memcpy。
+[采集性能数据确认通信瓶颈](#31-采集性能数据确认通信瓶颈)中 timeline 观察到的额外 memcpy 本身就是地址不对齐的典型特征——HCCL 通信库要求输入数据 128 字节对齐，未对齐时内部自动执行对齐拷贝，该操作在 timeline 中表现为 AllReduce 算子内的额外 memcpy。正常 step 中因内存分配恰好对齐，AllReduce 算子内仅有集合通信，无 memcpy。
 
 ### 3.3 追溯未对齐 tensor 的来源
 
@@ -85,21 +85,21 @@ AllReduce (hccl)
 3. 对齐问题表现为随机波动——同一算子因内存分配器状态不同而表现不一致，区别于稳定的性能瓶颈。
 4. 修复方式：通信前强制 `tensor.contiguous()` 确保地址对齐，或上游分配时指定对齐参数。
 
-```python
-# 通信前强制对齐
-if tensor.data_ptr() % 128 != 0:
-    tensor = tensor.contiguous()
-```
+   ```python
+   # 通信前强制对齐
+   if tensor.data_ptr() % 128 != 0:
+       tensor = tensor.contiguous()
+   ```
 
 ## 6. 定位方法论总结
 
 1. 通信占比较高时，先通过 profiling 确认是带宽问题还是算子内部额外开销。
 2. 若 AllReduce 耗时波动大且 timeline 中存在额外 memcpy，优先排查 tensor 地址是否对齐。
 3. 从调用栈向上追溯到产生 tensor 的上游算子，检查内存分配方式。
-4. 对齐问题通常表现为"随机性"——同一段代码因内存分配器状态不同而表现不一致。
+4. 对齐问题通常表现为“随机性”（同一段代码因内存分配器状态不同而表现不一致）。
 
 ## 7. 对工具的改进建议
 
-- profiling timeline 中可在 AllReduce 等通信算子上直接标注 tensor 地址对齐状态，降低识别门槛
-- 建议增加 HCCL 通信对齐检查的自动化诊断能力，在采集数据中标注未对齐的通信算子
-- 对 AllReduce 算子内部析出的 memcpy 操作增加明确标记，与普通内存拷贝区分
+- profiling timeline 中可在 AllReduce 等通信算子上直接标注 tensor 地址对齐状态，降低识别门槛。
+- 建议增加 HCCL 通信对齐检查的自动化诊断能力，在采集数据中标注未对齐的通信算子。
+- 对 AllReduce 算子内部出现的 memcpy 操作增加明确标记，与普通内存拷贝区分。

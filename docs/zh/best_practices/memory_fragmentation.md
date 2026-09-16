@@ -4,14 +4,14 @@
 
 服务化推理场景中，显存往往不是瞬时暴涨，而是长时间缓慢增长。这类问题既可能是代码层面的内存泄漏，也可能是框架侧或 GE 侧碎片累积导致的显存持续上涨。
 
-本案例基于 `torch_npu.profiler` 数据，总结"显存缓慢增长"问题的定位过程。
+本案例基于 `torch_npu.profiler` 数据，总结“显存缓慢增长”问题的定位过程。
 
 <div align="center"><img src="../figures/profiler_case_frag_overview.png" /></div>
 <div align="center"><b>图1：显存缓慢增长定位流程总览</b></div>
 
 ## 2. 问题现象
 
-`qwen cosyvoice2` 推理过程中，经过几次图推后显存开始缓慢增长，每次上涨十几 MB，最终约 10小时后 OOM。该问题在 GPU 上未复现，仅在 NPU 上出现。
+`qwen cosyvoice2` 推理过程中，经过几次图推后显存开始缓慢增长，每次上涨十几 MB，最终约 10h 后 OOM。该问题在 GPU 上未复现，仅在 NPU 上出现。
 
 从现象看更接近长时间运行后的显存泄漏，但用户反馈即使开启 `empty_cache`，显存仍持续上涨。
 
@@ -52,12 +52,12 @@ with torch_npu.profiler.profile(
 
 > `allocated`（算子实际使用）保持平稳，排除算子侧的持续泄漏；`reserved`（内存池持有的物理内存）持续上涨，说明分配器持有越来越多的内存却无法归还——这是**内存碎片的典型特征**。
 
-### 3.2 筛选 operator_memory.csv，区分 GE 侧与框架侧来源
+### 3.2 筛选 operator_memory.csv 区分 GE 侧与框架侧来源
 
 确认是碎片问题后，进一步通过 `operator_memory.csv` 定位碎片来自哪一侧：
 
-- 使用 `cann` 关键字筛选 GE 侧内存，`reserved` 逐步上涨至约 800MB
-- 使用 `aten` 关键字筛选 PyTorch 侧内存，`reserved` 同样逐步上涨至约 800MB
+- 使用 `cann` 关键字筛选 GE 侧内存，`reserved` 逐步上涨至约 800MB。
+- 使用 `aten` 关键字筛选 PyTorch 侧内存，`reserved` 同样逐步上涨至约 800MB。
 
 <div align="center"><img src="../figures/profiler_case_frag_filter.png" /></div>
 <div align="center"><b>图3：operator_memory.csv 关键字筛选 GE 侧与框架侧来源</b></div>

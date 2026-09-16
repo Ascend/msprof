@@ -25,7 +25,7 @@
 
 **功能说明<a name="zh-cn_topic_0000001276273570_section4362143220451"></a>**
 
-性能数据采集完成后可以通过“get\_msprof\_info.py”脚本工具在PROF\_XXX目录下的device_\{__id__\} 或host目录文件获取设备信息。“get\_msprof\_info.py”功能及安装路径如下：
+性能数据采集完成后可以通过“get\_msprof\_info.py”脚本工具在PROF\_XXX目录下的device_\{__id__\} 或host目录下的文件获取设备信息。“get\_msprof\_info.py”功能及安装路径如下：
 
 **表 1**  脚本介绍
 
@@ -146,7 +146,7 @@ python3 get_msprof_info.py -dir <dir> [--help]
 
 **功能说明<a name="zh-cn_topic_0000001265229666_section1598625522114"></a>**
 
-性能数据文件分片是对于解析完成的timeline数据文件（.json），系统会识别.json文件在Chrome浏览器（“chrome://tracing”）上打开时间的长短，适当将.json文件切分成合适的数量，以方便用户快速打开。分片操作是在执行性能数据导出时启动。
+性能数据文件分片是指，对于解析完成的timeline数据文件（.json），系统会识别.json文件在Chrome浏览器（“chrome://tracing”）上打开时间的长短，适当将.json文件切分成合适的数量，以方便用户快速打开。分片操作是在执行性能数据导出时启动。
 
 **文件格式<a name="zh-cn_topic_0000001265229666_section18515142717224"></a>**
 
@@ -233,7 +233,7 @@ msprof.py脚本需要执行如下步骤才能完成性能数据的最终导出�
 **命令格式<a name="zh-cn_topic_0000001265229758_section2822141353814"></a>**
 
 ```bash
-python3 msprof.py import -dir <dir>
+python3 msprof.py import -dir <dir> [--cluster]
 ```
 
 **参数说明<a name="zh-cn_topic_0000001265229758_section144107596381"></a>**
@@ -243,7 +243,7 @@ python3 msprof.py import -dir <dir>
 |参数|**可选/必选**|说明|
 |--|--|--|
 |import|必选|通过import方式解析性能数据。使用import方式解析性能数据时，即使原始性能数据目录中已经生成.db文件，该方式会重新生成.db文件。|
-|--cluster|集群场景时必选|解析集群场景的性能数据并进行汇总。仅配置import参数时支持。<br>**-dir**参数需指定PROF\_XXX目录的父目录，指定后的解析结果在PROF_XXX目录同级目录下生成sqlite目录。|
+|--cluster|集群场景时必选|解析集群场景的性能数据并进行汇总。仅配置import参数时支持。<br>**-dir**参数需指定PROF\_XXX目录的父目录，指定后的解析结果在PROF_XXX目录的同级目录下生成sqlite目录。|
 |-dir或--collection-dir|必选|收集到的性能数据目录。须指定为PROF\_XXX目录或PROF\_XXX目录的父目录，例如：*/home/profiler_data/PROF_XXX*。|
 |-h或--help|可选|显示帮助信息，仅在获取使用方式时使用。|
 
@@ -505,19 +505,20 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 >- 多Device场景下，若启动单采集进程，则仅生成一个PROF\_XXX目录，若启动多采集进程则生成多个PROF\_XXX目录，其中device目录在PROF\_XXX目录下生成，每个PROF\_XXX目录下生成多少个device目录与用户实际操作有关，不影响性能数据分析。
 >- 性能数据详细介绍请参见[性能数据文件参考](profile_data_file_references.md)。
 >- mindstudio\_profiler\_output目录中的文件是根据采集的实际性能数据进行生成，如果实际的性能数据没有相关的数据文件，就不会导出对应的timeline和summary数据。
->- 使用export命令能直接从已解析的性能数据中导出数据文件。当性能数据未解析时，单独执行export命令也能进行解析性能数据并导出数据文件。
+>- 使用export命令能直接从已解析的性能数据中导出数据文件。当性能数据未解析时，单独执行export命令也能对性能数据进行解析并导出数据文件。
 >- 对于被强制中断的msprof采集进程，工具会保存已采集的原始性能数据，也可以使用**export**解析并导出。
 
 ## 性能调优建议
 
 > [!NOTE]
 > 
-> 该功能为msprof工具解析后输出调优建议的功能，已不再演进，分析性能数据并输出调优建议更多的功能请参见《[msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)》。
+> 该功能为msprof工具解析后输出调优建议的功能，已不再演进，更多分析性能数据并输出调优建议的功能请参见《[msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)》。
 
 **产品支持情况<a name="zh-cn_topic_0000002441319698_section5889102116569"></a>**
 
 >[!NOTE]
->昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
+>
+>昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <!-- npu="950" id1 -->
 - Ascend 950PR&950DT 系列产品：支持
@@ -568,7 +569,7 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
     - 个别的慢链路导致少数卡之间的通信时间增长，其他卡需等待其通信完成，从而拖累整个集群的性能。
     - 存在带宽或通信算子异常的情况，导致全网链路无法达到正常的带宽速率，所有卡的通信时间增长，这种情况下没有典型的慢卡和慢链路。
 
-    通过通信矩阵对HCCS、PCIE和RDMA进行分析，针对每种链路类型的平均情况，给出瓶颈分析及调优建议；针对存在慢链路的情况，给出慢链路的全部信息及调优建议。
+    通过通信矩阵对HCCS、PCIe和RDMA进行分析，针对每种链路类型的平均情况，给出瓶颈分析及调优建议；针对存在慢链路的情况，给出慢链路的全部信息及调优建议。
 
     分析建议如下：
 
