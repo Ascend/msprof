@@ -34,7 +34,6 @@ namespace Analysis
 namespace Domain
 {
 using HostTraceWorker = Analysis::Domain::HostTraceWorker;
-using ThreadPool = Analysis::Utils::ThreadPool;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Domain::Host::Cann;
 
@@ -59,24 +58,11 @@ int KernelParserWorker::Run()
         ERROR("Create path failed");
         return ANALYSIS_ERROR;
     }
-    // 启动线程
-    const uint16_t taskNumber = 2;
-    ThreadPool pool(taskNumber);
-    pool.Start();
-    pool.AddTask(
-        [this]()
-        {
-            INFO("Start parse hash data");
-            DumpHashData();
-        });
-    pool.AddTask(
-        [this]()
-        {
-            INFO("Start parse type info data");
-            DumpTypeInfoData();
-        });
-    pool.WaitAllTasks();
-    pool.Stop();
+    // Hash 与 TypeInfo 都写入 ge_hash.db，不能并行打开同一库
+    INFO("Start parse hash data");
+    DumpHashData();
+    INFO("Start parse type info data");
+    DumpTypeInfoData();
     // ProcessNpuOpMemData(); 先注释掉C++入口，代码不生效，依旧使用python业务代码，后续统一调整上库
     LaunchTraceParser();
     if (!result_)

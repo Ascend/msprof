@@ -228,5 +228,33 @@ TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldReturnEmptyVectorWhenNoPr
     GlobalMockObject::verify();
 }
 
+TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldCreateSqliteDirWhenInitSucceeds)
+{
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    MOCKER_CPP(&ProcessControl::ExecuteProcess).stubs().will(returnValue(true));
+    MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
+    DeviceContextEntry(PROF_DIR, "");
+    EXPECT_TRUE(File::Exist(File::PathJoin({PROF_DIR, DEVICE_DIR, "sqlite"})));
+    GlobalMockObject::verify();
+}
+
+TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldCreateSqliteDirForEachDevice)
+{
+    const auto device1 = File::PathJoin({PROF_DIR, "device_1"});
+    EXPECT_TRUE(File::CreateDir(device1));
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    MOCKER_CPP(&ProcessControl::ExecuteProcess).stubs().will(returnValue(true));
+    MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
+    EXPECT_EQ(2, DeviceContextEntry(PROF_DIR, "").size());
+    EXPECT_TRUE(File::Exist(File::PathJoin({PROF_DIR, DEVICE_DIR, "sqlite"})));
+    EXPECT_TRUE(File::Exist(File::PathJoin({device1, "sqlite"})));
+    GlobalMockObject::verify();
+    // device_1 必须在本用例结束前删掉：PROF_DIR 要到 TearDownTestCase 才整体清理，
+    // 而上面的 TestDeviceContextEntryShouldReturn1DataInventoryWhenInfoJsonInvalid
+    // 断言的是 DeviceContextEntry(PROF_DIR, "").size() == 1。留着 device_1 会让那条
+    // 用例只能靠 gtest 的声明顺序侥幸通过，一旦 shuffle 或调整顺序就会失败。
+    File::RemoveDir(device1, 0);
+}
+
 }  // Domain
 }  // Analysis

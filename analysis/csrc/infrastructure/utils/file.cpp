@@ -143,7 +143,7 @@ bool File::CheckDir(const std::string &path)
     {
         if (path.find(item.first) != std::string::npos)
         {
-            ERROR("The path contains invalid character: %s.", item.second.c_str());
+            ERROR("The path contains invalid character: %.", item.second.c_str());
             return false;
         }
     }

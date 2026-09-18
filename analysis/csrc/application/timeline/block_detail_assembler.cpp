@@ -125,7 +125,7 @@ std::unordered_map<uint16_t, uint32_t> BlockDetailAssembler::GenerateBlockDetail
         }
         else
         {
-            WARN("Failed to find opName for deviceId[%u], taskId[%u]", taskData.deviceId, taskData.taskId);
+            WARN("Failed to find opName for deviceId[%], taskId[%]", taskData.deviceId, taskData.taskId);
         }
         auto pid = GetDevicePid(pidMap, taskData.deviceId, profPath, sortIndex);
         std::vector<PmuTimelineRow> block_pmu_timeline_data;
