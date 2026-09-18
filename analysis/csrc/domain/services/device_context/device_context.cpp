@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <cstring>
 #include <functional>
@@ -28,6 +29,7 @@
 
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
@@ -114,6 +116,10 @@ std::vector<DataInventory> DeviceContextEntry(const char *targetDir, const char 
     }
 
     std::function<void()> func;
+    // 单个 device 失败只会写进它自己的 processStat，返回的 processDataVec 里那一项仍是
+    // 默认构造的空 DataInventory，调用方无法从 vector 长度区分成功与失败（两个调用点
+    // 还都丢弃了返回值）。这里额外累计一个失败数，在最后汇总打印，便于快速定位。
+    std::atomic<size_t> failedNum{0};
 
     ThreadPool tp(subdirs.size());
     size_t i = 0;
@@ -122,12 +128,21 @@ std::vector<DataInventory> DeviceContextEntry(const char *targetDir, const char 
         auto &processStat = processStats[i];
         auto &processData = processDataVec[i];
         ++i;
-        func = [subdir, &processStat, &processData, stopAt]
+        func = [subdir, &processStat, &processData, stopAt, &failedNum]
         {
             DeviceContext &context = DeviceContext::Instance();
             if (!context.Init(subdir))
             {
                 processStat = "Init failed, exit!";
+                ++failedNum;
+                return;
+            }
+            std::string sqlitePath = File::PathJoin({subdir, Common::SQLITE});
+            if (!File::CreateDir(sqlitePath))
+            {
+                ERROR("Create device sqlite dir failed, path is %.", sqlitePath);
+                processStat = "Create sqlite dir failed, exit!";
+                ++failedNum;
                 return;
             }
             if (stopAt != nullptr)
@@ -152,6 +167,10 @@ std::vector<DataInventory> DeviceContextEntry(const char *targetDir, const char 
     for (const auto &stat : processStats)
     {
         INFO("stat info: %", stat);
+    }
+    if (failedNum.load() > 0)
+    {
+        ERROR("% of % device dir(s) failed, see stat info above", failedNum.load(), subdirs.size());
     }
     return processDataVec;
 }

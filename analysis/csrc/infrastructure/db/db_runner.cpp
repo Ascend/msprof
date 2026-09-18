@@ -39,7 +39,7 @@ bool DBRunner::CheckTableExists(const std::string &tableName)
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     return conn->CheckTableExists(tableName);
@@ -69,7 +69,7 @@ bool DBRunner::CreateTableWithConstraints(const std::string &tableName, const st
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteCreateTable(sql))
@@ -97,7 +97,7 @@ bool DBRunner::CreateTableWithPrimaryKeys(const std::string &tableName, const st
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteCreateTable(sql))
@@ -119,12 +119,12 @@ bool DBRunner::CreateIndex(const std::string &tableName, const std::string &inde
     }
     std::string valuesStr = Join(colNames, ",");
     std::string sql = "CREATE INDEX IF NOT EXISTS " + indexName + " ON " + tableName + " (" + valuesStr + ");";
-    INFO("Start create % index， sql is %.", tableName, sql);
+    INFO("Start create % index, sql is %.", tableName, sql);
     std::shared_ptr<Connection> conn;
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteCreateIndex(sql))
@@ -149,7 +149,7 @@ bool DBRunner::DropTable(const std::string &tableName) const
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteDropTable(sql))
@@ -168,7 +168,7 @@ bool DBRunner::DeleteData(const std::string &sql) const
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteDelete(sql))
@@ -187,7 +187,7 @@ bool DBRunner::UpdateData(const std::string &sql) const
     MAKE_SHARED_RETURN_VALUE(conn, Connection, false, path_);
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, path is %d", path_);
+        ERROR("Create Connection failed, path is %", path_);
         return false;
     }
     if (!conn->ExecuteUpdate(sql))
@@ -207,7 +207,7 @@ std::vector<TableColumn> DBRunner::GetTableColumns(const std::string &tableName)
     std::vector<TableColumn> cols;
     if (!conn->IsDBOpened())
     {
-        ERROR("Create Connection failed, tableName is %d", tableName);
+        ERROR("Create Connection failed, tableName is %", tableName);
         return cols;
     }
     cols = conn->ExecuteGetTableColumns(tableName);

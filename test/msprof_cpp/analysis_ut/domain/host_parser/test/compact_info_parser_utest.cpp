@@ -44,6 +44,7 @@ protected:
 
     static void SetUpTestCase()
     {
+        File::RemoveDir(DATA_DIR, 0);
         GenCompactInfoData(EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL);
         GenCompactInfoData(EventType::EVENT_TYPE_MEM_CPY, MSPROF_REPORT_NODE_LEVEL);
         GenCompactInfoData(EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_NODE_LEVEL, 0, true);

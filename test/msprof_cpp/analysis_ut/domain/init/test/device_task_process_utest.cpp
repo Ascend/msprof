@@ -39,7 +39,7 @@ protected:
     void TearDown() override
     {
         dataInventory_.RemoveRestData({});
-        EXPECT_TRUE(File::RemoveDir(File::PathJoin({DEVICE_PATH, "sqlite"}), 0));
+        File::RemoveDir(DEVICE_PATH, 0);
     }
 };
 
@@ -49,4 +49,13 @@ TEST_F(DeviceTaskProcessUTest, ShouldInitDeviceTaskSuccess)
     DeviceContext deviceContext;
     deviceContext.deviceContextInfo.deviceFilePath = DEVICE_PATH;
     ASSERT_EQ(Analysis::ANALYSIS_OK, deviceTaskProcess.Run(dataInventory_, deviceContext));
+}
+
+TEST_F(DeviceTaskProcessUTest, ShouldNotCreateSqliteDir)
+{
+    DeviceTaskProcess deviceTaskProcess;
+    DeviceContext deviceContext;
+    deviceContext.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, deviceTaskProcess.Run(dataInventory_, deviceContext));
+    EXPECT_FALSE(File::Exist(File::PathJoin({DEVICE_PATH, "sqlite"})));
 }

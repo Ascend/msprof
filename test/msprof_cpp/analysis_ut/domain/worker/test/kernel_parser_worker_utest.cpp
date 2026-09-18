@@ -31,7 +31,10 @@
 
 using namespace Analysis::Domain;
 
-const std::string TEST_HOST_FILE_PATH = ".";
+// 这里必须是真实的子目录，不能是 "."：SetUp/TearDown 会用 File::RemoveDir 递归清空该路径，
+// 而 UT 的工作目录是仓库根（test/cmake/depend.cmake 的 run_llt_test 指定 WORKING_DIRECTORY
+// 为 TOP_DIR），写成 "." 会在每个用例前后把整个工作区删掉。
+const std::string TEST_HOST_FILE_PATH = "./kernel_parser_host";
 using HashData = Analysis::Domain::Host::Cann::HashData;
 using TypeData = Analysis::Domain::Host::Cann::TypeData;
 using TypeInfoData = std::unordered_map<uint16_t, std::unordered_map<uint64_t, std::string>>;
@@ -40,28 +43,26 @@ using namespace Analysis::Utils;
 
 class KernelParserWorkerUtest : public testing::Test {
 protected:
+    TypeInfoData typeInfoData_{{1, {{1, "123"}}}};
+    std::unordered_map<uint64_t, std::string> hashData_{{0, "a"}, {1, "b"}};
+
     virtual void SetUp()
     {
-        if (File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"}))) {
-            File::RemoveDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"}), 0);
+        if (File::Exist(TEST_HOST_FILE_PATH)) {
+            File::RemoveDir(TEST_HOST_FILE_PATH, 0);
         }
         File::CreateDir(TEST_HOST_FILE_PATH);
         File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "data"}));
-        File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "data", "sqlite"}));
-        TypeInfoData typeInfoData{{1, {{1, "123"}}}};
-        std::unordered_map<uint64_t, std::string> hashData{{0, "a"},
-                                                           {1, "b"}};
-        MOCKER_CPP(&HashData::GetAll).stubs().will(returnValue(hashData));
-        MOCKER_CPP(&TypeData::GetAll).stubs().will(returnValue(typeInfoData));
+        MOCKER_CPP(&HashData::GetAll).stubs().will(returnValue(hashData_));
+        MOCKER_CPP(&TypeData::GetAll).stubs().will(returnValue(typeInfoData_));
         MOCKER_CPP(&HostTraceWorker::Run).stubs().will(returnValue(true));
     }
 
     virtual void TearDown()
     {
         GlobalMockObject::verify();
-        File::RemoveDir(File::PathJoin({TEST_HOST_FILE_PATH, "data"}), 0);
-        if (File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"}))) {
-            File::RemoveDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"}), 0);
+        if (File::Exist(TEST_HOST_FILE_PATH)) {
+            File::RemoveDir(TEST_HOST_FILE_PATH, 0);
         }
     }
 
