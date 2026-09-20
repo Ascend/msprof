@@ -411,8 +411,8 @@ task数据，呈现所有硬件执行的算子信息。
 |attrInfo|INTEGER|算子的attr信息，用来映射算子shape，算子自定义的参数等，STRING_IDS(attrInfo)|
 |opState|INTEGER|算子的动静态信息，dynamic表示动态算子，static表示静态算子，N/A表示该场景或该算子不识别，STRING_IDS(opState)|
 |hf32Eligible|INTEGER|标识是否使用HF32精度标记，YES表示使用，NO表示未使用，N/A表示该场景或该算子不识别，STRING_IDS(hf32Eligible)|
-|gridDim|INTEGER|体现SIMT线程模型的线程块网络（Grid）中启用的线程块个数，同一时刻一个AIV核只执行一个线程块任务。仅Ascend 950PR&950DT 系列产品支持该字段。STRING_IDS(gridDim)|
-|blockDim|INTEGER|体现SIMT线程模型的线程块（Thread Block）启用的线程个数，一个线程块最多可以启用2048个线程。仅Ascend 950PR&950DT 系列产品支持该字段。STRING_IDS(blockDim)|
+|gridDim|INTEGER|体现SIMT线程模型的线程块网络（Grid）中启用的线程块个数，同一时刻一个AIV核只执行一个线程块任务。仅Ascend 950PR&950DT系列产品支持该字段。STRING_IDS(gridDim)|
+|blockDim|INTEGER|体现SIMT线程模型的线程块（Thread Block）启用的线程个数，一个线程块最多可以启用2048个线程。仅Ascend 950PR&950DT系列产品支持该字段。STRING_IDS(blockDim)|
 
 ## COMMUNICATION\_TASK\_INFO
 
@@ -497,7 +497,7 @@ CANN API数据。
 |eventName|NUMERIC|QoS事件名称，STRING_IDS(eventName)|
 |bandwidth|NUMERIC|QoS对应时间的带宽，单位Byte / s|
 |timestampNs|NUMERIC|本地时间，单位ns|
-|dieId|INTEGER|用于区分芯片场景的dieId，仅Ascend 950PR&950DT 系列产品支持<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品和Atlas A3 系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
+|dieId|INTEGER|用于区分芯片场景的dieId，仅Ascend 950PR&950DT系列产品支持<br>对于Atlas 200I/500 A2推理产品、Atlas A2系列产品和Atlas A3系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
 
 ## AICORE\_FREQ
 
@@ -512,7 +512,7 @@ AI Core频率信息。
 | deviceId    |INTEGER|设备ID|
 | timestampNs |NUMERIC|频率变化时的本地时间，单位ns|
 | freq        |INTEGER|AI Core频率值，单位MHz|
-| dieId |INTEGER|用于区分芯片场景的dieId，仅Ascend 950PR&950DT 系列产品支持<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品和Atlas A3 系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
+| dieId |INTEGER|用于区分芯片场景的dieId，仅Ascend 950PR&950DT系列产品支持<br>对于Atlas 200I/500 A2推理产品、Atlas A2系列产品和Atlas A3系列产品，不支持区分芯片场景，默认为-1，标识当前芯片场景无dieId内容区分|
 
 ## ACC\_PMU
 
@@ -638,10 +638,10 @@ RoCE通信接口带宽数据。
 支持产品：
 
 <!-- npu="310b" id2 -->
-- Atlas 200I/500 A2 推理产品
+- Atlas 200I/500 A2推理产品
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id3 -->
 
 **表 1**  格式

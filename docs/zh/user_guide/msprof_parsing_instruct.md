@@ -80,22 +80,22 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX
 **产品支持情况**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **功能说明**
@@ -122,8 +122,8 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 |--output|必选| 性能数据文件目录。须指定为PROF\_XXX目录或PROF_XXX目录的父目录，例如：/home/profiler_data/PROF\_XXX。                                                                                                                                                                                                                                                                                                                                      |
 |--type|可选| 设置性能数据导出结果文件格式。取值为：<br/>&#8226; text：导出 json 和 csv 格式的 timeline / summary 文件，以及 db 格式文件（`msprof_时间戳.db`），详见[性能数据文件参考](profile_data_file_references.md)。支持 CANN 7.0.0 及以上版本的性能数据解析，推荐优先使用。<br/>&#8226; db：仅导出汇总所有性能数据的 db 格式文件（`msprof_时间戳.db`），适合只需要 MindStudio Insight 展示或轻量落盘的场景。配置 `db` 时，仅支持 **msprof --export** 命令的 **--output** 参数，不支持其他参数。<br/>若目标是获得完整的 timeline + summary 文件，优先使用 `text`。默认为 `text`。 |
 |--reports|可选| 传入用户自定义的reports_sample_config.json配置文件，会根据配置文件中指定的范围导出相应的性能数据。详见[使用示例（--reports参数）](#zh-cn_topic_0000001265229686_section1128153151819)。                                                                                                                                                                                                                                        |
-|--model-id|可选| 模型ID。需配置为正整数。与--iteration-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2 系列产品和Atlas A3 系列产品，支持--model-id=4294967295，为Step模式，即--iteration-id配置的值以Step为粒度解析。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226;  --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。 |
-|--iteration-id|可选| 迭代ID。需配置为正整数。与--model-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2 系列产品和Atlas A3 系列产品，支持--model-id=4294967295，表示指定以Step为粒度统计的迭代ID（每执行完成一个Step，Iteration ID加1）。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226; --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。               |
+|--model-id|可选| 模型ID。需配置为正整数。与--iteration-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2系列产品和Atlas A3系列产品，支持--model-id=4294967295，为Step模式，即--iteration-id配置的值以Step为粒度解析。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226;  --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。 |
+|--iteration-id|可选| 迭代ID。需配置为正整数。与--model-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2系列产品和Atlas A3系列产品，支持--model-id=4294967295，表示指定以Step为粒度统计的迭代ID（每执行完成一个Step，Iteration ID加1）。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226; --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。               |
 |--summary-format|可选| summary数据文件的导出格式，取值为：<br/>&#8226; json：导出的summary数据文件为json格式。<br/>&#8226; csv：导出的summary数据文件为csv，默认值。<br/>仅--type=text时支持。                                                                                                                                                                                                                                                                                               |
 |--python-path|可选| 指定解析使用的Python解释器路径，支持 Python 3.7.5 及以上版本。                                                                                                                                                                                                                                                                                                                                                                                 |
 |--clear|可选| 数据精简模式，开启后将在导出性能数据后删除PROF_XXX/device_{id}下的sqlite目录，以节省存储空间。可选on或off，默认值为off。                                                                                                                                                                                                                                                                                                                                           |
@@ -272,22 +272,22 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
 **产品支持情况**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **功能说明<a name="zh-cn_topic_0000001265069802_section145530158016"></a>**
@@ -355,22 +355,22 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --model-id=3 --iteratio
 
 <!-- npu="950" id1 -->
 
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
   <!-- end id1 -->
   <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
   <!-- end id2 -->
   <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
   <!-- end id3 -->
   <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
   <!-- end id4 -->
   <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
   <!-- end id5 -->
   <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
   <!-- end id6 -->
 
 **功能说明<a name="zh-cn_topic_0000001265229730_section180511375811"></a>**
@@ -421,22 +421,22 @@ msprof --parse=on --output=/home/profiler_data/PROF_XXX
 **产品支持情况<a name="zh-cn_topic_0000001631250206_zh-cn_topic_0000002111094444_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **功能说明<a name="zh-cn_topic_0000001631250206_section38498221045"></a>**
@@ -458,7 +458,7 @@ msprof通信性能数据解析功能主要用于统计通信类的分段耗时�
 <!-- npu="950" id7 -->
 > [!NOTE]
 >
-> Ascend 950PR&950DT 系列产品的CCU场景下由于不支持采集通信矩阵数据，因此该功能的相关交付件不具有参考意义。
+> Ascend 950PR&950DT系列产品的CCU场景下由于不支持采集通信矩阵数据，因此该功能的相关交付件不具有参考意义。
 <!-- end id7 -->
 
 **命令格式<a name="zh-cn_topic_0000001631250206_section916018568431"></a>**
