@@ -32,7 +32,7 @@
 
 1. 大多流同步动作都是人为或业务引入的。因此相关操作优先确认业务代码，从业务逻辑角度对接口调用必要性进行评估和处理。酌情删除不必要的同步接口。
 
-2. 除此以外，部分流同步业务可能是环境变量引入，例如[ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/api/environment_variable/op_execution/ASCEND_LAUNCH_BLOCKING.md)就会对每个算子进行流同步，用以定位问题。
+2. 除此以外，部分流同步业务可能是环境变量引入，例如[ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/zh/api/environment_variable/op_execution/ASCEND_LAUNCH_BLOCKING.md)就会对每个算子进行流同步，用以定位问题。
 
 ## 6. 定位方法总结
 

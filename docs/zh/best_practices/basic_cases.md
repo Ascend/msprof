@@ -95,5 +95,5 @@ msprof --export=on --output="./prof_data"
 2. 使用MindStudio Insight可视化分析。
 
     进入`PROF_XXX/mindstudio_profiler_output`目录，将性能数据导入MindStudio Insight工具进行可视化分析。MindStudio Insight提供了多种数据呈现形式，包括时间线视图、通信分析、计算耗时等可视化呈现，帮助用户快速定位性能瓶颈。
-    
-    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》。
+
+    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》。

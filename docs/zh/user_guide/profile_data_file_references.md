@@ -8,7 +8,7 @@
 
 性能数据目录结构示例如下：
 
-   ```ColdFusion 
+   ```ColdFusion
     PROF_XXX
     ├── host   // Host侧性能原始数据，用户无需关注
     │   └── data
@@ -55,33 +55,33 @@
 **产品支持情况<a name="zh-cn_topic_0000001751419248_section5889102116569"></a>**
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 timeline数据总表文件为msprof\_\*.json。
 
 msprof\_\*.json在“chrome://tracing”中展示如下。
 
-**图 1**  timeline汇总展示<a name="zh-cn_topic_0000001751419248_fig10608132131617"></a>  
+**图 1**  timeline汇总展示<a name="zh-cn_topic_0000001751419248_fig10608132131617"></a>
 ![](../figures/timeline汇总展示.png "timeline汇总展示")
 
 如[图1](#zh-cn_topic_0000001751419248_fig10608132131617)所示，timeline汇总数据主要展示如下区域：
@@ -115,12 +115,12 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 > - 由于软件测量的昇腾AI处理器频率与真实频率有误差，以及Host与Device的时间同步误差，可能会出现下层算子因错位而无法连线的问题。
 > - 各层的对应关系是否呈现与对应采集场景是否采集该数据有关，请以实际情况为准。
 
-**图 2**  算子映射关系<a name="zh-cn_topic_0000001751419248_fig490591821019"></a>  
+**图 2**  算子映射关系<a name="zh-cn_topic_0000001751419248_fig490591821019"></a>
 ![](../figures/算子映射关系.png "算子映射关系")
 
 通过单击连线两端的算子或接口，即可查看算子下发的方向。如[图3](#zh-cn_topic_0000001751419248_fig11692135416129)所示。
 
-**图 3**  算子信息<a name="zh-cn_topic_0000001751419248_fig11692135416129"></a>  
+**图 3**  算子信息<a name="zh-cn_topic_0000001751419248_fig11692135416129"></a>
 ![](../figures/算子信息.png "算子信息")
 
 其中Event\(s\)列查看该算子或接口的出入方向，Link列查看映射关系两端的信息。
@@ -131,18 +131,18 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 支持的产品：
 
 <!-- npu="310b" id15 -->
-- Atlas 200I/500 A2 推理产品
+- Atlas 200I/500 A2推理产品
 <!-- end id15 -->
 <!-- npu="910b" id16 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id16 -->
 <!-- npu="A3" id17 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id17 -->
 
 msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任务的过程中频率的变化情况，如[图4](#zh-cn_topic_0000001751419248_fig66071155154219)所示。
 
-**图 4**  查看AI Core频率<a name="zh-cn_topic_0000001751419248_fig66071155154219"></a>  
+**图 4**  查看AI Core频率<a name="zh-cn_topic_0000001751419248_fig66071155154219"></a>
 ![](../figures/查看AI-Core频率.png "查看AI-Core频率")
 
 在148089.72045898438时刻下，AI Core处于高频状态，而在170178.44116210938时刻频率降低，那么在该时间段下AI任务的性能必然下降。AI Core芯片可能因温度升高，触发保护机制，降低频率；也可能因当前无AI任务运行，AI Core进入低功耗状态而降频。
@@ -156,17 +156,17 @@ msprof\_\*.json下的“AI Core Freq”层级展示AI Core芯片在执行AI任�
 支持的产品：
 
 <!-- npu="910b" id19 -->
-- 对于Atlas A2 系列产品，该数据均为0，不具有参考性。
+- 对于Atlas A2系列产品，该数据均为0，不具有参考性。
 <!-- end id19 -->
 <!-- npu="A3" id20 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id20 -->
 
 msprof\_\*.json下的“SIO”层级展示通道间传输带宽的信息。
 
-Atlas A3 系列产品中，SIO数据的每条流使用两条虚拟通道，die 0和die 1。
+Atlas A3系列产品中，SIO数据的每条流使用两条虚拟通道，die 0和die 1。
 
-**图 5**  SIO（Atlas A3 系列产品）<a name="zh-cn_topic_0000001751419248_fig1090119416103"></a>  
+**图 5**  SIO（Atlas A3系列产品）<a name="zh-cn_topic_0000001751419248_fig1090119416103"></a>
 ![](../figures/SIO.png "SIO")
 
 图中色块横坐标对应时间Time，单位ms，纵坐标对应带宽Value，单位MB/s。
@@ -193,13 +193,13 @@ msprof\_\*.json下的“QoS”层级展示设备QoS带宽信息。
 支持的产品：
 
 <!-- npu="910b" id22 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id22 -->
 <!-- npu="A3" id23 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id23 -->
 
-**图 6**  QoS OTHERS<a name="zh-cn_topic_0000001751419248_fig109246157107"></a>  
+**图 6**  QoS OTHERS<a name="zh-cn_topic_0000001751419248_fig109246157107"></a>
 ![](../figures/QoS-OTHERS.png "QoS-OTHERS")
 
 图中色块横坐标对应时间Time，单位ms，纵坐标对应带宽Value，单位MB/s。
@@ -211,10 +211,10 @@ msprof\_\*.json下的“QoS”层级展示设备QoS带宽信息。
 支持的产品：
 
 <!-- npu="310p" id25 -->
-- Atlas 推理系列产品
+- Atlas推理系列产品
 <!-- end id25 -->
 <!-- npu="910b" id26 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id26 -->
 
 存在计算和通信算子融合的场景。
@@ -239,12 +239,12 @@ MC²实现中，内部分别在计算流、通信流上加载两个算子，两�
 
 MC²性能数据结果示例如下：
 
-**图 7**  MC²<a name="zh-cn_topic_0000001751419248_fig16795116316"></a>  
+**图 7**  MC²<a name="zh-cn_topic_0000001751419248_fig16795116316"></a>
 ![](../figures/MC.png "MC")
 
 [图7](#zh-cn_topic_0000001751419248_fig16795116316)展示了MatmulAllReduceAddRmsNormAicpu融合算子，内部各阶段含义介绍如[表2](#zh-cn_topic_0000001751419248_table137165193119)所示。
 
-**表 2**  字段说明<a name="zh-cn_topic_0000001751419248_table137165193119"></a> 
+**表 2**  字段说明<a name="zh-cn_topic_0000001751419248_table137165193119"></a>
 
 |字段名|字段含义|
 |--|--|
@@ -264,15 +264,15 @@ msprof\_\*.json下的“Voltage Info”层级展示设备电压变压信息。
 支持的产品：
 
 <!-- npu="910b" id28 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id28 -->
 <!-- npu="A3" id29 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id29 -->
 
 变压特性曲线结果示例如下：
 
-**图 8**  电压数据分析<a name="zh-cn_topic_0000001751419248_fig12628420171"></a>  
+**图 8**  电压数据分析<a name="zh-cn_topic_0000001751419248_fig12628420171"></a>
 ![](../figures/电压数据分析.png "电压数据分析")
 
 [图8](#zh-cn_topic_0000001751419248_fig12628420171)展示了变压特性曲线，图中色块横坐标对应时间，单位ms，纵坐标对应电压Value，单位mV。各字段含义介绍如[表3](#zh-cn_topic_0000001751419248_table21964325014)所示。
@@ -292,7 +292,7 @@ msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息�
 
 支持的产品：
 
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 
 **表 4**  字段说明<a name="zh-cn_topic_0000001751419248_table21964325015"></a>
 
@@ -308,7 +308,7 @@ msprof\_\*.json下的“DPU”层级展示在DPU下算子的执行耗时信息�
 | Notify Id              | 集合通信任务等待的ID。                                       |
 | Duration Estimated(us) | 预估任务持续时间                                             |
 | Src Rank               | 源Rank。                                                     |
-| Dst Rank               | 目的Rank。<br>对于Ascend 950PR&950DT 系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。 |
+| Dst Rank               | 目的Rank。<br>对于Ascend 950PR&950DT系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。 |
 | Transport Type         | 传输类型，包含：LOCAL、SDMA、RDMA、UB和ROCE等。              |
 | Size(Byte)             | 数据量，单位Byte。在task type为notify类型时无效，填充为0。   |
 | Bandwidth(GB/s)        | 带宽大小，单位GB/s。                                         |
@@ -324,9 +324,9 @@ msprof\_\*.json下的“Fusion Task”层级展示Fusion任务数据。
 
 支持的产品：
 
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 
-**图 9**  fusion_task<a name="zh-cn_topic_0000001751419248_fig12628420371"></a>  
+**图 9**  fusion_task<a name="zh-cn_topic_0000001751419248_fig12628420371"></a>
 ![](../figures/fusion_task.png "fusion_task")
 
 **表 5**  字段说明<a name="zh-cn_topic_0000001751419248_table21964325115"></a>
@@ -346,7 +346,7 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 
 支持的产品：
 
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 
 **表 6**  字段说明<a name="zh-cn_topic_0000001751419248_table21964325015"></a>
 
@@ -369,16 +369,16 @@ msprof\_\*.json下的“Ascend Hardware”层级中的部分算子为SIMT算子�
 支持的产品：
 
 <!-- npu="910b" id30 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id30 -->
 <!-- npu="A3" id31 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id31 -->
 <!-- npu="950" id32 -->
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 <!-- end id32 -->
 
-**图 10**  Ascend Hardware采集间隙<a name="zh-cn_topic_0000001751419248_fig12628420271"></a>  
+**图 10**  Ascend Hardware采集间隙<a name="zh-cn_topic_0000001751419248_fig12628420271"></a>
 ![](../figures/ascend_hardware_sampling_interval.png "ascend_hardware_sampling_interval")
 
 如[图10](#zh-cn_topic_0000001751419248_fig12628420271)所示在Ascend Hardware层级中，当timeline中出现MEM_WAIT_VALUE或CAPTURE_WAIT时，后续的timeline会出现一段空白的间隙，这段间隙包含两个事件：
@@ -394,29 +394,29 @@ AI Core、AI Vector Core和AI CPU算子汇总信息无timeline信息，summary�
 **产品支持情况<a name="zh-cn_topic_0000001686107246_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **op\_summary\_\*.csv文件说明<a name="zh-cn_topic_0000001686107246_section1214520215155"></a>**
 
 op\_summary\_\*.csv文件内容格式示例如下：
 
-**图 1**  op\_summary（仅为示例）<a name="zh-cn_topic_0000001686107246_fig1265041210717"></a>  
+**图 1**  op\_summary（仅为示例）<a name="zh-cn_topic_0000001686107246_fig1265041210717"></a>
 ![](../figures/op_summary（仅为示例）.png "op_summary（仅为示例）")
 
 Task Duration字段为算子耗时信息，可以按照Task Duration排序，找出高耗时算子；也可以按照Task Type排序，查看AI Core或AI CPU上运行的高耗时算子。
@@ -428,7 +428,7 @@ Task Duration字段为算子耗时信息，可以按照Task Duration排序，找
 > - task\_time配置为l0或off时，op\_summary\_\*.csv不呈现AI Core、AI Vector Core的PMU数据。
 >
 <!-- npu="A3,910b" id33 -->
-> - Atlas A2 系列产品、Atlas A3 系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
+> - Atlas A2系列产品、Atlas A3系列产品：MatMul算子的输入a、b矩阵满足：内轴大于1000，MAC理论计算耗时大于50us，内轴大小非516B对齐时，MatMul会转化为MIX算子，此时op\_summary.csv中的MatMul算子数量减少且Task Type由原来的AI\_Core转变为MIX\_AIC。
 <!-- end id33 -->
 >
 > - 对于部分算子，执行时间过长，导致metric相关数据失准，不再具有参考意义，此类数据统一置为N/A，不做相关呈现。
@@ -439,7 +439,7 @@ Task Duration字段为算子耗时信息，可以按照Task Duration排序，找
 >
 > - 工具会检测算子溢出情况，若发现算子溢出，则提示如下告警，此时该算子的计算结果不可信。
 >
->   **图 2**  算子溢出告警<a name="zh-cn_topic_0000001686107246_fig144168454163"></a>  
+>   **图 2**  算子溢出告警<a name="zh-cn_topic_0000001686107246_fig144168454163"></a>
 > ![](../figures/算子溢出告警.png "算子溢出告警")
 
 op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结果不同。完整字段如下。
@@ -472,8 +472,8 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |Output Formats|算子输出数据格式。task_time为l0时，不采集该字段，显示为N/A。|
 |Context ID|Context ID，用于标识Sub Task粒度的小算子，不存在小算子时显示为N/A。|
 |aiv_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Vector Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Vector Core上的实际执行时间。--task-time=l1、--aic-mode=task-based时生成。|
-|aicore_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Core上的实际执行时间。<br>当AI Core频率变化（比如进行手动调频、功耗超出阈值时动态调频以及Atlas 300V/Atlas 300I Pro产品）时该数据不准确，不建议参考。<br>Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品、Ascend 950PR&950DT 系列产品具体频率变化点请参考[查看AI Core频率](#zh-cn_topic_0000001751419248_section9194165318231)。<br>--task-time=l1、--aic-mode=task-based时生成。|
-|total_cycles|该Task在AI Core上执行的cycle总数，由所有的Block的执行cycle数累加而成。<br>--task-time=l1、--aic-mode=task-based时生成。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品、Ascend 950PR&950DT 系列产品拆分为aic_total_cycles（该Task在AI Cube Core上执行的cycle总数）和aiv_total_cycles（该Task在AI Vector Core上执行的cycle总数）。|
+|aicore_time(us)|当所有的Block被同时调度，且每个Block的执行时长相等时，该Task在AI Core上的理论执行时间，单位us。通常情况下，不同的Block开始调度时间略有差距，故该字段值略小于Task在AI Core上的实际执行时间。<br>当AI Core频率变化（比如进行手动调频、功耗超出阈值时动态调频以及Atlas 300V/Atlas 300I Pro产品）时该数据不准确，不建议参考。<br>Atlas 200I/500 A2推理产品、Atlas A2系列产品、Atlas A3系列产品、Ascend 950PR&950DT系列产品具体频率变化点请参考[查看AI Core频率](#zh-cn_topic_0000001751419248_section9194165318231)。<br>--task-time=l1、--aic-mode=task-based时生成。|
+|total_cycles|该Task在AI Core上执行的cycle总数，由所有的Block的执行cycle数累加而成。<br>--task-time=l1、--aic-mode=task-based时生成。<br>对于Atlas 200I/500 A2推理产品、Atlas A2系列产品、Atlas A3系列产品、Ascend 950PR&950DT系列产品拆分为aic_total_cycles（该Task在AI Cube Core上执行的cycle总数）和aiv_total_cycles（该Task在AI Vector Core上执行的cycle总数）。|
 |寄存器值|自定义采集的寄存器的数值。由--aic-metrics配置自定义寄存器控制。|
 
 下列字段均在--task-time=l1、--aic-mode=task-based时生成，--task-time为l0时，不采集该字段，显示为N/A。生成的数据由aic\_metrics参数取值控制。
@@ -482,14 +482,14 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_vec_time(us)|vec类型指令（向量类运算指令）耗时，单位us。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
-|*_vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_vec_time(us)|vec类型指令（向量类运算指令）耗时，单位us。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
+|*_vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 |*_mac_time(us)|cube类型指令（矩阵类运算指令）耗时，单位us。|
 |*_mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |*_scalar_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
 |*_scalar_ratio|scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
-|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
-|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品、Atlas 训练系列产品和Atlas 推理系列产品不支持该字段。|
+|aic_fixpipe_time(us)|fixpipe类型指令（L0C->OUT/L1搬运类指令）耗时，单位us。Atlas 200I/500 A2推理产品、Atlas训练系列产品和Atlas推理系列产品不支持该字段。|
+|aic_fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品、Atlas训练系列产品和Atlas推理系列产品不支持该字段。|
 |*_mte1_time(us)|mte1类型指令（L1->L0A/L0B搬运类指令）耗时，单位us。|
 |*_mte1_ratio|mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
 |*_mte2_time(us)|mte2类型指令（DDR->AICORE搬运类指令）耗时，单位us。|
@@ -508,14 +508,14 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-| *_mac_fp16_ratio  | cube fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品仅支持aic_mac_fp16_ratio。 |
-| *_mac_int8_ratio  | cube int8类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品仅支持aic_mac_int8_ratio。 |
-| *_vec_fp32_ratio  | vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| *_vec_fp16_ratio  | vec fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| *_vec_int32_ratio | vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| *_vec_misc_ratio  | vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| *_cube_fops       | cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品仅支持aic_cube_fops。 |
-| *_vector_fops     | vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品不支持该字段。 |
+| *_mac_fp16_ratio  | cube fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT系列产品仅支持aic_mac_fp16_ratio。 |
+| *_mac_int8_ratio  | cube int8类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT系列产品仅支持aic_mac_int8_ratio。 |
+| *_vec_fp32_ratio  | vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。 |
+| *_vec_fp16_ratio  | vec fp16类型指令的cycle数在total cycle数中的占用比。Ascend 950PR&950DT系列产品不支持该字段。 |
+| *_vec_int32_ratio | vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。 |
+| *_vec_misc_ratio  | vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。 |
+| *_cube_fops       | cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT系列产品仅支持aic_cube_fops。 |
+| *_vector_fops     | vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT系列产品不支持该字段。 |
 
 > [!NOTE]
 >
@@ -525,14 +525,14 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
-|*_ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
+|*_ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 |*_l1_read_bw(GB/s)|l1读带宽速率，单位GB/s。|
 |*_l1_write_bw(GB/s)|l1写带宽速率，单位GB/s。|
-|*_l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
-|*_l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|*_l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT系列产品不支持该字段。|
+|*_l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
 |*_main_mem_read_bw(GB/s)|主存储器读带宽速率，单位GB/s。|
-|*_main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 
 > [!NOTE]
 >
@@ -547,7 +547,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_l0b_read_bw(GB/s)|l0b读带宽速率，单位GB/s。|
 |*_l0b_write_bw(GB/s)|l0b写带宽速率，单位GB/s。|
 |*_l0c_read_bw(GB/s)|vector从l0c读带宽速率，单位GB/s。|
-|*_l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
+|*_l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT系列产品不支持该字段。|
 |*_l0c_read_bw_cube(GB/s)|cube从l0c读带宽速率，单位GB/s。|
 |*_l0c_write_bw_cube(GB/s)|cube向l0c写带宽速率，单位GB/s。|
 
@@ -564,7 +564,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |*_ub_write_bw_vector(GB/s)|vector向ub写带宽速率，单位GB/s。|
 |*_ub_read_bw_scalar(GB/s)|scalar从ub读带宽速率，单位GB/s。|
 |*_ub_write_bw_scalar(GB/s)|scalar向ub写带宽速率，单位GB/s。|
-|*_ub_fixp2ub_write_bw(GB/s)|vector fixpipe向ub写带宽速率（排除ub反压），单位GB/s。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|*_ub_fixp2ub_write_bw(GB/s)|vector fixpipe向ub写带宽速率（排除ub反压），单位GB/s。仅Ascend 950PR&950DT系列产品支持该字段。|
 
 > [!NOTE]
 >
@@ -574,9 +574,9 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 |字段名|字段含义|
 |--|--|
-|*_vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
-|*_vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
-|*_vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|*_vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
+|*_vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
+|*_vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 
 > [!NOTE]
 >
@@ -602,10 +602,10 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 > 支持的产品：
 >
 <!-- npu="910b" id35 -->
-> - Atlas A2 系列产品
+> - Atlas A2系列产品
 <!-- end id35 -->
 <!-- npu="A3" id36 -->
-> - Atlas A3 系列产品
+> - Atlas A3系列产品
 <!-- end id36 -->
 <!-- end id34 -->
 
@@ -614,16 +614,16 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 
 | 字段名                          | 字段含义                                                     |
 | ------------------------------- | ------------------------------------------------------------ |
-| `*_write_cache_hit`             | 写cache命中的次数。Ascend 950PR&950DT 系列产品不支持该字段。   |
-| `*_write_cache_miss_allocate`   | 写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| `*_r*_read_cache_hit`           | 读r*通道cache命中次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| `*_r*_read_cache_miss_allocate` | 读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT 系列产品不支持该字段。 |
-| `*_read_local_l2_hit`           | 读Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。   |
-| `*_read_local_l2_miss`          | 读Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。     |
-| `*_read_local_l2_victim`        | 读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。 |
-| `*_write_local_l2_hit`          | 写Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。   |
-| `*_write_local_l2_miss`         | 写Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。     |
-| `*_write_local_l2_victim`       | 写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。 |
+| `*_write_cache_hit`             | 写cache命中的次数。Ascend 950PR&950DT系列产品不支持该字段。   |
+| `*_write_cache_miss_allocate`   | 写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT系列产品不支持该字段。 |
+| `*_r*_read_cache_hit`           | 读r*通道cache命中次数。Ascend 950PR&950DT系列产品不支持该字段。 |
+| `*_r*_read_cache_miss_allocate` | 读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT系列产品不支持该字段。 |
+| `*_read_local_l2_hit`           | 读Cache命中的次数。仅Ascend 950PR&950DT系列产品支持该字段。   |
+| `*_read_local_l2_miss`          | 读Cache缺失次数。仅Ascend 950PR&950DT系列产品支持该字段。     |
+| `*_read_local_l2_victim`        | 读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT系列产品支持该字段。 |
+| `*_write_local_l2_hit`          | 写Cache命中的次数。仅Ascend 950PR&950DT系列产品支持该字段。   |
+| `*_write_local_l2_miss`         | 写Cache缺失次数。仅Ascend 950PR&950DT系列产品支持该字段。     |
+| `*_write_local_l2_victim`       | 写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT系列产品支持该字段。 |
 
 > [!NOTE]
 >
@@ -633,16 +633,16 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 支持的产品：
 
 <!-- npu="910b" id37 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id37 -->
 <!-- npu="A3" id38 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id38 -->
 <!-- npu="950" id39 -->
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 <!-- end id39 -->
 <!-- npu="310b" id40 -->
-- Atlas 200I/500 A2 推理产品
+- Atlas 200I/500 A2推理产品
 <!-- end id40 -->
 <!-- end id11 -->
 
@@ -652,7 +652,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |字段名|字段含义|
 |--|--|
 |vec_exe_time(us)|vec类型指令（向量类运算指令）耗时，单位us。|
-|vec_exe_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|vec_exe_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 |mac_exe_time(us)|cube类型指令（fp16及s16矩阵类运算指令）耗时，单位us。|
 |mac_exe_ratio|cube类型指令（fp16及s16矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_exe_time(us)|scalar类型指令（标量类运算指令）耗时，单位us。|
@@ -668,7 +668,7 @@ op\_summary\_\*.csv文件根据msprof采集参数取值不同，文件呈现结�
 |memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。|
 |cube_utilization(%)|cube算子利用率，查看cube算子在单位时间内的运算次数是否达到理论上限，越接近于100%则表示越接近理论上限。计算公式：`cube_utilization = total_cycles / (freq * core_num * task_duration)`。|
 
-支持的产品：Atlas 200I/500 A2 推理产品
+支持的产品：Atlas 200I/500 A2推理产品
 <!-- end id41 -->
 
 #### op\_statistic（算子调用次数及耗时）<a name="ZH-CN_TOPIC_0000002509383189"></a>
@@ -678,29 +678,29 @@ AI Core和AI CPU算子调用的次数及耗时数据无timeline信息，summary�
 **产品支持情况<a name="zh-cn_topic_0000001686266978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **op\_statistic\_\*.csv文件数据说明<a name="zh-cn_topic_0000001686266978_section142961814104116"></a>**
 
 分析各类算子的调用总时间、总次数等，排查是否某类算子总耗时较长，进而分析这类算子是否有优化空间。
 
-**图 1**  op\_statistic\_\*.csv<a name="zh-cn_topic_0000001686266978_fig1654182131816"></a>  
+**图 1**  op\_statistic\_\*.csv<a name="zh-cn_topic_0000001686266978_fig1654182131816"></a>
 ![](../figures/op_statistic_-csv.png "op_statistic_-csv")
 
 **表 1**  字段说明
@@ -729,29 +729,29 @@ API耗时信息统计数据timeline信息在msprof\_\*.json文件的CANN层级�
 **产品支持情况<a name="zh-cn_topic_0000001656264690_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CANN层级数据说明<a name="zh-cn_topic_0000001656264690_section344219426541"></a>**
 
 msprof\_\*.json文件CANN层数据部分主要展示当前Thread下运行的接口耗时，如下图所示。
 
-**图 1**  CANN层数据<a name="zh-cn_topic_0000001656264690_fig191420493165"></a>  
+**图 1**  CANN层数据<a name="zh-cn_topic_0000001656264690_fig191420493165"></a>
 ![](../figures/CANN层数据.png "CANN层数据")
 
 通过图中的timeline色块，可以直接观察到哪些接口耗时较长，并通过单击选中耗时较长的接口查看该接口的详细信息，如下表所示。
@@ -771,7 +771,7 @@ msprof\_\*.json文件CANN层数据部分主要展示当前Thread下运行的接�
 
 api\_statistic\_\*.csv文件内容格式示例如下：
 
-**图 2**  api\_statistic\_\*.csv<a name="zh-cn_topic_0000001656264690_fig881322061712"></a>  
+**图 2**  api\_statistic\_\*.csv<a name="zh-cn_topic_0000001656264690_fig881322061712"></a>
 ![](../figures/api_statistic_-csv.png "api_statistic_-csv")
 
 上图根据Time列进行降序排列，找出耗时最长的TopN算子；也可以根据最大、最小、平均耗时、方差等信息判断该算子运行是否稳定或者是否存在某次调用耗时较长的情况。例如方差数值越小，则代表算子运行越稳定；最大最小值越接近平均值且不存在个别数据差异较大的情况，则代表算子运行越稳定。
@@ -795,22 +795,22 @@ api\_statistic\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001798418925_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **总体说明<a name="zh-cn_topic_0000001798418925_section132087265710"></a>**
@@ -831,14 +831,14 @@ msproftx采集的是用户和上层框架程序输出性能数据，数据保存
 
 msproftx的timeline汇总数据在msprof\_\*.json的上层应用层级展示，如[图1](#zh-cn_topic_0000001798418925_fig322453919307)所示。其他层级及含义请参见[msprof（timeline数据总表）](#ZH-CN_TOPIC_0000002477303238)。
 
-**图 1**  timeline汇总数据<a name="zh-cn_topic_0000001798418925_fig322453919307"></a>  
+**图 1**  timeline汇总数据<a name="zh-cn_topic_0000001798418925_fig322453919307"></a>
 ![](../figures/timeline汇总数据.png "timeline汇总数据")
 
 **msproftx timeline数据<a name="zh-cn_topic_0000001798418925_section12121185651210"></a>**
 
 msproftx的timeline数据在msprof\_tx\_\*.json展示。如下所示。
 
-**图 2**  msproftx timeline数据<a name="zh-cn_topic_0000001798418925_fig912175631213"></a>  
+**图 2**  msproftx timeline数据<a name="zh-cn_topic_0000001798418925_fig912175631213"></a>
 ![](../figures/msproftx-timeline数据.png "msproftx-timeline数据")
 
 如[图2](#zh-cn_topic_0000001798418925_fig912175631213)所示，msproftx timeline数据主要展示如下区域：
@@ -853,7 +853,7 @@ msprof\_tx summary数据文件为msprof\_tx\_\*.csv。
 
 msprof\_tx\_\*.csv文件内容格式示例如下：
 
-**图 3**  msprof\_tx summary数据<a name="zh-cn_topic_0000001798418925_fig52151315519"></a>  
+**图 3**  msprof\_tx summary数据<a name="zh-cn_topic_0000001798418925_fig52151315519"></a>
 ![](../figures/msprof_tx-summary数据.png "msprof_tx-summary数据")
 
 **表 2**  字段说明
@@ -882,22 +882,22 @@ msprof\_tx\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001679380154_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件中的任务调度信息数据说明<a name="zh-cn_topic_0000001679380154_section11622953115117"></a>**
@@ -906,7 +906,7 @@ msprof\_\*.json文件中的任务调度信息数据在Ascend Hardware中的各�
 
 msprof\_\*.json文件中的任务调度信息数据示例如下：
 
-**图 1**  Ascend Hardware<a name="zh-cn_topic_0000001679380154_fig1264110521453"></a>  
+**图 1**  Ascend Hardware<a name="zh-cn_topic_0000001679380154_fig1264110521453"></a>
 ![](../figures/Ascend-Hardware.png "Ascend-Hardware")
 
 关键字段说明如下。
@@ -936,7 +936,7 @@ msprof\_\*.json文件中的任务调度信息数据示例如下：
 
 task\_time\_\*.csv文件内容格式示例如下：
 
-**图 2**  task\_time\_\*.csv<a name="zh-cn_topic_0000001679380154_fig77617419164"></a>  
+**图 2**  task\_time\_\*.csv<a name="zh-cn_topic_0000001679380154_fig77617419164"></a>
 ![](../figures/task_time_-csv.png "task_time_-csv")
 
 可以通过查看Task的Top耗时对应的算子，根据该算子的具体实现来判断算子是否存在问题。
@@ -963,22 +963,22 @@ task\_time\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001706482137_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **step\_trace\_\*.json文件说明<a name="zh-cn_topic_0000001706482137_section8123844101012"></a>**
@@ -987,7 +987,7 @@ task\_time\_\*.csv文件内容格式示例如下：
 
 step\_trace\_\*.json文件内容格式示例如下：
 
-**图 1**  step\_trace\_\*.json<a name="zh-cn_topic_0000001706482137_fig131371629121716"></a>  
+**图 1**  step\_trace\_\*.json<a name="zh-cn_topic_0000001706482137_fig131371629121716"></a>
 ![](../figures/step_trace_-json.png "step_trace_-json")
 
 迭代轨迹数据即训练任务及AI软件栈的软件信息，实现对训练任务的性能分析。以默认的两段式梯度切分为例，通过打印出训练任务中关键节点fp\_start、bp\_end、Reduce Start、Reduce Duration\(us\)的时间，达到把一个迭代的执行情况描述清楚的目的。
@@ -1021,7 +1021,7 @@ step\_trace\_\*.json文件内容格式示例如下：
 
 仅TensorFlow框架支持。
 
-**图 2**  GetNext<a name="zh-cn_topic_0000001706482137_fig989215211178"></a>  
+**图 2**  GetNext<a name="zh-cn_topic_0000001706482137_fig989215211178"></a>
 ![](../figures/GetNext.png "GetNext")
 
 **表 2**  GetNext字段说明
@@ -1036,7 +1036,7 @@ step\_trace\_\*.json文件内容格式示例如下：
 
 step\_trace\_\*.csv文件内容格式示例如下：
 
-**图 3**  step\_trace\_\*.csv<a name="zh-cn_topic_0000001706482137_fig1790711444171"></a>  
+**图 3**  step\_trace\_\*.csv<a name="zh-cn_topic_0000001706482137_fig1790711444171"></a>
 ![](../figures/step_trace_-csv.png "step_trace_-csv")
 
 根据step\_trace\_\*.json文件的判断，可以对照step\_trace\_\*.csv文件的信息得到印证。
@@ -1067,32 +1067,32 @@ step\_trace\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001658339478_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Communication层级数据说明<a name="zh-cn_topic_0000001658339478_section8123844101012"></a>**
 
 msprof\_\*.json文件Communication层数据如下图所示。
 
-**图 1**  通信大算子信息<a name="zh-cn_topic_0000001658339478_fig18715851115013"></a>  
+**图 1**  通信大算子信息<a name="zh-cn_topic_0000001658339478_fig18715851115013"></a>
 ![](../figures/通信大算子信息.png "通信大算子信息")
 
-**图 2**  通信小算子信息<a name="zh-cn_topic_0000001658339478_fig471535125016"></a>  
+**图 2**  通信小算子信息<a name="zh-cn_topic_0000001658339478_fig471535125016"></a>
 ![](../figures/通信小算子信息.png "通信小算子信息")
 
 多卡、多机或集群场景时各Device之间存在通信，形成各个通信域，Communication层按照各个通信域进行排列，收集通信算子的耗时，该文件下可以直观找出耗时最长的通信算子。
@@ -1115,8 +1115,8 @@ msprof\_\*.json文件Communication层数据如下图所示。
 |data_type|数据类型。|
 |alg_type|通信算子各阶段的算法类型，包含：MESH、RING、NB、HD、NHR、PIPELINE、PAIRWISE、STAR等。|
 |count|数据传输的数量。|
-|relay|通信算子是否发生借轨。显示为yes（表示发生了借轨）或no（表示没有发生借轨）。支持型号：<br>Atlas A2 系列产品：仅显示为no，无意义<br>Atlas A3 系列产品|
-|retry|通信算子是否发生重执行。显示为yes（表示发生了重执行）或no（表示没有发生重执行）。支持型号：<br>Atlas A2 系列产品<br>Atlas A3 系列产品|
+|relay|通信算子是否发生借轨。显示为yes（表示发生了借轨）或no（表示没有发生借轨）。支持型号：<br>Atlas A2系列产品：仅显示为no，无意义<br>Atlas A3系列产品|
+|retry|通信算子是否发生重执行。显示为yes（表示发生了重执行）或no（表示没有发生重执行）。支持型号：<br>Atlas A2系列产品<br>Atlas A3系列产品|
 |**通信小算子信息**||
 |notify id|notify唯一ID。notify id仅对task type为notify类型及用于传输notify record信号的RDMA send类的task有效；其他task type时无效，显示为18446744073709551615。|
 |duration estimated(us)|预估任务持续时间，单位us。|
@@ -1124,7 +1124,7 @@ msprof\_\*.json文件Communication层数据如下图所示。
 |task id|Task任务的ID。|
 |task type|Task类型。|
 |src rank|源Rank。|
-|dst rank|目的Rank。<br>对于Ascend 950PR&950DT 系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。|
+|dst rank|目的Rank。<br>对于Ascend 950PR&950DT系列产品，本地片内操作显示为与src rank一致的数值。<br>对于其他产品，若此字段显示为4294967295，则为本地片内操作。|
 |transport type|传输类型，包含：LOCAL、SDMA、RDMA、UB和ROCE等。|
 |size(Byte)|数据量，单位Byte。获取不到size时，统一显示为0。|
 |data type|数据类型。|
@@ -1137,7 +1137,7 @@ msprof\_\*.json下的“Overlap Analysis”为计算及通信的流水掩盖分�
 
 计算和通信存在并行，那么可通过查看流水掩盖的重叠时间（计算和通信并行的时间）从而判断计算通信效率。
 
-**图 3**  计算及通信的流水掩盖呈现效果图<a name="zh-cn_topic_0000001658339478_fig1514136114211"></a>  
+**图 3**  计算及通信的流水掩盖呈现效果图<a name="zh-cn_topic_0000001658339478_fig1514136114211"></a>
 ![](../figures/计算及通信的流水掩盖呈现效果图.png "计算及通信的流水掩盖呈现效果图")
 
 **表 2**  字段说明
@@ -1155,7 +1155,7 @@ msprof\_\*.json下的“Overlap Analysis”为计算及通信的流水掩盖分�
 
 communication\_statistic\_\*.csv文件内容格式示例如下：
 
-**图 4**  communication\_statistic\_\*.csv<a name="zh-cn_topic_0000001658339478_fig172301674189"></a>  
+**图 4**  communication\_statistic\_\*.csv<a name="zh-cn_topic_0000001658339478_fig172301674189"></a>
 ![](../figures/communication_statistic_-csv.png "communication_statistic_-csv")
 
 communication\_statistic\_\*.csv为集合通信算子统计信息，通过集合通信算子统计信息了解该类算子的耗时，以及各通信算子在集合通信内部的耗时占比，从而判断某个算子是否存在优化空间。
@@ -1180,29 +1180,29 @@ CANN算子的内存占用记录无timeline信息，summary信息在memory\_recor
 **产品支持情况<a name="zh-cn_topic_000000170451978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **memory\_record\_\*.csv文件数据说明<a name="zh-cn_topic_000000170451978_section104048511517"></a>**
 
 memory\_record\_\*.csv文件内容格式示例如下：
 
-**图 1**  memory\_record\_\*.csv<a name="zh-cn_topic_000000170451978_fig18726153033320"></a>  
+**图 1**  memory\_record\_\*.csv<a name="zh-cn_topic_000000170451978_fig18726153033320"></a>
 ![](../figures/memory_record_-csv.png "memory_record_-csv")
 
 **表 1**  字段说明
@@ -1223,29 +1223,29 @@ CANN算子的内存占用明细无timeline信息，summary信息在operator\_mem
 **产品支持情况<a name="zh-cn_topic_0000001752279281_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **operator\_memory\_\*.csv文件数据说明<a name="zh-cn_topic_0000001752279281_section104048511517"></a>**
 
 operator\_memory\_\*.csv文件内容格式示例如下：
 
-**图 1**  operator\_memory\_\*.csv<a name="zh-cn_topic_0000001752279281_fig280612153313"></a>  
+**图 1**  operator\_memory\_\*.csv<a name="zh-cn_topic_0000001752279281_fig280612153313"></a>
 ![](../figures/operator_memory_-csv.png "operator_memory_-csv")
 
 关键字段说明如下。
@@ -1269,7 +1269,7 @@ operator\_memory\_\*.csv文件内容格式示例如下：
 
 operator\_memory\_\*.csv文件中的部分信息存在空值或负值，是因为部分算子申请或释放不在性能数据采集进程的范围内，所以可能未采集到这些算子的内存申请或释放的过程。详细请参考下面示例：
 
-**图 2**  空值负值说明<a name="zh-cn_topic_0000001752279281_fig16334112284217"></a>  
+**图 2**  空值负值说明<a name="zh-cn_topic_0000001752279281_fig16334112284217"></a>
 ![](../figures/空值负值说明.png "空值负值说明")
 
 负值说明：上图中4873行的Size列出现了负值（内存申请Size为正值，内存释放Size为负值，如果在采集性能数据的范围内申请且释放了内存，那么Size取申请的数值），而Name列无法识别到算子名称，且其他Allocation列分配内存为空，Release列释放内存数值正常，说明该算子的内存申请在性能数据采集进程前，但内存释放在性能数据采集的范围内，所以仅采集到了内存释放的负值。另外算子名的识别仅在内存申请时进行，所以内存释放时无法识别到算子名，又因为内存申请不在采集性能数据的范围内，所以Allocation列分配内存为空。
@@ -1283,29 +1283,29 @@ NPU内存占用数据timeline信息在msprof\_\*.json文件的NPU MEM层级展�
 **产品支持情况<a name="zh-cn_topic_0000001704360086_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的NPU MEM层级数据说明<a name="zh-cn_topic_0000001704360086_section11622953115117"></a>**
 
 msprof\_\*.json文件NPU MEM层级数据如下图所示。（下图仅为示例，实际呈现以产品实现为准）
 
-**图 1**  NPU MEM层<a name="zh-cn_topic_0000001704360086_fig186331551142017"></a>  
+**图 1**  NPU MEM层<a name="zh-cn_topic_0000001704360086_fig186331551142017"></a>
 ![](../figures/NPU-MEM层.png "NPU-MEM层")
 
 上图展示了进程级和设备级的内存占用情况，单位为KB，其中Memory字段表示内存占用总和。
@@ -1314,7 +1314,7 @@ msprof\_\*.json文件NPU MEM层级数据如下图所示。（下图仅为示例�
 
 npu\_mem\_\*.csv文件内容格式示例如下：
 
-**图 2**  npu\_mem\_\*.csv<a name="zh-cn_topic_0000001704360086_fig137821719212"></a>  
+**图 2**  npu\_mem\_\*.csv<a name="zh-cn_topic_0000001704360086_fig137821719212"></a>
 ![](../figures/npu_mem_-csv.png "npu_mem_-csv")
 
 上图为内存占用情况明细，单位为KB，其中Memory字段表示内存占用总和。
@@ -1326,29 +1326,29 @@ NPU组件内存占用数据无timeline信息，summary信息在npu\_module\_mem\
 **产品支持情况<a name="zh-cn_topic_0000001797276317_section165442389381"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **npu\_module\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001797276317_section104048511517"></a>**
 
 npu\_module\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  npu\_module\_mem\_\*.csv<a name="zh-cn_topic_0000001797276317_fig537247162117"></a>  
+**图 1**  npu\_module\_mem\_\*.csv<a name="zh-cn_topic_0000001797276317_fig537247162117"></a>
 ![](../figures/npu_module_mem_-csv.png "npu_module_mem_-csv")
 
 **表 1**  字段说明
@@ -1373,26 +1373,26 @@ npu\_module\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001752181593_section91616487538"></a>**
 
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：不支持
+- Atlas A3系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：不支持
+- Atlas A2系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **dp\_\*.csv文件说明<a name="zh-cn_topic_0000001752181593_section5874203112014"></a>**
 
 数据增强数据dp\_\*.csv文件内容格式示例如下：
 
-**图 1**  dp\_\*.csv<a name="zh-cn_topic_0000001752181593_fig5210278292"></a>  
+**图 1**  dp\_\*.csv<a name="zh-cn_topic_0000001752181593_fig5210278292"></a>
 ![](../figures/dp_-csv.png "dp_-csv")
 
 **表 1**  字段说明
@@ -1413,29 +1413,29 @@ AI Core指令占比数据timeline信息在msprof\_\*.json文件的AI Core Utiliz
 **产品支持情况<a name="zh-cn_topic_0000001731321225_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的AI Core指令占比数据说明<a name="zh-cn_topic_0000001731321225_section432932191111"></a>**
 
 msprof\_\*.json文件内容格式示例如下：
 
-**图 1**  AI Core Utilization层<a name="zh-cn_topic_0000001731321225_fig8427528151814"></a>  
+**图 1**  AI Core Utilization层<a name="zh-cn_topic_0000001731321225_fig8427528151814"></a>
 ![](../figures/AI-Core-Utilization层.png "AI-Core-Utilization层")
 
 **表 1**  字段说明
@@ -1450,12 +1450,12 @@ msprof\_\*.json文件内容格式示例如下：
 
 ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
-**图 2**  ai\_core\_utilization（仅为示例）<a name="zh-cn_topic_0000001731321225_fig12780124014279"></a>  
+**图 2**  ai\_core\_utilization（仅为示例）<a name="zh-cn_topic_0000001731321225_fig12780124014279"></a>
 ![](../figures/ai_core_utilization（仅为示例）.png "ai_core_utilization（仅为示例）")
 
 根据--aic-metrics参数取值不同，文件呈现结果不同。完整字段如下。
 
-> [!NOTE] 
+> [!NOTE]
 >
 > - 下文字段说明中，不同产品支持的字段略有不同，请以实际结果文件呈现字段为准。
 > - 下列字段均在--task-time=l1、--aic-mode=sample-based时生成，--task-time为l0时，不采集该字段，显示为N/A。生成的数据由aic\_metrics参数取值控制。
@@ -1464,15 +1464,15 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 |字段名|字段含义|
 |--|--|
-|vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
+|vec_ratio|vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Atlas A2系列产品不支持该字段。Atlas A3系列产品不支持该字段。|
 |mac_ratio|cube类型指令（矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_ratio|scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
 |mte1_ratio|mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
 |mte2_ratio|mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。|
-|mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
+|mte3_ratio|mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。Atlas A2系列产品不支持该字段。Atlas A3系列产品不支持该字段。|
 |icache_miss_rate|icache是为instruction预留的L2 Cache，icache_miss_rate数值高代表AI Core读取指令的效率低。|
 |fixpipe_ratio|fixpipe类型指令（L0C->OUT/L1搬运类指令）的cycle数在total cycle数中的占用比。|
-|memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。Atlas A2 系列产品不支持该字段。Atlas A3 系列产品不支持该字段。|
+|memory_bound|用于识别AI Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示AI Core在执行Task过程中大部分时间都在做内存搬运而不是计算，且数值越大Memory瓶颈越严重。Atlas A2系列产品不支持该字段。Atlas A3系列产品不支持该字段。|
 
 **表 3**  字段说明（ArithmeticUtilization）
 
@@ -1480,25 +1480,25 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |--|--|
 |mac_fp16_ratio|cube fp16类型指令的cycle数在total cycle数中的占用比。|
 |mac_int8_ratio|cube int8类型指令的cycle数在total cycle数中的占用比。|
-|vec_fp32_ratio|vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
-|vec_fp16_ratio|vec fp16类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
-|vec_int32_ratio|vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
-|vec_misc_ratio|vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vec_fp32_ratio|vec fp32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
+|vec_fp16_ratio|vec fp16类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
+|vec_int32_ratio|vec int32类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
+|vec_misc_ratio|vec misc类型指令的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
 |cube_fops|cube类型的浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。|
-|vector_fops|vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT 系列产品不支持该字段。|
+|vector_fops|vector类型浮点运算数，即计算量，可用于衡量算法/模型的复杂度，其中fops表示floating point operations，缩写为FLOPs。Ascend 950PR&950DT系列产品不支持该字段。|
 
 **表 4**  字段说明（Memory）
 
 |字段名|字段含义|
 |--|--|
-|ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
-|ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|ub_read_bw(GB/s)|ub读带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
+|ub_write_bw(GB/s)|ub写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 |l1_read_bw(GB/s)|l1读带宽速率，单位GB/s。|
 |l1_write_bw(GB/s)|l1写带宽速率，单位GB/s。|
-|l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
-|l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
+|l2_read_bw|l2读带宽速率，单位GB/s。Ascend 950PR&950DT系列产品不支持该字段。|
+|l2_write_bw|l2写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
 |main_mem_read_bw(GB/s)|主存储器读带宽速率，单位GB/s。|
-|main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|main_mem_write_bw(GB/s)|主存储器写带宽速率，单位GB/s。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 
 **表 5**  字段说明（MemoryL0）
 
@@ -1509,7 +1509,7 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 |l0b_read_bw(GB/s)|l0b读带宽速率，单位GB/s。|
 |l0b_write_bw(GB/s)|l0b写带宽速率，单位GB/s。|
 |l0c_read_bw(GB/s)|vector从l0c读带宽速率，单位GB/s。|
-|l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT 系列产品不支持该字段。|
+|l0c_write_bw(GB/s)|vector向l0c写带宽速率，单位GB/s。Ascend 950PR&950DT系列产品不支持该字段。|
 |l0c_read_bw_cube(GB/s)|cube从l0c读带宽速率，单位GB/s。|
 |l0c_write_bw_cube(GB/s)|cube向l0c写带宽速率，单位GB/s。|
 
@@ -1530,39 +1530,39 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 
 |字段名|字段含义|
 |--|--|
-|vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT 系列产品不支持该字段。|
-|vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
-|vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|vec_bankgroup_cflt_ratio|vec_bankgroup_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令的block stride的值设置不合理，造成bankgroup冲突。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。Ascend 950PR&950DT系列产品不支持该字段。|
+|vec_bank_cflt_ratio|vec_bank_stall_cycles类型指令执行cycle数在total cycle数中的占用比。由于vector指令操作数的读写指针地址不合理，造成bank冲突。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
+|vec_resc_cflt_ratio|vec_resc_cflt_ratio类型指令执行cycle数在total cycle数中的占用比。当算子中涉及多个计算单元，应该尽量保证多个单元并发调度。当某个计算单元正在执行计算，但算子逻辑仍然往该单元下发指令，就会造成整体的算力没有得到充分应用。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 
 <!-- npu="950,A3,910b,310b" id12 -->
 **表 8**  字段说明（L2Cache）
 
 |字段名|字段含义|
 |--|--|
-|write_cache_hit|写cache命中的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
-|write_cache_miss_allocate|写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
-|r*_read_cache_hit|读r*通道cache命中次数。Ascend 950PR&950DT 系列产品不支持该字段。|
-|r*_read_cache_miss_allocate|读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT 系列产品不支持该字段。|
-|read_local_l2_hit|读Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
-|read_local_l2_miss|读Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
-|read_local_l2_victim|读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
-|write_local_l2_hit|写Cache命中的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
-|write_local_l2_miss|写Cache缺失次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
-|write_local_l2_victim|写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT 系列产品支持该字段。|
+|write_cache_hit|写cache命中的次数。Ascend 950PR&950DT系列产品不支持该字段。|
+|write_cache_miss_allocate|写cache缺失后重新分配缓存的次数。Ascend 950PR&950DT系列产品不支持该字段。|
+|r*_read_cache_hit|读r*通道cache命中次数。Ascend 950PR&950DT系列产品不支持该字段。|
+|r*_read_cache_miss_allocate|读r*通道cache缺失后重新分配的次数。Ascend 950PR&950DT系列产品不支持该字段。|
+|read_local_l2_hit|读Cache命中的次数。仅Ascend 950PR&950DT系列产品支持该字段。|
+|read_local_l2_miss|读Cache缺失次数。仅Ascend 950PR&950DT系列产品支持该字段。|
+|read_local_l2_victim|读Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT系列产品支持该字段。|
+|write_local_l2_hit|写Cache命中的次数。仅Ascend 950PR&950DT系列产品支持该字段。|
+|write_local_l2_miss|写Cache缺失次数。仅Ascend 950PR&950DT系列产品支持该字段。|
+|write_local_l2_victim|写Cache未命中并触发Cache中数据被换出的次数。仅Ascend 950PR&950DT系列产品支持该字段。|
 
 支持的产品：
 
 <!-- npu="910b" id42 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id42 -->
 <!-- npu="A3" id43 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id43 -->
 <!-- npu="950" id44 -->
-- Ascend 950PR&950DT 系列产品
+- Ascend 950PR&950DT系列产品
 <!-- end id44 -->
 <!-- npu="310b" id45 -->
-- Atlas 200I/500 A2 推理产品
+- Atlas 200I/500 A2推理产品
 <!-- end id45 -->
 <!-- end id12 -->
 
@@ -1582,10 +1582,10 @@ ai\_core\_utilization\_\*.csv文件内容格式示例如下：
 支持的产品：
 
 <!-- npu="910b" id47 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id47 -->
 <!-- npu="A3" id48 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id48 -->
 <!-- end id46 -->
 
@@ -1597,43 +1597,43 @@ AI Vector Core指令占比数据无timeline信息，summary信息在ai\_vector\_
 **产品支持情况<a name="zh-cn_topic_0000001750641108_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **ai\_vector\_core\_utilization\_\*.csv文件说明<a name="zh-cn_topic_0000001750641108_section44809124408"></a>**
 
 ai\_vector\_core\_utilization\_\*.csv文件内容格式示例如下：
 
-**图 1**  ai\_vector\_core\_utilization\_\*.csv<a name="zh-cn_topic_0000001750641108_fig167159472016"></a>  
+**图 1**  ai\_vector\_core\_utilization\_\*.csv<a name="zh-cn_topic_0000001750641108_fig167159472016"></a>
 ![](../figures/ai_vector_core_utilization_-csv.jpg "ai_vector_core_utilization_-csv")
 
 **表 1**  字段说明
 
 |字段名|字段含义|
 |--|--|
-|vec_ratio|代表vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2 推理产品不支持该字段，给予默认值N/A。|
+|vec_ratio|代表vec类型指令（向量类运算指令）的cycle数在total cycle数中的占用比。Atlas 200I/500 A2推理产品不支持该字段，给予默认值N/A。|
 |mac_ratio|代表cube类型指令（fp16及s16矩阵类运算指令）的cycle数在total cycle数中的占用比。|
 |scalar_ratio|代表scalar类型指令（标量类运算指令）的cycle数在total cycle数中的占用比。|
 |mte1_ratio|代表mte1类型指令（L1->L0A/L0B搬运类指令）的cycle数在total cycle数中的占用比。|
-|mte2_ratio|代表mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2 推理产品）|
-|mte2_ratio|代表mte2类型指令（片上内存->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2 系列产品）（Atlas A3 系列产品）|
-|mte3_ratio|代表mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2 推理产品）|
-|mte3_ratio|代表mte3类型指令（AICORE->片上内存搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2 系列产品）（Atlas A3 系列产品）|
+|mte2_ratio|代表mte2类型指令（DDR->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2推理产品）|
+|mte2_ratio|代表mte2类型指令（片上内存->AICORE搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2系列产品）（Atlas A3系列产品）|
+|mte3_ratio|代表mte3类型指令（AICORE->DDR搬运类指令）的cycle数在total cycle数中的占用比。（Atlas 200I/500 A2推理产品）|
+|mte3_ratio|代表mte3类型指令（AICORE->片上内存搬运类指令）的cycle数在total cycle数中的占用比。（Atlas A2系列产品）（Atlas A3系列产品）|
 |icache_miss_rate|代表icache缺失率，即未命中指令的L1 cache，数值越小越好。|
 |memory_bound|用于识别AI Vector Core执行算子计算过程是否存在Memory瓶颈，由mte2_ratio/max(mac_ratio, vec_ratio)计算得出。计算结果小于1，表示没有Memory瓶颈；计算结果大于1则表示有Memory瓶颈，且数值越大瓶颈越严重。|
 
@@ -1649,29 +1649,29 @@ aicpu算子详细耗时数据无timeline信息，summary信息在aicpu\_\*.csv�
 **产品支持情况<a name="zh-cn_topic_0000001752101817_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **aicpu\_\*.csv文件说明<a name="zh-cn_topic_0000001752101817_section98641131621"></a>**
 
 AI CPU数据aicpu\_\*.csv文件内容格式示例如下：
 
-**图 1**  aicpu\_\*.csv<a name="zh-cn_topic_0000001752101817_fig101583132201"></a>  
+**图 1**  aicpu\_\*.csv<a name="zh-cn_topic_0000001752101817_fig101583132201"></a>
 ![](../figures/aicpu_-csv.png "aicpu_-csv")
 
 该文件采集的是数据预处理上报的AI CPU数据，其他涉及AI CPU数据的文件采集的是全量AI CPU数据。
@@ -1698,29 +1698,29 @@ AI CPU数据aicpu\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000002013989984_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **aicpu\_mi\_\*.csv文件说明<a name="zh-cn_topic_0000002013989984_section98641131621"></a>**
 
 数据准备的队列数据aicpu\_mi\_\*.csv文件内容格式示例如下：
 
-**图 1**  aicpu\_mi\_\*.csv<a name="zh-cn_topic_0000002013989984_fig10248152262010"></a>  
+**图 1**  aicpu\_mi\_\*.csv<a name="zh-cn_topic_0000002013989984_fig10248152262010"></a>
 ![](../figures/aicpu_mi_-csv.png "aicpu_mi_-csv")
 
 **表 1**  字段说明
@@ -1744,39 +1744,39 @@ L2 Cache数据无timeline信息，summary信息在l2\_cache\_\*.csv文件汇总�
 **产品支持情况<a name="zh-cn_topic_0000001704262430_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **l2\_cache\_\*.csv文件说明<a name="zh-cn_topic_0000001704262430_section98641131621"></a>**
 
 L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 
-**图 1**  l2\_cache\_\*.csv<a name="zh-cn_topic_0000001704262430_fig1350115305204"></a>  
+**图 1**  l2\_cache\_\*.csv<a name="zh-cn_topic_0000001704262430_fig1350115305204"></a>
 ![](../figures/l2_cache_-csv.png "l2_cache_-csv")
 
 <!-- npu="910,310p" id54 -->
 对于下列产品：
 
 <!-- npu="310p" id49 -->
-- Atlas 推理系列产品
+- Atlas推理系列产品
 <!-- end id49 -->
 <!-- npu="910" id50 -->
-- Atlas 训练系列产品
+- Atlas训练系列产品
 <!-- end id50 -->
 
 该文件中第一个算子的Hit Rate和Victim Rate数据不作为参考。
@@ -1786,13 +1786,13 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 对于下列产品
 
 <!-- npu="310b" id51 -->
-- Atlas 200I/500 A2 推理产品
+- Atlas 200I/500 A2推理产品
 <!-- end id51 -->
 <!-- npu="910b" id52 -->
-- Atlas A2 系列产品
+- Atlas A2系列产品
 <!-- end id52 -->
 <!-- npu="A3" id53 -->
-- Atlas A3 系列产品
+- Atlas A3系列产品
 <!-- end id53 -->
 
 该文件中第一个算子数据缺失，不影响整体的性能分析。
@@ -1805,8 +1805,8 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 |Device_id|设备ID。|
 |Stream Id|该Task所处的Stream ID。|
 |Task Id|Task任务的ID。|
-|Hit Rate|内存访问请求命中L2次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品，Hit Rate数据推荐使用aic_metrics的L2 Cache分组实现，此采集方式下Hit Rate数据在op\_summary\_\*.csv文件中呈现。|
-|Victim Rate|内存访问请求未命中并触发Cache中数据被换出的次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2 推理产品、Atlas A2 系列产品、Atlas A3 系列产品，Victim Rate数据可能出现大于1的情况。|
+|Hit Rate|内存访问请求命中L2次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2推理产品、Atlas A2系列产品、Atlas A3系列产品，Hit Rate数据推荐使用aic_metrics的L2 Cache分组实现，此采集方式下Hit Rate数据在op\_summary\_\*.csv文件中呈现。|
+|Victim Rate|内存访问请求未命中并触发Cache中数据被换出的次数与内存访问请求总次数的比值。<br>对于Atlas 200I/500 A2推理产品、Atlas A2系列产品、Atlas A3系列产品，Victim Rate数据可能出现大于1的情况。|
 |Op Name|算子名称。|
 
 #### fusion\_op（算子融合信息）<a name="ZH-CN_TOPIC_0000002477463230"></a>
@@ -1818,29 +1818,29 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001704421886_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **fusion\_op\_\*.csv文件说明<a name="zh-cn_topic_0000001704421886_section98641131621"></a>**
 
 模型中算子融合前后信息数据fusion\_op\_\*.csv文件内容格式示例如下：
 
-**图 1**  fusion\_op\_\*.csv<a name="zh-cn_topic_0000001704421886_fig686494418203"></a>  
+**图 1**  fusion\_op\_\*.csv<a name="zh-cn_topic_0000001704421886_fig686494418203"></a>
 ![](../figures/fusion_op_-csv.png "fusion_op_-csv")
 
 **表 1**  字段说明
@@ -1865,29 +1865,29 @@ L2 Cache数据l2\_cache\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001924444106_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **static\_op\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001924444106_section104048511517"></a>**
 
 static\_op\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  static\_op\_mem\_\*.csv<a name="zh-cn_topic_0000001924444106_fig788719246226"></a>  
+**图 1**  static\_op\_mem\_\*.csv<a name="zh-cn_topic_0000001924444106_fig788719246226"></a>
 ![](../figures/static_op_mem_-csv.png "static_op_mem_-csv")
 
 单算子场景通过调用aclprofCreateConfig接口开启ACL\_PROF\_TASK\_MEMORY开关采集生成，该数据仅在模型编译阶段上报。通过该文件可以查看静态图场景下每个Graph子图下算子的内存申请情况。
@@ -1913,29 +1913,29 @@ static\_op\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001751484586_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **sys\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751484586_section104048511517"></a>**
 
 sys\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  sys\_mem\_\*.csv<a name="zh-cn_topic_0000001751484586_fig1844811313228"></a>  
+**图 1**  sys\_mem\_\*.csv<a name="zh-cn_topic_0000001751484586_fig1844811313228"></a>
 ![](../figures/sys_mem_-csv.png "sys_mem_-csv")
 
 **表 1**  字段说明
@@ -1960,29 +1960,29 @@ sys\_mem\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001798284369_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **process\_mem\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798284369_section104048511517"></a>**
 
 process\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  process\_mem\_\*.csv<a name="zh-cn_topic_0000001798284369_fig13750153752213"></a>  
+**图 1**  process\_mem\_\*.csv<a name="zh-cn_topic_0000001798284369_fig13750153752213"></a>
 ![](../figures/process_mem_-csv.png "process_mem_-csv")
 
 **表 1**  字段说明
@@ -2003,29 +2003,29 @@ AI CPU（执行AI CPU算子）、Ctrl CPU（执行Driver任务）利用率数据
 **产品支持情况<a name="zh-cn_topic_0000001798325329_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001798325329_section104048511517"></a>**
 
 cpu\_usage\_\*.csv文件内容格式示例如下：
 
-**图 1**  cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001798325329_fig1012454414220"></a>  
+**图 1**  cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001798325329_fig1012454414220"></a>
 ![](../figures/cpu_usage_-csv.png "cpu_usage_-csv")
 
 **表 1**  字段说明
@@ -2048,29 +2048,29 @@ cpu\_usage\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001751325670_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件数据说明<a name="zh-cn_topic_0000001751325670_section104048511517"></a>**
 
 process\_cpu\_usage\_\*.csv文件内容格式示例如下：
 
-**图 1**  process\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751325670_fig939675212225"></a>  
+**图 1**  process\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751325670_fig939675212225"></a>
 ![](../figures/process_cpu_usage_-csv.png "process_cpu_usage_-csv")
 
 **表 1**  字段说明
@@ -2089,32 +2089,32 @@ process\_cpu\_usage\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_000000170451974_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的片上内存数据说明<a name="zh-cn_topic_000000170451974_section1861610200457"></a>**
 
 msprof\_\*.json文件片上内存数据如下图所示。
 
-**图 1**  片上内存1<a name="zh-cn_topic_000000170451974_fig766519153238"></a>  
+**图 1**  片上内存1<a name="zh-cn_topic_000000170451974_fig766519153238"></a>
 ![](../figures/片上内存1.png "片上内存1")
 
-**图 2**  片上内存2<a name="zh-cn_topic_000000170451974_fig128671226172320"></a>  
+**图 2**  片上内存2<a name="zh-cn_topic_000000170451974_fig128671226172320"></a>
 ![](../figures/片上内存2.png "片上内存2")
 
 上图展示了片上内存的读写速率，单位为MB/s。
@@ -2123,7 +2123,7 @@ msprof\_\*.json文件片上内存数据如下图所示。
 
 ddr\_\*.csv文件内容格式示例如下：
 
-**图 3**  ddr\_\*.csv<a name="zh-cn_topic_000000170451974_fig4397103862317"></a>  
+**图 3**  ddr\_\*.csv<a name="zh-cn_topic_000000170451974_fig4397103862317"></a>
 ![](../figures/ddr_-csv.png "ddr_-csv")
 
 **表 1**  字段说明
@@ -2139,7 +2139,7 @@ ddr\_\*.csv文件内容格式示例如下：
 
 hbm\_\*.csv文件内容格式示例如下：
 
-**图 4**  hbm\_\*.csv<a name="zh-cn_topic_000000170451974_fig13282164482314"></a>  
+**图 4**  hbm\_\*.csv<a name="zh-cn_topic_000000170451974_fig13282164482314"></a>
 ![](../figures/hbm_-csv.png "hbm_-csv")
 
 **表 2**  字段说明
@@ -2159,29 +2159,29 @@ HCCS集合通信带宽数据timeline信息在msprof\_\*.json文件的HCCS层级�
 **产品支持情况<a name="zh-cn_topic_0000001752359493_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的HCCS层级数据说明<a name="zh-cn_topic_0000001752359493_section279614455011"></a>**
 
 msprof\_\*.json文件HCCS层级数据如下图所示。
 
-**图 1**  HCCS层<a name="zh-cn_topic_0000001752359493_fig876626102412"></a>  
+**图 1**  HCCS层<a name="zh-cn_topic_0000001752359493_fig876626102412"></a>
 ![](../figures/HCCS层.png "HCCS层")
 
 **表 1**  字段说明
@@ -2195,7 +2195,7 @@ msprof\_\*.json文件HCCS层级数据如下图所示。
 
 hccs\_\*.csv文件内容格式示例如下：
 
-**图 2**  hccs\_\*.csv<a name="zh-cn_topic_0000001752359493_fig597612312247"></a>  
+**图 2**  hccs\_\*.csv<a name="zh-cn_topic_0000001752359493_fig597612312247"></a>
 ![](../figures/hccs_-csv.png "hccs_-csv")
 
 **表 2**  字段说明
@@ -2217,29 +2217,29 @@ hccs\_\*.csv文件内容格式示例如下：
 **产品支持情况<a name="zh-cn_topic_0000001750414058_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的NIC层级数据说明<a name="zh-cn_topic_0000001750414058_section10870339706"></a>**
 
 msprof\_\*.json文件NIC层数据如下图所示。
 
-**图 1**  NIC层<a name="zh-cn_topic_0000001750414058_fig1930611382249"></a>  
+**图 1**  NIC层<a name="zh-cn_topic_0000001750414058_fig1930611382249"></a>
 ![](../figures/NIC层.png "NIC层")
 
 **表 1**  字段说明
@@ -2255,7 +2255,7 @@ msprof\_\*.json文件NIC层数据如下图所示。
 
 nic\_\*.csv文件内容格式示例如下：
 
-**图 2**  nic\_\*.csv<a name="zh-cn_topic_0000001750414058_fig135704512412"></a>  
+**图 2**  nic\_\*.csv<a name="zh-cn_topic_0000001750414058_fig135704512412"></a>
 ![](../figures/nic_-csv.png "nic_-csv")
 
 **表 2**  字段说明
@@ -2284,29 +2284,29 @@ RoCE通信接口带宽数据timeline信息在msprof\_\*.json文件的RoCE层级�
 **产品支持情况<a name="zh-cn_topic_0000001750572972_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的RoCE层级数据说明<a name="zh-cn_topic_0000001750572972_section11622953115117"></a>**
 
 msprof\_\*.json文件RoCE层级数据如下图所示。
 
-**图 1**  RoCE层<a name="zh-cn_topic_0000001750572972_fig12169145011241"></a>  
+**图 1**  RoCE层<a name="zh-cn_topic_0000001750572972_fig12169145011241"></a>
 ![](../figures/RoCE层.png "RoCE层")
 
 **表 1**  字段说明
@@ -2322,7 +2322,7 @@ msprof\_\*.json文件RoCE层级数据如下图所示。
 
 roce\_\*.csv文件内容格式示例如下：
 
-**图 2**  roce\_\*.csv<a name="zh-cn_topic_0000001750572972_fig8322115682418"></a>  
+**图 2**  roce\_\*.csv<a name="zh-cn_topic_0000001750572972_fig8322115682418"></a>
 ![](../figures/roce_-csv.png "roce_-csv")
 
 **表 2**  字段说明
@@ -2351,29 +2351,29 @@ PCIe带宽数据timeline信息在msprof\_\*.json文件的PCIe层级展示，summ
 **产品支持情况<a name="zh-cn_topic_0000001797493789_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的PCIe层级数据说明<a name="zh-cn_topic_0000001797493789_section11622953115117"></a>**
 
 msprof\_\*.json文件PCIe层级数据如下图所示。
 
-**图 1**  PCIe层<a name="zh-cn_topic_0000001797493789_fig35584202518"></a>  
+**图 1**  PCIe层<a name="zh-cn_topic_0000001797493789_fig35584202518"></a>
 ![](../figures/PCIe层.png "PCIe层")
 
 **表 1**  字段说明
@@ -2389,7 +2389,7 @@ msprof\_\*.json文件PCIe层级数据如下图所示。
 
 pcie\_\*.csv文件内容格式示例如下：
 
-**图 2**  pcie\_\*.csv<a name="zh-cn_topic_0000001797493789_fig97188812514"></a>  
+**图 2**  pcie\_\*.csv<a name="zh-cn_topic_0000001797493789_fig97188812514"></a>
 ![](../figures/pcie_-csv.png "pcie_-csv")
 
 **表 2**  字段说明
@@ -2409,35 +2409,35 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 **产品支持情况<a name="zh-cn_topic_0000001797600917_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的biu\_group、aic\_core\_group、aiv\_core\_group层级数据说明<a name="zh-cn_topic_0000001797600917_section432932191111"></a>**
 
-以Atlas A3 系列产品和Atlas A2 系列产品数据为例。
+以Atlas A3系列产品和Atlas A2系列产品数据为例。
 
-**图 1**  biu\_group<a name="zh-cn_topic_0000001797600917_fig13198121214588"></a>  
+**图 1**  biu\_group<a name="zh-cn_topic_0000001797600917_fig13198121214588"></a>
 ![](../figures/biu_group.png "biu_group")
 
-**图 2**  aic\_core\_group<a name="zh-cn_topic_0000001797600917_fig14725302476"></a>  
+**图 2**  aic\_core\_group<a name="zh-cn_topic_0000001797600917_fig14725302476"></a>
 ![](../figures/aic_core_group.png "aic_core_group")
 
-**图 3**  aiv\_core\_group<a name="zh-cn_topic_0000001797600917_fig1994919116471"></a>  
+**图 3**  aiv\_core\_group<a name="zh-cn_topic_0000001797600917_fig1994919116471"></a>
 ![](../figures/aiv_core_group.png "aiv_core_group")
 
 **表 1**  字段说明（biu_group）
@@ -2452,7 +2452,7 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 <!-- npu="950" id13 -->
 > [!NOTE]
 >
-> 以上biu_group层级为Atlas A3 系列产品和Atlas A2 系列产品数据，对于Ascend 950PR&950DT 系列产品，则为Biu Perf层级（BIU指令流水），下层则是以Group{id}-{核id}的维度进行分组，例如Group0-aiv0，分组下的字段和biu_group层级一致。
+> 以上biu_group层级为Atlas A3系列产品和Atlas A2系列产品数据，对于Ascend 950PR&950DT系列产品，则为Biu Perf层级（BIU指令流水），下层则是以Group{id}-{核id}的维度进行分组，例如Group0-aiv0，分组下的字段和biu_group层级一致。
 <!-- end id13 -->
 
 **表 2**  字段说明（aic_core_group）
@@ -2483,29 +2483,29 @@ AI Core和AI Vector的带宽和延时数据无summary信息，timeline信息在m
 **产品支持情况<a name="zh-cn_topic_0000001750723840_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Acc PMU层级数据说明<a name="zh-cn_topic_0000001750723840_section432932191111"></a>**
 
 msprof\_\*.json文件Acc PMU层级数据如下图所示。
 
-**图 1**  Acc PMU层<a name="zh-cn_topic_0000001750723840_fig19052202251"></a>  
+**图 1**  Acc PMU层<a name="zh-cn_topic_0000001750723840_fig19052202251"></a>
 ![](../figures/Acc-PMU层.png "Acc-PMU层")
 
 **表 1**  字段说明
@@ -2526,29 +2526,29 @@ SoC传输带宽信息数据无summary信息，timeline信息在msprof\_\*.json�
 **产品支持情况<a name="zh-cn_topic_0000001797682569_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Soc Info层级数据说明<a name="zh-cn_topic_0000001797682569_section432932191111"></a>**
 
 msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 
-**图 1**  Stars Soc Info层<a name="zh-cn_topic_0000001797682569_fig125031026102512"></a>  
+**图 1**  Stars Soc Info层<a name="zh-cn_topic_0000001797682569_fig125031026102512"></a>
 ![](../figures/Stars-Soc-Info层.png "Stars-Soc-Info层")
 
 **表 1**  字段说明
@@ -2567,39 +2567,39 @@ msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 **产品支持情况<a name="zh-cn_topic_0000001750882752_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Stars Chip Trans层级数据说明<a name="zh-cn_topic_0000001750882752_section11622953115117"></a>**
 
 msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 
-**图 1**  Stars Chip Trans层<a name="zh-cn_topic_0000001750882752_fig16602113442510"></a>  
+**图 1**  Stars Chip Trans层<a name="zh-cn_topic_0000001750882752_fig16602113442510"></a>
 ![](../figures/Stars-Chip-Trans层.png "Stars-Chip-Trans层")
 
 **表 1**  字段说明
 
 |字段名|字段含义|
 |--|--|
-|PA Link Rx|PA流量接收级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT 系列产品不支持此数据。|
-|PA Link Tx|PA流量发送级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT 系列产品不支持此数据。|
-|PCIE Read Bandwidth|PCIe读带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT 系列产品支持此数据。|
-|PCIE Write Bandwidth|PCIe写带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT 系列产品支持此数据。|
+|PA Link Rx|PA流量接收级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT系列产品不支持此数据。|
+|PA Link Tx|PA流量发送级别。当有集合通信带宽时，不建议参考该字段值，该字段为粗粒度的统计值。Ascend 950PR&950DT系列产品不支持此数据。|
+|PCIE Read Bandwidth|PCIe读带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT系列产品支持此数据。|
+|PCIE Write Bandwidth|PCIe写带宽。当有PCIe带宽时，不建议参考该字段值，该字段为粗粒度的统计值。仅Ascend 950PR&950DT系列产品支持此数据。|
 <!-- end id64 -->
 
 #### llc\_read\_write（三级缓存读写速率）<a name="ZH-CN_TOPIC_0000002477463240"></a>
@@ -2609,29 +2609,29 @@ msprof\_\*.json文件Stars Chip Trans层级数据如下图所示。
 **产品支持情况<a name="zh-cn_topic_0000001750960004_section1413114612162"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的LLC层级数据说明<a name="zh-cn_topic_0000001750960004_section12203141812107"></a>**
 
 msprof\_\*.json文件LLC层级数据如下图所示。
 
-**图 1**  LLC层<a name="zh-cn_topic_0000001750960004_fig197198423259"></a>  
+**图 1**  LLC层<a name="zh-cn_topic_0000001750960004_fig197198423259"></a>
 ![](../figures/LLC层.png "LLC层")
 
 **表 1**  字段说明
@@ -2647,7 +2647,7 @@ msprof\_\*.json文件LLC层级数据如下图所示。
 
 llc\_read\_write\_\*.csv文件内容格式示例如下：
 
-**图 2**  llc\_read\_write\_\*.csv<a name="zh-cn_topic_0000001750960004_fig1718935117257"></a>  
+**图 2**  llc\_read\_write\_\*.csv<a name="zh-cn_topic_0000001750960004_fig1718935117257"></a>
 ![](../figures/llc_read_write_-csv.png "llc_read_write_-csv")
 
 **表 2**  字段说明
@@ -2668,29 +2668,29 @@ DVPP数据无timeline信息，summary信息在dvpp\_\*.csv文件汇总。
 **产品支持情况<a name="zh-cn_topic_0000001798325341_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **dvpp\_\*.csv文件说明<a name="zh-cn_topic_0000001798325341_section11791341554"></a>**
 
 dvpp\_\*.csv文件内容格式示例如下：
 
-**图 1**  dvpp\_\*.csv<a name="zh-cn_topic_0000001798325341_fig123751313132713"></a>  
+**图 1**  dvpp\_\*.csv<a name="zh-cn_topic_0000001798325341_fig123751313132713"></a>
 ![](../figures/dvpp_-csv.png "dvpp_-csv")
 
 **表 1**  字段说明
@@ -2713,29 +2713,29 @@ AI CPU热点函数数据无timeline信息，summary信息在ai\_cpu\_top\_functi
 **产品支持情况<a name="zh-cn_topic_0000001798284377_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ai\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284377_section11791341554"></a>**
 
 ai\_cpu\_top\_function\_\*.csv文件内容格式示例如下：
 
-**图 1**  ai\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798284377_fig20671163622713"></a>  
+**图 1**  ai\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798284377_fig20671163622713"></a>
 ![](../figures/ai_cpu_top_function_-csv.png "ai_cpu_top_function_-csv")
 
 **表 1**  字段说明
@@ -2755,29 +2755,29 @@ AI CPU PMU事件数据无timeline信息，summary信息在ai\_cpu\_pmu\_events\_
 **产品支持情况<a name="zh-cn_topic_0000001751325686_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ai\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325686_section11791341554"></a>**
 
 ai\_cpu\_pmu\_events\_\*.csv文件内容格式示例如下：
 
-**图 1**  ai\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751325686_fig9742143132713"></a>  
+**图 1**  ai\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751325686_fig9742143132713"></a>
 ![](../figures/ai_cpu_pmu_events_-csv.png "ai_cpu_pmu_events_-csv")
 
 **表 1**  字段说明
@@ -2796,29 +2796,29 @@ Ctrl CPU热点函数数据无timeline信息，summary信息在ctrl\_cpu\_top\_fu
 **产品支持情况<a name="zh-cn_topic_0000001798325349_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ctrl\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798325349_section11791341554"></a>**
 
 ctrl\_cpu\_top\_function\_\*.csv文件内容格式示例如下：
 
-**图 1**  ctrl\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798325349_fig116201349122718"></a>  
+**图 1**  ctrl\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798325349_fig116201349122718"></a>
 ![](../figures/ctrl_cpu_top_function_-csv.png "ctrl_cpu_top_function_-csv")
 
 **表 1**  字段说明
@@ -2838,29 +2838,29 @@ Ctrl CPU PMU事件数据无timeline信息，summary信息在ctrl\_cpu\_pmu\_even
 **产品支持情况<a name="zh-cn_topic_0000001751484602_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ctrl\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751484602_section11791341554"></a>**
 
 ctrl\_cpu\_pmu\_events\_\*.csv文件内容格式示例如下：
 
-**图 1**  ctrl\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751484602_fig01371555142714"></a>  
+**图 1**  ctrl\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751484602_fig01371555142714"></a>
 ![](../figures/ctrl_cpu_pmu_events_-csv.png "ctrl_cpu_pmu_events_-csv")
 
 **表 1**  字段说明
@@ -2880,29 +2880,29 @@ TS CPU热点函数数据无timeline信息，summary信息在ts\_cpu\_top\_functi
 **产品支持情况<a name="zh-cn_topic_0000001798284385_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ts\_cpu\_top\_function\_\*.csv文件说明<a name="zh-cn_topic_0000001798284385_section11791341554"></a>**
 
 ts\_cpu\_top\_function\_\*.csv文件内容格式示例如下：
 
-**图 1**  ts\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798284385_fig633819114286"></a>  
+**图 1**  ts\_cpu\_top\_function\_\*.csv<a name="zh-cn_topic_0000001798284385_fig633819114286"></a>
 ![](../figures/ts_cpu_top_function_-csv.png "ts_cpu_top_function_-csv")
 
 **表 1**  字段说明
@@ -2923,29 +2923,29 @@ TS CPU PMU事件数据无timeline信息，summary信息在ts\_cpu\_pmu\_events\_
 **产品支持情况<a name="zh-cn_topic_0000001751325694_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：不支持
+- Ascend 950PR&950DT系列产品：不支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **ts\_cpu\_pmu\_events\_\*.csv文件说明<a name="zh-cn_topic_0000001751325694_section11791341554"></a>**
 
 ts\_cpu\_pmu\_events\_\*.csv文件内容格式示例如下：
 
-**图 1**  ts\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751325694_fig1666014619286"></a>  
+**图 1**  ts\_cpu\_pmu\_events\_\*.csv<a name="zh-cn_topic_0000001751325694_fig1666014619286"></a>
 ![](../figures/ts_cpu_pmu_events_-csv.png "ts_cpu_pmu_events_-csv")
 
 **表 1**  字段说明
@@ -2965,29 +2965,29 @@ Host侧CPU利用率数据在msprof\_\*.json文件的CPU Usage层级展示，summ
 **产品支持情况<a name="zh-cn_topic_0000001751778214_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CPU Usage层级数据说明<a name="zh-cn_topic_0000001751778214_section11622953115117"></a>**
 
 msprof\_\*.json文件CPU Usage层级数据如下图所示。
 
-**图 1**  CPU Usage层<a name="zh-cn_topic_0000001751778214_fig03894179287"></a>  
+**图 1**  CPU Usage层<a name="zh-cn_topic_0000001751778214_fig03894179287"></a>
 ![](../figures/CPU-Usage层.png "CPU-Usage层")
 
 **表 1**  字段说明
@@ -3002,7 +3002,7 @@ msprof\_\*.json文件CPU Usage层级数据如下图所示。
 
 host\_cpu\_usage\_\*.csv文件内容格式示例如下：
 
-**图 2**  host\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751778214_fig1156013718322"></a>  
+**图 2**  host\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751778214_fig1156013718322"></a>
 ![](../figures/host_cpu_usage_-csv.png "host_cpu_usage_-csv")
 
 **表 2**  字段说明
@@ -3015,43 +3015,43 @@ host\_cpu\_usage\_\*.csv文件内容格式示例如下：
 |Recommend Cpu Numbers|使用中的CPU核数，虚拟化场景中为CPU核数资源的推荐分配值。|
 
 #### CPU Freq（Host侧CPU频率）<a name="ZH-CN_TOPIC_0000002477463249"></a>
- 
+
 Host侧CPU频率数据在msprof\_\*.json文件的CPU Freq层级展示，无summary信息。
- 
+
 **产品支持情况**
- 
+
 <!-- npu="950" id1 -->
 
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
   <!-- end id1 -->
   <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
   <!-- end id2 -->
   <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
   <!-- end id3 -->
   <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
   <!-- end id4 -->
   <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
   <!-- end id5 -->
   <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
   <!-- end id6 -->
- 
+
 **msprof\_\*.json文件的CPU Freq层级数据说明**
- 
+
 msprof\_\*.json文件CPU Freq层级数据如下图所示。
- 
-**图 1**  CPU Freq层  
- 
+
+**图 1**  CPU Freq层
+
 ![cpu_freq](../figures/cpu_freq.png)
- 
+
 上图中记录采集过程中每个时刻的CPU频率。
- 
+
 **表 1**  字段说明
- 
+
 | 字段名   | 字段含义 |
 | -------- | -------- |
 | CPU {ID} | CPU ID。 |
@@ -3063,29 +3063,29 @@ Host侧内存利用率数据timeline信息在msprof\_\*.json文件的Memory Usag
 **产品支持情况<a name="zh-cn_topic_0000001751619310_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Memory Usage层级数据说明<a name="zh-cn_topic_0000001751619310_section11622953115117"></a>**
 
 msprof\_\*.json文件Memory Usage层级数据如下图所示。
 
-**图 1**  Memory Usage层<a name="zh-cn_topic_0000001751619310_fig142149295285"></a>  
+**图 1**  Memory Usage层<a name="zh-cn_topic_0000001751619310_fig142149295285"></a>
 ![](../figures/Memory-Usage层.png "Memory-Usage层")
 
 **表 1**  字段说明
@@ -3098,7 +3098,7 @@ msprof\_\*.json文件Memory Usage层级数据如下图所示。
 
 host\_mem\_usage\_\*.csv文件内容格式示例如下：
 
-**图 2**  host\_mem\_usage\_\*.csv<a name="zh-cn_topic_0000001751619310_fig10818133753117"></a>  
+**图 2**  host\_mem\_usage\_\*.csv<a name="zh-cn_topic_0000001751619310_fig10818133753117"></a>
 ![](../figures/host_mem_usage_-csv.png "host_mem_usage_-csv")
 
 **表 2**  字段说明
@@ -3117,29 +3117,29 @@ Host侧磁盘I/O利用率数据timeline信息在msprof\_\*.json文件的Disk Usa
 **产品支持情况<a name="zh-cn_topic_0000001798578961_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Disk Usage层级数据说明<a name="zh-cn_topic_0000001798578961_section11622953115117"></a>**
 
 msprof\_\*.json文件Disk Usage层级数据如下图所示。
 
-**图 1**  Disk Usage层<a name="zh-cn_topic_0000001798578961_fig2438443142810"></a>  
+**图 1**  Disk Usage层<a name="zh-cn_topic_0000001798578961_fig2438443142810"></a>
 ![](../figures/Disk-Usage层.png "Disk-Usage层")
 
 **表 1**  字段说明
@@ -3152,7 +3152,7 @@ msprof\_\*.json文件Disk Usage层级数据如下图所示。
 
 host\_disk\_usage\_\*.csv文件内容格式示例如下：
 
-**图 2**  host\_disk\_usage\_\*.csv<a name="zh-cn_topic_0000001798578961_fig169961347312"></a>  
+**图 2**  host\_disk\_usage\_\*.csv<a name="zh-cn_topic_0000001798578961_fig169961347312"></a>
 ![](../figures/host_disk_usage_-csv.png "host_disk_usage_-csv")
 
 **表 2**  字段说明
@@ -3172,29 +3172,29 @@ Host侧网络I/O利用率数据timeline信息在msprof\_\*.json文件的Network 
 **产品支持情况<a name="zh-cn_topic_0000001798698005_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的Network Usage层级数据说明<a name="zh-cn_topic_0000001798698005_section11622953115117"></a>**
 
 msprof\_\*.json文件Network Usage层级数据如下图所示。
 
-**图 1**  Network Usage层<a name="zh-cn_topic_0000001798698005_fig9276175712815"></a>  
+**图 1**  Network Usage层<a name="zh-cn_topic_0000001798698005_fig9276175712815"></a>
 ![](../figures/Network-Usage层.png "Network-Usage层")
 
 **表 1**  字段说明
@@ -3207,7 +3207,7 @@ msprof\_\*.json文件Network Usage层级数据如下图所示。
 
 host\_network\_usage\_\*.csv文件内容格式示例如下：
 
-**图 2**  host\_network\_usage\_\*.csv<a name="zh-cn_topic_0000001798698005_fig16572542193015"></a>  
+**图 2**  host\_network\_usage\_\*.csv<a name="zh-cn_topic_0000001798698005_fig16572542193015"></a>
 ![](../figures/host_network_usage_-csv.png "host_network_usage_-csv")
 
 **表 2**  字段说明
@@ -3226,29 +3226,29 @@ Host侧syscall和pthreadcall数据timeline信息在msprof\_\*.json文件的OS Ru
 **产品支持情况<a name="zh-cn_topic_0000001751778218_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的OS Runtime API层级数据说明<a name="zh-cn_topic_0000001751778218_section11622953115117"></a>**
 
 msprof\_\*.json文件OS Runtime API层级数据如下图所示。
 
-**图 1**  OS Runtime API层<a name="zh-cn_topic_0000001751778218_fig144942132296"></a>  
+**图 1**  OS Runtime API层<a name="zh-cn_topic_0000001751778218_fig144942132296"></a>
 ![](../figures/OS-Runtime-API层.png "OS-Runtime-API层")
 
 **表 1**  字段说明
@@ -3263,7 +3263,7 @@ msprof\_\*.json文件OS Runtime API层级数据如下图所示。
 
 os\_runtime\_statistic\_\*.csv文件内容格式示例如下：
 
-**图 2**  os\_runtime\_statistic\_\*.csv<a name="zh-cn_topic_0000001751778218_fig1425753011116"></a>  
+**图 2**  os\_runtime\_statistic\_\*.csv<a name="zh-cn_topic_0000001751778218_fig1425753011116"></a>
 ![](../figures/os_runtime_statistic_-csv.png "os_runtime_statistic_-csv")
 
 **表 2**  字段说明
@@ -3286,29 +3286,29 @@ Host侧系统CPU利用率数据无timeline信息，summary信息在cpu\_usage\_\
 **产品支持情况<a name="zh-cn_topic_0000001751619314_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001751619314_section11791341554"></a>**
 
 cpu\_usage\_\*.csv文件内容格式示例如下：
 
-**图 1**  cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751619314_fig514903822911"></a>  
+**图 1**  cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001751619314_fig514903822911"></a>
 ![](../figures/cpu_usage_-csv-0.png "cpu_usage_-csv-0")
 
 **表 1**  字段说明
@@ -3331,29 +3331,29 @@ Host侧进程CPU利用率数据无timeline信息，summary信息在process\_cpu\
 **产品支持情况<a name="zh-cn_topic_0000001798578965_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **process\_cpu\_usage\_\*.csv文件说明<a name="zh-cn_topic_0000001798578965_section11791341554"></a>**
 
 process\_cpu\_usage\_\*.csv文件内容格式示例如下：
 
-**图 1**  process\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001798578965_fig18181124942913"></a>  
+**图 1**  process\_cpu\_usage\_\*.csv<a name="zh-cn_topic_0000001798578965_fig18181124942913"></a>
 ![](../figures/process_cpu_usage_-csv-1.png "process_cpu_usage_-csv-1")
 
 **表 1**  字段说明
@@ -3372,29 +3372,29 @@ Host侧系统内存利用率数据无timeline信息，summary信息在sys\_mem\_
 **产品支持情况<a name="zh-cn_topic_0000001798698009_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **sys\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001798698009_section11791341554"></a>**
 
 sys\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  sys\_mem\_\*.csv<a name="zh-cn_topic_0000001798698009_fig99825716297"></a>  
+**图 1**  sys\_mem\_\*.csv<a name="zh-cn_topic_0000001798698009_fig99825716297"></a>
 ![](../figures/sys_mem_-csv-2.png "sys_mem_-csv-2")
 
 **表 1**  字段说明
@@ -3419,29 +3419,29 @@ Host侧进程内存利用率数据无timeline信息，summary信息在process\_m
 **产品支持情况<a name="zh-cn_topic_0000001800355893_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **process\_mem\_\*.csv文件说明<a name="zh-cn_topic_0000001800355893_section11791341554"></a>**
 
 process\_mem\_\*.csv文件内容格式示例如下：
 
-**图 1**  process\_mem\_\*.csv<a name="zh-cn_topic_0000001800355893_fig31171443301"></a>  
+**图 1**  process\_mem\_\*.csv<a name="zh-cn_topic_0000001800355893_fig31171443301"></a>
 
 ![](../figures/zh-cn_image_0000002123036985.png)
 
@@ -3464,27 +3464,27 @@ TLB页表缓存命中率数据，文件名为soc\_pmu\_\*.csv，该文件记录�
 **产品支持情况<a name="section1568858014"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
 
-**图 1**  soc\_pmu\_\*.csv文件<a name="fig1844571018216"></a>  
+**图 1**  soc\_pmu\_\*.csv文件<a name="fig1844571018216"></a>
 ![](../figures/soc_pmu_-csv文件.png "soc_pmu_-csv文件")
 
 **表 1**  字段说明
@@ -3513,27 +3513,27 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 **产品支持情况<a name="section156885801410"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514482"></a>**
 
-**图 1**  page\_fault\_\*.csv文件<a name="fig1844571018213"></a>  
+**图 1**  page\_fault\_\*.csv文件<a name="fig1844571018213"></a>
 ![](../figures/page_fault.png "page_fault")
 
 **表 1**  字段说明
@@ -3555,34 +3555,34 @@ SMMU页表错误数据，文件名为page\_fault\_\*.csv，该文件记录SMMU�
 **产品支持情况<a name="section156885801411"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：不支持
+- Atlas A3系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：不支持
+- Atlas A2系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof\_\*.json文件的CCU层级数据说明<a name="section11622953115117"></a>**
 
 msprof\_\*.json文件CCU层级数据如下图所示。
 
-**图 1**  CCU层  
+**图 1**  CCU层
 ![ccu_level](../figures/ccu_level.png)
 
 **ccu\_mission\_\*.csv文件说明<a name="section13876175514481"></a>**
 
-**图 1**  ccu\_mission\_\*.csv<a name="fig1844571018214"></a>  
+**图 1**  ccu\_mission\_\*.csv<a name="fig1844571018214"></a>
 
 ![](../figures/zh-cn_image_0000002378234113.png)
 
@@ -3609,27 +3609,27 @@ msprof\_\*.json文件CCU层级数据如下图所示。
 **产品支持情况<a name="section156885801412"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：不支持
+- Atlas A3系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：不支持
+- Atlas A2系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **文件说明<a name="section13876175514481"></a>**
 
-**图 1**  ccu\_channel\_\*.csv<a name="fig1844571018215"></a>  
+**图 1**  ccu\_channel\_\*.csv<a name="fig1844571018215"></a>
 
 ![](../figures/zh-cn_image_0000002386383444.png)
 
@@ -3653,22 +3653,22 @@ UB带宽数据timeline信息在msprof\_\*.json文件的UB层级展示，summary�
 **产品支持情况<a name="section156885801414"></a>**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：不支持
+- Atlas A3系列产品：不支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：不支持
+- Atlas A2系列产品：不支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：不支持
+- Atlas 200I/500 A2推理产品：不支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 **msprof_\*.json文件的UB层级数据说明**
@@ -3715,22 +3715,22 @@ ub_*.csv文件内容格式示例如下：
 **产品支持情况**
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：支持
+- Atlas推理系列产品：支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：支持
+- Atlas训练系列产品：支持
 <!-- end id6 -->
 
 **metrics.csv文件说明**

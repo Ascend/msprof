@@ -19,7 +19,7 @@
 3. 慢卡精细化分析，发现算子下发空泡问题。
 针对已锁定的慢卡 Rank 进行算子链路逐段拆解，对比正常 Rank 运行特征：该慢卡 Rank 存在算子下发耗时长、下发链路不连续的问题，且在相邻两次算子下发间隙存在大量CPU空泡时段，无有效任务调度执行，大量时间片被空耗，直接导致整体流水线阻塞、通信任务堆积，进一步放大集群等待耗时。
 4. 采集内核ftrace数据，排查CPU线程异常根因。
-为定位CPU空泡、算子下发卡顿的底层原因，使用官方ftrace采集工具完成内核调度数据采集，工具详情参见：[ftrace_tools工具](https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools)。
+为定位CPU空泡、算子下发卡顿的底层原因，使用官方ftrace采集工具完成内核调度数据采集，工具详情参见：[ftrace_tools工具](https://gitcode.com/Ascend/msinsight/tree/26.2.0/scripts/ftrace_tools)。
 通过采集模型运行全过程的CPU调度、线程切换、中断事件，分析空泡时段的系统行为。
 针对空泡卡顿现象，梳理四大潜在诱因：① 线程被硬中断/软中断抢占阻塞；② 线程存在锁竞争、持锁等待；③ CPU Cache Miss异常偏高；④ 业务线程执行异常长耗时分支逻辑。
 结合ftrace调度日志与业务运行日志交叉核验：排除中断抢占、锁竞争问题，同时排除业务代码异常分支长耗时问题，最终锁定CPU Cache Miss异常为核心可疑根因。

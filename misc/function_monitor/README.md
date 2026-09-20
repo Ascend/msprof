@@ -10,7 +10,7 @@
 
 1. 通过 Python 装饰器或 with 语句实现对指定函数的执行时间及 CPU PMU 指标采集，支持基于耗时阈值进行数据过滤，并将采集结果持久化写入日志文件。
 2. 将采集的日志文件进行后处理，转换为 Chrome Trace Json 格式。
-3. 导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)，进行可视化展示，分析函数执行耗时与 CPU PMU 指标之间的关系。
+3. 导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/overview.md)，进行可视化展示，分析函数执行耗时与 CPU PMU 指标之间的关系。
 
 ## 注意事项
 
@@ -85,18 +85,18 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
     import os
     import torch
     from function_monitor import function_monitor
-    
+
     @function_monitor(func_name='model_run', threshold_ms=1)
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-    
+
         for i in range(10):
             C = torch.matmul(A, B)
             D = torch.nn.functional.relu(C)
             E = torch.nn.functional.layer_norm(D, D.size()[1:])
-    
+
     if __name__ == '__main__':
         for i in range(10):
             model_run()
@@ -152,18 +152,18 @@ function_monitor.py 中还提供了上下文管理器 `FunctionMonitorContext`�
     import os
     import torch
     from function_monitor import FunctionMonitorContext
-    
+
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-    
+
         with FunctionMonitorContext(func_name='torch_operator_run', threshold_ms=1):
             for i in range(10):
                 C = torch.matmul(A, B)
                 D = torch.nn.functional.relu(C)
                 E = torch.nn.functional.layer_norm(D, D.size()[1:])
-    
+
     if __name__ == '__main__':
         for i in range(10):
             model_run()
