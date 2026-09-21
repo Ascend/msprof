@@ -19,12 +19,17 @@
 
 #include <cstdint>
 
-namespace Analysis {
-namespace Domain {
+#include "analysis/csrc/domain/entities/hal/include/hal_freq.h"
+
+namespace Analysis
+{
+namespace Domain
+{
 #define DEFAULT_FREQ_LPM 0x00
 #pragma pack(1)
 
-struct FreqLpmData {
+struct FreqLpmData
+{
     uint64_t sysCnt;
     uint32_t freq;
     uint32_t resv1;
@@ -32,15 +37,16 @@ struct FreqLpmData {
 #pragma pack()
 
 #pragma pack(1)
-struct FreqData {
+struct FreqData
+{
     uint32_t count;
     uint32_t resv1;
-    FreqLpmData lpmDataS[55];
+    FreqLpmData lpmDataS[FREQ_LPM_DATA_COUNT];
 };
 #pragma pack()
 
 int FreqLpmParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus);
-}
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // MSPROF_ANALYSIS_FREQ_LPM_PARSER_ITEM_H
+#endif  // MSPROF_ANALYSIS_FREQ_LPM_PARSER_ITEM_H
