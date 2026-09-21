@@ -19,19 +19,25 @@
 
 #include "analysis/csrc/domain/entities/hal/include/hal.h"
 
-namespace Analysis {
-namespace Domain {
-struct HalFreqLpmData {
+namespace Analysis
+{
+namespace Domain
+{
+constexpr uint32_t FREQ_LPM_DATA_COUNT = 55;
+
+struct HalFreqLpmData
+{
     uint64_t sysCnt = 0;
     uint32_t freq = 0;
 };
 
 // 用于接收二进制转换后数据, 需要在parser中过滤有效数据
-struct HalFreqData {
+struct HalFreqData
+{
     uint64_t count;
-    HalFreqLpmData freqLpmDataS[55];
+    HalFreqLpmData freqLpmDataS[FREQ_LPM_DATA_COUNT];
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // MSPROF_ANALYSIS_HAL_FREQ_H
+#endif  // MSPROF_ANALYSIS_HAL_FREQ_H
