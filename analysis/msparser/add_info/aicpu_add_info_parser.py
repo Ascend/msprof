@@ -298,6 +298,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
                 aicpu_info.stream_id,
                 aicpu_info.task_id,
                 aicpu_info.batch_id,
+                aicpu_info.record_index,
             ]
             for aicpu_info in aicpu_info_list
         ]
@@ -344,6 +345,7 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         self.save()
 
     def set_aicpu_data(self: any, aicpu_data: list) -> None:
+        kfc_record_index = 0
         for aicpu_info in aicpu_data:
             struct_type = int(aicpu_info.struct_type)
             if struct_type == AicpuAddInfoBean.AICPU_NODE and (
@@ -351,7 +353,8 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
             ):
                 continue
             if struct_type == AicpuAddInfoBean.KFC_HCCL_INFO:
-                self._aicpu_data.get(struct_type).extend(self._pre_process_kfc_info(aicpu_info))
+                self._aicpu_data.get(struct_type).extend(self._pre_process_kfc_info(aicpu_info, kfc_record_index))
+                kfc_record_index += 1
             else:
                 self._aicpu_data.get(struct_type).append(aicpu_info)
 
@@ -368,13 +371,19 @@ class AicpuAddInfoParser(DataParser, MsMultiProcess):
         """
         return self.host_tasks_map.get(aicpu_info.data.task_id, aicpu_info.data.stream_id)
 
-    def _pre_process_kfc_info(self: any, aicpu_info: AicpuAddInfoBean) -> list:
+    def _pre_process_kfc_info(self: any, aicpu_info: AicpuAddInfoBean, record_index: int = 0) -> list:
+        """展开一条上报记录里的两个 info 槽位，并给存活的 info 打上所属记录序号。
+
+        两个槽位可能因 group_name 为 "0" 被丢弃，但 record_index 是记录级序号，
+        与该记录最终落库几行无关，因此同一记录的两行始终共享同一个 record_index。
+        """
         result_list = []
         for kfc_hccl_info in [aicpu_info.data.first_hccl_info, aicpu_info.data.second_hccl_info]:
             if kfc_hccl_info.group_name == "0":
                 continue
             if self.is_chip_v6:
                 self.unique_id_map[kfc_hccl_info.task_id] = kfc_hccl_info.stream_id
+            kfc_hccl_info.record_index = record_index
             result_list.append(kfc_hccl_info)
         return result_list
 

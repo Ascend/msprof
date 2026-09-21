@@ -704,7 +704,7 @@ const TableColumns KfcInfo = {{"timestamp", SQL_NUMERIC_TYPE},   {"op_name", SQL
                               {"data_type", SQL_TEXT_TYPE},      {"link_type", SQL_TEXT_TYPE},
                               {"transport_type", SQL_TEXT_TYPE}, {"rdma_type", SQL_TEXT_TYPE},
                               {"stream_id", SQL_INTEGER_TYPE},   {"task_id", SQL_INTEGER_TYPE},
-                              {"batch_id", SQL_INTEGER_TYPE}};
+                              {"batch_id", SQL_INTEGER_TYPE},    {"record_index", SQL_INTEGER_TYPE}};
 
 const TableColumns LowPower = {
     {"timestamp", SQL_NUMERIC_TYPE},  {"die_id", SQL_NUMERIC_TYPE},     {"data0_hard", SQL_NUMERIC_TYPE},

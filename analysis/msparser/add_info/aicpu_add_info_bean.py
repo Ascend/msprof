@@ -245,6 +245,7 @@ class KfcHcclInfoBean:
         self._role = data[22]
         self._work_flow_mode = data[23]
         self._batch_id = 0  # 由AicpuAddInfoParser预计算填充
+        self._record_index = 0  # 所属上报记录的序号，用于在 db 中配对同一记录的多条 info
 
     @property
     def item_id(self: any) -> str:
@@ -345,6 +346,14 @@ class KfcHcclInfoBean:
     @batch_id.setter
     def batch_id(self: any, value: int) -> None:
         self._batch_id = value
+
+    @property
+    def record_index(self: any) -> int:
+        return self._record_index
+
+    @record_index.setter
+    def record_index(self: any, value: int) -> None:
+        self._record_index = value
 
 
 class MergedKfcHcclInfoBean:

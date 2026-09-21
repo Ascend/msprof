@@ -65,10 +65,12 @@ using MainStreamTaskFormat =
 using OpInfoFormat = std::vector<std::tuple<double, uint16_t, uint16_t, std::string, std::string, uint64_t, std::string,
                                             uint16_t, uint32_t, uint32_t, uint16_t>>;
 
+// 末尾一列 record_index 由位置派生，不是上报字段：为所属上报记录的序号，
+// 便于在 db 中配对同一条记录产生的多条 info。
 using KfcInfosFormat = std::vector<
     std::tuple<double, std::string, std::string, std::string, uint32_t, uint32_t, uint32_t, std::string, uint16_t,
                uint32_t, std::string, std::string, std::string, double, std::string, std::string, uint64_t, std::string,
-               std::string, std::string, std::string, std::string, uint16_t, uint32_t, uint32_t>>;
+               std::string, std::string, std::string, std::string, uint16_t, uint32_t, uint32_t, uint32_t>>;
 }  // namespace
 
 uint32_t AicpuPersistence::GenerateAndSaveNode(const std::string& deviceFilePath)
@@ -407,10 +409,12 @@ uint32_t AicpuPersistence::GenerateAndSaveKfcInfos(const std::string& deviceFile
         return ANALYSIS_ERROR;
     }
 
-    for (const auto& aicpuData : kfcInfosData_)
+    for (size_t recordIndex = 0; recordIndex < kfcInfosData_.size(); recordIndex++)
     {
-        for (const auto& info : aicpuData.KfcInfos.infos)
+        const auto& aicpuData = kfcInfosData_[recordIndex];
+        for (uint32_t i = 0; i < KFC_INFOS_NUM; i++)
         {
+            const auto& info = aicpuData.KfcInfos.infos[i];
             if (info.groupName == 0) continue;
             auto timeStamp = GetTimeFromSyscnt(info.timeStamp, params_);
             data.emplace_back(timeStamp.Double(), geHashMap_[std::to_string(info.itemId)], std::to_string(info.cclTag),
@@ -424,7 +428,7 @@ uint32_t AicpuPersistence::GenerateAndSaveKfcInfos(const std::string& deviceFile
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_LINK_TYPE, info.linkType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_TRANSPORT_TYPE, info.transportType),
                               NumberMapping::Get(NumberMapping::MappingType::HCCL_RDMA_TYPE, info.rdmaType),
-                              info.streamId, info.taskId, aicpuData.taskId.batchId);
+                              info.streamId, info.taskId, info.batchId, static_cast<uint32_t>(recordIndex));
         }
     }
 
@@ -525,7 +529,8 @@ void AicpuPersistence::ComputeAicpuBatchId(std::vector<HalTrackData>* halTrackDa
     struct TaskEntry
     {
         BatchTaskData task;
-        uint32_t* batchIdDest;  // 指向原始 AicpuData::taskId.batchId / aicpuTaskId.batchId (uint16_t),以uint32_t保存
+        // 指向同条记录的派生字段 AicpuData::taskId.batchId / aicpuTaskId.batchId / KfcInfos.infos[i].batchId
+        uint32_t* batchIdDest;
     };
 
     // 1. 主流侧：用 aicpu flip(flipTaskData_) 计算 taskId.batchId
@@ -557,13 +562,16 @@ void AicpuPersistence::ComputeAicpuBatchId(std::vector<HalTrackData>* halTrackDa
         }
         for (auto& kfc : kfcInfosData_)
         {
-            for (auto& info : kfc.KfcInfos.infos)
+            for (uint32_t i = 0; i < KFC_INFOS_NUM; i++)
             {
+                auto& info = kfc.KfcInfos.infos[i];
                 if (info.groupName == 0) continue;
                 TaskEntry entry;
-                entry.task.taskId = kfc.taskId;
+                // KFC 记录本身不带 taskId/streamId，逐条 info 用自己上报的 streamId/taskId 参与计算，
+                // batchId 也逐条落到该条 info 自己的 batchId，记录级 taskId.batchId 不参与 KFC 计算与落盘
+                entry.task.taskId = TaskId(info.streamId, 0, info.taskId, INVALID_CONTEXT_ID);
                 entry.task.timestamp = info.timeStamp;
-                entry.batchIdDest = &kfc.taskId.batchId;
+                entry.batchIdDest = &info.batchId;
                 taskByStream[info.streamId].push_back(entry);
             }
         }
@@ -663,7 +671,8 @@ void AicpuPersistence::ComputeAicpuBatchId(std::vector<HalTrackData>* halTrackDa
 std::vector<KfcInfoData> AicpuPersistence::BuildKfcInfoData() const
 {
     // 与 GenerateAndSaveKfcInfos 的 KfcInfo 落盘行同源同值：
-    // 同序遍历 kfcInfosData_.KfcInfos.infos（跳过 groupName==0），字段取值与落盘行一致
+    // 同序遍历 kfcInfosData_.KfcInfos.infos（跳过 groupName==0），字段取值与落盘行一致，
+    // batchId 取该条 info 自己的 batchId
     std::vector<KfcInfoData> data;
     if (!Utils::Reserve(data, kfcInfosData_.size() * 2))
     {
@@ -672,8 +681,9 @@ std::vector<KfcInfoData> AicpuPersistence::BuildKfcInfoData() const
     }
     for (const auto& aicpuData : kfcInfosData_)
     {
-        for (const auto& info : aicpuData.KfcInfos.infos)
+        for (uint32_t i = 0; i < KFC_INFOS_NUM; i++)
         {
+            const auto& info = aicpuData.KfcInfos.infos[i];
             if (info.groupName == 0)
             {
                 continue;
@@ -685,7 +695,7 @@ std::vector<KfcInfoData> AicpuPersistence::BuildKfcInfoData() const
             item.streamId = info.streamId;
             item.taskId = info.taskId;
             item.contextId = UINT32_MAX;  // 与落盘行 context_id 一致（GE 默认 context）
-            item.batchId = aicpuData.taskId.batchId;
+            item.batchId = info.batchId;
             item.localRank = info.localRank;
             item.remoteRank = info.remoteRank;
             item.rankSize = info.rankSize;
