@@ -474,7 +474,10 @@ struct ParserAicpuHcclTaskInfo
     uint64_t dstAddr;
     uint64_t dataSize;  // bytes
     uint32_t taskId;
-    uint32_t reserve;
+    // 本地派生字段，复用上报结构 reserve 的槽位（上报侧未使用，解析侧原本只做拷贝），保持与上报结构同布局；
+    // 由批次计算按 streamId 配对 flip task 后逐条 info 回填（见 AicpuPersistence::ComputeAicpuBatchId）。
+    // 解析时必须显式置 0：本结构体位于 AicpuData 的匿名联合体内、其构造函数为空，成员不会被默认初始化
+    uint32_t batchId;
     uint16_t streamId;
     uint16_t planeID;
     uint8_t opType;         // {0: sum, 1: mul, 2: max, 3: min}
@@ -484,7 +487,7 @@ struct ParserAicpuHcclTaskInfo
     uint8_t rdmaType;       // RDMA type {0: RDMASendNotify, 1:RDMASendPayload}
     uint8_t role;           // role {0: dst, 1:src}
     uint8_t workFlowMode;
-    uint8_t reserves[9];
+    uint8_t reserves[9];  // 上报结构的尾部填充，仅用于与 MsprofAicpuHcclTaskInfo 字段一一对应，解析侧不使用
 };
 
 struct ParserKfcInfos

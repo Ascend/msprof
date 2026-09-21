@@ -674,7 +674,6 @@ bool ParserAicpuAdapter::AdapterKfcInfos(const MsprofAdditionalInfo* additionalD
         aicpuData->KfcInfos.infos[i].dstAddr = additionalData->kfcInfos.infos[i].dstAddr;
         aicpuData->KfcInfos.infos[i].dataSize = additionalData->kfcInfos.infos[i].dataSize;
         aicpuData->KfcInfos.infos[i].taskId = additionalData->kfcInfos.infos[i].taskId;
-        aicpuData->KfcInfos.infos[i].reserve = additionalData->kfcInfos.infos[i].reserve;
         aicpuData->KfcInfos.infos[i].streamId = additionalData->kfcInfos.infos[i].streamId;
         aicpuData->KfcInfos.infos[i].planeID = additionalData->kfcInfos.infos[i].planeID;
         aicpuData->KfcInfos.infos[i].opType = additionalData->kfcInfos.infos[i].opType;
@@ -684,6 +683,10 @@ bool ParserAicpuAdapter::AdapterKfcInfos(const MsprofAdditionalInfo* additionalD
         aicpuData->KfcInfos.infos[i].rdmaType = additionalData->kfcInfos.infos[i].rdmaType;
         aicpuData->KfcInfos.infos[i].role = additionalData->kfcInfos.infos[i].role;
         aicpuData->KfcInfos.infos[i].workFlowMode = additionalData->kfcInfos.infos[i].workFlowMode;
+
+        // 上报数据不携带 batchId，随 infos[i] 一起清零，后续由批次计算回填
+        // （见 AicpuPersistence::ComputeAicpuBatchId）
+        aicpuData->KfcInfos.infos[i].batchId = 0;
     }
     return true;
 }

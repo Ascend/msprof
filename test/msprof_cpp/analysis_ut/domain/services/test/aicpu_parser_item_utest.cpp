@@ -523,6 +523,22 @@ TEST_F(KfcHcclInfoParseItemUtest, ShouldSetCorrectAicpuType)
     EXPECT_EQ(aicpuData_.type, AicpuType::KFC_HCCL_INFO);
 }
 
+TEST_F(KfcHcclInfoParseItemUtest, ShouldResetBatchIdWhenParse)
+{
+    // 上报数据不携带 batchId（联合体成员不会被默认初始化），解析时必须显式置 0，
+    // 否则会残留脏值并落盘到 kfc_info.db 的 batch_id 列
+    aicpuData_.KfcInfos.infos[0].batchId = 0xFFFF;
+    aicpuData_.KfcInfos.infos[1].batchId = 0xFFFF;
+
+    KfcHcclInfoParseItem(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                         reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    for (uint32_t i = 0; i < KFC_INFOS_NUM; i++)
+    {
+        EXPECT_EQ(aicpuData_.KfcInfos.infos[i].batchId, 0);
+    }
+}
+
 // =========================================================================
 // expandStatus=1 场景测试 (Node 为代表)
 // =========================================================================

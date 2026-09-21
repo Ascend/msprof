@@ -1597,6 +1597,7 @@ class TablesConfig(MetaConfig):
             ('stream_id', 'INTEGER,null'),
             ('task_id', 'INTEGER,null'),
             ('batch_id', 'INTEGER,null'),
+            ('record_index', 'INTEGER,null'),
         ],
         'KfcOPMap': [
             ('model_id', 'INT,null'),

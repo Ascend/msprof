@@ -22,6 +22,7 @@ import unittest
 from unittest import mock
  
 from common_func.info_conf_reader import InfoConfReader
+from msconfig.tables_config import TablesConfig
 from msparser.add_info.aicpu_add_info_bean import AicpuAddInfoBean
 from msparser.add_info.aicpu_add_info_parser import AicpuAddInfoParser
 from msparser.data_struct_size_constant import StructFmt
@@ -279,6 +280,22 @@ def _make_kfc_bean(timestamp, stream_id, task_id):
     return AicpuAddInfoBean.decode(raw)
 
 
+def _make_kfc_bean_two_slots(timestamp, stream_id, task_id, first_group, second_group):
+    """构造 KFC_HCCL_INFO (type=13)，两个槽位的 group_name 可控（用于验证过滤前的槽位下标）"""
+    def _slot(group_name):
+        return (0, 0, group_name,   # 3Q: item_id, ccl_tag, group_name
+                0, 0, 0, 0,         # 4I
+                0, timestamp,       # 2Q: notify_id, timestamp
+                0.0,                # d
+                0, 0, 0,            # 3Q
+                task_id, 0,         # 2I: data[13]=task_id, data[14]=unused
+                stream_id, 0) + (0,) * 16  # 2H: data[15]=stream_id, data[16]=plane_id; 16B
+
+    inner = _slot(first_group) + _slot(second_group)
+    raw = _pack_aicpu_bean(13, StructFmt.KFC_HCCL_INFO_FMT, inner, timestamp=timestamp)
+    return AicpuAddInfoBean.decode(raw)
+
+
 class TestAicpuComputeBatchId(unittest.TestCase):
     """测试 _compute_batch_id 逻辑"""
 
@@ -503,6 +520,98 @@ class TestAicpuSetAicpuData(unittest.TestCase):
         kfc = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO][0]
         self.assertEqual(0, kfc.batch_id,
                          "kfc@100 < flip@200 → batch_id should be 0")
+
+
+class TestKfcRecordIndex(unittest.TestCase):
+    """record_index：用于在 kfc_info 表中配对同一条上报记录产生的多行数据"""
+
+    FILE_LIST = {DataTag.AICPU_ADD_INFO: []}
+    CONFIG = {'result_dir': '/tmp', 'device_id': '0'}
+
+    def setUp(self) -> None:
+        InfoConfReader()._info_json = {"DeviceInfo": [{'hwts_frequency': 1000}], "devices": "0"}
+
+    def _make_parser(self):
+        return AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+
+    def test_pre_process_should_mark_all_surviving_slots_of_one_record(self):
+        """两个槽位都存活时，两行共享同一个 record_index"""
+        parser = self._make_parser()
+        infos = parser._pre_process_kfc_info(_make_kfc_bean_two_slots(100, 1, 10, 1, 1), 3)
+
+        self.assertEqual(2, len(infos))
+        self.assertEqual([3, 3], [info.record_index for info in infos])
+
+    def test_pre_process_should_keep_record_index_when_one_slot_filtered(self):
+        """槽0 被 group_name 过滤后，存活的槽1 仍然带该记录的序号"""
+        parser = self._make_parser()
+        infos = parser._pre_process_kfc_info(_make_kfc_bean_two_slots(100, 1, 10, 0, 1), 7)
+
+        self.assertEqual(1, len(infos))
+        self.assertEqual(7, infos[0].record_index)
+
+    def test_record_index_should_be_continuous_across_records(self):
+        """5 条记录各 2 个有效 info → record_index 为 0,0,1,1,2,2,3,3,4,4"""
+        parser = self._make_parser()
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser.set_aicpu_data([
+            _make_kfc_bean_two_slots(100 + i, 1, 10 + i, 1, 1) for i in range(5)
+        ])
+
+        infos = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO]
+        self.assertEqual(10, len(infos))
+        self.assertEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], [info.record_index for info in infos])
+
+    def test_set_aicpu_data_should_count_kfc_records_only(self):
+        """record_index 逐 KFC 记录递增，中间的其它类型记录不应占用序号"""
+        parser = self._make_parser()
+        parser._aicpu_data = {k: [] for k in parser._aicpu_data}
+        parser.set_aicpu_data([
+            _make_kfc_bean_two_slots(100, 1, 10, 0, 1),   # 仅槽1 存活
+            _make_flip_bean(200, 1, 0, 5),                # 非 KFC 记录
+            _make_kfc_bean_two_slots(300, 1, 20, 0, 1),   # 仅槽1 存活
+        ])
+
+        infos = parser._aicpu_data[AicpuAddInfoBean.KFC_HCCL_INFO]
+        self.assertEqual(2, len(infos))
+        self.assertEqual([0, 1], [info.record_index for info in infos])
+
+
+class TestSaveKfcHcclInfoData(unittest.TestCase):
+    """落库行宽必须与 KfcInfoMap 列数一致——列数不符时 Python 侧只会打 warning，表会静默为空"""
+
+    FILE_LIST = {DataTag.AICPU_ADD_INFO: []}
+    CONFIG = {'result_dir': '/tmp', 'device_id': '0'}
+
+    def setUp(self) -> None:
+        InfoConfReader()._info_json = {"DeviceInfo": [{'hwts_frequency': 1000}], "devices": "0"}
+
+    def test_row_width_should_match_kfc_info_columns(self):
+        parser = AicpuAddInfoParser(self.FILE_LIST, self.CONFIG)
+        parser.hash_data = {}
+        infos = parser._pre_process_kfc_info(_make_kfc_bean(100, 1, 10), 5)
+        captured = []
+
+        class _FakeKfcInfoModel:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def flush(self, result, table):
+                captured.append(result)
+
+        with mock.patch(NAMESPACE + '.KfcInfoModel', _FakeKfcInfoModel):
+            parser.save_kfc_hccl_info_data(infos)
+
+        rows = captured[0]
+        self.assertEqual(1, len(rows))
+        self.assertEqual(len(TablesConfig.DATA['KfcInfoMap']), len(rows[0]))
+        self.assertEqual(5, rows[0][-1])  # record_index
 
 
 if __name__ == '__main__':

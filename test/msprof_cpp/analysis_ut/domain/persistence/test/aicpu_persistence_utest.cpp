@@ -515,10 +515,12 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBatchIdForKfcInfos)
 
     persistence_->ComputeAicpuBatchId(nullptr);
 
-    // 两条 info 共享 AicpuData.taskId.batchId，timestamp 大的(300)后写入
-    // info[0]@100 → flip@200 → batch 0，info[1]@300 → batch 1
-    // 最终 kfc.taskId.batchId = 1（后写入覆盖）
-    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+    // batchId 逐条 info 落盘：info[0]@100 < flip@200 → 0，info[1]@300 > flip@200 → 1
+    // （两条 info 各有自己的落点，不再共享记录级 taskId.batchId）
+    EXPECT_EQ(persistence_->kfcInfosData_[0].KfcInfos.infos[0].batchId, 0);
+    EXPECT_EQ(persistence_->kfcInfosData_[0].KfcInfos.infos[1].batchId, 1);
+    // 记录级 taskId.batchId 不参与 KFC 计算，保持原值
+    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 0);
 }
 
 TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldSkipKfcInfoWithZeroGroupName)
@@ -532,12 +534,16 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldSkipKfcInfoWithZeroGroupName)
     kfc.KfcInfos.infos[1].timeStamp = 300;
     kfc.KfcInfos.infos[1].streamId = 1;
     kfc.KfcInfos.infos[1].groupName = 1;
+    // 联合体成员不会被默认初始化，这里对齐解析阶段（KfcHcclInfoParseItem）的显式置 0
+    kfc.KfcInfos.infos[0].batchId = 0;
+    kfc.KfcInfos.infos[1].batchId = 0;
     persistence_->kfcInfosData_ = {kfc};
 
     persistence_->ComputeAicpuBatchId(nullptr);
 
-    // 只有 info[1] 参与计算，ts=300 > flip@200 → batch 1
-    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+    // 只有 info[1] 参与计算，ts=300 > flip@200 → batch 1；被跳过的 info[0] 保持 0
+    EXPECT_EQ(persistence_->kfcInfosData_[0].KfcInfos.infos[0].batchId, 0);
+    EXPECT_EQ(persistence_->kfcInfosData_[0].KfcInfos.infos[1].batchId, 1);
 }
 
 TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBothMainStreamAndKfcTogether)
@@ -560,7 +566,7 @@ TEST_F(AicpuPersistenceComputeBatchIdUtest, ShouldComputeBothMainStreamAndKfcTog
     // mainStream@100 < flip@200 → batch 0
     EXPECT_EQ(persistence_->mainStreamTaskData_[0].taskId.batchId, 0);
     // kfc@300 > flip@200 → batch 1
-    EXPECT_EQ(persistence_->kfcInfosData_[0].taskId.batchId, 1);
+    EXPECT_EQ(persistence_->kfcInfosData_[0].KfcInfos.infos[0].batchId, 1);
 }
 
 // =========================================================================
