@@ -99,6 +99,13 @@ protected:
         MOCKER_CPP(&TreeAnalyzer::GetComputeTasks).stubs().will(returnValue(*kernelTasks));
     }
 
+    static void MockGetComputeTasksWithoutValidData()
+    {
+        auto kernelTasks = std::make_shared<HostTasks>();
+        kernelTasks->push_back(nullptr);
+        MOCKER_CPP(&TreeAnalyzer::GetComputeTasks).stubs().will(returnValue(*kernelTasks));
+    }
+
     static void MockGetL0ComputeTasks()
     {
         auto kernelTask = std::make_shared<HostTask>();
@@ -230,6 +237,24 @@ TEST_F(CannDBDumperUtest,
     hcclOpDBRunner.QueryData("select * from HCCLTask", HCCLTaskData);
     EXPECT_EQ(HCCLTaskData.size(), 1);
     EXPECT_EQ(std::get<GROUP_NAME_POSITION>(HCCLTaskData[0]), "0");
+}
+
+TEST_F(CannDBDumperUtest, ShouldNotCreateTaskInfoTableWhenComputeTasksContainNoValidData)
+{
+    MockGetHCCLTasks();
+    MockGetComputeTasksWithoutValidData();
+    MockGetTasks();
+    MockGetHcclBigOps();
+
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    auto treeNode = std::make_shared<TreeNode>(nullptr);
+    TreeAnalyzer treeAnalyzer(treeNode, THREAD_ID);
+    EXPECT_TRUE(cannTraceDbDumper.DumpData(treeAnalyzer));
+
+    GEInfoDB geInfoDB;
+    const std::string opDescDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, "sqlite", geInfoDB.GetDBName()});
+    DBRunner opDescDBRunner(opDescDBPath);
+    EXPECT_FALSE(opDescDBRunner.CheckTableExists("TaskInfo"));
 }
 
 TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenComputeTaskDataIsL0ThenQueryDBShouldReturnRecords)
