@@ -264,12 +264,6 @@ void CANNTraceDBDumper::DumpOpDesc(const HostTasks &computeTasks)
     GEInfoDB geInfoDb;
     std::string opDescDBPath = Utils::File::PathJoin({hostFilePath_, "sqlite", geInfoDb.GetDBName()});
     DBRunner opDescDBRunner(opDescDBPath);
-    if (!opDescDBRunner.CreateTable("TaskInfo", geInfoDb.GetTableCols("TaskInfo")))
-    {
-        result_ = false;
-        ERROR("DumpOpDesc: Create table TaskInfo failed");
-        return;
-    }
     TaskInfoData data;
     if (!Utils::Reserve(data, computeTasks.size()))
     {
@@ -283,6 +277,17 @@ void CANNTraceDBDumper::DumpOpDesc(const HostTasks &computeTasks)
         {
             AddTaskInfo(task, data, isLevel0);
         }
+    }
+    if (data.empty())
+    {
+        INFO("No valid TaskInfo data, skip creating TaskInfo table.");
+        return;
+    }
+    if (!opDescDBRunner.CreateTable("TaskInfo", geInfoDb.GetTableCols("TaskInfo")))
+    {
+        result_ = false;
+        ERROR("DumpOpDesc: Create table TaskInfo failed");
+        return;
     }
     if (!opDescDBRunner.InsertData("TaskInfo", data))
     {
