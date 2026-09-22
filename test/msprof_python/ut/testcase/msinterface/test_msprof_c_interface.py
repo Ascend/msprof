@@ -24,8 +24,6 @@ from msinterface.msprof_c_interface import _dump_device_data
 from msinterface.msprof_c_interface import _export_unified_db
 from msinterface.msprof_c_interface import _export_timeline
 from msinterface.msprof_c_interface import _export_summary
-from msinterface.msprof_c_interface import _export_platform
-from msinterface.msprof_c_interface import export_platform
 from msinterface.msprof_c_interface import run_pipeline
 from msinterface.msprof_c_interface import MSPROF_ERROR
 from msinterface.msprof_c_interface import MSPROF_INVALID_PARAM
@@ -36,12 +34,6 @@ NAMESPACE = 'msinterface.msprof_c_interface'
 
 
 class TestMsprofCInterface(unittest.TestCase):
-
-    def test_export_platform_should_forward_type_trace_and_output_to_subprocess(self):
-        with mock.patch(NAMESPACE + '.run_in_subprocess') as run:
-            export_platform(2, '/tmp/host_platform_core.bin', '/tmp/thread.db')
-
-        run.assert_called_once_with(_export_platform, 2, '/tmp/host_platform_core.bin', '/tmp/thread.db')
 
     def test_dump_cann_trace(self):
         with mock.patch('importlib.import_module'):
