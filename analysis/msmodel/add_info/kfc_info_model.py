@@ -156,8 +156,10 @@ class KfcInfoViewModel(ViewModel):
         kfc_info_data = self.get_sql_data(sql)
         return [self.KFC_HCCL_INFO_TYPE(*data) for data in kfc_info_data]
 
-    def get_kfc_info_with_task(self: any) -> list:
-        """KFC_INFO JOIN ASCEND_TASK，通过四元组(stream_id, task_id, context_id, batch_id)关联，直接返回HcclTask列表"""
+    def get_kfc_info_with_task(self: any, start_time: int = 0) -> list:
+        """KFC_INFO JOIN ASCEND_TASK，通过四元组(stream_id, task_id, context_id, batch_id)关联，直接返回HcclTask列表。
+        start_time 之前的 AICPU 冗余不参与 join。
+        """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_KFC_INFO):
             return []
         if not self.attach_to_db(DBNameConstant.DB_ASCEND_TASK):
@@ -177,16 +179,18 @@ class KfcInfoViewModel(ViewModel):
             "and a.batch_id = b.batch_id "
             "and a.context_id = b.context_id "
             "and b.start_time != {invalid_start} "
+            "and a.timestamp >= {start_time} "
             "order by b.start_time".format(
                 DBNameConstant.TABLE_KFC_INFO,
                 DBNameConstant.TABLE_ASCEND_TASK,
                 invalid_start=NumberConstant.INVALID_TASK_TIME,
+                start_time=int(start_time),
             )
         )
         return self.get_sql_data(sql, dto_class=HcclTask)
 
-    def get_kfc_info_with_task_by_stream_ids(self: any, stream_ids: tuple) -> list:
-        """KFC_INFO JOIN ASCEND_TASK，按stream_id过滤"""
+    def get_kfc_info_with_task_by_stream_ids(self: any, stream_ids: tuple, start_time: int = 0) -> list:
+        """KFC_INFO JOIN ASCEND_TASK，按stream_id过滤。start_time 之前的 AICPU 冗余不参与 join。"""
         if not stream_ids:
             return []
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_KFC_INFO):
@@ -209,11 +213,13 @@ class KfcInfoViewModel(ViewModel):
             "and a.batch_id = b.batch_id "
             "and a.context_id = b.context_id "
             "and b.start_time != {invalid_start} "
+            "and a.timestamp >= {start_time} "
             "and {stream_condition} "
             "order by b.start_time".format(
                 DBNameConstant.TABLE_KFC_INFO,
                 DBNameConstant.TABLE_ASCEND_TASK,
                 invalid_start=NumberConstant.INVALID_TASK_TIME,
+                start_time=int(start_time),
                 stream_condition=stream_condition,
             )
         )

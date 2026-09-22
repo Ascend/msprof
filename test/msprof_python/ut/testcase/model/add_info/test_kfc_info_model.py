@@ -67,6 +67,27 @@ class TestKfcInfoViewModel(unittest.TestCase):
         self.assertEqual(5, result[1].batch_id)
         self.assertEqual(1, result[1].task_type)
 
+    def test_get_kfc_info_with_task_by_stream_ids_should_filter_by_start_time(self: any) -> None:
+        vm = KfcInfoViewModel('result_dir', [])
+        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
+                mock.patch.object(vm, 'attach_to_db', return_value=True), \
+                mock.patch.object(vm, 'get_sql_data', return_value=[]) as mock_get_sql:
+            vm.get_kfc_info_with_task_by_stream_ids((52, 53), start_time=1603973854965060)
+
+        sql = mock_get_sql.call_args[0][0]
+        self.assertIn('a.timestamp >= 1603973854965060', sql)
+        self.assertIn('b.stream_id in (52,53)', sql)
+
+    def test_get_kfc_info_with_task_should_filter_by_start_time(self: any) -> None:
+        vm = KfcInfoViewModel('result_dir', [])
+        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
+                mock.patch.object(vm, 'attach_to_db', return_value=True), \
+                mock.patch.object(vm, 'get_sql_data', return_value=[]) as mock_get_sql:
+            vm.get_kfc_info_with_task(start_time=1603973854965060)
+
+        sql = mock_get_sql.call_args[0][0]
+        self.assertIn('a.timestamp >= 1603973854965060', sql)
+
 
 if __name__ == '__main__':
     unittest.main()

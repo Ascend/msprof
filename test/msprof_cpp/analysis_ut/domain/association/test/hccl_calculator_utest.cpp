@@ -16,7 +16,10 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <unordered_map>
+
+#define private public
 #include "analysis/csrc/domain/services/association/calculator/hccl/include/hccl_calculator.h"
+#undef private
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
@@ -233,6 +236,8 @@ class TestableHcclCalculator : public HcclCalculator
 {
 public:
     using HcclCalculator::UpdateOpNameByGroupName;
+    using HcclCalculator::FilterRecordsBeforeStartTime;
+    using HcclCalculator::MergeHcclTaskData;
 };
 
 static DeviceHcclOp MakeDeviceHcclOp(double start, double end, uint32_t iterId, const std::string& opName,
@@ -416,4 +421,64 @@ TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldHandleShortAnd
     EXPECT_EQ("opA_ab_0_1", nameByIterId[1]);
     EXPECT_EQ("opB__0_2", nameByIterId[2]);
     EXPECT_EQ("opC_abc_0_3", nameByIterId[3]);
+}
+
+TEST(TestableHcclCalculatorTest, TestFilterRecordsBeforeStartTimeShouldDropWarmupAndKeepLater)
+{
+    std::vector<DeviceHcclTask> tasks;
+    DeviceHcclTask warmup;
+    warmup.timestamp = 10;
+    warmup.taskId = 1;
+    DeviceHcclTask boundary;
+    boundary.timestamp = 100;
+    boundary.taskId = 2;
+    DeviceHcclTask later;
+    later.timestamp = 200;
+    later.taskId = 3;
+    tasks.emplace_back(warmup);
+    tasks.emplace_back(boundary);
+    tasks.emplace_back(later);
+
+    TestableHcclCalculator::FilterRecordsBeforeStartTime(tasks, 100.0, "hccl task");
+
+    ASSERT_EQ(2u, tasks.size());
+    EXPECT_EQ(2u, tasks[0].taskId);
+    EXPECT_EQ(3u, tasks[1].taskId);
+}
+
+TEST(TestableHcclCalculatorTest, TestFilterRecordsBeforeStartTimeShouldKeepEmpty)
+{
+    std::vector<DeviceHcclTask> tasks;
+    TestableHcclCalculator::FilterRecordsBeforeStartTime(tasks, 100.0, "hccl task");
+    EXPECT_TRUE(tasks.empty());
+}
+
+TEST(TestableHcclCalculatorTest, TestMergeHcclTaskDataShouldSkipUnmatchedWarmupWithoutDroppingLater)
+{
+    auto ascendTasks = std::make_shared<std::vector<TopDownTask>>();
+    ascendTasks->emplace_back(TopDownTask(false, 10, 0, 1, 0, -1, "device", "host", 4294967295, 0, 1000, 1100));
+
+    auto hcclTasks = std::make_shared<std::vector<HcclTask>>();
+    HcclTask warmupUnmatched;
+    warmupUnmatched.timestamp = 10;
+    warmupUnmatched.streamId = 99;
+    warmupUnmatched.taskId = 99;
+    warmupUnmatched.contextId = 0;
+    warmupUnmatched.batchId = 0;
+    warmupUnmatched.name = "warmup";
+    HcclTask matched;
+    matched.timestamp = 200;
+    matched.streamId = 1;
+    matched.taskId = 10;
+    matched.contextId = 0;
+    matched.batchId = 0;
+    matched.name = "later";
+    hcclTasks->emplace_back(warmupUnmatched);
+    hcclTasks->emplace_back(matched);
+
+    std::vector<DeviceHcclTask> deviceHcclTasks;
+    TestableHcclCalculator calculator;
+    ASSERT_TRUE(calculator.MergeHcclTaskData(ascendTasks, hcclTasks, deviceHcclTasks, 100));
+    ASSERT_EQ(1u, deviceHcclTasks.size());
+    EXPECT_EQ("later", deviceHcclTasks[0].hcclName);
 }

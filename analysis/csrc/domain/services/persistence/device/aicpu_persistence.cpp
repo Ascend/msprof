@@ -702,6 +702,7 @@ std::vector<KfcInfoData> AicpuPersistence::BuildKfcInfoData() const
             item.planeId = info.planeID;
             item.notifyId = std::to_string(info.notifyID);
             item.size = static_cast<double>(info.dataSize);
+            item.timestamp = GetTimeFromSyscnt(info.timeStamp, params_).Double();
             item.opType = NumberMapping::Get(NumberMapping::MappingType::HCCL_OP_TYPE, info.opType);
             item.dataType = NumberMapping::Get(NumberMapping::MappingType::HCCL_DATA_TYPE, info.dataType);
             item.linkType = NumberMapping::Get(NumberMapping::MappingType::HCCL_LINK_TYPE, info.linkType);

@@ -40,6 +40,7 @@ struct KfcInfoData
     int64_t remoteRank = -1;
     int64_t rankSize = -1;
     double size = 0.0;
+    double timestamp = 0.0;  // aicpu kfc info 时间，与落盘 KfcInfo.timestamp 同源
     uint32_t streamId = 0;
     uint32_t taskId = 0;
     uint32_t contextId = UINT32_MAX;  // GE 默认 context（与 KfcInfo 落库值一致）
