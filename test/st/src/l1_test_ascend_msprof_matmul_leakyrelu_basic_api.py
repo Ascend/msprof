@@ -99,7 +99,7 @@ class TestAscendMsprofMatmulLeakyreluBasicApi(TestAscendMsprofAllSwitch):
     NPU_MODULE_MEM_SPEC = {
         "pattern": "npu_module_mem*.csv",
         "headers": TestAscendMsprofAllSwitch.NPU_MODULE_MEM_SPEC["headers"],
-        "items": [{"pattern": {"Component": ["SLOG"]}, "fuzzy_match": False}],
+        "items": [{"pattern": {"Component": ["UNKNOWN"]}, "fuzzy_match": False}],
         "non_negative_columns": TestAscendMsprofAllSwitch.NPU_MODULE_MEM_SPEC["non_negative_columns"],
     }
     SOC_PMU_SPEC = {

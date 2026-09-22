@@ -14,6 +14,7 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 #include <iostream>
+#include <sstream>
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/summary/npu_module_mem_assembler.h"
@@ -51,6 +52,18 @@ class NpuModuleMemAssemblerUTest : public testing::Test {
     }
 };
 
+static std::string GetCsvField(const std::string &line, size_t index)
+{
+    std::vector<std::string> fields;
+    std::stringstream stream(line);
+    std::string field;
+    while (std::getline(stream, field, ','))
+    {
+        fields.emplace_back(field);
+    }
+    return index < fields.size() ? fields[index] : std::string();
+}
+
 static std::vector<NpuModuleMemData> GenerateTaskData()
 {
     std::vector<NpuModuleMemData> res;
@@ -66,6 +79,20 @@ static std::vector<NpuModuleMemData> GenerateTaskData()
     data.moduleId = 7; // moduleId 7
     data.timestamp = 1730343451031527250; // timestamp 1730343451031527250
     data.totalReserved = 44417024; // totalReserved 44417024
+    data.deviceType = "NPU:0"; // deviceType "NPU:0"
+    res.push_back(data); // 有taskInfo
+
+    data.deviceId = 0; // deviceId 0
+    data.moduleId = 59; // moduleId 59, PYPTO
+    data.timestamp = 1730343451031527250; // timestamp 1730343451031527250
+    data.totalReserved = 33554432; // totalReserved 33554432
+    data.deviceType = "NPU:0"; // deviceType "NPU:0"
+    res.push_back(data); // 有taskInfo
+
+    data.deviceId = 0; // deviceId 0
+    data.moduleId = 78; // moduleId 78 未登记，落兜底名，与 moduleId 0 同名
+    data.timestamp = 1730343451031527250; // timestamp 1730343451031527250
+    data.totalReserved = 1048576; // totalReserved 1048576
     data.deviceType = "NPU:0"; // deviceType "NPU:0"
     res.push_back(data); // 有taskInfo
     return res;
@@ -88,9 +115,15 @@ TEST_F(NpuModuleMemAssemblerUTest, ShouldReturnTrueSuccessful)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(0ul, reader.ReadText(res));
-    EXPECT_EQ(3ul, res.size());
+    EXPECT_EQ(5ul, res.size());
     std::string expectHeader{"Device_id,Component,Timestamp(us),Total Reserved(KB),Device"};
     EXPECT_EQ(expectHeader, res[0]);
+    // Component 列由 MODULE_NAME_TABLE 映射；未登记的 moduleId 落兜底名，与 moduleId 0 同名
+    const size_t COMPONENT_INDEX = 1;
+    EXPECT_EQ("UNKNOWN", GetCsvField(res[1], COMPONENT_INDEX));
+    EXPECT_EQ("RUNTIME", GetCsvField(res[2], COMPONENT_INDEX));
+    EXPECT_EQ("PYPTO", GetCsvField(res[3], COMPONENT_INDEX));
+    EXPECT_EQ("UNKNOWN", GetCsvField(res[4], COMPONENT_INDEX));
 }
 
 /**
