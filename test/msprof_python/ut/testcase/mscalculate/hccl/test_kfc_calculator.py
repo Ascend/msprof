@@ -303,6 +303,7 @@ class TestKfcCalculator(unittest.TestCase):
         with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
             mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
             check = KfcCalculator([], CONFIG)
+            check.start_time_raw_timestamp = 0
             check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
 
         # 第一次执行 (iter_id=1): start 来自 task(52,0), end 来自 task(52,2)
@@ -360,6 +361,7 @@ class TestKfcCalculator(unittest.TestCase):
         with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
             mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
             check = KfcCalculator([], CONFIG)
+            check.start_time_raw_timestamp = 0
             check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
 
         # 第一轮: start=FIRST uid 第 1 次(1000), end=LAST uid 第 1 次(3000+100=3100)
@@ -403,10 +405,66 @@ class TestKfcCalculator(unittest.TestCase):
         with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm:
             mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = master_stream_data
             check = KfcCalculator([], CONFIG)
+            check.start_time_raw_timestamp = 0
             check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
 
         # 命中 aicpu_batch_id=7 的 kernel，start/end 被修正
         self.assertEqual(1000, hccl_kernels[0].start)
         self.assertEqual(2100, hccl_kernels[0].end)
 
+        InfoConfReader()._start_info.clear()
+
+    def test_filter_records_before_start_should_drop_warmup_and_log_counts(self: any) -> None:
+        warmup = KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+            timestamp=10, aicpu_stream_id=19, aicpu_task_id=0, stream_id=99, task_id=99,
+            aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.FIRST_TASK_TYPE,
+        )
+        later = KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+            timestamp=200, aicpu_stream_id=19, aicpu_task_id=0, stream_id=52, task_id=0,
+            aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.FIRST_TASK_TYPE,
+        )
+        with mock.patch(NAMESPACE + ".logging.info") as mock_info:
+            kept = KfcCalculator._filter_records_before_start([warmup, later], 100, "kfc master stream")
+        self.assertEqual([later], kept)
+        mock_info.assert_any_call(
+            "There are %s records before %s data filtering, filterTime is %s.", 2, "kfc master stream", 100
+        )
+        mock_info.assert_any_call("There are %s records after %s data filtering.", 1, "kfc master stream")
+
+    def test_refine_kernel_times_should_skip_warmup_master_stream_without_mismatch(self: any) -> None:
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+        hccl_kernels = [_make_kfc_op(stream_id=19, task_id=0, context_id=4294967295, batch_id=0, iter_id=1)]
+        kfc_task_data = [
+            HcclTask(stream_id=52, task_id=0, duration=100, timestamp=1000, context_id=4294967295, batch_id=0),
+            HcclTask(stream_id=52, task_id=2, duration=100, timestamp=2000, context_id=4294967295, batch_id=0),
+        ]
+        master_stream_data = [
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=10, aicpu_stream_id=19, aicpu_task_id=0, stream_id=99, task_id=99,
+                aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=11, aicpu_stream_id=19, aicpu_task_id=0, stream_id=99, task_id=98,
+                aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=200, aicpu_stream_id=19, aicpu_task_id=0, stream_id=52, task_id=0,
+                aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.FIRST_TASK_TYPE,
+            ),
+            KfcInfoViewModel.MASTER_STREAM_HCCL_TASK_TYPE(
+                timestamp=300, aicpu_stream_id=19, aicpu_task_id=0, stream_id=52, task_id=2,
+                aicpu_batch_id=0, batch_id=0, task_type=KfcCalculator.LAST_TASK_TYPE,
+            ),
+        ]
+        with mock.patch(NAMESPACE + ".KfcInfoViewModel") as mock_vm, mock.patch(NAMESPACE + ".logging.error") as mock_err:
+            mock_vm.return_value.__enter__.return_value.get_aicpu_master_stream_hccl_task.return_value = (
+                master_stream_data
+            )
+            check = KfcCalculator([], CONFIG)
+            check.start_time_raw_timestamp = 100
+            check._refine_kernel_times_with_master_stream(hccl_kernels, kfc_task_data)
+        mock_err.assert_not_called()
+        self.assertEqual(1000, hccl_kernels[0].start)
+        self.assertEqual(2100, hccl_kernels[0].end)
         InfoConfReader()._start_info.clear()

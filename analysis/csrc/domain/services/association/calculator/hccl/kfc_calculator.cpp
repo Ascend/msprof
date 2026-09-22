@@ -124,6 +124,8 @@ bool KfcCalculator::BuildUpstreamData(DataInventory& dataInventory, const Device
             masterTask.timestamp = item.timeStamp;
             upstream.masterStreamHcclTask.emplace_back(std::move(masterTask));
         }
+        FilterRecordsBeforeStartTime(upstream.masterStreamHcclTask, static_cast<double>(upstream.startTimeRawTimestamp),
+                                     "kfc master stream");
     }
 
     // aicpu kernel：对齐 get_kfc_op_data（GE_TASK + ASCEND_TASK 内存 join）。
@@ -160,6 +162,8 @@ bool KfcCalculator::BuildUpstreamData(DataInventory& dataInventory, const Device
     {
         kfcInfos = *kfcInfoData;
     }
+    // 采集开始前的 AICPU 冗余先丢掉，后面仍按原 join / 校验逻辑处理
+    FilterRecordsBeforeStartTime(kfcInfos, static_cast<double>(upstream.startTimeRawTimestamp), "kfc info");
     BuildKfcTasks(upstream.isLevel0, kfcInfos, ascendTasks, upstream.mc2CommInfo, upstream.kfcTasks);
     return true;
 }

@@ -48,6 +48,18 @@ class KfcCalculator(ICalculator, MsMultiProcess):
         start_ts, _ = InfoConfReader().get_collect_time()
         self.start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
 
+    @staticmethod
+    def _filter_records_before_start(records: list, start_time: int, data_name: str) -> list:
+        logging.info(
+            "There are %s records before %s data filtering, filterTime is %s.",
+            len(records),
+            data_name,
+            start_time,
+        )
+        kept = [record for record in records if record.timestamp >= start_time]
+        logging.info("There are %s records after %s data filtering.", len(kept), data_name)
+        return kept
+
     def get_hccl_and_mc2_op(self: any) -> tuple:
         # 获取符合条件的aicpuKernel（SQL已按start_time排序）
         with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_KFC_INFO]) as kfc_info_model:
@@ -89,6 +101,9 @@ class KfcCalculator(ICalculator, MsMultiProcess):
             self._project_path, [DBNameConstant.TABLE_AICPU_MASTER_STREAM_HCCL_TASK]
         ) as kfc_info_model:
             master_stream_hccl_task = kfc_info_model.get_aicpu_master_stream_hccl_task()
+        master_stream_hccl_task = self._filter_records_before_start(
+            master_stream_hccl_task, self.start_time_raw_timestamp, "kfc master stream"
+        )
         if not master_stream_hccl_task:
             return
 
@@ -235,7 +250,7 @@ class KfcCalculator(ICalculator, MsMultiProcess):
             return
 
         with KfcInfoViewModel(self._project_path, [DBNameConstant.TABLE_KFC_INFO]) as model:
-            kfc_task_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids)
+            kfc_task_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids, self.start_time_raw_timestamp)
         if not kfc_task_data:
             return
 
@@ -348,7 +363,7 @@ class KfcCalculator(ICalculator, MsMultiProcess):
             if is_level0:
                 comm_data = model.get_ascend_task_with_kfc_defaults(comm_stream_ids)
             else:
-                comm_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids)
+                comm_data = model.get_kfc_info_with_task_by_stream_ids(comm_stream_ids, self.start_time_raw_timestamp)
         if not comm_data:
             return
 

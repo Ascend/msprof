@@ -118,13 +118,16 @@ class HcclCalculator : public Process
     template <typename Op, typename Stat = HcclStatistics>
     static bool GenerateOpReportData(const std::vector<Op>& ops, std::vector<Stat>& reportList,
                                      double startTimeRawTimestamp);
+    // 丢掉采集开始时间之前的记录，并打印过滤前后条数（对齐 DataProcessor::FilterDataByStartTime）
+    template <typename T>
+    static void FilterRecordsBeforeStartTime(std::vector<T>& data, double startTime, const std::string& dataName);
 
    private:
     uint32_t ProcessEntry(DataInventory& dataInventory, const Context& context) override;
-    bool GetHcclData(DataInventory& dataInventory);
+    bool GetHcclData(DataInventory& dataInventory, uint64_t startTimeRawTimestamp);
     bool MergeHcclTaskData(const std::shared_ptr<std::vector<TopDownTask>>& ascendTasks,
                            const std::shared_ptr<std::vector<HcclTask>>& hcclTasks,
-                           std::vector<DeviceHcclTask>& deviceHcclTasks);
+                           std::vector<DeviceHcclTask>& deviceHcclTasks, uint64_t startTimeRawTimestamp);
     DeviceHcclTask InitHcclTaskData(const TopDownTask& topDownTask, const HcclTask& hcclTask);
     void MergeOpDataByThreadId(std::vector<HcclOp>& hcclOps, std::vector<DeviceHcclTask>& hcclTasks);
     bool MergeHcclOpData(const std::shared_ptr<std::vector<HcclOp>>& hcclOps,
@@ -146,6 +149,16 @@ class HcclCalculator : public Process
     std::vector<DeviceHcclTask> taskData_;
     std::vector<HcclStatistics> statisticsData_;
 };
+
+template <typename T>
+void HcclCalculator::FilterRecordsBeforeStartTime(std::vector<T>& data, double startTime, const std::string& dataName)
+{
+    INFO("There are % records before % data filtering, filterTime is %.", data.size(), dataName, startTime);
+    data.erase(std::remove_if(data.begin(), data.end(),
+                              [startTime](const T& item) { return static_cast<double>(item.timestamp) < startTime; }),
+               data.end());
+    INFO("There are % records after % data filtering.", data.size(), dataName);
+}
 
 template <typename Op>
 void HcclCalculator::UpdateOpNameByGroupName(std::vector<Op>& ops, double startTimeRawTimestamp)

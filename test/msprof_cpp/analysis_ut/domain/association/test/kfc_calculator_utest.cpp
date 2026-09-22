@@ -835,3 +835,111 @@ TEST_F(KfcCalculatorUTest, TestProcessEntryWhenSuccessThenInjectData)
     EXPECT_DOUBLE_EQ(200, (*reportData)[0].max);
     EXPECT_DOUBLE_EQ(200, (*reportData)[0].avg);
 }
+
+class TestableKfcCalculator : public KfcCalculator
+{
+public:
+    using KfcCalculator::FilterRecordsBeforeStartTime;
+    using KfcCalculator::BuildKfcTasks;
+    using KfcCalculator::RefineKernelTimesWithMasterStream;
+};
+
+TEST_F(KfcCalculatorUTest, TestFilterRecordsBeforeStartTimeShouldDropWarmupKfcInfo)
+{
+    std::vector<KfcInfoData> infos;
+    KfcInfoData warmup;
+    warmup.timestamp = 10;
+    warmup.taskId = 1;
+    KfcInfoData later;
+    later.timestamp = 200;
+    later.taskId = 2;
+    infos.emplace_back(warmup);
+    infos.emplace_back(later);
+
+    TestableKfcCalculator::FilterRecordsBeforeStartTime(infos, 100.0, "kfc info");
+
+    ASSERT_EQ(1u, infos.size());
+    EXPECT_EQ(2u, infos[0].taskId);
+}
+
+TEST_F(KfcCalculatorUTest, TestBuildKfcTasksShouldIgnoreWarmupKfcInfoAfterFilter)
+{
+    std::vector<KfcInfoData> infos;
+    KfcInfoData warmup;
+    warmup.timestamp = 10;
+    warmup.streamId = 1;
+    warmup.taskId = 99;
+    warmup.contextId = 0;
+    warmup.batchId = 0;
+    warmup.hcclName = "warmup";
+    KfcInfoData later;
+    later.timestamp = 200;
+    later.streamId = 1;
+    later.taskId = 10;
+    later.contextId = 3;
+    later.batchId = 0;
+    later.hcclName = "later";
+    infos.emplace_back(warmup);
+    infos.emplace_back(later);
+    TestableKfcCalculator::FilterRecordsBeforeStartTime(infos, 100.0, "kfc info");
+
+    std::vector<TopDownTask> ascendTasks;
+    ascendTasks.emplace_back(TopDownTask(false, 10, 0, 1, 3, -1, "device", "host", 4294967295, 0, 1000, 1100));
+    std::vector<Mc2CommInfo> commInfos;
+    commInfos.emplace_back(MakeCommInfo("g1", 8, 1, {1}));
+
+    std::vector<DeviceHcclTask> kfcTasks;
+    TestableKfcCalculator calculator;
+    calculator.BuildKfcTasks(false, infos, ascendTasks, commInfos, kfcTasks);
+
+    ASSERT_EQ(1u, kfcTasks.size());
+    EXPECT_EQ("later", kfcTasks[0].hcclName);
+}
+
+TEST_F(KfcCalculatorUTest, TestRefineKernelTimesShouldSkipWarmupMasterStreamWithoutMismatch)
+{
+    std::vector<DeviceKfcOp> kernels;
+    kernels.emplace_back(MakeKernel(19, 0, UINT32_MAX, 0, 1, 2, 0, "kfc"));
+    kernels[0].iterId = 1;
+
+    std::vector<DeviceHcclTask> kfcTaskData;
+    kfcTaskData.emplace_back(MakeTask(52, 0, UINT32_MAX, 0, 1000, 100));
+    kfcTaskData.emplace_back(MakeTask(52, 2, UINT32_MAX, 0, 2000, 100));
+
+    std::vector<DeviceMasterStreamHcclTask> master;
+    DeviceMasterStreamHcclTask warmupFirst;
+    warmupFirst.timestamp = 10;
+    warmupFirst.taskType = KfcCalculator::FIRST_TASK_TYPE;
+    warmupFirst.aicpuStreamId = 19;
+    warmupFirst.aicpuTaskId = 0;
+    warmupFirst.aicpuBatchId = 0;
+    warmupFirst.streamId = 99;
+    warmupFirst.taskId = 99;
+    warmupFirst.batchId = 0;
+    DeviceMasterStreamHcclTask warmupLast = warmupFirst;
+    warmupLast.taskType = KfcCalculator::LAST_TASK_TYPE;
+    DeviceMasterStreamHcclTask first;
+    first.timestamp = 200;
+    first.taskType = KfcCalculator::FIRST_TASK_TYPE;
+    first.aicpuStreamId = 19;
+    first.aicpuTaskId = 0;
+    first.aicpuBatchId = 0;
+    first.streamId = 52;
+    first.taskId = 0;
+    first.batchId = 0;
+    DeviceMasterStreamHcclTask last = first;
+    last.timestamp = 300;
+    last.taskType = KfcCalculator::LAST_TASK_TYPE;
+    last.taskId = 2;
+    master.emplace_back(warmupFirst);
+    master.emplace_back(warmupLast);
+    master.emplace_back(first);
+    master.emplace_back(last);
+    TestableKfcCalculator::FilterRecordsBeforeStartTime(master, 100.0, "kfc master stream");
+
+    TestableKfcCalculator calculator;
+    calculator.RefineKernelTimesWithMasterStream(master, kfcTaskData, kernels);
+
+    EXPECT_DOUBLE_EQ(1000, kernels[0].start);
+    EXPECT_DOUBLE_EQ(2100, kernels[0].end);
+}

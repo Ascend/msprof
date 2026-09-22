@@ -53,7 +53,13 @@ const std::string RDMA_SEND_PAYLOAD = "RDMA_SEND_PAYLOAD";
 uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     INFO("Start Hccl calculator ProcessEntry.");
-    if (!GetHcclData(dataInventory))
+    const auto& deviceContext = dynamic_cast<const DeviceContext&>(context);
+    DeviceStartInfo startInfo;
+    SampleInfo sampleInfo;
+    deviceContext.Getter(startInfo);
+    deviceContext.Getter(sampleInfo);
+
+    if (!GetHcclData(dataInventory, startInfo.clockMonotonicRaw))
     {
         ERROR("Failed to Get hccl task data or op data.");
         return ANALYSIS_ERROR;
@@ -61,12 +67,6 @@ uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Contex
 
     // 排序由下游各自内部保证，此处不再重复排序：
     // UpdateHcclBandwidth -> UpdateBandwidth 按 timestamp 升序；UpdateHcclOpNameByGroupName 按 (start, end) 升序
-
-    const auto& deviceContext = dynamic_cast<const DeviceContext&>(context);
-    DeviceStartInfo startInfo;
-    SampleInfo sampleInfo;
-    deviceContext.Getter(startInfo);
-    deviceContext.Getter(sampleInfo);
 
     UpdateHcclOpNameByGroupName(startInfo.clockMonotonicRaw);
     UpdateHcclBandwidth();
@@ -84,7 +84,7 @@ uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Contex
     return ANALYSIS_OK;
 }
 
-bool HcclCalculator::GetHcclData(DataInventory& dataInventory)
+bool HcclCalculator::GetHcclData(DataInventory& dataInventory, uint64_t startTimeRawTimestamp)
 {
     INFO("Start Hccl calculator GetHcclData.");
     auto ascendTasks = dataInventory.GetPtr<std::vector<TopDownTask>>();
@@ -95,7 +95,7 @@ bool HcclCalculator::GetHcclData(DataInventory& dataInventory)
         return false;
     }
     std::vector<DeviceHcclTask> deviceHcclTasks;
-    if (!MergeHcclTaskData(ascendTasks, hcclTasks, deviceHcclTasks))
+    if (!MergeHcclTaskData(ascendTasks, hcclTasks, deviceHcclTasks, startTimeRawTimestamp))
     {
         ERROR("Merge hccl task and ascend task failed.");
         return false;
@@ -117,7 +117,7 @@ bool HcclCalculator::GetHcclData(DataInventory& dataInventory)
 
 bool HcclCalculator::MergeHcclTaskData(const std::shared_ptr<std::vector<TopDownTask>>& ascendTasks,
                                        const std::shared_ptr<std::vector<HcclTask>>& hcclTasks,
-                                       std::vector<DeviceHcclTask>& deviceHcclTasks)
+                                       std::vector<DeviceHcclTask>& deviceHcclTasks, uint64_t startTimeRawTimestamp)
 {
     INFO("Start merge hccl task and ascend task.");
     std::sort(ascendTasks->begin(), ascendTasks->end(),
@@ -140,6 +140,11 @@ bool HcclCalculator::MergeHcclTaskData(const std::shared_ptr<std::vector<TopDown
         TaskId tempId(task.streamId, task.batchId, task.taskId, task.contextId);
         if (taskTable.find(tempId) == taskTable.end())
         {
+            // 采集开始前的冗余不校验；开始后仍对不上才报错
+            if (task.timestamp < startTimeRawTimestamp)
+            {
+                continue;
+            }
             ERROR("Hccl task can't match ascend task, streamId is: %, taskId is: %, contextId is: %, batchId is: %",
                   task.streamId, task.taskId, task.contextId, task.batchId);
             continue;
