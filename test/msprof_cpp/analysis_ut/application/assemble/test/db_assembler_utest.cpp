@@ -2065,6 +2065,36 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldReturnTrueWhenDataNotExistOrRun
     EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_QOS, dataInventory));
 }
 
+TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldNotOverflowWhenBandwidthExceedsUint32Range)
+{
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
+    auto dataInventory = DataInventory();
+    QosData qosData;
+    qosData.deviceId = 0; // deviceId 0
+    qosData.timestamp = 1746706291651036160; // timestamp 1746706291651036160
+    qosData.bw1 = 5120; // 5120 MB/s，换算为 Byte/s 后为 5368709120
+    qosData.bw2 = 8192; // 8192 MB/s，换算为 Byte/s 后为 8589934592
+    std::vector<QosData> data{qosData};
+    std::shared_ptr<std::vector<QosData>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<QosData>, data);
+    dataInventory.Inject<std::vector<QosData>>(dataS);
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_QOS, dataInventory));
+
+    // deviceId, eventName, bandwidth, timestampNs, dieId
+    using QosQueryFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, int32_t>>;
+    QosQueryFormat checkData;
+    std::shared_ptr<DBRunner> msprofDBRunner;
+    MAKE_SHARED0_NO_OPERATION(msprofDBRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(msprofDBRunner, nullptr);
+    // 带宽换算为 Byte/s 后超出 uint32_t 范围，不应发生溢出回绕
+    std::string sql = "SELECT deviceId, eventName, bandwidth, timestampNs, dieId FROM " + TABLE_NAME_QOS +
+                      " ORDER BY bandwidth";
+    EXPECT_TRUE(msprofDBRunner->QueryData(sql, checkData));
+    ASSERT_EQ(2, checkData.size()); // sample.json 中 qosEvents 为 2 个事件
+    EXPECT_EQ(5368709120, std::get<2>(checkData[0]));
+    EXPECT_EQ(8589934592, std::get<2>(checkData[1]));
+}
+
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
 {
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));

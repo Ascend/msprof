@@ -1285,7 +1285,7 @@ bool SaveQosData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
         {
             continue;
         }
-        std::vector<uint32_t> bandwidth{data.bw1, data.bw2, data.bw3, data.bw4, data.bw5,
+        std::vector<uint64_t> bandwidth{data.bw1, data.bw2, data.bw3, data.bw4, data.bw5,
                                         data.bw6, data.bw7, data.bw8, data.bw9, data.bw10};
         for (size_t i = 0; i < it->second.size(); i++)
         {
