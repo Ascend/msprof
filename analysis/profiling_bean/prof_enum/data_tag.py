@@ -23,6 +23,7 @@ class DataTag(Enum):
     """
     Define the tag for profiling data
     """
+
     ACL = 0
     ACL_HASH = 1
     GE_TASK = 2
@@ -119,6 +120,7 @@ class AclApiTag(Enum):
     """
     Define the tag for acl api type
     """
+
     ACL_OP = 1
     ACL_MODEL = 2
     ACL_RTS = 3
@@ -136,53 +138,43 @@ class ModuleName(Enum):
     """
     Define the module name for module id
     """
-    SLOG = 0
+
+    UNKNOWN = 0
     IDEDD = 1
-    SCC = 2
+    IDEDH = 2
     HCCL = 3
     FMK = 4
-    CCU = 5
+    HIAIENGINE = 5
     DVPP = 6
     RUNTIME = 7
     CCE = 8
-    HDC = 9
-    DRV = 10
-    NET = 11
+    HLT = 9
     DEVMM = 22
-    KERNEL = 23
     LIBMEDIA = 24
     CCECPU = 25
-    ROS = 27
+    ASCENDDK = 26
+    HCCP_SCHEDULE = 27
     HCCP = 28
     ROCE = 29
     TEFUSION = 30
     PROFILING = 31
     DP = 32
     APP = 33
-    TS = 34
     TSDUMP = 35
     AICPU = 36
-    LP = 37
+    AICPU_SCHEDULE = 37
     TDT = 38
     FE = 39
     MD = 40
     MB = 41
     ME = 42
-    IMU = 43
-    IMP = 44
     GE = 45
-    CAMERA = 47
     ASCENDCL = 48
-    TEEOS = 49
-    ISP = 50
-    SIS = 51
-    HSM = 52
-    DSS = 53
     PROCMGR = 54
-    BBOX = 55
     AIVECTOR = 56
     TBE = 57
     FV = 58
+    PYPTO = 59
     TUNE = 60
     HSS = 61
     FFTS = 62
@@ -198,6 +190,5 @@ class ModuleName(Enum):
     RTC = 72
     SYSMONITOR = 73
     AML = 74
-    ADETECT = 75
-    MBUFF = 76
-    CUSTOM = 77
+    MBUFF = 75
+    CUSTOM_SCHEDULE = 76

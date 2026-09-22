@@ -61,7 +61,7 @@ class TestNpuModuleMemViewer(TestDirCRBaseModel):
         }
         expected_headers = ['component', 'timestamp', 'total_reserve_memory', 'device_type']
         expected_data = [
-            ['other', '10.000\t', 4, 'NPU:0']
+            ['UNKNOWN', '10.000\t', 4, 'NPU:0']
         ]
         InfoConfReader()._info_json = {
             'CPU': [{'Frequency': "1000"}]
@@ -91,11 +91,12 @@ class TestNpuModuleMemViewer(TestDirCRBaseModel):
         expected_headers = ['component', 'timestamp', 'total_reserve_memory', 'device_type']
         expected_data = [
             ['RUNTIME', '10.000\t', 4, 'NPU:0'],
-            ['other', '11.000\t', 2, 'NPU:0'],
+            ['UNKNOWN', '11.000\t', 2, 'NPU:0'],
             ['CCE', '11.000\t', -1, 'NPU:0'],
             ['AML', '12.333\t', -1, 'NPU:0'],
-            ['MBUFF', '12.333\t', -1, 'NPU:0'],
-            ['other', '12.333\t', -1, 'NPU:0']
+            ['CUSTOM_SCHEDULE', '12.333\t', -1, 'NPU:0'],
+            ['PYPTO', '12.333\t', -1, 'NPU:0'],
+            ['UNKNOWN', '12.333\t', -1, 'NPU:0']
         ]
         module_mem_data = [
             [7, 0, 4096, 'NPU:0'],
@@ -103,6 +104,7 @@ class TestNpuModuleMemViewer(TestDirCRBaseModel):
             [8, 1000, -1, 'NPU:0'],
             [74, 2333, -1, 'NPU:0'],
             [76, 2333, -1, 'NPU:0'],
+            [59, 2333, -1, 'NPU:0'],
             [78, 2333, -1, 'NPU:0']
         ]
         module_mem_dto = self.get_module_mem_dto(module_mem_data)
