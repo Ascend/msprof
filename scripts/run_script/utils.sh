@@ -112,8 +112,30 @@ function check_path() {
     fi
 }
 
+function check_valid_cann_path() {
+    local cann_path=${1}
+    local cann_dir_name=$(basename -- "${cann_path}")
+
+    if [[ ! "${cann_dir_name}" =~ ^cann(-[a-zA-Z0-9._-]+)?$ ]]; then
+        return 1
+    fi
+
+    if [ ! -d "${cann_path}/tools" ] ||
+       [ ! -d "${cann_path}/runtime" ] ||
+       [ ! -d "${cann_path}/opp" ]; then
+        return 1
+    fi
+    return 0
+}
+
 function check_cann_path() {
     local cann_path=${1}
+    # Check the installation path is a valid CANN path.
+    if ! check_valid_cann_path "${cann_path}"; then
+        print "ERROR" "Invalid CANN installation path: ${cann_path}. The directory name must be 'cann' or start with 'cann-', for example, '/usr/local/Ascend/cann-9.2.0'."
+        exit 1
+    fi
+
     local current_user=$(whoami)
     local cann_path_owner=$(stat -c '%U' "$cann_path")
 
