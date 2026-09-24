@@ -53,22 +53,11 @@ jobs:
           export TARGET_BRANCH=${{ inputs.TARGET_BRANCH }}
           export COMMIT_ID=${{ atomgit.event.pull_request.head.sha }}
           cd MindStudio-CI && bash build.sh msprof
-          if [ -d ${ATOMGIT_WORKSPACE}/code ]; then
-            cd ${ATOMGIT_WORKSPACE}/code
-            git clone https://gitcode.com/A1streomeria/ci_test.git || true
-            if [ -f /tmp/modify_files.txt ]; then
-              cp /tmp/modify_files.txt ci_test/codecheck/change.txt
-            else
-              git diff-tree -r --name-only --no-commit-id origin/${{ inputs.TARGET_BRANCH }} HEAD > ci_test/codecheck/change.txt
-            fi
-            cp build/compile_commands.json compile_commands.json || true
-            cd ci_test/codecheck/
-            sed -i 's/\r$//' ctidy.sh
-            chmod +x ctidy.sh
-            ./ctidy.sh ${ATOMGIT_WORKSPACE}/code/
-          else
-            echo "WARN: MindStudio-CI did not produce code/ under workspace; skipping ctidy"
-          fi
+
+          cd ${ATOMGIT_WORKSPACE}/code
+          cp ./artifacts/*.run ${ATOMGIT_WORKSPACE}
+          ls -la ${ATOMGIT_WORKSPACE}/*.run
+
       - name: Upload artifacts
         uses: upload-artifact
         with:

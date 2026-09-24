@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       ARTIFACT_NAME:
-        required: true
+        required: false
         type: string
 
 jobs:
