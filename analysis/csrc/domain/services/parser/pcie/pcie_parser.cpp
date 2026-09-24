@@ -145,6 +145,6 @@ uint32_t PcieParser::ParseData(Infra::DataInventory &dataInventory, const Infra:
 
 // REGISTER_PROCESS_SEQUENCE(PcieParser, true);
 // REGISTER_PROCESS_SUPPORT_CHIP(PcieParser, CHIP_V1_1_0, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
-//                               CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+//                               CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

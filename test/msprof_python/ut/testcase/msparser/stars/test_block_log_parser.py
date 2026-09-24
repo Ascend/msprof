@@ -19,11 +19,11 @@ from unittest import mock
 
 from common_func.platform.chip_manager import ChipManager
 from msparser.stars import BlockLogParser
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.stars.block_log_bean import BlockLogBean
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'msparser.stars.block_log_parser'
 
@@ -46,7 +46,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_begin_2 = [36, 5, 7, 0, 89, 47, 8, 99, 1, 9, 10, 11, 22]
         args_end_2 = [37, 5, 7, 0, 91, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_begin_1), BlockLogBean(args_end_1),
             BlockLogBean(args_begin_2), BlockLogBean(args_end_2)
@@ -71,7 +71,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_end_2 = [37, 5, 7, 0, 91, 47, 8, 99, 1, 9, 10, 11, 22]
         args_end_3 = [37, 5, 7, 0, 93, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_begin_1), BlockLogBean(args_end_1), BlockLogBean(args_begin_2),
             BlockLogBean(args_end_2), BlockLogBean(args_end_3)
@@ -96,7 +96,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_end_2 = [37, 5, 7, 0, 91, 47, 8, 99, 1, 9, 10, 11, 22]
         args_begin_3 = [36, 5, 1000, 0, 93, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_begin_1), BlockLogBean(args_end_1), BlockLogBean(args_begin_2),
             BlockLogBean(args_end_2), BlockLogBean(args_begin_3)
@@ -121,7 +121,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_begin_3 = [36, 5, 1000, 0, 93, 47, 8, 99, 1, 9, 10, 11, 22]
         args_begin_4 = [36, 5, 1000, 0, 95, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_begin_1), BlockLogBean(args_end_1), BlockLogBean(args_begin_2),
             BlockLogBean(args_end_2), BlockLogBean(args_begin_3), BlockLogBean(args_begin_4)
@@ -147,7 +147,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_begin_3 = [36, 5, 1000, 0, 93, 47, 8, 99, 1, 9, 10, 11, 22]
         args_begin_4 = [36, 5, 1000, 0, 95, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_end_0), BlockLogBean(args_begin_1), BlockLogBean(args_end_1),
             BlockLogBean(args_begin_2),
@@ -171,7 +171,7 @@ class TestBlockLogParser(unittest.TestCase):
         args_begin_2 = [36, 5, 7, 0, 89, 47, 8, 99, 1, 9, 10, 11, 22]
         args_end_2 = [37, 5, 7, 0, 91, 47, 8, 99, 1, 9, 10, 11, 22]
         key = BlockLogParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             BlockLogBean(args_begin_1), BlockLogBean(args_end_1),
             BlockLogBean(args_begin_2), BlockLogBean(args_end_2)

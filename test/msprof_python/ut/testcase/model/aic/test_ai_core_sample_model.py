@@ -21,11 +21,10 @@ import pytest
 
 from common_func.info_conf_reader import InfoConfReader
 from common_func.msprof_exception import ProfException
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from msmodel.aic.ai_core_sample_model import AiCoreSampleModel
 from sqlite.db_manager import DBManager
 from sqlite.db_manager import DBOpen
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'msmodel.aic.ai_core_sample_model'
 
@@ -166,7 +165,7 @@ class TestAiCoreSampleModel(unittest.TestCase):
         with mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value={}), \
                 DBOpen('aicore.db') as db_open:
             db_open.create_table(sql)
-            InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+            InfoJson(devices='0').apply()
             check = AiCoreSampleModel('test', 'aicore.db', ['AICoreOriginalData'], 'ai_core_metrics')
             check.conn, check.cur = db_open.db_conn, db_open.db_curs
             check.flush([[1, 2, 3, 2, 3, 5, 6]])

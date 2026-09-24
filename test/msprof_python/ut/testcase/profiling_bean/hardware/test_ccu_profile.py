@@ -79,12 +79,12 @@ class TestCcuHardwareProfile(unittest.TestCase):
 
     def test_parser_config_should_use_profile_supported_chips(self):
         supported_chips = CcuHardwareProfileRegistry.supported_chip_models_csv()
-        self.assertEqual("15", supported_chips)
+        self.assertEqual("15,19", supported_chips)
         for parser_name in ("CCUMissionParser", "CCUChannelParser"):
             parser_config = dict(DataParsersConfig.DATA[parser_name])
             self.assertEqual(supported_chips, parser_config["chip_model"])
         host_parser_config = dict(DataParsersConfig.DATA["CCUAddInfoParser"])
-        self.assertEqual("15,16", host_parser_config["chip_model"])
+        self.assertEqual("15,16,19", host_parser_config["chip_model"])
 
     def test_profile_should_support_multiple_versions_for_one_data_kind(self):
         version_one = CcuFormatProfile(

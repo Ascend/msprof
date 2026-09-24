@@ -81,7 +81,9 @@ uint32_t FftsProfileParser::ParseData(DataInventory &dataInventory, const Infra:
 {
     // V6芯片使用V6的pmu解析项（128字节record，含context和block），其余芯片走原V4解析项
     parserType_ =
-        (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0) ? PMU_PARSER_V6 : PMU_PARSER;
+        (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 || context.GetChipID() == CHIP_V6_2_0)
+            ? PMU_PARSER_V6
+            : PMU_PARSER;
     auto streamExpandSpecData = dataInventory.GetPtr<StreamExpandSpec>();
     uint16_t expandStatus =
         streamExpandSpecData && streamExpandSpecData->expandStatus ? streamExpandSpecData->expandStatus : 0;
@@ -113,6 +115,6 @@ uint32_t FftsProfileParser::ParseData(DataInventory &dataInventory, const Infra:
 
 REGISTER_PROCESS_SEQUENCE(FftsProfileParser, true, LoadStreamExpandSpec);
 REGISTER_PROCESS_DEPENDENT_DATA(FftsProfileParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(FftsProfileParser, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+REGISTER_PROCESS_SUPPORT_CHIP(FftsProfileParser, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

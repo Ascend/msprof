@@ -23,11 +23,12 @@ import unittest
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from constant.constant import CONFIG, clear_dt_project
-from constant.info_json_construct import InfoJsonReaderManager, InfoJson
 from mscalculate.tiling_block_num.block_num_calculator import BlockNumCalculator
 from msconfig.config_manager import ConfigManager
 from msmodel.ge.ge_info_model import GeInfoViewModel
 from sqlite.db_manager import DBOpen
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'mscalculate.tiling_block_num.block_num_calculator'
 
@@ -124,7 +125,7 @@ class TestKfcCalculator(unittest.TestCase):
     def test_ms_run_should_return_when_contain_block_num_data(self: any) -> None:
         self.construct_ts_track_db()
         self.construct_ge_info_db()
-        InfoJsonReaderManager(InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         CONFIG.update({"result_dir": os.path.join(self.DIR_PATH, 'PROF', 'device_0')})
         check = BlockNumCalculator({}, CONFIG)
         check.ms_run()

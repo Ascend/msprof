@@ -66,7 +66,7 @@ const ArithMetricConfig ARITH_METRIC_CONFIG_CHIP3 = {
     {128, 64, 64, 16, 16},
     {8192, 16384}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的ArithMetric配置:
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的ArithMetric配置:
 // event IDs: 0x323=mac_fp16_ratio, 0x324=mac_int8_ratio
 // cube_fops = r323*16*16*16*2 + r324*16*16*32*2
 const ArithMetricConfig ARITH_METRIC_CONFIG_V6 = {
@@ -83,6 +83,7 @@ const ArithMetricConfig& SelectArithMetricConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return ARITH_METRIC_CONFIG_V6;
         case CHIP_V3_1_0:

@@ -594,17 +594,9 @@ void UpdateNpuData(const std::string& profPath, const std::string& deviceDir,
 {
     uint16_t deviceId = Utils::GetDeviceIdByDevicePath(deviceDir);
     uint16_t chip = Environment::Context::GetInstance().GetPlatformVersion(deviceId, profPath);
-    std::string chipName;
+    INFO("Chip type key: % in %", chip, deviceDir);
     auto it = CHIP_TABLE.find(chip);
-    if (it == CHIP_TABLE.end())
-    {
-        ERROR("Unknown chip type key: % in %", chip, deviceDir);
-        chipName = UNKNOWN;
-    }
-    else
-    {
-        chipName = it->second;
-    }
+    std::string chipName = (it == CHIP_TABLE.end()) ? UNKNOWN : it->second;
     npuInfoData.emplace_back(static_cast<int16_t>(deviceId), chipName);
     rankDeviceMapData.emplace_back(-1, static_cast<int16_t>(deviceId));
 }

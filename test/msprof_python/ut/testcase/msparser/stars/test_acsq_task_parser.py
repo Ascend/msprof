@@ -17,12 +17,12 @@ import unittest
 from unittest import mock
 
 from common_func.platform.chip_manager import ChipManager
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from msparser.stars.acsq_task_parser import AcsqTaskParser
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.stars.acsq_task import AcsqTask
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'msparser.stars.acsq_task_parser'
 
@@ -49,7 +49,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         args_begin_2 = [0, 5, 67, 7, 89, 47, 8, 99]
         args_end_2 = [1, 5, 67, 7, 91, 47, 8, 99]
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [AcsqTask(args_begin_1), AcsqTask(args_end_1), AcsqTask(args_begin_2), AcsqTask(args_end_2)]
         ret = key.get_task_time()
         expect_ret = (
@@ -71,7 +71,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         args_end_2 = [1, 5, 67, 7, 91, 47, 8, 99]
         args_end_3 = [1, 5, 67, 7, 93, 47, 8, 99]
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             AcsqTask(args_begin_1), AcsqTask(args_end_1), AcsqTask(args_begin_2),
             AcsqTask(args_end_2), AcsqTask(args_end_3)
@@ -96,7 +96,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         args_end_2 = [1, 5, 67, 7, 91, 47, 8, 99]
         args_begin_3 = [0, 5, 67, 1000, 93, 47, 8, 99]
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             AcsqTask(args_begin_1), AcsqTask(args_end_1), AcsqTask(args_begin_2),
             AcsqTask(args_end_2), AcsqTask(args_begin_3)
@@ -121,7 +121,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         args_begin_3 = [0, 5, 67, 1000, 93, 47, 8, 99]
         args_begin_4 = [0, 5, 67, 1000, 95, 47, 8, 99]
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             AcsqTask(args_begin_1), AcsqTask(args_end_1), AcsqTask(args_begin_2),
             AcsqTask(args_end_2), AcsqTask(args_begin_3), AcsqTask(args_begin_4)
@@ -147,7 +147,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         args_begin_3 = [0, 5, 67, 1000, 93, 47, 8, 99]
         args_begin_4 = [0, 5, 67, 1000, 95, 47, 8, 99]
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             AcsqTask(args_end_0), AcsqTask(args_begin_1), AcsqTask(args_end_1), AcsqTask(args_begin_2),
             AcsqTask(args_end_2), AcsqTask(args_begin_3), AcsqTask(args_begin_4)
@@ -174,7 +174,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         e1 = [1, 2, 67, 7, 93, 47, 8, 99]   # t=1860
         e3 = [1, 5, 67, 7, 94, 47, 8, 99]   # t=1880
         key = AcsqTaskParser(result_dir, db, table_list)
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency=50).device_info]).apply()
         key._data_list = [
             AcsqTask(s1), AcsqTask(s2), AcsqTask(s3),
             AcsqTask(e1), AcsqTask(e3)

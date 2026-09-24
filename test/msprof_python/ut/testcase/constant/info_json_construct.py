@@ -19,6 +19,7 @@
 function:
 Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 """
+
 import json
 import os
 
@@ -33,7 +34,7 @@ class CPUInfo:
         "Name": "GenuineIntel",
         "Frequency": "100.000000",
         "Logical_CPU_Count": 1,
-        "Type": "Intel(R) Xeon(R) Platinum 8476C"
+        "Type": "Intel(R) Xeon(R) Platinum 8476C",
     }
 
     def __init__(self, **kwargs: any):
@@ -48,14 +49,23 @@ class CPUInfo:
 
 class DeviceInfo:
     DEFAULT_DEVICE_INFO = {
-        'id': 0, 'env_type': 3, 'ctrl_cpu_id': 'ARMv8_Cortex_A55',
-        'ctrl_cpu_core_num': 1, 'ctrl_cpu_endian_little': 1,
+        'id': 0,
+        'env_type': 3,
+        'ctrl_cpu_id': 'ARMv8_Cortex_A55',
+        'ctrl_cpu_core_num': 1,
+        'ctrl_cpu_endian_little': 1,
         'ts_cpu_core_num': 1,
-        'ai_cpu_core_num': 7, 'ai_core_num': 8, 'ai_cpu_core_id': 1,
-        'ai_core_id': 0, 'aicpu_occupy_bitmap': 254, 'ctrl_cpu': '0',
-        'ai_cpu': '1, 2, 3, 4, 5, 6, 7', 'aiv_num': 0,
+        'ai_cpu_core_num': 7,
+        'ai_core_num': 8,
+        'ai_cpu_core_id': 1,
+        'ai_core_id': 0,
+        'aicpu_occupy_bitmap': 254,
+        'ctrl_cpu': '0',
+        'ai_cpu': '1, 2, 3, 4, 5, 6, 7',
+        'aiv_num': 0,
         'hwts_frequency': '38.4',
-        'aic_frequency': '1150', 'aiv_frequency': '1000'
+        'aic_frequency': '1150',
+        'aiv_frequency': '1000',
     }
 
     def __init__(self, **kwargs: any):
@@ -83,6 +93,14 @@ class InfoJson:
             setattr(self, key, value)
         self.__dict__.update(kwargs)
 
+    def to_dict(self):
+        return json.loads(json.dumps(self, default=lambda json_obj: json_obj.__dict__))
+
+    def apply(self):
+        """Load sample/start from the UT config dir, then set info.json in memory only."""
+        InfoConfReader().load_info(UT_CONFIG_FILE_PATH)
+        InfoConfReader()._info_json = self.to_dict()
+
 
 class InfoJsonReaderManager:
     def __init__(self, info_json=InfoJson()):
@@ -102,6 +120,7 @@ class InfoJsonReaderManager:
 
     def _update_info_json(self):
         json_data = json.dumps(self._info_json, default=lambda json_obj: json_obj.__dict__)
-        with os.fdopen(os.open(self._get_info_json_path(), constant.constant.WRITE_FLAGS,
-                               constant.constant.WRITE_MODES), 'w') as _json_file:
+        with os.fdopen(
+            os.open(self._get_info_json_path(), constant.constant.WRITE_FLAGS, constant.constant.WRITE_MODES), 'w'
+        ) as _json_file:
             json.dump(json.loads(json_data), _json_file)

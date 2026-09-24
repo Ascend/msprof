@@ -80,6 +80,6 @@ uint32_t UbPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const 
 
 // REGISTER_PROCESS_SEQUENCE(UbPersistence, false, UbParser);
 // REGISTER_PROCESS_DEPENDENT_DATA(UbPersistence, std::vector<HalUbBwData>);
-// REGISTER_PROCESS_SUPPORT_CHIP(UbPersistence, CHIP_V6_1_0, CHIP_V6_2_0);
+// REGISTER_PROCESS_SUPPORT_CHIP(UbPersistence, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

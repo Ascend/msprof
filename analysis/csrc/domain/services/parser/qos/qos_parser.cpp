@@ -115,7 +115,7 @@ bool StarsQosParser::IsDataItemValid(const uint8_t *binaryData) const
 // namespace STARS_QOS_REGISTER
 //{
 // REGISTER_PROCESS_SEQUENCE(StarsQosParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(StarsQosParser, CHIP_V6_1_0, CHIP_V6_2_0);
+// REGISTER_PROCESS_SUPPORT_CHIP(StarsQosParser, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 // }  // namespace STARS_QOS_REGISTER
 }  // namespace Domain
 }  // namespace Analysis

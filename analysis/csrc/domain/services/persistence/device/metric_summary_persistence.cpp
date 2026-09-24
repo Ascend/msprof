@@ -176,7 +176,8 @@ MetricSummaryDB::MetricSummaryDB(TableColumns columns)
 TableColumns MetricSummaryPersistence::GetTableColumn(const DeviceContext& context)
 {
     TableColumns res;
-    if (context.GetChipID() == CHIP_V4_1_0 || context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0)
+    if (context.GetChipID() == CHIP_V4_1_0 || context.GetChipID() == CHIP_V6_1_0 ||
+        context.GetChipID() == CHIP_V6_1_1 || context.GetChipID() == CHIP_V6_2_0)
     {
         auto aicHeader = aicCalculator_->GetPmuHeader();
         aicLength_ = static_cast<int>(aicHeader.size());
@@ -403,7 +404,7 @@ uint32_t MetricSummaryPersistence::ProcessEntry(DataInventory& dataInventory, co
     {
         INFO("Process % done!", metricSummary.tableName);
         // V6芯片需将Block PMU数据落盘到V6BlockPmu表
-        if (chipId == CHIP_V6_1_0 || chipId == CHIP_V6_2_0)
+        if (chipId == CHIP_V6_1_0 || chipId == CHIP_V6_1_1 || chipId == CHIP_V6_2_0)
         {
             return SaveV6BlockPmuData(dataInventory, deviceContext, dbPath);
         }

@@ -251,6 +251,6 @@ uint32_t LlcParser::ParseData(Infra::DataInventory &dataInventory, const Infra::
 
 // REGISTER_PROCESS_SEQUENCE(LlcParser, true);
 // REGISTER_PROCESS_SUPPORT_CHIP(LlcParser, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0, CHIP_V4_1_0,
-//                               CHIP_V1_1_1, CHIP_V1_1_2, CHIP_V1_1_3, CHIP_V6_1_0, CHIP_V6_2_0);
+//                               CHIP_V1_1_1, CHIP_V1_1_2, CHIP_V1_1_3, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

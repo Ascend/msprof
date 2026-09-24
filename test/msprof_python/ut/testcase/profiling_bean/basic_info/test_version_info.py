@@ -18,19 +18,20 @@
 
 import unittest
 
-from constant.info_json_construct import InfoJsonReaderManager, InfoJson
 from profiling_bean.basic_info.version_info import VersionInfo
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
 
 
 class TestVersionInfo(unittest.TestCase):
     def test_run_when_driver_is_old_then_return_zero_for_driver_version(self):
-        InfoJsonReaderManager(info_json=InfoJson(version='1.0')).process()
+        InfoJson(version='1.0').apply()
         checker = VersionInfo()
         checker.run("")
         self.assertEqual(0, checker.drv_version)
 
     def test_run_when_driver_update_then_return_actual_driver_version(self):
-        InfoJsonReaderManager(info_json=InfoJson(drvVersion=467731)).process()
+        InfoJson(drvVersion=467731).apply()
         checker = VersionInfo()
         checker.run("")
         self.assertEqual(467731, checker.drv_version)

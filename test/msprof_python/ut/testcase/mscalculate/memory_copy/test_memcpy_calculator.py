@@ -23,12 +23,12 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from constant.constant import clear_dt_project
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from mscalculate.memory_copy.memcpy_calculator import MemcpyCalculator
 from msconfig.config_manager import ConfigManager
 from profiling_bean.db_dto.step_trace_dto import IterationRange
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = "common_func.msprof_iteration"
 
@@ -94,7 +94,7 @@ class TestMemcpyModel(unittest.TestCase):
 
         with mock.patch('common_func.utils.Utils.get_scene', return_value=Constant.STEP_INFO):
             ProfilingScene().init("")
-            InfoJsonReaderManager(InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1000)])).process()
+            InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1000)]).apply()
             memcpy_calculator.calculator_connect_db()
             memcpy_calculator.calculate()
             self.assertEqual(expect_res, memcpy_calculator._memcpy_data)
@@ -109,7 +109,7 @@ class TestMemcpyModel(unittest.TestCase):
 
         with mock.patch('common_func.utils.Utils.get_scene', return_value=Constant.SINGLE_OP):
             ProfilingScene().init("")
-            InfoJsonReaderManager(InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1000)])).process()
+            InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1000)]).apply()
             memcpy_calculator.calculator_connect_db()
             memcpy_calculator.calculate()
             self.assertEqual(expect_res, memcpy_calculator._memcpy_data)

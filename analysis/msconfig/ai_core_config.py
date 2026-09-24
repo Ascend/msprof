@@ -1117,6 +1117,7 @@ class AICoreConfig(MetaConfig):
     DATA_MAP = {
         ChipModel.CHIP_V5_1_0: CHIP_V5_MAP,
         ChipModel.CHIP_V6_1_0: CHIP_V6_MAP,
+        ChipModel.CHIP_V6_1_1: CHIP_V6_MAP,
         ChipModel.CHIP_V6_2_0: CHIP_V6_MAP,
     }
 

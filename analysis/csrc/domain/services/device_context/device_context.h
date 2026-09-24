@@ -201,7 +201,10 @@ class DeviceContext : public Infra::Context
 
     uint32_t GetChipID() const override { return deviceContextInfo.deviceInfo.chipID; }
 
-    bool isChipV6() const { return GetChipID() == CHIP_V6_1_0 || GetChipID() == CHIP_V6_2_0; }
+    bool isChipV6() const
+    {
+        return GetChipID() == CHIP_V6_1_0 || GetChipID() == CHIP_V6_1_1 || GetChipID() == CHIP_V6_2_0;
+    }
 
     std::string GetDeviceFilePath() const { return this->deviceContextInfo.deviceFilePath; }
 

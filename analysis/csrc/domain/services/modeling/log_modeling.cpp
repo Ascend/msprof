@@ -280,7 +280,7 @@ REGISTER_PROCESS_SEQUENCE(Domain::LogModelingV6, true, Domain::StarsSocParserV6,
 REGISTER_PROCESS_DEPENDENT_DATA(Domain::LogModelingV6, std::vector<Domain::HalLogData>,
                                 std::vector<Domain::HalTrackData>,
                                 std::map<Domain::TaskId, std::vector<Domain::DeviceTask>>);
-REGISTER_PROCESS_SUPPORT_CHIP(Domain::LogModelingV6, CHIP_V6_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(Domain::LogModelingV6, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace CHIP_V6
 
 }  // namespace Domain

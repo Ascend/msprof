@@ -14,6 +14,7 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+from common_func.constant import Constant
 from msconfig.meta_config import MetaConfig
 
 
@@ -21,7 +22,8 @@ class SocPmuConfig(MetaConfig):
     DEFAULT_EVENT = [('request_events', '0x8a'), ('hit_events', '0x8c,0x8d'), ('miss_events', '0x2')]
 
     DATA = {
-        '5': DEFAULT_EVENT,
-        '15': DEFAULT_EVENT,
-        '16': DEFAULT_EVENT,
+        Constant.CHIP_V4_1_0: DEFAULT_EVENT,
+        Constant.CHIP_V6_1_0: DEFAULT_EVENT,
+        Constant.CHIP_V6_2_0: DEFAULT_EVENT,
+        Constant.CHIP_V6_1_1: DEFAULT_EVENT,
     }

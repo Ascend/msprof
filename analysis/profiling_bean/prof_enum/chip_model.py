@@ -36,6 +36,7 @@ class ChipModel(Enum):
     CHIP_V1_1_3 = 11
     CHIP_V6_1_0 = 15
     CHIP_V6_2_0 = 16
+    CHIP_V6_1_1 = 19
 
 
 class ChipMaxCoreId(Enum):
@@ -49,3 +50,4 @@ class ChipMaxCoreId(Enum):
     CHIP_V1_1_3 = 0
     CHIP_V6_1_0 = 35
     CHIP_V6_2_0 = 69
+    CHIP_V6_1_1 = 35

@@ -397,7 +397,7 @@ bool CcuMissionParser::DecodeV6_1(const uint8_t* data, size_t size, std::vector<
 
 uint32_t CcuMissionParser::ProcessEntry(DataInventory& dataInventory, const Infra::Context& context)
 {
-    if (context.GetChipID() != CHIP_V6_1_0)
+    if (context.GetChipID() != CHIP_V6_1_0 && context.GetChipID() != CHIP_V6_1_1)
     {
         ERROR("Unsupported chip id for CCU v6.1 mission parser: %", context.GetChipID());
         return ANALYSIS_ERROR;
@@ -464,7 +464,7 @@ bool CcuChannelParser::DecodeV6_1(const uint8_t* data, size_t size, std::vector<
 
 uint32_t CcuChannelParser::ProcessEntry(DataInventory& dataInventory, const Infra::Context& context)
 {
-    if (context.GetChipID() != CHIP_V6_1_0)
+    if (context.GetChipID() != CHIP_V6_1_0 && context.GetChipID() != CHIP_V6_1_1)
     {
         ERROR("Unsupported chip id for CCU v6.1 channel parser: %", context.GetChipID());
         return ANALYSIS_ERROR;
@@ -494,13 +494,13 @@ uint32_t CcuChannelParser::ProcessEntry(DataInventory& dataInventory, const Infr
 namespace CCU_MISSION_REGISTER
 {
 REGISTER_PROCESS_SEQUENCE(CcuMissionParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuMissionParser, CHIP_V6_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(CcuMissionParser, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace CCU_MISSION_REGISTER
 
 namespace CCU_CHANNEL_REGISTER
 {
 REGISTER_PROCESS_SEQUENCE(CcuChannelParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuChannelParser, CHIP_V6_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(CcuChannelParser, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace CCU_CHANNEL_REGISTER
 
 }  // namespace Domain

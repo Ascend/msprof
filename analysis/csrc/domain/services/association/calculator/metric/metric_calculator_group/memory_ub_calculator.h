@@ -46,7 +46,7 @@ const MemoryUBConfig MEMORY_UB_CONFIG = {
     {128.0, 128.0, 128.0, 128.0},
     {2.0, 2.0, 1.0, 1.0}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的MemoryUB配置
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的MemoryUB配置
 // MemoryUB场景下ub_read_bw_mte/ub_write_bw_mte列在建表时即被移除，故此处不计算、不输出mte相关指标
 const MemoryUBConfig MEMORY_UB_CONFIG_V6 = {
     {{MemoryUBIndex::UbReadBwVector, {{0x571}, Calculator::CalculatorMetricByAdditionsWithFreq}},
@@ -64,6 +64,7 @@ const MemoryUBConfig& SelectMemoryUBConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return MEMORY_UB_CONFIG_V6;
         default:

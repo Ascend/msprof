@@ -16,14 +16,14 @@
 import unittest
 from unittest import mock
 
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from constant.ut_db_name_constant import DB_FFTS_PMU
 from constant.ut_db_name_constant import TABLE_FFTS_PMU
 from msmodel.stars.ffts_pmu_model import FftsPmuModel
 from profiling_bean.stars.ffts_pmu import FftsPmuBean
 from sqlite.db_manager import DBOpen
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'msmodel.stars.ffts_pmu_model'
 
@@ -65,6 +65,6 @@ class TestFftsPmuModel(unittest.TestCase):
         data = b'\00' * 128
         with mock.patch(NAMESPACE + '.FftsPmuModel.insert_data_to_db'):
             check = FftsPmuModel('test', 'test', ['test'])
-            InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[
-                DeviceInfo(hwts_frequency='50', aic_frequency='1000', aiv_frequency='1800').device_info])).process()
+            InfoJson(DeviceInfo=[
+                DeviceInfo(hwts_frequency='50', aic_frequency='1000', aiv_frequency='1800').device_info]).apply()
             check.flush([])

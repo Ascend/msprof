@@ -82,7 +82,8 @@ uint32_t TsTrackParser::ParseData(DataInventory &dataInventory, const Infra::Con
     uint16_t expandStatus =
         streamExpandSpec != nullptr && streamExpandSpec->expandStatus ? streamExpandSpec->expandStatus : 0;
     // ParserType parserType =
-    //     context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0 ? TRACK_PARSER_V6 : TRACK_PARSER;
+    //     context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 ||
+    //     context.GetChipID() == CHIP_V6_2_0 ? TRACK_PARSER_V6 : TRACK_PARSER;
     ParserType parserType = TRACK_PARSER;  // 后续放开上面注释，删除本行即可恢复对CHIP_V6的支持
     INFO("TsTrack structCount: %", structCount);
 

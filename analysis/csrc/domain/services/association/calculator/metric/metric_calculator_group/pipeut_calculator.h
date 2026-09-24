@@ -51,7 +51,7 @@ const PipeUtConfig PIPE_UT_CONFIG = {
      {PipeLineUtIndex::ICacheMissRate, {{0x55, 0x54}, Calculator::CalculatorMetricByDivision}}},
     {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的PipeUt配置:
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的PipeUt配置:
 // 0x501=vec_ratio, 0x301=mac_ratio, 0x1=scalar_ratio,
 // 0x701=mte1_ratio, 0x202=mte2_ratio, 0x203=mte3_ratio,
 // 0x714=fixpipe_ratio, 0x35/0x34=icache_miss_rate
@@ -79,6 +79,7 @@ const PipeUtConfig& SelectPipeUtConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return PIPE_UT_CONFIG_V6;
         default:

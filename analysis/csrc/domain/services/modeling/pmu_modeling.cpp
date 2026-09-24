@@ -70,7 +70,7 @@ uint32_t PmuModeling::ProcessEntry(Infra::DataInventory& dataInventory, const In
         return Analysis::ANALYSIS_OK;
     }
     // 不依赖flip边界划分多波次，无需补batch id（flip补全逻辑假设V4的16位taskId语义，对V6不适用）。
-    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0)
+    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 || context.GetChipID() == CHIP_V6_2_0)
     {
         return Analysis::ANALYSIS_OK;
     }
@@ -81,6 +81,6 @@ uint32_t PmuModeling::ProcessEntry(Infra::DataInventory& dataInventory, const In
 
 REGISTER_PROCESS_SEQUENCE(PmuModeling, true, FftsProfileParser, TsTrackParser);
 REGISTER_PROCESS_DEPENDENT_DATA(PmuModeling, std::vector<HalPmuData>, std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(PmuModeling, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+REGISTER_PROCESS_SUPPORT_CHIP(PmuModeling, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

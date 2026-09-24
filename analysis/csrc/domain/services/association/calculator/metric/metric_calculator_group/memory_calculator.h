@@ -52,7 +52,7 @@ const MemoryConfig MEMORY_CONFIG = {
     {4.0, 4.0, 16.0, 8.0, 8.0, 8.0, 8.0, 8.0},
     {}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的Memory配置
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的Memory配置
 const MemoryConfig MEMORY_CONFIG_V6 = {
     {{MemoryIndex::UBReadBw, {{0x56f, 0x571}, Calculator::CalculatorMetricByAdditionsWithFreqScales}},
      {MemoryIndex::UBWriteBw, {{0x570}, Calculator::CalculatorMetricByAdditionsWithFreq}},
@@ -72,6 +72,7 @@ const MemoryConfig& SelectMemoryConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return MEMORY_CONFIG_V6;
         default:

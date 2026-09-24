@@ -24,11 +24,10 @@ from common_func.empty_class import EmptyClass
 from common_func.info_conf_reader import InfoConfReader
 from common_func.profiling_scene import ProfilingScene
 from constant.constant import ITER_RANGE
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from sqlite.db_manager import DBManager, DBOpen
 from viewer.training.step_trace_viewer import StepTraceViewer
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'viewer.training.step_trace_viewer'
 message = {"project_path": '',
@@ -103,8 +102,8 @@ class TestStepTraceViewer(unittest.TestCase):
 
     def test_get_step_trace_summary(self):
         message1 = {'job_id': 'job_default', 'device_id': '4'}
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(hwts_frequency='100').device_info])).process()
+        InfoJson(devices='0', DeviceInfo=[
+            DeviceInfo(hwts_frequency='100').device_info]).apply()
         with mock.patch(NAMESPACE + '.StepTraceViewer.get_step_trace_data', side_effect=ValueError), \
                 mock.patch(NAMESPACE + '.logging.error'):
             res = StepTraceViewer.get_step_trace_summary(message1)
@@ -123,8 +122,8 @@ class TestStepTraceViewer(unittest.TestCase):
 
     def test_step_trace_timeline(self):
         message1 = {'job_id': 'job_default', 'device_id': '4', 'project_path': ''}
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(hwts_frequency='100').device_info])).process()
+        InfoJson(devices='0', DeviceInfo=[
+            DeviceInfo(hwts_frequency='100').device_info]).apply()
         db_name = "test_step_trace_timeline_" + DB_TRACE
         with DBOpen(db_name) as db_open, \
                 mock.patch(NAMESPACE + '.PathManager.get_sql_dir', return_value=db_open.db_path):
@@ -136,8 +135,8 @@ class TestStepTraceViewer(unittest.TestCase):
             self.assertEqual(len(res), 0)
 
     def test_get_one_iter_timeline_data(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(hwts_frequency='100').device_info])).process()
+        InfoJson(devices='0', DeviceInfo=[
+            DeviceInfo(hwts_frequency='100').device_info]).apply()
         ProfilingScene().init("")
         db_name = "test_get_one_iter_timeline_data_" + DB_TRACE
         with DBOpen(db_name) as db_open, \

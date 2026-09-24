@@ -179,7 +179,10 @@ class ConfigDataParsers:
         load can cpp parse
         :param section: parser name config in the config file
         """
-        if ChipManager().chip_id == ChipModel.CHIP_V6_1_0 and section in ["CCUMissionParser", "CCUChannelParser"]:
+        if ChipManager().chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1) and section in [
+            "CCUMissionParser",
+            "CCUChannelParser",
+        ]:
             return True
         if ChipManager().is_chip_v4() and section in [
             "AscendTaskCalculator",

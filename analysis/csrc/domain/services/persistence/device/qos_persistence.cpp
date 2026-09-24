@@ -80,6 +80,6 @@ uint32_t QosPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
 
 // REGISTER_PROCESS_SEQUENCE(QosPersistence, false, QosParser, StarsQosParser);
 // REGISTER_PROCESS_DEPENDENT_DATA(QosPersistence, std::vector<HalQosBwData>);
-// REGISTER_PROCESS_SUPPORT_CHIP(QosPersistence, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_2_0);
+// REGISTER_PROCESS_SUPPORT_CHIP(QosPersistence, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

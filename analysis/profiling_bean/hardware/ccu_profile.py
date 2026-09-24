@@ -114,7 +114,7 @@ class CcuHardwareProfile:
 
 CCU_V6_1_PROFILE = CcuHardwareProfile(
     profile_id="ccu_v6_1",
-    supported_chip_models=(ChipModel.CHIP_V6_1_0,),
+    supported_chip_models=(ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1),
     die_count=2,
     channel_count=128,
     relative_time_scale=4,

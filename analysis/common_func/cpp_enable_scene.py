@@ -78,7 +78,7 @@ class ExportTimelineScene(CppEnableScene):
     Export timeline scene: check whether cpp export timeline is enabled
     """
 
-    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0]
+    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0]
 
     def __init__(self, command_type: str = None, is_sample_based: bool = False):
         self.command_type = command_type
@@ -101,7 +101,7 @@ class ExportSummaryScene(CppEnableScene):
     Export summary scene: check whether cpp export summary is enabled
     """
 
-    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0]
+    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0]
 
     def __init__(self, command_type: str = None, is_all_export: bool = False):
         self.command_type = command_type
@@ -148,6 +148,7 @@ class ExportDBScene(CppEnableScene):
         ChipModel.CHIP_V4_1_0,
         ChipModel.CHIP_V1_1_1,
         ChipModel.CHIP_V6_1_0,
+        ChipModel.CHIP_V6_1_1,
         ChipModel.CHIP_V6_2_0,
     ]
 
@@ -157,7 +158,7 @@ class DataCheckScene(CppEnableScene):
     Data check scene: check whether cpp data check is enabled
     """
 
-    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0]
+    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0]
 
     def __init__(self, is_all_export: bool = False):
         """

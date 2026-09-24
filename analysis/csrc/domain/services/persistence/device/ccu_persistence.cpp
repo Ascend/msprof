@@ -183,7 +183,7 @@ namespace CCU_PERSISTENCE_REGISTER
 {
 REGISTER_PROCESS_SEQUENCE(CcuPersistence, true, CcuMissionParser, CcuChannelParser);
 REGISTER_PROCESS_DEPENDENT_DATA(CcuPersistence, CcuMissionDataSet, CcuChannelDataSet);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuPersistence, CHIP_V6_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(CcuPersistence, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace CCU_PERSISTENCE_REGISTER
 
 }  // namespace Domain

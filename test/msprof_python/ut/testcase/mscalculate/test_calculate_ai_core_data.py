@@ -20,9 +20,6 @@ from common_func.info_conf_reader import InfoConfReader
 from common_func.platform.chip_manager import ChipManager
 from mscalculate.calculate_ai_core_data import CalculateAiCoreData
 from profiling_bean.prof_enum.chip_model import ChipModel
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 
 sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
                  "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
@@ -295,7 +292,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 11030
         pmu_data = (4, 9, 1, 1, 1, 1, 28, 28, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -311,7 +308,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 10978
         pmu_data = (4, 1, 2, 2, 2, 2, 4, 4, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -330,7 +327,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 10978
         pmu_data = (4, 1, 2, 2, 2, 2, 4, 4, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V5_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -348,7 +345,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 11695
         pmu_data = (4, 2, 2, 4, 4, 2, 4, 28, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -366,7 +363,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 10442
         pmu_data = (1, 1, 1, 1, 1, 1, 1, 28, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -386,7 +383,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 11920
         pmu_data = (1, 27, 1767, 44, 2516, 2, 22, 5, 1637, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)
@@ -404,7 +401,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         task_cyc = 200
         pmu_data = (100, 100, 100, 100, 28, 28, 28, 28, 28, 28)
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
-        InfoJsonReaderManager(info_json=InfoJson(DeviceInfo=[DeviceInfo(aic_frequency=1800).device_info])).process()
+        InfoConfReader()._info_json = {"DeviceInfo": [{"aic_frequency": 1800}]}
         check = CalculateAiCoreData('114514')
         events_name_list_res, ai_core_profiling_events_res = check.compute_ai_core_data(
             events_name_list, ai_core_profiling_events, task_cyc, pmu_data)

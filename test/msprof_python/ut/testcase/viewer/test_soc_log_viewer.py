@@ -22,13 +22,12 @@ from common_func.info_conf_reader import InfoConfReader
 from common_func.platform.chip_manager import ChipManager
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.msprof_object import CustomizedNamedtupleFactory
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from profiling_bean.db_dto.task_time_dto import TaskTimeDto
 from profiling_bean.prof_enum.chip_model import ChipModel
 from viewer.task_time_viewer import TaskTimeViewer
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'viewer.task_time_viewer'
 
@@ -58,8 +57,8 @@ class TestTaskTimeViewer(unittest.TestCase):
     def test_get_time_timeline_header(self):
         data = (['thread', 2, 3, 4, 5],)
         configs, params = {}, {}
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(pid='1', tid='0').device_info])).process()
+        InfoJson(devices='0', DeviceInfo=[
+            DeviceInfo(pid='1', tid='0').device_info]).apply()
         check = TaskTimeViewer(configs, params)
         ret = check.get_time_timeline_header(data)
         self.assertEqual(ret, [['process_name', 1000, 0, 'Task Scheduler'],
@@ -93,8 +92,7 @@ class TestTaskTimeViewer(unittest.TestCase):
                 mock.patch(NAMESPACE + '.TaskTimeViewer.add_node_name_and_type', return_value=data), \
                 mock.patch(NAMESPACE + '.TaskTimeViewer.get_time_timeline_header', return_value=()):
             check = TaskTimeViewer(configs, params)
-            InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-                DeviceInfo().device_info])).process()
+            InfoJson(devices='0').apply()
             ret = check.get_trace_timeline(data)
             self.assertEqual(ret, [])
 
@@ -119,8 +117,7 @@ class TestTaskTimeViewer(unittest.TestCase):
                 mock.patch(NAMESPACE + '.TaskTimeViewer.add_thread_id'), \
                 mock.patch(NAMESPACE + '.TaskTimeViewer.get_time_timeline_header', return_value=()):
             check = TaskTimeViewer(configs, params)
-            InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-                DeviceInfo().device_info])).process()
+            InfoJson(devices='0').apply()
             ret = check.get_trace_timeline(data)
             self.assertEqual(ret, [])
 
@@ -515,8 +512,8 @@ class TestTaskTimeViewer(unittest.TestCase):
     def test_get_time_timeline_header_should_have_thread_name_when_thread_task_time(self):
         data = (['thread', 2, 1, 4, 5],)
         configs, params = {}, {}
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(pid='1', tid='0').device_info])).process()
+        InfoJson(devices='0', DeviceInfo=[
+            DeviceInfo(pid='1', tid='0').device_info]).apply()
         check = TaskTimeViewer(configs, params)
         ret = check.get_time_timeline_header(data, TraceViewHeaderConstant.PROCESS_THREAD_TASK)
         self.assertEqual(ret, [['process_name', 2, 0, 'Thread Task Time'],

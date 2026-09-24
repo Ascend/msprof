@@ -3,17 +3,16 @@ from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
 from common_func.trace_view_manager import TraceViewManager
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from profiling_bean.db_dto.pmu_block_dto import PmuBlockDto
 from viewer.stars.block_detail_viewer import BlockDetailViewer
+from constant.info_json_construct import InfoJson
 
 
 class TestBlockDetailViewer(unittest.TestCase):
 
     def test_get_timeline_header_should_return_list_of_length_13(self):
-        InfoJsonReaderManager(InfoJson(pid=0)).process()
+        InfoJson(pid=0).apply()
         block_detail_viewer = BlockDetailViewer({}, {})
         header = block_detail_viewer.get_timeline_header()
         pid = 0

@@ -81,6 +81,6 @@ uint32_t UbParser::ParseData(Infra::DataInventory &dataInventory, const Infra::C
 }
 
 // REGISTER_PROCESS_SEQUENCE(UbParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(UbParser, CHIP_V6_1_0, CHIP_V6_2_0);
+// REGISTER_PROCESS_SUPPORT_CHIP(UbParser, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

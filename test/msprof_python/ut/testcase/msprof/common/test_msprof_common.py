@@ -34,7 +34,6 @@ from common_func.msprof_common import prepare_for_parse
 from common_func.msprof_exception import ProfException
 from constant.constant import INFO_JSON
 from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 
 NAMESPACE = 'common_func.msprof_common'
 
@@ -185,7 +184,7 @@ def test_get_valid_sub_path_should_skip_invalid_child_when_validation_fails():
 
 def test_check_collection_dir():
     collect_path = './'
-    InfoJsonReaderManager(InfoJson(version='1.0')).process()
+    InfoJson(version='1.0').apply()
     with mock.patch('os.path.exists', return_value=False), \
             mock.patch(NAMESPACE + '.error'),\
             pytest.raises(ProfException) as err:

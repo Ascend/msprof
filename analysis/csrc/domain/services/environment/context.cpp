@@ -649,8 +649,9 @@ bool Context::IsChipV4(uint16_t platformVersion) { return platformVersion == sta
 bool Context::IsChipV6(uint16_t platformVersion)
 {
     auto chipV6_1_0 = static_cast<uint16_t>(Chip::CHIP_V6_1_0);
+    auto chipV6_1_1 = static_cast<uint16_t>(Chip::CHIP_V6_1_1);
     auto chipV6_2_0 = static_cast<uint16_t>(Chip::CHIP_V6_2_0);
-    std::unordered_set<uint16_t> checkList{chipV6_1_0, chipV6_2_0};
+    std::unordered_set<uint16_t> checkList{chipV6_1_0, chipV6_1_1, chipV6_2_0};
     return static_cast<bool>(checkList.count(platformVersion));
 }
 

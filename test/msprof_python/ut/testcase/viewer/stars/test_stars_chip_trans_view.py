@@ -18,11 +18,11 @@ import unittest
 from unittest import mock
 
 from constant.constant import CONFIG
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from viewer.stars.stars_chip_trans_view import StarsChipTransView
 from common_func.platform.chip_manager import ChipManager
 from profiling_bean.prof_enum.chip_model import ChipModel
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'viewer.stars.stars_chip_trans_view'
 sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
@@ -32,7 +32,7 @@ sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
 class TestStarsChipTransView(unittest.TestCase):
 
     def test_get_timeline_data(self):
-        InfoJsonReaderManager(InfoJson(pid=123)).process()
+        InfoJson(pid=123).apply()
         with mock.patch(NAMESPACE + '.ViewModel.init', return_value=True), \
              mock.patch(NAMESPACE + '.ViewModel.check_table', return_value=True), \
              mock.patch(NAMESPACE + '.ViewModel.get_sql_data', return_value=[[0, 1, 2, 3]]):

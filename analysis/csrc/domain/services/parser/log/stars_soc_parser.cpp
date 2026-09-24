@@ -132,7 +132,7 @@ uint32_t StarsSocParserV6::GetTrunkSize() { return STARS_SOC_STRUCT_SIZE_V6; }
 namespace CHIP_V6_REGISTER
 {
 REGISTER_PROCESS_SEQUENCE(StarsSocParserV6, true);
-REGISTER_PROCESS_SUPPORT_CHIP(StarsSocParserV6, CHIP_V6_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(StarsSocParserV6, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace CHIP_V6_REGISTER
 
 }  // namespace Domain

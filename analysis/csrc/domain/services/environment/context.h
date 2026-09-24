@@ -49,7 +49,8 @@ enum class Chip : uint16_t
     CHIP_V5_1_0 = 9,
     CHIP_V1_1_3 = 11,
     CHIP_V6_1_0 = 15,
-    CHIP_V6_2_0 = 16
+    CHIP_V6_2_0 = 16,
+    CHIP_V6_1_1 = 19
 };
 // 该类是Context信息单例类，读取device(host)路径下json/log文件及环境信息
 // 通过 std::unordered_map<std::string, std::unordered_map<uint16_t, nlohmann::json>> 结构的成员变量context_

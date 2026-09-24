@@ -44,7 +44,7 @@ const L2CacheConfig L2_CACHE_CONFIG = {
      {L2CacheIndex::R1ReadCacheMissAllocate, {{0x50a}, Calculator::CalculatorMetricByNothing}}},
     {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的L2Cache配置，寄存器0x424~0x42c
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的L2Cache配置，寄存器0x424~0x42c
 const L2CacheConfig L2_CACHE_CONFIG_V6 = {
     {{L2CacheIndex::ReadLocalL2Hit, {{0x424}, Calculator::CalculatorMetricByNothing}},
      {L2CacheIndex::ReadLocalL2Miss, {{0x425}, Calculator::CalculatorMetricByNothing}},
@@ -60,6 +60,7 @@ const L2CacheConfig& SelectL2CacheConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return L2_CACHE_CONFIG_V6;
         default:

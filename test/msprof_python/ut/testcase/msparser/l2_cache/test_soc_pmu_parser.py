@@ -31,6 +31,7 @@ class TestSocPmuParser(unittest.TestCase):
     file_list = {DataTag.SOC_PMU: ['socpmu.data.0.slice_0']}
 
     def test_check_file_complete(self):
+        ChipManager().chip_id = ChipModel.CHIP_V1_1_0
         with mock.patch('os.path.getsize', return_value=160):
             check = SocPmuParser(self.file_list, self.sample_config)
             self.assertEqual(check._check_file_complete("test"), 160)
@@ -39,6 +40,7 @@ class TestSocPmuParser(unittest.TestCase):
             self.assertEqual(check._check_file_complete("test"), 150)
 
     def test_parse(self):
+        ChipManager().chip_id = ChipModel.CHIP_V1_1_0
         data_bean = SocPmuBean()
         data = (*([0] * 8), 0, 1, 1, 2, 4, 5, 4, 1, 0, 0, 0, 0)
         data_bean.construct_bean(data)
@@ -58,10 +60,10 @@ class TestSocPmuParser(unittest.TestCase):
             check.parse()
 
     def test_parse_should_success_when_chip_is_v6(self):
+        ChipManager().chip_id = ChipModel.CHIP_V6_1_0
         data_bean = SocPmuChip6Bean()
         data = (*([0] * 6), 1, 1, 0, 5, 1, 2, 3, 4, 5, 6, 7, 8)
         data_bean.construct_bean(data)
-        ChipManager().chip_id = ChipModel.CHIP_V6_1_0
         with mock.patch(NAMESPACE + '.SocPmuParser._check_file_complete', return_value=160), \
                 mock.patch('builtins.open', mock.mock_open(read_data="")), \
                 mock.patch('os.path.exists', return_value=True), \
@@ -75,6 +77,7 @@ class TestSocPmuParser(unittest.TestCase):
             check.parse()
 
     def test_save(self):
+        ChipManager().chip_id = ChipModel.CHIP_V1_1_0
         with mock.patch(L2_MODEL_NAMESPACE + '.L2CacheParserModel.flush'), \
                 mock.patch(MODEL_NAMESPACE + '.SocPmuModel.flush'):
             check = SocPmuParser(self.file_list, self.sample_config)
@@ -83,6 +86,7 @@ class TestSocPmuParser(unittest.TestCase):
             check.save()
 
     def test_ms_run(self):
+        ChipManager().chip_id = ChipModel.CHIP_V1_1_0
         check = SocPmuParser(self.file_list, self.sample_config)
         with mock.patch(NAMESPACE + '.SocPmuParser.parse'), \
                 mock.patch(NAMESPACE + '.SocPmuParser.save'):

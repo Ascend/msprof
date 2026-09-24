@@ -17,14 +17,14 @@ import json
 import unittest
 from unittest import mock
 
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from sqlite.db_manager import DBOpen
 
 from common_func.ms_constant.number_constant import NumberConstant
 from viewer.get_msvp_summary import get_aicore_utilization
 from viewer.get_msvp_summary import pre_check_pmu_events_interface
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'viewer.get_msvp_summary'
 param = {'project': "", "project_path": '', "device_id": 0,
@@ -47,7 +47,7 @@ class TestMsvpSummary(unittest.TestCase):
 
     @staticmethod
     def setup_class():
-        InfoJsonReaderManager(InfoJson(DeviceInfo=[DeviceInfo(aic_frequency="680")])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(aic_frequency="680")]).apply()
 
     def test_pre_check_pmu_events_interface(self):
         with mock.patch(NAMESPACE + '.path_check', side_effect=OSError):

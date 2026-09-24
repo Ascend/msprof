@@ -24,9 +24,6 @@ from common_func.info_conf_reader import InfoConfReader
 from common_func.platform.ai_core_metrics_manager import AiCoreMetricsManager
 from common_func.platform.chip_manager import ChipManager
 from constant.constant import ITER_RANGE
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from msconfig.ai_core_config import AICoreConfig
 from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBManager
@@ -41,6 +38,8 @@ from viewer.calculate_rts_data import get_limit_and_offset
 from viewer.calculate_rts_data import get_metrics_from_sample_config
 from viewer.calculate_rts_data import handle_task_time
 from viewer.calculate_rts_data import insert_event_value
+from constant.info_json_construct import InfoJson
+from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'viewer.calculate_rts_data'
 sample_config = {'ai_core_profiling_events': '0x8,0x9',
@@ -90,7 +89,7 @@ class TestCalculateRts(unittest.TestCase):
     def test_handle_task_time_1(self):
         data = [(1, 0, '', '', 1, 2, 3, 5, 3)]
         list_data = [-1, -1, -1]
-        InfoJsonReaderManager(InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency="680")])).process()
+        InfoJson(DeviceInfo=[DeviceInfo(hwts_frequency="680")]).apply()
         res = handle_task_time(0, [], data, list_data)
         self.assertEqual(res[0], -1)
 

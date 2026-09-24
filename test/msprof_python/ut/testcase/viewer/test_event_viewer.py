@@ -24,10 +24,9 @@ from unittest import mock
 from collections import OrderedDict
 
 from common_func.info_conf_reader import InfoConfReader
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from profiling_bean.db_dto.api_data_dto import ApiDataDto
 from viewer.event_viewer import EventViewer
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'viewer.event_viewer'
 
@@ -93,7 +92,7 @@ class TestEventViewer(unittest.TestCase):
         with mock.patch(NAMESPACE + '.EventDataViewModel.check_db', return_value=True), \
                 mock.patch(NAMESPACE + '.EventDataViewModel.check_table', return_value=True), \
                 mock.patch(NAMESPACE + ".EventDataViewModel.get_timeline_data", return_value=[matched_event_dto]):
-            InfoJsonReaderManager(InfoJson(pid=100)).process()
+            InfoJson(pid=100).apply()
             InfoConfReader()._local_time_offset = 10.0
             InfoConfReader()._host_local_time_offset = 10.0
             check = EventViewer(config, params)

@@ -24,10 +24,10 @@ from unittest import mock
 from collections import OrderedDict
 
 from common_func.info_conf_reader import InfoConfReader
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
+from constant.constant import UT_CONFIG_FILE_PATH
 from profiling_bean.db_dto.api_data_dto import ApiDataDto, ApiDataDtoTuple
 from viewer.api_viewer import ApiViewer
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'viewer.api_viewer'
 
@@ -129,7 +129,7 @@ class TestApiViewer(unittest.TestCase):
                 mock.patch(NAMESPACE + ".EventDataViewModel.get_timeline_data", return_value=[matched_event_dto1,
                                                                                               matched_event_dto2]):
             # 清空DeviceInfo内容，info_conf_reader根据DeviceInfo判定是否为host
-            InfoJsonReaderManager(InfoJson(pid=100, DeviceInfo=[])).process()
+            InfoJson(pid=100, DeviceInfo=[]).apply()
             InfoConfReader()._local_time_offset = 10.0
             InfoConfReader()._host_local_time_offset = 10.0
             InfoConfReader()._start_info = {"collectionTimeBegin": "50000"}
@@ -137,4 +137,4 @@ class TestApiViewer(unittest.TestCase):
             ret = check.get_timeline_data()
             self.assertEqual(expect, ret)
             # 还原InfoJsonReaderManager数据，避免干扰其他用例
-            InfoJsonReaderManager().process()
+            InfoJson().apply()

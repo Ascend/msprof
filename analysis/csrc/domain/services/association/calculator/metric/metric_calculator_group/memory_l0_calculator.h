@@ -50,7 +50,7 @@ const MemoryL0Config MEMORY_L0_CONFIG = {
     {256.0, 256.0, 256.0, 256.0, 256.0, 256.0, 256.0, 256.0},
     {16.0, 16.0, 16.0, 8.0, 8.0, 8.0, 32.0, 32.0}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的MemoryL0配置
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的MemoryL0配置
 const MemoryL0Config MEMORY_L0_CONFIG_V6 = {
     {{MemoryL0Index::L0aReadBw, {{0x304}, Calculator::CalculatorMetricByAdditionsWithFreq}},
      {MemoryL0Index::L0aWriteBw, {{0x703}, Calculator::CalculatorMetricByAdditionsWithFreq}},
@@ -69,6 +69,7 @@ const MemoryL0Config& SelectMemoryL0Config(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return MEMORY_L0_CONFIG_V6;
         default:

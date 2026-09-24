@@ -28,6 +28,7 @@ class ChipManager:
     """
     class used to get chip info.
     """
+
     CHIP_RELATION_MAP = {
         Constant.CHIP_V1_1_0: ChipModel.CHIP_V1_1_0,
         Constant.CHIP_V2_1_0: ChipModel.CHIP_V2_1_0,
@@ -40,6 +41,7 @@ class ChipManager:
         Constant.CHIP_V1_1_3: ChipModel.CHIP_V1_1_3,
         Constant.CHIP_V5_1_0: ChipModel.CHIP_V5_1_0,
         Constant.CHIP_V6_1_0: ChipModel.CHIP_V6_1_0,
+        Constant.CHIP_V6_1_1: ChipModel.CHIP_V6_1_1,
         Constant.CHIP_V6_2_0: ChipModel.CHIP_V6_2_0,
     }
     CHIP_MAX_CORE_ID_MAP = {
@@ -48,6 +50,7 @@ class ChipManager:
         ChipModel.CHIP_V1_1_2: ChipMaxCoreId.CHIP_V1_1_2,
         ChipModel.CHIP_V1_1_3: ChipMaxCoreId.CHIP_V1_1_3,
         ChipModel.CHIP_V6_1_0: ChipMaxCoreId.CHIP_V6_1_0,
+        ChipModel.CHIP_V6_1_1: ChipMaxCoreId.CHIP_V6_1_1,
         ChipModel.CHIP_V6_2_0: ChipMaxCoreId.CHIP_V6_2_0,
     }
 
@@ -91,9 +94,10 @@ class ChipManager:
         load chip info
         :return:
         """
-        if InfoConfReader().get_root_data(Constant.PLATFORM_VERSION) not in self.CHIP_RELATION_MAP.keys():
-            message = "Can't get platform version or platform version isn't identified from info.json, " \
-                      "please check the file."
+        if InfoConfReader().get_root_data(Constant.PLATFORM_VERSION) not in self.CHIP_RELATION_MAP:
+            message = (
+                "Can't get platform version or platform version isn't identified from info.json, please check the file."
+            )
             raise ProfException(ProfException.PROF_SYSTEM_EXIT, message)
         self.chip_id = self.CHIP_RELATION_MAP.get(InfoConfReader().get_root_data(Constant.PLATFORM_VERSION))
 
@@ -174,12 +178,19 @@ class ChipManager:
         """
         return self.chip_id == ChipModel.CHIP_V5_1_0
 
+    def is_chip_v6_1_1(self: any) -> bool:
+        """
+        check the scene of chip.v6.1.1
+        :return: True or False
+        """
+        return self.chip_id == ChipModel.CHIP_V6_1_1
+
     def is_chip_v6(self: any) -> bool:
         """
         check the scene of chip.v6
         :return: True or False
         """
-        return self.chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0)
+        return self.chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0)
 
     def is_sqe_id_supported(self: any) -> bool:
         """
@@ -197,7 +208,8 @@ class ChipManager:
 
     def get_max_core_id(self) -> ChipMaxCoreId:
         if self.chip_id not in self.CHIP_MAX_CORE_ID_MAP:
-            message = "Can't get ai core num or platform version isn't identified from info.json, " \
-                      "please check the file."
+            message = (
+                "Can't get ai core num or platform version isn't identified from info.json, please check the file."
+            )
             raise ProfException(ProfException.PROF_SYSTEM_EXIT, message)
         return self.CHIP_MAX_CORE_ID_MAP.get(self.chip_id).value

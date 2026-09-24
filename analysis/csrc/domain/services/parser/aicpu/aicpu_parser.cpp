@@ -95,7 +95,7 @@ uint32_t AicpuParser::ParseData(DataInventory &dataInventory, const Infra::Conte
             stat = ANALYSIS_ERROR;
         }
     }
-    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_2_0)
+    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 || context.GetChipID() == CHIP_V6_2_0)
     {
         SetDeviceAicpuStreamIdMap();
     }

@@ -112,7 +112,7 @@ class LlcModel(BaseModel, ABC):
     def _init_l3_list_dispatch() -> list:
         if ChipManager().is_chip_v1_1():
             llid_count = 1
-        elif ChipManager().is_chip_v4():
+        elif ChipManager().is_chip_v4() or ChipManager().is_chip_v6_1_1():
             llid_count = 2
         else:
             llid_count = 4

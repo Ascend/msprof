@@ -22,11 +22,10 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.platform.chip_manager import ChipManager
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBManager
 from sqlite.db_manager import DBOpen
+from constant.info_json_construct import InfoJson
 from viewer.get_msvp_llc_timeline_training import get_llc_nomini_data, get_llc_timeline, pre_check_llc, \
     get_llc_mini_data, get_llc_bandwidth, get_llc_capacity, get_llc_db_table, get_ddr_timeline, get_hbm_timeline
 
@@ -297,7 +296,7 @@ class TestLLCTimelineTrain(unittest.TestCase):
         with mock.patch(NAMESPACE + '.DBManager.check_connect_db', return_value=test_sql), \
              mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=True), \
              mock.patch(NAMESPACE + '._reformat_hbm_data', return_value=[]):
-            InfoJsonReaderManager(InfoJson(pid="0")).process()
+            InfoJson(pid="0").apply()
             res = get_hbm_timeline(param)
         self.assertEqual(len(res), 0)
 

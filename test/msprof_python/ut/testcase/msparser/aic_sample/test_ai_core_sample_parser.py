@@ -19,15 +19,14 @@ from unittest import mock
 
 from common_func.platform.chip_manager import ChipManager
 from constant.constant import CONFIG
-from constant.info_json_construct import DeviceInfo
-from constant.info_json_construct import InfoJson
-from constant.info_json_construct import InfoJsonReaderManager
 from msparser.aic_sample.ai_core_sample_parser import ParsingAICoreSampleData
 from msparser.aic_sample.ai_core_sample_parser import ParsingAIVectorCoreSampleData
 from msparser.aic_sample.ai_core_sample_parser import ParsingCoreSampleData
 from msparser.aic_sample.ai_core_sample_parser import ParsingFftsAICoreSampleData
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.prof_enum.data_tag import DataTag
+from common_func.info_conf_reader import InfoConfReader
+from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'msparser.aic_sample.ai_core_sample_parser'
 
@@ -35,7 +34,7 @@ NAMESPACE = 'msparser.aic_sample.ai_core_sample_parser'
 class TestParsingCoreSampleData(unittest.TestCase):
 
     def test_ms_run(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         ParsingCoreSampleData(CONFIG).ms_run()
 
 
@@ -43,11 +42,11 @@ class TestParsingFftsAICoreSampleData(unittest.TestCase):
     file_list = {DataTag.FFTS_PMU: ['ffts_profiler.data.0.slice_0']}
 
     def test_ms_run(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         ParsingFftsAICoreSampleData(self.file_list, CONFIG).ms_run()
 
     def test_read_binary_data(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', platform_version='5')).process()
+        InfoJson(devices='0', platform_version='5').apply()
         binary_data_path = 'test.slice_0'
         data = struct.pack("=BBHHH8QQQBBHHHBBHHH8QQQBBHHH",
                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 22, 33, 44, 55, 66, 49, 88, 99, 100,
@@ -65,8 +64,7 @@ class TestParsingFftsAICoreSampleData(unittest.TestCase):
             check.read_binary_data(binary_data_path)
 
     def test_save(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(aic_frequency='1150', aiv_frequency='1000').device_info])).process()
+        InfoJson(devices='0').apply()
         with mock.patch(NAMESPACE + '.check_aicore_events'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.AiCoreSampleModel.init'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.ConfigMgr.read_sample_config'), \
@@ -83,7 +81,7 @@ class TestParsingFftsAICoreSampleData(unittest.TestCase):
             check.save()
 
     def test_insert_ai_core_data_core_id_boundary_chip_v6_2_0(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         ChipManager().chip_id = ChipModel.CHIP_V6_2_0
         check = ParsingFftsAICoreSampleData(self.file_list, CONFIG)
         check._fmt_size = 1
@@ -110,7 +108,7 @@ class TestParsingAICoreSampleData(unittest.TestCase):
     file_list = {DataTag.AI_CORE: ['aicore.data.0.slice_0']}
 
     def test_read_binary_data(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         binary_data_path = 'test.slice_0'
         data = struct.pack("=BBHHH8QQQBBHHH",
                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 22, 33, 44, 55, 66, 77, 88, 99, 100)
@@ -132,7 +130,7 @@ class TestParsingAICoreSampleData(unittest.TestCase):
             check.read_binary_data(binary_data_path)
 
     def test_read_binary_data_with_chipV6(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         binary_data_path = 'test.slice_0'
         ChipManager().chip_id = ChipModel.CHIP_V6_1_0
         data = struct.pack("=BBHHH10QQQBBHHH",
@@ -154,7 +152,7 @@ class TestParsingAICoreSampleData(unittest.TestCase):
             check.read_binary_data(binary_data_path)
 
     def test_start_parsing_data_file(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         with mock.patch('os.path.join', return_value='test\\test'), \
                 mock.patch(NAMESPACE + '.logging.error'):
             with mock.patch(NAMESPACE + '.is_valid_original_data', side_effect=OSError):
@@ -168,8 +166,7 @@ class TestParsingAICoreSampleData(unittest.TestCase):
                 check.start_parsing_data_file()
 
     def test_save(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(aic_frequency='1150', aiv_frequency='1000').device_info])).process()
+        InfoJson(devices='0').apply()
         with mock.patch('msmodel.aic.ai_core_sample_model.AiCoreSampleModel.init'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.AiCoreSampleModel.insert_metric_summary_table'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.ConfigMgr.read_sample_config'), \
@@ -181,8 +178,7 @@ class TestParsingAICoreSampleData(unittest.TestCase):
             check.save()
 
     def test_ms_run(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(aic_frequency='1150', aiv_frequency='1000').device_info])).process()
+        InfoJson(devices='0').apply()
         with mock.patch(NAMESPACE + '.ParsingAICoreSampleData.start_parsing_data_file'), \
                 mock.patch(NAMESPACE + '.ParsingAICoreSampleData.save', side_effect=OSError), \
                 mock.patch(NAMESPACE + '.logging.error'):
@@ -196,7 +192,7 @@ class TestParsingAIVectorCoreSampleData(unittest.TestCase):
     file_list = {DataTag.AIV: ['aiVectorCore.data.0.slice_0']}
 
     def test_start_parsing_data_file(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         with mock.patch(NAMESPACE + '.is_valid_original_data', side_effect=OSError), \
                 mock.patch(NAMESPACE + '.logging.error'):
             check = ParsingAIVectorCoreSampleData(self.file_list, CONFIG)
@@ -208,8 +204,7 @@ class TestParsingAIVectorCoreSampleData(unittest.TestCase):
             check.start_parsing_data_file()
 
     def test_save(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0', DeviceInfo=[
-            DeviceInfo(aic_frequency='1150', aiv_frequency='1000').device_info])).process()
+        InfoJson(devices='0').apply()
         with mock.patch('msmodel.aic.ai_core_sample_model.AiCoreSampleModel.init'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.AiCoreSampleModel.insert_metric_summary_table'), \
                 mock.patch('msmodel.aic.ai_core_sample_model.ConfigMgr.read_sample_config'), \
@@ -221,7 +216,7 @@ class TestParsingAIVectorCoreSampleData(unittest.TestCase):
             check.save()
 
     def test_ms_run(self):
-        InfoJsonReaderManager(info_json=InfoJson(devices='0')).process()
+        InfoJson(devices='0').apply()
         with mock.patch(NAMESPACE + '.ParsingAIVectorCoreSampleData.start_parsing_data_file'), \
                 mock.patch(NAMESPACE + '.ParsingAIVectorCoreSampleData.save', side_effect=OSError), \
                 mock.patch(NAMESPACE + '.logging.error'):

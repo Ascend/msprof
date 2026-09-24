@@ -41,7 +41,7 @@ const ResourceConflictConfig RESOURCE_CONFLICT_CONFIG = {
      {ResourceConflictIndex::VecRescCfltRatio, {{0x66}, Calculator::CalculatorMetricByAdditions}}},
     {1.0, 1.0, 1.0}};
 
-// V6芯片（CHIP_V6_1_0/CHIP_V6_2_0）的ResourceConflict配置:
+// V6芯片（CHIP_V6_1_0/CHIP_V6_1_1/CHIP_V6_2_0）的ResourceConflict配置:
 // vec_bank_cflt_ratio = (r540 + r556) / task_cyc, vec_resc_cflt_ratio = r528 / r502
 const ResourceConflictConfig RESOURCE_CONFLICT_CONFIG_V6 = {
     {{ResourceConflictIndex::VecBankCfltRatio, {{0x540, 0x556}, Calculator::CalculatorMetricByAdditions}},
@@ -54,6 +54,7 @@ const ResourceConflictConfig& SelectResourceConflictConfig(ChipId chipId)
     switch (chipId)
     {
         case CHIP_V6_1_0:
+        case CHIP_V6_1_1:
         case CHIP_V6_2_0:
             return RESOURCE_CONFLICT_CONFIG_V6;
         default:

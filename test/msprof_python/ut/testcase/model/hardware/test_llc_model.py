@@ -18,7 +18,9 @@ from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
 from common_func.msprof_exception import ProfException
+from common_func.platform.chip_manager import ChipManager
 from msmodel.hardware.llc_model import LlcModel
+from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBManager
 
 NAMESPACE = 'msmodel.hardware.llc_model'
@@ -179,3 +181,12 @@ class TestLlcModel(unittest.TestCase):
         res[0].execute('drop table LLCOriginalData')
         res[0].execute('drop table LLCEvents')
         db_manager.destroy(res)
+
+    def test_init_l3_list_dispatch_should_return_two_llc_when_chip_is_v6_1_1(self):
+        origin_chip_id = ChipManager().chip_id
+        ChipManager().chip_id = ChipModel.CHIP_V6_1_1
+        try:
+            check = LlcModel('test', 'llc.db', self.table_list)
+            self.assertEqual(check.l3_list, [0, 1])
+        finally:
+            ChipManager().chip_id = origin_chip_id
