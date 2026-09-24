@@ -34,6 +34,7 @@ const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "ascend_task.db";
 const std::string SQLITE_SUFFIX = "sqlite";
 const std::string PROF_PATH_A = File::PathJoin({TASK_PATH, "./PROF_000001_20231125090304037_02333394MBJNQLKJ"});
+const std::string PROF_PATH_B = File::PathJoin({TASK_PATH, "./PROF_000001_20231125090304037_02333394MBJNQLK2"});
 const std::string TABLE_NAME = "AscendTask";
 
 using DbDataType = std::vector<std::tuple<uint32_t, int32_t, int32_t, uint32_t, uint32_t, uint32_t, double, double,
@@ -44,6 +45,10 @@ DbDataType DATA_A{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, 
                   {4294967295, -1, 37, 3, 5, 0, 8719911182265.1, 680.013671875, "UNKNOWN", "11", 3},
                   {4294967295, -1, 37, 4, 5, 0, 8719911184665.1, 680.013671875, "UNKNOWN", "88", 4},
                   {4294967295, -1, 37, 5, 7, 0, 8719911184965.1, 680.013671875, "KERNEL_AICORE", "AI_CORE", 5}};
+
+// device_task_type 全为 UNKNOWN，会被 LoadData 中 "device_task_type != 'UNKNOWN'" 的条件过滤掉
+DbDataType DATA_B{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, "KERNEL_AICORE", "UNKNOWN", 1},
+                  {4294967295, -1, 37, 2, 5, 0, 8719911182265.1, 680.013671875, "FFTS_PLUS", "UNKNOWN", 2}};
 }
 
 class TaskProcessorUTest : public testing::Test {
@@ -58,6 +63,10 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX})));
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX})));
         CreateAscendTask(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), DATA_A);
+        EXPECT_TRUE(File::CreateDir(PROF_PATH_B));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX})));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX})));
+        CreateAscendTask(File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX}), DATA_B);
     }
     static void TearDownTestCase()
     {
@@ -87,6 +96,19 @@ TEST_F(TaskProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
     .stubs()
     .will(returnValue(true));
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_TASK));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).reset();
+}
+
+TEST_F(TaskProcessorUTest, TestRunShouldReturnTrueWhenOriginalDataAllFilteredByLoadData)
+{
+    DataInventory dataInventory;
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo)
+    .stubs()
+    .will(returnValue(true));
+    auto processor = TaskProcessor(PROF_PATH_B);
+    // LoadData 带有 device_task_type != 'UNKNOWN' 的过滤条件，过滤后为空属于正常场景，不应中断分析
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_TASK));
+    EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<AscendTaskData>>());
     MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).reset();
 }
 
