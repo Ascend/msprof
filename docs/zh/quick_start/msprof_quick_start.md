@@ -46,8 +46,8 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 
 > [!NOTE]
 >
-> **命令原理**  
-> 通过 `lspci` 获取 NPU 的 PCI ID，自动匹配 CANN 官方镜像，并将镜像地址赋给环境变量 `MY_STUDY_VAR_CANN_IMAGE`，供后续使用。  
+> **命令原理**
+> 通过 `lspci` 获取 NPU 的 PCI ID，自动匹配 CANN 官方镜像，并将镜像地址赋给环境变量 `MY_STUDY_VAR_CANN_IMAGE`，供后续使用。
 > 所有镜像均来自华为云 AscendHub 上发布的 CANN 官方镜像。如需了解镜像详情，请参阅 [CANN 官方镜像仓库](https://www.hiascend.com/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884)。
 
 若命令执行后输出 `[PASS]`，则表示执行成功；若输出 `[FAIL]`，可能原因如下：
@@ -362,7 +362,7 @@ ls -l ctr_in.py
 
 ### 3.3 离线安装 Python 依赖
 
-优先使用内网 pip 源安装依赖。若没有可用的内网软件源，请在具备公网访问能力、与内网 NPU 服务器 CPU 架构相同且使用 Python 版本的中转环境中，按以下方式下载所需安装包：
+优先使用内网 pip 源安装依赖。若没有可用的内网软件源，请在具备公网访问能力、与内网 NPU 服务器 CPU 架构相同，且使用相同 Python 版本的中转环境中，按以下方式下载所需安装包：
 
 ```bash
 mkdir -p offline_wheels
