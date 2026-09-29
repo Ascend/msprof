@@ -109,6 +109,14 @@ static std::vector<ApiData> GenerateRecordEventApiData()
     return res;
 }
 
+static std::vector<ApiData> GenerateWaitEventApiData()
+{
+    auto res = GenerateRecordEventApiData();
+    res.front().apiName = "aclrtStreamWaitEvent";
+    res.front().id = "aclrtStreamWaitEvent";
+    return res;
+}
+
 static std::vector<AscendTaskData> GenerateAscendTaskData()
 {
     std::vector<AscendTaskData> res;
@@ -134,6 +142,24 @@ TEST_F(CannAssemblerUTest, ShouldExportEventIdWhenRecordEventHasKey)
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
     EXPECT_NE(res.back().find("\"name\":\"AscendCL@aclrtRecordEvent\""), std::string::npos);
+    EXPECT_NE(res.back().find("\"event_id\":123456789"), std::string::npos);
+}
+
+TEST_F(CannAssemblerUTest, ShouldExportEventIdWhenWaitEventHasKey)
+{
+    CannAssembler assembler;
+    std::shared_ptr<std::vector<ApiData>> dataS;
+    auto data = GenerateWaitEventApiData();
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
+    dataInventory_.Inject(dataS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    EXPECT_NE(res.back().find("\"name\":\"AscendCL@aclrtStreamWaitEvent\""), std::string::npos);
     EXPECT_NE(res.back().find("\"event_id\":123456789"), std::string::npos);
 }
 
@@ -165,7 +191,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "\"pid\":1024255,\"tid\":87144,\"ph\":\"M\",\"args\":{\"sort_index\":87144}},{\"name\":"
                             "\"Node@launch\",\"pid\":1024255,\"tid\":87144,\"ts\":\"1717575960208020.750\",\"dur\":"
                             "990.0,\"ph\":\"X\",\"args\":{\"Thread Id\":87144,\"Mode\":\"launch\",\"level\":\"node\","
-                            "\"id\":\"0\",\"item_id\":\"hcom_broadcast_\",\"connection_id\":2762,\"event_id\":0}},"
+                            "\"id\":\"0\",\"item_id\":\"hcom_broadcast_\",\"connection_id\":2762}},"
                             "{\"name\":"
                             "\"HostToDevice11862699671552\",\"pid\":1024255,\"tid\":87144,\"ph\":\"s\",\"cat\":"
                             "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960208020.750\"},";
@@ -211,7 +237,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccessCaseMemcpyAsyn
                             "\":2816340}},{\"name\":\"AscendCL@aclrtMemcpyAsync\",\"pid\":1024255,\"tid\":2816340,"
                             "\"ts\":\"1717575960208020.750\",\"dur\":990.0,\"ph\":\"X\",\"args\":{\"Thread Id\":"
                             "2816340,\"Mode\":\"ACL_RTS\",\"level\":\"acl\",\"id\":\"aclrtMemcpyAsync\",\"item_id"
-                            "\":\"0\",\"connection_id\":22,\"event_id\":0}},{\"name\":\"HostToDevice94489280512\","
+                            "\":\"0\",\"connection_id\":22}},{\"name\":\"HostToDevice94489280512\","
                             "\"pid\":1024255,"
                             "\"tid\":2816340,\"ph\":\"s\",\"cat\":\"HostToDevice\",\"id\":\"94489280512\",\"ts\":"
                             "\"1717575960208020.750\"},";
