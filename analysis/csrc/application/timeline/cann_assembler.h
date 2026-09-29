@@ -61,7 +61,10 @@ class ApiTraceEvent : public DurationEvent
         ostream["id"] << id_;
         ostream["item_id"] << itemId_;
         ostream["connection_id"] << connectionId_;
-        ostream["event_id"] << event_id_;
+        if (id_ == RECORD_EVENT || id_ == WAIT_EVENT)
+        {
+            ostream["event_id"] << event_id_;
+        }
     }
 
    private:
