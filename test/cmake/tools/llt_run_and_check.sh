@@ -14,7 +14,7 @@ log()
 
 	timestr=`date '+%Y-%m-%d %H:%M:%S.%N '|cut -b 1-23`
         echo "[${timestr}]""${info}"
-   
+
     return 0
 }
 
@@ -100,7 +100,15 @@ elif [ "${LLT_RUN_MOD}" = "single" ]; then
         --gtest_output=xml:${LLT_REPORT_OUT}/${LLT_TARGET_BASENAME}.xml 2>&1 | tee ${LLT_REPORT_OUT}/run_${LLT_TARGET_BASENAME}.log
 else
     log_info "run llt with LLT_RUN_MOD=${LLT_RUN_MOD}"
-    ASAN_OPTIONS=$run_time_flags timeout -s SIGKILL ${LLT_KILL_TIME}s ${hisudo} python3 ${TOP_DIR}/cmake/function/tools/llt_executor.py ${LLT_NAME} \
+    # The executor sits next to this script. This path used to read
+    # ${TOP_DIR}/cmake/function/tools/llt_executor.py, which resolves to nothing:
+    # TOP_DIR is the repo root, whose cmake/ contains only superbuild/, and there
+    # is no function/ directory anywhere in the tree. The file is at
+    # test/cmake/tools/llt_executor.py. This branch is only taken when
+    # LLT_RUN_MOD is set to something other than single with a task count of 1,
+    # and depend.cmake defaults LLT_RUN_MOD to single, which is why it went
+    # unnoticed.
+    ASAN_OPTIONS=$run_time_flags timeout -s SIGKILL ${LLT_KILL_TIME}s ${hisudo} python3 ${TOP_DIR}/test/cmake/tools/llt_executor.py ${LLT_NAME} \
         --run-mod=testsuite \
         --tmp=${LLT_REPORT_OUT} \
         --output=${LLT_REPORT_OUT}/${LLT_TARGET_BASENAME}.xml  \
@@ -160,4 +168,3 @@ fi
 log_info "llt run task succ."
 log_info "llt run time consuming (module=${LLT_TARGET_BASENAME}):$SECONDS seconds"
 exit "${SUCC}"
-
