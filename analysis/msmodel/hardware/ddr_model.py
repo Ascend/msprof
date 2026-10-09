@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -88,9 +90,12 @@ class DdrModel(BaseModel, ABC):
 
     @classmethod
     def _cal_ddr_bandwidth(cls: any, metric: any, ddr_delta_time: any) -> any:
-        return metric * ConfigMgr.get_ddr_bit_width() / \
-               (ddr_delta_time * NumberConstant.KILOBYTE * NumberConstant.KILOBYTE * cls.DDR_EVENT) * \
-               Constant.TIME_RATE
+        return (
+            metric
+            * ConfigMgr.get_ddr_bit_width()
+            / (ddr_delta_time * NumberConstant.KILOBYTE * NumberConstant.KILOBYTE * cls.DDR_EVENT)
+            * Constant.TIME_RATE
+        )
 
     def flush(self: any, data_list: list) -> None:
         """
@@ -124,42 +129,59 @@ class DdrModel(BaseModel, ABC):
         insert time series data of ddr metrics
         :return:None
         """
-        device_list = DBManager.fetch_all_data(self.cur,
-                                               "select distinct(device_id) from DDROriginalData where replayId=0;")
+        device_list = DBManager.fetch_all_data(
+            self.cur, "select distinct(device_id) from DDROriginalData where replayId=0;"
+        )
         for device in device_list:
             ddr_events = ["flux_read", "flux_write"]
             if master_tag:
                 ddr_events.extend(['fluxid_read', 'fluxid_write'])
-                sql = 'select device_id, replayid, timestamp, ' \
-                      'sum(case event when ? then counts else 0 end) as read,' \
-                      ' sum(case when event = ? then counts else 0 end) as write,' \
-                      'sum(case when event = ? then counts else 0 end) as id_read, ' \
-                      'sum(case when event = ? then counts else 0 end) as id_WRITE ' \
-                      'from DDROriginalData ' \
-                      'where device_id=? and replayId=0 group by timestamp;'
-                ddr_data = DBManager.fetch_all_data(self.cur, sql, (ddr_events[0],
-                                                                    ddr_events[1],
-                                                                    ddr_events[2],
-                                                                    ddr_events[3],
-                                                                    device[0],))
+                sql = (
+                    'select device_id, replayid, timestamp, '
+                    'sum(case event when ? then counts else 0 end) as read,'
+                    ' sum(case when event = ? then counts else 0 end) as write,'
+                    'sum(case when event = ? then counts else 0 end) as id_read, '
+                    'sum(case when event = ? then counts else 0 end) as id_WRITE '
+                    'from DDROriginalData '
+                    'where device_id=? and replayId=0 group by timestamp;'
+                )
+                ddr_data = DBManager.fetch_all_data(
+                    self.cur,
+                    sql,
+                    (
+                        ddr_events[0],
+                        ddr_events[1],
+                        ddr_events[2],
+                        ddr_events[3],
+                        device[0],
+                    ),
+                )
                 insert_sql = 'insert into DDRMetricData values(?,?,?,?,?,?,?)'
             else:
-                sql = 'select device_id, replayid, timestamp, ' \
-                      'sum(case event when ? then counts else 0 end) as read,' \
-                      ' sum(case when event = ? then counts else 0 end) ' \
-                      'as write from DDROriginalData ' \
-                      'where device_id=? and replayId=0 group by timestamp;'
-                ddr_data = DBManager.fetch_all_data(self.cur, sql, (ddr_events[0],
-                                                                    ddr_events[1],
-                                                                    device[0],))
-                insert_sql = 'insert into DDRMetricData(device_id, replayid, ' \
-                             'timestamp, flux_read, flux_write) values(?,?,?,?,?)'
+                sql = (
+                    'select device_id, replayid, timestamp, '
+                    'sum(case event when ? then counts else 0 end) as read,'
+                    ' sum(case when event = ? then counts else 0 end) '
+                    'as write from DDROriginalData '
+                    'where device_id=? and replayId=0 group by timestamp;'
+                )
+                ddr_data = DBManager.fetch_all_data(
+                    self.cur,
+                    sql,
+                    (
+                        ddr_events[0],
+                        ddr_events[1],
+                        device[0],
+                    ),
+                )
+                insert_sql = (
+                    'insert into DDRMetricData(device_id, replayid, timestamp, flux_read, flux_write) values(?,?,?,?,?)'
+                )
             if ddr_data:
                 start_time = InfoConfReader().get_start_timestamp()
                 try:
                     metric_data = self.calculate_data(ddr_data, start_time)
-                except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                        ZeroDivisionError) as err:
+                except (OSError, SystemError, ValueError, TypeError, RuntimeError, ZeroDivisionError) as err:
                     logging.error(err, exc_info=Constant.TRACE_BACK_SWITCH)
                     return
                 DBManager.executemany_sql(self.conn, insert_sql, metric_data)

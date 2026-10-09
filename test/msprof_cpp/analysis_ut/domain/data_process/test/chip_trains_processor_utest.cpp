@@ -1,30 +1,34 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 #include <vector>
+
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/system/chip_trans_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/data_process/system/chip_trans_processor.h"
-#include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string CHIP_TRAINS_PATH = "./chip_trains";
 const std::string DB_PATH = File::PathJoin({CHIP_TRAINS_PATH, "msprof.db"});
@@ -34,33 +38,33 @@ const std::string PROF_PATH = File::PathJoin({CHIP_TRAINS_PATH, "./PROF_000001"}
 const std::string PA_TABLE_NAME = "PaLinkInfo";
 const std::string PCIE_TABLE_NAME = "PcieInfo";
 
-const OriPaFormat DATA_PA{
-    {0, "949187772416", "1374389534720", 80273335147180.0},
-    {1, "8589934592",   "137438953472",  80273335147180.0},
-    {2, "0",            "0",             80273335147180.0},
-    {3, "0",            "0",             80273335147180.0},
-    {4, "0",            "0",             80273335147180.0},
-    {5, "0",            "0",             80273335147180.0},
-    {6, "25769803776",  "81604378624",   80273335147180.0},
-    {7, "137438953472", "412316860416",  80273335147180.0}
-};
+const OriPaFormat DATA_PA{{0, "949187772416", "1374389534720", 80273335147180.0},
+                          {1, "8589934592", "137438953472", 80273335147180.0},
+                          {2, "0", "0", 80273335147180.0},
+                          {3, "0", "0", 80273335147180.0},
+                          {4, "0", "0", 80273335147180.0},
+                          {5, "0", "0", 80273335147180.0},
+                          {6, "25769803776", "81604378624", 80273335147180.0},
+                          {7, "137438953472", "412316860416", 80273335147180.0}};
 
 const OriPcieFormat DATA_PCIE{
     {0, 932007903232, 1262720385024, 80273355627200.0},
-    {1, 8589934592,   137438953472,  80273355627200.0},
-    {2, 0,            0,             80273355627200.0},
-    {3, 12884901888,  146028888064,  80273355627200.0},
-    {4, 0,            0,             80273355627200.0},
-    {5, 0,            0,             80273355627200.0},
-    {6, 55834574848,  292057776128,  80273355627200.0},
-    {7, 111669149696, 167503724544,  80273355627200.0},
+    {1, 8589934592, 137438953472, 80273355627200.0},
+    {2, 0, 0, 80273355627200.0},
+    {3, 12884901888, 146028888064, 80273355627200.0},
+    {4, 0, 0, 80273355627200.0},
+    {5, 0, 0, 80273355627200.0},
+    {6, 55834574848, 292057776128, 80273355627200.0},
+    {7, 111669149696, 167503724544, 80273355627200.0},
 };
-}
-class ChipTrainsProcessorUTest : public testing::Test {
-protected:
+}  // namespace
+class ChipTrainsProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Exist(CHIP_TRAINS_PATH)) {
+        if (File::Exist(CHIP_TRAINS_PATH))
+        {
             File::RemoveDir(CHIP_TRAINS_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(CHIP_TRAINS_PATH));
@@ -69,9 +73,7 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE})));
         CreatePaLinkInfo(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}), DATA_PA);
         CreatePcieInfo(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}), DATA_PCIE);
-        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo)
-            .stubs()
-            .will(returnValue(true));
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
     }
     virtual void TearDown()
     {
@@ -123,7 +125,8 @@ TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenProcessFailed)
 
 TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 {
-    if (File::Exist(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}))) {
+    if (File::Exist(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX})))
+    {
         EXPECT_TRUE(File::DeleteFile(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX})));
     }
     auto processor = ChipTransProcessor(PROF_PATH);

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -42,10 +42,7 @@ class AnalyzeCommand:
             warn(self.FILE_NAME, "Analyze will do nothing in prof level 0.")
             self._clear_dir(self.collection_path)
             return
-        analyze_handler = {
-            'communication': CommunicationAnalyzer,
-            'communication_matrix': CommunicationMatrixAnalyzer
-        }
+        analyze_handler = {'communication': CommunicationAnalyzer, 'communication_matrix': CommunicationMatrixAnalyzer}
         rules = set(self.rule.split(','))
         for rule in rules:
             analyze_command = analyze_handler.get(rule)(self.collection_path, self.export_type)

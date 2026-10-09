@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,6 +29,7 @@ class SioViewer(BaseViewer, ABC):
     """
     class for get sio data
     """
+
     DATA_TYPE = 'SIO'
     ARGS_INDEX = 4
     # 标号为在sio.db中的列索引
@@ -48,9 +49,7 @@ class SioViewer(BaseViewer, ABC):
 
     def __init__(self: any, configs: dict, params: dict) -> None:
         super().__init__(configs, params)
-        self.model_list = {
-            'sio': SioModel
-        }
+        self.model_list = {'sio': SioModel}
         self.pid = InfoConfReader().get_json_pid_data()
         self.tid = InfoConfReader().get_json_tid_data()
 
@@ -64,8 +63,9 @@ class SioViewer(BaseViewer, ABC):
         timestamp_dict = {}
         event_dict = {}
         for data in datas:
-            self._compute_bandwidth(data, event_dict, timestamp_dict,
-                                    self.ACC_ID_KEY_V6 if ChipManager().is_chip_v6() else self.ACC_ID_KEY)
+            self._compute_bandwidth(
+                data, event_dict, timestamp_dict, self.ACC_ID_KEY_V6 if ChipManager().is_chip_v6() else self.ACC_ID_KEY
+            )
         result = list(event_dict.values())
         _trace = TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, result)
         result = TraceViewManager.metadata_event([["process_name", self.pid, self.tid, self.DATA_TYPE]])
@@ -76,9 +76,13 @@ class SioViewer(BaseViewer, ABC):
         acc_id = data[self.ACC_ID]
         timestamp = data[self.TIME_STAMP]
         if acc_id in timestamp_dict and timestamp_dict[acc_id] != timestamp:
-            data_size_list = data[self.REQ_RX: self.TIME_STAMP]
-            bandwidth_data = [data_size / (NumberConstant.BYTES_TO_KB ** 2) / (
-                (timestamp - timestamp_dict[acc_id]) / NumberConstant.NANO_SECOND) for data_size in data_size_list]
+            data_size_list = data[self.REQ_RX : self.TIME_STAMP]
+            bandwidth_data = [
+                data_size
+                / (NumberConstant.BYTES_TO_KB**2)
+                / ((timestamp - timestamp_dict[acc_id]) / NumberConstant.NANO_SECOND)
+                for data_size in data_size_list
+            ]
             local_time = InfoConfReader().trans_into_local_time(raw_timestamp=data[self.TIME_STAMP], use_us=True)
             for key, value in zip(self.BANDWIDTH_TYPE, bandwidth_data):
                 tmp_key = "{}_{}".format(key, local_time)

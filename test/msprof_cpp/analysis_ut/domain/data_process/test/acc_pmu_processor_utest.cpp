@@ -1,23 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/acc_pmu_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Utils;
@@ -25,7 +27,8 @@ using namespace Analysis::Domain;
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./acc_path";
 const std::string DEVICE = "device_0";
@@ -33,13 +36,15 @@ const std::string DB_NAME = "acc_pmu.db";
 const std::string PROF_PATH_A = File::PathJoin({BASE_PATH, "./PROF_0"});
 const std::string TABLE_NAME = "AccPmu";
 OriAccPmuData ACC_PMU_DATA{{1, 0, 0, 0, 0, 236368325745670}, {5, 0, 0, 0, 0, 236368325747550}};
-}
+}  // namespace
 
-class AccPmuProcessorUTest : public testing::Test {
-protected:
+class AccPmuProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -48,14 +53,8 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE, SQLITE})));
         CreateAccPmuMetricData(File::PathJoin({PROF_PATH_A, DEVICE, SQLITE, DB_NAME}), ACC_PMU_DATA);
     }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-    }
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH)); }
+    virtual void TearDown() { GlobalMockObject::verify(); }
     static void CreateAccPmuMetricData(const std::string& dbPath, OriAccPmuData data)
     {
         std::shared_ptr<AccPmuDB> database;

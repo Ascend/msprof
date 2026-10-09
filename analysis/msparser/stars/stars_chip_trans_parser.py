@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -31,8 +31,11 @@ class StarsChipTransParser(IStarsParser):
 
     def __init__(self: any, result_dir: str, db: str, table_list: list) -> None:
         super().__init__()
-        self._model = StarsChipTransV6Model(result_dir, db) \
-            if ChipManager().is_chip_v6() else StarsChipTransModel(result_dir, db, table_list)
+        self._model = (
+            StarsChipTransV6Model(result_dir, db)
+            if ChipManager().is_chip_v6()
+            else StarsChipTransModel(result_dir, db, table_list)
+        )
         self._decoder = StarsChipTransV6Bean if ChipManager().is_chip_v6() else StarsChipTransBean
         self._data_list = []
         self._data_dict = {}
@@ -53,17 +56,21 @@ class StarsChipTransParser(IStarsParser):
         if ChipManager().is_chip_v6():
             for bean_data in self._data_list:
                 # 目前发现Pcie数据结构可能上报0xFFFFFFFFFFFFFFFF的异常值，故进行过滤
-                if bean_data.pcie_read_bw == INVALID_BW or bean_data.pcie_write_bw == INVALID_BW:
+                if INVALID_BW in (bean_data.pcie_read_bw, bean_data.pcie_write_bw):
                     continue
-                self._data_dict.setdefault(bean_data.func_type, []).append([bean_data.die_id,
-                                                                            bean_data.sys_time,
-                                                                            bean_data.pcie_write_bw,
-                                                                            bean_data.pcie_read_bw])
+                self._data_dict.setdefault(bean_data.func_type, []).append(
+                    [bean_data.die_id, bean_data.sys_time, bean_data.pcie_write_bw, bean_data.pcie_read_bw]
+                )
             return
         for bean_data in self._data_list:
-            self._data_dict.setdefault(bean_data.acc_type, []) \
-                .append([bean_data.event_id, str(bean_data.pa_rx_or_pcie_write_bw),
-                         str(bean_data.pa_tx_or_pcie_read_bw), str(bean_data.sys_time)])
+            self._data_dict.setdefault(bean_data.acc_type, []).append(
+                [
+                    bean_data.event_id,
+                    str(bean_data.pa_rx_or_pcie_write_bw),
+                    str(bean_data.pa_tx_or_pcie_read_bw),
+                    str(bean_data.sys_time),
+                ]
+            )
 
     def flush(self: any) -> None:
         """

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -23,6 +23,7 @@ class OriginCCUAddInfoDto(metaclass=InstanceCheckMeta):
     """
     Dto for CCU Task Info data
     """
+
     version: int = None
     work_flow_mode: int = None
     item_id: str = None
@@ -48,6 +49,7 @@ class OriginWaitSignalInfoDto(OriginCCUAddInfoDto):
     """
     Dto for CCU Wait Signal Info data
     """
+
     cke_id: int = None
     mask: int = None
     channel_id: int = None
@@ -59,6 +61,7 @@ class OriginGroupInfoDto(OriginCCUAddInfoDto):
     """
     Dto for CCU Group Info data
     """
+
     reduce_op_type: str = None
     input_data_type: str = None
     output_data_type: str = None

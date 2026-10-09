@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -52,10 +52,8 @@ class MemUsageAnalysis(MsMultiProcess):
         file_list = os.listdir(PathManager.get_data_dir(self.result_dir))
         host_mem_usage_file_patterns = get_host_mem_usage_compiles()
         for file_name in file_list:
-            host_mem_usage_result = get_file_name_pattern_match(file_name,
-                                                                *host_mem_usage_file_patterns)
+            host_mem_usage_result = get_file_name_pattern_match(file_name, *host_mem_usage_file_patterns)
             if host_mem_usage_result and is_valid_original_data(file_name, self.result_dir):
-                logging.info(
-                    "start parsing mem usage data file: %s", file_name)
+                logging.info("start parsing mem usage data file: %s", file_name)
                 host_mem_usage_presenter = HostMemUsagePresenter(self.result_dir, file_name)
                 host_mem_usage_presenter.run()

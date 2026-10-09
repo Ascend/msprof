@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 from msconfig.meta_config import MetaConfig
 
@@ -104,9 +106,6 @@ class TsCPUConfig(MetaConfig):
             ('0xE9', 'STALL_BACKEND_LD_CACHE'),
             ('0xEA', 'STALL_BACKEND_LD_TLB'),
             ('0xEB', 'STALL_BACKEND_ST_STB'),
-            ('0xEC', 'STALL_BACKEND_ST_TLB')
+            ('0xEC', 'STALL_BACKEND_ST_TLB'),
         ]
     }
-
-    def __init__(self):
-        super().__init__()

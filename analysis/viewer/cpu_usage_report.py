@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import sqlite3
@@ -60,9 +62,11 @@ def _sys_usage_data(curs: any, table_name: str) -> list:
     """
     get sys cpu data
     """
-    sql = "select cputype, sum(user), sum(sys), sum(iowait), sum(irq), sum(soft), sum(idle), " \
-          "sum(user+nice+sys+idle+iowait+irq+soft+steal+guest+gnice) " \
-          "from {} where cputype != '' group by cputype".format(table_name)
+    sql = (
+        "select cputype, sum(user), sum(sys), sum(iowait), sum(irq), sum(soft), sum(idle), "
+        "sum(user+nice+sys+idle+iowait+irq+soft+steal+guest+gnice) "
+        "from {} where cputype != '' group by cputype".format(table_name)
+    )
     result_data = DBManager.fetch_all_data(curs, sql)
     data_list = []
     for data in result_data:
@@ -101,10 +105,11 @@ def _proc_usage_data(curs: any, table_name: str) -> list:
     """
     get process cpu usage data
     """
-    proc_sql = \
-        "select pid, process_name, 100*sum((utime+stime+cutime+cstime)/sys_usage)/count(*) " \
-        "from {} group by pid order by 100*sum((utime+stime+cutime+cstime)/sys_usage)/count(*)" \
+    proc_sql = (
+        "select pid, process_name, 100*sum((utime+stime+cutime+cstime)/sys_usage)/count(*) "
+        "from {} group by pid order by 100*sum((utime+stime+cutime+cstime)/sys_usage)/count(*)"
         " desc".format(table_name)
+    )
     proc_data = DBManager.fetch_all_data(curs, proc_sql)
     return _format_cpu_usage_data(proc_data)
 

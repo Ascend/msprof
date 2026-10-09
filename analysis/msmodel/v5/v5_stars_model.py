@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -54,23 +54,31 @@ class V5StarsViewModel(ViewModel):
 
     def get_v5_data_within_time_range(self: any, start_time: float, end_time: float) -> list:
         # v5 task subtask_id is always 0xffffffff
-        sql = "select {1}.stream_id, {1}.task_id, {0} as context_id, {1}.start_time as timestamp, " \
-              "duration as duration,  {1}.task_type from {1} " \
-              "{2}" \
-            .format(NumberConstant.DEFAULT_GE_CONTEXT_ID, DBNameConstant.TABLE_V5_TASK,
-                    SqlWhereCondition.get_interval_intersection_condition(
-                        start_time, end_time, DBNameConstant.TABLE_V5_TASK, "start_time", "end_time"))
+        sql = (
+            "select {1}.stream_id, {1}.task_id, {0} as context_id, {1}.start_time as timestamp, "
+            "duration as duration,  {1}.task_type from {1} "
+            "{2}".format(
+                NumberConstant.DEFAULT_GE_CONTEXT_ID,
+                DBNameConstant.TABLE_V5_TASK,
+                SqlWhereCondition.get_interval_intersection_condition(
+                    start_time, end_time, DBNameConstant.TABLE_V5_TASK, "start_time", "end_time"
+                ),
+            )
+        )
         device_tasks = DBManager.fetch_all_data(self.cur, sql, dto_class=DeviceTask)
         if not device_tasks:
-            logging.error("get device v5 task from %s.%s error",
-                          DBNameConstant.DB_SOC_LOG, DBNameConstant.TABLE_V5_TASK)
+            logging.error(
+                "get device v5 task from %s.%s error", DBNameConstant.DB_SOC_LOG, DBNameConstant.TABLE_V5_TASK
+            )
         return device_tasks
 
     def get_v5_pmu_details(self) -> list:
         """
         get data for pmu calculate
         """
-        sql = "select stream_id, task_id, total_cycle, block_num, pmu0, pmu1, pmu2, pmu3," \
-              "pmu4, pmu5, pmu6, pmu7, pmu8, pmu9 " \
-              "from {}".format(DBNameConstant.TABLE_V5_TASK)
+        sql = (
+            "select stream_id, task_id, total_cycle, block_num, pmu0, pmu1, pmu2, pmu3,"
+            "pmu4, pmu5, pmu6, pmu7, pmu8, pmu9 "
+            "from {}".format(DBNameConstant.TABLE_V5_TASK)
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=V5PmuDto)

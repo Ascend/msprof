@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -23,14 +23,21 @@ from mscalculate.cluster.meta_calculator import MetaCalculator
 class SlowLinkProf:
     PROF_TYPE_BOTTLENECK = "{} communication takes most of the time, and is the dominated bottleneck. \n"
     PROF_GOOD_STATE = "The bandwidth is fully utilized."
-    PROF_SMALL_PACKET = "{} bandwidth is inefficient, and the bandwidth utilization is {:.2f}. " \
-                        "Because it transported too many small packets, the big packet ratio is only {:.2f}. \n "
-    PROF_HCCS_ISSUE = "HCCS Bandwidth is inefficient, and the bandwidth utilization is {:.2f}. " \
-                      "Please check the HCCS config. \n "
-    PROF_PCIE_ISSUE = "PCIE Bandwidth between P2P is inefficient, and the bandwidth utilization is {}. " \
-                      "Please check the PCIE bandwidth contention issue. \n "
-    PROF_RDMA_ISSUE = "RDMA Bandwidth is inefficient, and the bandwidth utilization is {:.2f}." \
-                      " Please check the switch configuration. \n "
+    PROF_SMALL_PACKET = (
+        "{} bandwidth is inefficient, and the bandwidth utilization is {:.2f}. "
+        "Because it transported too many small packets, the big packet ratio is only {:.2f}. \n "
+    )
+    PROF_HCCS_ISSUE = (
+        "HCCS Bandwidth is inefficient, and the bandwidth utilization is {:.2f}. Please check the HCCS config. \n "
+    )
+    PROF_PCIE_ISSUE = (
+        "PCIE Bandwidth between P2P is inefficient, and the bandwidth utilization is {}. "
+        "Please check the PCIE bandwidth contention issue. \n "
+    )
+    PROF_RDMA_ISSUE = (
+        "RDMA Bandwidth is inefficient, and the bandwidth utilization is {:.2f}."
+        " Please check the switch configuration. \n "
+    )
 
 
 class SlowLinkCalculator(MetaCalculator):
@@ -70,11 +77,15 @@ class SlowLinkCalculator(MetaCalculator):
     def calculate(self: any, com_dict: dict) -> str:
         suggestion_bottelnek = ''
         bottle_neck_list = []
-        if com_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] * NumberConstant.DOMINATED_BOTTLENECK_THRESHOLD \
-                > com_dict[StrConstant.RDMA][OpBandWidthType.TRANSIT_TIME_MS]:
+        if (
+            com_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] * NumberConstant.DOMINATED_BOTTLENECK_THRESHOLD
+            > com_dict[StrConstant.RDMA][OpBandWidthType.TRANSIT_TIME_MS]
+        ):
             bottle_neck_list.append(StrConstant.SDMA)
-        if com_dict[StrConstant.RDMA][OpBandWidthType.TRANSIT_TIME_MS] * NumberConstant.DOMINATED_BOTTLENECK_THRESHOLD \
-                > com_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS]:
+        if (
+            com_dict[StrConstant.RDMA][OpBandWidthType.TRANSIT_TIME_MS] * NumberConstant.DOMINATED_BOTTLENECK_THRESHOLD
+            > com_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS]
+        ):
             bottle_neck_list.append(StrConstant.RDMA)
         for transport_type in bottle_neck_list:
             suggestion_bottelnek += SlowLinkProf.PROF_TYPE_BOTTLENECK.format(transport_type)
@@ -94,7 +105,3 @@ class SlowLinkCalculator(MetaCalculator):
         if not suggestion_slow_reason:
             suggestion_slow_reason = SlowLinkProf.PROF_GOOD_STATE
         return suggestion_bottelnek + suggestion_slow_reason
-
-
-
-

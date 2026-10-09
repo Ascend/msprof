@@ -1,19 +1,18 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-# pylint: skip-file
 
 import logging
 import os
@@ -349,7 +348,7 @@ class HcclCalculator(ICalculator, MsMultiProcess):
             return []
 
         # 存 (原始索引, task)，便于原地回写 hccl_tasks 的 iter_id
-        task_thread_map = defaultdict(lambda: deque())
+        task_thread_map = defaultdict(deque)
         for idx, task in enumerate(hccl_tasks):
             task_thread_map[task.thread_id].append((idx, task))
         # 同一线程可能下发到多个 op，不同 op 的 task 时间戳会交错；

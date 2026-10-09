@@ -1,32 +1,35 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/biu_perf_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Domain::Environment;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./biu_perf_processor_data";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -41,13 +44,15 @@ using ProcessedFormat = std::vector<BiuPerfData>;
 
 OriBiuPerfFormat DATA_A{{0, "AI_CORE", 1, "instruction_a", 3758215093862910, 450780, 0},
                         {0, "VECTOR", 2, "instruction_b", 3758215114581640, 250260, 1}};
-}
+}  // namespace
 
-class BiuPerfProcessorUTest : public testing::Test {
-protected:
+class BiuPerfProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -78,7 +83,8 @@ protected:
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
         dbRunner->CreateTable(TABLE_NAME, Analysis::Infra::BiuPerfDB().GetTableCols("BiuInstrStatus"));
-        if (!data.empty()) {
+        if (!data.empty())
+        {
             dbRunner->InsertData(TABLE_NAME, data);
         }
     }
@@ -161,7 +167,8 @@ TEST_F(BiuPerfProcessorUTest, TestRunShouldReturnFalseWhenLoadBiuPerfDataReturns
 {
     auto processor = BiuPerfProcessor(PROF_PATH_A);
     DataInventory dataInventory;
-    if (File::Check(BASE_PATH)) {
+    if (File::Check(BASE_PATH))
+    {
         File::RemoveDir(BASE_PATH, DEPTH);
     }
     File::CreateDir(BASE_PATH);

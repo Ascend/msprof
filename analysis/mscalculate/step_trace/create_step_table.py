@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -34,6 +34,7 @@ class CreateSubTable:
     """
     create sub table
     """
+
     data = []
     sample_config = {}
     db_name = None
@@ -99,9 +100,13 @@ class CreateStepTraceData(CreateSubTable):
         for model_id, model_data in collect_data.items():
             for index_id, index_data in model_data.items():
                 cls.data.append(
-                    [index_id, model_id, index_data.get(
-                        StepTraceConstant.STEP_START),
-                     index_data.get(StepTraceConstant.STEP_END)])
+                    [
+                        index_id,
+                        model_id,
+                        index_data.get(StepTraceConstant.STEP_START),
+                        index_data.get(StepTraceConstant.STEP_END),
+                    ]
+                )
 
     @classmethod
     def create_table(cls: any, conn: any) -> None:
@@ -112,8 +117,10 @@ class CreateStepTraceData(CreateSubTable):
         for index, datum in enumerate(cls.data):
             datum.append(index + 1)
 
-        create_sql = "create table if not exists {0} (index_id int, model_id int, " \
-                     "step_start int, step_end int, iter_id int)".format(cls.table_name)
+        create_sql = (
+            "create table if not exists {0} (index_id int, model_id int, "
+            "step_start int, step_end int, iter_id int)".format(cls.table_name)
+        )
 
         DBManager.execute_sql(conn, create_sql)
 
@@ -121,7 +128,8 @@ class CreateStepTraceData(CreateSubTable):
             return
 
         insert_sql = 'insert into {0} values ({1})'.format(
-            DBNameConstant.TABLE_STEP_TRACE_DATA, ",".join("?" * len(cls.data[0])))
+            DBNameConstant.TABLE_STEP_TRACE_DATA, ",".join("?" * len(cls.data[0]))
+        )
         DBManager.executemany_sql(conn, insert_sql, cls.data)
 
 
@@ -130,6 +138,7 @@ class CreateStepTime(CreateSubTable):
     create StepTime table
     StepTime存储每个Step的开始结束时间
     """
+
     data = []
     sample_config = {}
     db_name = DBNameConstant.DB_STEP_TRACE
@@ -137,8 +146,9 @@ class CreateStepTime(CreateSubTable):
 
     @classmethod
     def extract_data(cls: any, collect_data: any = None) -> None:
-        with TsTrackModel(cls.sample_config.get("result_dir"), DBNameConstant.DB_STEP_TRACE,
-                          [DBNameConstant.TABLE_STEP_TRACE]) as ts:
+        with TsTrackModel(
+            cls.sample_config.get("result_dir"), DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TRACE]
+        ) as ts:
             step_data = ts.get_step_trace_with_tag([StepTraceConstant.STEP_START_TAG, StepTraceConstant.STEP_END_TAG])
         step_time = {}
         for data in step_data:
@@ -147,9 +157,7 @@ class CreateStepTime(CreateSubTable):
             if len(data) != 2:  # 有2个数据：step开始和step结束的打点
                 logging.error("The step trace data is missing in step %d.", index_id)
                 continue
-            cls.data.append(
-                [index_id, data[0].model_id, data[0].timestamp, data[1].timestamp, index_id]
-            )
+            cls.data.append([index_id, data[0].model_id, data[0].timestamp, data[1].timestamp, index_id])
 
     @classmethod
     def create_table(cls: any, conn: any) -> None:
@@ -158,12 +166,13 @@ class CreateStepTime(CreateSubTable):
             return
 
         cls.data = sorted(cls.data, key=lambda x: x[3])
-        create_sql = "create table if not exists {0} (index_id int, model_id int, " \
-                     "step_start int, step_end int, iter_id int)".format(cls.table_name)
+        create_sql = (
+            "create table if not exists {0} (index_id int, model_id int, "
+            "step_start int, step_end int, iter_id int)".format(cls.table_name)
+        )
         DBManager.execute_sql(conn, create_sql)
 
-        insert_sql = 'insert into {0} values ({1})'.format(
-            cls.table_name, ",".join("?" * len(cls.data[0])))
+        insert_sql = 'insert into {0} values ({1})'.format(cls.table_name, ",".join("?" * len(cls.data[0])))
         DBManager.executemany_sql(conn, insert_sql, cls.data)
 
 
@@ -171,6 +180,7 @@ class CreateAllReduce(CreateSubTable):
     """
     create all reduce table
     """
+
     data = []
     sample_config = {}
     db_name = DBNameConstant.DB_TRACE
@@ -182,16 +192,24 @@ class CreateAllReduce(CreateSubTable):
             for index_id, index_data in model_data.items():
                 for each_reduce in index_data[StepTraceConstant.ALL_REDUCE]:
                     cls.data.append(
-                        [cls.sample_config.get("devices"), model_id, index_id,
-                         index_data[StepTraceConstant.STEP_END], each_reduce[StepTraceConstant.REDUCE_START],
-                         each_reduce[StepTraceConstant.REDUCE_END]])
+                        [
+                            cls.sample_config.get("devices"),
+                            model_id,
+                            index_id,
+                            index_data[StepTraceConstant.STEP_END],
+                            each_reduce[StepTraceConstant.REDUCE_START],
+                            each_reduce[StepTraceConstant.REDUCE_END],
+                        ]
+                    )
 
     @classmethod
     def create_table(cls: any, conn: any) -> None:
-        create_sql = "create table if not exists {}" \
-                     "(device_id int, model_id int, index_id int," \
-                     "iteration_end int, start int, end int, primary key(device_id," \
-                     "iteration_end, start))".format(DBNameConstant.TABLE_ALL_REDUCE)
+        create_sql = (
+            "create table if not exists {}"
+            "(device_id int, model_id int, index_id int,"
+            "iteration_end int, start int, end int, primary key(device_id,"
+            "iteration_end, start))".format(DBNameConstant.TABLE_ALL_REDUCE)
+        )
 
         DBManager.execute_sql(conn, create_sql)
 
@@ -199,7 +217,8 @@ class CreateAllReduce(CreateSubTable):
             return
 
         insert_sql = 'insert into {0} values ({1})'.format(
-            DBNameConstant.TABLE_ALL_REDUCE, ",".join("?" * len(cls.data[0])))
+            DBNameConstant.TABLE_ALL_REDUCE, ",".join("?" * len(cls.data[0]))
+        )
 
         DBManager.executemany_sql(conn, insert_sql, cls.data)
 
@@ -208,6 +227,7 @@ class CreateTrainingTrace(CreateSubTable):
     """
     create training trace table
     """
+
     data = []
     sample_config = {}
     db_name = DBNameConstant.DB_TRACE
@@ -223,14 +243,24 @@ class CreateTrainingTrace(CreateSubTable):
         :param step_end: ending timestamp of a iter
         :return:
         """
-        if step_start == NumberConstant.NULL_NUMBER or step_end == NumberConstant.NULL_NUMBER:
-            logging.error("step time is None, step start: %d, step end: %d, "
-                          "model id: %d, index id: %d", step_start, step_end, model_id, index_id)
+        if NumberConstant.NULL_NUMBER in (step_start, step_end):
+            logging.error(
+                "step time is None, step start: %d, step end: %d, model id: %d, index id: %d",
+                step_start,
+                step_end,
+                model_id,
+                index_id,
+            )
             raise ProfException(ProfException.PROF_INVALID_STEP_TRACE_ERROR)
 
         if step_start == step_end:
-            logging.error("start time equals to end time, step start: %d, step end: %d, "
-                          "model id: %d, index id: %d", step_start, step_end, model_id, index_id)
+            logging.error(
+                "start time equals to end time, step start: %d, step end: %d, model id: %d, index id: %d",
+                step_start,
+                step_end,
+                model_id,
+                index_id,
+            )
             raise ProfException(ProfException.PROF_INVALID_STEP_TRACE_ERROR)
 
     @classmethod
@@ -243,12 +273,14 @@ class CreateTrainingTrace(CreateSubTable):
     def create_table(cls: any, conn: any) -> None:
         cls.update_step_time()
 
-        create_sql = "create table if not exists {0} " \
-                     "(device_id int, model_id int, iteration_id int, " \
-                     "FP_start int, " \
-                     "BP_end int, iteration_end int, " \
-                     "iteration_time int, fp_bp_time int, grad_refresh_bound int, " \
-                     "data_aug_bound int)".format(DBNameConstant.TABLE_TRAINING_TRACE)
+        create_sql = (
+            "create table if not exists {0} "
+            "(device_id int, model_id int, iteration_id int, "
+            "FP_start int, "
+            "BP_end int, iteration_end int, "
+            "iteration_time int, fp_bp_time int, grad_refresh_bound int, "
+            "data_aug_bound int)".format(DBNameConstant.TABLE_TRAINING_TRACE)
+        )
 
         DBManager.execute_sql(conn, create_sql)
 
@@ -258,7 +290,8 @@ class CreateTrainingTrace(CreateSubTable):
         cls.update_data_aug()
 
         insert_sql = 'insert into {0} values ({1})'.format(
-            DBNameConstant.TABLE_TRAINING_TRACE, ",".join("?" * len(cls.data[0])))
+            DBNameConstant.TABLE_TRAINING_TRACE, ",".join("?" * len(cls.data[0]))
+        )
         DBManager.executemany_sql(conn, insert_sql, cls.data)
 
     @classmethod
@@ -281,23 +314,45 @@ class CreateTrainingTrace(CreateSubTable):
         back_pro = training_trace.get(StepTraceConstant.BACK_PROPAGATION, NumberConstant.NULL_NUMBER)
 
         iteration_time = step_end - step_start
-        fp_bp_time = \
-            NumberConstant.NULL_NUMBER if not (forward_pro and back_pro) else back_pro - forward_pro
-        grad_refresh_bound = \
-            NumberConstant.NULL_NUMBER if not back_pro else step_end - back_pro
+        fp_bp_time = NumberConstant.NULL_NUMBER if not (forward_pro and back_pro) else back_pro - forward_pro
+        grad_refresh_bound = NumberConstant.NULL_NUMBER if not back_pro else step_end - back_pro
 
-        cls.data.append([cls.sample_config.get("devices"), model_id, index_id, forward_pro,
-                         back_pro, step_end, iteration_time, fp_bp_time,
-                         grad_refresh_bound, NumberConstant.NULL_NUMBER])
+        cls.data.append(
+            [
+                cls.sample_config.get("devices"),
+                model_id,
+                index_id,
+                forward_pro,
+                back_pro,
+                step_end,
+                iteration_time,
+                fp_bp_time,
+                grad_refresh_bound,
+                NumberConstant.NULL_NUMBER,
+            ]
+        )
 
     @classmethod
     def update_step_time(cls: any):
-        with TsTrackModel(cls.sample_config.get("result_dir"), DBNameConstant.DB_STEP_TRACE,
-                          [DBNameConstant.TABLE_STEP_TIME]) as ts:
+        with TsTrackModel(
+            cls.sample_config.get("result_dir"), DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TIME]
+        ) as ts:
             step_data = ts.get_step_trace_data(DBNameConstant.TABLE_STEP_TIME)
         for data in step_data:
-            cls.data.append([cls.sample_config.get("devices"), data.model_id, data.index_id, 0, 0,
-                             data.step_end, data.step_end - data.step_start, 0, 0, NumberConstant.NULL_NUMBER])
+            cls.data.append(
+                [
+                    cls.sample_config.get("devices"),
+                    data.model_id,
+                    data.index_id,
+                    0,
+                    0,
+                    data.step_end,
+                    data.step_end - data.step_start,
+                    0,
+                    0,
+                    NumberConstant.NULL_NUMBER,
+                ]
+            )
 
     @classmethod
     def update_data_aug(cls: any) -> None:
@@ -308,15 +363,12 @@ class CreateTrainingTrace(CreateSubTable):
         cls.data.sort(key=lambda datum: datum[NumberConstant.STEP_END])
         for current_iter_index, current_datum in enumerate(cls.data):
             if current_datum[NumberConstant.FORWARD_PROPAGATION]:
-                last_iter_index = cls.__find_closest_step_end_index(
-                    current_iter_index)
+                last_iter_index = cls.__find_closest_step_end_index(current_iter_index)
                 if last_iter_index >= 0:
-                    current_datum[
-                        NumberConstant.DATA_AUG_BOUND] = \
-                        current_datum[
-                            NumberConstant.FORWARD_PROPAGATION] - \
-                        cls.data[last_iter_index][
-                            NumberConstant.STEP_END]
+                    current_datum[NumberConstant.DATA_AUG_BOUND] = (
+                        current_datum[NumberConstant.FORWARD_PROPAGATION]
+                        - cls.data[last_iter_index][NumberConstant.STEP_END]
+                    )
 
     @classmethod
     def __find_closest_step_end_index(cls: any, current_iter_index: int) -> int:
@@ -329,16 +381,20 @@ class CreateTrainingTrace(CreateSubTable):
         last_iter_index = current_iter_index - 1
 
         while last_iter_index >= 0:
-            if cls.data[current_iter_index][NumberConstant.FORWARD_PROPAGATION] > \
-                    cls.data[last_iter_index][NumberConstant.STEP_END]:
+            if (
+                cls.data[current_iter_index][NumberConstant.FORWARD_PROPAGATION]
+                > cls.data[last_iter_index][NumberConstant.STEP_END]
+            ):
                 break
             last_iter_index = last_iter_index - 1
 
         if last_iter_index < current_iter_index - 1:
-            logging.warning("The last iter of the %s iter of "
-                            "total iters is not %s, but is %s",
-                            current_iter_index,
-                            current_iter_index - 1, last_iter_index)
+            logging.warning(
+                "The last iter of the %s iter of total iters is not %s, but is %s",
+                current_iter_index,
+                current_iter_index - 1,
+                last_iter_index,
+            )
 
         return last_iter_index
 
@@ -347,6 +403,7 @@ class GetNextCreator(CreateSubTable):
     """
     create get_next table
     """
+
     data = []
     sample_config = {}
     db_name = DBNameConstant.DB_TRACE
@@ -380,17 +437,15 @@ class GetNextCreator(CreateSubTable):
                 # 保证 start time <= end time, 且start time最接近end time
                 mismatch_count += 1
                 start_record = start_deque.popleft()  # 下一个start record
-            cls.data.append(
-                [
-                    model_id,
-                    index_id,
-                    start_record.get(cls.TIMESTAMP, 0),
-                    end_record.get(cls.TIMESTAMP, 0)
-                ]
-            )
+            cls.data.append([model_id, index_id, start_record.get(cls.TIMESTAMP, 0), end_record.get(cls.TIMESTAMP, 0)])
         if start_deque or end_deque:
-            logging.error("The getnext mismatch happen with model_id: %d, index_id: %d, start len: %d, end len: %d.",
-                          model_id, index_id, len(start_deque), len(end_deque))
+            logging.error(
+                "The getnext mismatch happen with model_id: %d, index_id: %d, start len: %d, end len: %d.",
+                model_id,
+                index_id,
+                len(start_deque),
+                len(end_deque),
+            )
         if mismatch_count > 0:
             logging.error("There are %d getnext mismatching.", mismatch_count)
 
@@ -403,16 +458,20 @@ class GetNextCreator(CreateSubTable):
                 index_id = record.get("index_id", 1)
                 stream_key = str(record.get("stream_id", 0)) + "_" + str(key)
                 if record[StepTraceConstant.TAG_ID] % 2 == 0:
-                    cls.getnext_start.setdefault(model_id, {})\
-                        .setdefault(index_id, {}).setdefault(stream_key, deque()).append(record)
+                    cls.getnext_start.setdefault(model_id, {}).setdefault(index_id, {}).setdefault(
+                        stream_key, deque()
+                    ).append(record)
                 else:
-                    cls.getnext_end.setdefault(model_id, {})\
-                        .setdefault(index_id, {}).setdefault(stream_key, deque()).append(record)
+                    cls.getnext_end.setdefault(model_id, {}).setdefault(index_id, {}).setdefault(
+                        stream_key, deque()
+                    ).append(record)
 
     @classmethod
     def create_table(cls: typing.Any, conn: typing.Any) -> None:
-        create_sql = "create table if not exists {0} " \
-                     "(model_id INTEGER, index_id INTEGER, start_time INTEGER, end_time INTEGER)".format(cls.table_name)
+        create_sql = (
+            "create table if not exists {0} "
+            "(model_id INTEGER, index_id INTEGER, start_time INTEGER, end_time INTEGER)".format(cls.table_name)
+        )
         DBManager.execute_sql(conn, create_sql)
 
         if not cls.data:
@@ -425,6 +484,7 @@ class StepTableBuilder:
     """
     create table from step trace
     """
+
     TIMESTAMP_INDEX = 2
     model_handler = DispatchModelHandler()
     table_list = [CreateStepTraceData, CreateStepTime, CreateAllReduce, CreateTrainingTrace, GetNextCreator]
@@ -439,9 +499,11 @@ class StepTableBuilder:
         :return:
         """
         record_dict = {
-            StepTraceConstant.INDEX_ID: record.index_id, StepTraceConstant.MODEL_ID: record.model_id,
-            StepTraceConstant.TIME_STAMP: record.timestamp, StepTraceConstant.TAG_ID: record.tag_id,
-            StepTraceConstant.STREAM_ID: record.stream_id
+            StepTraceConstant.INDEX_ID: record.index_id,
+            StepTraceConstant.MODEL_ID: record.model_id,
+            StepTraceConstant.TIME_STAMP: record.timestamp,
+            StepTraceConstant.TAG_ID: record.tag_id,
+            StepTraceConstant.STREAM_ID: record.stream_id,
         }
 
         return record_dict
@@ -494,11 +556,11 @@ class StepTableBuilder:
 
         # iteration range table
         if is_helper:
-            select_sql = "select DISTINCT index_id, model_id, " \
-                         "timestamp, tag_id, 0 as stream_id from {}".format(table_name)
+            select_sql = "select DISTINCT index_id, model_id, timestamp, tag_id, 0 as stream_id from {}".format(
+                table_name
+            )
         else:
-            select_sql = "select DISTINCT index_id, model_id, " \
-                         "timestamp, tag_id, stream_id from {}".format(table_name)
+            select_sql = "select DISTINCT index_id, model_id, timestamp, tag_id, stream_id from {}".format(table_name)
 
         return DBManager.fetch_all_data(cls.step_curs, select_sql, dto_class=StepTraceOriginDto)
 
@@ -506,8 +568,6 @@ class StepTableBuilder:
     def _connect_step_db(cls: any, sample_config: dict) -> None:
         db_path = PathManager.get_db_path(sample_config.get("result_dir"), DBNameConstant.DB_STEP_TRACE)
         cls.step_conn, cls.step_curs = DBManager.check_connect_db_path(db_path)
-        if not cls.step_conn or not cls.step_curs:
-            return
 
     @classmethod
     def _get_step_trace_data(cls: any) -> list:

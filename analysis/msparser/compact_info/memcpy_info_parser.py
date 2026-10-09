@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -31,9 +31,10 @@ class MemcpyInfoParser(DataParser, MsMultiProcess):
     """
     memcpy info data parser
     """
+
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._memcpy_info_data = []
@@ -53,7 +54,8 @@ class MemcpyInfoParser(DataParser, MsMultiProcess):
                 bean.timestamp,
                 bean.data_size,
                 bean.direction,
-            ] for bean in bean_data
+            ]
+            for bean in bean_data
         ]
 
     def save(self: any) -> None:

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import sqlite3
@@ -36,7 +38,7 @@ class GraphAddInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._graph_info_data = []
@@ -46,8 +48,14 @@ class GraphAddInfoParser(DataParser, MsMultiProcess):
     def _get_graph_info_data(bean_data: any) -> list:
         if not bean_data:
             return []
-        return [bean_data.level, bean_data.struct_type, bean_data.thread_id,
-                bean_data.timestamp, bean_data.model_name, bean_data.graph_id]
+        return [
+            bean_data.level,
+            bean_data.struct_type,
+            bean_data.thread_id,
+            bean_data.timestamp,
+            bean_data.model_name,
+            bean_data.graph_id,
+        ]
 
     def parse(self: any) -> None:
         """
@@ -56,20 +64,28 @@ class GraphAddInfoParser(DataParser, MsMultiProcess):
         graph_info_files = self._file_list.get(DataTag.GRAPH_ADD_INFO, [])
         graph_info_files = self.group_aging_file(graph_info_files)
         for file_list in graph_info_files.values():
-            self._graph_info_data.extend(self.parse_bean_data(file_list, StructFmt.GRAPH_ADD_INFO_SIZE,
-                                                              GraphAddInfoBean,
-                                                              format_func=self._get_graph_info_data,
-                                                              check_func=self.check_magic_num,
-                                                              ))
+            self._graph_info_data.extend(
+                self.parse_bean_data(
+                    file_list,
+                    StructFmt.GRAPH_ADD_INFO_SIZE,
+                    GraphAddInfoBean,
+                    format_func=self._get_graph_info_data,
+                    check_func=self.check_magic_num,
+                )
+            )
 
         v5_exeom_info_files = self._file_list.get(DataTag.V5_MODEL_EXEOM, [])
         v5_exeom_info_files = self.group_aging_file(v5_exeom_info_files)
         for file_list in v5_exeom_info_files.values():
-            self._graph_info_data.extend(self.parse_bean_data(file_list, StructFmt.V5_MODEL_EXEOM_SIZE,
-                                                              V5ExeomBean,
-                                                              format_func=self._get_graph_info_data,
-                                                              check_func=self.check_magic_num,
-                                                              ))
+            self._graph_info_data.extend(
+                self.parse_bean_data(
+                    file_list,
+                    StructFmt.V5_MODEL_EXEOM_SIZE,
+                    V5ExeomBean,
+                    format_func=self._get_graph_info_data,
+                    check_func=self.check_magic_num,
+                )
+            )
 
     def save(self: any) -> None:
         """
@@ -86,8 +102,7 @@ class GraphAddInfoParser(DataParser, MsMultiProcess):
         parse and save ge graph data
         :return:
         """
-        if not self._file_list.get(DataTag.GRAPH_ADD_INFO, []) and \
-                not self._file_list.get(DataTag.V5_MODEL_EXEOM, []):
+        if not self._file_list.get(DataTag.GRAPH_ADD_INFO, []) and not self._file_list.get(DataTag.V5_MODEL_EXEOM, []):
             return
         try:
             self.parse()

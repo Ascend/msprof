@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import sqlite3
 
@@ -23,9 +25,11 @@ from common_func.msvp_constant import MsvpConstant
 
 
 def _get_sys_mem_sql(table_name: str) -> str:
-    sql = 'select sum(memtotal)/?, sum(memfree)/?, sum(buffers)/?, sum(cached)/?, ' \
-          'sum(shmem)/?, sum(commitlimit)/?, sum(committed_as)/?, sum(hugepages_total)/?,' \
-          ' sum(hugepages_free)/? from {}'.format(table_name)
+    sql = (
+        'select sum(memtotal)/?, sum(memfree)/?, sum(buffers)/?, sum(cached)/?, '
+        'sum(shmem)/?, sum(commitlimit)/?, sum(committed_as)/?, sum(hugepages_total)/?,'
+        ' sum(hugepages_free)/? from {}'.format(table_name)
+    )
     return sql
 
 
@@ -72,10 +76,12 @@ def get_process_mem_data(db_path: str, table_name: str, configs: dict) -> tuple:
     except sqlite3.Error:
         return MsvpConstant.MSVP_EMPTY_DATA
     else:
-        sql = 'select pid,name,sum(size)/count(*),sum(resident)/count(*),sum(shared)/count(*) ' \
-              'from {} group by pid order by ' \
-              '(sum(size)/count(*)+sum(resident)/count(*)+sum(shared)/count(*)) ' \
-              'desc'.format(table_name)
+        sql = (
+            'select pid,name,sum(size)/count(*),sum(resident)/count(*),sum(shared)/count(*) '
+            'from {} group by pid order by '
+            '(sum(size)/count(*)+sum(resident)/count(*)+sum(shared)/count(*)) '
+            'desc'.format(table_name)
+        )
         data = DBManager.fetch_all_data(curs, sql)
         return configs.get(StrConstant.CONFIG_HEADERS), data, len(data)
     finally:

@@ -1,31 +1,32 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/timeline/ccu_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ccu_mission_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
@@ -33,7 +34,8 @@ using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Application;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./ccu_assembler_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
@@ -111,13 +113,15 @@ std::vector<CCUMissionTimelineData> BuildDataWithoutOptionalFields()
 
     return data;
 }
-}
+}  // namespace
 
-class CcuAssemblerUTest : public testing::Test {
-protected:
+class CcuAssemblerUTest : public testing::Test
+{
+   protected:
     void SetUp() override
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -133,7 +137,7 @@ protected:
         GlobalMockObject::verify();
     }
 
-protected:
+   protected:
     DataInventory dataInventory_;
 };
 
@@ -248,4 +252,3 @@ TEST_F(CcuAssemblerUTest, ShouldOutputMetadataForEachDevice)
     EXPECT_NE(std::string::npos, jsonContent.find("\"name\":\"thread_name\""));
     EXPECT_NE(std::string::npos, jsonContent.find("\"name\":\"thread_sort_index\""));
 }
-

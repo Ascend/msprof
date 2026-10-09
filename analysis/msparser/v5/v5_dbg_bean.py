@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import struct
@@ -36,6 +38,7 @@ class MagicHeadBean(StructDecoder):
     """
     dbg magic head bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._magic_num = -1
         self._fmt_size = struct.calcsize(HEAD_FMT)
@@ -58,7 +61,7 @@ class MagicHeadBean(StructDecoder):
         """
         decode the head data
         """
-        self.construct_bean(struct.unpack(HEAD_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(HEAD_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -73,6 +76,7 @@ class TypeHeadBean(StructDecoder):
     """
     dbg type head bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._datatype = -1
         self._length = 0
@@ -103,7 +107,7 @@ class TypeHeadBean(StructDecoder):
         """
         decode the head data
         """
-        self.construct_bean(struct.unpack(HEAD_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(HEAD_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -119,6 +123,7 @@ class NameBean(StructDecoder):
     """
     dbg name bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._name = ""
 
@@ -133,8 +138,11 @@ class NameBean(StructDecoder):
         """
         decode the name data by TyptHeadBean's length
         """
-        self.construct_bean(struct.unpack(
-            StructFmt.BYTE_ORDER_CHAR + str(type_head.length) + NAME_FMT, data[offset:offset + type_head.length]))
+        self.construct_bean(
+            struct.unpack(
+                StructFmt.BYTE_ORDER_CHAR + str(type_head.length) + NAME_FMT, data[offset : offset + type_head.length]
+            )
+        )
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -149,6 +157,7 @@ class ShapeBean(StructDecoder):
     """
     dbg shape bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._shape = ""
         self._count = 0
@@ -165,9 +174,12 @@ class ShapeBean(StructDecoder):
         decode the shape bin data by TyptHeadBean's length
         """
         self._count = type_head.length // struct.calcsize(SHAPE_FMT)
-        self.construct_bean(struct.unpack(
-            StructFmt.BYTE_ORDER_CHAR + str(self._count) + SHAPE_FMT,
-            data[offset:offset + self._count * struct.calcsize(SHAPE_FMT)]))
+        self.construct_bean(
+            struct.unpack(
+                StructFmt.BYTE_ORDER_CHAR + str(self._count) + SHAPE_FMT,
+                data[offset : offset + self._count * struct.calcsize(SHAPE_FMT)],
+            )
+        )
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -188,6 +200,7 @@ class NumBean(StructDecoder):
     """
     dbg num bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._num = -1
         self._fmt_size = struct.calcsize(NUM_FMT)
@@ -210,7 +223,7 @@ class NumBean(StructDecoder):
         """
         decode the num bin data
         """
-        self.construct_bean(struct.unpack(NUM_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(NUM_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -225,6 +238,7 @@ class L1OpDescBean(StructDecoder):
     """
     dbg op description bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._task_id = -1
         self._stream_id = -1
@@ -287,7 +301,7 @@ class L1OpDescBean(StructDecoder):
         """
         decode the op description bin data
         """
-        self.construct_bean(struct.unpack(L1_OP_DESC_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(L1_OP_DESC_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -306,6 +320,7 @@ class L2InputDescBean(StructDecoder):
     """
     dbg op input info bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         self._data_type = -1
         self._format = -1
@@ -352,7 +367,7 @@ class L2InputDescBean(StructDecoder):
         """
         decode the input bin data
         """
-        self.construct_bean(struct.unpack(L2_INPUT_DESC_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(L2_INPUT_DESC_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:
@@ -369,6 +384,7 @@ class L2OutputDescBean(L2InputDescBean):
     """
     dbg op output info bean data for the dbg data.
     """
+
     def __init__(self: any) -> None:
         super().__init__()
         self._fmt_size = struct.calcsize(L2_OUTPUT_DESC_FMT)
@@ -399,7 +415,7 @@ class L2OutputDescBean(L2InputDescBean):
         """
         decode the output bin data
         """
-        self.construct_bean(struct.unpack(L2_OUTPUT_DESC_FMT, data[offset:offset + self._fmt_size]))
+        self.construct_bean(struct.unpack(L2_OUTPUT_DESC_FMT, data[offset : offset + self._fmt_size]))
         return self
 
     def construct_bean(self: any, *args: any) -> None:

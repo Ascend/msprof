@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -65,7 +65,8 @@ class IterInfoUpdater:
             self.active_parallel_iter_id = new_iter_info.behind_parallel_iter
             self.active_parallel_iter_info = {
                 self.iteration_manager.iter_to_iter_info.get(parallel_iter_id, IterInfo())
-                for parallel_iter_id in self.active_parallel_iter_id}
+                for parallel_iter_id in self.active_parallel_iter_id
+            }
 
     def update_new_add_iter_info(self: any, new_add_parallel_id: any) -> None:
         """
@@ -92,7 +93,7 @@ class IterInfoUpdater:
         """
         # if there are ge data, ai_core_task is empty
         if not ai_core_task:
-            return any([iter_info_bean.is_aicore(task) for iter_info_bean in self.active_parallel_iter_info])
+            return any(iter_info_bean.is_aicore(task) for iter_info_bean in self.active_parallel_iter_info)
         return GeInfoModel.STREAM_TASK_KEY_FMT.format(task.stream_id, task.task_id) in ai_core_task
 
     def update_iter_without_hwts(self: any) -> None:

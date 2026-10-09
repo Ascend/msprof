@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -31,9 +31,7 @@ def _reformat_aictrl_pmu_data(res: list, headers: list) -> tuple:
     for pmu_data in res:
         new_pmu = pmu_data[0].replace("\x00", '').replace("r", "0x")
         new_pmu1 = pmu_data[0].replace("\x00", '').replace("r", "")
-        item = [
-            new_pmu, aicpu_events_map[int(new_pmu1, 16)].capitalize(), pmu_data[1]
-        ]
+        item = [new_pmu, aicpu_events_map[int(new_pmu1, 16)].capitalize(), pmu_data[1]]
         data.append(item)
     return headers, data, len(data)
 
@@ -49,8 +47,12 @@ def get_aictrl_pmu_events(project_path: str, db_name: str, table_name: str, head
     except sqlite3.Error:
         return MsvpConstant.MSVP_EMPTY_DATA
     else:
-        res = DBManager.fetch_all_data(curs, "SELECT pmuevent AS event, SUM(pmucount) AS count FROM {} "
-                                             "GROUP BY pmuevent ORDER BY count DESC;".format(table_name))
+        res = DBManager.fetch_all_data(
+            curs,
+            "SELECT pmuevent AS event, SUM(pmucount) AS count FROM {} GROUP BY pmuevent ORDER BY count DESC;".format(
+                table_name
+            ),
+        )
         return _reformat_aictrl_pmu_data(res, headers)
     finally:
         DBManager.destroy_db_connect(conn, curs)
@@ -74,8 +76,8 @@ def _get_ts_result_data(event_count: dict) -> list:
         if value is not None:
             if ts_cpu_events_map:
                 total_data.append(
-                    (str(key), ts_cpu_events_map.get(int(key, NumberConstant.HEX_NUMBER)).capitalize(),
-                     str(value)))
+                    (str(key), ts_cpu_events_map.get(int(key, NumberConstant.HEX_NUMBER)).capitalize(), str(value))
+                )
             else:
                 total_data.append((str(key), " ", str(value)))
     return total_data
@@ -117,9 +119,11 @@ def get_cpu_hot_function(project_path: str, db_name: str, table_name: str, heade
     else:
         if not total_cycles:
             return MsvpConstant.MSVP_EMPTY_DATA
-        cpu_hot_func_sql = "SELECT func,module,SUM(r11) AS cycles,CAST(1.0*SUM(r11)*100/? AS decimal(8,{})) " \
-                           "FROM {} where r11 != 0 GROUP BY func,module " \
-                           "ORDER BY cycles DESC;".format(NumberConstant.DECIMAL_ACCURACY, table_name)
+        cpu_hot_func_sql = (
+            "SELECT func,module,SUM(r11) AS cycles,CAST(1.0*SUM(r11)*100/? AS decimal(8,{})) "
+            "FROM {} where r11 != 0 GROUP BY func,module "
+            "ORDER BY cycles DESC;".format(NumberConstant.DECIMAL_ACCURACY, table_name)
+        )
         cpu_data = DBManager.fetch_all_data(curs, cpu_hot_func_sql, (total_cycles,))
         data = [rec[:3] + (str(round(rec[3], NumberConstant.ROUND_THREE_DECIMAL)),) for rec in cpu_data]
         return headers, data, len(data)

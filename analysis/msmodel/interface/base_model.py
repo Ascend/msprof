@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 from abc import ABCMeta
@@ -27,6 +29,7 @@ class BaseModel(metaclass=ABCMeta):
     """
     stars base model class. Used to operate db.
     """
+
     TABLES_PATH = ConfigManager.TABLES
 
     def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
@@ -47,8 +50,7 @@ class BaseModel(metaclass=ABCMeta):
         """
         create db and tables
         """
-        self.conn, self.cur = DBManager.create_connect_db(
-            PathManager.get_db_path(self.result_dir, self.db_name))
+        self.conn, self.cur = DBManager.create_connect_db(PathManager.get_db_path(self.result_dir, self.db_name))
         if not (self.conn and self.cur):
             return False
         return True
@@ -103,8 +105,9 @@ class BaseModel(metaclass=ABCMeta):
         if self.conn and data_list:
             sql = 'insert into {0} values ({1})'.format(table_name, "?," * (len(data_list[0]) - 1) + "?")
             if not DBManager.executemany_sql(self.conn, sql, data_list):
-                logging.warning('insert data to table %s failed, please check.', table_name,
-                                exc_info=Constant.TRACE_BACK_SWITCH)
+                logging.warning(
+                    'insert data to table %s failed, please check.', table_name, exc_info=Constant.TRACE_BACK_SWITCH
+                )
 
     def drop_table(self: any, table_name: str) -> None:
         if DBManager.judge_table_exist(self.cur, table_name):

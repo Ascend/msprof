@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -74,8 +74,9 @@ class ClusterParallelCollector(IParser):
             _project_path = os.path.join(self.collect_path, cluster_info.dir_name)
             hwts_freq = InfoConfReader().get_freq(StrConstant.HWTS)
             with ParallelViewModel(_project_path) as _model:
-                parallel_index_data = _model.get_parallel_index_data(self._parallel_table_name, cluster_info.rank_id,
-                                                                     cluster_info.device_id, hwts_freq)
+                parallel_index_data = _model.get_parallel_index_data(
+                    self._parallel_table_name, cluster_info.rank_id, cluster_info.device_id, hwts_freq
+                )
                 if parallel_index_data:
                     self._cluster_parallel_data.extend(parallel_index_data)
                 parallel_strategy_data = _model.get_parallel_strategy_data()

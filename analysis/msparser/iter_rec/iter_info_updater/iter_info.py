@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -22,11 +22,9 @@ class IterInfo:
     class used to record iter info.
     """
 
-    def __init__(self: any, model_id: int = -1,
-                 index_id: int = -1,
-                 iter_id: int = -1,
-                 start_time: int = -1,
-                 end_time: int = -1) -> None:
+    def __init__(
+        self: any, model_id: int = -1, index_id: int = -1, iter_id: int = -1, start_time: int = -1, end_time: int = -1
+    ) -> None:
         self.model_id = model_id
         self.index_id = index_id
         self.iter_id = iter_id

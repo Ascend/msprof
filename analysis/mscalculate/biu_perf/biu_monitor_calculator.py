@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -81,7 +81,7 @@ class BiuMonitorCalculator:
         calculate biu cycle data
         :return: None
         """
-        with self.model as _model:
+        with self.model as _model:  # pylint: disable=not-context-manager
             monitor_data = _model.get_all_data(self.original_table_name)
 
         monitor_data_dict = self.group_by_core_id(monitor_data)
@@ -89,10 +89,8 @@ class BiuMonitorCalculator:
         for monitor_data in monitor_data_dict.values():
             for data_index, monitor_datum in enumerate(monitor_data):
                 interval_start = data_index * InfoConfReader().get_instr_profiling_freq()
-                unit_name = self.get_unit_name(
-                    monitor_datum.core_id, monitor_datum.group_id, monitor_datum.core_type)
-                pid = self.get_pid(
-                    monitor_datum.core_id, monitor_datum.group_id)
+                unit_name = self.get_unit_name(monitor_datum.core_id, monitor_datum.group_id, monitor_datum.core_type)
+                pid = self.get_pid(monitor_datum.core_id, monitor_datum.group_id)
                 self.create_data(pid, interval_start, unit_name, monitor_datum)
 
     @abstractmethod
@@ -110,7 +108,7 @@ class BiuMonitorCalculator:
             logging.warning("Biu flow data or biu cycles data list is empty!")
             return
 
-        with self.model as _model:
+        with self.model as _model:  # pylint: disable=not-context-manager
             self.model.create_table()
             _model.flush(self.table_name, self.data)
 
@@ -121,8 +119,11 @@ class BiuMonitorCalculator:
         """
         db_path = PathManager.get_db_path(self.project_path, DBNameConstant.DB_BIU_PERF)
         if DBManager.check_tables_in_db(db_path, self.table_name):
-            logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                         self.table_name, DBNameConstant.DB_BIU_PERF)
+            logging.info(
+                "The Table %s already exists in the %s, and won't be calculate again.",
+                self.table_name,
+                DBNameConstant.DB_BIU_PERF,
+            )
             return
         self.calculate()
         self.save()
@@ -148,12 +149,13 @@ class MonitorFlowCalculator(BiuMonitorCalculator):
             "Latency Read": monitor_datum.stat_rlat_raw,
             "Latency Write": monitor_datum.stat_wlat_raw,
             "Bandwidth Read": monitor_datum.stat_flux_rd,
-            "Bandwidth Write": monitor_datum.stat_flux_wr
+            "Bandwidth Write": monitor_datum.stat_flux_wr,
         }
 
         for tid, flow_type in enumerate(flow_type_dict):
-            self.data.append([monitor_datum.timestamp,
-                              flow_type_dict.get(flow_type), flow_type, unit_name, pid, tid, interval_start])
+            self.data.append(
+                [monitor_datum.timestamp, flow_type_dict.get(flow_type), flow_type, unit_name, pid, tid, interval_start]
+            )
 
 
 class MonitorCyclesCalculator(BiuMonitorCalculator):
@@ -191,12 +193,13 @@ class MonitorCyclesCalculator(BiuMonitorCalculator):
             "Cube": monitor_datum.cube_cycles,
             "Mte1": monitor_datum.lsu1_cycles,
             "Mte2": monitor_datum.lsu2_cycles,
-            "Mte3": monitor_datum.lsu3_cycles
+            "Mte3": monitor_datum.lsu3_cycles,
         }
 
         for tid, cycle_type in enumerate(cycles_type_dict):
             cycle_num = cycles_type_dict.get(cycle_type)
             ratio = self.get_ratio(cycle_num)
             interval = self.get_interval(ratio)
-            self.data.append([monitor_datum.timestamp, interval, cycle_type, unit_name,
-                              cycle_num, ratio, pid, tid, interval_start])
+            self.data.append(
+                [monitor_datum.timestamp, interval, cycle_type, unit_name, cycle_num, ratio, pid, tid, interval_start]
+            )

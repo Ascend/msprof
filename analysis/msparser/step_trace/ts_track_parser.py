@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -66,19 +66,22 @@ class TstrackParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self.sample_config = sample_config
         self.project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH, [])
         self._file_list = file_list
-        self._model = TsTrackModel(self.project_path,
-                                   DBNameConstant.DB_STEP_TRACE,
-                                   [DBNameConstant.TABLE_STEP_TRACE,
-                                    DBNameConstant.TABLE_TS_MEMCPY,
-                                    DBNameConstant.TABLE_MODEL_WITH_Q,
-                                    DBNameConstant.TABLE_TASK_TYPE,
-                                    DBNameConstant.TABLE_DEVICE_TASK_FLIP,
-                                    DBNameConstant.TABLE_BLOCK_NUM,
-                                    ])
+        self._model = TsTrackModel(
+            self.project_path,
+            DBNameConstant.DB_STEP_TRACE,
+            [
+                DBNameConstant.TABLE_STEP_TRACE,
+                DBNameConstant.TABLE_TS_MEMCPY,
+                DBNameConstant.TABLE_MODEL_WITH_Q,
+                DBNameConstant.TABLE_TASK_TYPE,
+                DBNameConstant.TABLE_DEVICE_TASK_FLIP,
+                DBNameConstant.TABLE_BLOCK_NUM,
+            ],
+        )
         self.tag_reader = {
             TsTrackTag.STEP_TRACE: StepTraceReader(),
             TsTrackTag.TS_MEMCPY: TsMemcpyReader(),

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import logging
+# pylint: disable=duplicate-code
+
 from collections import OrderedDict
 
 from common_func.constant import Constant
@@ -28,7 +29,6 @@ from common_func.utils import Utils
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msvp_common import format_high_precision_for_csv
 from msmodel.msproftx.msproftx_model import MsprofTxModel, MsprofTxExModel
-from viewer.get_trace_timeline import TraceViewer
 
 
 class MsprofTxViewer:
@@ -52,8 +52,10 @@ class MsprofTxViewer:
             return []
         header = [
             [
-                "process_name", InfoConfReader().get_json_pid_data(),
-                InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_TASK
+                "process_name",
+                InfoConfReader().get_json_pid_data(),
+                InfoConfReader().get_json_tid_data(),
+                TraceViewHeaderConstant.PROCESS_TASK,
             ]
         ]
         subtask = []
@@ -76,15 +78,24 @@ class MsprofTxViewer:
         for msproftx_data in msproftx_datas:
             pid_values.add(msproftx_data.pid)
             tid_values.add(msproftx_data.tid)
-        meta_data = Utils.generator_to_list(["process_name", pid_value, json_tid_data,
-                                             TraceViewHeaderConstant.PROCESS_MSPROFTX]
-                                            for pid_value in pid_values)
-        meta_data.extend(Utils.generator_to_list(["thread_name", pid_value, tid_value,
-                                                  "Thread {}".format(tid_value)] for tid_value in tid_values
-                                                 for pid_value in pid_values))
-        meta_data.extend(Utils.generator_to_list(["thread_sort_index", pid_value, tid_value,
-                                                  tid_value] for tid_value in tid_values
-                                                 for pid_value in pid_values))
+        meta_data = Utils.generator_to_list(
+            ["process_name", pid_value, json_tid_data, TraceViewHeaderConstant.PROCESS_MSPROFTX]
+            for pid_value in pid_values
+        )
+        meta_data.extend(
+            Utils.generator_to_list(
+                ["thread_name", pid_value, tid_value, "Thread {}".format(tid_value)]
+                for tid_value in tid_values
+                for pid_value in pid_values
+            )
+        )
+        meta_data.extend(
+            Utils.generator_to_list(
+                ["thread_sort_index", pid_value, tid_value, tid_value]
+                for tid_value in tid_values
+                for pid_value in pid_values
+            )
+        )
 
         return meta_data
 
@@ -96,21 +107,26 @@ class MsprofTxViewer:
         """
         trace_data = []
         for top_down_data in msproftx_data:
-            trace_data_args = OrderedDict([
-                ("Category", str(top_down_data.category)),
-                ("Payload_type", top_down_data.payload_type),
-                ("Payload_value", top_down_data.payload_value),
-                ("Message_type", top_down_data.message_type),
-                ("event_type", top_down_data.event_type)
-            ])
+            trace_data_args = OrderedDict(
+                [
+                    ("Category", str(top_down_data.category)),
+                    ("Payload_type", top_down_data.payload_type),
+                    ("Payload_value", top_down_data.payload_value),
+                    ("Message_type", top_down_data.message_type),
+                    ("event_type", top_down_data.event_type),
+                ]
+            )
             trace_data_msproftx = [
-                top_down_data.message, top_down_data.pid, top_down_data.tid,
+                top_down_data.message,
+                top_down_data.pid,
+                top_down_data.tid,
                 InfoConfReader().trans_into_local_time(
                     InfoConfReader().time_from_host_syscnt(top_down_data.start_time, NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True),
-                InfoConfReader().get_host_duration(top_down_data.dur_time,
-                                                   NumberConstant.MICRO_SECOND),
-                trace_data_args
+                    use_us=True,
+                    is_host=True,
+                ),
+                InfoConfReader().get_host_duration(top_down_data.dur_time, NumberConstant.MICRO_SECOND),
+                trace_data_args,
             ]
             trace_data.append(trace_data_msproftx)
         return trace_data
@@ -124,18 +140,20 @@ class MsprofTxViewer:
         """
         trace_data = []
         for data in msproftx_ex_data:
-            trace_data_args = OrderedDict([
-                ('mark_id', data.mark_id),
-                ('event_type', data.event_type),
-                ('domain', data.domain)
-            ])
+            trace_data_args = OrderedDict(
+                [('mark_id', data.mark_id), ('event_type', data.event_type), ('domain', data.domain)]
+            )
             trace_data_msproftx_ex = [
-                data.message, data.pid, data.tid,
+                data.message,
+                data.pid,
+                data.tid,
                 InfoConfReader().trans_into_local_time(
                     InfoConfReader().time_from_host_syscnt(data.start_time, NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True),
+                    use_us=True,
+                    is_host=True,
+                ),
                 InfoConfReader().get_host_duration(data.dur_time, NumberConstant.MICRO_SECOND),
-                trace_data_args
+                trace_data_args,
             ]
             trace_data.append(trace_data_msproftx_ex)
         return trace_data
@@ -144,43 +162,75 @@ class MsprofTxViewer:
     def format_tx_summary_data(summary_data: list) -> list:
         return [
             (
-                data[0], data[1], data[2], data[3], data[4], data[5],
+                data[0],
+                data[1],
+                data[2],
+                data[3],
+                data[4],
+                data[5],
                 format_high_precision_for_csv(
-                InfoConfReader().trans_into_local_time(
-                    InfoConfReader().time_from_host_syscnt(data[6], NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True)),
+                    InfoConfReader().trans_into_local_time(
+                        InfoConfReader().time_from_host_syscnt(data[6], NumberConstant.MICRO_SECOND),
+                        use_us=True,
+                        is_host=True,
+                    )
+                ),
                 format_high_precision_for_csv(
-                InfoConfReader().trans_into_local_time(
-                    InfoConfReader().time_from_host_syscnt(data[7], NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True)),
-                data[8], data[9], Constant.NA, Constant.NA
-            ) for data in summary_data
+                    InfoConfReader().trans_into_local_time(
+                        InfoConfReader().time_from_host_syscnt(data[7], NumberConstant.MICRO_SECOND),
+                        use_us=True,
+                        is_host=True,
+                    )
+                ),
+                data[8],
+                data[9],
+                Constant.NA,
+                Constant.NA,
+            )
+            for data in summary_data
         ]
 
     @staticmethod
     def format_tx_ex_summary_data(summary_data: list) -> list:
         return [
-            (data[0], data[1], Constant.NA, data[2], Constant.NA, Constant.NA,
-             format_high_precision_for_csv(
-             InfoConfReader().trans_into_local_time(
-                 InfoConfReader().time_from_host_syscnt(data[3], NumberConstant.MICRO_SECOND),
-                 use_us=True, is_host=True)),
-             format_high_precision_for_csv(
-             InfoConfReader().trans_into_local_time(
-                 InfoConfReader().time_from_host_syscnt(data[4], NumberConstant.MICRO_SECOND),
-                 use_us=True, is_host=True)),
-             Constant.NA, f'{data[5]}', data[6], data[7]
-             ) for data in summary_data
+            (
+                data[0],
+                data[1],
+                Constant.NA,
+                data[2],
+                Constant.NA,
+                Constant.NA,
+                format_high_precision_for_csv(
+                    InfoConfReader().trans_into_local_time(
+                        InfoConfReader().time_from_host_syscnt(data[3], NumberConstant.MICRO_SECOND),
+                        use_us=True,
+                        is_host=True,
+                    )
+                ),
+                format_high_precision_for_csv(
+                    InfoConfReader().trans_into_local_time(
+                        InfoConfReader().time_from_host_syscnt(data[4], NumberConstant.MICRO_SECOND),
+                        use_us=True,
+                        is_host=True,
+                    )
+                ),
+                Constant.NA,
+                f'{data[5]}',
+                data[6],
+                data[7],
+            )
+            for data in summary_data
         ]
 
     @staticmethod
     def format_tx_ex_device_summary_data(device_data: list) -> list:
         return [
-            (data[0], format_high_precision_for_csv(
-                InfoConfReader().trans_syscnt_into_local_time(data[1])),
-             format_high_precision_for_csv(
-                InfoConfReader().trans_syscnt_into_local_time(data[1] + data[4]))
-            ) for data in device_data
+            (
+                data[0],
+                format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(data[1])),
+                format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(data[1] + data[4])),
+            )
+            for data in device_data
         ]
 
     @staticmethod
@@ -193,15 +243,16 @@ class MsprofTxViewer:
         task_trace = []
         json_pid_data = InfoConfReader().get_json_pid_data()
         for data in device_data:
-            task_trace.append([
-                data[5], json_pid_data, data[2],
-                InfoConfReader().trans_syscnt_into_local_time(data[1]),
-                InfoConfReader().duration_from_syscnt(data[4]),
-                {
-                    "Physic Stream Id": data[2],
-                    "Task Id": data[3]
-                }
-            ])
+            task_trace.append(
+                [
+                    data[5],
+                    json_pid_data,
+                    data[2],
+                    InfoConfReader().trans_syscnt_into_local_time(data[1]),
+                    InfoConfReader().duration_from_syscnt(data[4]),
+                    {"Physic Stream Id": data[2], "Task Id": data[3]},
+                ]
+            )
         return task_trace
 
     @staticmethod
@@ -235,13 +286,13 @@ class MsprofTxViewer:
         to get summary data
         :return:summary data
         """
-        with MsprofTxModel(self.params.get('project'),
-                           DBNameConstant.DB_MSPROFTX,
-                           [DBNameConstant.TABLE_MSPROFTX]) as tx_model:
+        with MsprofTxModel(
+            self.params.get('project'), DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX]
+        ) as tx_model:
             msproftx_data = tx_model.get_summary_data()
-        with MsprofTxExModel(self.params.get('project'),
-                             DBNameConstant.DB_MSPROFTX,
-                             [DBNameConstant.TABLE_MSPROFTX_EX]) as msproftx_ex_model:
+        with MsprofTxExModel(
+            self.params.get('project'), DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX_EX]
+        ) as msproftx_ex_model:
             msproftx_ex_data = msproftx_ex_model.get_summary_data()
         if not msproftx_data and not msproftx_ex_data:
             return MsvpConstant.MSVP_EMPTY_DATA
@@ -257,13 +308,13 @@ class MsprofTxViewer:
         :return:timeline data
         """
         TraceViewHeaderConstant.update_layer_info_map(InfoConfReader().get_json_pid_name())
-        with MsprofTxModel(self.params.get('project'),
-                           DBNameConstant.DB_MSPROFTX,
-                           [DBNameConstant.TABLE_MSPROFTX]) as tx_model:
+        with MsprofTxModel(
+            self.params.get('project'), DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX]
+        ) as tx_model:
             msproftx_data = tx_model.get_timeline_data()
-        with MsprofTxExModel(self.params.get('project'),
-                             DBNameConstant.DB_MSPROFTX,
-                             [DBNameConstant.TABLE_MSPROFTX_EX]) as msproftx_ex_model:
+        with MsprofTxExModel(
+            self.params.get('project'), DBNameConstant.DB_MSPROFTX, [DBNameConstant.TABLE_MSPROFTX_EX]
+        ) as msproftx_ex_model:
             msproftx_ex_data = msproftx_ex_model.get_timeline_data()
         if not msproftx_data and not msproftx_ex_data:
             return []
@@ -274,8 +325,9 @@ class MsprofTxViewer:
 
         tx_trace_data = self.format_tx_timeline_data(msproftx_data)
         msproftx_ex_trace_data = self.format_tx_ex_timeline_data(msproftx_ex_data)
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   tx_trace_data + msproftx_ex_trace_data)
+        _trace = TraceViewManager.time_graph_trace(
+            TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, tx_trace_data + msproftx_ex_trace_data
+        )
         result = TraceViewManager.metadata_event(self.get_time_timeline_header(msproftx_data + msproftx_ex_data))
         result.extend(_trace)
         return result
@@ -285,9 +337,9 @@ class MsprofTxViewer:
         to get device summary data
         :return:device summary data
         """
-        with MsprofTxExModel(self.params.get('project'),
-                             DBNameConstant.DB_STEP_TRACE,
-                             [DBNameConstant.TABLE_STEP_TRACE]) as msproftx_ex_model:
+        with MsprofTxExModel(
+            self.params.get('project'), DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TRACE]
+        ) as msproftx_ex_model:
             msproftx_device_data = msproftx_ex_model.get_device_data()
 
         msproftx_device_data = self.format_tx_ex_device_summary_data(msproftx_device_data)
@@ -300,9 +352,9 @@ class MsprofTxViewer:
         to get device timeline data
         :return:device timeline data
         """
-        with MsprofTxExModel(self.params.get('project'),
-                             DBNameConstant.DB_STEP_TRACE,
-                             [DBNameConstant.TABLE_STEP_TRACE]) as msproftx_ex_model:
+        with MsprofTxExModel(
+            self.params.get('project'), DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TRACE]
+        ) as msproftx_ex_model:
             msproftx_device_data = msproftx_ex_model.get_device_data()
 
         msproftx_device_message_data = []
@@ -315,8 +367,9 @@ class MsprofTxViewer:
                 data.append(Constant.NA)
             msproftx_device_message_data.append(data)
         msproftx_device_trace_data = self.format_tx_ex_device_timeline_data(msproftx_device_message_data)
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   msproftx_device_trace_data)
+        _trace = TraceViewManager.time_graph_trace(
+            TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, msproftx_device_trace_data
+        )
         result = TraceViewManager.metadata_event(self.get_device_timeline_header(msproftx_device_trace_data))
         result.extend(_trace)
         msproftx_ex_flow_end_points = self.get_msproftx_ex_flow_end_points(msproftx_device_message_data)

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -33,7 +33,6 @@ from common_func.file_name_manager import get_ctrl_cpu_compiles
 from common_func.file_name_manager import get_file_name_pattern_match
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msprof_exception import ProfException
 from common_func.msvp_common import error
@@ -70,9 +69,10 @@ def create_eventcounttable(curs: any, pmu_events: list, tablename: str = 'EventC
     :param tablename: table name
     :return: None
     """
-    sql = "CREATE TABLE IF NOT EXISTS " + tablename + "(func text,module text,callstack text," \
-                                                      "common text,pid INT,tid INT,core INT," + \
-          ",".join(pmuevent + " INT" for pmuevent in pmu_events) + ")"
+    sql = (
+        "CREATE TABLE IF NOT EXISTS " + tablename + "(func text,module text,callstack text,"
+        "common text,pid INT,tid INT,core INT," + ",".join(pmuevent + " INT" for pmuevent in pmu_events) + ")"
+    )
     curs.execute(sql)
 
 
@@ -82,12 +82,11 @@ def sql_insert_eventcounttable(pmu_events: list) -> str:
     :param pmu_events: pmu event
     :return: sql
     """
-    insert_statement = "INSERT INTO EventCount SELECT function,module,callstack," \
-                       "common,pid,tid,core,"
-    group_statement = " FROM OriginalData GROUP BY function,module,callstack," \
-                      "common,pid,tid,core"
-    pmu_events_sql = \
-        list("SUM(CASE WHEN pmuevent='" + pmuevent + "' THEN pmucount ELSE 0 END)" for pmuevent in pmu_events)
+    insert_statement = "INSERT INTO EventCount SELECT function,module,callstack,common,pid,tid,core,"
+    group_statement = " FROM OriginalData GROUP BY function,module,callstack,common,pid,tid,core"
+    pmu_events_sql = list(
+        "SUM(CASE WHEN pmuevent='" + pmuevent + "' THEN pmucount ELSE 0 END)" for pmuevent in pmu_events
+    )
     sql = insert_statement + ",".join(pmu_events_sql) + group_statement
     return sql
 
@@ -121,8 +120,7 @@ def create_hotinstable(curs: any, pmu_events: list) -> None:
         field_list.append((pmuevent, "INT"))
 
     field_list.insert(Constant.DEFAULT_START, ("ip", "TEXT"))
-    field_list.extend([("pid", "INT"), ("tid", "INT"),
-                       ("core", "INT"), ("function", "TEXT"), ("module", "TEXT")])
+    field_list.extend([("pid", "INT"), ("tid", "INT"), ("core", "INT"), ("function", "TEXT"), ("module", "TEXT")])
     sql = "CREATE TABLE IF NOT EXISTS HotIns ({0})".format(",".join(field[0] + " " + field[1] for field in field_list))
     try:
         curs.execute(sql)
@@ -135,8 +133,10 @@ def sql_insert_hotinstable(pmu_events: list) -> str:
     generate sql statement
     """
     pmu_sql = list("SUM(CASE WHEN pmuevent=? THEN pmucount ELSE 0 END)" for _ in range(len(pmu_events)))
-    sql = "INSERT INTO HotIns SELECT ip," + ",".join(pmu_sql) + ",pid,tid,core,function,module FROM " \
-                                                                "OriginalData GROUP BY pid,tid,core,ip,function,module"
+    sql = (
+        "INSERT INTO HotIns SELECT ip," + ",".join(pmu_sql) + ",pid,tid,core,function,module FROM "
+        "OriginalData GROUP BY pid,tid,core,ip,function,module"
+    )
     return sql
 
 
@@ -169,6 +169,7 @@ class ParsingCPUData(MsMultiProcess):
     """
     parsing cpu data file(base class)
     """
+
     FILE_NAME = os.path.basename(__file__)
     FILE_SIZE = 10
 
@@ -256,8 +257,8 @@ class ParsingCPUData(MsMultiProcess):
             return NumberConstant.ERROR
         try:
             replay_start = self.curs.execute(
-                "select timestamp from OriginalData where replayid=? order by timestamp limit 1",
-                (0,)).fetchone()
+                "select timestamp from OriginalData where replayid=? order by timestamp limit 1", (0,)
+            ).fetchone()
         except sqlite3.Error:
             logging.error(traceback.format_exc(), exc_info=Constant.TRACE_BACK_SWITCH)
             return NumberConstant.ERROR
@@ -266,7 +267,8 @@ class ParsingCPUData(MsMultiProcess):
                 if start_time and replay_start:
                     self.curs.execute(
                         "UPDATE OriginalData SET timestamp=timestamp-? WHERE replayid=?",
-                        (replay_start[0] - start_time, 0))
+                        (replay_start[0] - start_time, 0),
+                    )
             except sqlite3.Error:
                 logging.error(traceback.format_exc(), exc_info=Constant.TRACE_BACK_SWITCH)
                 return NumberConstant.ERROR
@@ -301,8 +303,7 @@ class ParsingCPUData(MsMultiProcess):
         try:
             self.init_and_parsing()
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as reason:
-            logging.exception(
-                "System failed to analysis data: %s", reason)
+            logging.exception("System failed to analysis data: %s", reason)
             error(self.FILE_NAME, "System failed to analysis {0} data: {1}".format(self.type, reason))
 
     def init_and_parsing(self: any) -> None:
@@ -342,11 +343,9 @@ class ParsingCPUData(MsMultiProcess):
                 "end_pos": (i + 1) * os.path.getsize(data_path) / self.FILE_SIZE,
                 "dbname": os.path.join(project_path, "sqlite", self.dbname),
                 "pro_no": i,
-                "lock": lock
+                "lock": lock,
             }
-            pro = multiprocessing.Process(
-                target=multi_process_cb.multiprocess_callback,
-                args=(kwargs,))
+            pro = multiprocessing.Process(target=multi_process_cb.multiprocess_callback, args=(kwargs,))
             pro.start()
             processes.append(pro)
         for pro_ in processes:
@@ -374,10 +373,10 @@ class ParsingCPUData(MsMultiProcess):
 
     def _get_start_time(self: any) -> tuple:
         # test the existence of OriginalData table
-        if self.curs.execute("select count(*) from sqlite_master where type='table' "
-                             "and name='OriginalData'").fetchone()[0]:
-            start_time = self.curs.execute(
-                "select timestamp from OriginalData order by timestamp limit 1")
+        if self.curs.execute(
+            "select count(*) from sqlite_master where type='table' and name='OriginalData'"
+        ).fetchone()[0]:
+            start_time = self.curs.execute("select timestamp from OriginalData order by timestamp limit 1")
             start_time = start_time.fetchone()
             if start_time:
                 start_time = start_time[0]
@@ -387,9 +386,7 @@ class ParsingCPUData(MsMultiProcess):
             status = create_originaldatatable(self.curs, "OriginalDataMap")
             if status:
                 return status, 0
-            self.curs.execute(
-                "CREATE INDEX pmuevent_index ON OriginalData(pmuevent)")
-            self.curs.execute(
-                "CREATE INDEX timestamp_index ON OriginalData(timestamp)")
+            self.curs.execute("CREATE INDEX pmuevent_index ON OriginalData(pmuevent)")
+            self.curs.execute("CREATE INDEX timestamp_index ON OriginalData(timestamp)")
             start_time = 0
         return NumberConstant.SUCCESS, start_time

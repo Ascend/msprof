@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
@@ -48,8 +50,7 @@ class ClusterParallelModel(ParserModel):
         """
         create db and tables
         """
-        self.conn, self.cur = DBManager.create_connect_db(
-            PathManager.get_db_path(self.result_dir, self.db_name))
+        self.conn, self.cur = DBManager.create_connect_db(PathManager.get_db_path(self.result_dir, self.db_name))
         if not (self.conn and self.cur):
             return False
         return True
@@ -61,12 +62,11 @@ class ClusterParallelViewModel(ViewModel):
 
     def get_npu_ids(self: any, table_name: str) -> list:
         result = []
-        sql = "SELECT CASE WHEN t.rank_id is null THEN t.device_id ELSE t.rank_id END FROM(" \
-              "SELECT rank_id, device_id FROM {} GROUP BY rank_id, device_id)t".format(
-            table_name)
+        sql = (
+            "SELECT CASE WHEN t.rank_id is null THEN t.device_id ELSE t.rank_id END FROM("
+            "SELECT rank_id, device_id FROM {} GROUP BY rank_id, device_id)t".format(table_name)
+        )
         data_list = DBManager.fetch_all_data(self.cur, sql)
-        if not data_list:
-            result
         for data in data_list:
             result.append(data[0])
         return result
@@ -75,8 +75,6 @@ class ClusterParallelViewModel(ViewModel):
         result = {}
         sql = "SELECT model_id, GROUP_CONCAT(distinct iteration_id) FROM {} GROUP BY model_id".format(table_name)
         data_list = DBManager.fetch_all_data(self.cur, sql)
-        if not data_list:
-            result
         for data in data_list:
             result[data[0]] = [int(iteration_id) for iteration_id in data[1].split(',')]
         return result
@@ -100,20 +98,26 @@ class ClusterParallelViewModel(ViewModel):
         return data_list[0][0]
 
     def get_data_parallel_data(self: any, first_field_name: str, condition: str, query_params: tuple) -> dict:
-        sql = "select {0}, computation_time, pure_communication_time, communication_time, " \
-              "interval_of_communication_time from {1} where {2}".format(
-            first_field_name, DBNameConstant.TABLE_CLUSTER_DATA_PARALLEL, condition)
+        sql = (
+            "select {0}, computation_time, pure_communication_time, communication_time, "
+            "interval_of_communication_time from {1} where {2}".format(
+                first_field_name, DBNameConstant.TABLE_CLUSTER_DATA_PARALLEL, condition
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql, query_params)
 
     def get_model_parallel_data(self: any, first_field_name: str, condition: str, query_params: tuple) -> dict:
         sql = "select {0}, computation_time, pure_communication_time from {1} where {2}".format(
-            first_field_name, DBNameConstant.TABLE_CLUSTER_MODEL_PARALLEL, condition)
+            first_field_name, DBNameConstant.TABLE_CLUSTER_MODEL_PARALLEL, condition
+        )
         return DBManager.fetch_all_data(self.cur, sql, query_params)
 
     def get_pipeline_parallel_data(self: any, first_field_name: str, condition: str, query_params: tuple) -> dict:
-        sql = "select {0}, computation_time, pure_communication_time_only_revice, " \
-              "pure_communication_time_except_revice, step_time-pure_communication_time stage_time " \
-              "from {1} where {2}".format(first_field_name, DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL, condition)
+        sql = (
+            "select {0}, computation_time, pure_communication_time_only_revice, "
+            "pure_communication_time_except_revice, step_time-pure_communication_time stage_time "
+            "from {1} where {2}".format(first_field_name, DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL, condition)
+        )
         return DBManager.fetch_all_data(self.cur, sql, query_params)
 
     def get_first_field_name(self: any, params: dict) -> tuple:
@@ -126,35 +130,44 @@ class ClusterParallelViewModel(ViewModel):
         if params.get("npu_id") == Constant.DEFAULT_INVALID_VALUE:
             return ["model_id=? and iteration_id=?", (params.get("model_id"), params.get("iteration_id"))]
         else:
-            return ["{}=? and model_id=?".format(self._get_npu_id_name()),
-                    (params.get("npu_id"), params.get("model_id"))]
+            return [
+                "{}=? and model_id=?".format(self._get_npu_id_name()),
+                (params.get("npu_id"), params.get("model_id")),
+            ]
 
     def get_data_parallel_tuning_data(self: any) -> list:
-        sql = "select hccl_op_num, avg(pure_communication_ratio)pure_communication_ratio, " \
-              "avg(interval_ratio) interval_ratio from (select rank_id, device_id, hccl_op_num, " \
-              "sum(pure_communication_time)/sum(communication_time) as pure_communication_ratio, " \
-              "sum(interval_of_communication_time)/sum(interval_of_communication_time+communication_time) " \
-              "interval_ratio from {} group by rank_id, device_id)t".format(DBNameConstant.TABLE_CLUSTER_DATA_PARALLEL)
+        sql = (
+            "select hccl_op_num, avg(pure_communication_ratio)pure_communication_ratio, "
+            "avg(interval_ratio) interval_ratio from (select rank_id, device_id, hccl_op_num, "
+            "sum(pure_communication_time)/sum(communication_time) as pure_communication_ratio, "
+            "sum(interval_of_communication_time)/sum(interval_of_communication_time+communication_time) "
+            "interval_ratio from {} group by rank_id, device_id)t".format(DBNameConstant.TABLE_CLUSTER_DATA_PARALLEL)
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_model_parallel_tuning_data(self: any) -> list:
-        sql = "select avg(ratio) avg_ratio from (select rank_id, device_id, " \
-              "sum(pure_communication_time)/(sum(pure_communication_time)+sum(computation_time)) ratio " \
-              "from {} group by rank_id, device_id)t".format(DBNameConstant.TABLE_CLUSTER_MODEL_PARALLEL)
+        sql = (
+            "select avg(ratio) avg_ratio from (select rank_id, device_id, "
+            "sum(pure_communication_time)/(sum(pure_communication_time)+sum(computation_time)) ratio "
+            "from {} group by rank_id, device_id)t".format(DBNameConstant.TABLE_CLUSTER_MODEL_PARALLEL)
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_pipeline_parallel_tuning_data(self: any) -> list:
         avg_stage_time = self._get_avg_stage_time()
         if avg_stage_time == Constant.DEFAULT_INVALID_VALUE:
             return []
-        sql = "SELECT avg( t.ratio ) avg_ratio, avg( t.ratio1 ) avg_ratio1, " \
-              "sum(case when t.stage_time >= {0} * 0.8 AND t.stage_time <= {0} * 1.2 THEN 0 ELSE 1 END ) num " \
-              "FROM( SELECT rank_id, device_id, " \
-              "sum(pure_communication_time_only_revice) / sum(pure_communication_time+computation_time) ratio, " \
-              "sum(pure_communication_time_except_revice) / sum(pure_communication_time+computation_time) ratio1, " \
-              "sum(step_time - pure_communication_time) stage_time " \
-              "FROM {1} GROUP BY rank_id, device_id) t".format(avg_stage_time,
-                                                               DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL)
+        sql = (
+            "SELECT avg( t.ratio ) avg_ratio, avg( t.ratio1 ) avg_ratio1, "
+            "sum(case when t.stage_time >= {0} * 0.8 AND t.stage_time <= {0} * 1.2 THEN 0 ELSE 1 END ) num "
+            "FROM( SELECT rank_id, device_id, "
+            "sum(pure_communication_time_only_revice) / sum(pure_communication_time+computation_time) ratio, "
+            "sum(pure_communication_time_except_revice) / sum(pure_communication_time+computation_time) ratio1, "
+            "sum(step_time - pure_communication_time) stage_time "
+            "FROM {1} GROUP BY rank_id, device_id) t".format(
+                avg_stage_time, DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def _get_npu_id_name(self: any) -> str:
@@ -165,9 +178,12 @@ class ClusterParallelViewModel(ViewModel):
             return "device_id"
 
     def _get_avg_stage_time(self: any) -> float:
-        sql = "	SELECT avg( t.stage_time ) avg_stage_time FROM( SELECT rank_id, device_id, " \
-              "sum(step_time - pure_communication_time) stage_time FROM {} GROUP BY rank_id, device_id)t".format(
-            DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL)
+        sql = (
+            "	SELECT avg( t.stage_time ) avg_stage_time FROM( SELECT rank_id, device_id, "
+            "sum(step_time - pure_communication_time) stage_time FROM {} GROUP BY rank_id, device_id)t".format(
+                DBNameConstant.TABLE_CLUSTER_PIPELINE_PARALLEL
+            )
+        )
         data_list = DBManager.fetch_all_data(self.cur, sql)
         if not data_list:
             return Constant.DEFAULT_INVALID_VALUE

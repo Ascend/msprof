@@ -1,24 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/unified_pmu_processor.h"
-
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -38,8 +39,8 @@ using OTFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, 
 // aic_total_time, aic_total_cycles, aic_mac_time, aic_mac_ratio_extra,
 // aiv_total_time, aiv_total_cycles, aiv_vec_time, aiv_vec_ratio, task_id, stream_id, subtask_id,
 // start_time, end_time, batch_id
-using TempTaskFormat = std::vector<std::tuple<double, double, double, double, double, double, double, double,
-        uint32_t, uint32_t, uint32_t, double, double, uint32_t>>;
+using TempTaskFormat = std::vector<std::tuple<double, double, double, double, double, double, double, double, uint32_t,
+                                              uint32_t, uint32_t, double, double, uint32_t>>;
 
 const std::string UNIFIED_PMU_DIR = "./PMU";
 const std::string MSPROF_DB = "msprof.db";
@@ -48,14 +49,15 @@ const std::string PROF_PATH = File::PathJoin({UNIFIED_PMU_DIR, "PROF_114514"});
 const std::string TASK_BASED = "task-based";
 const std::string SAMPLE_BASED = "sample-based";
 
-const std::vector<std::tuple<uint64_t, uint32_t, uint64_t, uint32_t, std::string, std::string, std::string,
-    std::string, std::string, std::string, std::string, std::string, std::string>> SAMPLE_TIMELINE = {
-    {1, 0, 88885812174450, 0, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
-    {1, 0, 88885812182000, 1, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
-    {1, 0, 88885812187440, 2, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
-    {1, 0, 88885822175760, 0, "303770", "42452", "116329", "27651", "86395", "162419", "35857", "13793", "347"},
-    {1, 0, 88885822182560, 1, "306253", "42140", "115151", "29956", "86321", "155588", "35627", "14004", "304"},
-    {1, 0, 88885822187760, 2, "249423", "36166", "74243", "24100", "61766", "116532", "31727", "10212", "251"},
+const std::vector<std::tuple<uint64_t, uint32_t, uint64_t, uint32_t, std::string, std::string, std::string, std::string,
+                             std::string, std::string, std::string, std::string, std::string>>
+    SAMPLE_TIMELINE = {
+        {1, 0, 88885812174450, 0, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
+        {1, 0, 88885812182000, 1, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
+        {1, 0, 88885812187440, 2, "0", "0", "0", "0", "0", "0", "0", "0", "0"},
+        {1, 0, 88885822175760, 0, "303770", "42452", "116329", "27651", "86395", "162419", "35857", "13793", "347"},
+        {1, 0, 88885822182560, 1, "306253", "42140", "115151", "29956", "86321", "155588", "35627", "14004", "304"},
+        {1, 0, 88885822187760, 2, "249423", "36166", "74243", "24100", "61766", "116532", "31727", "10212", "251"},
 };
 
 const OSSFormat SAMPLE_SUMMARY = {
@@ -71,35 +73,29 @@ const OSSFormat SAMPLE_SUMMARY = {
 };
 
 const TempTaskFormat TASK_DATA = {
-    {318.36, 14135332, 197.9849315375118, 0.62189009780598, 75.1, 6668981, 0.87503179271316, 0.01165155516263,
-     22, 68, 2344, 21203781495130.004, 21203812838010.004, 0},
-    {327.19, 14527061, 197.98020025179216, 0.60509245469541, 76.41, 6785309, 0.87503201991243, 0.01145179976328,
-     22, 68, 2356, 21203781495130.004, 21203813146290.004, 0},
-    {313.94, 13939056, 197.98647121440646, 0.63065066960058, 61.91, 5497563, 0.8750522076782, 0.01413426276334,
-     22, 68, 2357, 21203781495130.004, 21203813447710.004, 0},
-    {315.17, 13993558, 197.98357473417414, 0.62818026694855, 61.88, 5495101, 0.87502004421757, 0.01414059541399,
-     22, 68, 2358, 21203781495130.004, 21203813750090.004, 0},
+    {318.36, 14135332, 197.9849315375118, 0.62189009780598, 75.1, 6668981, 0.87503179271316, 0.01165155516263, 22, 68,
+     2344, 21203781495130.004, 21203812838010.004, 0},
+    {327.19, 14527061, 197.98020025179216, 0.60509245469541, 76.41, 6785309, 0.87503201991243, 0.01145179976328, 22, 68,
+     2356, 21203781495130.004, 21203813146290.004, 0},
+    {313.94, 13939056, 197.98647121440646, 0.63065066960058, 61.91, 5497563, 0.8750522076782, 0.01413426276334, 22, 68,
+     2357, 21203781495130.004, 21203813447710.004, 0},
+    {315.17, 13993558, 197.98357473417414, 0.62818026694855, 61.88, 5495101, 0.87502004421757, 0.01414059541399, 22, 68,
+     2358, 21203781495130.004, 21203813750090.004, 0},
 };
 
 const TableColumns TASK_METRIC_SUMMARY = {
-    {"aic_total_time", SQL_NUMERIC_TYPE},
-    {"aic_total_cycles", SQL_NUMERIC_TYPE},
-    {"aic_mac_time", SQL_NUMERIC_TYPE},
-    {"aic_mac_ratio_extra", SQL_NUMERIC_TYPE},
-    {"aiv_total_time", SQL_NUMERIC_TYPE},
-    {"aiv_total_cycles", SQL_NUMERIC_TYPE},
-    {"aiv_vec_time", SQL_NUMERIC_TYPE},
-    {"aiv_vec_ratio", SQL_NUMERIC_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},
-    {"stream_id", SQL_INTEGER_TYPE},
-    {"subtask_id", SQL_INTEGER_TYPE},
-    {"start_time", SQL_NUMERIC_TYPE},
-    {"end_time", SQL_NUMERIC_TYPE},
-    {"batch_id", SQL_INTEGER_TYPE},
+    {"aic_total_time", SQL_NUMERIC_TYPE}, {"aic_total_cycles", SQL_NUMERIC_TYPE},
+    {"aic_mac_time", SQL_NUMERIC_TYPE},   {"aic_mac_ratio_extra", SQL_NUMERIC_TYPE},
+    {"aiv_total_time", SQL_NUMERIC_TYPE}, {"aiv_total_cycles", SQL_NUMERIC_TYPE},
+    {"aiv_vec_time", SQL_NUMERIC_TYPE},   {"aiv_vec_ratio", SQL_NUMERIC_TYPE},
+    {"task_id", SQL_INTEGER_TYPE},        {"stream_id", SQL_INTEGER_TYPE},
+    {"subtask_id", SQL_INTEGER_TYPE},     {"start_time", SQL_NUMERIC_TYPE},
+    {"end_time", SQL_NUMERIC_TYPE},       {"batch_id", SQL_INTEGER_TYPE},
 };
 
-class UnifiedPmuProcessorUTest : public testing::Test {
-protected:
+class UnifiedPmuProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         EXPECT_TRUE(File::CreateDir(UNIFIED_PMU_DIR));
@@ -108,7 +104,7 @@ protected:
         EXPECT_TRUE(CreatePmuDB(File::PathJoin({PROF_PATH, DEVICE_PREFIX + "0", SQLITE})));
     }
 
-    static bool CreatePmuDB(const std::string& sqlitePath)
+    static bool CreatePmuDB(const std::string &sqlitePath)
     {
         EXPECT_TRUE(File::CreateDir(sqlitePath));
         std::shared_ptr<AicoreDB> aicDB;
@@ -136,18 +132,14 @@ protected:
         return true;
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(UNIFIED_PMU_DIR, 0));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(UNIFIED_PMU_DIR, 0)); }
 
-    virtual void SetUp()
-    {
-    }
+    virtual void SetUp() {}
 
     virtual void TearDown()
     {
-        if (File::Exist(DB_PATH)) {
+        if (File::Exist(DB_PATH))
+        {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
     }
@@ -156,12 +148,9 @@ protected:
 TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnTrueWhenRunSuccess)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
-        {"ai_core_profiling_mode", TASK_BASED},
-        {"platform_version", "5"},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},           {"platform_version", "5"},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     DataInventory dataInventory;
@@ -175,12 +164,9 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeForChipV1WithoutSu
     // 7/8/11(chipV1)场景：python侧FftsV1落库的metric_summary无subtask_id列、时间在表尾end_time列
     // C++读该表应回退subtask_id为UINT32_MAX常量，并读end_time使每条metric行携带所属算子的wall-clock时间
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
-        {"ai_core_profiling_mode", TASK_BASED},
-        {"platform_version", "8"},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},           {"platform_version", "8"},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
 
@@ -196,12 +182,8 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeForChipV1WithoutSu
 
     // 列顺序对齐python FftsV1 metric_summary：metric列/算子id列在前，无subtask_id列，end_time在表末尾
     const TableColumns v1MetricSummary = {
-        {"aic_total_time", SQL_NUMERIC_TYPE},
-        {"aiv_vec_time", SQL_NUMERIC_TYPE},
-        {"stream_id", SQL_INTEGER_TYPE},
-        {"task_id", SQL_INTEGER_TYPE},
-        {"core_type", SQL_INTEGER_TYPE},
-        {"batch_id", SQL_INTEGER_TYPE},
+        {"aic_total_time", SQL_NUMERIC_TYPE}, {"aiv_vec_time", SQL_NUMERIC_TYPE}, {"stream_id", SQL_INTEGER_TYPE},
+        {"task_id", SQL_INTEGER_TYPE},        {"core_type", SQL_INTEGER_TYPE},    {"batch_id", SQL_INTEGER_TYPE},
         {"end_time", SQL_INTEGER_TYPE},
     };
     // aic_total_time, aiv_vec_time, stream_id, task_id, core_type, batch_id, end_time
@@ -230,9 +212,12 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeForChipV1WithoutSu
         // end_time列值为host开机monotonic ns，读侧经GetLocalTime叠加世界时偏移后才是与task对齐的时间：
         // 偏移 = startTimeNs - baseTimeNs = 1701069323851824000 - 36470610791630 = 1701032853241032370
         constexpr uint64_t LOCAL_TIME_OFFSET = 1701032853241032370;
-        if (item.taskId == 22) {
+        if (item.taskId == 22)
+        {
             expectTs = 1701121739053206801 + LOCAL_TIME_OFFSET;
-        } else {
+        }
+        else
+        {
             ASSERT_EQ(item.taskId, 23u);
             expectTs = 1701121739053206803 + LOCAL_TIME_OFFSET;
         }
@@ -248,12 +233,9 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeWhenMetricSummaryH
     // metric_summary统一以end_time为时间列(如C++侧metric_summary_persistence chipV4落库、python侧stars落库)
     // 该场景下每条metric行都应携带所属算子的end_time，end_time列不落成metric行
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
-        {"ai_core_profiling_mode", TASK_BASED},
-        {"platform_version", "5"},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},           {"platform_version", "5"},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
 
@@ -269,12 +251,8 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeWhenMetricSummaryH
 
     // 列顺序对齐metric_summary：metric列/算子id列在前，end_time在表末尾
     const TableColumns endTsMetricSummary = {
-        {"aic_total_time", SQL_NUMERIC_TYPE},
-        {"aiv_vec_time", SQL_NUMERIC_TYPE},
-        {"task_id", SQL_INTEGER_TYPE},
-        {"stream_id", SQL_INTEGER_TYPE},
-        {"subtask_id", SQL_INTEGER_TYPE},
-        {"batch_id", SQL_INTEGER_TYPE},
+        {"aic_total_time", SQL_NUMERIC_TYPE}, {"aiv_vec_time", SQL_NUMERIC_TYPE}, {"task_id", SQL_INTEGER_TYPE},
+        {"stream_id", SQL_INTEGER_TYPE},      {"subtask_id", SQL_INTEGER_TYPE},   {"batch_id", SQL_INTEGER_TYPE},
         {"end_time", SQL_INTEGER_TYPE},
     };
     // aic_total_time, aiv_vec_time, task_id, stream_id, subtask_id, batch_id, end_time
@@ -301,9 +279,12 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeWhenMetricSummaryH
         // end_time列值为host开机monotonic ns，读侧经GetLocalTime叠加世界时偏移后才是与task对齐的时间：
         // 偏移 = startTimeNs - baseTimeNs = 1701069323851824000 - 36470610791630 = 1701032853241032370
         constexpr uint64_t LOCAL_TIME_OFFSET = 1701032853241032370;
-        if (item.subtaskId == 2344) {
+        if (item.subtaskId == 2344)
+        {
             expectTs = 1701121739053206801 + LOCAL_TIME_OFFSET;
-        } else {
+        }
+        else
+        {
             ASSERT_EQ(item.subtaskId, 2357u);
             expectTs = 1701121739053206803 + LOCAL_TIME_OFFSET;
         }
@@ -317,12 +298,9 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldCarryEndTimeWhenMetricSummaryH
 TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenCheckColumnsFailed)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
-        {"ai_core_profiling_mode", TASK_BASED},
-        {"platform_version", "5"},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},           {"platform_version", "5"},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
 
@@ -341,12 +319,9 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenCheckColumnsFai
 TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenFormatDataFailed)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
-        {"ai_core_profiling_mode", TASK_BASED},
-        {"platform_version", "5"},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"ai_core_profiling_mode", TASK_BASED},           {"platform_version", "5"},
     };
 
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
@@ -377,10 +352,8 @@ TEST_F(UnifiedPmuProcessorUTest, TestTaskRunShouldReturnFalseWhenFormatDataFaile
 TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnTrueWhenRunSuccess)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
         {"ai_core_profiling_mode", SAMPLE_BASED},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
@@ -393,10 +366,8 @@ TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnTrueWhenRunSuccess)
 TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnFalseWhenTimelineOrSummaryFailed)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
         {"ai_core_profiling_mode", SAMPLE_BASED},
     };
     MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
@@ -430,10 +401,8 @@ TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnFalseWhenTimelineOrSum
 TEST_F(UnifiedPmuProcessorUTest, TestSampleRunShouldReturnFalseWhenFormatDataFailed)
 {
     nlohmann::json record = {
-        {"startCollectionTimeBegin", "1701069323851824"},
-        {"endCollectionTimeEnd", "1701069338041681"},
-        {"startClockMonotonicRaw", "36470610791630"},
-        {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
+        {"startCollectionTimeBegin", "1701069323851824"}, {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},     {"DeviceInfo", {{{"aic_frequency", "1000"}}}},
         {"ai_core_profiling_mode", SAMPLE_BASED},
     };
 

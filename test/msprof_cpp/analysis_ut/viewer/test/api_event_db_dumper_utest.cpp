@@ -1,22 +1,24 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/services/persistence/host/api_event_db_dumper.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
@@ -27,12 +29,10 @@ const std::string TEST_DB_FILE_PATH = "./sqlite";
 const uint32_t ACL_LEVEL_NUMBER = 20000;
 const uint32_t PYTORCH_LEVEL_NUMBER = 30000;
 const uint32_t TWO_BYTES = 16;
-class ApiEventDBDumperUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        File::CreateDir(TEST_DB_FILE_PATH);
-    }
+class ApiEventDBDumperUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { File::CreateDir(TEST_DB_FILE_PATH); }
 
     virtual void TearDown()
     {
@@ -66,7 +66,8 @@ TEST_F(ApiEventDBDumperUtest, TestApiEventDBDumperShouldInsertDataCorrectly)
     std::string runtimeDBPath = Utils::File::PathJoin({TEST_DB_FILE_PATH, apiEventDB.GetDBName()});
     DBRunner runtimeDBRunner(runtimeDBPath);
     std::vector<std::tuple<std::string, std::string, std::string, uint32_t, std::string, uint64_t, uint64_t, uint32_t,
-                           uint64_t>> data;
+                           uint64_t>>
+        data;
     runtimeDBRunner.QueryData("select * from ApiData", data);
     // 如果level不是acl，则会直接把id置为0
     const int col2 = 2;

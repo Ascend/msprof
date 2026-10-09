@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 from abc import ABC
@@ -67,22 +69,17 @@ class DvppModel(BaseModel, ABC):
         """
         if DBManager.judge_table_exist(self.cur, "DvppOriginalData"):
             if not DBManager.judge_index_exist(self.cur, "timestamp_dvpp"):
-                self.cur.execute("CREATE INDEX timestamp_dvpp ON "
-                                 "DvppOriginalData(timestamp)")
+                self.cur.execute("CREATE INDEX timestamp_dvpp ON DvppOriginalData(timestamp)")
             if not DBManager.judge_index_exist(self.cur, "engineid_dvpp"):
-                self.cur.execute("CREATE INDEX engineid_dvpp ON "
-                                 "DvppOriginalData(engineid)")
+                self.cur.execute("CREATE INDEX engineid_dvpp ON DvppOriginalData(engineid)")
             if not DBManager.judge_index_exist(self.cur, "enginetype_dvpp"):
-                self.cur.execute("CREATE INDEX enginetype_dvpp ON "
-                                 "DvppOriginalData(enginetype)")
+                self.cur.execute("CREATE INDEX enginetype_dvpp ON DvppOriginalData(enginetype)")
 
     def _get_dvpp_tree_data(self: any, total_device_id: list, enginetype: list) -> list:
         result_data = []
         for devid in total_device_id:
             for etype in enginetype:
-                sql = "select distinct(engineid) " \
-                      "from DvppOriginalData where device_id = ? and " \
-                      "enginetype = ?"
+                sql = "select distinct(engineid) from DvppOriginalData where device_id = ? and enginetype = ?"
                 engine_id = DBManager.fetch_all_data(self.cur, sql, (devid[0], etype[0]))
                 for eid in engine_id:
                     result_data.append((devid[0], etype[0], eid[0]))
@@ -94,16 +91,13 @@ class DvppModel(BaseModel, ABC):
         :return: None
         """
         if not DBManager.judge_table_exist(self.cur, 'DvppTreeData'):
-            create_sql = "create table DvppTreeData (device_id Int, engineType Int," \
-                         " engineId Int)"
+            create_sql = "create table DvppTreeData (device_id Int, engineType Int, engineId Int)"
             DBManager.execute_sql(self.conn, create_sql)
 
-        total_device_id_sql = "SELECT DISTINCT(device_id) FROM DvppOriginalData WHERE " \
-                              "replayid IS 0;"
+        total_device_id_sql = "SELECT DISTINCT(device_id) FROM DvppOriginalData WHERE replayid IS 0;"
         total_device_id = DBManager.fetch_all_data(self.cur, total_device_id_sql)
 
-        enginetype_sql = "SELECT DISTINCT(enginetype) FROM DvppOriginalData WHERE " \
-                         "replayid IS 0;"
+        enginetype_sql = "SELECT DISTINCT(enginetype) FROM DvppOriginalData WHERE replayid IS 0;"
         enginetype = DBManager.fetch_all_data(self.cur, enginetype_sql)
         result_data = self._get_dvpp_tree_data(total_device_id, enginetype)
 
@@ -115,8 +109,7 @@ class DvppModel(BaseModel, ABC):
         select_device_sql = "select distinct(device_id) from DvppOriginalData where replayId = 0"
         device_ids = DBManager.fetch_all_data(self.cur, select_device_sql)
 
-        select_dvpp_sql = "select distinct(dvppId) from DvppOriginalData where " \
-                          "replayId = 0 and device_id = ?"
+        select_dvpp_sql = "select distinct(dvppId) from DvppOriginalData where replayId = 0 and device_id = ?"
         for device_id in device_ids:
             if has_dvpp_id:
                 dvpp_ids = DBManager.fetch_all_data(self.cur, select_dvpp_sql, (device_id[0],))
@@ -132,8 +125,7 @@ class DvppModel(BaseModel, ABC):
         :return: None
         """
         if not DBManager.judge_table_exist(self.cur, 'DvppReportData'):
-            sql = DBManager.sql_create_general_table(
-                'DvppReportDataMap', 'DvppReportData', self.TABLES_PATH)
+            sql = DBManager.sql_create_general_table('DvppReportDataMap', 'DvppReportData', self.TABLES_PATH)
             DBManager.execute_sql(self.conn, sql)
         target_data = self._get_dvpp_report_data(has_dvpp_id)
         # target data has a length of 7, so I use "?," * 6 + "?" below
@@ -145,38 +137,44 @@ class DvppModel(BaseModel, ABC):
         get dvpp_data by dvpp_id
         :return: None
         """
-        type_sql = "select distinct(engineType) from DvppOriginalData " \
-                   "where replayId = 0 and device_id = ? and dvppId = ?"
+        type_sql = (
+            "select distinct(engineType) from DvppOriginalData where replayId = 0 and device_id = ? and dvppId = ?"
+        )
         engine_types = DBManager.fetch_all_data(self.cur, type_sql, (device_id[0], dvpp_id[0]))
         for engine_type in engine_types:
-            ids_sql = "select distinct(engineId) from DvppOriginalData " \
-                      "where engineType = ? and device_id = ? and dvppId = ?"
+            ids_sql = (
+                "select distinct(engineId) from DvppOriginalData where engineType = ? and device_id = ? and dvppId = ?"
+            )
             engine_ids = DBManager.fetch_all_data(self.cur, ids_sql, (engine_type[0], device_id[0], dvpp_id[0]))
             for engine_id in engine_ids:
-                all_time_sql = 'select max(allTime)-min(allTime) from DvppOriginalData ' \
-                               'where engineType = ? and engineId = ? and device_id = ? and ' \
-                               'dvppId = ? order by rowid;'
-                all_time = DBManager.fetch_all_data(self.cur, all_time_sql,
-                                                    (engine_type[0], engine_id[0], device_id[0], dvpp_id[0]))[0][0]
+                all_time_sql = (
+                    'select max(allTime)-min(allTime) from DvppOriginalData '
+                    'where engineType = ? and engineId = ? and device_id = ? and '
+                    'dvppId = ? order by rowid;'
+                )
+                all_time = DBManager.fetch_all_data(
+                    self.cur, all_time_sql, (engine_type[0], engine_id[0], device_id[0], dvpp_id[0])
+                )[0][0]
 
-                all_frame_sql = 'select max(allFrame)-min(allFrame) from ' \
-                                'DvppOriginalData where engineType = ? and ' \
-                                'engineId = ? and device_id = ?  and dvppId = ? order by rowid;'
-                all_frame = DBManager.fetch_all_data(self.cur, all_frame_sql,
-                                                     (engine_type[0], engine_id[0], device_id[0], dvpp_id[0]))[0][0]
+                all_frame_sql = (
+                    'select max(allFrame)-min(allFrame) from '
+                    'DvppOriginalData where engineType = ? and '
+                    'engineId = ? and device_id = ?  and dvppId = ? order by rowid;'
+                )
+                all_frame = DBManager.fetch_all_data(
+                    self.cur, all_frame_sql, (engine_type[0], engine_id[0], device_id[0], dvpp_id[0])
+                )[0][0]
 
-                utilization_sql = 'select allutilization from ' \
-                                  'DvppOriginalData where engineType = ? and ' \
-                                  'engineId = ? and device_id = ?  and dvppId = ? order by rowid desc limit 1;'
-                utilization = DBManager.fetchone(self.cur, utilization_sql,
-                                                 (engine_type[0], engine_id[0], device_id[0], dvpp_id[0]))
+                utilization_sql = (
+                    'select allutilization from '
+                    'DvppOriginalData where engineType = ? and '
+                    'engineId = ? and device_id = ?  and dvppId = ? order by rowid desc limit 1;'
+                )
+                utilization = DBManager.fetchone(
+                    self.cur, utilization_sql, (engine_type[0], engine_id[0], device_id[0], dvpp_id[0])
+                )
 
                 all_utilization = str(utilization[0]).strip('%') if utilization else '0'
                 target_data.append(
-                    (dvpp_id[0],
-                     device_id[0],
-                     engine_type[0],
-                     engine_id[0],
-                     all_time,
-                     all_frame,
-                     all_utilization))
+                    (dvpp_id[0], device_id[0], engine_type[0], engine_id[0], all_time, all_frame, all_utilization)
+                )

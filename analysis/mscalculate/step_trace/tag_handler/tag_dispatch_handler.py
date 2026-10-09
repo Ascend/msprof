@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -28,6 +28,7 @@ class DispatchModelHandler(StepTraceTagHandler):
     """
     dispatch record to handler according to model id
     """
+
     def __init__(self: any) -> None:
         self.next_handler = None
         self.next_handler_group = collections.defaultdict(DispatchIndexHandler)
@@ -94,8 +95,11 @@ class DispatchIndexHandler(StepTraceTagHandler):
         index_id = self.state_machine.get_index()
 
         if index_id in self.collect_data and (
-                not (self.collect_data.get(StepTraceConstant.STEP_START) and
-                     self.collect_data.get(StepTraceConstant.STEP_END))):
+            not (
+                self.collect_data.get(StepTraceConstant.STEP_START)
+                and self.collect_data.get(StepTraceConstant.STEP_END)
+            )
+        ):
             self.collect_data.pop(index_id)
 
         for index, collect_datum in self.collect_data.items():
@@ -123,6 +127,7 @@ class DispatchIterInfoHandler(StepTraceTagHandler):
     """
     dispatch record to handler according to tag id
     """
+
     def __init__(self: any) -> None:
         self.next_handler = None
         self.next_handler_group = {

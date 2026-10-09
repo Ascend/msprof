@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,10 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import os
 import sqlite3
 
-from common_func.common import CommonConstant
 from common_func.config_mgr import ConfigMgr
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
@@ -29,8 +27,7 @@ from msmodel.hardware.mini_llc_model import cal_core2cpu
 
 
 def _get_ddr_data_from_db(curs: any, device_id: str) -> list:
-    sql = 'select flux_read, flux_write ' \
-          'from DDRMetricData where device_id = ?;'
+    sql = 'select flux_read, flux_write from DDRMetricData where device_id = ?;'
     ddr_data = curs.execute(sql, (device_id,)).fetchone()
     if ddr_data is None:
         return MsvpConstant.MSVP_EMPTY_DATA
@@ -46,8 +43,9 @@ def _get_ddr_data_from_db(curs: any, device_id: str) -> list:
         write_avg = write_sum * 1.0 / len(ddr_data)
     data = [
         [
-            'Average', round(read_avg, NumberConstant.ROUND_THREE_DECIMAL),
-            round(write_avg, NumberConstant.ROUND_THREE_DECIMAL)
+            'Average',
+            round(read_avg, NumberConstant.ROUND_THREE_DECIMAL),
+            round(write_avg, NumberConstant.ROUND_THREE_DECIMAL),
         ]
     ]
     return data
@@ -93,8 +91,9 @@ def cal_llc_band_res(llc_data: list, max_time: float) -> tuple:
 
     hit_rate = [
         [
-            "Hit_Rate(%)", round(read_hit * NumberConstant.PERCENTAGE, NumberConstant.ROUND_THREE_DECIMAL),
-            round(write_hit * NumberConstant.PERCENTAGE, NumberConstant.ROUND_THREE_DECIMAL)
+            "Hit_Rate(%)",
+            round(read_hit * NumberConstant.PERCENTAGE, NumberConstant.ROUND_THREE_DECIMAL),
+            round(write_hit * NumberConstant.PERCENTAGE, NumberConstant.ROUND_THREE_DECIMAL),
         ]
     ]
     if NumberConstant.is_zero(max_time):
@@ -104,23 +103,39 @@ def cal_llc_band_res(llc_data: list, max_time: float) -> tuple:
         bandwidth = [
             [
                 "BandWidth(MB/s)",
-                round((llc_data[0] + llc_data[1]) * NumberConstant.LLC_CAPACITY
-                      / max_time / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
-                      NumberConstant.ROUND_THREE_DECIMAL),
-                round((llc_data[3] + llc_data[4]) * NumberConstant.LLC_CAPACITY
-                      / max_time / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
-                      NumberConstant.ROUND_THREE_DECIMAL)
+                round(
+                    (llc_data[0] + llc_data[1])
+                    * NumberConstant.LLC_CAPACITY
+                    / max_time
+                    / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
+                    NumberConstant.ROUND_THREE_DECIMAL,
+                ),
+                round(
+                    (llc_data[3] + llc_data[4])
+                    * NumberConstant.LLC_CAPACITY
+                    / max_time
+                    / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
+                    NumberConstant.ROUND_THREE_DECIMAL,
+                ),
             ]
         ]
         hit_bandwidth = [
             [
                 "Hit_BandWidth(MB/s)",
-                round(llc_data[2] * NumberConstant.LLC_CAPACITY
-                      / max_time / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
-                      NumberConstant.ROUND_THREE_DECIMAL),
-                round(llc_data[5] * NumberConstant.LLC_CAPACITY
-                      / max_time / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
-                      NumberConstant.ROUND_THREE_DECIMAL)
+                round(
+                    llc_data[2]
+                    * NumberConstant.LLC_CAPACITY
+                    / max_time
+                    / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
+                    NumberConstant.ROUND_THREE_DECIMAL,
+                ),
+                round(
+                    llc_data[5]
+                    * NumberConstant.LLC_CAPACITY
+                    / max_time
+                    / (NumberConstant.KILOBYTE * NumberConstant.KILOBYTE),
+                    NumberConstant.ROUND_THREE_DECIMAL,
+                ),
             ]
         ]
     result_data = bandwidth + hit_rate + hit_bandwidth
@@ -131,15 +146,17 @@ def cal_llc_band_res(llc_data: list, max_time: float) -> tuple:
 def _get_bandwidth_res(curs: any, device_id: str) -> tuple:
     try:
         max_time = curs.execute(
-            "select max(timestamp) - min(timestamp) from LLCMetricData "
-            "where device_id = ?;", (device_id,)).fetchone()[0]
+            "select max(timestamp) - min(timestamp) from LLCMetricData where device_id = ?;", (device_id,)
+        ).fetchone()[0]
     except sqlite3.Error:
         return MsvpConstant.MSVP_EMPTY_DATA
     if max_time is None:
         return MsvpConstant.MSVP_EMPTY_DATA
-    sql = 'select sum(read_allocate),sum(read_noallocate),sum(read_hit),' \
-          'sum(write_allocate),sum(write_noallocate),sum(write_hit)' \
-          ' from LLCMetricData where device_id = ?;'
+    sql = (
+        'select sum(read_allocate),sum(read_noallocate),sum(read_hit),'
+        'sum(write_allocate),sum(write_noallocate),sum(write_hit)'
+        ' from LLCMetricData where device_id = ?;'
+    )
     try:
         llc_data = curs.execute(sql, (device_id,)).fetchone()
     except sqlite3.Error:
@@ -158,8 +175,10 @@ def get_llc_bandwidth(project_path: str, device_id: str) -> tuple:
     if not (conn and curs):
         return MsvpConstant.MSVP_EMPTY_DATA
     try:
-        if not DBManager.judge_table_exist(curs, "LLCMetricData") \
-                or sample_config.get(StrConstant.LLC_PROF, "") != StrConstant.LLC_BAND_ITEM:
+        if (
+            not DBManager.judge_table_exist(curs, "LLCMetricData")
+            or sample_config.get(StrConstant.LLC_PROF, "") != StrConstant.LLC_BAND_ITEM
+        ):
             return MsvpConstant.MSVP_EMPTY_DATA
         return _get_bandwidth_res(curs, device_id)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError):
@@ -172,18 +191,17 @@ def _get_llc_capacity_data(curs: any, project_path: str, device_id: str, types: 
     core2cpu = cal_core2cpu(project_path, device_id)
     dsid_name = core2cpu[types]
     dsid_name = Utils.generator_to_list(
-        f"sum({i})*{NumberConstant.LLC_CAPACITY}/({NumberConstant.BYTES_TO_KB})"
-        for i in dsid_name)
-    sql = "select {column} from LLCDsidData " \
-          "where device_id = ?".format(column=",".join(dsid_name))
+        f"sum({i})*{NumberConstant.LLC_CAPACITY}/({NumberConstant.BYTES_TO_KB})" for i in dsid_name
+    )
+    sql = "select {column} from LLCDsidData where device_id = ?".format(column=",".join(dsid_name))
     dsid_data = DBManager.fetch_all_data(curs, sql, (device_id,))
     dsid_data = Utils.generator_to_list(list(i) for i in dsid_data)
     for index, value in enumerate(dsid_data):
         dsid_data[index] = Utils.generator_to_list(round(i, NumberConstant.ROUND_THREE_DECIMAL) for i in value)
-    dsid_data = Utils.generator_to_list(['Used Capacity of LLC'] + i +
-                                        [round(sum(i), NumberConstant.ROUND_THREE_DECIMAL)] for i in dsid_data)
-    cpu_list = Utils.generator_to_list('CPU{}(KB)'.format(value)
-                                       for value in range(len(core2cpu[types])))
+    dsid_data = Utils.generator_to_list(
+        ['Used Capacity of LLC'] + i + [round(sum(i), NumberConstant.ROUND_THREE_DECIMAL)] for i in dsid_data
+    )
+    cpu_list = Utils.generator_to_list('CPU{}(KB)'.format(value) for value in range(len(core2cpu[types])))
     headers = ['Metric'] + cpu_list + ['Total(KB)']
     return headers, dsid_data, 1  # 1 refers to the count of data of llc capacity
 

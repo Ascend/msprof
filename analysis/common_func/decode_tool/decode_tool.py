@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -23,10 +23,8 @@ class DecodeTool:
     """
     decode byte according to expression. expression consists of symbols that belong to ByteDecoder.
     """
-    FORMAT_LIST = [
-        ["T", 3, [24]],
-        ["t", 3, [12, 12]]
-    ]
+
+    FORMAT_LIST = [["T", 3, [24]], ["t", 3, [12, 12]]]
 
     def __init__(self: any) -> None:
         self.decoder_dict = self.extend_interpreter()
@@ -50,7 +48,7 @@ class DecodeTool:
         for fmt in mon_fmts:
             if fmt in self.decoder_dict:
                 byte_parser = self.decoder_dict.get(fmt)
-                each_result = byte_parser.decode_byte(several_byte_data[offset:offset + byte_parser.input_byte_size])
+                each_result = byte_parser.decode_byte(several_byte_data[offset : offset + byte_parser.input_byte_size])
                 decode_result.extend(each_result)
                 offset += byte_parser.input_byte_size
             else:

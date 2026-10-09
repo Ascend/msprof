@@ -1,27 +1,29 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "analysis/csrc/domain//data_process/ai_task/api_processor.h"
-#include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain//data_process/ai_task/api_processor.h"
 #include "analysis/csrc/domain/data_process/data_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -55,11 +57,13 @@ const uint16_t TID_INDEX = 3;
 const uint16_t CONNECTION_ID_INDEX = 7;
 const uint16_t EVENT_ID_INDEX = 8;
 
-class ApiProcessorUTest : public testing::Test {
-protected:
+class ApiProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(API_DIR)) {
+        if (File::Check(API_DIR))
+        {
             File::RemoveDir(API_DIR, 0);
         }
         EXPECT_TRUE(File::CreateDir(API_DIR));
@@ -109,16 +113,14 @@ protected:
         MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     }
 
-    virtual void TearDown()
-    {
-        MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
-    }
+    virtual void TearDown() { MOCKER_CPP(&Context::GetInfoByDeviceId).reset(); }
 };
 
-void CheckApiDataValid(const std::vector<ApiData> &checkData)
+void CheckApiDataValid(const std::vector<ApiData>& checkData)
 {
     size_t index = 0;
-    for (const auto &data : checkData) {
+    for (const auto& data : checkData)
+    {
         // 比对前后的level是否一致
         auto tempTypeIt = API_LEVEL_TABLE.find(std::get<LEVEL_INDEX>(API_DATA[index]));
         EXPECT_EQ(data.level, (tempTypeIt == API_LEVEL_TABLE.end()) ? UINT16_MAX : tempTypeIt->second);
@@ -136,12 +138,14 @@ TEST_F(ApiProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
     std::vector<DataInventory> res(PROF_PATHS.size());
     size_t i = 0;
-    for (const auto& profPath : PROF_PATHS) {
+    for (const auto& profPath : PROF_PATHS)
+    {
         auto processor = ApiProcessor(profPath);
         EXPECT_TRUE(processor.Run(res[i], PROCESSOR_NAME_API));
         ++i;
     }
-    for (auto& node : res) {
+    for (auto& node : res)
+    {
         auto checkData = node.GetPtr<std::vector<ApiData>>();
         EXPECT_EQ(API_DATA.size(), checkData->size());
         CheckApiDataValid(*checkData);
@@ -153,31 +157,21 @@ TEST_F(ApiProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
 {
     auto processor = ApiProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetSyscntConversionParams)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
     MOCKER_CPP(&Context::GetSyscntConversionParams).reset();
 
-    MOCKER_CPP(&Context::GetSyscntConversionParams)
-    .stubs()
-    .will(returnValue(true));
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(true));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
     MOCKER_CPP(&Context::GetSyscntConversionParams).reset();
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
 
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
 
-    MOCKER_CPP(&DataProcessor::SaveToDataInventory<ApiData>)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&DataProcessor::SaveToDataInventory<ApiData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<ApiData>).reset();
 }
@@ -195,9 +189,7 @@ TEST_F(ApiProcessorUTest, TestRunShouldReturnFalseWhenFileOverMaxSize)
 {
     auto processor = ApiProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&FileReader::Check)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&FileReader::Check).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
     MOCKER_CPP(&FileReader::Check).reset();
 }
@@ -208,13 +200,10 @@ TEST_F(ApiProcessorUTest, TestRunShouldFalseWhenApiDataIsEmpty)
     DataInventory dataInventory;
     OriApiDataFormat emptyApiData;
 
-    MOCKER_CPP(&ApiProcessor::LoadData)
-    .stubs()
-    .will(returnValue(emptyApiData));
+    MOCKER_CPP(&ApiProcessor::LoadData).stubs().will(returnValue(emptyApiData));
 
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_API));
-    MOCKER_CPP(&ApiProcessor::LoadData)
-    .reset();
+    MOCKER_CPP(&ApiProcessor::LoadData).reset();
 
     DBInfo apiDB("api_event.db", "ApiData");
     std::string dbPath = Utils::File::PathJoin({PROF0, HOST, SQLITE, apiDB.dbName});

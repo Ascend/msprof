@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,18 +14,17 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import logging
 import os
 
-from common_func.batch_counter import BatchCounter
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
-from common_func.msprof_iteration import MsprofIteration
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
@@ -38,7 +37,6 @@ from mscalculate.interface.icalculator import ICalculator
 from mscalculate.ts_task.ai_cpu.aicpu_from_ts_collector import AICpuFromTsCollector
 from msmodel.iter_rec.iter_rec_model import HwtsIterModel
 from msmodel.task_time.hwts_log_model import HwtsLogModel
-from msparser.iter_rec.iter_info_updater.iter_info_manager import IterInfoManager
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.struct_info.aicore_task import TaskExecuteBean
 from profiling_bean.struct_info.hwts_log import HwtsLogBean
@@ -48,6 +46,7 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
     """
     class used to calculate hwts offset and parse log by iter
     """
+
     # Tags for different HWTS log type.
     HWTS_TASK_START = 0
     HWTS_TASK_END = 1
@@ -69,8 +68,9 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
         self._file_list.sort(key=lambda x: int(x.split("_")[-1]))
 
     def is_need_parse_all_file(self):
-        return ProfilingScene().is_all_export() or not \
-                os.path.exists(PathManager.get_db_path(self._project_path, DBNameConstant.DB_HWTS_REC))
+        return ProfilingScene().is_all_export() or not os.path.exists(
+            PathManager.get_db_path(self._project_path, DBNameConstant.DB_HWTS_REC)
+        )
 
     def calculate(self: any) -> None:
         """
@@ -79,11 +79,15 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
         """
         if self.is_need_parse_all_file():
             db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_HWTS)
-            if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_HWTS_TASK,
-                                            DBNameConstant.TABLE_HWTS_TASK_TIME):
-                logging.info("The Table %s or %s already exists in the %s, and won't be calculate again.",
-                             DBNameConstant.TABLE_HWTS_TASK, DBNameConstant.TABLE_HWTS_TASK_TIME,
-                             DBNameConstant.DB_HWTS)
+            if DBManager.check_tables_in_db(
+                db_path, DBNameConstant.TABLE_HWTS_TASK, DBNameConstant.TABLE_HWTS_TASK_TIME
+            ):
+                logging.info(
+                    "The Table %s or %s already exists in the %s, and won't be calculate again.",
+                    DBNameConstant.TABLE_HWTS_TASK,
+                    DBNameConstant.TABLE_HWTS_TASK_TIME,
+                    DBNameConstant.DB_HWTS,
+                )
                 return
             self._parse_all_file()
         else:
@@ -143,12 +147,14 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
         # if parse by iter, the table should be cleared before
         self._hwts_log_model.clear()
         if self._iter_model.check_db() and self._iter_model.check_table():
-            task_offset, task_count = self._iter_model.get_task_offset_and_sum(self._iter_range,
-                                                                               HwtsIterModel.TASK_TYPE)
+            task_offset, task_count = self._iter_model.get_task_offset_and_sum(
+                self._iter_range, HwtsIterModel.TASK_TYPE
+            )
             if not task_count:
                 return
-            _file_calculator = FileCalculator(self._file_list, self.HWTS_LOG_SIZE, self._project_path,
-                                              task_offset, task_count)
+            _file_calculator = FileCalculator(
+                self._file_list, self.HWTS_LOG_SIZE, self._project_path, task_offset, task_count
+            )
             self._parse(_file_calculator.prepare_process())
             self._iter_model.finalize()
 
@@ -168,7 +174,8 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
                     InfoConfReader().time_from_syscnt(datum[3]),
                     datum[-1],
                     self._iter_range.iteration_id,
-                    self._iter_range.model_id]
+                    self._iter_range.model_id,
+                ]
             return prep_data_res
         task_dispatcher = TaskDispatchModelIndex(self._iter_range, self._project_path)
         result_data = []
@@ -180,10 +187,15 @@ class HwtsCalculator(ICalculator, MsMultiProcess):
 
             model_id, index_id = task_dispatcher.dispatch(datum[3])
             result_data.append(
-                list(datum[:2]) + [InfoConfReader().time_from_syscnt(datum[2]),
-                                   InfoConfReader().time_from_syscnt(datum[3]),
-                                   datum[-1],
-                                   index_id, model_id])
+                list(datum[:2])
+                + [
+                    InfoConfReader().time_from_syscnt(datum[2]),
+                    InfoConfReader().time_from_syscnt(datum[3]),
+                    datum[-1],
+                    index_id,
+                    model_id,
+                ]
+            )
         return result_data
 
     def _parse(self: any, all_log_bytes: bytes) -> None:

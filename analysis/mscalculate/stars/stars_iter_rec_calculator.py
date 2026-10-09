@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import logging
 import os
 
 from common_func.db_name_constant import DBNameConstant
@@ -78,8 +77,9 @@ class StarsIterRecCalculator(IParser, MsMultiProcess):
         parse ffts profiler data
         :return:
         """
-        with TsTrackModel(self._project_path, DBNameConstant.DB_STEP_TRACE,
-                          [ProfilingScene().get_step_table_name()]) as trace:
+        with TsTrackModel(
+            self._project_path, DBNameConstant.DB_STEP_TRACE, [ProfilingScene().get_step_table_name()]
+        ) as trace:
             step_time = trace.get_step_syscnt_range(self._iter_range)
         pmu_files = self._file_list.get(DataTag.FFTS_PMU, [])
         if Utils.get_aicore_type(self.sample_config) != StrConstant.AIC_SAMPLE_BASED_MODE and pmu_files:
@@ -191,7 +191,7 @@ class StarsIterRecCalculator(IParser, MsMultiProcess):
                 self._task_offset,
                 self._pmu_cnt,
                 self._pmu_offset,
-             ]
+            ]
         ]
         with HwtsIterModel(self._project_path) as hwts_iter_model:
             hwts_iter_model.clear_table()

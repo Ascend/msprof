@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -40,6 +42,7 @@ class AiCoreSampleModel(BaseModel):
     """
     ffts pmu model.
     """
+
     FILE_NAME = os.path.basename(__file__)
     TYPE = "ai_core"
     PMU_LENGTH = 8
@@ -60,9 +63,8 @@ class AiCoreSampleModel(BaseModel):
         :param event: ai core event
         :return:
         """
-        pmu_length = AiCoreSampleModel.CHIPV6_PMU_LENGTH if ChipManager().is_chip_v6() \
-            else AiCoreSampleModel.PMU_LENGTH
-        ai_core_events = Utils.generator_to_list(event[i:i + pmu_length] for i in range(0, len(event), pmu_length))
+        pmu_length = AiCoreSampleModel.CHIPV6_PMU_LENGTH if ChipManager().is_chip_v6() else AiCoreSampleModel.PMU_LENGTH
+        ai_core_events = Utils.generator_to_list(event[i : i + pmu_length] for i in range(0, len(event), pmu_length))
         return ai_core_events
 
     @staticmethod
@@ -79,8 +81,7 @@ class AiCoreSampleModel(BaseModel):
         create db and tables
         """
 
-        self.conn, self.cur = DBManager.create_connect_db(
-            PathManager.get_db_path(self.result_dir, self.db_name))
+        self.conn, self.cur = DBManager.create_connect_db(PathManager.get_db_path(self.result_dir, self.db_name))
         if not (self.conn and self.cur):
             return False
         self.cur.execute("PRAGMA page_size=8192")
@@ -93,8 +94,7 @@ class AiCoreSampleModel(BaseModel):
         :param table_name:table name
         :return:
         """
-        sql = DBManager.sql_create_general_table(
-            table_name, 'AICoreOriginalData', self.TABLES_PATH)
+        sql = DBManager.sql_create_general_table(table_name, 'AICoreOriginalData', self.TABLES_PATH)
         if not sql:
             logging.error("generate sql statement failed!")
             error(self.FILE_NAME, "generate sql statement failed!")
@@ -150,13 +150,14 @@ class AiCoreSampleModel(BaseModel):
         data = []
         if not metrics_config:
             return NumberConstant.ERROR
-        sql = "CREATE TABLE IF NOT EXISTS MetricSummary (metric text, " \
-              "value numeric, coreid INT)"
+        sql = "CREATE TABLE IF NOT EXISTS MetricSummary (metric text, value numeric, coreid INT)"
         DBManager.execute_sql(self.conn, sql)
         core_id = DBManager.fetch_all_data(self.cur, "select distinct(coreid) from EventCount;")
         for core in core_id:
-            data.extend([key.replace("(gb/s)", "(GB/s)").replace("(kb)", "(KB)"), None,
-                         core[0]] for key in list(metrics_config.keys()))
+            data.extend(
+                [key.replace("(gb/s)", "(GB/s)").replace("(kb)", "(KB)"), None, core[0]]
+                for key in list(metrics_config.keys())
+            )
 
         DBManager.insert_data_into_table(self.conn, "MetricSummary", data)
         return NumberConstant.SUCCESS
@@ -176,7 +177,8 @@ class AiCoreSampleModel(BaseModel):
         for metric in metrics:
             replaced_metric = metric.lower()
             field_val = field_dict.get(replaced_metric, replaced_metric).replace(
-                '/block_num*((block_num+core_num-1)/core_num)', '')
+                '/block_num*((block_num+core_num-1)/core_num)', ''
+            )
             res.append((replaced_metric, field_val))
         field_dict = OrderedDict(res)
         for field in field_dict:
@@ -185,8 +187,11 @@ class AiCoreSampleModel(BaseModel):
             algo = cal.update_fops_data(field, algo)
             algos.append(algo)
 
-        sql = "SELECT " + ",".join("cast(" + algo + " as decimal(8,2))"
-                                   for algo in algos) + " FROM EventCount where coreid = ?"
+        sql = (
+            "SELECT "
+            + ",".join("cast(" + algo + " as decimal(8,2))" for algo in algos)
+            + " FROM EventCount where coreid = ?"
+        )
         if ChipManager().is_chip_v1_1():
             sql = self._adapt_register_change(sql)
         return sql
@@ -200,8 +205,9 @@ class AiCoreSampleModel(BaseModel):
         count_num = data_list[0][0]
         column = 'mode,replayid,timestamp,coreid,task_cyc,'
         column = column + ','.join('event{}'.format(i) for i in range(1, count_num + 1))
-        sql = 'insert into AICoreOriginalData ({column}) values ({value})'. \
-            format(column=column, value='?,' * (4 + count_num) + '?')
+        sql = 'insert into AICoreOriginalData ({column}) values ({value})'.format(
+            column=column, value='?,' * (4 + count_num) + '?'
+        )
         DBManager.executemany_sql(self.conn, sql, Utils.generator_to_list(x[1:] for x in data_list))
 
     def clear(self: any) -> None:
@@ -214,9 +220,11 @@ class AiCoreSampleModel(BaseModel):
             DBManager.drop_table(self.conn, DBNameConstant.TABLE_METRIC_SUMMARY)
 
     def _create_event_count_table(self: any, events: list) -> None:
-        sql = "CREATE TABLE IF NOT EXISTS EventCount (" + \
-              ",".join(pmu_event.replace('0x', 'r') +
-                       " numeric" for pmu_event in events) + ",task_cyc numeric,coreid INT)"
+        sql = (
+            "CREATE TABLE IF NOT EXISTS EventCount ("
+            + ",".join(pmu_event.replace('0x', 'r') + " numeric" for pmu_event in events)
+            + ",task_cyc numeric,coreid INT)"
+        )
         self.cur.execute(sql)
         self.conn.commit()
 
@@ -229,29 +237,39 @@ class AiCoreSampleModel(BaseModel):
         for replay, event in enumerate(ai_core_events):
             for index, value in enumerate(event):
                 DBManager.drop_table(self.conn, value.replace('0x', 'r'))
-                DBManager.execute_sql(self.conn, "create table {tablename}(timestamp INTEGER, "
-                                                 "pmucount INTEGER, coreid INTEGER)"
-                                      .format(tablename=value.replace('0x', 'r')))
-                sql = "insert into {tablename} select timestamp, event{index}, coreid " \
-                      "from AICoreOriginalData " \
-                      "where replayid = ?".format(tablename=value.replace('0x', 'r'),
-                                                  index=index + 1, )
+                DBManager.execute_sql(
+                    self.conn,
+                    "create table {tablename}(timestamp INTEGER, pmucount INTEGER, coreid INTEGER)".format(
+                        tablename=value.replace('0x', 'r')
+                    ),
+                )
+                sql = (
+                    "insert into {tablename} select timestamp, event{index}, coreid "
+                    "from AICoreOriginalData "
+                    "where replayid = ?".format(
+                        tablename=value.replace('0x', 'r'),
+                        index=index + 1,
+                    )
+                )
                 DBManager.execute_sql(self.conn, sql, (replay,))
         return True
 
     def _get_ai_core_event_sum(self: any, events: list) -> dict:
         event_sum = {}
         for i in events:
-            result = self.cur.execute("select sum(pmucount),coreid from {tablename} "
-                                      "group by coreid order by coreid".
-                                      format(tablename=i.replace("0x", "r"))).fetchall()
+            result = self.cur.execute(
+                "select sum(pmucount),coreid from {tablename} group by coreid order by coreid".format(
+                    tablename=i.replace("0x", "r")
+                )
+            ).fetchall()
             for j in result:
                 if j[-1] in event_sum:
                     event_sum.get(j[-1]).append(j[0])
                 else:
                     event_sum[j[-1]] = [j[0]]
-        result = self.cur.execute("select sum(pmucount),coreid from task_cyc "
-                                  "group by coreid order by coreid").fetchall()
+        result = self.cur.execute(
+            "select sum(pmucount),coreid from task_cyc group by coreid order by coreid"
+        ).fetchall()
         for j in result:
             if j[-1] in event_sum:
                 event_sum.get(j[-1]).append(j[0])
@@ -262,19 +280,15 @@ class AiCoreSampleModel(BaseModel):
         return event_sum
 
     def _init_task_cyc_table(self: any) -> None:
-        self.cur.execute("create table task_cyc(timestamp INTEGER, "
-                         "pmucount INTEGER, coreid INTEGER)")
-        sql = "insert into task_cyc select timestamp, task_cyc, coreid " \
-              "from AICoreOriginalData where replayid is 0"
+        self.cur.execute("create table task_cyc(timestamp INTEGER, pmucount INTEGER, coreid INTEGER)")
+        sql = "insert into task_cyc select timestamp, task_cyc, coreid from AICoreOriginalData where replayid is 0"
         self.cur.execute(sql)
 
     def _insert_event_table(self: any, events: list) -> None:
         event_sum = self._get_ai_core_event_sum(events)
-        sql = 'insert into EventCount values ({value})'.format(
-            value="?," * (len(events)) + "?,?")
+        sql = 'insert into EventCount values ({value})'.format(value="?," * (len(events)) + "?,?")
         self.cur.executemany(sql, list(event_sum.values()))
-        if (self.cur.execute("SELECT count(*) FROM sqlite_master "
-                             "WHERE type='table' AND name='r11'").fetchall()[0][0]):
+        if self.cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='r11'").fetchall()[0][0]:
             self.cur.execute("drop table if exists cycles")
             self.cur.execute("alter table r11 rename to cycles")
         self.conn.commit()
@@ -289,8 +303,11 @@ class AiCoreSampleModel(BaseModel):
                 index = 0
                 for _metric in metrics:
                     value = row[index] if row[index] else 0
-                    DBManager.execute_sql(self.conn, "UPDATE MetricSummary SET value=? WHERE metric=? and coreid=?",
-                                          (value, _metric, core[0]))
+                    DBManager.execute_sql(
+                        self.conn,
+                        "UPDATE MetricSummary SET value=? WHERE metric=? and coreid=?",
+                        (value, _metric, core[0]),
+                    )
                     index += 1
 
     def _get_metrics(self: any, key: str) -> list:
@@ -304,8 +321,7 @@ class AiCoreSampleModel(BaseModel):
             return []
         sample_metrics_lst = sample_metrics.split(",")
         for _key in sample_metrics_lst:
-            if _key.lower() not in \
-                    (item[0] for item in config_file_obj(file_name='ai_core').items('formula')):
+            if _key.lower() not in (item[0] for item in config_file_obj(file_name='ai_core').items('formula')):
                 message = f"Invalid metric {_key} ."
                 raise ProfException(ProfException.PROF_SYSTEM_EXIT, message)
         metrics.extend(sample_metrics_lst)
@@ -316,8 +332,9 @@ class AiCoreSampleModel(BaseModel):
         chip id 7, 8, 11 register is changed when the pmu type is MemoryUB, 0x1a5 is one of new register.
         In the above scene, special adaptation is required.
         """
-        if self.sample_config.get("ai_core_metrics") == "MemoryUB" and \
-                "0x1a5" in self.sample_config.get("ai_core_profiling_events"):
+        if self.sample_config.get("ai_core_metrics") == "MemoryUB" and "0x1a5" in self.sample_config.get(
+            "ai_core_profiling_events"
+        ):
             sql = sql.replace("r3e", "r1a6")
             sql = sql.replace("r3d", "r1a5")
             sql = sql.replace("r44", "r191")

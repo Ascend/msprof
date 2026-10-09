@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -25,6 +25,7 @@ class HostInfo(BaseInfo):
     """
     host info class
     """
+
     HOST_CPU_INFO = "CPU"
     CPU_INDEX = "CPU{}"
 
@@ -38,7 +39,7 @@ class HostInfo(BaseInfo):
     CPU_TYPE = "Type"
 
     def __init__(self: any) -> None:
-        super(HostInfo, self).__init__()
+        super().__init__()
         self.host_computer_name = ""
         self.host_operating_system = ""
         self.cpu_num = 0
@@ -66,10 +67,12 @@ class HostInfo(BaseInfo):
                 if cpu_item.get(self.CPU_ID, None) is None:
                     logging.error("Can't get cpu id from info.json, please check.")
                     continue
-                cpu_info = CpuInfo(self.CPU_INDEX.format(cpu_item.get(self.CPU_ID, "")),
-                                   cpu_item.get(self.CPU_FREQUENCY),
-                                   cpu_item.get(self.LOGICAL_CPU_COUNT),
-                                   cpu_item.get(self.CPU_NAME),
-                                   cpu_item.get(self.CPU_TYPE))
+                cpu_info = CpuInfo(
+                    self.CPU_INDEX.format(cpu_item.get(self.CPU_ID, "")),
+                    cpu_item.get(self.CPU_FREQUENCY),
+                    cpu_item.get(self.LOGICAL_CPU_COUNT),
+                    cpu_item.get(self.CPU_NAME),
+                    cpu_item.get(self.CPU_TYPE),
+                )
                 self.cpu_num += int(cpu_item.get(self.LOGICAL_CPU_COUNT))
                 self.cpu_info.append(cpu_info)

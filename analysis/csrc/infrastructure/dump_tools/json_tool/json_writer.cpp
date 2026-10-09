@@ -1,41 +1,41 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 #include "analysis/csrc/infrastructure/dump_tools/json_tool/include/json_writer.h"
 
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 using namespace rapidjson;
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Infra {
+namespace Infra
+{
 
 JsonWriter::JsonWriter()
-    : stream_(Utils::MAKE_UNIQUE_PTR<StringBuffer>()), writer_(Utils::MAKE_UNIQUE_PTR<PrettyWriter<StringBuffer>>(*stream_))
+    : stream_(Utils::MAKE_UNIQUE_PTR<StringBuffer>()),
+      writer_(Utils::MAKE_UNIQUE_PTR<PrettyWriter<StringBuffer>>(*stream_))
 {
 }
 
-JsonWriter::~JsonWriter()
-{
-}
+JsonWriter::~JsonWriter() {}
 
-const char* JsonWriter::GetString() const
-{
-    return stream_->GetString();
-}
+const char* JsonWriter::GetString() const { return stream_->GetString(); }
 
 JsonWriter& JsonWriter::StartObject()
 {
@@ -115,6 +115,6 @@ JsonWriter& JsonWriter::SetNull()
     return *this;
 }
 
-}
+}  // namespace Infra
 
-}
+}  // namespace Analysis

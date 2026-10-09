@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -30,9 +30,7 @@ class QosViewer(BaseViewer, ABC):
 
     def __init__(self: any, configs: dict, params: dict) -> None:
         super().__init__(configs, params)
-        self.model_list = {
-            "qos": QosViewModel
-        }
+        self.model_list = {"qos": QosViewModel}
         self.pid = InfoConfReader().get_json_pid_data()
         self.tid = InfoConfReader().get_json_tid_data()
 
@@ -59,22 +57,18 @@ class QosViewer(BaseViewer, ABC):
         column_trace_data = self.get_column_trace_data(datas, key_list)
         meta_data = [["process_name", self.pid, self.tid, "QoS"]]
         result = TraceViewManager.metadata_event(meta_data)
-        result.extend(TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST,
-                                                          column_trace_data))
+        result.extend(
+            TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, column_trace_data)
+        )
         return result
 
 
 class StarsQosViewer(QosViewer):
-    DIE_ID_KEY = {
-        0: "die 0",
-        1: "die 1"
-    }
+    DIE_ID_KEY = {0: "die 0", 1: "die 1"}
 
     def __init__(self: any, configs: dict, params: dict) -> None:
         super().__init__(configs, params)
-        self.model_list = {
-            "qos": QosViewModel
-        }
+        self.model_list = {"qos": QosViewModel}
 
     def get_column_trace_data(self, datas: list, key_list: list) -> list:
         timestamp_index = 0

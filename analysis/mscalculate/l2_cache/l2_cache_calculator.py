@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import configparser
 import logging
@@ -38,6 +40,7 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
     """
     calculator for l2 cache
     """
+
     REQUEST_EVENTS = "request_events"
     HIT_EVENTS = "hit_events"
     VICTIM_EVENTS = "victim_events"
@@ -103,8 +106,11 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
             return
         db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_L2CACHE)
         if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_L2CACHE_SUMMARY):
-            logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                         DBNameConstant.TABLE_L2CACHE_SUMMARY, DBNameConstant.DB_L2CACHE)
+            logging.info(
+                "The Table %s already exists in the %s, and won't be calculate again.",
+                DBNameConstant.TABLE_L2CACHE_SUMMARY,
+                DBNameConstant.DB_L2CACHE,
+            )
             return
         logging.info("start to calculate the data of l2 cache")
         if not self._pre_check():
@@ -116,8 +122,7 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
     def _read_job_l2_cache_events_info(self: any) -> list:
         config = ConfigMgr.read_sample_config(self._project_path)
         events_from_config = config.get("l2CacheTaskProfilingEvents", "").split(",")
-        l2_cache_events = \
-            Utils.generator_to_list(event.strip().lower() for event in events_from_config)
+        l2_cache_events = Utils.generator_to_list(event.strip().lower() for event in events_from_config)
         return l2_cache_events
 
     def _get_l2_cache_ps_data(self: any) -> list:
@@ -131,7 +136,7 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
         else:
             return {
                 "coefficient": 1 if abs_event_type == event_type else -1,
-                "index": self._l2_cache_events.index(abs_event_type)
+                "index": self._l2_cache_events.index(abs_event_type),
             }
 
     def _update_event_indexes_dict(self: any, used_event_type_list: list) -> None:
@@ -148,11 +153,12 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
 
     def _check_event_indexes(self: any) -> bool:
         if not self._is_valid_index(self._event_indexes):
-            logging.error("invalid l2 cache events, in platform: %s,"
-                          " excepted l2 cache events: %s, collected: %s",
-                          self._platform_type,
-                          str(self._cfg_parser.items(self._platform_type)),
-                          ",".join(self._l2_cache_events))
+            logging.error(
+                "invalid l2 cache events, in platform: %s, excepted l2 cache events: %s, collected: %s",
+                self._platform_type,
+                str(self._cfg_parser.items(self._platform_type)),
+                ",".join(self._l2_cache_events),
+            )
             return False
         return True
 
@@ -161,13 +167,19 @@ class L2CacheCalculator(ICalculator, MsMultiProcess):
         calculate hit rate and victim rate.
         """
         for _index, l2_cache_event_item in enumerate(self._l2_cache_ps_data):
-            l2_cache_event_item = l2_cache_event_item[self.NO_EVENT_LENGTH:]
-            request_event_value = sum(int(l2_cache_event_item[idx['index']]) * idx['coefficient']
-                                      for idx in self._event_indexes.get(self.REQUEST_EVENTS))
-            hit_event_value = sum(int(l2_cache_event_item[idx['index']]) * idx['coefficient']
-                                  for idx in self._event_indexes.get(self.HIT_EVENTS))
-            victim_event_value = sum(int(l2_cache_event_item[idx['index']]) * idx['coefficient']
-                                     for idx in self._event_indexes.get(self.VICTIM_EVENTS))
+            l2_cache_event_item = l2_cache_event_item[self.NO_EVENT_LENGTH :]
+            request_event_value = sum(
+                int(l2_cache_event_item[idx['index']]) * idx['coefficient']
+                for idx in self._event_indexes.get(self.REQUEST_EVENTS)
+            )
+            hit_event_value = sum(
+                int(l2_cache_event_item[idx['index']]) * idx['coefficient']
+                for idx in self._event_indexes.get(self.HIT_EVENTS)
+            )
+            victim_event_value = sum(
+                int(l2_cache_event_item[idx['index']]) * idx['coefficient']
+                for idx in self._event_indexes.get(self.VICTIM_EVENTS)
+            )
             # calculate hit rate and victim rate
             hit_rate = HitRateMetric(hit_event_value, request_event_value).run_rules()
             victim_rate = VictimRateMetric(victim_event_value, request_event_value).run_rules()

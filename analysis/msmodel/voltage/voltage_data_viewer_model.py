@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -18,8 +18,8 @@ from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.path_manager import PathManager
-from msmodel.interface.view_model import ViewModel
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
+from msmodel.interface.view_model import ViewModel
 
 
 class AicVoltageViewerModel(ViewModel):
@@ -32,15 +32,15 @@ class AicVoltageViewerModel(ViewModel):
     def __init__(self, params: dict) -> None:
         self._result_dir = params.get(StrConstant.PARAM_RESULT_DIR)
         self._iter_range = params.get(StrConstant.PARAM_ITER_ID)
-        super().__init__(self._result_dir, DBNameConstant.DB_VOLTAGE,
-                         [DBNameConstant.TABLE_AIC_VOLTAGE])
+        super().__init__(self._result_dir, DBNameConstant.DB_VOLTAGE, [DBNameConstant.TABLE_AIC_VOLTAGE])
 
     def get_data(self) -> list:
         """
         query ai core voltage data from voltage.db
         """
         if not DBManager.check_tables_in_db(
-                PathManager.get_db_path(self._result_dir, self.db_name), DBNameConstant.TABLE_AIC_VOLTAGE):
+            PathManager.get_db_path(self._result_dir, self.db_name), DBNameConstant.TABLE_AIC_VOLTAGE
+        ):
             return []
         sql = "select syscnt, voltage from {}".format(DBNameConstant.TABLE_AIC_VOLTAGE)
         return DBManager.fetch_all_data(self.cur, sql)
@@ -56,15 +56,15 @@ class BusVoltageViewerModel(ViewModel):
     def __init__(self, params: dict) -> None:
         self._result_dir = params.get(StrConstant.PARAM_RESULT_DIR)
         self._iter_range = params.get(StrConstant.PARAM_ITER_ID)
-        super().__init__(self._result_dir, DBNameConstant.DB_VOLTAGE,
-                         [DBNameConstant.TABLE_BUS_VOLTAGE])
+        super().__init__(self._result_dir, DBNameConstant.DB_VOLTAGE, [DBNameConstant.TABLE_BUS_VOLTAGE])
 
     def get_data(self) -> list:
         """
         query bus voltage data from voltage.db
         """
         if not DBManager.check_tables_in_db(
-                PathManager.get_db_path(self._result_dir, self.db_name), DBNameConstant.TABLE_BUS_VOLTAGE):
+            PathManager.get_db_path(self._result_dir, self.db_name), DBNameConstant.TABLE_BUS_VOLTAGE
+        ):
             return []
         sql = "select syscnt, voltage from {}".format(DBNameConstant.TABLE_BUS_VOLTAGE)
         return DBManager.fetch_all_data(self.cur, sql)

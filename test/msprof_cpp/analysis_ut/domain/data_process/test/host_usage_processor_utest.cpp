@@ -1,24 +1,26 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/host_usage_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -26,7 +28,8 @@ using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Application;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./host_usage_data";
 const std::string PROF_PATH_A = File::PathJoin({BASE_PATH, "PROF_0"});
@@ -40,7 +43,7 @@ const std::string NETWORK_DB_NAME = "host_network_usage.db";
 const std::string NETWORK_TABLE_NAME = "NetworkUsage";
 const std::string RUNTIME_API_DB_NAME = "host_runtime_api.db";
 const std::string RUNTIME_API_TABLE_NAME = "Syscall";
-}
+}  // namespace
 using CpuUsageDataType = std::vector<std::tuple<uint64_t, uint64_t, std::string, double>>;
 CpuUsageDataType cpuUsage{{3758215093862910, 3758215114581640, "50", 0},
                           {3758215093862910, 3758215114581640, "Avg", 0},
@@ -55,22 +58,23 @@ using NetWorkUsageDataType = std::vector<std::tuple<uint64_t, uint64_t, double, 
 NetWorkUsageDataType networkUsage{{35675490307527, 35675511080960, 0.002465, 3.00865051962984},
                                   {35675531284823, 35675552244520, 0, 0},
                                   {35675697968700, 35675718727140, 0.002466, 3.01082354863434}};
-using RuntimeApiDataType = std::vector<std::tuple<std::string, uint64_t, uint64_t, std::string,
-    uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+using RuntimeApiDataType = std::vector<
+    std::tuple<std::string, uint64_t, uint64_t, std::string, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
 RuntimeApiDataType runtimeApiData{
-    {"MSVP_ProfTimer", 206226, 206315, "openat", 35675490307000, 49000, 35675490356000,
-        35675490488000, 35675490492900},
-    {"MSVP_ProfTimer", 206226, 206315, "read", 35675499907000, 20400000, 35675520307000,
-        35675534307000, 35675554707000},
-    {"MSVP_UploaderD", 206226, 206315, "clock_nanosleep", 35675500307000, 50000000, 35675550307000,
-        35675770307000, 35675820307000},
+    {"MSVP_ProfTimer", 206226, 206315, "openat", 35675490307000, 49000, 35675490356000, 35675490488000, 35675490492900},
+    {"MSVP_ProfTimer", 206226, 206315, "read", 35675499907000, 20400000, 35675520307000, 35675534307000,
+     35675554707000},
+    {"MSVP_UploaderD", 206226, 206315, "clock_nanosleep", 35675500307000, 50000000, 35675550307000, 35675770307000,
+     35675820307000},
 };
 
-class HostUsageProcessorUTest : public testing::Test {
-protected:
+class HostUsageProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -84,10 +88,7 @@ protected:
         EXPECT_TRUE(CreateNetWorkUsageData(File::PathJoin({sqlitePath, NETWORK_DB_NAME}), networkUsage));
         EXPECT_TRUE(CreateRuntimeApiData(File::PathJoin({sqlitePath, RUNTIME_API_DB_NAME}), runtimeApiData));
     }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH)); }
     virtual void SetUp()
     {
         nlohmann::json record = {
@@ -101,10 +102,7 @@ protected:
         };
         MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     }
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    virtual void TearDown() { GlobalMockObject::verify(); }
     static bool CreateCpuUsageData(const std::string &dbPath, CpuUsageDataType &data)
     {
         std::shared_ptr<HostCpuUsage> database;
@@ -232,7 +230,6 @@ TEST_F(HostUsageProcessorUTest, ShouldReturnOKWhenMemUsageProcessRunSuccess)
     auto res = dataInventory.GetPtr<std::vector<MemUsageData>>();
     EXPECT_EQ(2ul, res->size());
 }
-
 
 TEST_F(HostUsageProcessorUTest, TestHostMemUsageProcessorRunShouldReturnFalseWhenProcessDataFailed)
 {

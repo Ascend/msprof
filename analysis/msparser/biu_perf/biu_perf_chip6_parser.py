@@ -1,18 +1,21 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
+
 import logging
 import os
 from dataclasses import dataclass
@@ -66,18 +69,20 @@ class BiuPerfChip6Parser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = self._sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
-        self._model = BiuPerfChip6Model(self._project_path,
-                                        [DBNameConstant.TABLE_BIU_DATA, DBNameConstant.TABLE_BIU_INSTR_STATUS])
+        self._model = BiuPerfChip6Model(
+            self._project_path, [DBNameConstant.TABLE_BIU_DATA, DBNameConstant.TABLE_BIU_INSTR_STATUS]
+        )
         self._base_syscnt = 0
         self._block_id = BiuPerfChip6Parser.MAX_BLOCK_ID
         self._instruction_data = []
         self._instr_state_data = []
         self._checkpoint_data = []
         self._cur_core_data = []
+        self._offset_calculator = None
         self._hwts_freq = InfoConfReader().get_freq(StrConstant.HWTS)
         self._aic_freq = InfoConfReader().get_freq(StrConstant.AIC)
 
@@ -156,7 +161,7 @@ class BiuPerfChip6Parser(DataParser, MsMultiProcess):
             if instr_bean.ctrl_type == BiuPerfChip6Parser.CtrlType.START_STAMP.value:
                 # timestamp has 4 chunks, need 3 other chunks
                 if index + 3 < len(chunks_list) and self._check_timestamp_type(chunks_list, index):
-                    timestamp_chunks = chunks_list[index:index + 4]
+                    timestamp_chunks = chunks_list[index : index + 4]
                     self._init_timestamp_and_block(timestamp_chunks)
                 else:
                     logging.error("There are less than 4 timestamp chunks, data is lost.")
@@ -164,8 +169,14 @@ class BiuPerfChip6Parser(DataParser, MsMultiProcess):
                 index += 4  # 4 timestamp chunks length
             else:
                 self._base_syscnt += self._trans_aic_cycle_to_hwts_cycle(instr_bean.sys_cnt)
-                data = [core_info.group_id, core_info.core_type, self._block_id,
-                        instr_bean.ctrl_type, instr_bean.events, self._base_syscnt]
+                data = [
+                    core_info.group_id,
+                    core_info.core_type,
+                    self._block_id,
+                    instr_bean.ctrl_type,
+                    instr_bean.events,
+                    self._base_syscnt,
+                ]
                 self._instruction_data.append(data)
                 self._cur_core_data.append(data)
                 index += 1  # normal chunk length
@@ -177,18 +188,24 @@ class BiuPerfChip6Parser(DataParser, MsMultiProcess):
         """
         status = {
             'last_states': [0] * self.INSTR_EVENTS_LENGTH,  # 记录每个bit的上一次状态
-            'last_syscnts': [0] * self.INSTR_EVENTS_LENGTH  # 记录每个bit的上一次base_syscnt
+            'last_syscnts': [0] * self.INSTR_EVENTS_LENGTH,  # 记录每个bit的上一次base_syscnt
         }
         for data in self._cur_core_data:
             insrt_data = InstructionData(*data)
             if insrt_data.ctrl_type == BiuPerfChip6Parser.CtrlType.STATE.value:
                 self._calculate_status_syscnt(insrt_data, status)
             elif insrt_data.ctrl_type in {item.value for item in BiuPerfChip6Parser.CtrlType}:
-                self._checkpoint_data.append([
-                    insrt_data.group_id, insrt_data.core_type, insrt_data.block_id,
-                    self._get_ctrl_type_name(insrt_data.ctrl_type),
-                    insrt_data.current_syscnt, 0, insrt_data.events
-                ])
+                self._checkpoint_data.append(
+                    [
+                        insrt_data.group_id,
+                        insrt_data.core_type,
+                        insrt_data.block_id,
+                        self._get_ctrl_type_name(insrt_data.ctrl_type),
+                        insrt_data.current_syscnt,
+                        0,
+                        insrt_data.events,
+                    ]
+                )
 
     def _calculate_status_syscnt(self, insrt_data, status):
         for instr_index in range(self.INSTR_EVENTS_LENGTH):
@@ -199,9 +216,15 @@ class BiuPerfChip6Parser(DataParser, MsMultiProcess):
             elif is_status_updated and current_status == 0:
                 dur = insrt_data.current_syscnt - status['last_syscnts'][instr_index]
                 self._instr_state_data.append(
-                    [insrt_data.group_id, insrt_data.core_type, insrt_data.block_id,
-                     self._get_ctrl_type_name(instr_index),
-                     status['last_syscnts'][instr_index], dur, None]
+                    [
+                        insrt_data.group_id,
+                        insrt_data.core_type,
+                        insrt_data.block_id,
+                        self._get_ctrl_type_name(instr_index),
+                        status['last_syscnts'][instr_index],
+                        dur,
+                        None,
+                    ]
                 )
             status['last_states'][instr_index] = current_status
 

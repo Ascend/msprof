@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -15,17 +15,14 @@
 # -------------------------------------------------------------------------
 
 import logging
-from dataclasses import astuple
 from typing import List
 
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
-from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.path_manager import PathManager
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from mscalculate.ascend_task.ascend_task_generator import AscendTaskGenerator
@@ -59,12 +56,14 @@ class AscendTaskCalculator(MsMultiProcess):
     def _collect_ascend_tasks(self):
         iter_range: IterationRange = self.sample_config.get(StrConstant.PARAM_ITER_ID)
         if not ProfilingScene().is_all_export():
-            return AscendTaskGenerator(self.project_path).run(iter_range.model_id,
-                                                              iter_range.iteration_start, iter_range.iteration_end)
+            return AscendTaskGenerator(self.project_path).run(
+                iter_range.model_id, iter_range.iteration_start, iter_range.iteration_end
+            )
         else:
             # in this scene, default iteration is 1
-            return AscendTaskGenerator(self.project_path).run(NumberConstant.INVALID_MODEL_ID,
-                                                              iter_range.iteration_start, iter_range.iteration_end)
+            return AscendTaskGenerator(self.project_path).run(
+                NumberConstant.INVALID_MODEL_ID, iter_range.iteration_start, iter_range.iteration_end
+            )
 
     def _save(self, ascend_tasks: List[TopDownTask]):
         if not ascend_tasks:
@@ -82,8 +81,9 @@ class AscendTaskCalculator(MsMultiProcess):
         else:
             ascend_task_db_path = PathManager.get_db_path(self.project_path, DBNameConstant.DB_ASCEND_TASK)
             if DBManager.check_tables_in_db(ascend_task_db_path, DBNameConstant.TABLE_ASCEND_TASK):
-                logging.info("Found table %s in operator scene, no need to generate again",
-                             DBNameConstant.TABLE_ASCEND_TASK)
+                logging.info(
+                    "Found table %s in operator scene, no need to generate again", DBNameConstant.TABLE_ASCEND_TASK
+                )
                 return False
             logging.info("No table %s found, to generate it", DBNameConstant.TABLE_ASCEND_TASK)
             return True

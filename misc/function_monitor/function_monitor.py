@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -32,7 +32,6 @@ ENABLE_FUNCTION_MONITOR = os.getenv('ENABLE_FUNCTION_MONITOR', 'False').lower() 
 
 
 class MonitorLogger:
-
     PID = None
     LOGGER = None
     LOG_PATH = None
@@ -68,8 +67,12 @@ class MonitorLogger:
                     FileManager.make_dir_safety(log_path)
                     FileManager.check_path_writeable(log_path)
                 except Exception as e:
-                    logging.error(f"Log path writeable check failed: {log_path}, error: {e},"
-                                  f"reset to default path: {default_log_path}")
+                    logging.error(
+                        "Log path writeable check failed: %s, error: %s, reset to default path: %s",
+                        log_path,
+                        e,
+                        default_log_path,
+                    )
                     log_path = default_log_path
             cls.LOG_PATH = log_path
         return cls.LOG_PATH
@@ -102,7 +105,6 @@ def get_rank_id() -> int:
 
 
 class PerformanceMonitor:
-
     THREAD_MAP = defaultdict(int)
 
     def __init__(self, evt_list=None, pid_list=None, cpu_list=None):
@@ -116,9 +118,7 @@ class PerformanceMonitor:
         try:
             self._kperf = importlib.import_module('kperf')
             # set default perf event list
-            self.evt_list = evt_list or [
-                'cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults'
-            ]
+            self.evt_list = evt_list or ['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']
         except Exception as e:
             self.logger.error(f"Failed to import kperf module: {e}")
             self.monitor_enabled = False
@@ -128,11 +128,7 @@ class PerformanceMonitor:
             if not self.monitor_enabled:
                 return
             if self.current_tid not in self.THREAD_MAP:
-                pmu_attr = self._kperf.PmuAttr(
-                    evtList=self.evt_list,
-                    pidList=self.pid_list,
-                    cpuList=self.cpu_list
-                )
+                pmu_attr = self._kperf.PmuAttr(evtList=self.evt_list, pidList=self.pid_list, cpuList=self.cpu_list)
                 pd = self._kperf.open(self._kperf.PmuTaskType.COUNTING, pmu_attr)
 
                 if pd in (-1, None):
@@ -169,15 +165,15 @@ class PerformanceMonitor:
             perf_info = ';'.join(f"event-{evt}:{count}" for evt, count in event_counts.items())
         return perf_info
 
+
 perf_monitor = PerformanceMonitor()
 
-class FunctionMonitorContext:
 
+class FunctionMonitorContext:
     THRESHOLD_MS = 1
     US_TO_MS = 1000.0
 
     def __init__(self, func_name, process_name='', threshold_ms=THRESHOLD_MS):
-
         self.logger = MonitorLogger.get_logger()
 
         if not isinstance(func_name, str):
@@ -214,11 +210,11 @@ class FunctionMonitorContext:
             self.logger.info(
                 f"name:{self.func_name} start:{self.start_time} duration:{duration_us} "
                 f"rankId:{self.rank_id} pid:{os.getpid()} pname:{self.process_name} "
-                f"tid:{threading.get_native_id()} tname:{threading.current_thread().name} extraInfo:{perf_info}")
+                f"tid:{threading.get_native_id()} tname:{threading.current_thread().name} extraInfo:{perf_info}"
+            )
 
 
 def function_monitor(func_name='', process_name='', threshold_ms=1):
-
     def decorator(func):
         name = func.__name__ if not func_name and callable(func) else func_name
 
@@ -226,6 +222,7 @@ def function_monitor(func_name='', process_name='', threshold_ms=1):
         def wrapper(*args, **kwargs):
             with FunctionMonitorContext(name, process_name, threshold_ms):
                 return func(*args, **kwargs)
+
         return wrapper
 
     return decorator

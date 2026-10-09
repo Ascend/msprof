@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -39,7 +41,7 @@ class HcclInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -97,13 +99,35 @@ class HcclInfoParser(DataParser, MsMultiProcess):
             transport_type = trans_enum_name(TransPortType, data.transport_type)
             rdma_type = trans_enum_name(RdmaType, data.rdma_type)
             reformat.append(
-                [data.level, type_info_data.get(data.struct_type, data.struct_type), data.thread_id, data.data_len,
-                 data.timestamp, hash_data.get(data.item_id, data.item_id), data.ccl_tag,
-                 data.group_name, data.local_rank, data.remote_rank, data.rank_size,
-                 data.work_flow_mode, data.plane_id, data.context_id, data.notify_id,
-                 data.stage, role, str(data.duration_estimated), data.src_addr, data.dst_addr,
-                 data.size, op_type, data_type, link_type, transport_type,
-                 rdma_type])
+                [
+                    data.level,
+                    type_info_data.get(data.struct_type, data.struct_type),
+                    data.thread_id,
+                    data.data_len,
+                    data.timestamp,
+                    hash_data.get(data.item_id, data.item_id),
+                    data.ccl_tag,
+                    data.group_name,
+                    data.local_rank,
+                    data.remote_rank,
+                    data.rank_size,
+                    data.work_flow_mode,
+                    data.plane_id,
+                    data.context_id,
+                    data.notify_id,
+                    data.stage,
+                    role,
+                    str(data.duration_estimated),
+                    data.src_addr,
+                    data.dst_addr,
+                    data.size,
+                    op_type,
+                    data_type,
+                    link_type,
+                    transport_type,
+                    rdma_type,
+                ]
+            )
         return reformat
 
     def _read_hccl_info(self: any, file_path: str, offset: OffsetCalculator) -> None:
@@ -114,6 +138,6 @@ class HcclInfoParser(DataParser, MsMultiProcess):
         with FileOpen(file_path, 'rb') as _hccl_info_file:
             _all_hccl_info_data = offset.pre_process(_hccl_info_file.file_reader, file_size)
             for _index in range(file_size // struct_size):
-                data = _all_hccl_info_data[_index * struct_size:(_index + 1) * struct_size]
+                data = _all_hccl_info_data[_index * struct_size : (_index + 1) * struct_size]
                 self.check_magic_num(data)
                 self._hccl_info_data.append(HcclInfoBean.decode(data))

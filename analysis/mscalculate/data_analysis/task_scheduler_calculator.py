@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -37,6 +39,7 @@ class TaskSchedulerCalculator(MsMultiProcess):
     """
     calculate origin data
     """
+
     TABLE_PATH = ConfigManager.TABLES
     COMPLETE_TIME_INDEX = 10
 
@@ -53,8 +56,7 @@ class TaskSchedulerCalculator(MsMultiProcess):
         if not report_data:
             logging.info('Unable to get report task data')
             return
-        sql = 'insert into ReportTask values({value})'.format(
-            value='?,' * (len(report_data[0]) - 1) + '?')
+        sql = 'insert into ReportTask values({value})'.format(value='?,' * (len(report_data[0]) - 1) + '?')
         DBManager.executemany_sql(runtime_conn, sql, report_data)
 
     def ms_run(self: any) -> None:
@@ -86,8 +88,9 @@ class TaskSchedulerCalculator(MsMultiProcess):
         runtime_curs = runtime_conn.cursor()
         logging.info('start create task time table')
         if not DBManager.judge_table_exist(runtime_curs, DBNameConstant.TABLE_RUNTIME_TIMELINE):
-            logging.warning("TimeLine data not found, and no need to create task time data, "
-                            "please check the ts track data.")
+            logging.warning(
+                "TimeLine data not found, and no need to create task time data, please check the ts track data."
+            )
             return
         self._create_task_time_table(runtime_conn, runtime_curs)
         try:
@@ -110,8 +113,11 @@ class TaskSchedulerCalculator(MsMultiProcess):
         logging.info('start insert data into report table')
         db_path = PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME)
         runtime_conn, runtime_curs = DBManager.check_connect_db_path(db_path)
-        if not runtime_conn or not runtime_curs \
-                or not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_RUNTIME_TASK_TIME):
+        if (
+            not runtime_conn
+            or not runtime_curs
+            or not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_RUNTIME_TASK_TIME)
+        ):
             DBManager.destroy_db_connect(runtime_conn, runtime_curs)
             return
         self._create_report_task_table(runtime_conn)
@@ -138,30 +144,32 @@ class TaskSchedulerCalculator(MsMultiProcess):
     def _insert_task_time_data(self: any, task_time: list, runtime_conn: any) -> None:
         # sort by complete time
         task_time = sorted(task_time, key=lambda data: data[self.COMPLETE_TIME_INDEX])
-        insert_sql = "insert into TaskTime " \
-                     "values ({value})".format(value="?," * (len(task_time[0]) - 1) + "?")
+        insert_sql = "insert into TaskTime values ({value})".format(value="?," * (len(task_time[0]) - 1) + "?")
         DBManager.executemany_sql(runtime_conn, insert_sql, task_time)
 
     def _create_task_time_table(self: any, runtime_conn: any, runtime_curs: any) -> None:
         if DBManager.judge_table_exist(runtime_curs, DBNameConstant.TABLE_RUNTIME_TASK_TIME):
             DBManager.drop_table(runtime_conn, DBNameConstant.TABLE_RUNTIME_TASK_TIME)
-        sql = DBManager.sql_create_general_table('TaskTimeMap', DBNameConstant.TABLE_RUNTIME_TASK_TIME,
-                                                 self.TABLE_PATH)
+        sql = DBManager.sql_create_general_table('TaskTimeMap', DBNameConstant.TABLE_RUNTIME_TASK_TIME, self.TABLE_PATH)
         DBManager.execute_sql(runtime_conn, sql)
 
     def _get_timeline_data(self: any, device: int, iter_time_range: list, runtime_curs: any) -> list:
-        timeline_sql = "select replayId,device_id,'','',taskType," \
-                       "task_id,stream_id,timeStamp,taskState " \
-                       "from TimeLine WHERE device_id=? and timestamp>? and timestamp<?" \
-                       "order by task_id, stream_id,timeStamp,taskState,device_id;"
-        timeline_data = DBManager.fetch_all_data(runtime_curs, timeline_sql, (device,
-                                                                              iter_time_range[0], iter_time_range[1]))
+        timeline_sql = (
+            "select replayId,device_id,'','',taskType,"
+            "task_id,stream_id,timeStamp,taskState "
+            "from TimeLine WHERE device_id=? and timestamp>? and timestamp<?"
+            "order by task_id, stream_id,timeStamp,taskState,device_id;"
+        )
+        timeline_data = DBManager.fetch_all_data(
+            runtime_curs, timeline_sql, (device, iter_time_range[0], iter_time_range[1])
+        )
         cal_task_data = multi_calculate_task_cost_time(timeline_data, self.project_path)
         return cal_task_data
 
     def __pre_mini_task_data(self: any, project_path: str, device_id: int, iter_time_range: list) -> None:
-        runtime_conn, runtime_curs = \
-            DBManager.check_connect_db_path(PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME))
+        runtime_conn, runtime_curs = DBManager.check_connect_db_path(
+            PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME)
+        )
         if not runtime_conn or not runtime_curs:
             return
         try:
@@ -172,23 +180,29 @@ class TaskSchedulerCalculator(MsMultiProcess):
             DBManager.destroy_db_connect(runtime_conn, runtime_curs)
 
     def _create_report_task_table(self: any, runtime_conn: any) -> None:
-        if DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                                        DBNameConstant.TABLE_RUNTIME_REPORT_TASK):
+        if DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
+            DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
+        ):
             DBManager.drop_table(runtime_conn, DBNameConstant.TABLE_RUNTIME_REPORT_TASK)
         sql = DBManager.sql_create_general_table('ReportTaskMap', 'ReportTask', self.TABLE_PATH)
         DBManager.execute_sql(runtime_conn, sql)
 
     def _add_info(self: any, cal_task_data: list) -> list:
         # 0 is default batch id
-        with TsTrackModel(self.project_path, DBNameConstant.DB_STEP_TRACE,
-                          [DBNameConstant.TABLE_STEP_TRACE_DATA]) as _trace:
+        with TsTrackModel(
+            self.project_path, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_STEP_TRACE_DATA]
+        ) as _trace:
             step_trace_data = _trace.get_step_end_list_with_iter_range(self.iter_range)
         task_time = [
-            task_data +
-            (MsprofIteration(self.project_path).get_iter_id_within_iter_range(step_trace_data, task_data[-1],
-                                                                              self.iter_range),
-             self.iter_range.model_id,
-             NumberConstant.DEFAULT_BATCH_ID)
+            task_data
+            + (
+                MsprofIteration(self.project_path).get_iter_id_within_iter_range(
+                    step_trace_data, task_data[-1], self.iter_range
+                ),
+                self.iter_range.model_id,
+                NumberConstant.DEFAULT_BATCH_ID,
+            )
             for task_data in cal_task_data
         ]
         return task_time

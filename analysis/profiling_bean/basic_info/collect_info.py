@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -30,7 +30,7 @@ class CollectInfo(BaseInfo):
     """
 
     def __init__(self: any) -> None:
-        super(CollectInfo, self).__init__()
+        super().__init__()
         self.collection_start_time = ""
         self.collection_end_time = ""
         self.result_size = ""
@@ -48,13 +48,12 @@ class CollectInfo(BaseInfo):
         :return: collect time
         """
         # Compatible for real time and Monotonic time
-        if InfoConfReader().get_root_data(StrConstant.COLLECT_RAW_TIME_BEGIN) \
-                and InfoConfReader().get_root_data(StrConstant.COLLECT_RAW_TIME_END):
-            self.collection_start_time, self.collection_end_time = \
-                InfoConfReader().get_collect_raw_time()
+        if InfoConfReader().get_root_data(StrConstant.COLLECT_RAW_TIME_BEGIN) and InfoConfReader().get_root_data(
+            StrConstant.COLLECT_RAW_TIME_END
+        ):
+            self.collection_start_time, self.collection_end_time = InfoConfReader().get_collect_raw_time()
             return
-        self.collection_start_time, self.collection_end_time = \
-            InfoConfReader().get_collect_time()
+        self.collection_start_time, self.collection_end_time = InfoConfReader().get_collect_time()
 
     def get_project_size(self: any, project_path: str) -> None:
         """
@@ -67,8 +66,9 @@ class CollectInfo(BaseInfo):
             for file_name in file_names:
                 file_path = os.path.join(dir_path, file_name)
                 size += os.path.getsize(file_path)
-        self.result_size = str(
-            round(size / (Constant.KILOBYTE * Constant.KILOBYTE), NumberConstant.DECIMAL_ACCURACY)) + " MB"
+        self.result_size = (
+            str(round(size / (Constant.KILOBYTE * Constant.KILOBYTE), NumberConstant.DECIMAL_ACCURACY)) + " MB"
+        )
 
     def run(self: any, project_path: str) -> None:
         """

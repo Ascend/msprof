@@ -1,40 +1,43 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/msproftx_host_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Environment;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string HOST_TX_PATH = "./msprof_tx_host";
 const std::string DB_SUFFIX = "msproftx.db";
 const std::string PROF_PATH_A = File::PathJoin({HOST_TX_PATH, "./PROF_0"});
 // MsprofTx table data format
-using MsprofTxDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t,
-    std::string, int32_t, uint64_t, uint64_t, uint64_t, int32_t, std::string>>;
+using MsprofTxDataFormat = std::vector<
+    std::tuple<uint32_t, uint32_t, uint32_t, std::string, int32_t, uint64_t, uint64_t, uint64_t, int32_t, std::string>>;
 // MsprofTxEx table data format
-using MsprofTxExDataFormat = std::vector<std::tuple<uint32_t, uint32_t,
-    std::string, uint64_t, uint64_t, uint64_t, std::string, std::string>>;
+using MsprofTxExDataFormat =
+    std::vector<std::tuple<uint32_t, uint32_t, std::string, uint64_t, uint64_t, uint64_t, std::string, std::string>>;
 
 const MsprofTxDataFormat MSPROFTX_DATA = {
     {0, 0, 0, "marker", 0, 0, 19627611986845096, 19627611986845096, 0, "test"},
@@ -43,15 +46,16 @@ const MsprofTxDataFormat MSPROFTX_DATA = {
 };
 
 const MsprofTxExDataFormat MSPROFTX_EX_DATA = {
-    {0, 0, "marker_ex", 19627611986934385, 19627611986941564, 0, "domain", "test"}
-};
-}
+    {0, 0, "marker_ex", 19627611986934385, 19627611986941564, 0, "domain", "test"}};
+}  // namespace
 
-class MsprofTxHostProcessorUTest : public testing::Test {
-protected:
+class MsprofTxHostProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(HOST_TX_PATH)) {
+        if (File::Check(HOST_TX_PATH))
+        {
             File::RemoveDir(HOST_TX_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(HOST_TX_PATH));
@@ -61,14 +65,8 @@ protected:
         CreateMsprofTx(File::PathJoin({PROF_PATH_A, HOST, SQLITE, DB_SUFFIX}));
         CreateMsprofTxEx(File::PathJoin({PROF_PATH_A, HOST, SQLITE, DB_SUFFIX}));
     }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(HOST_TX_PATH, DEPTH));
-    }
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(HOST_TX_PATH, DEPTH)); }
+    virtual void TearDown() { GlobalMockObject::verify(); }
     static void CreateMsprofTx(const std::string& dbPath)
     {
         std::shared_ptr<MsprofTxDB> database;

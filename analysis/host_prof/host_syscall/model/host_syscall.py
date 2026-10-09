@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -40,8 +40,7 @@ class HostSyscall(HostProfDataBase):
         :param runtime_api_info: runtime api info
         :return: None
         """
-        insert_sql = "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)".format(
-            DBNameConstant.TABLE_HOST_RUNTIME_API)
+        insert_sql = "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)".format(DBNameConstant.TABLE_HOST_RUNTIME_API)
         DBManager.executemany_sql(self.conn, insert_sql, runtime_api_info)
 
     def has_runtime_api_data(self: any) -> bool:
@@ -56,13 +55,15 @@ class HostSyscall(HostProfDataBase):
         get host runtime summary data
         :return: list of runtime api
         """
-        runtime_api_sql = "SELECT runtime_pid, runtime_tid, runtime_api_name, " \
-                          "sum(runtime_duration) / (select sum(runtime_duration) from {0}) as " \
-                          "Percentage, " \
-                          "sum(runtime_duration) as Time, count(1), avg(runtime_duration), " \
-                          "max(runtime_duration), min(runtime_duration) " \
-                          "from {0} group by runtime_api_name, runtime_tid " \
-                          "order by Time desc".format(DBNameConstant.TABLE_HOST_RUNTIME_API)
+        runtime_api_sql = (
+            "SELECT runtime_pid, runtime_tid, runtime_api_name, "
+            "sum(runtime_duration) / (select sum(runtime_duration) from {0}) as "
+            "Percentage, "
+            "sum(runtime_duration) as Time, count(1), avg(runtime_duration), "
+            "max(runtime_duration), min(runtime_duration) "
+            "from {0} group by runtime_api_name, runtime_tid "
+            "order by Time desc".format(DBNameConstant.TABLE_HOST_RUNTIME_API)
+        )
         runtime_api_list = DBManager.fetch_all_data(self.cur, runtime_api_sql)
         return runtime_api_list
 

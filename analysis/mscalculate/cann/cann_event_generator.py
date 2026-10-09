@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 from typing import List
@@ -48,14 +50,16 @@ from profiling_bean.db_dto.node_basic_info_dto import NodeBasicInfoDto
 from profiling_bean.db_dto.node_attr_info_dto import NodeAttrInfoDto
 from profiling_bean.db_dto.task_track_dto import TaskTrackDto
 from profiling_bean.db_dto.tensor_info_dto import TensorInfoDto
-from viewer.api_viewer import ApiViewer
 
 
 class CANNThreadDB:
-    def __init__(self, thread_id: int,
-                 event_q: EventQueue = EventQueue(-1),
-                 api_db: ApiDataDatabase = ApiDataDatabase(-1),
-                 record_db: AdditionalRecordDatabase = AdditionalRecordDatabase(-1)):
+    def __init__(
+        self,
+        thread_id: int,
+        event_q: EventQueue = EventQueue(-1),
+        api_db: ApiDataDatabase = ApiDataDatabase(-1),
+        record_db: AdditionalRecordDatabase = AdditionalRecordDatabase(-1),
+    ):
         self.thread_id = thread_id
         self.event_q = event_q
         self.api_db = api_db
@@ -110,8 +114,9 @@ class CANNEventGenerator:
         for info in infos:
             record = AdditionalRecord(info, info.timestamp, info.struct_type)
             thread = info.thread_id
-            event = self.record_databases.set_default_call_obj_later(
-                thread, AdditionalRecordDatabase, thread).put(record)
+            event = self.record_databases.set_default_call_obj_later(thread, AdditionalRecordDatabase, thread).put(
+                record
+            )
             self.event_queues.set_default_call_obj_later(event.thread_id, EventQueue, event.thread_id).add(event)
 
     def collect_time_period_data(self):
@@ -134,36 +139,55 @@ class CANNEventGenerator:
             if not self.is_kernel_api(api_data_dto):
                 continue
             event = self.api_databases.set_default_call_obj_later(
-                api_data_dto.thread_id, ApiDataDatabase, api_data_dto.thread_id).put(api_data_dto)
+                api_data_dto.thread_id, ApiDataDatabase, api_data_dto.thread_id
+            ).put(api_data_dto)
             self.event_queues.set_default_call_obj_later(api_data_dto.thread_id, EventQueue, event.thread_id).add(event)
 
         event_logger = dict()
         for event_data_dto in event_data:
             # 先匹配，再生成event
             friend_timestamp = event_logger.get(
-                (event_data_dto.level, event_data_dto.thread_id, event_data_dto.struct_type, event_data_dto.request_id,
-                 event_data_dto.item_id),
-                None
+                (
+                    event_data_dto.level,
+                    event_data_dto.thread_id,
+                    event_data_dto.struct_type,
+                    event_data_dto.request_id,
+                    event_data_dto.item_id,
+                ),
+                None,
             )
             if not friend_timestamp:
                 event_logger[
-                    (event_data_dto.level, event_data_dto.thread_id, event_data_dto.struct_type,
-                     event_data_dto.request_id, event_data_dto.item_id)
+                    (
+                        event_data_dto.level,
+                        event_data_dto.thread_id,
+                        event_data_dto.struct_type,
+                        event_data_dto.request_id,
+                        event_data_dto.item_id,
+                    )
                 ] = event_data_dto.timestamp
                 continue
-            else:
-                # represent 2 event with an api
-                equal_api = generate_api_data_from_event(friend_timestamp, event_data_dto)
-                event = self.api_databases.set_default_call_obj_later(
-                    equal_api.thread_id, ApiDataDatabase, equal_api.thread_id).put(equal_api)
-                self.event_queues.set_default_call_obj_later(event.thread_id, EventQueue, event.thread_id).add(event)
-                # for sub graph scene
-                event_logger.pop((event_data_dto.level, event_data_dto.thread_id, event_data_dto.struct_type,
-                                  event_data_dto.request_id, event_data_dto.item_id))
+            # represent 2 event with an api
+            equal_api = generate_api_data_from_event(friend_timestamp, event_data_dto)
+            event = self.api_databases.set_default_call_obj_later(
+                equal_api.thread_id, ApiDataDatabase, equal_api.thread_id
+            ).put(equal_api)
+            self.event_queues.set_default_call_obj_later(event.thread_id, EventQueue, event.thread_id).add(event)
+            # for sub graph scene
+            event_logger.pop(
+                (
+                    event_data_dto.level,
+                    event_data_dto.thread_id,
+                    event_data_dto.struct_type,
+                    event_data_dto.request_id,
+                    event_data_dto.item_id,
+                )
+            )
         if event_logger:
             for key in event_logger:
-                logging.error("No matched event found for "
-                              "(level, thread_id, struct_type, request_id, item_id): %s", str(key))
+                logging.error(
+                    "No matched event found for (level, thread_id, struct_type, request_id, item_id): %s", str(key)
+                )
 
     def generate_node_basic_info_event(self):
         if not self.node_basic_info_model.check_db():
@@ -248,7 +272,7 @@ class CANNEventGenerator:
                     thread,
                     self.event_queues.get(thread),
                     self.api_databases.get(thread, ApiDataDatabase(thread)),
-                    self.record_databases.get(thread, AdditionalRecordDatabase(thread))
+                    self.record_databases.get(thread, AdditionalRecordDatabase(thread)),
                 )
             )
         return storages

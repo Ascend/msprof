@@ -1,21 +1,23 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
@@ -26,12 +28,10 @@ using FlipTasks = std::vector<std::shared_ptr<FlipTask>>;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
 const uint32_t ACL_LEVEL_NUMBER = 20000;
 const uint32_t PYTORCH_LEVEL_NUMBER = 30000;
-class FlipTaskDBDumperUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        File::CreateDir(TEST_DB_FILE_PATH);
-    }
+class FlipTaskDBDumperUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { File::CreateDir(TEST_DB_FILE_PATH); }
 
     virtual void TearDown()
     {
@@ -48,7 +48,7 @@ TEST_F(FlipTaskDBDumperUtest, TestFlipTaskDBDumperWithCompletedApiEventShouldIns
     auto flipTask2 = std::make_shared<FlipTask>();
     flipTask2->streamId = 1;
 
-    FlipTasks flipTasks {flipTask1, flipTask2};
+    FlipTasks flipTasks{flipTask1, flipTask2};
 
     auto res = FlipTaskDBDumper.DumpData(flipTasks);
     EXPECT_TRUE(res);
@@ -62,7 +62,6 @@ TEST_F(FlipTaskDBDumperUtest, TestFlipTaskDBDumperWithCompletedApiEventShouldIns
     EXPECT_EQ(data.size(), flipTasks.size());
 }
 
-
 TEST_F(FlipTaskDBDumperUtest, TestFlipTaskDBDumperShouldReturnFalseWhenDBNotCreated)
 {
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(false));
@@ -72,7 +71,7 @@ TEST_F(FlipTaskDBDumperUtest, TestFlipTaskDBDumperShouldReturnFalseWhenDBNotCrea
     auto flipTask2 = std::make_shared<FlipTask>();
     flipTask2->streamId = 1;
 
-    FlipTasks flipTasks {flipTask1, flipTask2};
+    FlipTasks flipTasks{flipTask1, flipTask2};
     auto res = FlipTaskDBDumper.DumpData(flipTasks);
     ASSERT_FALSE(res);
 }
@@ -86,7 +85,7 @@ TEST_F(FlipTaskDBDumperUtest, TestFlipTaskDBDumperShouldReturnFalseWhenCannotIns
     auto flipTask2 = std::make_shared<FlipTask>();
     flipTask2->streamId = 1;
 
-    FlipTasks flipTasks {flipTask1, flipTask2};
+    FlipTasks flipTasks{flipTask1, flipTask2};
     auto res = FlipTaskDBDumper.DumpData(flipTasks);
     ASSERT_FALSE(res);
 }

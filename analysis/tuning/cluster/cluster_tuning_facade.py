@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import json
 import logging
@@ -69,8 +71,7 @@ class ClusterTuningFacade:
             self.cluster_communication()
             self.communication_matrix()
         # query command entry
-        elif self.data_type == QueryDataType.CLUSTER_COMMUNICATION or \
-                self.data_type == QueryDataType.CLUSTER_COMMUNICATION_CRITICAL_PATH:
+        elif self.data_type in (QueryDataType.CLUSTER_COMMUNICATION, QueryDataType.CLUSTER_COMMUNICATION_CRITICAL_PATH):
             enable_critical_path = self.data_type == QueryDataType.CLUSTER_COMMUNICATION_CRITICAL_PATH
             self.cluster_communication(print_flag=False, enable_critical_path=enable_critical_path)
         else:
@@ -96,11 +97,13 @@ class ClusterTuningFacade:
         slow_link_calculator.run()
         slow_link_calculator.add_suggestions(op_info)
         out_file_name = "communication_cpa_{}_{}_{}.json" if enable_critical_path else "communication_{}_{}_{}.json"
-        output_file_name = out_file_name.format(
-            self._npu_id, parser_factory.max_iters_model_id, self._iteration_id)
+        output_file_name = out_file_name.format(self._npu_id, parser_factory.max_iters_model_id, self._iteration_id)
         if print_flag:
-            print_msg(StrConstant.SUGGESTION + ': ' +
-                      op_info.get(StrConstant.TOTAL, {}).get(StrConstant.SLOW_RANK_SUGGESTION, ''))
+            print_msg(
+                StrConstant.SUGGESTION
+                + ': '
+                + op_info.get(StrConstant.TOTAL, {}).get(StrConstant.SLOW_RANK_SUGGESTION, '')
+            )
         self.dump_dict_to_json(output_file_name, op_info)
 
     def communication_matrix(self: any, print_flag=True, enable_critical_path=False) -> None:
@@ -118,8 +121,7 @@ class ClusterTuningFacade:
         matrix_calculator.run()
         matrix_calculator.add_suggestions(op_info)
         out_file_name = "matrix_cpa_{}_{}_{}.json" if enable_critical_path else "matrix_{}_{}_{}.json"
-        output_file_name = out_file_name.format(
-            self._npu_id, parser_factory.max_iters_model_id, self._iteration_id)
+        output_file_name = out_file_name.format(self._npu_id, parser_factory.max_iters_model_id, self._iteration_id)
         if print_flag:
             matrix_calculator.print_suggestion(op_info)
         self.dump_dict_to_json(output_file_name, op_info)
@@ -138,35 +140,50 @@ class ClusterTuningFacade:
         if result_json["status"] == NumberConstant.SUCCESS:
             print_msg(result)
         else:
-            print_msg(json.dumps(
-                {'status': NumberConstant.ERROR,
-                 'info': f'communication data generation failed, '
-                         f'maybe you can check the directory({self._collection_path}) permissions.',
-                 'data': ''}))
+            print_msg(
+                json.dumps(
+                    {
+                        'status': NumberConstant.ERROR,
+                        'info': f'communication data generation failed, '
+                        f'maybe you can check the directory({self._collection_path}) permissions.',
+                        'data': '',
+                    }
+                )
+            )
 
     def _check_params_valid(self: any) -> None:
-        enable_critical_path = self.data_type == QueryDataType.COMMUNICATION_MATRIX_CRITICAL_PATH or \
-                               self.data_type == QueryDataType.CLUSTER_COMMUNICATION_CRITICAL_PATH
+        enable_critical_path = self.data_type in (
+            QueryDataType.COMMUNICATION_MATRIX_CRITICAL_PATH,
+            QueryDataType.CLUSTER_COMMUNICATION_CRITICAL_PATH,
+        )
         if not self._is_cluster_all_device_scene() and not enable_critical_path:
             self._npu_id = -1
-            print_msg(json.dumps(
-                {'status': NumberConstant.WARN,
-                 'info': f"and the \'--id\' parameter has been set to (-1) automatically."
-                         f"The collective communication data only supports exporting data by all devices, ",
-                 'data': ''}))
+            print_msg(
+                json.dumps(
+                    {
+                        'status': NumberConstant.WARN,
+                        'info': "and the '--id' parameter has been set to (-1) automatically."
+                        "The collective communication data only supports exporting data by all devices, ",
+                        'data': '',
+                    }
+                )
+            )
         self._check_data_type_valid()
         QueryArgumentCheck.check_arguments_valid(self._npu_id, self._model_id, self._iteration_id)
         if not self._check_collection_dir_valid():
-            raise ProfException(ProfException.PROF_CLUSTER_DIR_ERROR,
-                                "To query cluster or summary data, please execute import --cluster first")
+            raise ProfException(
+                ProfException.PROF_CLUSTER_DIR_ERROR,
+                "To query cluster or summary data, please execute import --cluster first",
+            )
 
     def _check_collection_dir_valid(self: any) -> bool:
         return os.path.exists(PathManager.get_db_path(self._collection_path, DBNameConstant.DB_CLUSTER_RANK))
 
     def _check_data_type_valid(self: any) -> None:
         if self.data_type not in QueryDataType.__members__.values():
-            raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR,
-                                "The query data type is wrong. Please enter a valid value.")
+            raise ProfException(
+                ProfException.PROF_INVALID_PARAM_ERROR, "The query data type is wrong. Please enter a valid value."
+            )
 
     def _is_cluster_all_device_scene(self: any) -> bool:
         return self._npu_id == self.CLUSTER_ALL_DEVICE_SCENE

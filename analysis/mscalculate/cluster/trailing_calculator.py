@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,6 +29,7 @@ class TrailingCalculator:
     """
     calculate slow node message.
     """
+
     SLOW_THRESHOLD = 20
 
     def __init__(self: any, path_list: list) -> None:
@@ -41,8 +42,9 @@ class TrailingCalculator:
         conn, curs = DBManager.check_connect_db_path(sql_path)
         avg_time = []
         if DBManager.check_tables_in_db(sql_path, DBNameConstant.TABLE_TRAINING_TRACE):
-            avg_time = DBManager.fetch_all_data(curs, "select avg(data_aug_bound) from {}".format(
-                DBNameConstant.TABLE_TRAINING_TRACE))
+            avg_time = DBManager.fetch_all_data(
+                curs, "select avg(data_aug_bound) from {}".format(DBNameConstant.TABLE_TRAINING_TRACE)
+            )
         DBManager().destroy_db_connect(conn, curs)
         return avg_time
 
@@ -76,13 +78,16 @@ class TrailingCalculator:
             return slow_node_dict
         try:
             for key, value in self.trailing_dict.items():
-                ratio = round(NumberConstant.PERCENTAGE * (value - avg_bound) / avg_bound,
-                              NumberConstant.ROUND_TWO_DECIMAL)
+                ratio = round(
+                    NumberConstant.PERCENTAGE * (value - avg_bound) / avg_bound, NumberConstant.ROUND_TWO_DECIMAL
+                )
                 if ratio > self.SLOW_THRESHOLD:
-                    slow_node = 'Node: {0}, with a data augmentation bound duration of {1} ns on average, ' \
-                                'which is {2}% higher than the average duration consumed by nodes.\t' \
-                        .format(os.path.basename(key), str(round(value, NumberConstant.ROUND_TWO_DECIMAL)),
-                                str(ratio))
+                    slow_node = (
+                        'Node: {0}, with a data augmentation bound duration of {1} ns on average, '
+                        'which is {2}% higher than the average duration consumed by nodes.\t'.format(
+                            os.path.basename(key), str(round(value, NumberConstant.ROUND_TWO_DECIMAL)), str(ratio)
+                        )
+                    )
                     slow_node_dict.setdefault('Slow Node', []).append(slow_node)
         except (ZeroDivisionError, TypeError) as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)

@@ -1,41 +1,44 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/step_trace_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./step";
 const std::string DEVICE = "device_0";
 const std::string DB_NAME = "trace.db";
 const std::string PROF_PATH_A = File::PathJoin({BASE_PATH, "PROF_0"});
-}
+}  // namespace
 using ReduceDataType = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t>>;
 using GetNextDataType = std::vector<std::tuple<uint32_t, uint32_t, uint64_t, uint64_t>>;
-using TraceDataType = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t,
-                                             uint64_t, uint64_t, uint64_t>>;
+using TraceDataType = std::vector<
+    std::tuple<uint16_t, uint32_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
 ReduceDataType reduce{{0, 2, 1, 313056236532, 313055200207, 313055459640},
                       {0, 2, 2, 318016202377, 318015356897, 318015374534}};
 GetNextDataType next{{2, 1, 313055463171, 313055464468}, {2, 2, 318015397631, 318015399357}};
@@ -43,11 +46,13 @@ TraceDataType trace{{0, 1, 1, 306258517346, 306258521644, 306258522140, 292028, 
                     {0, 2, 1, 313055197979, 313056220356, 313056236532, 1044232, 1022377, 16176, 6796675839},
                     {0, 3, 1, 0, 317098454510, 317099294827, 75569326, 0, 840317, 0}};
 
-class StepTraceProcessorUTest : public testing::Test {
-protected:
+class StepTraceProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -58,14 +63,8 @@ protected:
         EXPECT_TRUE(CreateNextData(File::PathJoin({PROF_PATH_A, DEVICE, SQLITE, DB_NAME}), next, "get_next"));
         EXPECT_TRUE(CreateTraceData(File::PathJoin({PROF_PATH_A, DEVICE, SQLITE, DB_NAME}), trace, "training_trace"));
     }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-    }
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH)); }
+    virtual void TearDown() { GlobalMockObject::verify(); }
 
     static bool CreateReduceData(const std::string &dbPath, ReduceDataType &data, const std::string &&tableName)
     {

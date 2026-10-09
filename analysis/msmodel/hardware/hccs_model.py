@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,6 +29,7 @@ class HccsModel(BaseModel, ABC):
     """
     acsq task model class
     """
+
     TABLES_PATH = ConfigManager.TABLES_TRAINING
 
     def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
@@ -62,7 +63,8 @@ class HccsModel(BaseModel, ABC):
         try:
             if self.metric_data:
                 sql = "INSERT INTO {0} VALUES ({1})".format(
-                    DBNameConstant.TABLE_HCCS_EVENTS, '?,' * (len(self.metric_data[0]) - 1) + '?')
+                    DBNameConstant.TABLE_HCCS_EVENTS, '?,' * (len(self.metric_data[0]) - 1) + '?'
+                )
                 DBManager.executemany_sql(self.conn, sql, self.metric_data)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
@@ -94,8 +96,9 @@ class HccsModel(BaseModel, ABC):
         :param device_id: device id
         :return: None
         """
-        sql = "SELECT timestamp, txAmount, rxAmount FROM {0} ORDER BY timestamp". \
-            format(DBNameConstant.TABLE_HCCS_ORIGIN)
+        sql = "SELECT timestamp, txAmount, rxAmount FROM {0} ORDER BY timestamp".format(
+            DBNameConstant.TABLE_HCCS_ORIGIN
+        )
         original_data = DBManager.fetch_all_data(self.cur, sql)
         try:
             if original_data:

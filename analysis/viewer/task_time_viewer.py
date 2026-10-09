@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 import os
-import json
 import logging
 from typing import Dict
 from typing import List
@@ -27,25 +26,20 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ge_logic_stream_singleton import GeLogicStreamSingleton
 from common_func.ms_constant.stars_constant import StarsConstant
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.msvp_common import path_check
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.trace_view_manager import TraceViewManager
 from mscalculate.ascend_task.ascend_task import TopDownTask
-from msmodel.interface.view_model import ViewModel
 from msmodel.sqe_type_map import SqeType
 from msmodel.stars.op_summary_model import OpSummaryModel
 from msmodel.stars.sub_task_model import SubTaskTimeModel
 from msmodel.task_time.ascend_task_model import AscendTaskModel
 from msmodel.add_info.kfc_info_model import KfcInfoViewModel
 from msmodel.add_info.kfc_info_model import KfcTurnData
-from profiling_bean.db_dto.ge_task_dto import GeTaskDto
 from profiling_bean.db_dto.task_time_dto import TaskTimeDto
-from profiling_bean.db_dto.step_trace_dto import MsproftxMarkDto
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.prof_enum.export_data_type import ExportDataType
-from viewer.get_trace_timeline import TraceViewer
 from viewer.interface.base_viewer import BaseViewer
 from viewer.memory_copy.memory_copy_viewer import MemoryCopyViewer
 
@@ -61,15 +55,16 @@ class TaskTimeViewer(BaseViewer):
         self.trace_pid_map = {
             TraceViewHeaderConstant.PROCESS_TASK: InfoConfReader().get_json_pid_data(),
             TraceViewHeaderConstant.PROCESS_SUBTASK: 1,
-            TraceViewHeaderConstant.PROCESS_THREAD_TASK: 2
+            TraceViewHeaderConstant.PROCESS_THREAD_TASK: 2,
         }
 
     @staticmethod
     def get_device_task_type(device_task_type: str) -> str:
         if not device_task_type.isdigit():
             return device_task_type
-        elif ChipManager().chip_id != ChipModel.CHIP_V2_1_0 and \
-                int(device_task_type) in [enum.value for enum in SqeType().instance]:
+        elif ChipManager().chip_id != ChipModel.CHIP_V2_1_0 and int(device_task_type) in [
+            enum.value for enum in SqeType().instance
+        ]:
             return SqeType().instance(int(device_task_type)).name
         else:
             return Constant.TASK_TYPE_OTHER
@@ -97,10 +92,7 @@ class TaskTimeViewer(BaseViewer):
         :return: header of trace data list
         """
         header = [
-            [
-                "process_name", self.trace_pid_map.get(pid_header, 0),
-                InfoConfReader().get_json_tid_data(), pid_header
-            ]
+            ["process_name", self.trace_pid_map.get(pid_header, 0), InfoConfReader().get_json_tid_data(), pid_header]
         ]
         subtask = []
         tid_set = set((item[1], item[2]) for item in data)
@@ -139,8 +131,9 @@ class TaskTimeViewer(BaseViewer):
         if not os.path.exists(PathManager.get_db_path(self.project_dir, DBNameConstant.DB_KFC_INFO)):
             return {}
         kfc_turn_data = {}
-        with KfcInfoViewModel(self.project_dir,
-                              [DBNameConstant.TABLE_KFC_COMM_TURN, DBNameConstant.TABLE_KFC_COMPUTE_TURN]) as model:
+        with KfcInfoViewModel(
+            self.project_dir, [DBNameConstant.TABLE_KFC_COMM_TURN, DBNameConstant.TABLE_KFC_COMPUTE_TURN]
+        ) as model:
             kfc_comm_turn_time = model.get_kfc_comm_turn_data()
             kfc_compute_turn_time = model.get_kfc_compute_turn_data()
         kfc_comm_turn_data = []
@@ -148,40 +141,64 @@ class TaskTimeViewer(BaseViewer):
         for data in kfc_comm_turn_time:
             kfc_comm_turn_data += [
                 KfcTurnData(
-                    "StartServer {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "StartServer {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.server_start_time),
-                    InfoConfReader().duration_from_syscnt(data.wait_msg_start_time - data.server_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.wait_msg_start_time - data.server_start_time),
+                ),
                 KfcTurnData(
-                    "TaskWaitRequest {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "TaskWaitRequest {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.wait_msg_start_time),
-                    InfoConfReader().duration_from_syscnt(data.kfc_alg_exe_start_time - data.wait_msg_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.kfc_alg_exe_start_time - data.wait_msg_start_time),
+                ),
                 KfcTurnData(
-                    "TaskOrchestration {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "TaskOrchestration {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.kfc_alg_exe_start_time),
-                    InfoConfReader().duration_from_syscnt(data.send_task_start_time - data.kfc_alg_exe_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.send_task_start_time - data.kfc_alg_exe_start_time),
+                ),
                 KfcTurnData(
-                    "TaskLaunch {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "TaskLaunch {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.send_task_start_time),
-                    InfoConfReader().duration_from_syscnt(data.send_sqe_finish_time - data.send_task_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.send_sqe_finish_time - data.send_task_start_time),
+                ),
                 KfcTurnData(
-                    "TaskExecute {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "TaskExecute {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.send_sqe_finish_time),
-                    InfoConfReader().duration_from_syscnt(data.rtsq_exe_end_time - data.send_sqe_finish_time)),
+                    InfoConfReader().duration_from_syscnt(data.rtsq_exe_end_time - data.send_sqe_finish_time),
+                ),
                 KfcTurnData(
-                    "Finalize {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "Finalize {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.rtsq_exe_end_time),
-                    InfoConfReader().duration_from_syscnt(data.server_end_time - data.rtsq_exe_end_time)),
+                    InfoConfReader().duration_from_syscnt(data.server_end_time - data.rtsq_exe_end_time),
+                ),
             ]
         for data in kfc_compute_turn_time:
             kfc_compute_turn_data += [
                 KfcTurnData(
-                    "WaitCompute {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "WaitCompute {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.wait_compute_start_time),
-                    InfoConfReader().duration_from_syscnt(data.compute_start_time - data.wait_compute_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.compute_start_time - data.wait_compute_start_time),
+                ),
                 KfcTurnData(
-                    "Compute {}".format(data.current_turn), data.stream_id, data.task_id,
+                    "Compute {}".format(data.current_turn),
+                    data.stream_id,
+                    data.task_id,
                     InfoConfReader().trans_syscnt_into_local_time(data.compute_start_time),
-                    InfoConfReader().duration_from_syscnt(data.compute_exe_end_time - data.compute_start_time)),
+                    InfoConfReader().duration_from_syscnt(data.compute_exe_end_time - data.compute_start_time),
+                ),
             ]
         kfc_turn_data["comm"] = kfc_comm_turn_data
         kfc_turn_data["compute"] = kfc_compute_turn_data
@@ -206,8 +223,10 @@ class TaskTimeViewer(BaseViewer):
         kfc_trace_tasks = self.format_kfc_turn(kfc_turn_data)
         result.extend(kfc_trace_tasks)
         if not result:
-            logging.warning("Can not export task time data, the current chip does not support "
-                            "exporting this data or the data may be not collected.")
+            logging.warning(
+                "Can not export task time data, the current chip does not support "
+                "exporting this data or the data may be not collected."
+            )
             return []
         return result
 
@@ -228,19 +247,27 @@ class TaskTimeViewer(BaseViewer):
         result_list = []
         for data in data_list.get("subtask_data_list", []):
             result_list.append(
-                [data.op_name,
-                 self.trace_pid_map.get("Subtask Time", 1),
-                 StarsConstant().find_key_by_value(data.device_task_type),
-                 InfoConfReader().trans_into_local_time(data.start_time),
-                 data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
-                 {"Physic Stream Id": data.stream_id, "Task Id": data.task_id, 'Batch Id': data.batch_id,
-                  "Subtask Id": data.context_id, "connection_id": data.connection_id, }])
+                [
+                    data.op_name,
+                    self.trace_pid_map.get("Subtask Time", 1),
+                    StarsConstant().find_key_by_value(data.device_task_type),
+                    InfoConfReader().trans_into_local_time(data.start_time),
+                    data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
+                    {
+                        "Physic Stream Id": data.stream_id,
+                        "Task Id": data.task_id,
+                        'Batch Id': data.batch_id,
+                        "Subtask Id": data.context_id,
+                        "connection_id": data.connection_id,
+                    },
+                ]
+            )
         if not result_list:
             return []
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   result_list)
+        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result_list)
         result = TraceViewManager.metadata_event(
-            self.get_time_timeline_header(result_list, pid_header=TraceViewHeaderConstant.PROCESS_SUBTASK))
+            self.get_time_timeline_header(result_list, pid_header=TraceViewHeaderConstant.PROCESS_SUBTASK)
+        )
         result.extend(_trace)
         return result
 
@@ -248,22 +275,29 @@ class TaskTimeViewer(BaseViewer):
         result_list = []
         for data in data_list.get("subtask_data_list", []):
             result_list.append(
-                [data.op_name,
-                 self.trace_pid_map.get("Thread Task Time", 2),
-                 data.thread_id * (max(StarsConstant.SUBTASK_TYPE) + 1) + \
-                 StarsConstant().find_key_by_value(data.device_task_type),
-                 InfoConfReader().trans_into_local_time(data.start_time),
-                 data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
-                 {"Physic Stream Id": data.stream_id, "Task Id": data.task_id, 'Batch Id': data.batch_id,
-                  "Subtask Id": data.context_id,
-                  "Subtask Type": data.task_type,
-                  "connection_id": data.connection_id, }])
+                [
+                    data.op_name,
+                    self.trace_pid_map.get("Thread Task Time", 2),
+                    data.thread_id * (max(StarsConstant.SUBTASK_TYPE) + 1)
+                    + StarsConstant().find_key_by_value(data.device_task_type),
+                    InfoConfReader().trans_into_local_time(data.start_time),
+                    data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
+                    {
+                        "Physic Stream Id": data.stream_id,
+                        "Task Id": data.task_id,
+                        'Batch Id': data.batch_id,
+                        "Subtask Id": data.context_id,
+                        "Subtask Type": data.task_type,
+                        "connection_id": data.connection_id,
+                    },
+                ]
+            )
         if not result_list:
             return []
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   result_list)
+        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result_list)
         result = TraceViewManager.metadata_event(
-            self.get_time_timeline_header(result_list, pid_header=TraceViewHeaderConstant.PROCESS_THREAD_TASK))
+            self.get_time_timeline_header(result_list, pid_header=TraceViewHeaderConstant.PROCESS_THREAD_TASK)
+        )
         result.extend(_trace)
         return result
 
@@ -287,13 +321,12 @@ class TaskTimeViewer(BaseViewer):
                             'Batch Id': data.batch_id,
                             "Subtask Id": data.context_id,
                             "connection_id": data.connection_id,
-                        }
+                        },
                     ]
                 )
         if not result_list:
             return []
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   result_list)
+        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result_list)
         result = TraceViewManager.metadata_event(self.get_time_timeline_header(result_list))
         result.extend(_trace)
         return result
@@ -312,13 +345,12 @@ class TaskTimeViewer(BaseViewer):
                         {
                             "Physic Stream Id": data.stream_id,
                             "Task Id": data.task_id,
-                        }
+                        },
                     ]
                 )
         if not result_list:
             return []
-        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD,
-                                                   result_list)
+        _trace = TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, result_list)
         result = TraceViewManager.metadata_event(self.get_time_timeline_header(result_list))
         result.extend(_trace)
         return result
@@ -342,16 +374,19 @@ class TaskTimeViewer(BaseViewer):
             node_info_dict = _model.get_op_name_from_ge_by_id()
         ffts_plus_set = set()
         for data in data_dict.get("subtask_data_list", []):
-            ffts_plus_set.add("{0}-{1}-{2}-{3}".format(
-                data.task_id, data.stream_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id))
+            ffts_plus_set.add(
+                "{0}-{1}-{2}-{3}".format(
+                    data.task_id, data.stream_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id
+                )
+            )
             node_key = "{0}-{1}-{2}-{3}".format(data.task_id, data.stream_id, data.context_id, data.batch_id)
             self._update_op_name_and_type(data, node_info_dict, node_key)
         tradition_list = []
         for data in data_dict.get("task_data_list", []):
             node_key = "{0}-{1}-{2}-{3}".format(
-                data.task_id, data.stream_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id)
+                data.task_id, data.stream_id, NumberConstant.DEFAULT_GE_CONTEXT_ID, data.batch_id
+            )
             if node_key not in ffts_plus_set:
                 self._update_op_name_and_type(data, node_info_dict, node_key)
                 tradition_list.append(data)
         data_dict["task_data_list"] = tradition_list
-

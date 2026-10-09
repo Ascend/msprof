@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -32,6 +32,7 @@ class BlockDetailViewer(BaseViewer):
     """
     class for get block detail data
     """
+
     AIC_EARLIEST_INDEX = 1
     AIC_LATEST_INDEX = 2
     AIV_EARLIEST_INDEX = 3
@@ -47,10 +48,7 @@ class BlockDetailViewer(BaseViewer):
         thread_name = "thread_name"
         thread_sort_index = "thread_sort_index"
         header = [
-            ["process_name",
-             pid,
-             InfoConfReader().get_json_tid_data(),
-             TraceViewHeaderConstant.PROCESS_BLOCK_DETAIL],
+            ["process_name", pid, InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_BLOCK_DETAIL],
             [thread_name, pid, BlockDetailViewer.AIC_EARLIEST_INDEX, "AIC Earliest"],
             [thread_name, pid, BlockDetailViewer.AIC_LATEST_INDEX, "AIC Latest"],
             [thread_name, pid, BlockDetailViewer.AIV_EARLIEST_INDEX, "AIV Earliest"],
@@ -58,7 +56,7 @@ class BlockDetailViewer(BaseViewer):
             [thread_sort_index, pid, BlockDetailViewer.AIC_EARLIEST_INDEX, 1],
             [thread_sort_index, pid, BlockDetailViewer.AIC_LATEST_INDEX, 2],
             [thread_sort_index, pid, BlockDetailViewer.AIV_EARLIEST_INDEX, 3],
-            [thread_sort_index, pid, BlockDetailViewer.AIV_LATEST_INDEX, 4]
+            [thread_sort_index, pid, BlockDetailViewer.AIV_LATEST_INDEX, 4],
         ]
         return TraceViewManager.metadata_event(header)
 
@@ -70,7 +68,8 @@ class BlockDetailViewer(BaseViewer):
         result_list.append(
             [
                 f"Stream {logic_stream_id} {name}",
-                pid, tid,
+                pid,
+                tid,
                 InfoConfReader().trans_into_local_time(start_time),
                 data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
                 {
@@ -80,8 +79,8 @@ class BlockDetailViewer(BaseViewer):
                     "Subtask Id": data.context_id,
                     "Block Id": data.block_id,
                     "Core Type": "AIC" if data.core_type == 0 else "AIV",
-                    "Core Id": data.core_id
-                }
+                    "Core Id": data.core_id,
+                },
             ]
         )
         return result_list
@@ -98,17 +97,22 @@ class BlockDetailViewer(BaseViewer):
         for i, data in enumerate([aic_earliest, aic_latest, aiv_earliest, aiv_latest]):
             if not data:
                 continue
-            block_pmu_timeline_data.append([
-                f"Stream {data.stream_id} {name}", pid,
-                i + 1,  # thread_index
-                InfoConfReader().trans_into_local_time(data.start_time),
-                data.duration,
-                {"Physic Stream Id": data.stream_id,
-                 "Task Id": data.task_id,
-                 "Batch Id": data.batch_id,
-                 "Subtask Id": data.subtask_id,
-                 "Core Id": data.core_id}
-            ])
+            block_pmu_timeline_data.append(
+                [
+                    f"Stream {data.stream_id} {name}",
+                    pid,
+                    i + 1,  # thread_index
+                    InfoConfReader().trans_into_local_time(data.start_time),
+                    data.duration,
+                    {
+                        "Physic Stream Id": data.stream_id,
+                        "Task Id": data.task_id,
+                        "Batch Id": data.batch_id,
+                        "Subtask Id": data.subtask_id,
+                        "Core Id": data.core_id,
+                    },
+                ]
+            )
 
     def get_data_from_db(self: any) -> list:
         with V6PmuViewModel(self.project_dir) as _model:
@@ -139,12 +143,13 @@ class BlockDetailViewer(BaseViewer):
                     pmu_data_list = pmu_grouped[task_data.task_id]
                     pmu_group = self.get_block_pmu_group(pmu_data_list, task_data)
                     name = node_name_dict.get(
-                        f"{task_data.task_id}-{task_data.stream_id}-{task_data.context_id}-{task_data.batch_id}",
-                        {}).get('op_name')
+                        f"{task_data.task_id}-{task_data.stream_id}-{task_data.context_id}-{task_data.batch_id}", {}
+                    ).get('op_name')
                     self.set_pmu_result_list(pmu_group, pid, block_pmu_timeline_data, name)
             # 调用time_graph_trace方法
             block_pmu_timeline_data = TraceViewManager.time_graph_trace(
-                TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, block_pmu_timeline_data)
+                TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, block_pmu_timeline_data
+            )
         else:
             block_pmu_timeline_data = []
 
@@ -157,5 +162,8 @@ class BlockDetailViewer(BaseViewer):
         task_start = task_data.start_time
         task_end = task_data.start_time + task_data.duration
         # 判断pmu时间是否和task时间有交集 返回有交集的pmu list
-        return (pmu_data for pmu_data in pmu_data_list if
-                not (task_end < pmu_data.start_time or pmu_data.start_time + pmu_data.duration < task_start))
+        return (
+            pmu_data
+            for pmu_data in pmu_data_list
+            if not (task_end < pmu_data.start_time or pmu_data.start_time + pmu_data.duration < task_start)
+        )

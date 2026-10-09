@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -46,8 +46,9 @@ class FftsPmuModel(ParserModel):
         """
         # aic metrics table
         column_list = []
-        self.profiling_events['aiv'] = get_metrics_from_sample_config(self.result_dir,
-                                                                      StrConstant.AIV_PROFILING_METRICS)
+        self.profiling_events['aiv'] = get_metrics_from_sample_config(
+            self.result_dir, StrConstant.AIV_PROFILING_METRICS
+        )
         self.profiling_events['aic'] = get_metrics_from_sample_config(self.result_dir)
         self.update_pmu_list(column_list)
         self._create_metric_table_by_head(column_list, DBNameConstant.TABLE_METRIC_SUMMARY)
@@ -74,16 +75,18 @@ class FftsPmuModel(ParserModel):
         insert event value into metric op_summary
         """
         sql = 'CREATE TABLE IF NOT EXISTS {name}({column})'.format(
-            column=','.join(metric.replace('(ms)', '').replace('(GB/s)', '')
-                            + ' numeric' for metric in metrics) + ', task_id INT, '
-                                                                  'stream_id INT,'
-                                                                  'subtask_id INT,'
-                                                                  'task_type INT, '
-                                                                  'start_time INT,'
-                                                                  'end_time INT, '
-                                                                  'ffts_type INT,'
-                                                                  'core_type INT,'
-                                                                  'batch_id INT', name=table_name)
+            column=','.join(metric.replace('(ms)', '').replace('(GB/s)', '') + ' numeric' for metric in metrics)
+            + ', task_id INT, '
+            'stream_id INT,'
+            'subtask_id INT,'
+            'task_type INT, '
+            'start_time INT,'
+            'end_time INT, '
+            'ffts_type INT,'
+            'core_type INT,'
+            'batch_id INT',
+            name=table_name,
+        )
         try:
             DBManager.execute_sql(self.conn, sql)
         except sqlite3.Error as err:
@@ -91,8 +94,9 @@ class FftsPmuModel(ParserModel):
 
 
 class V6PmuModel(FftsPmuModel):
-    def __init__(self, result_dir: str, db_name: str = DBNameConstant.DB_METRICS_SUMMARY,
-                 table_list: List = None) -> None:
+    def __init__(
+        self, result_dir: str, db_name: str = DBNameConstant.DB_METRICS_SUMMARY, table_list: List = None
+    ) -> None:
         if table_list is None:
             table_list = []
         super().__init__(result_dir, db_name, table_list)
@@ -108,8 +112,10 @@ class V6PmuModel(FftsPmuModel):
         self.insert_data_to_db(DBNameConstant.TABLE_V6_BLOCK_PMU, data_list)
 
     def _create_block_pmu_time_table(self: Any, table_name: str) -> None:
-        sql = (f'CREATE TABLE IF NOT EXISTS {table_name} (stream_id INT, task_id INT, '
-               f'subtask_id INT, batch_id INT, start_time INT, duration INT, core_type INT, core_id INT)')
+        sql = (
+            f'CREATE TABLE IF NOT EXISTS {table_name} (stream_id INT, task_id INT, '
+            f'subtask_id INT, batch_id INT, start_time INT, duration INT, core_type INT, core_id INT)'
+        )
         try:
             DBManager.execute_sql(self.conn, sql)
         except sqlite3.Error as err:
@@ -121,6 +127,8 @@ class V6PmuViewModel(ViewModel):
         super().__init__(result_dir, DBNameConstant.DB_METRICS_SUMMARY, [DBNameConstant.TABLE_V6_BLOCK_PMU])
 
     def get_timeline_data(self: Any) -> list:
-        sql = (f"SELECT stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id "
-               f"FROM {DBNameConstant.TABLE_V6_BLOCK_PMU}")
+        sql = (
+            f"SELECT stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id "
+            f"FROM {DBNameConstant.TABLE_V6_BLOCK_PMU}"
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=PmuBlockDto)

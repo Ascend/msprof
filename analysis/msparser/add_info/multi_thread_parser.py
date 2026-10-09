@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -39,7 +41,7 @@ class MultiThreadParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -52,8 +54,9 @@ class MultiThreadParser(DataParser, MsMultiProcess):
         multi_thread_files = self._file_list.get(DataTag.MULTI_THREAD, [])
         multi_thread_files = self.group_aging_file(multi_thread_files)
         for file_list in multi_thread_files.values():
-            offset_calculator = OffsetCalculator(file_list, struct.calcsize(StructFmt.MULTI_THREAD_FMT),
-                                                 self._project_path)
+            offset_calculator = OffsetCalculator(
+                file_list, struct.calcsize(StructFmt.MULTI_THREAD_FMT), self._project_path
+            )
             for _file in file_list:
                 if not is_valid_original_data(_file, self._project_path):
                     continue
@@ -89,8 +92,15 @@ class MultiThreadParser(DataParser, MsMultiProcess):
     def reformat_data(self) -> list:
         type_info_data = HashDictData(self._project_path).get_type_hash_dict().get("communication", {})
         return [
-            [data.level, type_info_data.get(data.struct_type, data.struct_type), data.thread_id, data.data_len,
-             data.timestamp, data.thread_num, data.sub_thread_id]
+            [
+                data.level,
+                type_info_data.get(data.struct_type, data.struct_type),
+                data.thread_id,
+                data.data_len,
+                data.timestamp,
+                data.thread_num,
+                data.sub_thread_id,
+            ]
             for data in self._multi_thread_data
         ]
 
@@ -102,6 +112,6 @@ class MultiThreadParser(DataParser, MsMultiProcess):
         with FileOpen(file_path, 'rb') as _multi_thread_file:
             _all_multi_thread_data = offset.pre_process(_multi_thread_file.file_reader, file_size)
             for _index in range(file_size // struct_size):
-                data = _all_multi_thread_data[_index * struct_size:(_index + 1) * struct_size]
+                data = _all_multi_thread_data[_index * struct_size : (_index + 1) * struct_size]
                 self.check_magic_num(data)
                 self._multi_thread_data.append(MultiThreadBean.decode(data))

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -33,6 +33,7 @@ class MsProfClusterInfo:
     """
     The class for querying cluster info data.
     """
+
     OUTPUT_FILE_NAME = "cluster_info.json"
     OUTPUT_CLUSTER_INFO_HEADERS = ["Rank Id", "Device Id", "Prof Dir", "Device Dir", "Models"]
     OUTPUT_MODELS_HEADERS = ["Model Id", "Iterations"]
@@ -54,8 +55,9 @@ class MsProfClusterInfo:
             print_msg(json.dumps({'status': NumberConstant.ERROR, 'info': "Get the cluster info failed", 'data': ""}))
             return
         output_file_path = PathManager.get_query_result_path(self.project_path, MsProfClusterInfo.OUTPUT_FILE_NAME)
-        result = create_json(output_file_path, MsProfClusterInfo.OUTPUT_CLUSTER_INFO_HEADERS, self.info_collection,
-                             save_old_file=False)
+        result = create_json(
+            output_file_path, MsProfClusterInfo.OUTPUT_CLUSTER_INFO_HEADERS, self.info_collection, save_old_file=False
+        )
         result_json = json.loads(result)
         if result_json["status"] == NumberConstant.SUCCESS:
             print_msg(result)
@@ -82,24 +84,18 @@ class MsProfClusterInfo:
         prof_dir, device_dir = cluster_info.dir_name.split(os.sep)
         model_list = []
         if model.judge_table_exist(step_trace_table):
-            sql_for_total_iterations = "select model_id, max(iteration_id) " \
-                                       "from {} group by model_id".format(step_trace_table)
+            sql_for_total_iterations = "select model_id, max(iteration_id) from {} group by model_id".format(
+                step_trace_table
+            )
             iteration_data = model.get_sql_data(sql_for_total_iterations)
             if not iteration_data:
                 return
             for each in iteration_data:
                 iteration_info = ['N/A', each[1]] if each[0] == NumberConstant.INVALID_MODEL_ID else each
                 model_list.append(OrderedDict(list(zip(MsProfClusterInfo.OUTPUT_MODELS_HEADERS, iteration_info))))
-            self.info_collection.append([rank_id,
-                                         cluster_info.device_id,
-                                         prof_dir,
-                                         device_dir,
-                                         model_list])
+            self.info_collection.append([rank_id, cluster_info.device_id, prof_dir, device_dir, model_list])
         else:
-            model_list.append(OrderedDict(list(
-                zip(MsProfClusterInfo.OUTPUT_MODELS_HEADERS, MsProfClusterInfo.SINGLE_OP_MODE))))
-            self.info_collection.append([rank_id,
-                                         cluster_info.device_id,
-                                         prof_dir,
-                                         device_dir,
-                                         model_list])
+            model_list.append(
+                OrderedDict(list(zip(MsProfClusterInfo.OUTPUT_MODELS_HEADERS, MsProfClusterInfo.SINGLE_OP_MODE)))
+            )
+            self.info_collection.append([rank_id, cluster_info.device_id, prof_dir, device_dir, model_list])

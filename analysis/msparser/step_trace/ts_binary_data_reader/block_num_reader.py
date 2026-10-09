@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -49,5 +49,5 @@ class BlockNumReader:
         block_num_bean = BlockNumBean.decode(bean_data)
         if block_num_bean:
             self._data.append(
-                (block_num_bean.timestamp, block_num_bean.stream_id,
-                 block_num_bean.task_id, block_num_bean.block_num))
+                (block_num_bean.timestamp, block_num_bean.stream_id, block_num_bean.task_id, block_num_bean.block_num)
+            )

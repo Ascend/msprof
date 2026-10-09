@@ -1,29 +1,32 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/ai_task/hash_init_processor.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/data_process/ai_task/hash_init_processor.h"
-#include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/infrastructure/utils/file.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string HASH_PATH = "./hash";
 const std::string PROF_PATH = File::PathJoin({HASH_PATH, "PROF_0"});
@@ -36,17 +39,18 @@ const std::string PROCESS_HASH = "Hash";
 using GeHashFormat = std::vector<std::tuple<std::string, std::string>>;
 using LogicStream = std::vector<std::tuple<uint32_t, uint32_t>>;
 
-GeHashFormat DATA{{"7383439776149831", "Cast"},
-                  {"247669290252505", "Add"},
-                  {"8477521346829072275", "aclnnMul_MulAiCore_Mul"}};
+GeHashFormat DATA{
+    {"7383439776149831", "Cast"}, {"247669290252505", "Add"}, {"8477521346829072275", "aclnnMul_MulAiCore_Mul"}};
 LogicStream DATA_STREAM{{3, 2}, {4, 2}};
-}
+}  // namespace
 
-class HashInitProcessorUTest : public testing::Test {
-protected:
+class HashInitProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(HASH_PATH)) {
+        if (File::Check(HASH_PATH))
+        {
             File::RemoveDir(HASH_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(HASH_PATH));
@@ -116,9 +120,7 @@ TEST_F(HashInitProcessorUTest, ShouldReturnFalseWhenFileOverMaxSize)
 {
     DataInventory dataInventory;
     auto processor = HashInitProcessor(PROF_PATH);
-    MOCKER_CPP(&Analysis::Utils::FileReader::Check)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&Analysis::Utils::FileReader::Check).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESS_HASH));
     auto res = dataInventory.GetPtr<GeHashMap>();
     EXPECT_EQ(0ul, res->size());
@@ -129,9 +131,7 @@ TEST_F(HashInitProcessorUTest, ShouldReturnFalseWhenConstructDBRunnerFailed)
 {
     DataInventory dataInventory;
     auto processor = HashInitProcessor(PROF_PATH);
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.ProcessLogicStream(dataInventory));
     EXPECT_FALSE(processor.ProcessHashMap(dataInventory));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();

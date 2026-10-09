@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -18,8 +18,8 @@ from typing import Union
 from dataclasses import dataclass
 
 from msparser.compact_info.task_track_bean import TaskTrackBean
-from mscalculate.ascend_task.ascend_task import DeviceTask
 from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
+from mscalculate.ascend_task.ascend_task import DeviceTask
 from common_func.db_name_constant import DBNameConstant
 from msmodel.step_trace.ts_track_model import TsTrackModel
 
@@ -33,12 +33,15 @@ class FlipCalculator:
     """
     calculate batch id by flip number
     """
+
     STREAM_DESTROY_FLIP = 65535
 
     @staticmethod
-    def compute_batch_id(task_data: List[Union[TaskTrackBean, DeviceTask]],
-                         flip_data: List[Union[TaskTrackBean, TaskFlip]],
-                         is_flip_num: bool = False) -> List:
+    def compute_batch_id(
+        task_data: List[Union[TaskTrackBean, DeviceTask]],
+        flip_data: List[Union[TaskTrackBean, TaskFlip]],
+        is_flip_num: bool = False,
+    ) -> List:
         if not task_data:
             return []
         task_data_bin = FlipCalculator.sep_data_by_device_stream(task_data)
@@ -58,11 +61,13 @@ class FlipCalculator:
                 task = data[task_index]
                 flip = flip_data_stream[flip_index]
                 if task.timestamp >= flip.timestamp:
-                    batch_id, stream_destroy_num = FlipCalculator.get_next_batch_id(flip, batch_id,
-                                                                                    is_flip_num, stream_destroy_num)
+                    batch_id, stream_destroy_num = FlipCalculator.get_next_batch_id(
+                        flip, batch_id, is_flip_num, stream_destroy_num
+                    )
                     flip_index += 1
-                    FlipCalculator.calibrate_when_flip_task_id_not_zero(new_task_data, flip, new_task_index,
-                                                                        batch_id, is_flip_num)
+                    FlipCalculator.calibrate_when_flip_task_id_not_zero(
+                        new_task_data, flip, new_task_index, batch_id, is_flip_num
+                    )
                     continue
                 if isinstance(task, tuple):
                     data[task_index] = task.replace(batch_id=batch_id)
@@ -75,10 +80,10 @@ class FlipCalculator:
 
     @staticmethod
     def get_next_batch_id(
-            flip: Union[TaskTrackBean, TaskFlip],
-            batch_id: int,
-            is_flip_num: bool,
-            stream_destroy_num: int,
+        flip: Union[TaskTrackBean, TaskFlip],
+        batch_id: int,
+        is_flip_num: bool,
+        stream_destroy_num: int,
     ):
         if flip.flip_num == FlipCalculator.STREAM_DESTROY_FLIP:
             stream_destroy_num += 1
@@ -92,11 +97,11 @@ class FlipCalculator:
 
     @staticmethod
     def calibrate_when_flip_task_id_not_zero(
-            task_data: List[Union[TaskTrackBean, DeviceTask]],
-            flip: Union[TaskTrackBean, TaskFlip],
-            task_index: int,
-            batch_id: int,
-            is_flip_num: int
+        task_data: List[Union[TaskTrackBean, DeviceTask]],
+        flip: Union[TaskTrackBean, TaskFlip],
+        task_index: int,
+        batch_id: int,
+        is_flip_num: int,
     ) -> None:
         if flip.flip_num == FlipCalculator.STREAM_DESTROY_FLIP or is_flip_num:  # do not calibrate when stream destroy
             return
@@ -104,8 +109,11 @@ class FlipCalculator:
         # the flip may not get the task_id 0, we should search backward to calibrate the task
         # which task id is less than flip's task_id, and set these tasks the next batch id.
         task_index_backward = task_index - 1
-        while task_index_backward >= 0 and task_data[task_index_backward].stream_id == flip.stream_id \
-                and task_data[task_index_backward].task_id < flip.task_id:
+        while (
+            task_index_backward >= 0
+            and task_data[task_index_backward].stream_id == flip.stream_id
+            and task_data[task_index_backward].task_id < flip.task_id
+        ):
             if isinstance(task_data[task_index_backward], tuple):
                 task_data[task_index_backward] = task_data[task_index_backward].replace(batch_id=batch_id)
             else:
@@ -124,8 +132,7 @@ class FlipCalculator:
 
     @staticmethod
     def set_device_batch_id(data: list, result_dir: str, is_flip_num: bool = False) -> List:
-        with TsTrackModel(result_dir,
-                          DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]) as model:
+        with TsTrackModel(result_dir, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]) as model:
             task_flip = model.get_task_flip_data()
         device_tasks = FlipCalculator.compute_batch_id(data, task_flip, is_flip_num)
         return device_tasks

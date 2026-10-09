@@ -1,27 +1,29 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/timeline/cann_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
-#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
@@ -29,15 +31,17 @@ using namespace Analysis::Domain;
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./cann_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
-}
+}  // namespace
 
-class CannAssemblerUTest : public testing::Test {
-protected:
+class CannAssemblerUTest : public testing::Test
+{
+   protected:
     virtual void TearDown()
     {
         EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
@@ -46,14 +50,16 @@ protected:
     }
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
         EXPECT_TRUE(File::CreateDir(PROF_PATH));
         EXPECT_TRUE(File::CreateDir(RESULT_PATH));
     }
-protected:
+
+   protected:
     DataInventory dataInventory_;
 };
 
@@ -62,13 +68,13 @@ static std::vector<ApiData> GenerateApiData()
     std::vector<ApiData> res;
     ApiData data;
     data.apiName = "launch";
-    data.connectionId = 2762; // connectionId 2762
+    data.connectionId = 2762;  // connectionId 2762
     data.id = "0";
-    data.timestamp = 1717575960208020750; // start 1717575960208020750
+    data.timestamp = 1717575960208020750;  // start 1717575960208020750
     data.itemId = "hcom_broadcast_";
     data.level = MSPROF_REPORT_NODE_LEVEL;
-    data.threadId = 87144; // threadId 87144
-    data.end = 1717575960209010750; // end 1717575960209010750
+    data.threadId = 87144;           // threadId 87144
+    data.end = 1717575960209010750;  // end 1717575960209010750
     data.structType = "launch";
     res.push_back(data);
     return res;
@@ -79,13 +85,13 @@ static std::vector<ApiData> GenerateMemcpyAsyncApiData()
     std::vector<ApiData> res;
     ApiData data;
     data.apiName = "aclrtMemcpyAsync";
-    data.connectionId = 22; // connectionId 22
+    data.connectionId = 22;  // connectionId 22
     data.id = "aclrtMemcpyAsync";
-    data.timestamp = 1717575960208020750; // start 1717575960208020750
+    data.timestamp = 1717575960208020750;  // start 1717575960208020750
     data.itemId = "0";
     data.level = MSPROF_REPORT_ACL_LEVEL;
-    data.threadId = 2816340; // threadId 2816340
-    data.end = 1717575960209010750; // end 1717575960209010750
+    data.threadId = 2816340;         // threadId 2816340
+    data.end = 1717575960209010750;  // end 1717575960209010750
     data.structType = "ACL_RTS";
     res.push_back(data);
     return res;
@@ -134,7 +140,7 @@ TEST_F(CannAssemblerUTest, ShouldExportEventIdWhenRecordEventHasKey)
     auto data = GenerateRecordEventApiData();
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
     dataInventory_.Inject(dataS);
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));  // pid 1000
     EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
     auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
     EXPECT_EQ(1ul, files.size());
@@ -176,7 +182,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     auto data = GenerateApiData();
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
     dataInventory_.Inject(dataS);
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));  // pid 1000
     EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
     auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
     EXPECT_EQ(1ul, files.size());
@@ -205,7 +211,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     auto data = GenerateApiData();
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
     dataInventory_.Inject(dataS);
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));  // pid 1000
     MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
@@ -221,7 +227,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccessCaseMemcpyAsyn
     MAKE_SHARED_NO_OPERATION(dataS1, std::vector<AscendTaskData>, data1);
     dataInventory_.Inject(dataS);
     dataInventory_.Inject(dataS1);
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000)); // pid 1000
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));  // pid 1000
     EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
     auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
     EXPECT_EQ(1ul, files.size());

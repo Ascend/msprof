@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -40,7 +40,10 @@ class SioModel(ParserModel):
         """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_SIO):
             return []
-        sql = "select acc_id, req_rx, rsp_rx, snp_rx, dat_rx, req_tx, rsp_tx, snp_tx, dat_tx, " \
-              "timestamp/{NS_TO_US} as timestamp from {}".format(DBNameConstant.TABLE_SIO,
-                                                                 NS_TO_US=NumberConstant.NS_TO_US)
+        sql = (
+            "select acc_id, req_rx, rsp_rx, snp_rx, dat_rx, req_tx, rsp_tx, snp_tx, dat_tx, "
+            "timestamp/{NS_TO_US} as timestamp from {}".format(
+                DBNameConstant.TABLE_SIO, NS_TO_US=NumberConstant.NS_TO_US
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql)

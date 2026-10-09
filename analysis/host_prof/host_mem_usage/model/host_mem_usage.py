@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -17,7 +17,6 @@
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
-from common_func.ms_constant.number_constant import NumberConstant
 from host_prof.host_prof_base.host_prof_data_base import HostProfDataBase
 
 
@@ -65,9 +64,8 @@ class HostMemUsage(HostProfDataBase):
             time_mem = {
                 "start": InfoConfReader().trans_into_local_time(mem_item[0], is_host=True),
                 "end": InfoConfReader().trans_into_local_time(mem_item[1], is_host=True),
-                "usage": mem_item[2]
+                "usage": mem_item[2],
             }
             result.append(time_mem)
 
         return {"data": result}
-

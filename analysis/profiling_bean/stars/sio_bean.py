@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -46,8 +46,16 @@ class SioDecoder(StructDecoder):
         get sio bandwidth
         :return: (req_rx, rsp_rx, snp_rx, dat_rx, req_tx, rsp_tx, snp_tx, dat_tx)
         """
-        return [self._req_rx, self._rsp_rx, self._snp_rx, self._dat_rx,
-                self._req_tx, self._rsp_tx, self._snp_tx, self._dat_tx]
+        return [
+            self._req_rx,
+            self._rsp_rx,
+            self._snp_rx,
+            self._dat_rx,
+            self._req_tx,
+            self._rsp_tx,
+            self._snp_tx,
+            self._dat_tx,
+        ]
 
     @property
     def acc_id(self: any) -> int:
@@ -67,7 +75,6 @@ class SioDecoder(StructDecoder):
 
 # before V6 sio implement
 class SioDecoderImpl(SioDecoder):
-
     def _init_field(self, fields: list):
         self._func_type = Utils.get_func_type(fields[0])
         self._acc_id = fields[5]
@@ -83,7 +90,6 @@ class SioDecoderImpl(SioDecoder):
 
 
 class SioDecoderV6(SioDecoder):
-
     def _init_field(self, fields: list):
         self._func_type = Utils.get_func_type(fields[0])
         self._acc_id = (fields[1] & 0xFC) >> 2

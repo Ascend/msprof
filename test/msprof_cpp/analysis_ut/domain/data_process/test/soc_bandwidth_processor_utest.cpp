@@ -1,31 +1,34 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/soc_bandwidth_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
 using ProcessedFormat = std::vector<SocBandwidthData>;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./soc_path";
 const std::string DB_PATH = File::PathJoin({BASE_PATH, "msprof.db"});
@@ -37,16 +40,16 @@ const std::set<std::string> PROF_PATHS = {PROF_PATH_A, PROF_PATH_B};
 const std::string TABLE_NAME = "InterSoc";
 
 using OriDataFormat = std::vector<std::tuple<uint32_t, uint32_t, double>>;
-OriDataFormat DATA_A{{0, 0, 236368325745670},
-                     {0, 0, 236368325747550}};
-OriDataFormat DATA_B{{0, 0, 236365909133170},
-                     {0, 0, 236366032012930}};
-}
-class SocBandwidthProcessorUTest : public testing::Test {
-protected:
+OriDataFormat DATA_A{{0, 0, 236368325745670}, {0, 0, 236368325747550}};
+OriDataFormat DATA_B{{0, 0, 236365909133170}, {0, 0, 236366032012930}};
+}  // namespace
+class SocBandwidthProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -84,7 +87,8 @@ protected:
 
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
@@ -100,7 +104,8 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExi
     dbPath = File::PathJoin({PROF_PATH_B, DEVICE, SQLITE, DB_NAME});
     MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
     dbRunner->DropTable(TABLE_NAME);
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
@@ -110,7 +115,8 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExi
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenCheckPathFailed)
 {
     MOCKER_CPP(&Analysis::Utils::File::Check).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
@@ -131,7 +137,8 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
     Analysis::Test::StubReserveFailureForVector<ProcessedFormat>();
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
@@ -142,7 +149,8 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
 {
     MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SOC));
@@ -152,7 +160,8 @@ TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunner
 
 TEST_F(SocBandwidthProcessorUTest, TestLoadDataShouldReturnOriDataWhenDbIsNull)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         DBInfo socProfilerDB("soc_profiler.db", "InterSoc");
         socProfilerDB.dbRunner = nullptr;
@@ -162,7 +171,8 @@ TEST_F(SocBandwidthProcessorUTest, TestLoadDataShouldReturnOriDataWhenDbIsNull)
 
 TEST_F(SocBandwidthProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDataFailed)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
 
@@ -174,7 +184,8 @@ TEST_F(SocBandwidthProcessorUTest, TestFormatDataShouldReturnFalseWhenProcessDat
 
 TEST_F(SocBandwidthProcessorUTest, TestRunShouldReturnFalseWhenProcessSingleDeviceFailed)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = SocBandwidthProcessor(path);
         auto dataInventory = DataInventory();
 

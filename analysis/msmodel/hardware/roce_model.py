@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import collections
 import logging
@@ -32,6 +34,7 @@ class RoceModel(BaseModel, ABC):
     """
     acsq task model class
     """
+
     DEFAULT_NIC_FUNC_ID = 0
     ROUND_NUMBER = 3
     PERCENTAGE = 100
@@ -72,11 +75,13 @@ class RoceModel(BaseModel, ABC):
 
     @staticmethod
     def _create_receive_send_db(conn: any, curs: any) -> None:
-        sql = "CREATE TABLE IF NOT EXISTS {} (device_id integer, timestamp real, " \
-              "rx_bandwidth_efficiency real, rx_packets real, " \
-              "rx_error_rate real, rx_dropped_rate real, " \
-              "tx_bandwidth_efficiency real, tx_packets real, " \
-              "tx_error_rate real, tx_dropped_rate real, func_id integer)".format(DBNameConstant.TABLE_ROCE_RECEIVE)
+        sql = (
+            "CREATE TABLE IF NOT EXISTS {} (device_id integer, timestamp real, "
+            "rx_bandwidth_efficiency real, rx_packets real, "
+            "rx_error_rate real, rx_dropped_rate real, "
+            "tx_bandwidth_efficiency real, tx_packets real, "
+            "tx_error_rate real, tx_dropped_rate real, func_id integer)".format(DBNameConstant.TABLE_ROCE_RECEIVE)
+        )
         DBManager.execute_sql(conn, sql)
 
     @staticmethod
@@ -86,8 +91,9 @@ class RoceModel(BaseModel, ABC):
 
     @staticmethod
     def _insert_receive_send_data(conn: any, target_data: list) -> None:
-        sql = "insert into {} " \
-              "values({})".format(DBNameConstant.TABLE_ROCE_RECEIVE, '?,' * (len(target_data[0]) - 1) + "?")
+        sql = "insert into {} values({})".format(
+            DBNameConstant.TABLE_ROCE_RECEIVE, '?,' * (len(target_data[0]) - 1) + "?"
+        )
         DBManager.executemany_sql(conn, sql, target_data)
 
     def flush(self: any, data_list: list) -> None:
@@ -137,8 +143,7 @@ class RoceModel(BaseModel, ABC):
         :return: None
         """
         _table_name = 'RoceTreeData'
-        _sql = "SELECT DISTINCT(device_id) FROM {} " \
-               "WHERE replayid IS 0;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "SELECT DISTINCT(device_id) FROM {} WHERE replayid IS 0;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
         roce_device = DBManager.fetch_all_data(self.cur, _sql)
         DBManager.execute_sql(self.conn, "CREATE TABLE IF NOT EXISTS {} (device_id Int)".format(_table_name))
         DBManager.executemany_sql(self.conn, "INSERT INTO {} VALUES (?)".format(_table_name), roce_device)
@@ -149,8 +154,7 @@ class RoceModel(BaseModel, ABC):
         :param device: device id
         :return: func id
         """
-        _sql = 'SELECT DISTINCT(funcId) FROM {} ' \
-               'WHERE device_id IS ?'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = 'SELECT DISTINCT(funcId) FROM {} WHERE device_id IS ?'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
         func_list = DBManager.fetch_all_data(self.cur, _sql, (device,))
         return func_list
 
@@ -166,8 +170,7 @@ class RoceModel(BaseModel, ABC):
         roce_packet_data = self._get_roce_packet_data(device[0], func_id)
         roce_rx_data = self._get_roce_rx_data(device[0], func_id)
         roce_tx_rate_data = self._get_roce_tx_rate_data(device[0], func_id, roce_rx_data)
-        self._insert_roce_data(device[0], func_id, roce_duration, roce_bandwidth, roce_packet_data,
-                               roce_tx_rate_data)
+        self._insert_roce_data(device[0], func_id, roce_duration, roce_bandwidth, roce_packet_data, roce_tx_rate_data)
 
     def create_rocereceivesend_table(self: any, func_id: int) -> None:
         """
@@ -185,28 +188,40 @@ class RoceModel(BaseModel, ABC):
         for i, _ in enumerate(time_stamp):
             if int(bandwidth):
                 time_stamp[i] = time_stamp[i][0]
-                eff_dic.get('rx_eff').append(round(float(int(rx_byte[i][0]) * self.BYTE) /
-                                                   (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
-                                                   self.ROUND_NUMBER))
+                eff_dic.get('rx_eff').append(
+                    round(
+                        float(int(rx_byte[i][0]) * self.BYTE)
+                        / (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                        self.ROUND_NUMBER,
+                    )
+                )
                 RoceModel._init_roce_rx_data_with_index(i, rx_data)
-                eff_dic.get('tx_eff').append(round(float(int(tx_byte[i][0]) * self.BYTE) /
-                                                   (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
-                                                   self.ROUND_NUMBER))
+                eff_dic.get('tx_eff').append(
+                    round(
+                        float(int(tx_byte[i][0]) * self.BYTE)
+                        / (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                        self.ROUND_NUMBER,
+                    )
+                )
                 RoceModel._init_roce_tx_data_with_index(i, tx_data)
         rx_data["Rx Bandwidth efficiency(%)"] = eff_dic.get('rx_eff')
         tx_data["Tx Bandwidth efficiency(%)"] = eff_dic.get('tx_eff')
 
-        target_data = list(zip((self.device_id for _ in time_stamp),
-                               time_stamp,
-                               rx_data.get("Rx Bandwidth efficiency(%)"),
-                               rx_data.get("rxPacket/s"),
-                               rx_data.get("rxError rate"),
-                               rx_data.get("rxDropped rate"),
-                               tx_data.get("Tx Bandwidth efficiency(%)"),
-                               tx_data.get("txPacket/s"),
-                               tx_data.get("txError rate"),
-                               tx_data.get("txDropped rate"),
-                               (func_id for _ in time_stamp)))
+        target_data = list(
+            zip(
+                (self.device_id for _ in time_stamp),
+                time_stamp,
+                rx_data.get("Rx Bandwidth efficiency(%)"),
+                rx_data.get("rxPacket/s"),
+                rx_data.get("rxError rate"),
+                rx_data.get("rxDropped rate"),
+                tx_data.get("Tx Bandwidth efficiency(%)"),
+                tx_data.get("txPacket/s"),
+                tx_data.get("txError rate"),
+                tx_data.get("txDropped rate"),
+                (func_id for _ in time_stamp),
+            )
+        )
 
         self.create_receivesend_db(target_data)
 
@@ -219,34 +234,34 @@ class RoceModel(BaseModel, ABC):
         rx_data = collections.OrderedDict()
         tx_data = collections.OrderedDict()
 
-        _sql = "select rxpacket/1 from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select rxpacket/1 from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         rx_data["rxPacket/s"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
 
-        _sql = "select rxerrors/rxpackets from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select rxerrors/rxpackets from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         rx_data["rxError rate"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
 
-        _sql = "select rxdropped/rxpackets from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select rxdropped/rxpackets from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         rx_data["rxDropped rate"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
 
-        _sql = "select txpacket/1 from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select txpacket/1 from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         tx_data["txPacket/s"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
 
-        _sql = "select txerrors/txpackets from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select txerrors/txpackets from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         tx_data["txError rate"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
 
-        _sql = "select txdropped/txpackets from {} where replayId IS 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select txdropped/txpackets from {} where replayId IS 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         tx_data["txDropped rate"] = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
         return rx_data, tx_data
 
@@ -257,7 +272,8 @@ class RoceModel(BaseModel, ABC):
         :return: None
         """
         conn, curs = DBManager.create_connect_db(
-            PathManager.get_db_path(self.result_dir, DBNameConstant.DB_ROCE_RECEIVE))
+            PathManager.get_db_path(self.result_dir, DBNameConstant.DB_ROCE_RECEIVE)
+        )
         if not conn or not curs:
             return
         RoceModel._create_receive_send_db(conn, curs)
@@ -276,22 +292,22 @@ class RoceModel(BaseModel, ABC):
         roce_info = self._construct_roce_info(device[0], func_id)
         tx_packet_dic = {'tx_packet_second': Constant.DEFAULT_COUNT, 'tx_packet': Constant.DEFAULT_COUNT}
         self._init_roce_basic_info(roce_info, tx_packet_dic, device[0], func_id)
-        rx_error_rate, rx_dropped_rate, tx_error_rate, tx_dropped_rate = \
-            self._init_roce_packet(roce_info, tx_packet_dic, device[0], func_id)
-        self._insert_roce_report_data(device[0], func_id, roce_info, rx_error_rate, rx_dropped_rate,
-                                      tx_packet_dic, tx_error_rate, tx_dropped_rate)
+        rx_error_rate, rx_dropped_rate, tx_error_rate, tx_dropped_rate = self._init_roce_packet(
+            roce_info, tx_packet_dic, device[0], func_id
+        )
+        self._insert_roce_report_data(
+            device[0], func_id, roce_info, rx_error_rate, rx_dropped_rate, tx_packet_dic, tx_error_rate, tx_dropped_rate
+        )
 
     def _try_to_init_roce_table(self: any) -> None:
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_ROCE_REPORT):
             create_sql = DBManager.sql_create_general_table(
-                DBNameConstant.TABLE_ROCE_REPORT + 'Map',
-                DBNameConstant.TABLE_ROCE_REPORT,
-                self.TABLES_PATH)
+                DBNameConstant.TABLE_ROCE_REPORT + 'Map', DBNameConstant.TABLE_ROCE_REPORT, self.TABLES_PATH
+            )
             DBManager.execute_sql(self.conn, create_sql)
 
     def _get_devices(self: any) -> list:
-        _sql = "select distinct(device_id) " \
-               "from {};".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select distinct(device_id) from {};".format(DBNameConstant.TABLE_ROCE_ORIGIN)
         devices_id = DBManager.fetch_all_data(self.cur, _sql)
         return devices_id
 
@@ -309,8 +325,9 @@ class RoceModel(BaseModel, ABC):
     def _do_roce_data_report_helper(self: any, device_ids: list, func_ids: list) -> None:
         for device in device_ids:
             for func_id in func_ids:
-                _sql = 'SELECT COUNT(rowid) FROM {} WHERE device_id = ? ' \
-                    'AND funcId = ?'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
+                _sql = 'SELECT COUNT(rowid) FROM {} WHERE device_id = ? AND funcId = ?'.format(
+                    DBNameConstant.TABLE_ROCE_ORIGIN
+                )
                 data_length = self.cur.execute(_sql, (device[0], func_id[0])).fetchone()[0]
                 if data_length == 1:  # data has only one row and do not need to be calculated
                     self.get_roce_report_data(device, func_id[0])
@@ -318,30 +335,28 @@ class RoceModel(BaseModel, ABC):
                     self.calculate_roce_report_data(device, func_id[0])
 
     def _get_roce_duration(self: any, device_id: str, func_id: str) -> float:
-        _sql = "select max(timestamp) - min(timestamp) as duration from " \
-               "{} where device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
-        duration = round(float(
-            self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]), self.ROUND_NUMBER)
+        _sql = "select max(timestamp) - min(timestamp) as duration from {} where device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
+        duration = round(float(self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]), self.ROUND_NUMBER)
         return duration
 
     def _get_roce_bandwidth(self: any, device_id: str, func_id: str) -> float:
-        _sql = "select bandwidth from {} where device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select bandwidth from {} where device_id = ? AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
         bandwidth = self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]
         return bandwidth
 
     def _get_roce_packet_data(self: any, device_id: str, func_id: str) -> list:
-        _sql = 'select rxpacket, txpacket from {} where replayId = 0 ' \
-               'AND device_id = ? ' \
-               'AND funcId = ?;'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = 'select rxpacket, txpacket from {} where replayId = 0 AND device_id = ? AND funcId = ?;'.format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         packet_data = self.cur.execute(_sql, (device_id, func_id)).fetchone()
         return packet_data
 
     def _get_roce_rx_data(self: any, device_id: str, func_id: str) -> list:
-        _sql = 'select rxpackets,rxerrors,rxdropped from {} where replayId = 0 ' \
-               'AND device_id = ? ' \
-               'AND funcId = ?'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = 'select rxpackets,rxerrors,rxdropped from {} where replayId = 0 AND device_id = ? AND funcId = ?'.format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         rx_data = self.cur.execute(_sql, (device_id, func_id)).fetchone()
         return rx_data
 
@@ -350,15 +365,15 @@ class RoceModel(BaseModel, ABC):
             'rx_errors_rate': Constant.DEFAULT_COUNT,
             'rx_drop_rate': Constant.DEFAULT_COUNT,
             'tx_errors_rate': Constant.DEFAULT_COUNT,
-            'tx_drop_rate': Constant.DEFAULT_COUNT
+            'tx_drop_rate': Constant.DEFAULT_COUNT,
         }
         if rx_data[0] != Constant.DEFAULT_COUNT:
             tx_rate_dic['rx_errors_rate'] = round(rx_data[1] / rx_data[0], self.ROUND_NUMBER)
             tx_rate_dic['rx_drop_rate'] = round(rx_data[2] / rx_data[0], self.ROUND_NUMBER)
 
-        _sql = 'select txpackets,txerrors,txdropped from {} where replayId = 0 ' \
-               'AND device_id = ? ' \
-               'AND funcId = ?'.format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = 'select txpackets,txerrors,txdropped from {} where replayId = 0 AND device_id = ? AND funcId = ?'.format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         tx_data = self.cur.execute(_sql, (device_id, func_id)).fetchone()
 
         if tx_data[0] != Constant.DEFAULT_COUNT:
@@ -369,131 +384,145 @@ class RoceModel(BaseModel, ABC):
     def _insert_roce_data(self: any, *param: any) -> None:
         device_id, func_id, duration, bandwidth, packet_data, tx_rate_dic = param
         item = [
-            device_id, duration, bandwidth, Constant.DEFAULT_COUNT, Constant.DEFAULT_COUNT,
-            packet_data[0], tx_rate_dic.get('rx_errors_rate'),
-            tx_rate_dic.get('rx_drop_rate'), packet_data[1],
+            device_id,
+            duration,
+            bandwidth,
+            Constant.DEFAULT_COUNT,
+            Constant.DEFAULT_COUNT,
+            packet_data[0],
+            tx_rate_dic.get('rx_errors_rate'),
+            tx_rate_dic.get('rx_drop_rate'),
+            packet_data[1],
             tx_rate_dic.get('tx_errors_rate'),
             tx_rate_dic.get('tx_drop_rate'),
-            func_id
+            func_id,
         ]
 
-        _sql = "insert into {} values({})".format(DBNameConstant.TABLE_ROCE_REPORT,
-                                                  '?,' * (len(item) - 1) + "?")
+        _sql = "insert into {} values({})".format(DBNameConstant.TABLE_ROCE_REPORT, '?,' * (len(item) - 1) + "?")
         self.cur.executemany(_sql, [item])
         self.conn.commit()
 
     def _get_roce_timestamp(self: any, func_id: str) -> list:
-        _sql = "select timestamp from {0} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select timestamp from {0} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         time_stamp = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
         return time_stamp
 
     def _get_roce_rx_byte(self: any, func_id: str) -> list:
-        _sql = "select rxbyte from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select rxbyte from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         rx_byte = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
         return rx_byte
 
     def _get_roce_tx_byte(self: any, func_id: str) -> list:
-        _sql = "select txbyte from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select txbyte from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         tx_byte = DBManager.fetch_all_data(self.cur, _sql, (self.device_id, func_id))
         return tx_byte
 
     def _init_rx_byte_in_roce_info(self: any, roce_info: dict, device_id: str, func_id: str) -> None:
         roce_info["rx_byte"] = self.cur.execute(
-            "select max(rxbytes), min(rxbytes) from {} where replayId = 0 "
-            "AND device_id = ? "
-            "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN),
-            (device_id, func_id)).fetchone()
-        total_byes = float((int(roce_info.get("rx_byte")[0]) -
-                            int(roce_info.get("rx_byte")[1])) * self.BYTE)
+            "select max(rxbytes), min(rxbytes) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+                DBNameConstant.TABLE_ROCE_ORIGIN
+            ),
+            (device_id, func_id),
+        ).fetchone()
+        total_byes = float((int(roce_info.get("rx_byte")[0]) - int(roce_info.get("rx_byte")[1])) * self.BYTE)
         duration = float(roce_info.get("duration"))
         bandwidth = int(roce_info.get("bandwidth"))
-        roce_info["rx_bytes"] = round(total_byes / (duration * bandwidth *
-                                                    Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER)
+        roce_info["rx_bytes"] = round(
+            total_byes / (duration * bandwidth * Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER
+        )
 
     def _init_tx_byte_in_roce_info(self: any, roce_info: dict, device_id: str, func_id: str) -> None:
-        _sql = "select max(txbytes), min(txbytes) from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select max(txbytes), min(txbytes) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         roce_info["tx_byte"] = self.cur.execute(_sql, (device_id, func_id)).fetchone()
-        total_byes = float((int(roce_info.get("tx_byte")[0]) -
-                            int(roce_info.get("tx_byte")[1])) * self.BYTE)
+        total_byes = float((int(roce_info.get("tx_byte")[0]) - int(roce_info.get("tx_byte")[1])) * self.BYTE)
         duration = float(roce_info.get("duration"))
         bandwidth = int(roce_info.get("bandwidth"))
-        roce_info["tx_bytes"] = round(total_byes / (duration * bandwidth *
-                                                    Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER)
+        roce_info["tx_bytes"] = round(
+            total_byes / (duration * bandwidth * Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER
+        )
 
     def _init_rx_packet_in_roce_info(self: any, roce_info: dict, device_id: str, func_id: str) -> None:
-        _sql = "select sum(rxpacket) from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select sum(rxpacket) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         roce_info["rx_packet"] = self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]
-        roce_info["rx_packet_second"] = round(roce_info.get("rx_packet") /
-                                              float(roce_info.get("duration")), self.ROUND_NUMBER)
+        roce_info["rx_packet_second"] = round(
+            roce_info.get("rx_packet") / float(roce_info.get("duration")), self.ROUND_NUMBER
+        )
 
-    def _init_tx_packet_in_tx_packet_dic(self: any, tx_packet_dic: dict, device_id: str, func_id: str,
-                                         duration: float) -> None:
-        _sql = "select sum(txpacket) from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
-        tx_packet_dic['tx_packet'] = self.cur.execute(_sql,
-                                                      (device_id,
-                                                       func_id)).fetchone()[0]
-        tx_packet_dic['tx_packet_second'] = \
-            round(tx_packet_dic.get('tx_packet') / duration, self.ROUND_NUMBER)
+    def _init_tx_packet_in_tx_packet_dic(
+        self: any, tx_packet_dic: dict, device_id: str, func_id: str, duration: float
+    ) -> None:
+        _sql = "select sum(txpacket) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
+        tx_packet_dic['tx_packet'] = self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]
+        tx_packet_dic['tx_packet_second'] = round(tx_packet_dic.get('tx_packet') / duration, self.ROUND_NUMBER)
 
     def _get_rx_error_rate(self: any, roce_info: dict, device_id: str) -> str:
-        _sql = "select sum(rxerrors)/count(rxerrors) from {} where replayId = 0 " \
-               "AND device_id = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = "select sum(rxerrors)/count(rxerrors) from {} where replayId = 0 AND device_id = ?;".format(
+            DBNameConstant.TABLE_ROCE_ORIGIN
+        )
         roce_info["rx_error"] = self.cur.execute(_sql, (device_id,)).fetchone()[0]
 
         rx_error_rate = str(
-            (round(float(roce_info.get("rx_error")) /
-                   float(roce_info.get("rx_packet")), self.ROUND_NUMBER)) * self.PERCENTAGE)
+            (round(float(roce_info.get("rx_error")) / float(roce_info.get("rx_packet")), self.ROUND_NUMBER))
+            * self.PERCENTAGE
+        )
         return rx_error_rate
 
     def _get_rx_dropped_rate(self: any, roce_info: dict, device_id: str, func_id: str) -> str:
-        _sql = "select sum(rxdropped)/count(rxdropped) from {} where replayId = 0 " \
-               "AND device_id = ? " \
-               "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        _sql = (
+            "select sum(rxdropped)/count(rxdropped) from {} where replayId = 0 "
+            "AND device_id = ? "
+            "AND funcId = ?;".format(DBNameConstant.TABLE_ROCE_ORIGIN)
+        )
         roce_info["rx_dropped"] = self.cur.execute(_sql, (device_id, func_id)).fetchone()[0]
         rx_dropped_rate = str(
-            (round(float(roce_info.get("rx_dropped")) /
-                   float(roce_info.get("rx_packet")), self.ROUND_NUMBER)) * self.PERCENTAGE)
+            (round(float(roce_info.get("rx_dropped")) / float(roce_info.get("rx_packet")), self.ROUND_NUMBER))
+            * self.PERCENTAGE
+        )
         return rx_dropped_rate
 
     def _get_tx_error_rate(self: any, tx_packet_dic: dict, device_id: str, func_id: str) -> str:
         tx_error = self.cur.execute(
-            "select sum(txerrors)/count(txerrors) from {} where "
-            "replayId = 0 AND device_id = ? AND funcId = ?;".format(
-                DBNameConstant.TABLE_ROCE_ORIGIN),
-            (device_id, func_id)).fetchone()[0]
+            "select sum(txerrors)/count(txerrors) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+                DBNameConstant.TABLE_ROCE_ORIGIN
+            ),
+            (device_id, func_id),
+        ).fetchone()[0]
         tx_error_rate = str(
-            (round(float(tx_error) / float(tx_packet_dic.get('tx_packet')),
-                   self.ROUND_NUMBER)) * self.PERCENTAGE)
+            (round(float(tx_error) / float(tx_packet_dic.get('tx_packet')), self.ROUND_NUMBER)) * self.PERCENTAGE
+        )
         return tx_error_rate
 
     def _get_tx_dropped_rate(self: any, tx_packet_dic: dict, device_id: str, func_id: str) -> str:
         tx_dropped = self.cur.execute(
-            "select sum(txdropped) from {} where "
-            "replayId = 0 AND device_id = ? AND funcId = ?;".format(
-                DBNameConstant.TABLE_ROCE_ORIGIN),
-            (device_id, func_id)).fetchone()[0]
+            "select sum(txdropped) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
+                DBNameConstant.TABLE_ROCE_ORIGIN
+            ),
+            (device_id, func_id),
+        ).fetchone()[0]
         tx_dropped_rate = str(
-            (round(float(tx_dropped) / float(tx_packet_dic.get('tx_packet')),
-                   self.ROUND_NUMBER)) * self.PERCENTAGE)
+            (round(float(tx_dropped) / float(tx_packet_dic.get('tx_packet')), self.ROUND_NUMBER)) * self.PERCENTAGE
+        )
         return tx_dropped_rate
 
     def _insert_roce_report_data(self: any, *param: list) -> None:
-        device_id, func_id, roce_info, rx_error_rate, rx_dropped_rate, \
-        tx_packet_dic, tx_error_rate, tx_dropped_rate = param
+        device_id, func_id, roce_info, rx_error_rate, rx_dropped_rate, tx_packet_dic, tx_error_rate, tx_dropped_rate = (
+            param
+        )
         item = (
-            device_id, roce_info.get("duration"),
+            device_id,
+            roce_info.get("duration"),
             roce_info.get("bandwidth"),
             roce_info.get("rx_bytes"),
             roce_info.get("tx_bytes"),
@@ -503,19 +532,20 @@ class RoceModel(BaseModel, ABC):
             tx_packet_dic.get('tx_packet_second'),
             tx_error_rate,
             tx_dropped_rate,
-            func_id
+            func_id,
         )
-        _sql = "insert into {} values({})".format(DBNameConstant.TABLE_ROCE_REPORT,
-                                                  '?,' * (len(item) - 1) + "?")
+        _sql = "insert into {} values({})".format(DBNameConstant.TABLE_ROCE_REPORT, '?,' * (len(item) - 1) + "?")
         self.cur.executemany(_sql, [item])
         self.conn.commit()
 
     def _construct_roce_info(self: any, device_id: str, func_id: str) -> dict:
         roce_info = {
             "duration": self._get_roce_duration(device_id, func_id),
-            "bandwidth": self._get_roce_bandwidth(device_id, func_id), "tx_bytes": Constant.DEFAULT_COUNT,
-            "rx_bytes": Constant.DEFAULT_COUNT, "rx_packet": Constant.DEFAULT_COUNT,
-            "rx_packet_second": Constant.DEFAULT_COUNT
+            "bandwidth": self._get_roce_bandwidth(device_id, func_id),
+            "tx_bytes": Constant.DEFAULT_COUNT,
+            "rx_bytes": Constant.DEFAULT_COUNT,
+            "rx_packet": Constant.DEFAULT_COUNT,
+            "rx_packet_second": Constant.DEFAULT_COUNT,
         }
         return roce_info
 
@@ -525,8 +555,9 @@ class RoceModel(BaseModel, ABC):
                 self._init_rx_byte_in_roce_info(roce_info, device_id, func_id)
                 self._init_tx_byte_in_roce_info(roce_info, device_id, func_id)
                 self._init_rx_packet_in_roce_info(roce_info, device_id, func_id)
-                self._init_tx_packet_in_tx_packet_dic(tx_packet_dic, device_id, func_id,
-                                                      float(roce_info.get("duration")))
+                self._init_tx_packet_in_tx_packet_dic(
+                    tx_packet_dic, device_id, func_id, float(roce_info.get("duration"))
+                )
 
     def _init_roce_packet(self: any, roce_info: dict, tx_packet_dic: dict, device_id: str, func_id: str) -> tuple:
         rx_error_rate, rx_dropped_rate = "0", "0"

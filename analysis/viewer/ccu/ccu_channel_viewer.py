@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,13 +29,12 @@ class CCUChannelViewer(BaseViewer, ABC):
     """
     class for get ccu channel data
     """
+
     PACKAGE_SIZE = 4 * Constant.KILOBYTE
 
     def __init__(self: any, configs: dict, params: dict) -> None:
         super().__init__(configs, params)
-        self.model_list = {
-            "ccu_channel": CCUViewerChannelModel
-        }
+        self.model_list = {"ccu_channel": CCUViewerChannelModel}
 
     def get_summary_data(self: any) -> tuple:
         """
@@ -46,13 +45,15 @@ class CCUChannelViewer(BaseViewer, ABC):
         return self.configs.get(StrConstant.CONFIG_HEADERS), formatted_data, len(formatted_data)
 
     def format_channel_summary_data(self, summary_data: list) -> list:
-        return [(
-            data.channel_id,
-            format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(data.timestamp)),
-            round(self._trans_delay_to_bandwidth(data.min_bw), NumberConstant.ROUND_THREE_DECIMAL),
-            round(self._trans_delay_to_bandwidth(data.max_bw), NumberConstant.ROUND_THREE_DECIMAL),
-            round(self._trans_delay_to_bandwidth(data.avg_bw), NumberConstant.ROUND_THREE_DECIMAL)
-        ) for data in summary_data
+        return [
+            (
+                data.channel_id,
+                format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(data.timestamp)),
+                round(self._trans_delay_to_bandwidth(data.min_bw), NumberConstant.ROUND_THREE_DECIMAL),
+                round(self._trans_delay_to_bandwidth(data.max_bw), NumberConstant.ROUND_THREE_DECIMAL),
+                round(self._trans_delay_to_bandwidth(data.avg_bw), NumberConstant.ROUND_THREE_DECIMAL),
+            )
+            for data in summary_data
         ]
 
     def _trans_delay_to_bandwidth(self, syscnt: int) -> float:

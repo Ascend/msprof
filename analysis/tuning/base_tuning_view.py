@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -56,16 +56,22 @@ class BaseTuningView:
                 sub_rule_dict.setdefault(rule_sub_type, []).append(result)
             else:
                 message = handle_class.print_format(result.get(CommonProfRule.RESULT_TUNING_DATA, []))
-                print_msg("\t{0}){1}: {2}".format(result_index + 1,
-                                                  result.get(CommonProfRule.RESULT_RULE_SUGGESTION, ""), message))
+                print_msg(
+                    "\t{0}){1}: {2}".format(
+                        result_index + 1, result.get(CommonProfRule.RESULT_RULE_SUGGESTION, ""), message
+                    )
+                )
         if sub_rule_dict:
             for sub_key_index, sub_key in enumerate(sub_rule_dict.keys()):
                 print_msg("\t{0}){1}:".format(sub_key_index + 1, sub_key))
                 for value_index, value in enumerate(sub_rule_dict.get(sub_key)):
+                    # pylint: disable=undefined-loop-variable
                     message = handle_class.print_format(result.get(CommonProfRule.RESULT_TUNING_DATA, []))
                     print_msg(
-                        "\t\t{0}){1}: {2}".format(value_index + 1,
-                                                  value.get(CommonProfRule.RESULT_RULE_SUGGESTION, ""), message))
+                        "\t\t{0}){1}: {2}".format(
+                            value_index + 1, value.get(CommonProfRule.RESULT_RULE_SUGGESTION, ""), message
+                        )
+                    )
 
     def get_tuning_data(self: any) -> None:
         """

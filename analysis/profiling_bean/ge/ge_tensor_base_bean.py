@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -26,6 +26,7 @@ class GeTensorBaseBean(StructDecoder):
     """
     class for ge tensor base bean
     """
+
     INPUT = 0
     OUTPUT = 1
 
@@ -91,7 +92,7 @@ class GeTensorBaseBean(StructDecoder):
         """
         if tensor_format == GeDataFormat.UNDEFINED.value:
             return tensor_format, 0
-        return tensor_format & 0xff, (tensor_format & 0xffff00) >> 8
+        return tensor_format & 0xFF, (tensor_format & 0xFFFF00) >> 8
 
     @staticmethod
     def _process_tensor_data_type(data_type: list) -> list:
@@ -129,7 +130,7 @@ class GeTensorBaseBean(StructDecoder):
     def _deal_with_tensor_data(self, data_list: list, tensor_num: int, tensor_len: int):
         tensor_data = []
         for index in range(0, tensor_num):
-            tensor_data.append(list(data_list[tensor_len * index: tensor_len * index + tensor_len]))
+            tensor_data.append(list(data_list[tensor_len * index : tensor_len * index + tensor_len]))
         for tensor in tensor_data:
             if tensor[0] == self.INPUT:
                 self._input_format.append(tensor[1])

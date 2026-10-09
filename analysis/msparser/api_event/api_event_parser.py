@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -37,12 +39,13 @@ class ApiEventParser(DataParser, MsMultiProcess):
     """
     api_event data parser
     """
+
     CHECK_RESERVE = 18446744073709551615  # 0xFFFF FFFF FFFF FFFF
     connection_id = 0
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -57,14 +60,14 @@ class ApiEventParser(DataParser, MsMultiProcess):
         api_event_tag_files = self._file_list.get(DataTag.API_EVENT, [])
         api_event_tag_files = self.group_aging_file(api_event_tag_files)
         for file_list in api_event_tag_files.values():
-            offset_calculator = OffsetCalculator(file_list, struct.calcsize(StructFmt.API_EVENT_FMT),
-                                                 self._project_path)
+            offset_calculator = OffsetCalculator(
+                file_list, struct.calcsize(StructFmt.API_EVENT_FMT), self._project_path
+            )
             for _file in file_list:
                 if not is_valid_original_data(_file, self._project_path):
                     continue
                 _file_path = self.get_file_path_and_check(_file)
-                logging.info(
-                    "start parsing api_event data file: %s", _file)
+                logging.info("start parsing api_event data file: %s", _file)
                 self._read_data(_file_path, offset_calculator)
 
     def save(self: any) -> None:
@@ -94,8 +97,9 @@ class ApiEventParser(DataParser, MsMultiProcess):
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
             return
         if self.invalid_api_num:
-            logging.warning("A total of %d api data entries have a start time of 0, or are duplicated.",
-                            self.invalid_api_num)
+            logging.warning(
+                "A total of %d api data entries have a start time of 0, or are duplicated.", self.invalid_api_num
+            )
         self.save()
 
     def _check_reserve_num(self, data: bytes) -> bool:
@@ -121,6 +125,6 @@ class ApiEventParser(DataParser, MsMultiProcess):
         with FileOpen(file_path, 'rb') as _open_file:
             _all_data = offset.pre_process(_open_file.file_reader, file_size)
             for _index in range(file_size // struct_size):
-                data = _all_data[_index * struct_size:(_index + 1) * struct_size]
+                data = _all_data[_index * struct_size : (_index + 1) * struct_size]
                 self.check_magic_num(data)
                 self._decode_data(data)

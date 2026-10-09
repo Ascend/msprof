@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import sqlite3
@@ -35,7 +37,7 @@ class CtxIdParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._ctx_id_data = []
@@ -45,8 +47,15 @@ class CtxIdParser(DataParser, MsMultiProcess):
     def _get_ctx_id_data(bean_data: CtxIdBean) -> list:
         if not bean_data:
             return []
-        return [bean_data.level, bean_data.struct_type, bean_data.thread_id, bean_data.timestamp, bean_data.node_id,
-                bean_data.ctx_id_num, bean_data.ctx_id]
+        return [
+            bean_data.level,
+            bean_data.struct_type,
+            bean_data.thread_id,
+            bean_data.timestamp,
+            bean_data.node_id,
+            bean_data.ctx_id_num,
+            bean_data.ctx_id,
+        ]
 
     def parse(self: any) -> None:
         """
@@ -55,10 +64,15 @@ class CtxIdParser(DataParser, MsMultiProcess):
         ctx_id_files = self._file_list.get(DataTag.CTX_ID, [])
         ctx_id_files = self.group_aging_file(ctx_id_files)
         for file_list in ctx_id_files.values():
-            self._ctx_id_data.extend(self.parse_bean_data(file_list, StructFmt.CTX_ID_SIZE, CtxIdBean,
-                                                          format_func=self._get_ctx_id_data,
-                                                          check_func=self.check_magic_num,
-                                                          ))
+            self._ctx_id_data.extend(
+                self.parse_bean_data(
+                    file_list,
+                    StructFmt.CTX_ID_SIZE,
+                    CtxIdBean,
+                    format_func=self._get_ctx_id_data,
+                    check_func=self.check_magic_num,
+                )
+            )
 
     def save(self: any) -> None:
         """

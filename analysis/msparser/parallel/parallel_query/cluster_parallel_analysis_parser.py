@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import os
 
@@ -38,21 +40,25 @@ class ClusterParallelAnalysisParser:
     def process(self: any) -> None:
         self._prepare_parallel_analysis()
         self.parallel_data_result = ClusterParallelAnalysis(self._parallel_table_name, self._params).get_parallel_data()
-        output_file_name = "cluster_parallel_analysis_{}_{}_{}.json".format(self._npu_id, self._model_id,
-                                                                            self._iteration_id)
+        output_file_name = "cluster_parallel_analysis_{}_{}_{}.json".format(
+            self._npu_id, self._model_id, self._iteration_id
+        )
         FileManager.storage_query_result_json_file(self._collection_path, self.parallel_data_result, output_file_name)
 
     def _prepare_parallel_analysis(self: any) -> None:
         if not os.path.exists(PathManager.get_db_path(self._collection_path, DBNameConstant.DB_CLUSTER_PARALLEL)):
-            raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB,
-                                "Cannot find the cluster_parallel.db or Permission denied!")
+            raise ProfException(
+                ProfException.PROF_CLUSTER_INVALID_DB, "Cannot find the cluster_parallel.db or Permission denied!"
+            )
         npu_ids = []
         model_iteration_ids = {}
         with ClusterParallelViewModel(self._collection_path) as _model:
             self._parallel_table_name = _model.get_table_name()
             if self._parallel_table_name == Constant.NA:
-                raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB,
-                                    "Cannot find the cluster parallel table or Permission denied!")
+                raise ProfException(
+                    ProfException.PROF_CLUSTER_INVALID_DB,
+                    "Cannot find the cluster parallel table or Permission denied!",
+                )
             npu_ids = _model.get_npu_ids(self._parallel_table_name)
             model_iteration_ids = _model.get_model_iteration_ids(self._parallel_table_name)
         self._check_arguments_valid(npu_ids, model_iteration_ids)
@@ -68,8 +74,9 @@ class ClusterParallelAnalysisParser:
             if self._iteration_id not in iteration_ids:
                 min_value = min(iteration_ids)
                 max_value = max(iteration_ids)
-                message = f"Invalid arguments! " \
-                          f"The argument '--iteration-id' should be between {min_value} and {max_value}."
+                message = (
+                    f"Invalid arguments! The argument '--iteration-id' should be between {min_value} and {max_value}."
+                )
                 raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR, message)
             return
         if self._iteration_id == Constant.DEFAULT_INVALID_VALUE:

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -35,8 +35,13 @@ class StarsCommon:
     COMMON_HIGH_OPERATOR = 0xF000
     EXPANDING_LOW_OPERATOR = 0x7FFF
 
-    def __init__(self: any, task_id: int, stream_id: int, timestamp: int or float,
-                 sqe_type: SqeType.StarsSqeType = SqeType.StarsSqeType.AI_CORE) -> None:
+    def __init__(
+        self: any,
+        task_id: int,
+        stream_id: int,
+        timestamp: int or float,
+        sqe_type: SqeType.StarsSqeType = SqeType.StarsSqeType.AI_CORE,
+    ) -> None:
         self._stream_id = self.set_stream_id(stream_id, task_id, sqe_type)
         self._task_id = self.set_task_id(stream_id, task_id, sqe_type)
         self._timestamp = timestamp
@@ -138,7 +143,7 @@ class StarsCommon:
         else:
             if stream_id & cls.STREAM_JUDGE_BIT12_OPERATOR:
                 task_id = task_id & cls.TASK_LOW_OPERATOR
-                task_id |= (stream_id & cls.STREAM_HIGH_OPERATOR)
+                task_id |= stream_id & cls.STREAM_HIGH_OPERATOR
             elif stream_id & cls.STREAM_JUDGE_BIT13_OPERATOR:
                 task_id = (stream_id & cls.COMMON_LOW_OPERATOR) | (task_id & cls.COMMON_HIGH_OPERATOR)
             return task_id

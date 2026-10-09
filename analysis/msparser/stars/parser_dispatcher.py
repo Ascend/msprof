@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -16,12 +16,10 @@
 
 import importlib
 import logging
-import os
 
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.path_manager import PathManager
-from msconfig.config_manager import ConfigManager
 from common_func.platform.chip_manager import ChipManager
+from msconfig.config_manager import ConfigManager
 
 
 class ParserDispatcher:
@@ -36,8 +34,11 @@ class ParserDispatcher:
         self.parser_list = []
         self.result_dir = result_dir
         self.cfg_parser = None
-        self.known_func_type_list = ConfigManager.get(ConfigManager.FUNC_TYPE).KNOWN_FUNC_TYPE_LIST_V6 \
-            if ChipManager().is_chip_v6() else ConfigManager.get(ConfigManager.FUNC_TYPE).KNOWN_FUNC_TYPE_LIST
+        self.known_func_type_list = (
+            ConfigManager.get(ConfigManager.FUNC_TYPE).KNOWN_FUNC_TYPE_LIST_V6
+            if ChipManager().is_chip_v6()
+            else ConfigManager.get(ConfigManager.FUNC_TYPE).KNOWN_FUNC_TYPE_LIST
+        )
         self.modules = importlib.import_module("msparser.stars")
 
     def init(self: any) -> None:
@@ -76,6 +77,7 @@ class ParserDispatcher:
                 logging.error("Invalid func type %s", func_type)
             else:
                 logging.warning("Not support func type %s", func_type)
+
     def flush_all_parser(self: any) -> None:
         """
         flush all parser data to db

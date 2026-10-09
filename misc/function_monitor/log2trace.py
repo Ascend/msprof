@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -39,14 +39,14 @@ def parse_line(line: str) -> dict:
         result[key.strip()] = value.strip()
 
     if not all(field in result for field in REQUIRED_FIELDS):
-        logging.error(f"Line does not contain all required fields: {original_line}")
+        logging.error("Line does not contain all required fields: %s", original_line)
         return {}
 
     for field in NUMERIC_FIELDS:
         try:
             result[field] = int(result[field])
         except ValueError:
-            logging.error(f"Failed to convert field {field} to int: {result[field]} in line: {original_line}")
+            logging.error("Failed to convert field %s to int: %s in line: %s", field, result[field], original_line)
             return {}
 
     return result
@@ -98,22 +98,33 @@ def convert_to_trace(log_lines) -> dict:
         if extra_info:
             args.update(parse_extra_info(extra_info))
 
-        trace_data['traceEvents'].append({
-            'ph': 'X', 'pid': unique_pid, 'tid': tid, 'name': name,
-            'ts': start_time, 'dur': duration, 'cat': 'function',
-            'args': args
-        })
+        trace_data['traceEvents'].append(
+            {
+                'ph': 'X',
+                'pid': unique_pid,
+                'tid': tid,
+                'name': name,
+                'ts': start_time,
+                'dur': duration,
+                'cat': 'function',
+                'args': args,
+            }
+        )
 
     for unique_pid, process_name in process_name_map.items():
-        trace_data['traceEvents'].append({
-            'ph': 'M', 'pid': unique_pid, 'tid': 0, 'name': 'process_name',
-            'args': {'name': process_name}
-        })
+        trace_data['traceEvents'].append(
+            {'ph': 'M', 'pid': unique_pid, 'tid': 0, 'name': 'process_name', 'args': {'name': process_name}}
+        )
         for tid, thread_name in thread_map[unique_pid]:
-            trace_data['traceEvents'].append({
-                'ph': 'M', 'pid': unique_pid, 'tid': tid, 'name': 'thread_name',
-                'args': {'name': f"Thread {tid} ({thread_name})"}
-            })
+            trace_data['traceEvents'].append(
+                {
+                    'ph': 'M',
+                    'pid': unique_pid,
+                    'tid': tid,
+                    'name': 'thread_name',
+                    'args': {'name': f"Thread {tid} ({thread_name})"},
+                }
+            )
 
     return trace_data
 
@@ -140,7 +151,7 @@ def main():
                     valid_lines += 1
 
     except Exception as e:
-        logging.error(f"Failed to read input file: {args.input}, error: {e}")
+        logging.error("Failed to read input file: %s, error: %s", args.input, e)
         sys.exit(1)
 
     trace_data = convert_to_trace(log_lines)
@@ -151,10 +162,10 @@ def main():
             args.output += '.json'
         FileManager.create_json_file(trace_data, args.output)
     except Exception as e:
-        logging.error(f"Failed to write output file: {args.output}, error: {e}")
+        logging.error("Failed to write output file: %s, error: %s", args.output, e)
         sys.exit(1)
 
-    logging.info(f"Processed {total_lines} lines, valid {valid_lines} lines, output {args.output}")
+    logging.info("Processed %s lines, valid %s lines, output %s", total_lines, valid_lines, args.output)
 
 
 if __name__ == '__main__':

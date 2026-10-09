@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -49,11 +49,7 @@ class ApiStatisticViewer:
             min_value = round(min(duration), NumberConstant.ROUND_THREE_DECIMAL)
             deviations = [round((x - average_value) ** 2, NumberConstant.ROUND_THREE_DECIMAL) for x in duration]
             variance = round(sum(deviations) / count, NumberConstant.ROUND_THREE_DECIMAL)
-            reformat_result.append(
-                (
-                    level, api_name, sum_value, count, average_value, min_value, max_value, variance
-                )
-            )
+            reformat_result.append((level, api_name, sum_value, count, average_value, min_value, max_value, variance))
         return reformat_result
 
     def get_api_summary_data(self: any) -> list:
@@ -79,7 +75,7 @@ class ApiStatisticViewer:
 
     def get_api_statistic_data(self) -> tuple:
         """
-         get api statistic data
+        get api statistic data
         """
         data = self.get_api_summary_data()
         return self._configs.get(StrConstant.CONFIG_HEADERS), data, len(data)

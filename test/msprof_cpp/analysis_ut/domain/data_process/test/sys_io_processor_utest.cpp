@@ -1,23 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/sys_io_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -25,16 +27,19 @@ using namespace Domain::Environment;
 using namespace Analysis::Utils;
 // device_id, replayid, timestamp, bandwidth, rxpacket, rxbyte, rxpackets, rxbytes, rxerrors, rxdropped,
 // txpacket, txbyte, txpackets, txbytes, txerrors, txdropped, funcid
-using SysIODataFormat = std::vector<std::tuple<uint16_t, uint16_t, double, uint32_t, double, double, uint32_t,
-    uint32_t, uint32_t, uint32_t, double, double, uint32_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
+using SysIODataFormat =
+    std::vector<std::tuple<uint16_t, uint16_t, double, uint32_t, double, double, uint32_t, uint32_t, uint32_t, uint32_t,
+                           double, double, uint32_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
 
-using SysIOReportDataFormat = std::vector<std::tuple<uint16_t, std::string, std::string, std::string, std::string,
-    std::string, std::string, std::string, std::string, std::string, std::string, uint16_t>>;
+using SysIOReportDataFormat =
+    std::vector<std::tuple<uint16_t, std::string, std::string, std::string, std::string, std::string, std::string,
+                           std::string, std::string, std::string, std::string, uint16_t>>;
 
-using SysIOReceiveSendFormat = std::vector<std::tuple<uint16_t, double, double, double, double,
-    double, double, double, double, double, uint16_t>>;
+using SysIOReceiveSendFormat =
+    std::vector<std::tuple<uint16_t, double, double, double, double, double, double, double, double, double, uint16_t>>;
 
-namespace {
+namespace
+{
 const std::string SYS_IO_DIR = "./sys_io";
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string NIC_DB = "nic.db";
@@ -49,29 +54,25 @@ const std::string ROCE_REPORT_DATA_TABLE_NAME = "RoceReportData";
 const std::string NIC_RECEIVE_SEND_TABLE_NAME = "NicReceiveSend";
 const std::string ROCE_RECEIVE_SEND_TABLE_NAME = "RoceReceiveSend";
 
-const SysIODataFormat SYS_IO_DATA = {
-    {0, 0, 236328380142660, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 236328388200700, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 236328400152980, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 236328408182900, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 236328420031060, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-};
+const SysIODataFormat SYS_IO_DATA = {{0, 0, 236328380142660, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                     {0, 0, 236328388200700, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                     {0, 0, 236328400152980, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                     {0, 0, 236328408182900, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                     {0, 0, 236328420031060, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
 const SysIOReportDataFormat SYS_IO_REPORT_DATA = {
-    {2, "50839867980.0", "200000", "0.0", "0.0", "0.0", "0", "0", "0.0", "0", "0", 0}
-};
+    {2, "50839867980.0", "200000", "0.0", "0.0", "0.0", "0", "0", "0.0", "0", "0", 0}};
 
-const SysIOReceiveSendFormat SYS_IO_RECEIVE_SEND = {
-    {2, 71735332046900, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 71735344028140, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 71735352036920, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 71735364160360, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 71735372066700, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-};
-}
+const SysIOReceiveSendFormat SYS_IO_RECEIVE_SEND = {{2, 71735332046900, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                    {2, 71735344028140, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                    {2, 71735352036920, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                    {2, 71735364160360, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                    {2, 71735372066700, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+}  // namespace
 
-class SysIOProcessorUTest : public testing::Test {
-protected:
+class SysIOProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -108,8 +109,8 @@ protected:
         std::shared_ptr<DBRunner> nicReceiveSendDbRunner;
         MAKE_SHARED_RETURN_VALUE(nicReceiveSendDbRunner, DBRunner, false,
                                  File::PathJoin({sqlitePath, nicReceiveSendDb->GetDBName()}));
-        EXPECT_TRUE(nicReceiveSendDbRunner->CreateTable("NicReceiveSend",
-                                                        nicReceiveSendDb->GetTableCols("NicReceiveSend")));
+        EXPECT_TRUE(
+            nicReceiveSendDbRunner->CreateTable("NicReceiveSend", nicReceiveSendDb->GetTableCols("NicReceiveSend")));
         EXPECT_TRUE(nicReceiveSendDbRunner->InsertData("NicReceiveSend", SYS_IO_RECEIVE_SEND));
 
         std::shared_ptr<RoceDB> roceDb;

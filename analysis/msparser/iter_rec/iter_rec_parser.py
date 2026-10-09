@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -88,20 +88,22 @@ class IterParser(IParser, MsMultiProcess):
         iter_to_iter_info = self._iter_info_updater.iteration_manager.iter_to_iter_info
         try:
             if iter_to_iter_info:
-                hwts_iter_data = [[iter_info.iter_id,
-                                   iter_info.model_id,
-                                   iter_info.index_id,
-                                   iter_info.hwts_count,
-                                   iter_info.hwts_offset,
-                                   iter_info.aic_count,
-                                   iter_info.aic_offset]
-                                  for iter_info in iter_to_iter_info.values()]
-                self.hwts_iter_model.flush(hwts_iter_data,
-                                           DBNameConstant.TABLE_HWTS_ITER_SYS)
+                hwts_iter_data = [
+                    [
+                        iter_info.iter_id,
+                        iter_info.model_id,
+                        iter_info.index_id,
+                        iter_info.hwts_count,
+                        iter_info.hwts_offset,
+                        iter_info.aic_count,
+                        iter_info.aic_offset,
+                    ]
+                    for iter_info in iter_to_iter_info.values()
+                ]
+                self.hwts_iter_model.flush(hwts_iter_data, DBNameConstant.TABLE_HWTS_ITER_SYS)
                 self.hwts_iter_model.finalize()
         except sqlite3.Error as trace_err:
-            logging.error("Save hwts iter failed, "
-                          "%s", str(trace_err), exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error("Save hwts iter failed, %s", str(trace_err), exc_info=Constant.TRACE_BACK_SWITCH)
 
     def parse(self: any) -> None:
         """
@@ -117,9 +119,10 @@ class IterParser(IParser, MsMultiProcess):
         pass
 
     def is_need_to_calculate(self):
-        return not (self.hwts_iter_model.check_iter_data_in_db(
-            DBNameConstant.TABLE_HWTS_ITER_SYS) or self.hwts_iter_model.check_iter_data_in_db(
-            DBNameConstant.TABLE_HWTS_BATCH))
+        return not (
+            self.hwts_iter_model.check_iter_data_in_db(DBNameConstant.TABLE_HWTS_ITER_SYS)
+            or self.hwts_iter_model.check_iter_data_in_db(DBNameConstant.TABLE_HWTS_BATCH)
+        )
 
     def _read_hwts_data(self: any, all_bytes: bytes) -> None:
         for _chunk in Utils.chunks(all_bytes, self.HWTS_LOG_SIZE):
@@ -160,31 +163,42 @@ class IterParser(IParser, MsMultiProcess):
             [task_log] = FlipCalculator.compute_batch_id([task_log], self._task_flip)
             return
         # not all export
-        setattr(task_log, "batch_id", self._batch_counter.calculate_batch(
-            task_log.stream_id, task_log.task_id, self._iter_recorder.current_iter_id))
+        setattr(
+            task_log,
+            "batch_id",
+            self._batch_counter.calculate_batch(
+                task_log.stream_id, task_log.task_id, self._iter_recorder.current_iter_id
+            ),
+        )
 
     def _create_hwts_task_time_data(self: any, task_log: HwtsLogBean, stream_task_id: str) -> None:
         start_task_log = self._task_start_dict.get(stream_task_id)
-        setattr(task_log, "start_time",
-                start_task_log.sys_cnt if start_task_log else NumberConstant.INVALID_OP_EXE_TIME)
+        setattr(
+            task_log, "start_time", start_task_log.sys_cnt if start_task_log else NumberConstant.INVALID_OP_EXE_TIME
+        )
         self._task_start_dict.pop(stream_task_id, None)
 
         setattr(task_log, "is_ai_core", self._iter_info_updater.judge_ai_core(task_log, self.ai_core_task))
         if self.default_index == self.DEFAULT_TASK_TIME_SIZE:
-            self.hwts_iter_model.flush(self._hwts_task_time_data,
-                                       DBNameConstant.TABLE_HWTS_BATCH)
+            self.hwts_iter_model.flush(self._hwts_task_time_data, DBNameConstant.TABLE_HWTS_BATCH)
             self._hwts_task_time_data = [None] * self.DEFAULT_TASK_TIME_SIZE
             self.default_index = 0
         self._hwts_task_time_data[self.default_index] = (
-            task_log.stream_id, task_log.task_id, task_log.batch_id, self._iter_recorder.current_iter_id,
-            task_log.start_time, task_log.sys_cnt, task_log.is_ai_core
+            task_log.stream_id,
+            task_log.task_id,
+            task_log.batch_id,
+            self._iter_recorder.current_iter_id,
+            task_log.start_time,
+            task_log.sys_cnt,
+            task_log.is_ai_core,
         )
         self.default_index = self.default_index + 1
 
     def _parse_hwts_data(self: any) -> None:
         if ChipManager().is_chip_all_data_export() and InfoConfReader().is_all_export_version():
-            with TsTrackModel(self._project_path,
-                              DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]) as model:
+            with TsTrackModel(
+                self._project_path, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_DEVICE_TASK_FLIP]
+            ) as model:
                 self._task_flip = model.get_task_flip_data()
         hwts_files = self._file_list.get(DataTag.HWTS, [])
         hwts_files.sort(key=lambda x: int(x.split("_")[-1]))
@@ -195,8 +209,7 @@ class IterParser(IParser, MsMultiProcess):
             _hwts_file = PathManager.get_data_file_path(self._project_path, _hwts_file)
             logging.info("Begin to process hwts data file: %s", os.path.basename(_hwts_file))
             with FileOpen(_hwts_file, 'rb') as _hwts_file_reader:
-                all_bytes = _offset_calculator.pre_process(_hwts_file_reader.file_reader,
-                                                           os.path.getsize(_hwts_file))
+                all_bytes = _offset_calculator.pre_process(_hwts_file_reader.file_reader, os.path.getsize(_hwts_file))
                 self._read_hwts_data(all_bytes)
         for iter_num, task_offset in self._task_cnt_not_in_iter.items():
             self._iter_info_updater.calibrate_iter_info_offset(task_offset=task_offset, iter_offset=iter_num)
@@ -204,9 +217,8 @@ class IterParser(IParser, MsMultiProcess):
         self._pmu_cnt_not_in_iter.setdefault(len(self._iter_recorder.iter_end_dict) + 1, 0)
         self._iter_info_updater.calibrate_aic_offset(self._pmu_cnt_not_in_iter, self._get_aic_count_in_file())
         if self.default_index > 0:
-            del self._hwts_task_time_data[self.default_index:]
-            self.hwts_iter_model.flush(self._hwts_task_time_data,
-                                       DBNameConstant.TABLE_HWTS_BATCH)
+            del self._hwts_task_time_data[self.default_index :]
+            self.hwts_iter_model.flush(self._hwts_task_time_data, DBNameConstant.TABLE_HWTS_BATCH)
 
     def _get_aic_count_in_file(self: any) -> int:
         sum_file_size = 0
@@ -221,7 +233,7 @@ class IterRecParser(IterParser):
     """
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
-        super(IterRecParser, self).__init__(file_list, sample_config)
+        super().__init__(file_list, sample_config)
         self._sample_config = sample_config
         self._file_list = file_list
 
@@ -232,8 +244,8 @@ class IterRecParser(IterParser):
         """
         # The condition can not be remove, or hwts data would be flush two times without GE.
         if not DBManager.check_tables_in_db(
-                PathManager.get_db_path(
-                    self._project_path, DBNameConstant.DB_GE_INFO), DBNameConstant.TABLE_GE_TASK):
+            PathManager.get_db_path(self._project_path, DBNameConstant.DB_GE_INFO), DBNameConstant.TABLE_GE_TASK
+        ):
             return
 
         self._batch_counter.init()
@@ -246,8 +258,11 @@ class IterRecParser(IterParser):
         :return: None
         """
         try:
-            if self._file_list.get(DataTag.HWTS,
-                                   []) and not ProfilingScene().is_operator() and self.is_need_to_calculate():
+            if (
+                self._file_list.get(DataTag.HWTS, [])
+                and not ProfilingScene().is_operator()
+                and self.is_need_to_calculate()
+            ):
                 self.parse()
                 self.save()
         except ProfException as rec_error:
@@ -262,17 +277,19 @@ class NoGeIterRecParser(IterParser):
     """
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
-        super(NoGeIterRecParser, self).__init__(file_list, sample_config)
+        super().__init__(file_list, sample_config)
         self._file_list = file_list
 
     def judge_file_scene(self: any, file_dict: dict) -> bool:
         return bool(
-            file_dict.get(DataTag.HWTS) and file_dict.get(DataTag.AI_CORE) and not DBManager.check_tables_in_db(
-                PathManager.get_db_path(
-                    self._project_path, DBNameConstant.DB_GE_INFO), DBNameConstant.TABLE_GE_TASK) and
-            not self.hwts_iter_model.check_iter_data_in_db(
-                DBNameConstant.TABLE_HWTS_ITER_SYS) and self.hwts_iter_model.check_iter_data_in_db(
-                DBNameConstant.TABLE_HWTS_BATCH))
+            file_dict.get(DataTag.HWTS)
+            and file_dict.get(DataTag.AI_CORE)
+            and not DBManager.check_tables_in_db(
+                PathManager.get_db_path(self._project_path, DBNameConstant.DB_GE_INFO), DBNameConstant.TABLE_GE_TASK
+            )
+            and not self.hwts_iter_model.check_iter_data_in_db(DBNameConstant.TABLE_HWTS_ITER_SYS)
+            and self.hwts_iter_model.check_iter_data_in_db(DBNameConstant.TABLE_HWTS_BATCH)
+        )
 
     def parse(self: any) -> None:
         """
@@ -289,8 +306,11 @@ class NoGeIterRecParser(IterParser):
         :return: None
         """
         try:
-            if self.judge_file_scene(
-                    self._file_list) and not ProfilingScene().is_operator() and self.is_need_to_calculate():
+            if (
+                self.judge_file_scene(self._file_list)
+                and not ProfilingScene().is_operator()
+                and self.is_need_to_calculate()
+            ):
                 self.parse()
                 self.save()
         except ProfException as rec_error:
@@ -311,5 +331,6 @@ class NoGeIterRecParser(IterParser):
             logging.info("Begin to process ai_core data file: %s with out ge data", os.path.basename(ai_core_file))
             with FileOpen(ai_core_file_path, 'rb') as _ai_core_file_reader:
                 all_bytes = _offset_calculator.pre_process(
-                    _ai_core_file_reader.file_reader, os.path.getsize(ai_core_file_path))
+                    _ai_core_file_reader.file_reader, os.path.getsize(ai_core_file_path)
+                )
                 self._read_ai_core_data(all_bytes)

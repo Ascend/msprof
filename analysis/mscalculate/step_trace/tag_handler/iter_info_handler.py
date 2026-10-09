@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -24,6 +24,7 @@ class AllReduceStreamHandler(StepTraceTagHandler):
     """
     get all reduce data
     """
+
     def __init__(self: any) -> None:
         self.collect_data = []
         self.next_handler_group = defaultdict(AllReduceTagHandler)
@@ -59,6 +60,7 @@ class AllReduceTagHandler(StepTraceTagHandler):
     """
     get all reduce data
     """
+
     def __init__(self: any) -> None:
         self.collect_data = []
 
@@ -85,8 +87,11 @@ class AllReduceTagHandler(StepTraceTagHandler):
         """
         if not record[StepTraceConstant.TAG_ID] % 2:
             self.collect_data.append(
-                {StepTraceConstant.REDUCE_START: record[StepTraceConstant.TIME_STAMP],
-                 StepTraceConstant.REDUCE_END: None})
+                {
+                    StepTraceConstant.REDUCE_START: record[StepTraceConstant.TIME_STAMP],
+                    StepTraceConstant.REDUCE_END: None,
+                }
+            )
         if record[StepTraceConstant.TAG_ID] % 2 and self.collect_data:
             self.collect_data[-1][StepTraceConstant.REDUCE_END] = record[StepTraceConstant.TIME_STAMP]
 
@@ -102,6 +107,7 @@ class TrainingTraceTagHandler(StepTraceTagHandler):
     """
     get training trace data
     """
+
     def __init__(self: any) -> None:
         self.collect_data = {}
 
@@ -127,9 +133,7 @@ class TrainingTraceTagHandler(StepTraceTagHandler):
         :param record: contain model_id, tag_id, timestamp
         :return: void
         """
-        user_set_flag = False
         if record[StepTraceConstant.TAG_ID] == StepTraceConstant.FP_TAG:
-            user_set_flag = True
             self.collect_data[StepTraceConstant.FORWARD_PROPAGATION] = record.get(StepTraceConstant.TIME_STAMP)
 
         if record[StepTraceConstant.TAG_ID] == StepTraceConstant.BP_TAG:
@@ -147,6 +151,7 @@ class GetNextTagHandler(StepTraceTagHandler):
     """
     get_next tag data handler
     """
+
     def __init__(self: any) -> None:
         self.collect_data = {}
 

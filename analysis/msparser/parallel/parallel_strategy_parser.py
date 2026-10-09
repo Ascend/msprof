@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -75,10 +75,17 @@ class ParallelStrategyParser(IParser, MsMultiProcess):
             error(self.FILE_NAME, "Invalid parallel strategy data.")
             return
         parallel_mode = self._get_parallel_mode(parallel_data.get("parallelType"), parallel_data.get("stage_num"))
-        self._parallel_strategy_data.append([parallel_data.get("ai_framework_type"), parallel_data.get("stage_num"),
-                                             parallel_data.get("rankId"), parallel_data.get("stageId"),
-                                             parallel_data.get("parallelType"), str(parallel_data.get("stageDevices")),
-                                             parallel_mode])
+        self._parallel_strategy_data.append(
+            [
+                parallel_data.get("ai_framework_type"),
+                parallel_data.get("stage_num"),
+                parallel_data.get("rankId"),
+                parallel_data.get("stageId"),
+                parallel_data.get("parallelType"),
+                str(parallel_data.get("stageDevices")),
+                parallel_mode,
+            ]
+        )
 
     def save(self: any) -> None:
         if not self._parallel_strategy_data:

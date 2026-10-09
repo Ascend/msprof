@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -33,7 +35,7 @@ class NodeAttrInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._node_attr_info_data = []
@@ -44,8 +46,12 @@ class NodeAttrInfoParser(DataParser, MsMultiProcess):
         transform bean to data
         """
         return [
-            bean_data.level, bean_data.struct_type, bean_data.thread_id,
-            bean_data.timestamp, bean_data.node_id, bean_data.hash_id
+            bean_data.level,
+            bean_data.struct_type,
+            bean_data.thread_id,
+            bean_data.timestamp,
+            bean_data.node_id,
+            bean_data.hash_id,
         ]
 
     def save(self: any) -> None:
@@ -67,10 +73,15 @@ class NodeAttrInfoParser(DataParser, MsMultiProcess):
             return
 
         for file_list in node_attr_info_files.values():
-            self._node_attr_info_data.extend(self.parse_bean_data(file_list, StructFmt.NODE_ATTR_INFO_SIZE,
-                                                                  NodeAttrInfoBean,
-                                                                  format_func=self._get_node_attr_info_data,
-                                                                  check_func=self.check_magic_num,))
+            self._node_attr_info_data.extend(
+                self.parse_bean_data(
+                    file_list,
+                    StructFmt.NODE_ATTR_INFO_SIZE,
+                    NodeAttrInfoBean,
+                    format_func=self._get_node_attr_info_data,
+                    check_func=self.check_magic_num,
+                )
+            )
 
     def ms_run(self: any) -> None:
         """
@@ -79,8 +90,9 @@ class NodeAttrInfoParser(DataParser, MsMultiProcess):
         """
         if not self._file_list.get(DataTag.NODE_ATTR_INFO, []):
             return
-        logging.info("start parsing node attr info data, files: %s",
-                     str(self._file_list.get(DataTag.NODE_ATTR_INFO, [])))
+        logging.info(
+            "start parsing node attr info data, files: %s", str(self._file_list.get(DataTag.NODE_ATTR_INFO, []))
+        )
         self.parse()
         self.save()
 

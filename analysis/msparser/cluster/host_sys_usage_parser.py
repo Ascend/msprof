@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -35,6 +35,7 @@ class HostSysUsageParser:
     """
     host sys usage data parser
     """
+
     NS_TO_S = 1000000000
 
     def __init__(self: any, params: dict) -> None:
@@ -65,7 +66,7 @@ class HostSysUsageParser:
             'pid': pid,
             'cpu_nums': cpu_nums,
             'cpu_sampling_interval': cpu_sampling_interval,
-            'mem_sampling_interval': mem_sampling_interval
+            'mem_sampling_interval': mem_sampling_interval,
         }
         return common_info
 
@@ -81,10 +82,16 @@ class HostSysUsageParser:
             logging.warning("The common info cannot be obtained.")
             return
 
-        self.cpu_usage_model = SysUsageModel(host_path, DBNameConstant.DB_HOST_SYS_USAGE_CPU,
-                                             [DBNameConstant.TABLE_SYS_USAGE, DBNameConstant.TABLE_PID_USAGE])
-        self.mem_usage_model = SysMemModel(host_path, DBNameConstant.DB_HOST_SYS_USAGE_MEM,
-                                           [DBNameConstant.TABLE_SYS_MEM, DBNameConstant.TABLE_PID_MEM])
+        self.cpu_usage_model = SysUsageModel(
+            host_path,
+            DBNameConstant.DB_HOST_SYS_USAGE_CPU,
+            [DBNameConstant.TABLE_SYS_USAGE, DBNameConstant.TABLE_PID_USAGE],
+        )
+        self.mem_usage_model = SysMemModel(
+            host_path,
+            DBNameConstant.DB_HOST_SYS_USAGE_MEM,
+            [DBNameConstant.TABLE_SYS_MEM, DBNameConstant.TABLE_PID_MEM],
+        )
         if not (self.cpu_usage_model.init() and self.mem_usage_model.init()):
             logging.error("SysUsageModel or SysMemModel init() failed.")
             return
@@ -132,8 +139,9 @@ class HostSysUsageParser:
             row_sum = sum(data[0:-1])
             if row_sum == 0:
                 return []
-            percent_data = [round(d / row_sum * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL)
-                            for d in data[0:-1]]
+            percent_data = [
+                round(d / row_sum * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL) for d in data[0:-1]
+            ]
             relative_time = round((data[-1] - start_time) / self.NS_TO_S, NumberConstant.ROUND_TWO_DECIMAL)
             percent_data.append(relative_time)
             detail_data.append(OrderedDict(zip(tags, percent_data)))
@@ -153,14 +161,18 @@ class HostSysUsageParser:
         if total == 0:
             logging.error("Total cpu data is all zero.")
             return {}
-        base_info["average_user_usage"] = round(column_sum[0] / total * NumberConstant.PERCENTAGE,
-                                                NumberConstant.ROUND_TWO_DECIMAL)
-        base_info["average_sys_usage"] = round(column_sum[1] / total * NumberConstant.PERCENTAGE,
-                                               NumberConstant.ROUND_TWO_DECIMAL)
-        base_info["average_io_usage"] = round(column_sum[2] / total * NumberConstant.PERCENTAGE,
-                                              NumberConstant.ROUND_TWO_DECIMAL)
-        base_info["average_idle_usage"] = round(column_sum[3] / total * NumberConstant.PERCENTAGE,
-                                                NumberConstant.ROUND_TWO_DECIMAL)
+        base_info["average_user_usage"] = round(
+            column_sum[0] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
+        base_info["average_sys_usage"] = round(
+            column_sum[1] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
+        base_info["average_io_usage"] = round(
+            column_sum[2] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
+        base_info["average_idle_usage"] = round(
+            column_sum[3] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
 
         return {"info": base_info, "data": detail_data}
 
@@ -175,10 +187,12 @@ class HostSysUsageParser:
         if total == 0:
             logging.error("Total cpu data is all zero.")
             return {}
-        base_info["average_user_usage"] = round(column_sum[0] / total * NumberConstant.PERCENTAGE,
-                                                NumberConstant.ROUND_TWO_DECIMAL)
-        base_info["average_sys_usage"] = round(column_sum[1] / total * NumberConstant.PERCENTAGE,
-                                               NumberConstant.ROUND_TWO_DECIMAL)
+        base_info["average_user_usage"] = round(
+            column_sum[0] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
+        base_info["average_sys_usage"] = round(
+            column_sum[1] / total * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+        )
 
         return {"info": base_info, "data": detail_data}
 
@@ -193,15 +207,17 @@ class HostSysUsageParser:
             if data[0] == 0:
                 logging.error("The mem data is all zero.")
                 return {}
-            mem_usage = round((data[0] - data[1]) / data[0] * NumberConstant.PERCENTAGE,
-                              NumberConstant.ROUND_TWO_DECIMAL)
+            mem_usage = round(
+                (data[0] - data[1]) / data[0] * NumberConstant.PERCENTAGE, NumberConstant.ROUND_TWO_DECIMAL
+            )
             relative_time = round((data[-1] - start_time) / self.NS_TO_S, NumberConstant.ROUND_TWO_DECIMAL)
             detail_data.append(OrderedDict(zip(tags, [mem_usage, relative_time])))
             mem_usage_list.append(mem_usage)
 
         base_info["total_mem"] = datas[0][0]
-        base_info["average_mem_usage"] = round(sum(mem_usage_list) / len(mem_usage_list),
-                                               NumberConstant.ROUND_TWO_DECIMAL)
+        base_info["average_mem_usage"] = round(
+            sum(mem_usage_list) / len(mem_usage_list), NumberConstant.ROUND_TWO_DECIMAL
+        )
         return {"info": base_info, "data": detail_data}
 
     def _host_pid_mem_proc(self, datas: list, tags: list, base_info: dict) -> dict:
@@ -233,29 +249,37 @@ class HostSysUsageParser:
 
         data_proc_params = [
             # host sys cpu proc params
-            {"original_data": self.cpu_usage_model.get_sys_cpu_data(),
-             "save_file": "host_sys_cpu_usage_{}_{}.json".format(self.npu_id, self.model_id),
-             "data_tags": ["user_usage", "sys_usage", "io_usage", "idle_usage", "timestamp"],
-             "base_info": {"cpu_nums": cpu_nums, "sampling_interval": cpu_sampling_interval},
-             "proc_data_func": self._host_sys_cpu_proc},
+            {
+                "original_data": self.cpu_usage_model.get_sys_cpu_data(),
+                "save_file": "host_sys_cpu_usage_{}_{}.json".format(self.npu_id, self.model_id),
+                "data_tags": ["user_usage", "sys_usage", "io_usage", "idle_usage", "timestamp"],
+                "base_info": {"cpu_nums": cpu_nums, "sampling_interval": cpu_sampling_interval},
+                "proc_data_func": self._host_sys_cpu_proc,
+            },
             # host pid cpu proc params
-            {"original_data": self.cpu_usage_model.get_pid_cpu_data(pid),
-             "save_file": "host_pid_cpu_usage_{}_{}.json".format(self.npu_id, self.model_id),
-             "data_tags": ["user_usage", "sys_usage", "timestamp"],
-             "base_info": {"sampling_interval": cpu_sampling_interval, "cur_pid": pid, "all_pids": cpu_pids},
-             "proc_data_func": self._host_pid_cpu_proc},
+            {
+                "original_data": self.cpu_usage_model.get_pid_cpu_data(pid),
+                "save_file": "host_pid_cpu_usage_{}_{}.json".format(self.npu_id, self.model_id),
+                "data_tags": ["user_usage", "sys_usage", "timestamp"],
+                "base_info": {"sampling_interval": cpu_sampling_interval, "cur_pid": pid, "all_pids": cpu_pids},
+                "proc_data_func": self._host_pid_cpu_proc,
+            },
             # host sys mem proc params
-            {"original_data": self.mem_usage_model.get_sys_mem_data(),
-             "save_file": "host_sys_mem_usage_{}_{}.json".format(self.npu_id, self.model_id),
-             "data_tags": ["mem_usage", "timestamp"],
-             "base_info": {"sampling_interval": mem_sampling_interval},
-             "proc_data_func": self._host_sys_mem_proc},
+            {
+                "original_data": self.mem_usage_model.get_sys_mem_data(),
+                "save_file": "host_sys_mem_usage_{}_{}.json".format(self.npu_id, self.model_id),
+                "data_tags": ["mem_usage", "timestamp"],
+                "base_info": {"sampling_interval": mem_sampling_interval},
+                "proc_data_func": self._host_sys_mem_proc,
+            },
             # host pid mem proc params
-            {"original_data": self.mem_usage_model.get_pid_mem_data(pid),
-             "save_file": "host_pid_mem_usage_{}_{}.json".format(self.npu_id, self.model_id),
-             "data_tags": ["size", "resident", "shared", "timestamp"],
-             "base_info": {"sampling_interval": mem_sampling_interval, "cur_pid": pid, "all_pids": mem_pids},
-             "proc_data_func": self._host_pid_mem_proc}
+            {
+                "original_data": self.mem_usage_model.get_pid_mem_data(pid),
+                "save_file": "host_pid_mem_usage_{}_{}.json".format(self.npu_id, self.model_id),
+                "data_tags": ["size", "resident", "shared", "timestamp"],
+                "base_info": {"sampling_interval": mem_sampling_interval, "cur_pid": pid, "all_pids": mem_pids},
+                "proc_data_func": self._host_pid_mem_proc,
+            },
         ]
         return data_proc_params
 
@@ -268,8 +292,9 @@ class HostSysUsageParser:
             if not params.get("original_data"):
                 logging.warning("Get data from database fail.")
                 continue
-            handled_data = params.get("proc_data_func")(params.get("original_data"), params.get("data_tags"),
-                                                        params.get("base_info"))
+            handled_data = params.get("proc_data_func")(
+                params.get("original_data"), params.get("data_tags"), params.get("base_info")
+            )
             if not handled_data:
                 logging.warning("Process data fail, not save %s.", params.get("save_file"))
                 continue

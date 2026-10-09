@@ -1,6 +1,20 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import copy
 from collections import OrderedDict
@@ -42,11 +56,7 @@ class VoltageViewer(LpmConvInfoViewer):
         for row in voltage_rows:
             # row index 0 is syscnt, and row index 1 is voltage
             to_local_ts = InfoConfReader().trans_syscnt_into_local_time(row[0])
-            data_list = [
-                voltage_model.PROCESSOR_NAME,
-                to_local_ts, self._pid, 0,
-                OrderedDict({"mV": row[1]})
-            ]
+            data_list = [voltage_model.PROCESSOR_NAME, to_local_ts, self._pid, 0, OrderedDict({"mV": row[1]})]
             voltage_lists.append(data_list)
         voltage_model.finalize()
 
@@ -59,7 +69,8 @@ class VoltageViewer(LpmConvInfoViewer):
         voltage_lists.append(final_data)
         filled_voltage = self._split_and_fill_data(voltage_lists)
         changed_voltage = TraceViewManager.column_graph_trace(
-            TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, filled_voltage)
+            TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, filled_voltage
+        )
 
         return changed_voltage
 
@@ -85,7 +96,16 @@ class VoltageViewer(LpmConvInfoViewer):
         if not result:
             return []
 
-        result.extend(TraceViewManager.metadata_event([["process_name", self._pid,
-                                                        InfoConfReader().get_json_tid_data(),
-                                                        TraceViewHeaderConstant.PROCESS_VOLTAGE]]))
+        result.extend(
+            TraceViewManager.metadata_event(
+                [
+                    [
+                        "process_name",
+                        self._pid,
+                        InfoConfReader().get_json_tid_data(),
+                        TraceViewHeaderConstant.PROCESS_VOLTAGE,
+                    ]
+                ]
+            )
+        )
         return result

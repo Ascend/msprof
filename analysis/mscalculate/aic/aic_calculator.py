@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import itertools
 import logging
@@ -47,6 +49,7 @@ class AicCalculator(PmuCalculator, MsMultiProcess):
     """
     class used to parse aicore data by iter
     """
+
     AICORE_LOG_SIZE = 128
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
@@ -62,8 +65,9 @@ class AicCalculator(PmuCalculator, MsMultiProcess):
         self.core_type = 0
         self.aic_calculator = CalculateAiCoreData(self._project_path)
         # table_name_list[:2]:'total_time(ms)', 'total_cycles', unused
-        self.table_name_list = get_metrics_from_sample_config(self._project_path,
-                                                              StrConstant.AI_CORE_PROFILING_METRICS)[2:]
+        self.table_name_list = get_metrics_from_sample_config(
+            self._project_path, StrConstant.AI_CORE_PROFILING_METRICS
+        )[2:]
 
     def calculate(self: any) -> None:
         """
@@ -73,8 +77,11 @@ class AicCalculator(PmuCalculator, MsMultiProcess):
         if ProfilingScene().is_all_export():
             db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_METRICS_SUMMARY)
             if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_METRIC_SUMMARY):
-                logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                             DBNameConstant.TABLE_METRIC_SUMMARY, DBNameConstant.DB_METRICS_SUMMARY)
+                logging.info(
+                    "The Table %s already exists in the %s, and won't be calculate again.",
+                    DBNameConstant.TABLE_METRIC_SUMMARY,
+                    DBNameConstant.DB_METRICS_SUMMARY,
+                )
                 return
             self._parse_all_file()
         else:
@@ -91,16 +98,23 @@ class AicCalculator(PmuCalculator, MsMultiProcess):
         """
         pmu_list = {}
         _, pmu_list = self.aic_calculator.compute_ai_core_data(
-            Utils.generator_to_list(profiling_events), pmu_list, data.total_cycle, data.pmu_list)
+            Utils.generator_to_list(profiling_events), pmu_list, data.total_cycle, data.pmu_list
+        )
 
-        pmu_list = self.aic_calculator.add_pipe_time(pmu_list, total_time,
-                                                     self._sample_json.get('ai_core_metrics'))
+        pmu_list = self.aic_calculator.add_pipe_time(pmu_list, total_time, self._sample_json.get('ai_core_metrics'))
         pmu_list = {k: pmu_list[k] for k in self.table_name_list if k in pmu_list}
         AicPmuUtils.remove_redundant(pmu_list)
-        data_list.append([
-            total_time, data.total_cycle, *list(itertools.chain.from_iterable(pmu_list.values())), data.task_id,
-            data.stream_id, self.core_type, -1  # -1 是batch_id
-        ])
+        data_list.append(
+            [
+                total_time,
+                data.total_cycle,
+                *list(itertools.chain.from_iterable(pmu_list.values())),
+                data.task_id,
+                data.stream_id,
+                self.core_type,
+                -1,  # -1 是batch_id
+            ]
+        )
 
     def calculate_total_time(self: any, data: AicPmuBean, data_type: str = 'aic'):
         core_num = self._core_num_dict.get(data_type)
@@ -137,13 +151,15 @@ class AicCalculator(PmuCalculator, MsMultiProcess):
         :return: None
         """
         if self._iter_model.check_db() and self._iter_model.check_table():
-            pmu_offset, pmu_count = self._iter_model.get_task_offset_and_sum(self._iter_range,
-                                                                             HwtsIterModel.AI_CORE_TYPE)
+            pmu_offset, pmu_count = self._iter_model.get_task_offset_and_sum(
+                self._iter_range, HwtsIterModel.AI_CORE_TYPE
+            )
             if pmu_count <= 0:
                 logging.warning("The ai core data that is not satisfied by the specified iteration!")
                 return
-            _file_calculator = FileCalculator(self._file_list, self.AICORE_LOG_SIZE, self._project_path,
-                                              pmu_offset, pmu_count)
+            _file_calculator = FileCalculator(
+                self._file_list, self.AICORE_LOG_SIZE, self._project_path, pmu_offset, pmu_count
+            )
             self._parse(_file_calculator.prepare_process())
             self._iter_model.finalize()
 
@@ -174,8 +190,9 @@ class V5AicCalculator(AicCalculator):
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(file_list, sample_config)
         # table_name_list[:2]:'total_time(ms)', 'total_cycles', unused
-        self.table_name_list = get_metrics_from_sample_config(self._project_path,
-                                                              StrConstant.AI_CORE_PROFILING_METRICS)[2:]
+        self.table_name_list = get_metrics_from_sample_config(
+            self._project_path, StrConstant.AI_CORE_PROFILING_METRICS
+        )[2:]
 
     def calculate(self: any) -> None:
         """
@@ -184,8 +201,11 @@ class V5AicCalculator(AicCalculator):
         """
         db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_METRICS_SUMMARY)
         if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_METRIC_SUMMARY):
-            logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                         DBNameConstant.TABLE_METRIC_SUMMARY, DBNameConstant.DB_METRICS_SUMMARY)
+            logging.info(
+                "The Table %s already exists in the %s, and won't be calculate again.",
+                DBNameConstant.TABLE_METRIC_SUMMARY,
+                DBNameConstant.DB_METRICS_SUMMARY,
+            )
             return
         self._parse_without_decode()
 

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -24,6 +24,7 @@ class EventQueue:
     This class is used for unified scheduling of events.
     1. Provides access to the event with the highest priority.
     """
+
     INIT_LEN = 100000
 
     def __init__(self, thread_id, init_len=INIT_LEN):
@@ -43,7 +44,7 @@ class EventQueue:
 
     def add(self, event: Event):
         if self._lock:
-            logging.error("queue %d is locked, add function is illegal")
+            logging.error("queue %d is locked, add function is illegal", self.thread_id)
             return
         if self.size >= len(self.queue):
             self.malloc_new_size(2 * len(self.queue))
@@ -52,12 +53,12 @@ class EventQueue:
         self.size += 1
 
     def lock(self):
-        self.queue[0:self.size] = sorted(self.queue[:self.size])
+        self.queue[0 : self.size] = sorted(self.queue[: self.size])
         self._lock = True
 
     def pop(self):
         if not self._lock:
-            logging.error("queue %d is not locked, pop function is illegal")
+            logging.error("queue %d is not locked, pop function is illegal", self.thread_id)
             return Event.invalid_event()
         if self.index >= self.size:
             return Event.invalid_event()
@@ -67,7 +68,7 @@ class EventQueue:
 
     def top(self) -> Event:
         if not self._lock:
-            logging.error("queue %d is not locked, top function is illegal")
+            logging.error("queue %d is not locked, top function is illegal", self.thread_id)
             return Event.invalid_event()
         if self.index >= self.size:
             return Event.invalid_event()

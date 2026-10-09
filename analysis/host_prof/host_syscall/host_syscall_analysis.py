@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -55,13 +55,9 @@ class HostSyscallAnalysis(MsMultiProcess):
         host_syscall_file_patterns = get_host_syscall_compiles()
         host_pthread_call_file_patterns = get_host_pthread_call_compiles()
         for file_name in file_list:
-            host_syscall_result = get_file_name_pattern_match(file_name,
-                                                              *host_syscall_file_patterns)
-            host_pthread_call_result = get_file_name_pattern_match(file_name,
-                                                                   *host_pthread_call_file_patterns)
-            if (host_syscall_result or host_pthread_call_result) and is_valid_original_data(
-                    file_name, self.result_dir):
-                logging.info(
-                    "start parsing os runtime api data file: %s", file_name)
+            host_syscall_result = get_file_name_pattern_match(file_name, *host_syscall_file_patterns)
+            host_pthread_call_result = get_file_name_pattern_match(file_name, *host_pthread_call_file_patterns)
+            if (host_syscall_result or host_pthread_call_result) and is_valid_original_data(file_name, self.result_dir):
+                logging.info("start parsing os runtime api data file: %s", file_name)
                 host_syscall_presenter = HostSyscallPresenter(self.result_dir, file_name)
                 host_syscall_presenter.run()

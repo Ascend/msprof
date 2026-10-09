@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -52,26 +54,35 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
     @staticmethod
     def _get_ge_sql() -> str:
         device_id = InfoConfReader().get_device_id()
-        ge_sql = "select model_id, op_name, op_type, task_type, " \
-                 "task_id, stream_id, batch_id,context_id from {0} where device_id={1} " \
-                 "and task_type != '{2}' and task_type != '{3}'" \
-                 .format(DBNameConstant.TABLE_GE_TASK, device_id,
-                         Constant.TASK_TYPE_COMMUNICATION, Constant.TASK_TYPE_HCCL_AI_CPU)
+        ge_sql = (
+            "select model_id, op_name, op_type, task_type, "
+            "task_id, stream_id, batch_id,context_id from {0} where device_id={1} "
+            "and task_type != '{2}' and task_type != '{3}'".format(
+                DBNameConstant.TABLE_GE_TASK,
+                device_id,
+                Constant.TASK_TYPE_COMMUNICATION,
+                Constant.TASK_TYPE_HCCL_AI_CPU,
+            )
+        )
         return ge_sql
 
     @staticmethod
     def _get_op_report_sql() -> str:
         start_ts, _ = InfoConfReader().get_collect_time()
         start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
-        sql = "select op_type, {0}.task_type, count(op_type), sum(duration) as total_time, " \
-              "min(duration) as min, sum(duration)/count(op_type) as avg, max(duration) as max" \
-              " from {0}, {1} where {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id " \
-              "and {0}.batch_id={1}.batch_id " \
-              "and {0}.context_id={1}.subtask_id " \
-              "and {1}.start_time > {2} " \
-              "group by op_type,{0}.task_type" \
-            .format(DBNameConstant.TABLE_OP_COUNTER_GE_MERGE, DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
-                    start_time_raw_timestamp)
+        sql = (
+            "select op_type, {0}.task_type, count(op_type), sum(duration) as total_time, "
+            "min(duration) as min, sum(duration)/count(op_type) as avg, max(duration) as max"
+            " from {0}, {1} where {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id "
+            "and {0}.batch_id={1}.batch_id "
+            "and {0}.context_id={1}.subtask_id "
+            "and {1}.start_time > {2} "
+            "group by op_type,{0}.task_type".format(
+                DBNameConstant.TABLE_OP_COUNTER_GE_MERGE,
+                DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
+                start_time_raw_timestamp,
+            )
+        )
         return sql
 
     @staticmethod
@@ -103,8 +114,10 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
         if os.path.exists(PathManager.get_db_path(self.project_path, DBNameConstant.DB_OP_COUNTER)):
             return
         if not self._is_db_need_to_create():
-            logging.warning("No need to create db for op counter for operator scene, "
-                            "maybe the data of framework or task is not collected.")
+            logging.warning(
+                "No need to create db for op counter for operator scene, "
+                "maybe the data of framework or task is not collected."
+            )
             return
         db_path = PathManager.get_db_path(self.project_path, DBNameConstant.DB_OP_COUNTER)
         self.conn, self.curs = DBManager.create_connect_db(db_path)
@@ -147,8 +160,20 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
                 logging.error("Get tasks from %s error", DBNameConstant.TABLE_ASCEND_TASK)
                 return
             ascend_tasks = [TopDownTask(*task) for task in tasks]
-            rts_data = [[task.task_id, task.stream_id, task.start_time, task.duration, task.device_task_type,
-                         task.index_id, task.model_id, task.batch_id, task.context_id] for task in ascend_tasks]
+            rts_data = [
+                [
+                    task.task_id,
+                    task.stream_id,
+                    task.start_time,
+                    task.duration,
+                    task.device_task_type,
+                    task.index_id,
+                    task.model_id,
+                    task.batch_id,
+                    task.context_id,
+                ]
+                for task in ascend_tasks
+            ]
             try:
                 DBManager.insert_data_into_table(self.conn, DBNameConstant.TABLE_OP_COUNTER_RTS_TASK, rts_data)
             except sqlite3.Error as err:
@@ -170,12 +195,17 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
             if total_time > 0:
                 ratio = round(float(_data[3] / total_time * CommonConstant.PERCENT), NumberConstant.DECIMAL_ACCURACY)
             total_data.append(
-                (_data[0], _data[1], _data[2],
-                 round(float(_data[3]), NumberConstant.DECIMAL_ACCURACY),
-                 round(float(_data[4]), NumberConstant.DECIMAL_ACCURACY),
-                 round(float(_data[5]), NumberConstant.DECIMAL_ACCURACY),
-                 round(float(_data[6]), NumberConstant.DECIMAL_ACCURACY),
-                 ratio))
+                (
+                    _data[0],
+                    _data[1],
+                    _data[2],
+                    round(float(_data[3]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(_data[4]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(_data[5]), NumberConstant.DECIMAL_ACCURACY),
+                    round(float(_data[6]), NumberConstant.DECIMAL_ACCURACY),
+                    ratio,
+                )
+            )
         if total_data:
             sorted_total_data = sorted(total_data, key=lambda x: x[7], reverse=True)
             DBManager.insert_data_into_table(self.conn, DBNameConstant.TABLE_OP_COUNTER_OP_REPORT, sorted_total_data)
@@ -184,7 +214,8 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
         if not DBManager.judge_table_exist(self.curs, DBNameConstant.TABLE_OP_COUNTER_GE_MERGE):
             return []
         ge_sql = "SELECT task_type, stream_id, task_id, batch_id, context_id from {0}".format(
-            DBNameConstant.TABLE_OP_COUNTER_GE_MERGE)
+            DBNameConstant.TABLE_OP_COUNTER_GE_MERGE
+        )
         return DBManager.fetch_all_data(self.curs, ge_sql, dto_class=GeTaskDto)
 
     def _is_db_need_to_create(self: any) -> bool:
@@ -192,23 +223,26 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
         if DBManager.check_tables_in_db(ge_db_path, DBNameConstant.TABLE_GE_TASK):
             return True
         if ChipManager().is_chip_v1():
-            return DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                                                DBNameConstant.TABLE_RUNTIME_TASK_TIME)
-        return DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_HWTS),
-                                            DBNameConstant.TABLE_HWTS_TASK_TIME)
+            return DBManager.check_tables_in_db(
+                PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
+                DBNameConstant.TABLE_RUNTIME_TASK_TIME,
+            )
+        return DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_HWTS), DBNameConstant.TABLE_HWTS_TASK_TIME
+        )
 
     def _create_db(self: any) -> None:
-
-        ge_create_sql = DBManager.sql_create_general_table("GeMergeMap", DBNameConstant.TABLE_OP_COUNTER_GE_MERGE,
-                                                           ConfigManager.TABLES_OPERATOR)
+        ge_create_sql = DBManager.sql_create_general_table(
+            "GeMergeMap", DBNameConstant.TABLE_OP_COUNTER_GE_MERGE, ConfigManager.TABLES_OPERATOR
+        )
         DBManager.execute_sql(self.conn, ge_create_sql)
 
-        rts_task_create_sql = DBManager.sql_create_general_table("RtsTaskMap",
-                                                                 DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
-                                                                 ConfigManager.TABLES_OPERATOR)
+        rts_task_create_sql = DBManager.sql_create_general_table(
+            "RtsTaskMap", DBNameConstant.TABLE_OP_COUNTER_RTS_TASK, ConfigManager.TABLES_OPERATOR
+        )
         DBManager.execute_sql(self.conn, rts_task_create_sql)
 
-        op_report_create_sql = DBManager.sql_create_general_table("OpReportMap",
-                                                                  DBNameConstant.TABLE_OP_COUNTER_OP_REPORT,
-                                                                  ConfigManager.TABLES_OPERATOR)
+        op_report_create_sql = DBManager.sql_create_general_table(
+            "OpReportMap", DBNameConstant.TABLE_OP_COUNTER_OP_REPORT, ConfigManager.TABLES_OPERATOR
+        )
         DBManager.execute_sql(self.conn, op_report_create_sql)

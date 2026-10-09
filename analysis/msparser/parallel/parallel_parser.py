@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -31,7 +33,6 @@ from profiling_bean.prof_enum.data_tag import DataTag
 
 
 class ParallelParser(IParser, MsMultiProcess):
-
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
         self._file_list = file_list
@@ -60,12 +61,25 @@ class ParallelParser(IParser, MsMultiProcess):
         iter_overlap_time = SectionCalculator.compute_overlap_time(self._iter_time_data, self._merged_compute_op_data)
         for hccl_op in hccl_op_overlap_time:
             self._hccl_overlap_time_data.append(
-                [hccl_op.model_id, hccl_op.index_id, hccl_op.op_name, hccl_op.op_type, hccl_op.start_time,
-                 hccl_op.end_time, hccl_op.overlap_time])
+                [
+                    hccl_op.model_id,
+                    hccl_op.index_id,
+                    hccl_op.op_name,
+                    hccl_op.op_type,
+                    hccl_op.start_time,
+                    hccl_op.end_time,
+                    hccl_op.overlap_time,
+                ]
+            )
         for iter_data in iter_overlap_time:
             self._iter_compute_time_data.append(
-                [iter_data.model_id, iter_data.index_id, iter_data.end_time - iter_data.start_time,
-                 iter_data.overlap_time])
+                [
+                    iter_data.model_id,
+                    iter_data.index_id,
+                    iter_data.end_time - iter_data.start_time,
+                    iter_data.overlap_time,
+                ]
+            )
 
     def save(self: any) -> None:
         if not self._hccl_overlap_time_data:

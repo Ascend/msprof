@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -43,8 +43,9 @@ class HostMemUsagePresenter(HostProfPresenterBase):
         """
         get mem timeline header
         """
-        return [["process_name", InfoConfReader().get_json_pid_data(),
-                 InfoConfReader().get_json_tid_data(), "Memory Usage"]]
+        return [
+            ["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), "Memory Usage"]
+        ]
 
     def init(self: any) -> None:
         """
@@ -59,11 +60,11 @@ class HostMemUsagePresenter(HostProfPresenterBase):
         try:
             with FileOpen(self.file_name, "r") as file:
                 self._parse_mem_usage(file.file_reader)
-                logging.info(
-                    "Finish parsing host mem usage data file: %s", os.path.basename(self.file_name))
+                logging.info("Finish parsing host mem usage data file: %s", os.path.basename(self.file_name))
         except (FileNotFoundError, ValueError, IOError, TypeError) as parse_file_except:
-            logging.error("Error in parsing host mem usage data:%s", str(parse_file_except),
-                          exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error(
+                "Error in parsing host mem usage data:%s", str(parse_file_except), exc_info=Constant.TRACE_BACK_SWITCH
+            )
         finally:
             pass
 
@@ -89,8 +90,9 @@ class HostMemUsagePresenter(HostProfPresenterBase):
         for data_item in mem_usage_data.get("data"):
             if is_number(data_item["start"]):
                 temp_data = [
-                    "Memory Usage", data_item["start"],
-                    {"Usage(%)": round(data_item["usage"], NumberConstant.ROUND_THREE_DECIMAL)}
+                    "Memory Usage",
+                    data_item["start"],
+                    {"Usage(%)": round(data_item["usage"], NumberConstant.ROUND_THREE_DECIMAL)},
                 ]
                 result.append(temp_data)
         return result

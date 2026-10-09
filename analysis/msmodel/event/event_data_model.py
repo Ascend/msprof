@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -49,8 +49,13 @@ class EventDataModel(ParserModel):
             hash_dict = _model.get_type_hash_data()
         return [
             [
-                self.update_hash_value(data, hash_dict), data.level, data.thread_id,
-                data.item_id, data.request_id, data.timestamp, connection_id,
+                self.update_hash_value(data, hash_dict),
+                data.level,
+                data.thread_id,
+                data.item_id,
+                data.request_id,
+                data.timestamp,
+                connection_id,
             ]
             for connection_id, data in data_list
         ]

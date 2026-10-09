@@ -1,51 +1,53 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/netdev_stats_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 
-namespace {
+namespace
+{
 const std::string NETDEV_STATS_DIR = "./netdev_stats";
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "netdev_stats.db";
 const std::string PROF_DIR = File::PathJoin({NETDEV_STATS_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "NetDevStatsOriginalData";
-const std::vector<OriNetDevStatsData> NETDEV_STATS_DATA = {
-    {980786977706530, 0, 0, 17796736595950, 17797559020889, 0, 0,
-     274242073, 274303721, 0, 0, 0, 0, 1, 204259156, 973908035},
-    {980786998329570, 0, 0, 17796882062126, 17797704121835, 0, 0,
-     274277663, 274339400, 0, 0, 0, 0, 1, 204259156, 973908095},
-    {980787018980370, 0, 0, 17797020908040, 17797843358981, 0, 0,
-     274313612, 274375272, 0, 0, 0, 0, 1, 204259156, 973908155},
-    {980787039603220, 0, 0, 17797182596918, 17798005028585, 0, 0,
-     274331142, 274392820, 0, 0, 0, 0, 1, 204259156, 973908215},
-    {980787060338640, 0, 0, 17797351380400, 17798173809359, 0, 0,
-     274396608, 274458312, 0, 0, 0, 0, 1, 204259156, 973908215}
-};
-}
-class NetDevStatsProcessorUTest : public testing::Test {
-protected:
+const std::vector<OriNetDevStatsData> NETDEV_STATS_DATA = {{980786977706530, 0, 0, 17796736595950, 17797559020889, 0, 0,
+                                                            274242073, 274303721, 0, 0, 0, 0, 1, 204259156, 973908035},
+                                                           {980786998329570, 0, 0, 17796882062126, 17797704121835, 0, 0,
+                                                            274277663, 274339400, 0, 0, 0, 0, 1, 204259156, 973908095},
+                                                           {980787018980370, 0, 0, 17797020908040, 17797843358981, 0, 0,
+                                                            274313612, 274375272, 0, 0, 0, 0, 1, 204259156, 973908155},
+                                                           {980787039603220, 0, 0, 17797182596918, 17798005028585, 0, 0,
+                                                            274331142, 274392820, 0, 0, 0, 0, 1, 204259156, 973908215},
+                                                           {980787060338640, 0, 0, 17797351380400, 17798173809359, 0, 0,
+                                                            274396608, 274458312, 0, 0, 0, 0, 1, 204259156, 973908215}};
+}  // namespace
+class NetDevStatsProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -94,21 +96,15 @@ TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnFalseWhenGetOriginalDataFai
 {
     auto processor = NetDevStatsProcessor(PROF_DIR);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     // make DBRunner shared ptr failed
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
     // db里面表不存在
-    MOCKER_CPP(&DataProcessor::CheckPathAndTable)
-        .stubs()
-        .will(returnValue(CHECK_FAILED));
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
 }

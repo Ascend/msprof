@@ -1,31 +1,34 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/services/environment/context.h"
+ * -------------------------------------------------------------------------
+ */
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/low_power_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 
-using LowPowerDataFormat = std::vector<std::tuple<uint64_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t,
-uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, double, uint16_t, uint16_t,
-uint16_t, uint16_t, uint16_t, uint16_t,  uint16_t, uint16_t, uint16_t>>;
+using LowPowerDataFormat =
+    std::vector<std::tuple<uint64_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t,
+                           uint16_t, uint16_t, uint16_t, double, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t,
+                           uint16_t, uint16_t, uint16_t, uint16_t>>;
 using ProcessedDataVecFormat = std::vector<LowPowerData>;
 
 const std::string DATA_DIR = "./lowpower";
@@ -48,8 +51,9 @@ const LowPowerDataFormat FREQ_DATA = {
     {484577067389576, 1, 7, 18, 3, 11, 13, 0, 0, 14, 61, 118, 2650, 119, 231, 123, 135, 145, 147, 89, 765, 43},
 };
 
-class LowPowerProcessorUTest : public testing::Test {
-protected:
+class LowPowerProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         EXPECT_TRUE(File::CreateDir(DATA_DIR));
@@ -70,10 +74,7 @@ protected:
         return true;
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0)); }
 
     virtual void SetUp()
     {
@@ -93,7 +94,8 @@ protected:
 
     virtual void TearDown()
     {
-        if (File::Exist(DB_PATH)) {
+        if (File::Exist(DB_PATH))
+        {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
         GlobalMockObject::verify();

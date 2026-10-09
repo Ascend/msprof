@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -45,13 +45,16 @@ class OpSummaryModel(ViewModel, IAnalysisModel):
     """
 
     COMPUTED_TASK_TYPE = (
-        Constant.TASK_TYPE_AI_CORE, Constant.TASK_TYPE_AI_CPU,
-        Constant.TASK_TYPE_AIV, Constant.TASK_TYPE_MIX_AIV,
-        Constant.TASK_TYPE_MIX_AIC
+        Constant.TASK_TYPE_AI_CORE,
+        Constant.TASK_TYPE_AI_CPU,
+        Constant.TASK_TYPE_AIV,
+        Constant.TASK_TYPE_MIX_AIV,
+        Constant.TASK_TYPE_MIX_AIC,
     )
 
     COMMUNICATION_TIME_SECTION_TYPE = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(
-        CommunicationTimeSection, [])
+        CommunicationTimeSection, []
+    )
 
     def __init__(self: any, sample_config: dict) -> None:
         super().__init__(sample_config.get("result_dir"), DBNameConstant.DB_AICORE_OP_SUMMARY, [])
@@ -86,8 +89,9 @@ class OpSummaryModel(ViewModel, IAnalysisModel):
 
     def get_operator_data_by_task_type(self: any, task_type: tuple = COMPUTED_TASK_TYPE) -> list:
         db_path = PathManager.get_db_path(self.result_dir, DBNameConstant.DB_AICORE_OP_SUMMARY)
-        if not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_SUMMARY_TASK_TIME,
-                                            DBNameConstant.TABLE_SUMMARY_GE):
+        if not DBManager.check_tables_in_db(
+            db_path, DBNameConstant.TABLE_SUMMARY_TASK_TIME, DBNameConstant.TABLE_SUMMARY_GE
+        ):
             return []
         ge_summary_headers = DBManager.get_table_headers(self.cur, DBNameConstant.TABLE_SUMMARY_GE)
         task_time_headers = DBManager.get_table_headers(self.cur, DBNameConstant.TABLE_SUMMARY_TASK_TIME)
@@ -99,15 +103,18 @@ class OpSummaryModel(ViewModel, IAnalysisModel):
                 inner_join_condition += " and (a.index_id=b.index_id or b.index_id=0)"
             else:
                 inner_join_condition += " "
-        sql = "SELECT a.stream_id, op_name, b.task_type, start_time, duration_time, " \
-              "start_time+duration_time as end_time FROM {0} a INNER JOIN {1} b " \
-              "on a.stream_id=b.stream_id and a.task_id=b.task_id and a.batch_id=b.batch_id " \
-              "and a.subtask_id=b.context_id {2} " \
-              "and a.task_type<>'{unknown}'".format(
+        sql = (
+            "SELECT a.stream_id, op_name, b.task_type, start_time, duration_time, "
+            "start_time+duration_time as end_time FROM {0} a INNER JOIN {1} b "
+            "on a.stream_id=b.stream_id and a.task_id=b.task_id and a.batch_id=b.batch_id "
+            "and a.subtask_id=b.context_id {2} "
+            "and a.task_type<>'{unknown}'".format(
                 DBNameConstant.TABLE_SUMMARY_TASK_TIME,
                 DBNameConstant.TABLE_SUMMARY_GE,
                 inner_join_condition,
-                unknown=Constant.TASK_TYPE_UNKNOWN)
+                unknown=Constant.TASK_TYPE_UNKNOWN,
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=TimeSectionDto)
 
     def get_operator_data_separated_by_kfc_stream(self: any) -> list:
@@ -119,7 +126,7 @@ class OpSummaryModel(ViewModel, IAnalysisModel):
         return {
             f"{data.task_id}-{data.stream_id}-{data.context_id}-{data.batch_id}": {
                 "op_name": data.op_name,
-                "task_type": data.task_type
+                "task_type": data.task_type,
             }
             for data in ge_data
         }

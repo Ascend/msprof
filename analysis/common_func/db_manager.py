@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -76,6 +76,7 @@ class DBManager:
     """
     class to manage DB operation
     """
+
     FETCH_SIZE = 10000
     INSERT_SIZE = 10000
     TENNSTONS = 10
@@ -128,8 +129,7 @@ class DBManager:
         if not isinstance(cursor, sqlite3.Cursor):
             return False
         try:
-            cursor.execute("select count(*) from sqlite_master where type='table' and "
-                           "name=?", (table_name,))
+            cursor.execute("select count(*) from sqlite_master where type='table' and name=?", (table_name,))
             return cursor.fetchone()[0]
         except sqlite3.Error as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
@@ -142,8 +142,8 @@ class DBManager:
         """
         if isinstance(cursor, sqlite3.Cursor):
             return cursor.execute(
-                "select count(*) from sqlite_master where type='index' and "
-                "name='{}'".format(table_name)).fetchone()[0]
+                "select count(*) from sqlite_master where type='index' and name='{}'".format(table_name)
+            ).fetchone()[0]
         return 0
 
     @staticmethod
@@ -159,16 +159,12 @@ class DBManager:
 
     @staticmethod
     def sql_create_table_with_key(
-            map_name: str,
-            table_name: str,
-            map_file_path: str,
-            key_list: any = None,
-            fields_filter_list: list = None) -> str:
+        map_name: str, table_name: str, map_file_path: str, key_list: any = None, fields_filter_list: list = None
+    ) -> str:
         """
         Create a sqlite table with primary key
         """
-        sql = DBManager.sql_create_general_table(map_name, table_name, map_file_path,
-                                                 fields_filter_list)
+        sql = DBManager.sql_create_general_table(map_name, table_name, map_file_path, fields_filter_list)
         try:
             if key_list:
                 key_list_str = "(" + ",".join(key_list) + "))"
@@ -230,8 +226,9 @@ class DBManager:
         return False
 
     @staticmethod
-    def _get_headers_and_type_names(cfg_parser: any, map_name: str, fields_filter_list: list,
-                                    map_file_path: str) -> tuple:
+    def _get_headers_and_type_names(
+        cfg_parser: any, map_name: str, fields_filter_list: list, map_file_path: str
+    ) -> tuple:
         headers, type_names = [], []
         if cfg_parser.has_section(map_name):
             items = cfg_parser.items(map_name)
@@ -252,8 +249,8 @@ class DBManager:
     def _get_hd_with_type_list_str(headers: list, type_names: list) -> str:
         hd_with_type_list_str = "("
         hd_with_type_list = []
-        for i, _ in enumerate(headers):
-            hd_with_type_list.append(headers[i] + " " + type_names[i])
+        for i, header in enumerate(headers):
+            hd_with_type_list.append(header + " " + type_names[i])
         hd_with_type_list_str += ', '.join(hd_with_type_list)
         hd_with_type_list_str += ")"
         return hd_with_type_list_str
@@ -278,11 +275,8 @@ class DBManager:
 
     @classmethod
     def sql_create_general_table(
-            cls: any,
-            map_name: str,
-            table_name: str,
-            map_path: str,
-            fields_filter_list: list = None) -> str:
+        cls: any, map_name: str, table_name: str, map_path: str, fields_filter_list: list = None
+    ) -> str:
         """
         use table.ini to generate sql table
         :param map_name: map table name in table.ini
@@ -296,8 +290,7 @@ class DBManager:
         if fields_filter_list is None:
             fields_filter_list = []
         try:
-            headers, type_names = cls._get_headers_and_type_names(cfg_parser, map_name, fields_filter_list,
-                                                                  map_path)
+            headers, type_names = cls._get_headers_and_type_names(cfg_parser, map_name, fields_filter_list, map_path)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as error:
             logging.exception(error)
             return ""
@@ -354,9 +347,7 @@ class DBManager:
         if not (conn and curs):
             return False
 
-        sql = "select * from {table_name} where {col}='{item}'".format(table_name=table_name,
-                                                                       col=col,
-                                                                       item=item)
+        sql = "select * from {table_name} where {col}='{item}'".format(table_name=table_name, col=col, item=item)
         try:
             data = cls.fetch_all_data(curs, sql)
         except sqlite3.Error as _err:
@@ -442,10 +433,11 @@ class DBManager:
         index = 0
         if not data:
             return
-        sql = "insert into {table_name} values({value_form})" \
-            .format(table_name=table_name, value_form="?," * (len(data[0]) - 1) + "?")
+        sql = "insert into {table_name} values({value_form})".format(
+            table_name=table_name, value_form="?," * (len(data[0]) - 1) + "?"
+        )
         while index < len(data):
-            cls.executemany_sql(conn, sql, data[index:index + cls.INSERT_SIZE])
+            cls.executemany_sql(conn, sql, data[index : index + cls.INSERT_SIZE])
             index += cls.INSERT_SIZE
 
     @classmethod
@@ -476,8 +468,10 @@ class DBManager:
                 else:
                     data += res
                 if len(data) > cls.MAX_ROW_COUNT:
-                    logging.error("Please check the record counts in %s's table",
-                                  os.path.basename(curs.execute("PRAGMA database_list;").fetchone()[-1]))
+                    logging.error(
+                        "Please check the record counts in %s's table",
+                        os.path.basename(curs.execute("PRAGMA database_list;").fetchone()[-1]),
+                    )
                     message = "The record counts in table exceed the limit!"
                     raise ProfException(ProfException.PROF_DB_RECORD_EXCEED_LIMIT, message)
                 if len(res) < cls.FETCH_SIZE:
@@ -553,8 +547,12 @@ class DBManager:
         col_type = args[3]
         default_value = args[4]
         conn, curs = cls.check_connect_db_path(db_path)
-        cls.execute_sql(conn, "alter table {table} add column {name} {type} default {default}"
-                        .format(table=table_name, name=col_name, type=col_type, default=default_value))
+        cls.execute_sql(
+            conn,
+            "alter table {table} add column {name} {type} default {default}".format(
+                table=table_name, name=col_name, type=col_type, default=default_value
+            ),
+        )
 
     @classmethod
     def check_connect_db(cls: any, project_path: str, db_name: str) -> tuple:

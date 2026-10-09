@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import json
 from collections import OrderedDict
 
 from common_func.db_name_constant import DBNameConstant
@@ -31,9 +30,7 @@ class BiuPerfViewer:
 
     def __init__(self: any, project_path: str) -> None:
         self._project_path = project_path
-        self._model = BiuPerfModel(self._project_path,
-                                   [DBNameConstant.TABLE_BIU_FLOW,
-                                    DBNameConstant.TABLE_BIU_CYCLES])
+        self._model = BiuPerfModel(self._project_path, [DBNameConstant.TABLE_BIU_FLOW, DBNameConstant.TABLE_BIU_CYCLES])
 
     def get_timeline(self: any) -> str:
         meta_timeline = self.get_meta_timeline()
@@ -55,9 +52,13 @@ class BiuPerfViewer:
             biu_flow_data = self._model.get_biu_flow_data()
         trace_data = [
             [
-                biu_flow_datum[0], InfoConfReader().trans_into_local_time(biu_flow_datum[1], use_us=True),
-                biu_flow_datum[2], biu_flow_datum[3], OrderedDict([("flow", biu_flow_datum[4])])
-            ] for biu_flow_datum in biu_flow_data
+                biu_flow_datum[0],
+                InfoConfReader().trans_into_local_time(biu_flow_datum[1], use_us=True),
+                biu_flow_datum[2],
+                biu_flow_datum[3],
+                OrderedDict([("flow", biu_flow_datum[4])]),
+            ]
+            for biu_flow_datum in biu_flow_data
         ]
         return TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data)
 
@@ -66,10 +67,12 @@ class BiuPerfViewer:
             biu_cycles_data = self._model.get_biu_cycles_data()
         trace_data = [
             [
-                "", biu_cycles_datum[0], biu_cycles_datum[1],
-                InfoConfReader().trans_into_local_time(biu_cycles_datum[2], use_us=True), biu_cycles_datum[3],
-                OrderedDict([("cycle_num", biu_cycles_datum[4]),
-                             ("ratio", biu_cycles_datum[5])])
+                "",
+                biu_cycles_datum[0],
+                biu_cycles_datum[1],
+                InfoConfReader().trans_into_local_time(biu_cycles_datum[2], use_us=True),
+                biu_cycles_datum[3],
+                OrderedDict([("cycle_num", biu_cycles_datum[4]), ("ratio", biu_cycles_datum[5])]),
             ]
             for biu_cycles_datum in biu_cycles_data
         ]

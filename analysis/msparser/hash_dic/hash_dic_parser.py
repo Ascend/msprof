@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -32,6 +34,7 @@ class HashDicParser(IParser, MsMultiProcess):
     """
     hash data parser
     """
+
     COLON = ":"
     UNDERLINE = "_"
 
@@ -41,10 +44,7 @@ class HashDicParser(IParser, MsMultiProcess):
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._model = GeHashModel(self._project_path, [DBNameConstant.TABLE_GE_HASH, DBNameConstant.TABLE_TYPE_HASH])
-        self._hash_data = {
-            'ge_hash': [],
-            'type_hash': []
-        }
+        self._hash_data = {'ge_hash': [], 'type_hash': []}
 
     def parse(self: any) -> None:
         """
@@ -53,8 +53,7 @@ class HashDicParser(IParser, MsMultiProcess):
         hash_files = self._file_list.get(DataTag.HASH_DICT, [])
         for _file in hash_files:
             _file_path = PathManager.get_data_file_path(self._project_path, _file)
-            logging.info(
-                "start parsing hash data file: %s", _file)
+            logging.info("start parsing hash data file: %s", _file)
             if _file.split(".")[2] == 'hash_dic':
                 self._read_ge_hash_data(_file_path)
             if _file.split(".")[2] == 'type_info_dic':

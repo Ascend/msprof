@@ -1,24 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/aicore_freq_processor.h"
-
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -39,16 +40,13 @@ const std::string DB_PATH = File::PathJoin({DATA_DIR, MSPROF});
 const std::string PROF = File::PathJoin({DATA_DIR, "PROF"});
 
 const FreqDataFormat FREQ_DATA = {
-    {484500000000000, 200},
-    {484576969200418, 1650},
-    {484576973402096, 1650},
-    {484576973456197, 800},
-    {484576973512465, 1650},
-    {484577067389576, 1650},
+    {484500000000000, 200}, {484576969200418, 1650}, {484576973402096, 1650},
+    {484576973456197, 800}, {484576973512465, 1650}, {484577067389576, 1650},
 };
 
-class AicoreFreqProcessorUTest : public testing::Test {
-protected:
+class AicoreFreqProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         EXPECT_TRUE(File::CreateDir(DATA_DIR));
@@ -69,10 +67,7 @@ protected:
         return true;
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0)); }
 
     virtual void SetUp()
     {
@@ -92,7 +87,8 @@ protected:
 
     virtual void TearDown()
     {
-        if (File::Exist(DB_PATH)) {
+        if (File::Exist(DB_PATH))
+        {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
         GlobalMockObject::verify();
@@ -115,7 +111,8 @@ TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenRunSuccess)
 TEST_F(AicoreFreqProcessorUTest, TestRunShouldNotAddEndTimeRecordWhenEndTimeIsDefault)
 {
     // endTimeNs == startTimeNs + DEFAULT_DURATION_TIME_NS时不追加结束时间记录
-    if (!File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"}))) {
+    if (!File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"})))
+    {
         EXPECT_TRUE(CreateFreqDB(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE})));
     }
     nlohmann::json record = {
@@ -142,7 +139,8 @@ TEST_F(AicoreFreqProcessorUTest, TestRunShouldNotAddEndTimeRecordWhenEndTimeIsDe
 
 TEST_F(AicoreFreqProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 {
-    if (File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"}))) {
+    if (File::Exist(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"})))
+    {
         EXPECT_TRUE(File::DeleteFile(File::PathJoin({PROF, DEVICE_PREFIX + "0", SQLITE, "freq.db"})));
     }
     auto processor = AicoreFreqProcessor(PROF);

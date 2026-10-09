@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -166,8 +168,7 @@ class HostSyscallPresenter(HostProfPresenterBase):
         :return: True or False
         """
         for one_filter in StrConstant.API_FUNC_NAME_FILTER:
-            if one_filter is not None \
-                    and one_filter.search(api_name) is not None:
+            if one_filter is not None and one_filter.search(api_name) is not None:
                 return True
         return False
 
@@ -203,8 +204,7 @@ class HostSyscallPresenter(HostProfPresenterBase):
         """
         duration_sec = ''
         if raw_data_list[-1].endswith(">"):
-            duration_match = re.match(r'\d+\.\d+',
-                                      raw_data_list[-1].strip("<").strip(">"))
+            duration_match = re.match(r'\d+\.\d+', raw_data_list[-1].strip("<").strip(">"))
             if duration_match is None:
                 return duration_sec
             duration_sec = duration_match.group()
@@ -217,13 +217,17 @@ class HostSyscallPresenter(HostProfPresenterBase):
         """
         return [
             (
-                data[0], data[1], data[2], data[3],
+                data[0],
+                data[1],
+                data[2],
+                data[3],
                 data[4] / NumberConstant.CONVERSION_TIME,
                 data[5],
                 data[6] / NumberConstant.CONVERSION_TIME,
                 data[7] / NumberConstant.CONVERSION_TIME,
-                data[8] / NumberConstant.CONVERSION_TIME
-            ) for data in summary_data
+                data[8] / NumberConstant.CONVERSION_TIME,
+            )
+            for data in summary_data
         ]
 
     @staticmethod
@@ -250,8 +254,7 @@ class HostSyscallPresenter(HostProfPresenterBase):
             if is_number(start_time_raw):
                 # perfb - perfa + raw
                 PthreadGapTime().set_init_flag(True)
-                PthreadGapTime().set_gap_time(
-                    start_time - float(start_time_raw) / NumberConstant.CONVERSION_TIME)
+                PthreadGapTime().set_gap_time(start_time - float(start_time_raw) / NumberConstant.CONVERSION_TIME)
 
     @classmethod
     def _get_time_info(cls: any, line: str) -> any:
@@ -288,16 +291,15 @@ class HostSyscallPresenter(HostProfPresenterBase):
         try:
             with FileOpen(self.file_name, "r") as file:
                 host_syscall_file_patterns = get_host_syscall_compiles()
-                if get_file_name_pattern_match(os.path.basename(self.file_name),
-                                               *host_syscall_file_patterns):
+                if get_file_name_pattern_match(os.path.basename(self.file_name), *host_syscall_file_patterns):
                     self._parse_syscall_api(file.file_reader)
                 else:
                     self._parse_pthread_api(file.file_reader)
-                logging.info(
-                    "Finish parsing os runtime api data file: %s", os.path.basename(self.file_name))
+                logging.info("Finish parsing os runtime api data file: %s", os.path.basename(self.file_name))
         except (FileNotFoundError, ValueError, IOError) as parse_file_except:
-            logging.error("Error in parsing os runtime api data:%s", str(parse_file_except),
-                          exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error(
+                "Error in parsing os runtime api data:%s", str(parse_file_except), exc_info=Constant.TRACE_BACK_SWITCH
+            )
         finally:
             pass
 
@@ -323,9 +325,11 @@ class HostSyscallPresenter(HostProfPresenterBase):
         for data_item in runtime_api_data:
             # 'name', 'tid', 'ts', 'dur'
             temp_data = [
-                data_item[3], int(data_item[1]), int(data_item[2]),
+                data_item[3],
+                int(data_item[1]),
+                int(data_item[2]),
                 InfoConfReader().trans_into_local_time(data_item[7], is_host=True),
-                (float(data_item[8]) - float(data_item[7])) / NumberConstant.CONVERSION_TIME
+                (float(data_item[8]) - float(data_item[7])) / NumberConstant.CONVERSION_TIME,
             ]
             result.append(temp_data)
         return result
@@ -380,9 +384,15 @@ class HostSyscallPresenter(HostProfPresenterBase):
                 continue
             end_time = start_time + float(duration_sec) * NumberConstant.SEC_TO_US
             write_list = [
-                "", self.pid, command_tid, api_name, "",
+                "",
+                self.pid,
+                command_tid,
+                api_name,
+                "",
                 float(duration_sec) * NumberConstant.NS_TIME_RATE,
-                "", start_time * NumberConstant.USTONS, end_time * NumberConstant.USTONS
+                "",
+                start_time * NumberConstant.USTONS,
+                end_time * NumberConstant.USTONS,
             ]
             self.cur_model.insert_single_data(write_list)
 
@@ -399,25 +409,31 @@ class HostSyscallPresenter(HostProfPresenterBase):
                     PerfGapTime().set_init_flag(True)
                     # perfb - perfa + raw
                     PerfGapTime().set_gap_time(
-                        float(time_info.start_time_ms) * NumberConstant.CONVERSION_TIME - float(
-                            start_time_ns) / NumberConstant.CONVERSION_TIME)
+                        float(time_info.start_time_ms) * NumberConstant.CONVERSION_TIME
+                        - float(start_time_ns) / NumberConstant.CONVERSION_TIME
+                    )
             command_name, command_tid, api_name = HostSyscallPresenter.get_command_api_info(
-                time_info.raw_data, self.pid)
+                time_info.raw_data, self.pid
+            )
             if not HostSyscallPresenter.check_api_name(api_name):
                 continue
-            real_start_us = float(
-                time_info.start_time_ms) * NumberConstant.CONVERSION_TIME - PerfGapTime().get_gap_time()
+            real_start_us = (
+                float(time_info.start_time_ms) * NumberConstant.CONVERSION_TIME - PerfGapTime().get_gap_time()
+            )
             tran_duration_us = float(time_info.duration_ms) * NumberConstant.CONVERSION_TIME
             real_end_us = real_start_us + tran_duration_us
             end_time_ms = float(time_info.start_time_ms) + float(time_info.duration_ms)
             if float(end_time_ms) / NumberConstant.CONVERSION_TIME > start_handle_sec:
                 continue
             call_api_info = [
-                command_name, self.pid, command_tid, api_name,
+                command_name,
+                self.pid,
+                command_tid,
+                api_name,
                 float(time_info.start_time_ms) * NumberConstant.MS_TO_NS,
                 tran_duration_us * NumberConstant.USTONS,
                 end_time_ms * NumberConstant.MS_TO_NS,
                 real_start_us * NumberConstant.USTONS,
-                real_end_us * NumberConstant.USTONS
+                real_end_us * NumberConstant.USTONS,
             ]
             self.cur_model.insert_single_data(call_api_info)

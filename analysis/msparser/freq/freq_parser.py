@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -24,19 +24,20 @@ from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.path_manager import PathManager
 from common_func.utils import Utils
+from common_func.info_conf_reader import InfoConfReader
 from framework.offset_calculator import OffsetCalculator
 from msmodel.freq.freq_parser_model import FreqParserModel
 from msparser.data_struct_size_constant import StructFmt
 from msparser.interface.iparser import IParser
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.struct_info.freq import FreqLpmConvBean
-from common_func.info_conf_reader import InfoConfReader
 
 
 class FreqParser(IParser, MsMultiProcess):
     """
     frequency data parser
     """
+
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)

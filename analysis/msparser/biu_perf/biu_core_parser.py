@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -81,25 +81,27 @@ class BiuCoreParser:
 
         if self.core_info.core_type == CoreInfo.AI_CUBE:
             delta_vector_cycles = 0
-            delta_cube_cycles = self.calculate_delta_cycles(
-            cycles_bean.cube_cycles, self.last_cycles_datum.cube_cycles)
+            delta_cube_cycles = self.calculate_delta_cycles(cycles_bean.cube_cycles, self.last_cycles_datum.cube_cycles)
         else:
             delta_vector_cycles = self.calculate_delta_cycles(
-            cycles_bean.vector_cycles, self.last_cycles_datum.vector_cycles)
+                cycles_bean.vector_cycles, self.last_cycles_datum.vector_cycles
+            )
             delta_cube_cycles = 0
 
-        self.cycles_data.append([delta_vector_cycles,
-                                 self.calculate_delta_cycles(
-                                       cycles_bean.scalar_cycles, self.last_cycles_datum.scalar_cycles),
-                                 delta_cube_cycles,
-                                 self.calculate_delta_cycles(
-                                       cycles_bean.lsu1_cycles, self.last_cycles_datum.lsu1_cycles),
-                                 self.calculate_delta_cycles(
-                                       cycles_bean.lsu2_cycles, self.last_cycles_datum.lsu2_cycles),
-                                 self.calculate_delta_cycles(
-                                       cycles_bean.lsu3_cycles, self.last_cycles_datum.lsu3_cycles),
-                                 cycles_bean.timestamp, self.core_info.core_id,
-                                 self.core_info.group_id, self.core_info.core_type])
+        self.cycles_data.append(
+            [
+                delta_vector_cycles,
+                self.calculate_delta_cycles(cycles_bean.scalar_cycles, self.last_cycles_datum.scalar_cycles),
+                delta_cube_cycles,
+                self.calculate_delta_cycles(cycles_bean.lsu1_cycles, self.last_cycles_datum.lsu1_cycles),
+                self.calculate_delta_cycles(cycles_bean.lsu2_cycles, self.last_cycles_datum.lsu2_cycles),
+                self.calculate_delta_cycles(cycles_bean.lsu3_cycles, self.last_cycles_datum.lsu3_cycles),
+                cycles_bean.timestamp,
+                self.core_info.core_id,
+                self.core_info.group_id,
+                self.core_info.core_type,
+            ]
+        )
         self.last_cycles_datum = cycles_bean
 
     def calculate_delta_cycles(self: any, current_value: int, last_value: int) -> int:
@@ -113,12 +115,23 @@ class BiuCoreParser:
         get list from monitor flow bean
         return: None
         """
-        self.flow_data.append([flow_bean.stat_rcmd_num, flow_bean.stat_wcmd_num,
-                               flow_bean.stat_rlat_raw, flow_bean.stat_wlat_raw,
-                               flow_bean.stat_flux_rd, flow_bean.stat_flux_wr,
-                               flow_bean.stat_flux_rd_l2, flow_bean.stat_flux_wr_l2,
-                               flow_bean.timestamp, flow_bean.l2_cache_hit, self.core_info.core_id,
-                               self.core_info.group_id, self.core_info.core_type])
+        self.flow_data.append(
+            [
+                flow_bean.stat_rcmd_num,
+                flow_bean.stat_wcmd_num,
+                flow_bean.stat_rlat_raw,
+                flow_bean.stat_wlat_raw,
+                flow_bean.stat_flux_rd,
+                flow_bean.stat_flux_wr,
+                flow_bean.stat_flux_rd_l2,
+                flow_bean.stat_flux_wr_l2,
+                flow_bean.timestamp,
+                flow_bean.l2_cache_hit,
+                self.core_info.core_id,
+                self.core_info.group_id,
+                self.core_info.core_type,
+            ]
+        )
 
 
 class BiuCubeParser(BiuCoreParser):
@@ -185,7 +198,7 @@ class BiuVectorParser(BiuCoreParser):
             all_bytes = self._offset_calculator.pre_process(file_reader.file_reader, os.path.getsize(file_path))
 
         for chunk in Utils.chunks(all_bytes, self.VECTOR_SIZE):
-            cycles_chunk = chunk[self.VECTOR_CYCLES_INDEX_RANGE[0]:self.VECTOR_CYCLES_INDEX_RANGE[1]]
+            cycles_chunk = chunk[self.VECTOR_CYCLES_INDEX_RANGE[0] : self.VECTOR_CYCLES_INDEX_RANGE[1]]
             cycles_bean = CyclesBean.decode(cycles_chunk)
             self.add_cycles_data(cycles_bean)
 

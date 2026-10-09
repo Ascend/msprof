@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -37,10 +37,9 @@ class MemcpyCalculator(ICalculator, MsMultiProcess):
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._iter_range = sample_config.get(StrConstant.PARAM_ITER_ID)
 
-        self._model = MemcpyModel(self._project_path,
-                                  DBNameConstant.DB_MEMORY_COPY,
-                                  [DBNameConstant.TABLE_TS_MEMCPY_CALCULATION]
-                                  )
+        self._model = MemcpyModel(
+            self._project_path, DBNameConstant.DB_MEMORY_COPY, [DBNameConstant.TABLE_TS_MEMCPY_CALCULATION]
+        )
 
         self._memcpy_data = []
         self._conn = None
@@ -53,11 +52,12 @@ class MemcpyCalculator(ICalculator, MsMultiProcess):
         for ts_datum in ts_data:
             memcpy_recorder = stream_task_group.setdefault(
                 (ts_datum[MemoryCopyConstant.STREAM_INDEX], ts_datum[MemoryCopyConstant.TASK_INDEX]),
-                MemcpyRecorder(ts_datum[MemoryCopyConstant.STREAM_INDEX],
-                               ts_datum[MemoryCopyConstant.TASK_INDEX]))
+                MemcpyRecorder(ts_datum[MemoryCopyConstant.STREAM_INDEX], ts_datum[MemoryCopyConstant.TASK_INDEX]),
+            )
 
-            memcpy_recorder.process_state_tag(ts_datum[MemoryCopyConstant.TASK_STATE_INDEX],
-            ts_datum[MemoryCopyConstant.TIMESTAMP_INDEX])
+            memcpy_recorder.process_state_tag(
+                ts_datum[MemoryCopyConstant.TASK_STATE_INDEX], ts_datum[MemoryCopyConstant.TIMESTAMP_INDEX]
+            )
 
         return stream_task_group
 
@@ -68,8 +68,9 @@ class MemcpyCalculator(ICalculator, MsMultiProcess):
         """
         self._conn, self._curs = DBManager.check_connect_db(self._project_path, DBNameConstant.DB_STEP_TRACE)
 
-        self._has_table = all([self._conn, self._curs,
-                               DBManager.judge_table_exist(self._curs, DBNameConstant.TABLE_TS_MEMCPY)])
+        self._has_table = all(
+            [self._conn, self._curs, DBManager.judge_table_exist(self._curs, DBNameConstant.TABLE_TS_MEMCPY)]
+        )
 
     def calculate(self: any) -> None:
         """
@@ -78,19 +79,22 @@ class MemcpyCalculator(ICalculator, MsMultiProcess):
         """
         if self._has_table:
             if ProfilingScene().is_all_export():
-                sql = "select stream_id, task_id, timestamp, " \
-                      "task_state from {0} order by timestamp".format(
-                    DBNameConstant.TABLE_TS_MEMCPY)
+                sql = "select stream_id, task_id, timestamp, task_state from {0} order by timestamp".format(
+                    DBNameConstant.TABLE_TS_MEMCPY
+                )
                 self._curs.execute(sql)
             else:
                 time_range = MsprofIteration(self._project_path).get_step_iteration_time(self._iter_range)
                 if not time_range:
                     return
 
-                iter_start, iter_end = \
+                iter_start, iter_end = (
                     (time_range[0][0], time_range[1][0]) if len(time_range) == 2 else (0, time_range[0][0])
-                sql = "select stream_id, task_id, timestamp, task_state from {0} " \
-                      "where timestamp>=? and timestamp<=? order by timestamp".format(DBNameConstant.TABLE_TS_MEMCPY)
+                )
+                sql = (
+                    "select stream_id, task_id, timestamp, task_state from {0} "
+                    "where timestamp>=? and timestamp<=? order by timestamp".format(DBNameConstant.TABLE_TS_MEMCPY)
+                )
                 self._curs.execute(sql, (iter_start, iter_end))
             ts_data = self._curs.fetchall()
             stream_task_group = self._state_groupby_stream_task(ts_data)
@@ -125,7 +129,8 @@ class MemcpyCalculator(ICalculator, MsMultiProcess):
 
                 memcpy_datum.extend(states_timestamp)
                 memcpy_datum.append(
-                    memcpy_datum[MemoryCopyConstant.END_INDEX] - memcpy_datum[MemoryCopyConstant.START_INDEX])
+                    memcpy_datum[MemoryCopyConstant.END_INDEX] - memcpy_datum[MemoryCopyConstant.START_INDEX]
+                )
                 memcpy_datum.append(MemoryCopyConstant.ASYNC_MEMCPY_NAME)
                 memcpy_datum.append(MemoryCopyConstant.TYPE)
 

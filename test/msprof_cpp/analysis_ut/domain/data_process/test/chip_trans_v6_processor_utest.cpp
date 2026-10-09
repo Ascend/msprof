@@ -1,28 +1,32 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 #include <vector>
+
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/system/chip_trans_v6_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/data_process/system/chip_trans_v6_processor.h"
-#include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string CHIP_TRAINS_PATH = "./chip_trains";
 const std::string DB_PATH = File::PathJoin({CHIP_TRAINS_PATH, "msprof.db"});
@@ -33,20 +37,22 @@ const std::string PCIE_TABLE_NAME = "PcieInfoV6";
 
 const OriPcieV6Format DATA_PCIE{
     {0, 932007903232, 1262720385024, 80273355627200.0},
-    {1, 8589934592,   137438953472,  80273355627200.0},
-    {0, 0,            0,             80273355627200.0},
-    {0, 12884901888,  146028888064,  80273355627200.0},
-    {1, 0,            0,             80273355627200.0},
-    {1, 0,            0,             80273355627200.0},
-    {1, 55834574848,  292057776128,  80273355627200.0},
-    {0, 111669149696, 167503724544,  80273355627200.0},
+    {1, 8589934592, 137438953472, 80273355627200.0},
+    {0, 0, 0, 80273355627200.0},
+    {0, 12884901888, 146028888064, 80273355627200.0},
+    {1, 0, 0, 80273355627200.0},
+    {1, 0, 0, 80273355627200.0},
+    {1, 55834574848, 292057776128, 80273355627200.0},
+    {0, 111669149696, 167503724544, 80273355627200.0},
 };
-}
-class ChipTransV6ProcessorUTest : public testing::Test {
-protected:
+}  // namespace
+class ChipTransV6ProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Exist(CHIP_TRAINS_PATH)) {
+        if (File::Exist(CHIP_TRAINS_PATH))
+        {
             File::RemoveDir(CHIP_TRAINS_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(CHIP_TRAINS_PATH));
@@ -54,9 +60,7 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH, DEVICE_SUFFIX})));
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE})));
         CreatePcieInfo(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}), DATA_PCIE);
-        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo)
-            .stubs()
-            .will(returnValue(true));
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetProfTimeRecordInfo).stubs().will(returnValue(true));
     }
     virtual void TearDown()
     {
@@ -95,7 +99,8 @@ TEST_F(ChipTransV6ProcessorUTest, TestRunShouldReturnFalseWhenProcessFailed)
 
 TEST_F(ChipTransV6ProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 {
-    if (File::Exist(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}))) {
+    if (File::Exist(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX})))
+    {
         EXPECT_TRUE(File::DeleteFile(File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX})));
     }
     auto processor = ChipTransV6Processor(PROF_PATH);

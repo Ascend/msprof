@@ -1,27 +1,29 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/application/summary/api_statistic_assembler.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/summary/api_statistic_assembler.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Application;
 using namespace Analysis::Utils;
@@ -29,7 +31,8 @@ using namespace Analysis::Domain;
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const int LEVEL_NUM = 5000;
 const int END_NUM = 5;
@@ -37,9 +40,10 @@ const int TIME_NUM = 4;
 const std::string BASE_PATH = "./api_statistic_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
-}
+}  // namespace
 
-class ApiStatisticAssemblerUTest : public testing::Test {
+class ApiStatisticAssemblerUTest : public testing::Test
+{
     virtual void TearDown()
     {
         EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
@@ -47,7 +51,8 @@ class ApiStatisticAssemblerUTest : public testing::Test {
     }
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -82,13 +84,17 @@ class L2CacheParser(IParser, MsMultiProcess):
                     l2_cache_data_bean = L2CacheDataBean()
                     l2_cache_data_bean.decode(
                         _all_l2_cache_data[
-                        _index * StructFmt.L2_CACHE_DATA_SIZE:(_index + 1) * StructFmt.L2_CACHE_DATA_SIZE])
-                    self._l2_cache_data.append([
-                        l2_cache_data_bean.task_type,
-                        l2_cache_data_bean.stream_id,
-                        l2_cache_data_bean.task_id,
-                        ",".join(l2_cache_data_bean.events_list),
-                    ])
+                            _index * StructFmt.L2_CACHE_DATA_SIZE : (_index + 1) * StructFmt.L2_CACHE_DATA_SIZE
+                        ]
+                    )
+                    self._l2_cache_data.append(
+                        [
+                            l2_cache_data_bean.task_type,
+                            l2_cache_data_bean.stream_id,
+                            l2_cache_data_bean.task_id,
+                            ",".join(l2_cache_data_bean.events_list),
+                        ]
+                    )
             FileManager.add_complete_file(self._project_path, _file_path)
 
     def ms_run(self: any) -> None:
@@ -98,9 +104,11 @@ class L2CacheParser(IParser, MsMultiProcess):
         if not self._file_list:
             return
         if self._file_list.get(DataTag.L2CACHE) and self._check_l2_cache_event_valid():
-            logging.info("start parsing l2 cache data, files: %s, l2 cache events: %s",
-                         str(self._file_list.get(DataTag.L2CACHE)),
-                         ",".join(self._l2_cache_events))
+            logging.info(
+                "start parsing l2 cache data, files: %s, l2 cache events: %s",
+                str(self._file_list.get(DataTag.L2CACHE)),
+                ",".join(self._l2_cache_events),
+            )
             self.parse()
             self.save()
 

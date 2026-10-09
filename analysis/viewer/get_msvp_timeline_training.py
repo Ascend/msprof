@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -36,8 +36,9 @@ def get_dvpp_engine_id(dvpp_type_name: str, conn: any) -> dict:
     if not curs:
         return _result
     for _engine in list(_result.keys()):
-        sql = "SELECT DISTINCT engineid FROM DvppOriginalData " \
-              "WHERE enginetype is {}".format(dvpp_type_name.index(_engine))
+        sql = "SELECT DISTINCT engineid FROM DvppOriginalData WHERE enginetype is {}".format(
+            dvpp_type_name.index(_engine)
+        )
         _result[_engine].extend(Utils.generator_to_list(x[0] for x in DBManager.fetch_all_data(curs, sql)))
     return _result
 
@@ -64,23 +65,30 @@ def get_dvpp_total_data(param: dict, conn: any) -> tuple:
     curs = conn.cursor()
     # If the end time is equal to 0, output data for all time
     if abs(param['end_time'] - 0) <= NumberConstant.FLT_EPSILON:
-        res = curs.execute("select timestamp, proctime/1, lasttime/1, "
-                           "procframe/1, lastframe/1, procutilization, "
-                           "allutilization from DvppOriginalData "
-                           "where enginetype=? and engineid=? "
-                           "and device_id=? and dvppId=?",
-                           (param['engine_type'], param['engine_id'],
-                            param['device_id'], param['dvppid'])).fetchall()
+        res = curs.execute(
+            "select timestamp, proctime/1, lasttime/1, "
+            "procframe/1, lastframe/1, procutilization, "
+            "allutilization from DvppOriginalData "
+            "where enginetype=? and engineid=? "
+            "and device_id=? and dvppId=?",
+            (param['engine_type'], param['engine_id'], param['device_id'], param['dvppid']),
+        ).fetchall()
     else:
-        res = curs.execute("select timestamp, proctime/1, lasttime/1, "
-                           "procframe/1, lastframe/1, procutilization, "
-                           "allutilization from DvppOriginalData "
-                           "where enginetype=? and engineid=? "
-                           "and timestamp between ? and ? and device_id=? and dvppId=?",
-                           (param['engine_type'], param['engine_id'],
-                            param['start_time'],
-                            param['end_time'],
-                            param['device_id'], param['dvppid'])).fetchall()
+        res = curs.execute(
+            "select timestamp, proctime/1, lasttime/1, "
+            "procframe/1, lastframe/1, procutilization, "
+            "allutilization from DvppOriginalData "
+            "where enginetype=? and engineid=? "
+            "and timestamp between ? and ? and device_id=? and dvppId=?",
+            (
+                param['engine_type'],
+                param['engine_id'],
+                param['start_time'],
+                param['end_time'],
+                param['device_id'],
+                param['dvppid'],
+            ),
+        ).fetchall()
     data_time, data_util = get_result_data_for_dvpp(res, 0)
     return data_time, data_util
 
@@ -91,14 +99,14 @@ def get_result_data_for_dvpp(res: list, delta: float) -> tuple:
     """
     data_time = []
     data_util = []
-    for i, _ in enumerate(res):
-        _timestamp = float_calculate([res[i][0], delta])
-        data_time_piece = [_timestamp, res[i][1], res[i][2], res[i][3], res[i][4]]
+    for row in res:
+        _timestamp = float_calculate([row[0], delta])
+        data_time_piece = [_timestamp, row[1], row[2], row[3], row[4]]
         data_time.append(tuple(data_time_piece))
         # change proc_util to percentage
-        per1 = float(res[i][5].split("%")[0])
+        per1 = float(row[5].split("%")[0])
         per1 = round(per1 / NumberConstant.PERCENTAGE, 3)
-        per2 = float(res[i][6].split("%")[0])
+        per2 = float(row[6].split("%")[0])
         per2 = round(per2 / NumberConstant.PERCENTAGE, 3)
         data_util_piece = [_timestamp, per1, per2]
         data_util.append(tuple(data_util_piece))
@@ -110,5 +118,4 @@ def get_dvpp_legend() -> list:
     """
     Get dvpp data legend.
     """
-    return ['proc_time', 'last_time', 'proc_frame', 'last_frame'], \
-           ['proc_utilization', 'all_utilization']
+    return ['proc_time', 'last_time', 'proc_frame', 'last_frame'], ['proc_utilization', 'all_utilization']

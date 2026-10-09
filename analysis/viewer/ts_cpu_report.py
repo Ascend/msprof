@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -27,6 +27,7 @@ class TsCpuReport:
     """
     ts cpu report class
     """
+
     FILE_NAME = os.path.basename(__file__)
 
     @staticmethod
@@ -45,13 +46,11 @@ class TsCpuReport:
                 top_function[key] += value
             else:
                 top_function[key] = value
-        total_count = cursor.execute('select sum(count) from TsOriginalData '
-                                     'where event="0x11"').fetchone()[0]
+        total_count = cursor.execute('select sum(count) from TsOriginalData where event="0x11"').fetchone()[0]
         if not NumberConstant.is_zero(total_count):
             tmp_res = []
             for key, value in list(top_function.items()):
-                rate = round(float(value) * NumberConstant.PERCENTAGE / total_count,
-                             NumberConstant.ROUND_THREE_DECIMAL)
+                rate = round(float(value) * NumberConstant.PERCENTAGE / total_count, NumberConstant.ROUND_THREE_DECIMAL)
                 tmp_res.append((key, value, rate))
             total_data = sorted(tmp_res, key=lambda x: x[1], reverse=True)
         return total_data

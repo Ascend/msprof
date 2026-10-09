@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -52,9 +52,11 @@ class BaseViewer:
         get model instance from list
         """
         model_class = self.model_list.get(self.params.get(StrConstant.PARAM_DATA_TYPE))
-        return model_class(self.params.get(StrConstant.PARAM_RESULT_DIR),
-                           self.configs.get(StrConstant.CONFIG_DB),
-                           self.configs.get(StrConstant.CONFIG_TABLE))
+        return model_class(
+            self.params.get(StrConstant.PARAM_RESULT_DIR),
+            self.configs.get(StrConstant.CONFIG_DB),
+            self.configs.get(StrConstant.CONFIG_TABLE),
+        )
 
     def get_data_from_db(self: any) -> list:
         """

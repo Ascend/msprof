@@ -1,33 +1,36 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/ub_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/persistence/device/ub_persistence.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Domain::Environment;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./ub_processor_data";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -41,13 +44,15 @@ using ProcessedFormat = std::vector<UbData>;
 
 OriUbFormat DATA_A{{0, 0, 3758215093862910, 100, 200, 1000, 0, 0, 0, 0, 0, 2000, 0, 0, 0, 0, 0},
                    {0, 1, 3758215114581640, 150, 250, 1500, 0, 0, 0, 0, 0, 2500, 0, 0, 0, 0, 0}};
-}
+}  // namespace
 
-class UbProcessorUTest : public testing::Test {
-protected:
+class UbProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -75,7 +80,8 @@ protected:
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, dbPath);
         dbRunner->CreateTable(TABLE_NAME, Analysis::Infra::UbDB().GetTableCols("UBBwData"));
-        if (!data.empty()) {
+        if (!data.empty())
+        {
             dbRunner->InsertData(TABLE_NAME, data);
         }
     }
@@ -168,7 +174,8 @@ TEST_F(UbProcessorUTest, TestRunShouldReturnFalseWhenLoadUbDataReturnsEmpty)
     auto processor = UbProcessor(PROF_PATH_A);
     DataInventory dataInventory;
     // Recreate DB with empty data so LoadUbData returns empty
-    if (File::Check(BASE_PATH)) {
+    if (File::Check(BASE_PATH))
+    {
         File::RemoveDir(BASE_PATH, DEPTH);
     }
     File::CreateDir(BASE_PATH);

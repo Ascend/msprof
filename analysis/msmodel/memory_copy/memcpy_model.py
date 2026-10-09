@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -22,6 +22,7 @@ class MemcpyModel(BaseModel):
     """
     acsq memory copy model class
     """
+
     NAME = "name"
     RECEIVE_TIME = "receive_time"
     START_TIME = "start_time"
@@ -73,15 +74,12 @@ class MemcpyModel(BaseModel):
             "avg(%s)" % self.DURATION,
             "min(%s)" % self.DURATION,
             "max(%s)" % self.DURATION,
-            "count(*)"
+            "count(*)",
         ]
         group_column = [self.STREAM_ID, self.TASK_ID]
 
         if DBManager.judge_table_exist(self.cur, table_name):
-            sql = "select {0} from {1} group by {2}".format(
-                ",".join(columns_name),
-                table_name,
-                ",".join(group_column))
+            sql = "select {0} from {1} group by {2}".format(",".join(columns_name), table_name, ",".join(group_column))
             export_data = DBManager.fetch_all_data(self.cur, sql)
         else:
             export_data = []
@@ -95,7 +93,13 @@ class MemcpyModel(BaseModel):
         :return: list
         """
         columns_name = [
-            self.NAME, self.TYPE, self.STREAM_ID, self.TASK_ID, self.DURATION, self.START_TIME, self.END_TIME
+            self.NAME,
+            self.TYPE,
+            self.STREAM_ID,
+            self.TASK_ID,
+            self.DURATION,
+            self.START_TIME,
+            self.END_TIME,
         ]
         return self._get_export_data(columns_name, table_name)
 
@@ -106,8 +110,14 @@ class MemcpyModel(BaseModel):
         :return: list
         """
         columns_name = [
-            self.NAME, self.TYPE, self.RECEIVE_TIME, self.START_TIME, self.END_TIME, self.DURATION,
-            self.STREAM_ID, self.TASK_ID
+            self.NAME,
+            self.TYPE,
+            self.RECEIVE_TIME,
+            self.START_TIME,
+            self.END_TIME,
+            self.DURATION,
+            self.STREAM_ID,
+            self.TASK_ID,
         ]
         return self._get_export_data(columns_name, table_name)
 

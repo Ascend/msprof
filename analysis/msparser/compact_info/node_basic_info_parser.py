@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import sqlite3
@@ -36,7 +38,7 @@ class NodeBasicInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._node_basic_info_data = {}
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -45,9 +47,18 @@ class NodeBasicInfoParser(DataParser, MsMultiProcess):
     def _get_node_basic_data(bean_data: any) -> list:
         if not bean_data:
             return []
-        return [bean_data.level, bean_data.struct_type, bean_data.thread_id, bean_data.timestamp,
-                bean_data.node_id, bean_data.task_type, bean_data.op_type, bean_data.block_num,
-                bean_data.mix_block_num, bean_data.op_flag]
+        return [
+            bean_data.level,
+            bean_data.struct_type,
+            bean_data.thread_id,
+            bean_data.timestamp,
+            bean_data.node_id,
+            bean_data.task_type,
+            bean_data.op_type,
+            bean_data.block_num,
+            bean_data.mix_block_num,
+            bean_data.op_flag,
+        ]
 
     def parse(self: any) -> None:
         """
@@ -56,11 +67,13 @@ class NodeBasicInfoParser(DataParser, MsMultiProcess):
         basic_info_files = self._file_list.get(DataTag.NODE_BASIC_INFO, [])
         basic_info_files = self.group_aging_file(basic_info_files)
         for mode, file_list in basic_info_files.items():
-            self._node_basic_info_data[mode] = self.parse_bean_data(file_list, StructFmt.NODE_BASIC_INFO_SIZE,
-                                                                    NodeBasicInfoBean,
-                                                                    format_func=self._get_node_basic_data,
-                                                                    check_func=self.check_magic_num,
-                                                                    )
+            self._node_basic_info_data[mode] = self.parse_bean_data(
+                file_list,
+                StructFmt.NODE_BASIC_INFO_SIZE,
+                NodeBasicInfoBean,
+                format_func=self._get_node_basic_data,
+                check_func=self.check_magic_num,
+            )
 
     def save(self: any) -> None:
         """

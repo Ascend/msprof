@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -117,15 +117,10 @@ def _get_task_based_core_data(params: dict, curs: any, result_dir: str) -> tuple
     table_name = ""
     if params.get(StrConstant.DATA_TYPE) == StrConstant.AI_CORE_PMU_EVENTS:
         table_name = DBNameConstant.TABLE_METRIC_SUMMARY
-        data = _get_output_event_counter(curs,
-                                         result_dir,
-                                         DBNameConstant.TABLE_METRIC_SUMMARY
-                                         )
+        data = _get_output_event_counter(curs, result_dir, DBNameConstant.TABLE_METRIC_SUMMARY)
     elif params.get(StrConstant.DATA_TYPE) == StrConstant.AI_VECTOR_CORE_PMU_EVENTS:
         table_name = DBNameConstant.TABLE_AIV_METRIC_SUMMARY
-        data = _get_output_event_counter(curs,
-                                         result_dir,
-                                         DBNameConstant.TABLE_AIV_METRIC_SUMMARY)
+        data = _get_output_event_counter(curs, result_dir, DBNameConstant.TABLE_AIV_METRIC_SUMMARY)
     return data, table_name
 
 
@@ -151,9 +146,11 @@ def get_output_tasktype(cursor: any, param: dict) -> list:
     exist = DBManager.judge_table_exist(cursor, "ReportTask")
     if not exist:
         return []
-    sql = "select ROUND(TimeRatio, {0}),ROUND(Time, {0}),Count,ROUND(Avg, {0}),ROUND(Min, {0}),ROUND(Max, {0})," \
-          "ROUND(Waiting, {0}),ROUND(Running, {0}),ROUND(Pending, {0}), Type,API,task_id,stream_id," \
-          "batch_id from ReportTask where device_id=?".format(NumberConstant.ROUND_THREE_DECIMAL)
+    sql = (
+        "select ROUND(TimeRatio, {0}),ROUND(Time, {0}),Count,ROUND(Avg, {0}),ROUND(Min, {0}),ROUND(Max, {0}),"
+        "ROUND(Waiting, {0}),ROUND(Running, {0}),ROUND(Pending, {0}), Type,API,task_id,stream_id,"
+        "batch_id from ReportTask where device_id=?".format(NumberConstant.ROUND_THREE_DECIMAL)
+    )
     report_task_data = DBManager.fetch_all_data(cursor, sql, (param.get(StrConstant.PARAM_DEVICE_ID),))
     return report_task_data
 
@@ -214,12 +211,14 @@ def _get_output_event_counter(cursor: any, result_dir: str, table_name: str) -> 
 def _get_opname(task: list, result_dir: str, curs_ge: any) -> str:
     op_name = Constant.NA
     db_name = DBNameConstant.DB_GE_INFO
-    sql_to_get_opname = "select op_name from {} where " \
-                        "task_id=? and stream_id=? and batch_id=?".format(DBNameConstant.TABLE_GE_TASK)
+    sql_to_get_opname = "select op_name from {} where task_id=? and stream_id=? and batch_id=?".format(
+        DBNameConstant.TABLE_GE_TASK
+    )
     if not os.path.exists(PathManager.get_db_path(result_dir, db_name)):
         db_name = DBNameConstant.DB_RTS_TRACK
-        sql_to_get_opname = "select kernelname from {} where " \
-                            "task_id=? and stream_id=? and batch_id=?".format(DBNameConstant.TABLE_TASK_TRACK)
+        sql_to_get_opname = "select kernelname from {} where task_id=? and stream_id=? and batch_id=?".format(
+            DBNameConstant.TABLE_TASK_TRACK
+        )
         if not os.path.exists(PathManager.get_db_path(result_dir, db_name)):
             return op_name
 
@@ -241,7 +240,7 @@ def get_opname(task: list, result_dir: str, curs_ge: any) -> str:
     try:
         op_name = _get_opname(task, result_dir, curs_ge)
         return op_name
-    except sqlite3.Error as err:
+    except sqlite3.Error:
         logging.error("get op name error.")
         return op_name
 
@@ -270,12 +269,23 @@ def cube_usage(config_dict: dict, value: list) -> list:
     ratio_index = config_dict.get('mac_ratio_index', None)
     if not ratio_index or value[ratio_index] == Constant.NA:
         value.append(Constant.NA)
-    elif not NumberConstant.is_zero(min(value[ratio_index], value[config_dict.get('total_cycles_index')],
-                                        value[config_dict.get('task_duration_index')])):
+    elif not NumberConstant.is_zero(
+        min(
+            value[ratio_index],
+            value[config_dict.get('total_cycles_index')],
+            value[config_dict.get('task_duration_index')],
+        )
+    ):
         # Calculation formula: aic_total_cycles/ (aic_frequency * ai_core_num * task_duration)
-        usage = value[config_dict.get('total_cycles_index')] \
-                / (config_dict.get('aic_frequency') * config_dict.get('ai_core_num') *
-                   value[config_dict.get('task_duration_index')]) * NumberConstant.NS_TO_US
+        usage = (
+            value[config_dict.get('total_cycles_index')]
+            / (
+                config_dict.get('aic_frequency')
+                * config_dict.get('ai_core_num')
+                * value[config_dict.get('task_duration_index')]
+            )
+            * NumberConstant.NS_TO_US
+        )
         usage = round(usage * 100, NumberConstant.ROUND_THREE_DECIMAL)
         value.append(usage)
     else:
@@ -295,8 +305,11 @@ def add_mem_bound(value: list, vec_index: int, mac_index: int, mte2_index: int) 
     if value[vec_index] == Constant.NA:
         value.append(Constant.NA)
     elif not NumberConstant.is_zero(max(value[vec_index], value[mac_index])):
-        value.append(round(float(value[mte2_index] / max(value[vec_index], value[mac_index])),
-                           NumberConstant.ROUND_THREE_DECIMAL))
+        value.append(
+            round(
+                float(value[mte2_index] / max(value[vec_index], value[mac_index])), NumberConstant.ROUND_THREE_DECIMAL
+            )
+        )
     else:
         value.append(0)
     return value

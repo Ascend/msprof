@@ -1,31 +1,34 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/ddr_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/thread_pool.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Domain::Environment;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./ddr_path";
 const std::string DB_PATH = File::PathJoin({BASE_PATH, "msprof.db"});
@@ -40,16 +43,18 @@ using OriDDRDataFormat = std::vector<std::tuple<uint32_t, uint32_t, double, doub
 using ProcessedFormat = std::vector<DDRData>;
 
 OriDDRDataFormat DATA_A{{0, 0, 88698103395630, 528.971354166667, 122.0703125, 0, 0},
-                     {0, 0, 88698124060630, 94.6377196497702, 974.332568087648, 0, 0}};
+                        {0, 0, 88698124060630, 94.6377196497702, 974.332568087648, 0, 0}};
 OriDDRDataFormat DATA_B{{0, 0, 88698144030630, 20.3216201255008, 26.076712725338, 0, 0},
-                     {0, 0, 88698163950630, 21.5430815057103, 25.6335400194528, 0, 0}};
-}
+                        {0, 0, 88698163950630, 21.5430815057103, 25.6335400194528, 0, 0}};
+}  // namespace
 
-class DDRProcessorUTest : public testing::Test {
-protected:
+class DDRProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -90,7 +95,8 @@ protected:
 
 TEST_F(DDRProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
@@ -127,7 +133,8 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExist)
     dbPath = File::PathJoin({PROF_PATH_B, DEVICE_SUFFIX, SQLITE_SUFFIX, DB_SUFFIX});
     MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
     dbRunner->DropTable(TABLE_NAME);
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
@@ -137,7 +144,8 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExist)
 TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenCheckPathFailed)
 {
     MOCKER_CPP(&Analysis::Utils::File::Check).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
@@ -158,7 +166,8 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
 TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 {
     StubReserveFailureForVector<ProcessedFormat>();
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));
@@ -169,7 +178,8 @@ TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenReserveFailed)
 TEST_F(DDRProcessorUTest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
 {
     MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = DDRProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_DDR));

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -34,6 +36,7 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
     """
     analysis task data for scene of operator
     """
+
     STREAM_TASK_FMT = "{0}-{1}"
     COMPLETE_TIME_INDEX = 9
 
@@ -52,8 +55,9 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
     def _create_task_time_table(runtime_conn: any, runtime_curs: any) -> None:
         if DBManager.judge_table_exist(runtime_curs, DBNameConstant.TABLE_RUNTIME_TASK_TIME):
             DBManager.drop_table(runtime_conn, DBNameConstant.TABLE_RUNTIME_TASK_TIME)
-        sql = DBManager.sql_create_general_table('TaskTimeMap', DBNameConstant.TABLE_RUNTIME_TASK_TIME,
-                                                 ConfigManager.TABLES_OPERATOR)
+        sql = DBManager.sql_create_general_table(
+            'TaskTimeMap', DBNameConstant.TABLE_RUNTIME_TASK_TIME, ConfigManager.TABLES_OPERATOR
+        )
         DBManager.execute_sql(runtime_conn, sql)
 
     @staticmethod
@@ -62,8 +66,9 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
         if not report_data:
             logging.info('Unable to get report task data')
             return
-        sql = 'insert into {0} values({value})'.format(DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
-                                                       value='?,' * (len(report_data[0]) - 1) + '?')
+        sql = 'insert into {0} values({value})'.format(
+            DBNameConstant.TABLE_RUNTIME_REPORT_TASK, value='?,' * (len(report_data[0]) - 1) + '?'
+        )
         DBManager.executemany_sql(runtime_conn, sql, report_data)
 
     def ms_run(self: any) -> None:
@@ -114,8 +119,9 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
         :param device_id: device id
         :return: NA
         """
-        runtime_conn, runtime_curs = \
-            DBManager.check_connect_db_path(PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME))
+        runtime_conn, runtime_curs = DBManager.check_connect_db_path(
+            PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME)
+        )
         if not runtime_conn or not runtime_curs:
             return
         try:
@@ -135,8 +141,11 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
         logging.info('start insert op data into report table')
         db_path = PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME)
         runtime_conn, runtime_curs = DBManager.check_connect_db_path(db_path)
-        if not runtime_conn or not runtime_curs \
-                or not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_RUNTIME_TASK_TIME):
+        if (
+            not runtime_conn
+            or not runtime_curs
+            or not DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_RUNTIME_TASK_TIME)
+        ):
             return
         self._create_report_task_table(runtime_conn)
         self._insert_report_task_data(runtime_conn, runtime_curs, device_id)
@@ -148,10 +157,15 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
         insert report task table
         :return: None
         """
-        if DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                                        DBNameConstant.TABLE_RUNTIME_REPORT_TASK):
-            logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                         DBNameConstant.TABLE_RUNTIME_REPORT_TASK, DBNameConstant.DB_RUNTIME)
+        if DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
+            DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
+        ):
+            logging.info(
+                "The Table %s already exists in the %s, and won't be calculate again.",
+                DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
+                DBNameConstant.DB_RUNTIME,
+            )
             return
         self.op_pre_mini_task_data(self.project_path, self.device_id)
         self.op_insert_report_data(self.project_path, self.device_id)
@@ -181,23 +195,27 @@ class OpTaskSchedulerCalculator(MsMultiProcess):
     def _insert_task_time_data(self: any, task_time: list, runtime_conn: any, runtime_curs: any) -> None:
         # sort by complete time
         task_time = sorted(task_time, key=lambda data: data[self.COMPLETE_TIME_INDEX])
-        insert_sql = "insert into TaskTime " \
-                     "values ({value})".format(value="?," * (len(task_time[0]) - 1) + "?")
+        insert_sql = "insert into TaskTime values ({value})".format(value="?," * (len(task_time[0]) - 1) + "?")
         DBManager.executemany_sql(runtime_conn, insert_sql, task_time)
 
     def _get_timeline_data(self: any, device: int, runtime_curs: any) -> list:
-        timeline_sql = "select replayId,device_id,'','',taskType," \
-                       "task_id,stream_id,timeStamp,taskState " \
-                       "from TimeLine WHERE device_id=?" \
-                       "order by task_id, stream_id,timeStamp,taskState,device_id;"
+        timeline_sql = (
+            "select replayId,device_id,'','',taskType,"
+            "task_id,stream_id,timeStamp,taskState "
+            "from TimeLine WHERE device_id=?"
+            "order by task_id, stream_id,timeStamp,taskState,device_id;"
+        )
         timeline_data = DBManager.fetch_all_data(runtime_curs, timeline_sql, (device,))
         cal_task_data = multi_calculate_task_cost_time(timeline_data, self.project_path)
         return cal_task_data
 
     def _create_report_task_table(self: any, runtime_conn: any) -> None:
-        if DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                                        DBNameConstant.TABLE_RUNTIME_REPORT_TASK):
+        if DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
+            DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
+        ):
             DBManager.drop_table(runtime_conn, DBNameConstant.TABLE_RUNTIME_REPORT_TASK)
-        sql = DBManager.sql_create_general_table('ReportTaskMap', DBNameConstant.TABLE_RUNTIME_REPORT_TASK,
-                                                 ConfigManager.TABLES_OPERATOR)
+        sql = DBManager.sql_create_general_table(
+            'ReportTaskMap', DBNameConstant.TABLE_RUNTIME_REPORT_TASK, ConfigManager.TABLES_OPERATOR
+        )
         DBManager.execute_sql(runtime_conn, sql)

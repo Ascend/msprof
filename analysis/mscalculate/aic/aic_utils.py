@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-from common_func.msprof_exception import ProfException
 from common_func.msvp_common import read_cpu_cfg, MsvpCommonConst
 from common_func.utils import Utils
 
@@ -23,6 +22,7 @@ class AicPmuUtils:
     """
     class used to help parse aic pmu
     """
+
     HEX = 16
 
     @staticmethod
@@ -49,8 +49,9 @@ class AicPmuUtils:
         """
         if not aic_pmu_events:
             return []
-        return Utils.generator_to_list(AicPmuUtils.get_pmu_event_name(pmu_event, cfg_name)
-                                       for pmu_event in aic_pmu_events.split(","))
+        return Utils.generator_to_list(
+            AicPmuUtils.get_pmu_event_name(pmu_event, cfg_name) for pmu_event in aic_pmu_events.split(",")
+        )
 
     @staticmethod
     def get_custom_pmu_events(aic_pmu_events: str) -> list:
@@ -94,7 +95,7 @@ class AicPmuUtils:
         unused_list = [
             ["ub_read_bw_mte(GB/s)", "ub_write_bw_mte(GB/s)", "l2_write_bw(GB/s)", "main_mem_write_bw(GB/s)"],
             ["ub_read_bw_mte(GB/s)", "ub_write_bw_mte(GB/s)"],
-            ["l2_read_bw(GB/s)", "l2_write_bw(GB/s)"]
+            ["l2_read_bw(GB/s)", "l2_write_bw(GB/s)"],
         ]
         for _unused_list in unused_list:
             if set(key_list) >= set(_unused_list):

@@ -1,24 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/pcie_processor.h"
-
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -42,8 +43,9 @@ const PCIeDataFormat PCIE_DATA = {
     {88698227865150, 0, 0, 0, 1236, 67, 0, 104, 0, 0, 22, 0, 318, 465, 380, 0, 96, 0, 0, 12, 0, 160, 0},
 };
 
-class PCIeProcessorUTest : public testing::Test {
-protected:
+class PCIeProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         EXPECT_TRUE(File::CreateDir(PCIE_DIR));
@@ -65,10 +67,7 @@ protected:
         return true;
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(PCIE_DIR, 0));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(PCIE_DIR, 0)); }
 
     virtual void SetUp()
     {
@@ -85,7 +84,8 @@ protected:
 
     virtual void TearDown()
     {
-        if (File::Exist(DB_PATH)) {
+        if (File::Exist(DB_PATH))
+        {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
         GlobalMockObject::verify();

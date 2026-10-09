@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -38,12 +38,14 @@ class ClusterStepTraceModel(BaseModel):
     def get_model_info(self: any, table_name: str) -> list:
         if not DBManager.judge_table_exist(self.cur, table_name):
             return []
-        sql = 'select t0.model_id, t0.max_index, group_concat(t0.iteration_id ) from (select t.* from' \
-              '(select iteration_id, model_id, ge_tag, (select count( * ) + 1 from {0} as t2 where ' \
-              't2.model_id = t1.model_id and t2.iteration_time > t1.iteration_time ) as top,' \
-              '(select count(0) from {0} as t3 where t3.model_id = t1.model_id ) as max_index ' \
-              'from {0} as t1 ) as t where top <= 5 and ge_tag = 1 order by model_id, top)t0 ' \
-              'group by model_id, max_index'.format(table_name)
+        sql = (
+            'select t0.model_id, t0.max_index, group_concat(t0.iteration_id ) from (select t.* from'
+            '(select iteration_id, model_id, ge_tag, (select count( * ) + 1 from {0} as t2 where '
+            't2.model_id = t1.model_id and t2.iteration_time > t1.iteration_time ) as top,'
+            '(select count(0) from {0} as t3 where t3.model_id = t1.model_id ) as max_index '
+            'from {0} as t1 ) as t where top <= 5 and ge_tag = 1 order by model_id, top)t0 '
+            'group by model_id, max_index'.format(table_name)
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
 
@@ -55,13 +57,14 @@ class ClusterStepTraceViewModel(ViewModel):
         return DBManager.fetch_all_data(self.cur, sql, param, dto_class)
 
     def get_model_id_with_iterations(self: any, table_name: str) -> list:
-        sql = "select model_id, count(distinct iteration_id) " \
-                                   "from {} group by model_id".format(table_name)
+        sql = "select model_id, count(distinct iteration_id) from {} group by model_id".format(table_name)
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_iter_start_end(self: any, iteration_id: int, model_id: int, table_name: str) -> list:
-        sql = "select iteration_end - iteration_time, iteration_end from {} " \
-                                   "where iteration_id = ? and model_id = ?".format(table_name)
+        sql = (
+            "select iteration_end - iteration_time, iteration_end from {} "
+            "where iteration_id = ? and model_id = ?".format(table_name)
+        )
         data = DBManager.fetch_all_data(self.cur, sql, (iteration_id, model_id))
         return data
 

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -45,9 +47,11 @@ class ParsingPeripheralData(MsMultiProcess):
         self._file_list = file_list.get(DataTag.DVPP, [])
         self.dvpp_data = []
         self.project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
-        self._model = \
-            DvppModel(self.project_path, DBNameConstant.DB_PERIPHERAL,
-                      [DBNameConstant.TABLE_DVPP_ORIGIN, DBNameConstant.TABLE_DVPP_REPORT])
+        self._model = DvppModel(
+            self.project_path,
+            DBNameConstant.DB_PERIPHERAL,
+            [DBNameConstant.TABLE_DVPP_ORIGIN, DBNameConstant.TABLE_DVPP_REPORT],
+        )
         self._file_list.sort(key=lambda x: int(x.split("_")[-1]))
 
     def dvpp_data_parsing(self: any, binary_data_path: str) -> None:
@@ -79,8 +83,7 @@ class ParsingPeripheralData(MsMultiProcess):
         try:
             for file_name in self._file_list:
                 if is_valid_original_data(file_name, self.project_path):
-                    logging.info(
-                        "start parsing peripheral data file: %s", file_name)
+                    logging.info("start parsing peripheral data file: %s", file_name)
                     self.dvpp_data_parsing(file_name)
                     FileManager.add_complete_file(self.project_path, file_name)
         except (SystemError, ValueError, TypeError, RuntimeError, OSError) as err:
@@ -115,12 +118,10 @@ class ParsingPeripheralData(MsMultiProcess):
         _dvpp_data = []
         if not self.has_dvpp_id:
             for x in dvpp_data:
-                _dvpp_data.append([self.device_id, self.replayid, float(
-                    x[0].replace(":", '.')), 0] + x[1:])
+                _dvpp_data.append([self.device_id, self.replayid, float(x[0].replace(":", '.')), 0] + x[1:])
         else:
             for x in dvpp_data:
-                _dvpp_data.append([self.device_id, self.replayid, float(
-                    x[0].replace(":", '.'))] + x[1:])
+                _dvpp_data.append([self.device_id, self.replayid, float(x[0].replace(":", '.'))] + x[1:])
         self.dvpp_data = _dvpp_data
 
     def _read_binary_helper(self: any, lines: list) -> None:
@@ -131,8 +132,7 @@ class ParsingPeripheralData(MsMultiProcess):
         self.has_dvpp_id = ChipManager().is_chip_v2() or ChipManager().is_stars_chip()
 
         dvpp_list = [x for x in dvpp_data if (x[1].isdigit() and len(x) == int(self.has_dvpp_id) + self.DATA_LENGTH)]
-        dvpp_data = \
-            Utils.generator_to_list(dvpp_list)
+        dvpp_data = Utils.generator_to_list(dvpp_list)
         if not dvpp_data:
             logging.warning("No Dvpp Data Found!")
             return

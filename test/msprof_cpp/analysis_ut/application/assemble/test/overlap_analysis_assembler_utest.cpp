@@ -1,27 +1,28 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/timeline/overlap_analysis_assembler.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain::Environment;
@@ -29,36 +30,34 @@ using namespace Analysis::Infra;
 using namespace Analysis::Utils;
 using namespace Analysis::Application;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./overlap_analysis_assembler";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 
-class OverlapAnalysisAssemblerUTest : public testing::Test {
-protected:
+class OverlapAnalysisAssemblerUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
         EXPECT_TRUE(File::CreateDir(PROF_PATH));
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH)); }
 
-    void SetUp() override
-    {
-        EXPECT_TRUE(File::CreateDir(RESULT_PATH));
-    }
+    void SetUp() override { EXPECT_TRUE(File::CreateDir(RESULT_PATH)); }
 
     void TearDown() override
     {
-        if (File::Exist(RESULT_PATH)) {
+        if (File::Exist(RESULT_PATH))
+        {
             EXPECT_TRUE(File::RemoveDir(RESULT_PATH, DEPTH));
         }
         GlobalMockObject::verify();
@@ -90,7 +89,8 @@ std::string ReadOnlyJsonFile()
 {
     auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
     EXPECT_EQ(1ul, files.size());
-    if (files.empty()) {
+    if (files.empty())
+    {
         return "";
     }
     FileReader reader(files.back());
@@ -107,7 +107,7 @@ TEST_F(OverlapAnalysisAssemblerUTest, RunShouldDumpOverlapAnalysisDataFromDataIn
     MAKE_SHARED0_NO_OPERATION(overlapData, std::vector<OverlapAnalysisData>, GenerateOverlapData());
     ASSERT_TRUE(dataInventory.Inject<std::vector<OverlapAnalysisData>>(overlapData));
 
-    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10087)); // formatted pid: device0 10330080
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10087));  // formatted pid: device0 10330080
 
     OverlapAnalysisAssembler assembler;
     EXPECT_TRUE(assembler.Run(dataInventory, PROF_PATH));
@@ -124,7 +124,8 @@ TEST_F(OverlapAnalysisAssemblerUTest, RunShouldDumpOverlapAnalysisDataFromDataIn
         "\"name\":\"Communication\",\"pid\":10330081,\"tid\":1",
         "\"ts\":\"0.001\"",
         "\"dur\":0.002"};
-    for (size_t i = 0; i < expectedFragments.size(); ++i) {
+    for (size_t i = 0; i < expectedFragments.size(); ++i)
+    {
         EXPECT_NE(std::string::npos, json.find(expectedFragments[i])) << expectedFragments[i];
     }
 }

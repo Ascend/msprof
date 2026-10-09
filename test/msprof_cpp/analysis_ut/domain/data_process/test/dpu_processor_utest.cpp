@@ -1,27 +1,29 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "analysis/csrc/domain/data_process/ai_task/dpu_processor.h"
-#include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/ai_task/dpu_processor.h"
 #include "analysis/csrc/domain/data_process/data_processor.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
@@ -40,46 +42,107 @@ const std::string HCCL_TRACK_TABLE_NAME = "DPUHcclTrack";
 const std::set<std::string> PROF_PATHS = {PROF0, PROF1, PROF2, PROF3};
 
 // dpu_device_id, thread_id, start_time, end_time, task_type, stream_id, task_id, kernel_name(op_name)
-using Track = std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, std::string,
-        uint16_t, uint32_t, std::string>>;
+using Track =
+    std::vector<std::tuple<uint16_t, uint32_t, uint64_t, uint64_t, std::string, uint16_t, uint32_t, std::string>>;
 // npu_device_id, dpu_device_id, thread_id, start_time, end_time, op_name, group_name, group_name_id
 // local_rank, remote_rank, rank_size, duration_estimated, src_addr, dst_addr, data_size
 // stream_id, task_id, aicpu_task_id, plane_id, op_type, data_type, link_type, transport_type
 // rdma_type, role, ccl_tag, notify_id, work_flow_mode, stage
-using HcclTrack = std::vector<std::tuple<uint16_t, uint16_t, uint32_t, uint64_t, uint64_t,
-        std::string, std::string, std::string, uint16_t, uint16_t, uint32_t, double, std::string, std::string, uint64_t,
-        uint16_t, uint32_t, uint32_t, uint16_t, std::string, std::string, std::string, std::string,
-        std::string, std::string, std::string, std::string, std::string, std::string>>;
+using HcclTrack =
+    std::vector<std::tuple<uint16_t, uint16_t, uint32_t, uint64_t, uint64_t, std::string, std::string, std::string,
+                           uint16_t, uint16_t, uint32_t, double, std::string, std::string, uint64_t, uint16_t, uint32_t,
+                           uint32_t, uint16_t, std::string, std::string, std::string, std::string, std::string,
+                           std::string, std::string, std::string, std::string, std::string>>;
 
 const Track TRACK_DATA = {
-        {0, 116, 65177262396323, 65177262397323, "KERNEL_AICORE", 1, 100, "Conv2D"},
-        {0, 117, 65177262398000, 65177262399500, "KERNEL_AICORE", 2, 101, "MatMul"},
-        {1, 118, 65177262400000, 65177262401200, "KERNEL_AICORE", 3, 102, "Relu"},
+    {0, 116, 65177262396323, 65177262397323, "KERNEL_AICORE", 1, 100, "Conv2D"},
+    {0, 117, 65177262398000, 65177262399500, "KERNEL_AICORE", 2, 101, "MatMul"},
+    {1, 118, 65177262400000, 65177262401200, "KERNEL_AICORE", 3, 102, "Relu"},
 };
 
 const HcclTrack HCCL_TRACK_DATA = {
-        {0, 0, 116, 65177264896891, 65177264928192, "Dpu_Inline_Write", "hccl_group", "123456789", 0, 2, 4, 0.0, "1111", "2222",
-         1024, 1, 200, 300, 0, "MAX", "FP32", "ROCE", "UB", "RESERVED", "DST", "123456", "0", "1", "0"},
-        {0, 1, 117, 65177264940493, 65177264975485, "Dpu_Notify_Wait", "hccl_group", "123456789", 0, 2, 4, 0.0,
-         "1111", "2222", 2048, 1, 201, 300, 0, "MAX", "FP32", "ON_CHIP", "UB", "RESERVED", "DST", "123456", "0", "1", "0"},
+    {0,
+     0,
+     116,
+     65177264896891,
+     65177264928192,
+     "Dpu_Inline_Write",
+     "hccl_group",
+     "123456789",
+     0,
+     2,
+     4,
+     0.0,
+     "1111",
+     "2222",
+     1024,
+     1,
+     200,
+     300,
+     0,
+     "MAX",
+     "FP32",
+     "ROCE",
+     "UB",
+     "RESERVED",
+     "DST",
+     "123456",
+     "0",
+     "1",
+     "0"},
+    {0,
+     1,
+     117,
+     65177264940493,
+     65177264975485,
+     "Dpu_Notify_Wait",
+     "hccl_group",
+     "123456789",
+     0,
+     2,
+     4,
+     0.0,
+     "1111",
+     "2222",
+     2048,
+     1,
+     201,
+     300,
+     0,
+     "MAX",
+     "FP32",
+     "ON_CHIP",
+     "UB",
+     "RESERVED",
+     "DST",
+     "123456",
+     "0",
+     "1",
+     "0"},
 };
 
-class DPUProcessorUTest : public testing::Test {
-protected:
+class DPUProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
-        if (File::Check(DPU_DIR)) {
+        if (File::Check(DPU_DIR))
+        {
             File::RemoveDir(DPU_DIR, 0);
         }
         EXPECT_TRUE(File::CreateDir(DPU_DIR));
 
-        for (const auto& profPath : PROF_PATHS) {
+        for (const auto& profPath : PROF_PATHS)
+        {
             EXPECT_TRUE(File::CreateDir(profPath));
             EXPECT_TRUE(File::CreateDir(File::PathJoin({profPath, HOST})));
-            if (profPath == PROF3) {
+            if (profPath == PROF3)
+            {
                 EXPECT_TRUE(File::CreateDir(File::PathJoin({profPath, HOST, SQLITE})));
-            } else {
+            }
+            else
+            {
                 EXPECT_TRUE(CreateDPUDb(File::PathJoin({profPath, HOST, SQLITE})));
             }
         }
@@ -121,19 +184,18 @@ protected:
         MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     }
 
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    virtual void TearDown() { GlobalMockObject::verify(); }
 };
 
-void CheckDPUDataValid(const std::vector<DPUData> &checkData)
+void CheckDPUDataValid(const std::vector<DPUData>& checkData)
 {
     size_t trackIndex = 0;
     size_t hcclIndex = 0;
 
-    for (const auto &data : checkData) {
-        if (!data.isHccl) {
+    for (const auto& data : checkData)
+    {
+        if (!data.isHccl)
+        {
             EXPECT_EQ(data.dpuDeviceId, std::get<0>(TRACK_DATA[trackIndex]));
             EXPECT_EQ(data.threadId, std::get<1>(TRACK_DATA[trackIndex]));
             EXPECT_EQ(data.taskType, std::get<4>(TRACK_DATA[trackIndex]));
@@ -141,7 +203,9 @@ void CheckDPUDataValid(const std::vector<DPUData> &checkData)
             EXPECT_EQ(data.taskId, std::get<6>(TRACK_DATA[trackIndex]));
             EXPECT_EQ(data.opName, std::get<7>(TRACK_DATA[trackIndex]));
             ++trackIndex;
-        } else {
+        }
+        else
+        {
             EXPECT_EQ(data.npuDeviceId, std::get<0>(HCCL_TRACK_DATA[hcclIndex]));
             EXPECT_EQ(data.dpuDeviceId, std::get<1>(HCCL_TRACK_DATA[hcclIndex]));
             EXPECT_EQ(data.threadId, std::get<2>(HCCL_TRACK_DATA[hcclIndex]));
@@ -174,14 +238,16 @@ TEST_F(DPUProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
     std::vector<DataInventory> res(PROF_PATHS.size());
     size_t i = 0;
-    for (const auto& profPath : PROF_PATHS) {
+    for (const auto& profPath : PROF_PATHS)
+    {
         auto processor = DPUProcessor(profPath);
         EXPECT_TRUE(processor.Run(res[i], PROCESSOR_NAME_DPU));
         ++i;
     }
 
     // 最后一份PROF3未生成db数据
-    for (size_t i = 0; i < res.size() - 1; ++i) {
+    for (size_t i = 0; i < res.size() - 1; ++i)
+    {
         auto& node = res[i];
         auto checkData = node.GetPtr<std::vector<DPUData>>();
         ASSERT_NE(checkData, nullptr);

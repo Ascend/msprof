@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -22,6 +22,7 @@ class DeviceInfo(BaseInfo):
     """
     device info
     """
+
     DEVICE_INFO = "DeviceInfo"
 
     # The json keys under the DeviceInfo
@@ -33,7 +34,7 @@ class DeviceInfo(BaseInfo):
     KEY_AI_CORE_NUM = "ai_core_num"
 
     def __init__(self: any) -> None:
-        super(DeviceInfo, self).__init__()
+        super().__init__()
         self.device_id = 0
         self.ai_cpu_num = 0
         self.ai_core_num = 0
@@ -58,10 +59,8 @@ class DeviceInfo(BaseInfo):
         :return:None
         """
         self.device_id = InfoConfReader().get_data_under_device(self.KEY_DEVICE_ID)
-        self.control_cpu_type = InfoConfReader().get_data_under_device(
-            self.KEY_CTRL_CPU_ID)
-        self.control_cpu_num = InfoConfReader().get_data_under_device(
-            self.KEY_CTRL_CPU_CORE_NUM)
+        self.control_cpu_type = InfoConfReader().get_data_under_device(self.KEY_CTRL_CPU_ID)
+        self.control_cpu_num = InfoConfReader().get_data_under_device(self.KEY_CTRL_CPU_CORE_NUM)
         self.ts_cpu_num = InfoConfReader().get_data_under_device(self.KEY_TS_CPU_CORE_NUM)
         self.ai_cpu_num = InfoConfReader().get_data_under_device(self.KEY_AI_CPU_CORE_NUM)
         self.ai_core_num = InfoConfReader().get_data_under_device(self.KEY_AI_CORE_NUM)

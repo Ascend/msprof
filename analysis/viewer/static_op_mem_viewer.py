@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -34,8 +34,11 @@ class StaticOpMemViewer:
         to get summary data
         :return:summary data
         """
-        model = StaticOpMemViewModel(self.params.get(StrConstant.PARAM_RESULT_DIR), DBNameConstant.DB_STATIC_OP_MEM,
-                                     [DBNameConstant.TABLE_STATIC_OP_MEM])
+        model = StaticOpMemViewModel(
+            self.params.get(StrConstant.PARAM_RESULT_DIR),
+            DBNameConstant.DB_STATIC_OP_MEM,
+            [DBNameConstant.TABLE_STATIC_OP_MEM],
+        )
         if not model.check_table():
             return MsvpConstant.MSVP_EMPTY_DATA
         static_op_mem_summary_data = model.get_summary_data()

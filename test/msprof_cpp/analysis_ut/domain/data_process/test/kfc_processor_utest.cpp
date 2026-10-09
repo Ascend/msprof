@@ -1,26 +1,27 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/kfc_task_processor.h"
-#include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
@@ -37,30 +38,26 @@ const std::string COMM_TABLE_NAME = "KfcCommTurn";
 const std::string COMPUTE_TABLE_NAME = "KfcComputeTurn";
 const std::set<std::string> PROF_PATHS = {PROF_PATH_A, PROF_PATH_B};
 
-
-
 using OriKfcCommData = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
-uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
-using OriKfcComputeData = std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t,
-uint64_t>>;
+                                              uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
+using OriKfcComputeData =
+    std::vector<std::tuple<uint16_t, uint32_t, uint32_t, uint16_t, uint16_t, uint64_t, uint64_t, uint64_t>>;
 
-const OriKfcCommData KFC_COMM_DATA = {
-    {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505, 2955608937462, 2955608924950, 2955609324419,
-     2955612508700},
-    {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505, 2955608937462, 2955608924950, 2955609324419,
-     2955612508700}
-};
+const OriKfcCommData KFC_COMM_DATA = {{0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505, 2955608937462,
+                                       2955608924950, 2955609324419, 2955612508700},
+                                      {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505, 2955608937462,
+                                       2955608924950, 2955609324419, 2955612508700}};
 
-const OriKfcComputeData KFC_COMPUTE_DATA = {
-    {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505},
-    {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505}
-};
+const OriKfcComputeData KFC_COMPUTE_DATA = {{0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505},
+                                            {0, 12, 22, 1, 0, 2955608765089, 2955608765983, 2955608924505}};
 
-class KfcProcessorUtest : public testing::Test {
-protected:
+class KfcProcessorUtest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, 0);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -98,10 +95,7 @@ protected:
         MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
     }
 
-    virtual void TearDown()
-    {
-        MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
-    }
+    virtual void TearDown() { MOCKER_CPP(&Context::GetInfoByDeviceId).reset(); }
 
     static void CreateKfcCommData(std::string dbPath, OriKfcCommData data)
     {
@@ -128,7 +122,8 @@ protected:
 
 TEST_F(KfcProcessorUtest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = KfcTaskProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));
@@ -146,7 +141,8 @@ TEST_F(KfcProcessorUtest, TestRunShouldReturnTRUEWhenSourceTableNotExist)
     MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, dbPath);
     dbRunner->DropTable(COMM_TABLE_NAME);
     dbRunner->DropTable(COMPUTE_TABLE_NAME);
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = KfcTaskProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));
@@ -156,7 +152,8 @@ TEST_F(KfcProcessorUtest, TestRunShouldReturnTRUEWhenSourceTableNotExist)
 TEST_F(KfcProcessorUtest, TestRunShouldReturnFalseWhenCheckPathNotExist)
 {
     MOCKER_CPP(&Analysis::Utils::File::Exist).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = KfcTaskProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));
@@ -177,7 +174,8 @@ TEST_F(KfcProcessorUtest, TestRunShouldReturnTrueWhenNoDb)
 TEST_F(KfcProcessorUtest, TestRunShouldReturnFalseWhenConstructDBRunnerFailed)
 {
     MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
-    for (auto path: PROF_PATHS) {
+    for (auto path : PROF_PATHS)
+    {
         auto processor = KfcTaskProcessor(path);
         auto dataInventory = DataInventory();
         EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_COMM_STATISTIC));

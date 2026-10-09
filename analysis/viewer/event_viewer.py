@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import json
 import logging
 from collections import OrderedDict
 
@@ -64,13 +63,21 @@ class EventViewer:
             args.setdefault("request_id", timeline_data_dto.request_id)
             args.setdefault("connection_id", timeline_data_dto.connection_id)
             trace_data.append(
-                (struct_type, pid, timeline_data_dto.thread_id,
-                 InfoConfReader().trans_into_local_time(
-                     InfoConfReader().time_from_host_syscnt(timeline_data_dto.start, NumberConstant.MICRO_SECOND),
-                     use_us=True, is_host=True),
-                 InfoConfReader().get_host_duration((timeline_data_dto.end - timeline_data_dto.start),
-                                                    NumberConstant.MICRO_SECOND),
-                 args))
+                (
+                    struct_type,
+                    pid,
+                    timeline_data_dto.thread_id,
+                    InfoConfReader().trans_into_local_time(
+                        InfoConfReader().time_from_host_syscnt(timeline_data_dto.start, NumberConstant.MICRO_SECOND),
+                        use_us=True,
+                        is_host=True,
+                    ),
+                    InfoConfReader().get_host_duration(
+                        (timeline_data_dto.end - timeline_data_dto.start), NumberConstant.MICRO_SECOND
+                    ),
+                    args,
+                )
+            )
         return trace_data
 
     def get_timeline_data(self: any) -> list:
@@ -80,16 +87,17 @@ class EventViewer:
         """
         with self._model as _model:
             if not _model.check_db() or not _model.check_table():
-                logging.error(f"Failed to connect %s", DBNameConstant.DB_API_EVENT)
+                logging.error("Failed to connect %s", DBNameConstant.DB_API_EVENT)
                 return []
             timeline_data = _model.get_timeline_data()
             if not timeline_data:
-                logging.warning(f"Unable to get event data.")
+                logging.warning("Unable to get event data.")
                 return []
             pid = InfoConfReader().get_json_pid_data()
             tid = InfoConfReader().get_json_tid_data()
             result_data = self._get_event_result_data(timeline_data, pid, tid)
             trace_data = self._get_event_data(timeline_data, pid)
             result_data.extend(
-                TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, trace_data))
+                TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, trace_data)
+            )
             return result_data

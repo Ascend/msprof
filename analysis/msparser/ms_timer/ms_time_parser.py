@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -128,8 +128,7 @@ class MsTimeParser(IParser, MsMultiProcess):
                     ms_time_model.flush(message_list)
                     ms_time_model.finalize()
         except sqlite3.Error as trace_err:
-            logging.error("Save time failed, "
-                          "%s", str(trace_err), exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error("Save time failed, %s", str(trace_err), exc_info=Constant.TRACE_BACK_SWITCH)
         finally:
             pass
 
@@ -150,8 +149,11 @@ class MsTimeParser(IParser, MsMultiProcess):
             return result
         for items in message["data"]:
             check_int_item = [
-                items["dev_mon"], items["dev_wall"], items["dev_cntvct"],
-                items["host_mon"], items["host_wall"]
+                items["dev_mon"],
+                items["dev_wall"],
+                items["dev_cntvct"],
+                items["host_mon"],
+                items["host_wall"],
             ]
             if any(not check_number_valid(item) for item in check_int_item):
                 logging.error("time_sync message check integer value failed")
@@ -159,13 +161,17 @@ class MsTimeParser(IParser, MsMultiProcess):
         return True
 
     def _pre_time_data(self, message: dict) -> list:
-        message_list = Utils.generator_to_list([pb_time_mesg["device_id"],
-                                                pb_time_mesg["dev_mon"],
-                                                pb_time_mesg["dev_wall"],
-                                                pb_time_mesg["dev_cntvct"],
-                                                pb_time_mesg["host_mon"],
-                                                pb_time_mesg["host_wall"]]
-                                               for pb_time_mesg in message["data"])
+        message_list = Utils.generator_to_list(
+            [
+                pb_time_mesg["device_id"],
+                pb_time_mesg["dev_mon"],
+                pb_time_mesg["dev_wall"],
+                pb_time_mesg["dev_cntvct"],
+                pb_time_mesg["host_mon"],
+                pb_time_mesg["host_wall"],
+            ]
+            for pb_time_mesg in message["data"]
+        )
         return message_list
 
     def __parse_time_data_helper(self: any, message: dict, index: int) -> None:
@@ -180,9 +186,12 @@ class MsTimeParser(IParser, MsMultiProcess):
                 dev_wall, dev_mon, dev_cntvct = self.parse_dev_start(dev_.file_reader)
 
             data = {
-                "device_id": index, "dev_mon": int(dev_mon),
-                "dev_wall": int(dev_wall), "dev_cntvct": int(dev_cntvct),
-                "host_mon": int(host_mon), "host_wall": int(host_wall)
+                "device_id": index,
+                "dev_mon": int(dev_mon),
+                "dev_wall": int(dev_wall),
+                "dev_cntvct": int(dev_cntvct),
+                "host_mon": int(host_mon),
+                "host_wall": int(host_wall),
             }
             message["data"].append(data)
 

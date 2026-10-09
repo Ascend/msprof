@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -27,14 +27,15 @@ class AICpuFromTsCalculator(MsMultiProcess):
     """
     parse ai cpu from ts
     """
+
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
         self._file_list = file_list
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._iter_range = sample_config.get(StrConstant.PARAM_ITER_ID)
-        self._ts_model = TsTrackModel(self._project_path,
-                                   DBNameConstant.DB_STEP_TRACE,
-                                   [DBNameConstant.TABLE_TASK_TYPE])
+        self._ts_model = TsTrackModel(
+            self._project_path, DBNameConstant.DB_STEP_TRACE, [DBNameConstant.TABLE_TASK_TYPE]
+        )
         self._aicpu_collector = AICpuFromTsCollector(self._project_path)
 
     @staticmethod
@@ -47,7 +48,8 @@ class AICpuFromTsCalculator(MsMultiProcess):
         stream_task_group = {}
         for stream_id, task_id, timestamp, task_state in ai_cpu_with_state:
             task_state_handler = stream_task_group.setdefault(
-                (stream_id, task_id), TaskStateHandler(stream_id, task_id))
+                (stream_id, task_id), TaskStateHandler(stream_id, task_id)
+            )
             task_state_handler.process_record(float(timestamp), task_state)
 
         aicpu_timeline_list = []
@@ -70,13 +72,17 @@ class AICpuFromTsCalculator(MsMultiProcess):
         """
         with self._ts_model:
             ai_cpu_with_state = self._ts_model.get_ai_cpu_data(
-                MsprofIteration(self._project_path).get_step_syscnt_range_by_iter_range(self._iter_range))
+                MsprofIteration(self._project_path).get_step_syscnt_range_by_iter_range(self._iter_range)
+            )
 
         aicpu_timeline_list = self.state_to_timeline(ai_cpu_with_state)
 
         for aicpu_timeline in aicpu_timeline_list:
             aicpu_feature = (
-                aicpu_timeline.stream_id, aicpu_timeline.task_id, aicpu_timeline.start_time,
-                aicpu_timeline.end_time, AICpuFromTsCollector.AI_CPU_TYPE
+                aicpu_timeline.stream_id,
+                aicpu_timeline.task_id,
+                aicpu_timeline.start_time,
+                aicpu_timeline.end_time,
+                AICpuFromTsCollector.AI_CPU_TYPE,
             )
             self._aicpu_collector.filter_aicpu(aicpu_feature)

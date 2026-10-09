@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -41,8 +41,17 @@ class AccPmuModel(ParserModel):
         insert acc_pmu data to db
         :return: None
         """
-        result = [(data.acc_id, data.bandwidth[self.READ], data.bandwidth[self.WRITE],
-                   data.ost[self.READ], data.ost[self.WRITE], data.timestamp) for data in datas]
+        result = [
+            (
+                data.acc_id,
+                data.bandwidth[self.READ],
+                data.bandwidth[self.WRITE],
+                data.ost[self.READ],
+                data.ost[self.WRITE],
+                data.timestamp,
+            )
+            for data in datas
+        ]
 
         self.insert_data_to_db(DBNameConstant.TABLE_ACC_PMU_DATA, result)
 
@@ -59,9 +68,12 @@ class AccPmuModel(ParserModel):
         """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_ACC_PMU_DATA):
             return []
-        sql = "select acc_id, read_bandwidth, write_bandwidth ,read_ost, write_ost, " \
-              "timestamp/{NS_TO_US} as timestamp from {} ORDER BY timestamp ASC, acc_id ASC".format(
-            DBNameConstant.TABLE_ACC_PMU_DATA, NS_TO_US=NumberConstant.NS_TO_US)
+        sql = (
+            "select acc_id, read_bandwidth, write_bandwidth ,read_ost, write_ost, "
+            "timestamp/{NS_TO_US} as timestamp from {} ORDER BY timestamp ASC, acc_id ASC".format(
+                DBNameConstant.TABLE_ACC_PMU_DATA, NS_TO_US=NumberConstant.NS_TO_US
+            )
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=AccPmuOriDto)
 
     def get_summary_data(self: any) -> list:
@@ -71,7 +83,9 @@ class AccPmuModel(ParserModel):
         """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_ACC_PMU_DATA):
             return []
-        sql = "select task_id, stream_id, acc_id, block_id," \
-              " read_bandwidth, write_bandwidth ,read_ost, write_ost, " \
-              "time_stamp, start_time, dur_time from {}".format(DBNameConstant.TABLE_ACC_PMU_DATA)
+        sql = (
+            "select task_id, stream_id, acc_id, block_id,"
+            " read_bandwidth, write_bandwidth ,read_ost, write_ost, "
+            "time_stamp, start_time, dur_time from {}".format(DBNameConstant.TABLE_ACC_PMU_DATA)
+        )
         return DBManager.fetch_all_data(self.cur, sql)

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -34,15 +34,15 @@ class AiCoreReport:
         """
         delete unnecessary headers
         """
-        if not ChipManager().is_chip_v1() and \
-                "ub_read_bw_mte(GB/s)" in headers and \
-                "ub_write_bw_mte(GB/s)" in headers:
+        if not ChipManager().is_chip_v1() and "ub_read_bw_mte(GB/s)" in headers and "ub_write_bw_mte(GB/s)" in headers:
             headers.pop("ub_read_bw_mte(GB/s)")
             headers.pop("ub_write_bw_mte(GB/s)")
 
-        if not (ChipManager().is_chip_v1() or ChipManager().is_chip_v4()) and \
-                "l2_read_bw(GB/s)" in headers and \
-                "l2_write_bw(GB/s)" in headers:
+        if (
+            not (ChipManager().is_chip_v1() or ChipManager().is_chip_v4())
+            and "l2_read_bw(GB/s)" in headers
+            and "l2_write_bw(GB/s)" in headers
+        ):
             headers.pop("l2_read_bw(GB/s)")
             headers.pop("l2_write_bw(GB/s)")
 
@@ -54,8 +54,10 @@ class AiCoreReport:
         conn, curs = DBManager.check_connect_db(result_dir, db_name)
         if not (conn and curs):
             return MsvpConstant.MSVP_EMPTY_DATA
-        if params.get(StrConstant.CORE_DATA_TYPE) == StrConstant.AI_CORE_PMU_EVENTS or \
-                params.get(StrConstant.CORE_DATA_TYPE) == StrConstant.AI_VECTOR_CORE_PMU_EVENTS:
+        if (
+            params.get(StrConstant.CORE_DATA_TYPE) == StrConstant.AI_CORE_PMU_EVENTS
+            or params.get(StrConstant.CORE_DATA_TYPE) == StrConstant.AI_VECTOR_CORE_PMU_EVENTS
+        ):
             headers, data = format_pmu_data_by_headers(*cls.get_output_event_counter(curs))
             DBManager.destroy_db_connect(conn, curs)
             return headers, data, len(data)
@@ -72,11 +74,10 @@ class AiCoreReport:
         is_exist = DBManager.judge_table_exist(cursor, "MetricSummary")
         if not is_exist:
             return [], []
-        sql_result = "select metric, value from MetricSummary where metric not like " \
-                     "'%total_time%' and value is not null;"
-        sql_core_id = "select distinct(coreid) " \
-                      "from MetricSummary " \
-                      "where value is not null order by coreid;"
+        sql_result = (
+            "select metric, value from MetricSummary where metric not like '%total_time%' and value is not null;"
+        )
+        sql_core_id = "select distinct(coreid) from MetricSummary where value is not null order by coreid;"
         result = DBManager.fetch_all_data(cursor, sql_result)
         core_id = DBManager.fetch_all_data(cursor, sql_core_id)
 
@@ -100,8 +101,10 @@ class AiCoreReport:
         headers = AiCoreOpReport.delete_special_tag(headers)
         result = [Utils.generator_to_list("Core{}".format(i[0]) for i in core_id) + ["Average"]]
         try:
-            result.extend((value + [round(float(sum(value) / len(value)), NumberConstant.ROUND_THREE_DECIMAL)])
-                          for value in tmp.values())
+            result.extend(
+                (value + [round(float(sum(value) / len(value)), NumberConstant.ROUND_THREE_DECIMAL)])
+                for value in tmp.values()
+            )
         except ZeroDivisionError:
             return [], []
         else:

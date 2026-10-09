@@ -1,3 +1,19 @@
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 import argparse
 import logging
 import os
@@ -464,7 +480,7 @@ class CustomBind:
 
         for irq_id, target_cpu_list in zip(self.irq_id, self.cpu_list):
             affinity_file_path = f"/proc/irq/{irq_id}/smp_affinity"
-            FileManager.check_directory_path_writeable(affinity_file_path)
+            FileManager.check_directory_path_writeable(affinity_file_path)  # pylint: disable=no-member
             with open(affinity_file_path, "w", encoding="utf-8") as f:
                 f.write(self.cpu_to_mask(target_cpu_list))
                 logging.info("Bind the interrupt of IRQ-%d to CPU%s", irq_id, target_cpu_list)
@@ -575,7 +591,7 @@ def run(args: argparse.Namespace) -> None:
         if not os.path.exists(args.config):
             logging.error("The %s file does not exist.Please check and try again.", args.config)
             return
-        input_data = FileManager.read_json_file(args.config)
+        input_data = FileManager.read_json_file(args.config)  # pylint: disable=no-member
         binder_list = load_custom_bind(input_data)
     for bind in binder_list:
         loop_count += 1

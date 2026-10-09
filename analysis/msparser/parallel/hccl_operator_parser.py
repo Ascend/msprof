@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -60,15 +62,29 @@ class HCCLOperatorParser(IParser, MsMultiProcess):
                 op_name = hash_value if hash_value else hccl_data.op_name
                 start_time = NumberConstant.INVALID_OP_EXE_TIME if not hccl_start_data else hccl_start_data.timestamp
                 self._hccl_operator_data.append(
-                    [hccl_data.model_id, hccl_data.index_id, op_name, hccl_data.op_type, start_time,
-                     hccl_data.timestamp])
+                    [
+                        hccl_data.model_id,
+                        hccl_data.index_id,
+                        op_name,
+                        hccl_data.op_type,
+                        start_time,
+                        hccl_data.timestamp,
+                    ]
+                )
                 hccl_start_data = None
             elif not hccl_start_data:
                 hccl_start_data = hccl_data
             else:
                 self._hccl_operator_data.append(
-                    [hccl_start_data.model_id, hccl_start_data.index_id, "", "", hccl_start_data.timestamp,
-                     NumberConstant.INVALID_OP_EXE_TIME])
+                    [
+                        hccl_start_data.model_id,
+                        hccl_start_data.index_id,
+                        "",
+                        "",
+                        hccl_start_data.timestamp,
+                        NumberConstant.INVALID_OP_EXE_TIME,
+                    ]
+                )
                 hccl_start_data = hccl_data
 
     def save(self: any) -> None:

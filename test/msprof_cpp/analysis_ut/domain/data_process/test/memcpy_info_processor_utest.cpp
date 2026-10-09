@@ -1,30 +1,33 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
+#include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/ai_task/memcpy_info_processor.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
-#include "analysis/csrc/domain/data_process/ai_task/memcpy_info_processor.h"
-#include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/infrastructure/utils/file.h"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string MEMCPY_INFO_PATH = "./memcpy_info";
 const std::string PROF_PATH = File::PathJoin({MEMCPY_INFO_PATH, "PROF_0"});
@@ -33,13 +36,15 @@ const std::string TABLE_NAME = "MemcpyInfo";
 MemcpyInfoFormat DATA{{30, 0, 3, 4294967295, 0, 67108864, 0},
                       {30, 0, 4, 4294967295, 0, 16777216, 0},
                       {30, 0, 10, 4294967295, 0, 22282240, 0}};
-}
+}  // namespace
 
-class MemcpyInfoProcessorUTest : public testing::Test {
-protected:
+class MemcpyInfoProcessorUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Check(MEMCPY_INFO_PATH)) {
+        if (File::Check(MEMCPY_INFO_PATH))
+        {
             File::RemoveDir(MEMCPY_INFO_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(MEMCPY_INFO_PATH));
@@ -130,9 +135,7 @@ TEST_F(MemcpyInfoProcessorUTest, TestRunShouldReturnFalseWhenSaveToDataInventory
 {
     DataInventory dataInventory;
     auto processor = MemcpyInfoProcessor(PROF_PATH);
-    MOCKER_CPP(&DataProcessor::SaveToDataInventory<MemcpyInfoData>)
-    .stubs()
-    .will(returnValue(false));
+    MOCKER_CPP(&DataProcessor::SaveToDataInventory<MemcpyInfoData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_MEMCPY_INFO));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<MemcpyInfoData>).reset();
 }

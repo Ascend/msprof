@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -44,6 +44,7 @@ class CalculateRtsDataConst:
     """
     for calculate rts const
     """
+
     FILE_NAME = os.path.basename(__file__)
     TYPE = "ai_core"
     MAX_LENGTH = 20000
@@ -77,25 +78,27 @@ class CalculateRtsDataConst:
 
 
 def _get_task_schedule_sql() -> str:
-    sql = "select ifnull(taskType, '')||'|'||ifnull(api, '')||'|'||task_id||'|'||stream_id||'|'||batch_id, " \
-          "sum(case when waittime=0 or complete=0.0 then 0 " \
-          "when running<waittime then complete-waittime " \
-          "else running-waittime end) as waitting," \
-          " sum(case when running=0 or complete=0.0 then 0 " \
-          "else complete-running end) as running, " \
-          "sum(case when pendingtime=0 or complete=0.0 then 0 " \
-          "else complete-pendingtime end) as pending," \
-          "min(case when complete=0.0 then 0 " \
-          "when running=0 then complete-pendingtime " \
-          "else complete-running end) as min_time," \
-          "max(case when complete=0.0 then 0 " \
-          "when running=0 then complete-pendingtime " \
-          "else complete-running end) as max_time, " \
-          "sum(case when complete=0.0 then 0 " \
-          "when running=0 then complete-pendingtime " \
-          "else complete-running end)/count(rowid) as avg, " \
-          "count(rowid) from TaskTime where device_id = ?" \
-          "group by taskType, api, task_id, stream_id, batch_id;"
+    sql = (
+        "select ifnull(taskType, '')||'|'||ifnull(api, '')||'|'||task_id||'|'||stream_id||'|'||batch_id, "
+        "sum(case when waittime=0 or complete=0.0 then 0 "
+        "when running<waittime then complete-waittime "
+        "else running-waittime end) as waiting,"
+        " sum(case when running=0 or complete=0.0 then 0 "
+        "else complete-running end) as running, "
+        "sum(case when pendingtime=0 or complete=0.0 then 0 "
+        "else complete-pendingtime end) as pending,"
+        "min(case when complete=0.0 then 0 "
+        "when running=0 then complete-pendingtime "
+        "else complete-running end) as min_time,"
+        "max(case when complete=0.0 then 0 "
+        "when running=0 then complete-pendingtime "
+        "else complete-running end) as max_time, "
+        "sum(case when complete=0.0 then 0 "
+        "when running=0 then complete-pendingtime "
+        "else complete-running end)/count(rowid) as avg, "
+        "count(rowid) from TaskTime where device_id = ?"
+        "group by taskType, api, task_id, stream_id, batch_id;"
+    )
     return sql
 
 
@@ -119,22 +122,36 @@ def calculate_task_schedule_data(curs: any, device: str) -> list:
             tasktype, api, task_id, stream_id, batch_id = i.split('|')
             _per_state_time = state_time_data.get(i)
             total_data.append(
-                (str(round(float(_per_state_time.get('running') / task_data.get("total_time")
-                                 * CalculateRtsDataConst.PERCENT), CalculateRtsDataConst.RETENTION_PRECISION)),
-                 _per_state_time.get('running') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('count'),
-                 _per_state_time.get('avg') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('min') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('max') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('waiting') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('running') / NumberConstant.NS_TO_US,
-                 _per_state_time.get('pending') / NumberConstant.NS_TO_US,
-                 StrConstant.TASK_TYPE_MAPPING.get(str(tasktype), "unknown {}".format(str(tasktype))),
-                 api,
-                 task_id, stream_id, device, batch_id))
+                (
+                    str(
+                        round(
+                            float(
+                                _per_state_time.get('running')
+                                / task_data.get("total_time")
+                                * CalculateRtsDataConst.PERCENT
+                            ),
+                            CalculateRtsDataConst.RETENTION_PRECISION,
+                        )
+                    ),
+                    _per_state_time.get('running') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('count'),
+                    _per_state_time.get('avg') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('min') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('max') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('waiting') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('running') / NumberConstant.NS_TO_US,
+                    _per_state_time.get('pending') / NumberConstant.NS_TO_US,
+                    StrConstant.TASK_TYPE_MAPPING.get(str(tasktype), "unknown {}".format(str(tasktype))),
+                    api,
+                    task_id,
+                    stream_id,
+                    device,
+                    batch_id,
+                )
+            )
         return sorted(total_data, key=lambda x: float(x[0].replace('%', '')), reverse=True)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError, ZeroDivisionError) as err:
-        logging.error(err.__repr__(), exc_info=Constant.TRACE_BACK_SWITCH)
+        logging.error(repr(err), exc_info=Constant.TRACE_BACK_SWITCH)
         return []
 
 
@@ -155,8 +172,13 @@ def calculate_type_state_time(task_data: dict) -> dict:
     type_state_time = {}
     for task in task_data["tasktime_data"]:
         type_state_time[task[0]] = {
-            'waiting': task[1], 'running': task[2], 'pending': task[3], 'count': task[-1],
-            'min': task[4], 'max': task[5], 'avg': task[6]
+            'waiting': task[1],
+            'running': task[2],
+            'pending': task[3],
+            'count': task[-1],
+            'min': task[4],
+            'max': task[5],
+            'avg': task[6],
         }
     return type_state_time
 
@@ -181,12 +203,14 @@ def _compute_multi_process(timeline_data: list, project_path: str, task_time: di
             while timeline_data[i + step - stop_tag][-1] != CalculateRtsDataConst.COMPLETE:
                 stop_tag += 1
             _stop = i + step - stop_tag + 1
-            process = multiprocessing.Process(target=calculate_timeline_task_time,
-                                              args=(timeline_data[_start:_stop], task_time, count, project_path))
+            process = multiprocessing.Process(
+                target=calculate_timeline_task_time, args=(timeline_data[_start:_stop], task_time, count, project_path)
+            )
         else:
             _stop = -1
-            process = multiprocessing.Process(target=calculate_timeline_task_time,
-                                              args=(timeline_data[_start:], task_time, count, project_path))
+            process = multiprocessing.Process(
+                target=calculate_timeline_task_time, args=(timeline_data[_start:], task_time, count, project_path)
+            )
         process.start()
         processes.append(process)
         count += 1
@@ -223,14 +247,16 @@ def calculate_timeline_task_time(timeline_data: list, task_time: dict, pid: int,
     data_len = len(timeline_data)
     try:
         while index < data_len:
-            if timeline_data[index][CalculateRtsDataConst.TASK_ID_INDEX] != current_task_id \
-                    or timeline_data[index][CalculateRtsDataConst.STREAM_ID_INDEX] != current_stream_id:
+            if (
+                timeline_data[index][CalculateRtsDataConst.TASK_ID_INDEX] != current_task_id
+                or timeline_data[index][CalculateRtsDataConst.STREAM_ID_INDEX] != current_stream_id
+            ):
                 current_task_id = timeline_data[index][CalculateRtsDataConst.TASK_ID_INDEX]
                 current_stream_id = timeline_data[index][CalculateRtsDataConst.STREAM_ID_INDEX]
                 waiting_status_index, pending_status_index, running_status_index = [-1, -1, -1]
-            pending_status_index, running_status_index, waiting_status_index = \
-                handle_task_time(index, insert_data, timeline_data,
-                                 [waiting_status_index, pending_status_index, running_status_index])
+            pending_status_index, running_status_index, waiting_status_index = handle_task_time(
+                index, insert_data, timeline_data, [waiting_status_index, pending_status_index, running_status_index]
+            )
             index = index + 1
     except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
         logging.error(err)
@@ -252,11 +278,12 @@ def handle_task_time(index: int, insert_data: list, timeline_data: list, status_
             'waiting': calculate_time(timeline_data, waiting_status_index),
             "pending": calculate_time(timeline_data, pending_status_index),
             'running': calculate_time(timeline_data, running_status_index),
-            'complete': InfoConfReader().time_from_syscnt(timeline_data[index][-2])
+            'complete': InfoConfReader().time_from_syscnt(timeline_data[index][-2]),
         }
         insert_data.append(
-            timeline_data[index][0:7] +
-            (tmp.get('waiting', 0), tmp.get('pending', 0), tmp.get('running', 0), tmp.get('complete', 0)))
+            timeline_data[index][0:7]
+            + (tmp.get('waiting', 0), tmp.get('pending', 0), tmp.get('running', 0), tmp.get('complete', 0))
+        )
         waiting_status_index, pending_status_index, running_status_index = [-1, -1, -1]
     elif timeline_data[index][-1] == CalculateRtsDataConst.WAITING:
         waiting_status_index = index
@@ -264,8 +291,11 @@ def handle_task_time(index: int, insert_data: list, timeline_data: list, status_
         pending_status_index = index
     elif timeline_data[index][-1] == CalculateRtsDataConst.RUNNING:
         running_status_index = index
-    elif timeline_data[index][-1] not in [CalculateRtsDataConst.AI_CORE_START, CalculateRtsDataConst.AI_CORE_DONE,
-                                          CalculateRtsDataConst.AI_CPU_PHASES_TWO_START]:
+    elif timeline_data[index][-1] not in [
+        CalculateRtsDataConst.AI_CORE_START,
+        CalculateRtsDataConst.AI_CORE_DONE,
+        CalculateRtsDataConst.AI_CPU_PHASES_TWO_START,
+    ]:
         logging.error("Unrecognized tag %s", timeline_data[index][-1])
     return pending_status_index, running_status_index, waiting_status_index
 
@@ -301,27 +331,34 @@ def create_ai_event_tables(sample_config: dict, curs: any, device: str) -> None:
     ai_core_events = sample_config.get("ai_core_profiling_events", "").split(",")
     check_aicore_events(ai_core_events, is_custom=judge_custom_pmu_scene(sample_config))
     pmu_event_lst = Utils.generator_to_list(pmu_event.replace('0x', 'r') + " numeric" for pmu_event in ai_core_events)
-    sql = "CREATE TABLE IF NOT EXISTS EventCount (" + \
-          ",".join(pmu_event_lst) + \
-          ",task_cyc numeric, task_id INT, stream_id INT, block_num INT, " \
-          "core_num INT, device_id INT)"
+    sql = (
+        "CREATE TABLE IF NOT EXISTS EventCount ("
+        + ",".join(pmu_event_lst)
+        + ",task_cyc numeric, task_id INT, stream_id INT, block_num INT, "
+        "core_num INT, device_id INT)"
+    )
     curs.execute(sql)
-    ai_core_events = Utils.generator_to_list(ai_core_events[i:i + 8] for i in range(0, len(ai_core_events), 8))
+    ai_core_events = Utils.generator_to_list(ai_core_events[i : i + 8] for i in range(0, len(ai_core_events), 8))
     for _, event in enumerate(ai_core_events):
         for index, value in enumerate(event):
-            curs.execute("create table if not exists {tablename} (timestamp INT, pmucount INT, "
-                         " replayid INT, task_id INT, stream_id INT, device_id INT)"
-                         .format(tablename=value.replace('0x', 'r')))
-            sql = "insert into {tablename} select timestamp, event{index}," \
-                  "replayid, task_id, stream_id, device_id from EventCounter " \
-                  "where device_id = ?;" \
-                .format(tablename=value.replace('0x', 'r'),
-                        index=index + 1)
+            curs.execute(
+                "create table if not exists {tablename} (timestamp INT, pmucount INT, "
+                " replayid INT, task_id INT, stream_id INT, device_id INT)".format(tablename=value.replace('0x', 'r'))
+            )
+            sql = (
+                "insert into {tablename} select timestamp, event{index},"
+                "replayid, task_id, stream_id, device_id from EventCounter "
+                "where device_id = ?;".format(tablename=value.replace('0x', 'r'), index=index + 1)
+            )
             curs.execute(sql, (device,))
-    curs.execute("create table IF NOT EXISTS task_cyc(timestamp INTEGER, "
-                 "pmucount INTEGER,replayid INT, task_id INT, stream_id INT, device_id INT)")
-    sql = "insert into task_cyc select timestamp, task_cyc, replayid, task_id, stream_id, " \
-          "device_id from EventCounter where device_id = ?"
+    curs.execute(
+        "create table IF NOT EXISTS task_cyc(timestamp INTEGER, "
+        "pmucount INTEGER,replayid INT, task_id INT, stream_id INT, device_id INT)"
+    )
+    sql = (
+        "insert into task_cyc select timestamp, task_cyc, replayid, task_id, stream_id, "
+        "device_id from EventCounter where device_id = ?"
+    )
     curs.execute(sql, (device,))
     logging.info('create event tables finished')
 
@@ -399,17 +436,20 @@ def create_metric_table(conn: any, metrics: list, table_name: str) -> bool:
     insert event value into metric summary
     """
     sql = 'CREATE TABLE IF NOT EXISTS {name}({column})'.format(
-        column=','.join(metric.replace('(ms)', '').replace('(GB/s)', '')
-                        + ' numeric' for metric in metrics) + ', task_id INT, '
-                                                              'stream_id INT, core_type INT, batch_id INT',
-        name=table_name)
+        column=','.join(metric.replace('(ms)', '').replace('(GB/s)', '') + ' numeric' for metric in metrics)
+        + ', task_id INT, '
+        'stream_id INT, core_type INT, batch_id INT',
+        name=table_name,
+    )
     return DBManager.execute_sql(conn, sql)
 
 
 def _query_limit_and_offset(iter_range: IterationRange, curs: any) -> list:
     result = []
-    sql = f"select min(iter_id), max(iter_id) from {DBNameConstant.TABLE_STEP_TRACE_DATA} " \
-          f"where index_id>=? and index_id<=? and model_id=?"
+    sql = (
+        f"select min(iter_id), max(iter_id) from {DBNameConstant.TABLE_STEP_TRACE_DATA} "
+        f"where index_id>=? and index_id<=? and model_id=?"
+    )
     data = DBManager.fetchone(curs, sql, (*iter_range.get_iteration_range(), iter_range.model_id))
     if data:
         start_iter_id, end_iter_id = data
@@ -448,8 +488,9 @@ def get_limit_and_offset(result_dir: str, iter_range: IterationRange) -> list:
         DBManager.destroy_db_connect(conn, curs)
 
 
-def get_metrics_from_sample_config(project_path: str,
-                                   metrics_type: str = StrConstant.AI_CORE_PROFILING_METRICS) -> list:
+def get_metrics_from_sample_config(
+    project_path: str, metrics_type: str = StrConstant.AI_CORE_PROFILING_METRICS
+) -> list:
     """
     get ai core metric from sample json.
     """
@@ -465,22 +506,25 @@ def get_metrics_from_sample_config(project_path: str,
     sample_metrics = metrics_list.get(sample_config.get(metrics_type)).split(",")
     for tmp in sample_metrics:
         if tmp.lower() not in Utils.generator_to_list(
-                item[0] for item in config_file_obj(file_name=MsvpCommonConst.AI_CORE).items('metrics')
+            item[0] for item in config_file_obj(file_name=MsvpCommonConst.AI_CORE).items('metrics')
         ):
-            logging.error('Invalid metric {} .'.format(tmp))
+            logging.error('Invalid metric %s .', tmp)
     new_metrics = []
-    if sample_config.get(metrics_type) in {AiCoreMetricsManager.PMU_PIPE, AiCoreMetricsManager.PMU_PIPE_EXCT,
-                                           AiCoreMetricsManager.PMU_PIPE_EXECUT,
-                                           AiCoreMetricsManager.PMU_SCALAR_RATIO,
-                                           AiCoreMetricsManager.PMU_PIPE_STALL_CYCLE}:
+    if sample_config.get(metrics_type) in {
+        AiCoreMetricsManager.PMU_PIPE,
+        AiCoreMetricsManager.PMU_PIPE_EXCT,
+        AiCoreMetricsManager.PMU_PIPE_EXECUT,
+        AiCoreMetricsManager.PMU_SCALAR_RATIO,
+        AiCoreMetricsManager.PMU_PIPE_STALL_CYCLE,
+    }:
         for metric in sample_metrics[:-1]:
             if metric.endswith(StrConstant.RATIO_EXTRA_NAME):
-                new_metrics.append(metric[:-NumberConstant.EXTRA_RATIO_NAME_LEN] + "time")
+                new_metrics.append(metric[: -NumberConstant.EXTRA_RATIO_NAME_LEN] + "time")
             elif metric.endswith(StrConstant.RATIO_NAME):
-                new_metrics.append(metric[:-NumberConstant.RATIO_NAME_LEN] + "time")
+                new_metrics.append(metric[: -NumberConstant.RATIO_NAME_LEN] + "time")
             new_metrics.append(metric)
         if sample_config.get(metrics_type) == AiCoreMetricsManager.PMU_PIPE_EXECUT:
-            new_metrics.append(sample_metrics[-1][:-NumberConstant.RATIO_NAME_LEN] + "time")
+            new_metrics.append(sample_metrics[-1][: -NumberConstant.RATIO_NAME_LEN] + "time")
         new_metrics.append(sample_metrics[-1])
     sample_metrics = new_metrics if new_metrics else sample_metrics
     metrics.extend(sample_metrics)

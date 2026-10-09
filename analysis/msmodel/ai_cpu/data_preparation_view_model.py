@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,13 +29,15 @@ class DataPreparationViewModel(ViewModel):
     def get_host_queue(self: any) -> list:
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_HOST_QUEUE):
             return []
-        sql = "select index_id, sum(case when type=1 then extra_info else 0 end) as queue_capacity," \
-              "sum(case when type=1 then value else 0 end) as queue_size," \
-              "sum(case when type=1 then mode else 0 end) as mode," \
-              "sum(case when type=0 and extra_info=0 then value else 0 end) as get_time," \
-              "sum(case when type=0 and extra_info=1 then value else 0 end) as send_time," \
-              "sum(case when type=0 and extra_info=2 then value else 0 end) as total_time " \
-              "from {0} group by index_id order by index_id".format(DBNameConstant.TABLE_HOST_QUEUE)
+        sql = (
+            "select index_id, sum(case when type=1 then extra_info else 0 end) as queue_capacity,"
+            "sum(case when type=1 then value else 0 end) as queue_size,"
+            "sum(case when type=1 then mode else 0 end) as mode,"
+            "sum(case when type=0 and extra_info=0 then value else 0 end) as get_time,"
+            "sum(case when type=0 and extra_info=1 then value else 0 end) as send_time,"
+            "sum(case when type=0 and extra_info=2 then value else 0 end) as total_time "
+            "from {0} group by index_id order by index_id".format(DBNameConstant.TABLE_HOST_QUEUE)
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=HostQueueDto)
 
     def get_host_queue_mode(self: any) -> int:

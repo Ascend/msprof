@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import sqlite3
@@ -35,7 +37,7 @@ class TensorAddInfoParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._sample_config = sample_config
         self._file_list = file_list
         self._ge_tensor_info_data = []
@@ -45,10 +47,20 @@ class TensorAddInfoParser(DataParser, MsMultiProcess):
     def _get_tensor_info_data(bean_data: any) -> list:
         if not bean_data:
             return []
-        return [bean_data.level, bean_data.struct_type, bean_data.thread_id, bean_data.timestamp,
-                bean_data.node_id, bean_data.tensor_num,
-                bean_data.input_format, bean_data.input_data_type, bean_data.input_shape,
-                bean_data.output_format, bean_data.output_data_type, bean_data.output_shape]
+        return [
+            bean_data.level,
+            bean_data.struct_type,
+            bean_data.thread_id,
+            bean_data.timestamp,
+            bean_data.node_id,
+            bean_data.tensor_num,
+            bean_data.input_format,
+            bean_data.input_data_type,
+            bean_data.input_shape,
+            bean_data.output_format,
+            bean_data.output_data_type,
+            bean_data.output_shape,
+        ]
 
     @classmethod
     def _generate_new_hash_dict_data(cls: any, hash_dict: dict, key: any, data: list) -> None:
@@ -89,11 +101,15 @@ class TensorAddInfoParser(DataParser, MsMultiProcess):
         tensor_info_files = self._file_list.get(DataTag.TENSOR_ADD_INFO, [])
         tensor_info_files = self.group_aging_file(tensor_info_files)
         for file_list in tensor_info_files.values():
-            self._ge_tensor_info_data.extend(self.parse_bean_data(file_list, StructFmt.TENSOR_ADD_INFO_SIZE,
-                                                                  TensorAddInfoBean,
-                                                                  format_func=self._get_tensor_info_data,
-                                                                  check_func=self.check_magic_num,
-                                                                  ))
+            self._ge_tensor_info_data.extend(
+                self.parse_bean_data(
+                    file_list,
+                    StructFmt.TENSOR_ADD_INFO_SIZE,
+                    TensorAddInfoBean,
+                    format_func=self._get_tensor_info_data,
+                    check_func=self.check_magic_num,
+                )
+            )
         self._update_tensor_data()
 
     def save(self: any) -> None:
@@ -131,7 +147,7 @@ class TensorAddInfoParser(DataParser, MsMultiProcess):
                 continue
             # 3 timestamp 2 thread_id 4 node_id
             key = (str(data[3]), str(data[2]), str(data[4]))
-            if key not in hash_dict.keys():
+            if key not in hash_dict:
                 self._generate_new_hash_dict_data(hash_dict, key, data)
             else:
                 self._update_hash_dict_data(hash_dict, key, data)
@@ -143,13 +159,18 @@ class TensorAddInfoParser(DataParser, MsMultiProcess):
             timestamp, thread_id, node_id = key
             self._ge_tensor_info_data.append(
                 [
-                    value['level'], value['add_info_type'], thread_id, timestamp, node_id, value['tensor_num'],
+                    value['level'],
+                    value['add_info_type'],
+                    thread_id,
+                    timestamp,
+                    node_id,
+                    value['tensor_num'],
                     ";".join(value['input_format']) if value['input_format'] else "N/A",
                     ";".join(value['input_data_type']) if value['input_data_type'] else "N/A",
                     "\"" + ";".join(value['input_shape']) + "\"" if value['input_shape'] else "N/A",
                     ";".join(value['output_format']) if value['output_format'] else "N/A",
                     ";".join(value['output_data_type']) if value['output_data_type'] else "N/A",
-                    "\"" + ";".join(value['output_shape']) + "\"" if value['output_shape'] else "N/A"
+                    "\"" + ";".join(value['output_shape']) + "\"" if value['output_shape'] else "N/A",
                 ]
             )
 

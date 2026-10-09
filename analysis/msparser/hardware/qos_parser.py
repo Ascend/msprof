@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -61,12 +61,11 @@ class ParsingQosData(MsMultiProcess):
         with FileOpen(qos_file, "rb") as qos_f:
             qos_data = self.calculate.pre_process(qos_f.file_reader, _file_size)
             struct_nums = _file_size // StructFmt.QOS_FMT_SIZE
-            struct_data = struct.unpack(StructFmt.BYTE_ORDER_CHAR + StructFmt.QOS_FMT * struct_nums,
-                                        qos_data)
+            struct_data = struct.unpack(StructFmt.BYTE_ORDER_CHAR + StructFmt.QOS_FMT * struct_nums, qos_data)
             for i in range(struct_nums):
                 timestamp = InfoConfReader().time_from_syscnt(struct_data[i * 14 + 3])
                 # 这里补齐一个None是因为qos.data里面没有die id,但是想共用一张表
-                self.qos_data.append([timestamp, None] + list(struct_data[i * 14 + 4:(i + 1) * 14]))
+                self.qos_data.append([timestamp, None] + list(struct_data[i * 14 + 4 : (i + 1) * 14]))
         return NumberConstant.SUCCESS
 
     def parse(self: any) -> None:

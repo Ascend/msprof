@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -80,17 +80,8 @@ class ParsingRuntimeData(MsMultiProcess):
         self.conn = None
         self.ai_core_by_hwts = False  # hwts report ai core data
         self.delta_dev = 0
-        self.rts_data = {
-            "time_line": [],
-            "event_count": [],
-            "step_trace": [],
-            "ts_memcpy": []
-        }
-        self.parse_info = {
-            "device_id_list": [],
-            "replayid": '0',
-            "device_id": '0'
-        }
+        self.rts_data = {"time_line": [], "event_count": [], "step_trace": [], "ts_memcpy": []}
+        self.parse_info = {"device_id_list": [], "replayid": '0', "device_id": '0'}
 
     @staticmethod
     def update(api_data: list) -> list:
@@ -178,13 +169,13 @@ class ParsingRuntimeData(MsMultiProcess):
         """
         if not DBManager.judge_table_exist(self.curs, DBNameConstant.TABLE_RUNTIME_TIMELINE):
             sql = DBManager.sql_create_general_table(
-                table_map_name, DBNameConstant.TABLE_RUNTIME_TIMELINE, self.TABLE_PATH)
+                table_map_name, DBNameConstant.TABLE_RUNTIME_TIMELINE, self.TABLE_PATH
+            )
             DBManager.execute_sql(self.conn, sql)
-        timeline_sql = 'insert into {table_name} ({column}) values ' \
-                       '(?,?,?,?,?,?,?,?,?)'.format(table_name=DBNameConstant.TABLE_RUNTIME_TIMELINE,
-                                                    column='replayId,taskType,task_id,'
-                                                           'stream_id,taskState,timeStamp,'
-                                                           'thread,device_id,mode')
+        timeline_sql = 'insert into {table_name} ({column}) values (?,?,?,?,?,?,?,?,?)'.format(
+            table_name=DBNameConstant.TABLE_RUNTIME_TIMELINE,
+            column='replayId,taskType,task_id,stream_id,taskState,timeStamp,thread,device_id,mode',
+        )
         DBManager.executemany_sql(self.conn, timeline_sql, self.rts_data.get("time_line"))
 
     def create_event_counter_table(self: any, table_map_name: str) -> None:
@@ -194,18 +185,22 @@ class ParsingRuntimeData(MsMultiProcess):
         :return: None
         """
 
-        column = 'replayId,taskType,task_id,stream_id,overflow,' \
-                 'overflowCycle,timeStamp,{0},task_cyc,block,thread,device_id,mode' \
-            .format(','.join('event{}'.format(i) for i in range(1, len(self.rts_data.get("event_count")[0]) - 11)))
-        event_sql = 'insert into {table_name} ({column}) values ' \
-                    '({value})'.format(table_name=DBNameConstant.TABLE_EVENT_COUNTER,
-                                       column=column,
-                                       value=('?,' * (len(
-                                           self.rts_data.get("event_count")[0]) - 1) + '?'))
+        column = (
+            'replayId,taskType,task_id,stream_id,overflow,'
+            'overflowCycle,timeStamp,{0},task_cyc,block,thread,device_id,mode'.format(
+                ','.join('event{}'.format(i) for i in range(1, len(self.rts_data.get("event_count")[0]) - 11))
+            )
+        )
+        event_sql = 'insert into {table_name} ({column}) values ({value})'.format(
+            table_name=DBNameConstant.TABLE_EVENT_COUNTER,
+            column=column,
+            value=('?,' * (len(self.rts_data.get("event_count")[0]) - 1) + '?'),
+        )
 
         if not DBManager.judge_table_exist(self.curs, DBNameConstant.TABLE_EVENT_COUNTER):
             sql = DBManager.sql_create_general_table(
-                table_map_name, DBNameConstant.TABLE_EVENT_COUNTER, self.TABLE_PATH)
+                table_map_name, DBNameConstant.TABLE_EVENT_COUNTER, self.TABLE_PATH
+            )
             DBManager.execute_sql(self.conn, sql)
         DBManager.executemany_sql(self.conn, event_sql, self.rts_data.get("event_count"))
 
@@ -220,12 +215,10 @@ class ParsingRuntimeData(MsMultiProcess):
         if not step_conn or not step_curs:
             return
         if not DBManager.judge_table_exist(step_curs, DBNameConstant.TABLE_STEP_TRACE):
-            sql = DBManager.sql_create_general_table(
-                table_map_name, DBNameConstant.TABLE_STEP_TRACE, self.TABLE_PATH)
+            sql = DBManager.sql_create_general_table(table_map_name, DBNameConstant.TABLE_STEP_TRACE, self.TABLE_PATH)
             # The range of iteration id start with 1.
             DBManager.execute_sql(step_conn, sql)
-        DBManager.insert_data_into_table(step_conn, DBNameConstant.TABLE_STEP_TRACE,
-                                         self.rts_data.get("step_trace"))
+        DBManager.insert_data_into_table(step_conn, DBNameConstant.TABLE_STEP_TRACE, self.rts_data.get("step_trace"))
         DBManager.destroy_db_connect(step_conn, step_curs)
 
     def create_ts_memcpy_table(self: any, table_map_name: str) -> None:
@@ -239,11 +232,9 @@ class ParsingRuntimeData(MsMultiProcess):
         if not memcpy_conn or not memcpy_curs:
             return
         if not DBManager.judge_table_exist(memcpy_curs, DBNameConstant.TABLE_TS_MEMCPY):
-            sql = DBManager.sql_create_general_table(
-                table_map_name, DBNameConstant.TABLE_TS_MEMCPY, self.TABLE_PATH)
+            sql = DBManager.sql_create_general_table(table_map_name, DBNameConstant.TABLE_TS_MEMCPY, self.TABLE_PATH)
             DBManager.execute_sql(memcpy_conn, sql)
-        DBManager.insert_data_into_table(memcpy_conn, DBNameConstant.TABLE_TS_MEMCPY,
-                                         self.rts_data.get("ts_memcpy"))
+        DBManager.insert_data_into_table(memcpy_conn, DBNameConstant.TABLE_TS_MEMCPY, self.rts_data.get("ts_memcpy"))
         DBManager.destroy_db_connect(memcpy_conn, memcpy_curs)
 
     def insert_data(self: any) -> None:
@@ -291,7 +282,6 @@ class ParsingRuntimeData(MsMultiProcess):
             logging.error("%s", str(err), exc_info=Constant.TRACE_BACK_SWITCH)
 
     def _time_line(self: any, *args: any) -> None:
-
         mode = args[0]
         try:
             time_line_data = TimeLineData.decode(args[2])
@@ -299,11 +289,18 @@ class ParsingRuntimeData(MsMultiProcess):
             logging.error('Get time line original data error. ', exc_info=Constant.TRACE_BACK_SWITCH)
             return
         self.rts_data.get("time_line").append(
-            (self.parse_info.get("replayid"),
-             time_line_data.task_type, time_line_data.task_id,
-             time_line_data.stream_id, time_line_data.task_state,
-             time_line_data.time_stamp, time_line_data.thread,
-             self.parse_info.get("device_id"), mode))
+            (
+                self.parse_info.get("replayid"),
+                time_line_data.task_type,
+                time_line_data.task_id,
+                time_line_data.stream_id,
+                time_line_data.task_state,
+                time_line_data.time_stamp,
+                time_line_data.thread,
+                self.parse_info.get("device_id"),
+                mode,
+            )
+        )
 
     def _start_parsing_data_file(self: any) -> int:
         """
@@ -328,9 +325,15 @@ class ParsingRuntimeData(MsMultiProcess):
             logging.error('Get step trace original data error. ', exc_info=Constant.TRACE_BACK_SWITCH)
             return
         self.rts_data.get("step_trace").append(
-            (step_trace.index_id, step_trace.model_id,
-             step_trace.timestamp,
-             step_trace.stream_id, step_trace.task_id, step_trace.tag_id))
+            (
+                step_trace.index_id,
+                step_trace.model_id,
+                step_trace.timestamp,
+                step_trace.stream_id,
+                step_trace.task_id,
+                step_trace.tag_id,
+            )
+        )
 
     def _event_count(self: any, *args: any) -> None:
         try:
@@ -343,17 +346,26 @@ class ParsingRuntimeData(MsMultiProcess):
         if ai_core_pmu.counter_info.overflow == 0:
             ai_core_pmu.counter_info.overflow_cycle = 0  # set overflowCycle to 0
         self.rts_data.get("event_count").append(
-            tuple([self.parse_info.get("replayid"),
-                   ai_core_pmu.task_type,
-                   ai_core_pmu.task_id,
-                   ai_core_pmu.stream_id,
-                   ai_core_pmu.counter_info.overflow,
-                   ai_core_pmu.counter_info.overflow_cycle,
-                   ai_core_pmu.counter_info.time_stamp] +
-                  Utils.generator_to_list(i for i in ai_core_pmu.counter_info.event_counter) +
-                  [ai_core_pmu.counter_info.task_cyc,
-                   ai_core_pmu.counter_info.block, 0,
-                   self.parse_info.get("device_id"), args[0]]))
+            tuple(
+                [
+                    self.parse_info.get("replayid"),
+                    ai_core_pmu.task_type,
+                    ai_core_pmu.task_id,
+                    ai_core_pmu.stream_id,
+                    ai_core_pmu.counter_info.overflow,
+                    ai_core_pmu.counter_info.overflow_cycle,
+                    ai_core_pmu.counter_info.time_stamp,
+                ]
+                + Utils.generator_to_list(i for i in ai_core_pmu.counter_info.event_counter)
+                + [
+                    ai_core_pmu.counter_info.task_cyc,
+                    ai_core_pmu.counter_info.block,
+                    0,
+                    self.parse_info.get("device_id"),
+                    args[0],
+                ]
+            )
+        )
 
     def _ts_memcpy_tag(self: any, *args: any) -> None:
         """
@@ -367,7 +379,8 @@ class ParsingRuntimeData(MsMultiProcess):
             logging.error('Get memory copy data error. ', exc_info=Constant.TRACE_BACK_SWITCH)
             return
         self.rts_data.get("ts_memcpy").append(
-            (ts_memcpy.timestamp, ts_memcpy.stream_id, ts_memcpy.task_id, ts_memcpy.task_state))
+            (ts_memcpy.timestamp, ts_memcpy.stream_id, ts_memcpy.task_id, ts_memcpy.task_state)
+        )
 
     def _do_read_binary_data(self: any, file_name: str, binary_data_path: str, legacy_bytes: any) -> any:
         parse_dct = {
@@ -378,7 +391,7 @@ class ParsingRuntimeData(MsMultiProcess):
             self.AI_CORE_STATUS_TAG: self._ai_core_status_tag,
             self.AIV_CORE_STATUS_TAG: self._ai_vector_status_tag,
             self.STEP_TRACE_TAG: self._step_trace_status_tag,
-            self.TS_MEMCPY_TAG: self._ts_memcpy_tag
+            self.TS_MEMCPY_TAG: self._ts_memcpy_tag,
         }
 
         with FileOpen(file_name, 'rb') as file_reader:
@@ -394,8 +407,7 @@ class ParsingRuntimeData(MsMultiProcess):
                 if binary_data_size - offset < struct.calcsize(StructFmt.RUNTIME_HEADER_FMT):
                     legacy_bytes = binary_file_data[offset:]
                     break
-                mode, tag, bufsize = struct.unpack_from(StructFmt.RUNTIME_HEADER_FMT,
-                                                        binary_file_data, offset)
+                mode, tag, bufsize = struct.unpack_from(StructFmt.RUNTIME_HEADER_FMT, binary_file_data, offset)
                 # if last data len is less then bufsize, save it
                 if binary_data_size - offset < bufsize:
                     legacy_bytes = binary_file_data[offset:]
@@ -404,8 +416,7 @@ class ParsingRuntimeData(MsMultiProcess):
                 if not func_:
                     logging.error("invalid tag: %s, %s", binary_data_path, tag)
                     break
-                func_(mode, tag, binary_file_data[offset:offset + bufsize],
-                      binary_data_path)
+                func_(mode, tag, binary_file_data[offset : offset + bufsize], binary_data_path)
                 offset += bufsize
                 # complete file, set empty legacy bytes
                 if offset == binary_data_size:
@@ -427,13 +438,12 @@ class ParsingRuntimeData(MsMultiProcess):
         ts_result = get_file_name_pattern_match(file_name, *ts_track_compiles)
         ts_aiv_result = get_file_name_pattern_match(file_name, *ts_track_aiv_compiles)
         _, aicore_result = self._check_file_with_task_based(
-            get_ai_core_compiles(), StrConstant.AICORE_PROFILING_MODE, file_name)
+            get_ai_core_compiles(), StrConstant.AICORE_PROFILING_MODE, file_name
+        )
 
-        if aicore_result and is_valid_original_data(file_name, project_path) \
-                and ChipManager().is_chip_v1():
+        if aicore_result and is_valid_original_data(file_name, project_path) and ChipManager().is_chip_v1():
             self.parse_info["device_id"] = aicore_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
-        elif ts_result and is_valid_original_data(file_name, project_path) \
-                and ChipManager().is_chip_v1():
+        elif ts_result and is_valid_original_data(file_name, project_path) and ChipManager().is_chip_v1():
             self.parse_info["device_id"] = ts_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
         elif ts_aiv_result and is_valid_original_data(file_name, project_path):
             self.parse_info["device_id"] = ts_aiv_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
@@ -455,13 +465,13 @@ class ParsingRuntimeData(MsMultiProcess):
             self.parse_info.get("device_id_list").append(self.parse_info.get("device_id"))
             logging.info("start parsing rts data file: %s", file_name)
             self.conn, self.curs = DBManager.create_connect_db(
-                PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME))
+                PathManager.get_db_path(project_path, DBNameConstant.DB_RUNTIME)
+            )
             DBManager.execute_sql(self.conn, "PRAGMA page_size=8192")
             data_type = os.path.basename(file_name).split(".")[0]
             # change analysis data type, need clear legacy_bytes
             if last_data_type != data_type and len(legacy_bytes) > 0:
-                logging.error("%s data must be lost, please check sum file size!",
-                              last_data_type)
+                logging.error("%s data must be lost, please check sum file size!", last_data_type)
                 legacy_bytes = bytes()
             last_data_type = data_type
             legacy_bytes = self.read_binary_data(file_name, legacy_bytes)

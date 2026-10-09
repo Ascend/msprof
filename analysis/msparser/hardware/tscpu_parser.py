@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -39,6 +41,7 @@ class ParsingTSData(MsMultiProcess):
     """
     class for parsing task schedule data
     """
+
     BYTE_ORDER_CHAR = '='
     HEADER_NUMBER = 2880154539
     HEADER_SIZE = 4
@@ -46,7 +49,7 @@ class ParsingTSData(MsMultiProcess):
     MDC_PERF_PMU_DATA_SIZE = 5
     PMU_START = int('0x0', 16)
     PMU_END = int('0xec', 16)
-    INT_MAX = 2 ** 65 - 1
+    INT_MAX = 2**65 - 1
     MDC_DATA_LENGTH = 180
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
@@ -62,8 +65,10 @@ class ParsingTSData(MsMultiProcess):
     @staticmethod
     def _generate_ts_info(decoder: any) -> dict:
         ts_info = {
-            "perf_backtrace": decoder.perf_backtrace, "pc": decoder.pc, "timestamp": decoder.timestamp,
-            "pmu_data": decoder.pmu_data
+            "perf_backtrace": decoder.perf_backtrace,
+            "pc": decoder.pc,
+            "timestamp": decoder.timestamp,
+            "pmu_data": decoder.pmu_data,
         }
         ts_info["perf_backtrace"] = Utils.generator_to_list(i for i in ts_info.get("perf_backtrace", []) if i != 0)
         lp_ = Utils.generator_to_list(hex(i) for i in ts_info.get("perf_backtrace", [])[1::2])
@@ -78,8 +83,10 @@ class ParsingTSData(MsMultiProcess):
     @staticmethod
     def _generate_ts_info_in_mdc(decoder: any) -> dict:
         ts_info = {
-            "perf_backtrace": decoder.perf_backtrace, "pc": decoder.pc,
-            "timestamp": decoder.timestamp, "pmu_data": decoder.pmu_data
+            "perf_backtrace": decoder.perf_backtrace,
+            "pc": decoder.pc,
+            "timestamp": decoder.timestamp,
+            "pmu_data": decoder.pmu_data,
         }
         ts_info["perf_backtrace"] = Utils.generator_to_list(i for i in ts_info.get("perf_backtrace", []) if i != 0)
         ts_info["perf_backtrace"] = Utils.generator_to_list(i for i in ts_info.get("perf_backtrace", []) if i != 0)
@@ -192,20 +199,23 @@ class ParsingTSData(MsMultiProcess):
                 return
             ts_info['pmu_event_type'] = Utils.generator_to_list(hex(i) for i in ts_info.get('pmu_event_type', []))
             for i in range(self.MDC_PERF_PMU_DATA_SIZE):
-                self.ts_data.append((self.replayid, ts_info.get("timestamp", 0),
-                                     ts_info.get("pc", "").replace('L', ''),
-                                     ts_info.get("callstack", ""),
-                                     ts_info.get('pmu_event_type', [])[i],
-                                     pmu_event_count[i],
-                                     ts_info.get("func_name", "")))
+                self.ts_data.append(
+                    (
+                        self.replayid,
+                        ts_info.get("timestamp", 0),
+                        ts_info.get("pc", "").replace('L', ''),
+                        ts_info.get("callstack", ""),
+                        ts_info.get('pmu_event_type', [])[i],
+                        pmu_event_count[i],
+                        ts_info.get("func_name", ""),
+                    )
+                )
 
     def _do_parse_tscpu(self: any, file_name: str) -> None:
         if is_valid_original_data(file_name, self.project_path):
-            logging.info(
-                "start parsing tscpu data file: %s", file_name)
+            logging.info("start parsing tscpu data file: %s", file_name)
             if self._open_mdc_binary_data(file_name):
-                self.calculate = OffsetCalculator(self._file_list, StructFmt.MDC_TSCPU_FMT_SIZE,
-                                                  self.project_path)
+                self.calculate = OffsetCalculator(self._file_list, StructFmt.MDC_TSCPU_FMT_SIZE, self.project_path)
                 self.read_mdc_binary_data(file_name)
             else:
                 self.read_binary_data(file_name)
@@ -227,22 +237,29 @@ class ParsingTSData(MsMultiProcess):
                     flag = NumberConstant.ERROR
             if flag == NumberConstant.ERROR:
                 return
-            ts_info['pmu_event_type'] = \
-                Utils.generator_to_list(hex(i) for i in ts_info.get('pmu_event_type', []))
+            ts_info['pmu_event_type'] = Utils.generator_to_list(hex(i) for i in ts_info.get('pmu_event_type', []))
             self.ts_data.extend(
-                Utils.generator_to_list((self.replayid, ts_info.get("timestamp", 0),
-                                         ts_info.get("pc", "").replace('L', ''),
-                                         ts_info.get("callstack", ""),
-                                         ts_info.get('pmu_event_type', [])[i],
-                                         pmu_event_count[i], ts_info.get("func_name", ""))
-                                        for i in range(self.PERF_PMU_DATA_SIZE)))
+                Utils.generator_to_list(
+                    (
+                        self.replayid,
+                        ts_info.get("timestamp", 0),
+                        ts_info.get("pc", "").replace('L', ''),
+                        ts_info.get("callstack", ""),
+                        ts_info.get('pmu_event_type', [])[i],
+                        pmu_event_count[i],
+                        ts_info.get("func_name", ""),
+                    )
+                    for i in range(self.PERF_PMU_DATA_SIZE)
+                )
+            )
 
     def _do_read_binary_data(self: any, file: any, file_size: int) -> None:
         tscpu_data = self.calculate.pre_process(file, file_size)
         for _index in range(file_size // StructFmt.TSCPU_FMT_SIZE):
-            if tscpu_data[_index * StructFmt.TSCPU_FMT_SIZE:_index * StructFmt.TSCPU_FMT_SIZE + 4]:
+            if tscpu_data[_index * StructFmt.TSCPU_FMT_SIZE : _index * StructFmt.TSCPU_FMT_SIZE + 4]:
                 decoder = TscpuDecoder.decode(
-                    tscpu_data[_index * StructFmt.TSCPU_FMT_SIZE:(_index + 1) * StructFmt.TSCPU_FMT_SIZE])
+                    tscpu_data[_index * StructFmt.TSCPU_FMT_SIZE : (_index + 1) * StructFmt.TSCPU_FMT_SIZE]
+                )
                 self._insert_ts_data(decoder)
             else:
                 break
@@ -250,10 +267,10 @@ class ParsingTSData(MsMultiProcess):
     def _do_read_mdc_binary_data(self: any, file: any, file_size: int) -> None:
         tscpu_data = self.calculate.pre_process(file, file_size)
         for _index in range(file_size // StructFmt.MDC_TSCPU_FMT_SIZE):
-            if tscpu_data[_index * StructFmt.MDC_TSCPU_FMT_SIZE:_index * StructFmt.MDC_TSCPU_FMT_SIZE + 4]:
-                decoder = MdcTscpuDecoder.decode(tscpu_data[_index *
-                                                            StructFmt.MDC_TSCPU_FMT_SIZE:(_index + 1) *
-                                                                                         StructFmt.MDC_TSCPU_FMT_SIZE])
+            if tscpu_data[_index * StructFmt.MDC_TSCPU_FMT_SIZE : _index * StructFmt.MDC_TSCPU_FMT_SIZE + 4]:
+                decoder = MdcTscpuDecoder.decode(
+                    tscpu_data[_index * StructFmt.MDC_TSCPU_FMT_SIZE : (_index + 1) * StructFmt.MDC_TSCPU_FMT_SIZE]
+                )
                 self._insert_ts_data_in_mdc(decoder)
             else:
                 break

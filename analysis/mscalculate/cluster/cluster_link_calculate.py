@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -22,7 +22,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msvp_common import is_number
 from common_func.path_manager import PathManager
-from msmodel.hccl.hccl_model import HCCLModel
 from msmodel.cluster_info.communication_model import CommunicationModel
 
 
@@ -65,8 +64,7 @@ class ClusterLinkCalculator:
         get slow link dict in single project
         """
         for _file_path in self._file_list:
-            self.slow_link_list.append(
-                ClusterSingleLinkCalculator(_file_path).ms_run())
+            self.slow_link_list.append(ClusterSingleLinkCalculator(_file_path).ms_run())
 
     def run(self: any) -> dict:
         """
@@ -82,6 +80,7 @@ class ClusterSingleLinkCalculator(MsMultiProcess):
     """
     class used to calculate slow link in PROF
     """
+
     LINK_THRESHOLD_RATIO = 20
 
     def __init__(self: any, project_path: str) -> None:
@@ -104,9 +103,11 @@ class ClusterSingleLinkCalculator(MsMultiProcess):
         try:
             for link_type_data in self.link_dict.get(link_type, []):
                 link_bw = round(
-                    (self.average_data.get(link_type) - link_type_data[0]) / self.average_data.get(link_type)
+                    (self.average_data.get(link_type) - link_type_data[0])
+                    / self.average_data.get(link_type)
                     * NumberConstant.PERCENTAGE,
-                    NumberConstant.ROUND_TWO_DECIMAL)
+                    NumberConstant.ROUND_TWO_DECIMAL,
+                )
                 if link_bw >= self.LINK_THRESHOLD_RATIO:
                     link_type_data.extend([link_bw])
                     cluster_link_list.append(link_type_data)
@@ -122,8 +123,9 @@ class ClusterSingleLinkCalculator(MsMultiProcess):
 
         if self.link_dict.get(link_type, []):
             try:
-                type_average = sum(float(i[0]) for i in self.link_dict.get(link_type)) \
-                               / len(self.link_dict.get(link_type))
+                type_average = sum(float(i[0]) for i in self.link_dict.get(link_type)) / len(
+                    self.link_dict.get(link_type)
+                )
             except ZeroDivisionError:
                 return
             self.average_data.setdefault(link_type, type_average)
@@ -147,11 +149,12 @@ class ClusterSingleLinkCalculator(MsMultiProcess):
         for hccl_data in self.hccl_data:
             if not is_number(hccl_data.bandwidth):
                 continue
-            if hccl_data.local_rank == hccl_data.remote_rank or hccl_data.local_rank == Constant.ILLEGAL_RANK:
+            if hccl_data.local_rank in (hccl_data.remote_rank, Constant.ILLEGAL_RANK):
                 continue
             if hccl_data.transport_type in Constant.LINK_TYPE_LIST:
-                self.link_dict.setdefault(hccl_data.transport_type, []). \
-                    append([float(hccl_data.bandwidth), hccl_data.local_rank, hccl_data.remote_rank])
+                self.link_dict.setdefault(hccl_data.transport_type, []).append(
+                    [float(hccl_data.bandwidth), hccl_data.local_rank, hccl_data.remote_rank]
+                )
 
     def calculate(self: any) -> None:
         """

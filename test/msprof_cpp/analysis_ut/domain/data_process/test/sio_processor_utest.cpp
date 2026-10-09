@@ -1,31 +1,34 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/system/sio_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string SIO_DIR = "./sio";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -33,20 +36,20 @@ const std::string DB_SUFFIX = "sio.db";
 const std::string PROF_DIR = File::PathJoin({SIO_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "Sio";
 // die_id, req_rx, rsp_rx, snp_rx, dat_rx, req_tx, rsp_tx, snp_tx, dat_tx, timestamp
-using SioDataFormat = std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-    uint32_t, uint32_t, uint32_t, uint32_t, double>>;;
-const SioDataFormat SIO_DATA = {
-    {0, 70781, 69062, 0, 68889, 1776, 4069, 775, 2784, 38626510749920.817},
-    {1, 1355, 5017, 407, 2800, 37082, 136926, 0, 34704, 38626510749920.817},
-    {0, 70622, 69165, 1, 68980, 1658, 3517, 1177, 2629, 38626551718192.833},
-    {1, 1197, 5147, 436, 2570, 37010, 136822, 2, 34665, 38626551718192.833},
-    {0, 70860, 69384, 0, 69140, 656, 3053, 1387, 2669, 38626592686344.825},
-    {1, 1197, 3667, 252, 2125, 36176, 136729, 1, 34637, 38626592686344.825}
-};
-}
+using SioDataFormat = std::vector<
+    std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, double>>;
+;
+const SioDataFormat SIO_DATA = {{0, 70781, 69062, 0, 68889, 1776, 4069, 775, 2784, 38626510749920.817},
+                                {1, 1355, 5017, 407, 2800, 37082, 136926, 0, 34704, 38626510749920.817},
+                                {0, 70622, 69165, 1, 68980, 1658, 3517, 1177, 2629, 38626551718192.833},
+                                {1, 1197, 5147, 436, 2570, 37010, 136822, 2, 34665, 38626551718192.833},
+                                {0, 70860, 69384, 0, 69140, 656, 3053, 1387, 2669, 38626592686344.825},
+                                {1, 1197, 3667, 252, 2125, 36176, 136729, 1, 34637, 38626592686344.825}};
+}  // namespace
 
-class SioProcessorUTest : public testing::Test {
-protected:
+class SioProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -96,21 +99,15 @@ TEST_F(SioProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
 {
     auto processor = SioProcessor(PROF_DIR);
     DataInventory dataInventory;
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SIO));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
     // make DBRunner shared ptr failed
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SIO));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
     // db里面表不存在
-    MOCKER_CPP(&DataProcessor::CheckPathAndTable)
-        .stubs()
-        .will(returnValue(CHECK_FAILED));
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_SIO));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
 
@@ -151,8 +148,10 @@ TEST_F(SioProcessorUTest, TestRunShouldSetNameFromSeriesMapForStars)
     auto res = dataInventory.GetPtr<std::vector<SioData>>();
     ASSERT_NE(res, nullptr);
     ASSERT_GT(res->size(), 0);
-    for (const auto& data : *res) {
-        if (data.dieId == 0) {
+    for (const auto& data : *res)
+    {
+        if (data.dieId == 0)
+        {
             EXPECT_EQ(data.name, "die 0");
         }
     }
@@ -178,8 +177,10 @@ TEST_F(SioProcessorUTest, TestRunShouldSetNameFromSeriesMapForV5)
     auto res = dataInventory.GetPtr<std::vector<SioData>>();
     ASSERT_NE(res, nullptr);
     ASSERT_GT(res->size(), 0);
-    for (const auto& data : *res) {
-        if (data.dieId == 0) {
+    for (const auto& data : *res)
+    {
+        if (data.dieId == 0)
+        {
             EXPECT_EQ(data.name, "D-DIE0");
         }
     }

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -36,12 +36,12 @@ class HostDiskUsagePresenter(HostProfPresenterBase):
     """
 
     FILE_NAME = os.path.basename(__file__)
-    FREQ_TO_NS = 10 ** 9
+    FREQ_TO_NS = 10**9
     TYPE_CONVERSION_DICT = {
         'B/s': 1.0 / NumberConstant.KILOBYTE,
         'K/s': 1.0,
         'M/s': NumberConstant.KILOBYTE,
-        'G/s': NumberConstant.KILOBYTE ** 2
+        'G/s': NumberConstant.KILOBYTE**2,
     }
 
     def __init__(self: any, result_dir: str, file_name: str = "") -> None:
@@ -53,8 +53,9 @@ class HostDiskUsagePresenter(HostProfPresenterBase):
         """
         get timeline header
         """
-        return [["process_name", InfoConfReader().get_json_pid_data(),
-                 InfoConfReader().get_json_tid_data(), "Disk Usage"]]
+        return [
+            ["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), "Disk Usage"]
+        ]
 
     def init(self: any) -> None:
         """
@@ -69,11 +70,11 @@ class HostDiskUsagePresenter(HostProfPresenterBase):
         try:
             with FileOpen(self.file_name, "r") as file:
                 self._parse_disk_usage(file.file_reader)
-                logging.info(
-                    "Finish parsing host disk usage data file: %s", os.path.basename(self.file_name))
+                logging.info("Finish parsing host disk usage data file: %s", os.path.basename(self.file_name))
         except (FileNotFoundError, ValueError, IOError) as parse_file_except:
-            logging.error("Error in parsing host disk usage data:%s", str(parse_file_except),
-                          exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error(
+                "Error in parsing host disk usage data:%s", str(parse_file_except), exc_info=Constant.TRACE_BACK_SWITCH
+            )
 
     def get_disk_usage_data(self: any) -> dict:
         """
@@ -120,8 +121,7 @@ class HostDiskUsagePresenter(HostProfPresenterBase):
             disk_write = item[2]
             swap_in = item[3]
             io_percent = float(item[4])
-            self.disk_usage_info.append([start_time, end_time, disk_read, disk_write,
-                                         swap_in, io_percent])
+            self.disk_usage_info.append([start_time, end_time, disk_read, disk_write, swap_in, io_percent])
         self.cur_model.insert_disk_usage_data(self.disk_usage_info)
 
     def _parse_disk_usage(self: any, file: any) -> None:
@@ -179,7 +179,6 @@ class HostDiskUsagePresenter(HostProfPresenterBase):
                 swap_in = fields[8]
                 io_percent = fields[10]
 
-            usage_items.append((pid, disk_read, disk_write,
-                                swap_in, io_percent))
+            usage_items.append((pid, disk_read, disk_write, swap_in, io_percent))
 
         return start_time, usage_items

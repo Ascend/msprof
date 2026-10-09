@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -25,15 +25,15 @@ from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msvp_common import is_valid_original_data
 from common_func.path_manager import PathManager
+from common_func.info_conf_reader import InfoConfReader
 from msmodel.freq.freq_parser_model import FreqParserModel
-from framework.offset_calculator import OffsetCalculator
 from msmodel.voltage.voltage_parser_model import AicVoltageParserModel
 from msmodel.voltage.voltage_parser_model import BusVoltageParserModel
+from framework.offset_calculator import OffsetCalculator
 from msparser.data_struct_size_constant import StructFmt
 from msparser.interface.iparser import IParser
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.struct_info.lpm_info_bean import LpmInfoDataBean
-from common_func.info_conf_reader import InfoConfReader
 
 
 class LpmInfoConvParser(IParser, MsMultiProcess):
@@ -41,6 +41,7 @@ class LpmInfoConvParser(IParser, MsMultiProcess):
     LpmInfoConv data parser
     The LpmInfoConv dataset comprises three data types: AicFreq data, AicVoltage data, and BusVoltage data.
     """
+
     LPM_INFO_TYPE_FREQ = 0
     LPM_INFO_TYPE_AIC_VOL = 1
     LPM_INFO_TYPE_BUS_VOL = 2
@@ -53,7 +54,7 @@ class LpmInfoConvParser(IParser, MsMultiProcess):
         self._model_dict = {
             self.LPM_INFO_TYPE_FREQ: FreqParserModel(self._project_path, [DBNameConstant.TABLE_FREQ_PARSE]),
             self.LPM_INFO_TYPE_AIC_VOL: AicVoltageParserModel(self._project_path),
-            self.LPM_INFO_TYPE_BUS_VOL: BusVoltageParserModel(self._project_path)
+            self.LPM_INFO_TYPE_BUS_VOL: BusVoltageParserModel(self._project_path),
         }
         self._lpm_conv_data = defaultdict(list)
 
@@ -66,9 +67,12 @@ class LpmInfoConvParser(IParser, MsMultiProcess):
         dev_cnt = InfoConfReader().get_dev_cnt()
         if not self._lpm_conv_data.get(single_bean.type, []):
             self._lpm_conv_data[single_bean.type] = [
-                [dev_cnt,
-                 (InfoConfReader().get_freq(StrConstant.AIC) / NumberConstant.FREQ_TO_MHz)
-                 if single_bean.type == self.LPM_INFO_TYPE_FREQ else NumberConstant.DEFAULT_VOLTAGE]
+                [
+                    dev_cnt,
+                    (InfoConfReader().get_freq(StrConstant.AIC) / NumberConstant.FREQ_TO_MHz)
+                    if single_bean.type == self.LPM_INFO_TYPE_FREQ
+                    else NumberConstant.DEFAULT_VOLTAGE,
+                ]
             ]
         for lpm_data in single_bean.lpm_data:
             if lpm_data.syscnt < dev_cnt:
@@ -92,7 +96,8 @@ class LpmInfoConvParser(IParser, MsMultiProcess):
             struct_nums = _file_size // StructFmt.LPM_INFO_DATA_SIZE
             for i in range(struct_nums):
                 single_bean = LpmInfoDataBean().decode(
-                    lpm_info_bin[i * StructFmt.LPM_INFO_DATA_SIZE: (i + 1) * StructFmt.LPM_INFO_DATA_SIZE])
+                    lpm_info_bin[i * StructFmt.LPM_INFO_DATA_SIZE : (i + 1) * StructFmt.LPM_INFO_DATA_SIZE]
+                )
                 if single_bean:
                     self.add_lmp_info_conv_data_to_data_list(single_bean)
         return NumberConstant.SUCCESS

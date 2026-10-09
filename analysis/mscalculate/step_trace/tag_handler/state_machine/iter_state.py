@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -27,7 +27,7 @@ class BaseTagState:
         self.tag_to_func = {
             StepTraceConstant.MODEL_START_TAG: self.process_model_start_tag,
             StepTraceConstant.MODEL_END_TAG: self.process_model_end_tag,
-            StepTraceConstant.ITER_END_TAG: self.process_iter_end_tag
+            StepTraceConstant.ITER_END_TAG: self.process_iter_end_tag,
         }
 
     @staticmethod
@@ -100,6 +100,7 @@ class ModelStart(BaseTagState):
     """
     state of IndexTagHandler receiving model start tag
     """
+
     def process_model_end_tag(self: any, time: int, tag_id: int) -> None:
         self.finish_iter(time)
         self.handler.cur_state = self.handler.step_state.get(tag_id)
@@ -114,6 +115,7 @@ class ModelEnd(BaseTagState):
     """
     state of IndexTagHandler receiving model end tag
     """
+
     def process_model_start_tag(self: any, time: int, tag_id: int) -> None:
         self.start_iter(time)
         self.handler.cur_state = self.handler.step_state.get(tag_id)
@@ -123,6 +125,7 @@ class IterEnd(BaseTagState):
     """
     state of IndexTagHandler receiving iter end tag
     """
+
     def process_iter_end_tag(self: any, time: int, tag_id: int) -> None:
         self.finish_iter(time)
         self.start_iter(time)

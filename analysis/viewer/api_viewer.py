@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -33,6 +33,7 @@ class ApiViewer:
     """
     Viewer for api data
     """
+
     ACL_LEVEL = 'acl'
     HCCL_LEVEL = 'communication'
     MODEL_LOAD = 'ModelLoad'
@@ -64,10 +65,13 @@ class ApiViewer:
                 data[0],
                 InfoConfReader().trans_into_local_time(
                     InfoConfReader().time_from_host_syscnt(data[1], NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True),
+                    use_us=True,
+                    is_host=True,
+                ),
                 InfoConfReader().get_host_duration(data[2], NumberConstant.MICRO_SECOND),
                 *data[3:],
-            ) for data in api_data
+            )
+            for data in api_data
         ]
 
     @staticmethod
@@ -77,10 +81,17 @@ class ApiViewer:
                 data.struct_type,
                 InfoConfReader().trans_into_local_time(
                     InfoConfReader().time_from_host_syscnt(data.start, NumberConstant.MICRO_SECOND),
-                    use_us=True, is_host=True),
+                    use_us=True,
+                    is_host=True,
+                ),
                 InfoConfReader().get_host_duration((data.end - data.start), NumberConstant.MICRO_SECOND),
-                data.thread_id, data.level, data.id, data.item_id, data.connection_id
-            ) for data in event_data
+                data.thread_id,
+                data.level,
+                data.id,
+                data.item_id,
+                data.connection_id,
+            )
+            for data in event_data
         ]
 
     @staticmethod
@@ -116,8 +127,8 @@ class ApiViewer:
             args.setdefault("item_id", sql_data[6])
             args.setdefault("connection_id", sql_data[7])
             trace_data.append(
-                (ApiViewer._get_data_api_name(sql_data), pid,
-                 sql_data[3], sql_data[1], sql_data[2], args))
+                (ApiViewer._get_data_api_name(sql_data), pid, sql_data[3], sql_data[1], sql_data[2], args)
+            )
         return trace_data
 
     def get_timeline_data(self: any) -> list:
@@ -145,7 +156,8 @@ class ApiViewer:
         result_data = self._get_api_result_data(timeline_data, pid, tid)
         trace_data = self._get_api_data(timeline_data, pid)
         result_data.extend(
-            TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, trace_data))
+            TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, trace_data)
+        )
         return result_data
 
     def _filter_api_data(self, timeline_data: list):

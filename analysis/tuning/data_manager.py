@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -42,8 +42,9 @@ from viewer.runtime_report import get_task_based_core_data
 
 class BaseTuningDataHandle(ABC):
     """
-        move to a new file in the future
+    move to a new file in the future
     """
+
     TAG_KEY = ""
 
     @staticmethod
@@ -64,19 +65,20 @@ class BaseTuningDataHandle(ABC):
 
 class OpParallelTuningDataHandle(BaseTuningDataHandle):
     """
-            delete the file in the future
+    delete the file in the future
     """
+
     TAG_KEY = "AI CPU Execution Time(us)"
 
     @staticmethod
     def load_data(*args) -> list:
-        param, = args
+        (param,) = args
         op_parallel_data = []
         project_path = param.get(StrConstant.PARAM_RESULT_DIR, '')
         sample_config = {
             'result_dir': project_path,
             'iter_id': Constant.DEFAULT_INVALID_VALUE,
-            'model_id': Constant.DEFAULT_INVALID_VALUE
+            'model_id': Constant.DEFAULT_INVALID_VALUE,
         }
         device_id = param.get(StrConstant.PARAM_DEVICE_ID, '')
         if not AiStackDataCheckManager.contain_op_summary_data(project_path, device_id):
@@ -92,13 +94,16 @@ class OpParallelTuningDataHandle(BaseTuningDataHandle):
         ai_core_time, ai_cpu_time, overlap_time = Constant.DEFAULT_VALUE, Constant.DEFAULT_VALUE, Constant.DEFAULT_VALUE
         for ai_core_task in ai_core_overlap_data:
             overlap_time += ai_core_task.overlap_time
-            ai_core_time += (ai_core_task.end_time - ai_core_task.start_time)
+            ai_core_time += ai_core_task.end_time - ai_core_task.start_time
         for ai_cpu_task in ai_cpu_data:
-            ai_cpu_time += (ai_cpu_task.end_time - ai_cpu_task.start_time)
+            ai_cpu_time += ai_cpu_task.end_time - ai_cpu_task.start_time
         op_parallel_data.append(
-            {"AI Core Execution Time(us)": (ai_core_time - overlap_time) / 1000.0,
-             "AI CPU Execution Time(us)": (ai_cpu_time - overlap_time) / 1000.0,
-             "Concurrent AI Core and AI CPU Execution Time(us)": overlap_time / 1000.0})
+            {
+                "AI Core Execution Time(us)": (ai_core_time - overlap_time) / 1000.0,
+                "AI CPU Execution Time(us)": (ai_cpu_time - overlap_time) / 1000.0,
+                "Concurrent AI Core and AI CPU Execution Time(us)": overlap_time / 1000.0,
+            }
+        )
         return op_parallel_data
 
     @staticmethod
@@ -132,8 +137,10 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
         """
         if memory_workspaces:
             for memory_workspace in memory_workspaces:
-                if operator_dict.get("stream_id") == memory_workspace[0] \
-                        and str(operator_dict.get("task_id")) == memory_workspace[1]:
+                if (
+                    operator_dict.get("stream_id") == memory_workspace[0]
+                    and str(operator_dict.get("task_id")) == memory_workspace[1]
+                ):
                     operator_dict["memory_workspace"] = memory_workspace[2]
                     return
         operator_dict["memory_workspace"] = 0
@@ -149,7 +156,8 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
             if conn and cur:
                 acl_op_data = cur.execute(
                     "select count(api_name) from {} where api_name=?".format(DBNameConstant.TABLE_ACL_DATA),
-                    ("aclopExecute",)).fetchone()
+                    ("aclopExecute",),
+                ).fetchone()
                 if acl_op_data[0]:
                     run_for_network = False
             return run_for_network
@@ -195,13 +203,17 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
         """
         get data for vector bound
         """
-        if is_number(operator_dict.get("vec_ratio")) and is_number(operator_dict.get("mte2_ratio")) \
-                and is_number(operator_dict.get("mac_ratio")):
+        if (
+            is_number(operator_dict.get("vec_ratio"))
+            and is_number(operator_dict.get("mte2_ratio"))
+            and is_number(operator_dict.get("mac_ratio"))
+        ):
             extend_data_dict["vector_bound"] = 0
             if max(operator_dict.get("mte2_ratio"), operator_dict.get("mac_ratio")):
-                extend_data_dict["vector_bound"] = \
-                    StrConstant.ACCURACY % float(operator_dict.get("vec_ratio") /
-                                                 max(operator_dict.get("mte2_ratio"), operator_dict.get("mac_ratio")))
+                extend_data_dict["vector_bound"] = StrConstant.ACCURACY % float(
+                    operator_dict.get("vec_ratio")
+                    / max(operator_dict.get("mte2_ratio"), operator_dict.get("mac_ratio"))
+                )
 
     @classmethod
     def get_core_number(cls: any, extend_data_dict: dict) -> None:
@@ -220,9 +232,7 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
             return memory_workspaces
         conn, cur = DBManager.check_connect_db(project, DBNameConstant.DB_GE_MODEL_INFO)
         if conn and cur and DBManager.judge_table_exist(cur, DBNameConstant.TABLE_GE_LOAD_TABLE):
-            sql = "select stream_id, task_ids, memory_workspace " \
-                  "from GELoad where memory_workspace>0 " \
-                  "and device_id=?"
+            sql = "select stream_id, task_ids, memory_workspace from GELoad where memory_workspace>0 and device_id=?"
             memory_workspaces = DBManager.fetch_all_data(cur, sql, (device_id,))
         DBManager.destroy_db_connect(conn, cur)
         return memory_workspaces
@@ -243,8 +253,7 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
 
             param[StrConstant.DATA_TYPE] = StrConstant.AI_CORE_PMU_EVENTS
             if sample_config.get(StrConstant.AICORE_PROFILING_MODE) == StrConstant.AIC_TASK_BASED_MODE:
-                headers, data, _ = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME,
-                                                            param)
+                headers, data, _ = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME, param)
             elif sample_config.get(StrConstant.AICORE_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE:
                 param[StrConstant.CORE_DATA_TYPE] = StrConstant.AI_CORE_PMU_EVENTS
                 headers, data, _ = AiCoreReport.get_core_sample_data(project_path, DBNameConstant.DB_NAME_AICORE, param)
@@ -252,11 +261,11 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
             if not headers or not data:
                 param[StrConstant.DATA_TYPE] = StrConstant.AI_VECTOR_CORE_PMU_EVENTS
                 if sample_config.get(StrConstant.AIV_PROFILING_MODE) == StrConstant.AIC_TASK_BASED_MODE:
-                    headers, data, _ = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME,
-                                                                param)
+                    headers, data, _ = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME, param)
                 elif sample_config.get(StrConstant.AIV_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE:
-                    headers, data, _ = AiCoreReport.get_core_sample_data(project_path,
-                                                                         DBNameConstant.DB_NAME_AI_VECTOR_CORE, param)
+                    headers, data, _ = AiCoreReport.get_core_sample_data(
+                        project_path, DBNameConstant.DB_NAME_AI_VECTOR_CORE, param
+                    )
         return headers, data
 
     @classmethod
@@ -271,18 +280,12 @@ class OpSummaryTuningDataHandle(BaseTuningDataHandle):
 class ModelSummaryTuningDataHandle(OpSummaryTuningDataHandle):
     TAG_KEY = StrConstant.CUBE_UTILIZATION
     BOUND_TYPE = {
-        StrConstant.CUBE_UTILIZATION: [
-            StrConstant.MAC_RATIO,
-            StrConstant.AIC_MAC_RATIO
-        ],
-        StrConstant.VECTOR_UTILIZATION: [
-            StrConstant.VEC_RATIO,
-            StrConstant.AIV_VEC_RATIO
-        ],
+        StrConstant.CUBE_UTILIZATION: [StrConstant.MAC_RATIO, StrConstant.AIC_MAC_RATIO],
+        StrConstant.VECTOR_UTILIZATION: [StrConstant.VEC_RATIO, StrConstant.AIV_VEC_RATIO],
         StrConstant.SCALAR_UTILIZATION: [
             StrConstant.SCALAR_RATIO,
             StrConstant.AIC_SCALAR_RATIO,
-            StrConstant.AIV_SCALAR_RATIO
+            StrConstant.AIV_SCALAR_RATIO,
         ],
         StrConstant.MTE_UTILIZATION: [
             StrConstant.MTE1_RATIO,
@@ -293,8 +296,8 @@ class ModelSummaryTuningDataHandle(OpSummaryTuningDataHandle):
             StrConstant.AIC_MTE3_RATIO,
             StrConstant.AIV_MTE1_RATIO,
             StrConstant.AIV_MTE2_RATIO,
-            StrConstant.AIV_MTE3_RATIO
-        ]
+            StrConstant.AIV_MTE3_RATIO,
+        ],
     }
 
     @staticmethod
@@ -307,16 +310,18 @@ class ModelSummaryTuningDataHandle(OpSummaryTuningDataHandle):
     def print_format(data: any):
         total_duration = sum(data.values())
         if not total_duration:
-            return f"Total Duration Time equals to 0. Please check Aicore operators."
+            return "Total Duration Time equals to 0. Please check Aicore operators."
         model_cube_ratio = round(data.get(StrConstant.CUBE_UTILIZATION, 0) / total_duration, 3)
         model_vec_ratio = round(data.get(StrConstant.VECTOR_UTILIZATION, 0) / total_duration, 3)
         model_scalar_ratio = round(data.get(StrConstant.SCALAR_UTILIZATION, 0) / total_duration, 3)
         model_mte_ratio = round(data.get(StrConstant.MTE_UTILIZATION, 0) / total_duration, 3)
 
-        return f"\n\t\ta. Cube utilization rate in the model is {model_cube_ratio}. \n" \
-               f"\t\tb. Vector utilization rate in the model is {model_vec_ratio}. \n" \
-               f"\t\tc. Scalar utilization rate in the model is {model_scalar_ratio}. \n" \
-               f"\t\td. MTE utilization rate in the model is {model_mte_ratio}. \n"
+        return (
+            f"\n\t\ta. Cube utilization rate in the model is {model_cube_ratio}. \n"
+            f"\t\tb. Vector utilization rate in the model is {model_vec_ratio}. \n"
+            f"\t\tc. Scalar utilization rate in the model is {model_scalar_ratio}. \n"
+            f"\t\td. MTE utilization rate in the model is {model_mte_ratio}. \n"
+        )
 
     @classmethod
     def load_data(cls: any, *args) -> list:
@@ -369,10 +374,11 @@ class DataManager:
     """
     manage different types of tuning data
     """
+
     HANDLE_MAP = {
         CommonProfRule.TUNING_OPERATOR: OpSummaryTuningDataHandle,
         CommonProfRule.TUNING_OP_PARALLEL: OpParallelTuningDataHandle,
-        CommonProfRule.TUNING_MODEL: ModelSummaryTuningDataHandle
+        CommonProfRule.TUNING_MODEL: ModelSummaryTuningDataHandle,
     }
 
     def __init__(self: any, param: dict) -> None:

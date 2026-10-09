@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,6 +29,7 @@ class ClusterInfoParser(IParser):
     """
     parser of rank_id data
     """
+
     FILE_NAME = os.path.basename(__file__)
 
     def __init__(self: any, collect_path: str, device_cluster_basic_info: dict) -> None:
@@ -45,8 +46,11 @@ class ClusterInfoParser(IParser):
         logging.info("Start to parse cluster rank data!")
         for dir_name, cluster_basic_info in self.device_cluster_basic_info.items():
             cluster_info = [
-                cluster_basic_info.job_info, cluster_basic_info.device_id,
-                cluster_basic_info.collection_time, cluster_basic_info.rank_id, dir_name
+                cluster_basic_info.job_info,
+                cluster_basic_info.device_id,
+                cluster_basic_info.collection_time,
+                cluster_basic_info.rank_id,
+                dir_name,
             ]
             self.cluster_info_list.append(cluster_info)
 

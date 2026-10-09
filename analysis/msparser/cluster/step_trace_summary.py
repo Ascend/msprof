@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -33,10 +33,20 @@ class StepTraceSummary:
     """
     The class for querying step trace summary data.
     """
+
     FILE_NAME = os.path.basename(__file__)
     HEADERS = [
-        "ID", "Model ID", "Iteration ID", "Iteration Time", "FP to BP Time", "Iteration Interval",
-        "Iteration Refresh", "Iteration Start", "FP Start", "BP End", "Iteration End"
+        "ID",
+        "Model ID",
+        "Iteration ID",
+        "Iteration Time",
+        "FP to BP Time",
+        "Iteration Interval",
+        "Iteration Refresh",
+        "Iteration Start",
+        "FP Start",
+        "BP End",
+        "Iteration End",
     ]
     ID_NUM_FOR_ALL_DEVICES = -1
     ID_NUM_FOR_ALL_ITERATIONS = -1
@@ -95,14 +105,26 @@ class StepTraceSummary:
         if self.iteration_id is None:
             self.iteration_id = StepTraceSummary.ID_NUM_FOR_ALL_ITERATIONS
         if self.all_devices and self.iteration_id == StepTraceSummary.ID_NUM_FOR_ALL_ITERATIONS:
-            print_msg(json.dumps(
-                {'status': NumberConstant.ERROR,
-                 'info': 'For querying all devices data, you should input a valid iteration id.', 'data': ''}))
+            print_msg(
+                json.dumps(
+                    {
+                        'status': NumberConstant.ERROR,
+                        'info': 'For querying all devices data, you should input a valid iteration id.',
+                        'data': '',
+                    }
+                )
+            )
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR)
         if not self.all_devices and self.iteration_id != StepTraceSummary.ID_NUM_FOR_ALL_ITERATIONS:
-            print_msg(json.dumps(
-                {'status': NumberConstant.ERROR,
-                 'info': 'For querying single device data, you should not input a iteration id.', 'data': ''}))
+            print_msg(
+                json.dumps(
+                    {
+                        'status': NumberConstant.ERROR,
+                        'info': 'For querying single device data, you should not input a iteration id.',
+                        'data': '',
+                    }
+                )
+            )
             raise ProfException(ProfException.PROF_INVALID_PARAM_ERROR)
 
     def _query_data_in_db(self: any, rank_or_device_ids: set) -> list:
@@ -133,22 +155,25 @@ class StepTraceSummary:
             return model.get_rank_or_device_ids()
 
     def _sql_for_query_all_iteration(self: any, table_name: str, rank_or_device_id: int) -> str:
-        sql = "select {0}, (case when model_id={1} then 'N/A' else model_id end), " \
-              "iteration_id, " \
-              "(case when iteration_time={2} then 'N/A' else round(iteration_time, {3}) end), " \
-              "(case when fp_bp_time={2} then 'N/A' else round(fp_bp_time, {3}) end), " \
-              "(case when data_aug_bound={2} then 'N/A' else round(data_aug_bound, {3}) end), " \
-              "(case when bp_end={2} then 'N/A' else round(iteration_end - bp_end, {3}) end), " \
-              "(case when iteration_time={2} or iteration_end={2} then 'N/A' else " \
-              "round(iteration_end - iteration_time, {3}) end), " \
-              "(case when fp_start={2} then 'N/A' else round(fp_start, {3}) end), " \
-              "(case when bp_end={2} then 'N/A' else round(bp_end, {3}) end), " \
-              "(case when iteration_end={2} then 'N/A' else round(iteration_end, {3}) end) " \
-              "from {4} where model_id={5}".format(
-            rank_or_device_id,
-            NumberConstant.DEFAULT_MODEL_ID,
-            NumberConstant.NULL_NUMBER,
-            StepTraceSummary.NUMBER_0F_DECIMAL_PLACE,
-            table_name,
-            self.model_id)
+        sql = (
+            "select {0}, (case when model_id={1} then 'N/A' else model_id end), "
+            "iteration_id, "
+            "(case when iteration_time={2} then 'N/A' else round(iteration_time, {3}) end), "
+            "(case when fp_bp_time={2} then 'N/A' else round(fp_bp_time, {3}) end), "
+            "(case when data_aug_bound={2} then 'N/A' else round(data_aug_bound, {3}) end), "
+            "(case when bp_end={2} then 'N/A' else round(iteration_end - bp_end, {3}) end), "
+            "(case when iteration_time={2} or iteration_end={2} then 'N/A' else "
+            "round(iteration_end - iteration_time, {3}) end), "
+            "(case when fp_start={2} then 'N/A' else round(fp_start, {3}) end), "
+            "(case when bp_end={2} then 'N/A' else round(bp_end, {3}) end), "
+            "(case when iteration_end={2} then 'N/A' else round(iteration_end, {3}) end) "
+            "from {4} where model_id={5}".format(
+                rank_or_device_id,
+                NumberConstant.DEFAULT_MODEL_ID,
+                NumberConstant.NULL_NUMBER,
+                StepTraceSummary.NUMBER_0F_DECIMAL_PLACE,
+                table_name,
+                self.model_id,
+            )
+        )
         return sql

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -28,15 +28,14 @@ from profiling_bean.prof_enum.data_tag import DataTag
 
 
 class BiuPerfParser(IParser, MsMultiProcess):
-
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = self._sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
-        self._model = BiuPerfModel(self._project_path,
-                                   [DBNameConstant.TABLE_FLOW_MONITOR,
-                                    DBNameConstant.TABLE_CYCLES_MONITOR])
+        self._model = BiuPerfModel(
+            self._project_path, [DBNameConstant.TABLE_FLOW_MONITOR, DBNameConstant.TABLE_CYCLES_MONITOR]
+        )
         self._flow_data_list = []
         self._cycles_data_list = []
 
@@ -57,8 +56,7 @@ class BiuPerfParser(IParser, MsMultiProcess):
         biu_perf_file_dict = self._file_group_by_core()
         for core_info in biu_perf_file_dict.values():
             if core_info.core_type == CoreInfo.AI_CUBE:
-                biucycles_data, flow_data = \
-                    BiuCubeParser(self._sample_config, core_info).get_monitor_data()
+                biucycles_data, flow_data = BiuCubeParser(self._sample_config, core_info).get_monitor_data()
                 self._cycles_data_list.extend(biucycles_data)
                 self._flow_data_list.extend(flow_data)
             elif core_info.core_type in [CoreInfo.AI_VECTOR0, CoreInfo.AI_VECTOR1]:

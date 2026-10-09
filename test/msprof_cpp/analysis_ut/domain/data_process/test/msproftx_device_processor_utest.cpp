@@ -1,23 +1,25 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/msproftx_device_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Application;
@@ -25,7 +27,8 @@ using namespace Analysis::Domain;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Test;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string DEVICE_TX_PATH = "./msprof_tx_device";
 const std::string DEVICE_SUFFIX = "device_0";
@@ -43,13 +46,15 @@ DbDataType DATA_A{{0, 4294967295, 26248923229230, 2, 10, 11},
                   {2, 4294967295, 26248923229640, 2, 17, 12},
                   {1, 4294967295, 26248923229740, 2, 14, 12},  // range data in aclgraph replay scene with index id 1
                   {1, 4294967295, 26248923229840, 2, 15, 12}};
-}
+}  // namespace
 
-class MsprofTxDeviceProcessorUTest : public testing::Test {
-protected:
+class MsprofTxDeviceProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
-        if (File::Check(DEVICE_TX_PATH)) {
+        if (File::Check(DEVICE_TX_PATH))
+        {
             File::RemoveDir(DEVICE_TX_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(DEVICE_TX_PATH));
@@ -58,14 +63,8 @@ protected:
         EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE})));
         CreateStepTrace(File::PathJoin({PROF_PATH_A, DEVICE_SUFFIX, SQLITE, DB_SUFFIX}), DATA_A);
     }
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(DEVICE_TX_PATH, DEPTH));
-    }
-    virtual void TearDown()
-    {
-        GlobalMockObject::verify();
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(DEVICE_TX_PATH, DEPTH)); }
+    virtual void TearDown() { GlobalMockObject::verify(); }
     static void CreateStepTrace(const std::string& dbPath, DbDataType& data)
     {
         std::shared_ptr<StepTraceDB> database;

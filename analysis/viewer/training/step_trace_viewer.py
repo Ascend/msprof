@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import json
 import logging
 import sqlite3
 from collections import OrderedDict
@@ -94,16 +93,23 @@ class TimeLineJsonMaker:
         :param tid: tid
         :return: list
         """
-        return ["Iteration {}".format(trace_parm[StepTraceConstant.ITER_ID]),
-                pid, tid,
-                trace_parm.get(StepTraceConstant.STEP_END) - trace_parm.get(StepTraceConstant.ITER_TIME),
-                trace_parm.get(StepTraceConstant.ITER_TIME),
-                OrderedDict([("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
-                             ("FP Start", trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
-                             ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
-                             ("Iteration End", trace_parm[StepTraceConstant.STEP_END]),
-                             ("Iteration Time(us)", trace_parm.get(StepTraceConstant.ITER_TIME))]),
-                "Iteration Time"]
+        return [
+            "Iteration {}".format(trace_parm[StepTraceConstant.ITER_ID]),
+            pid,
+            tid,
+            trace_parm.get(StepTraceConstant.STEP_END) - trace_parm.get(StepTraceConstant.ITER_TIME),
+            trace_parm.get(StepTraceConstant.ITER_TIME),
+            OrderedDict(
+                [
+                    ("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
+                    ("FP Start", trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
+                    ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
+                    ("Iteration End", trace_parm[StepTraceConstant.STEP_END]),
+                    ("Iteration Time(us)", trace_parm.get(StepTraceConstant.ITER_TIME)),
+                ]
+            ),
+            "Iteration Time",
+        ]
 
     @staticmethod
     def make_fp_bp_data(trace_parm: dict, pid: int, tid: int) -> list:
@@ -114,15 +120,22 @@ class TimeLineJsonMaker:
         :param tid: tid
         :return: list
         """
-        return ["FP_BP Time {}".format(trace_parm[StepTraceConstant.ITER_ID]),
-                pid, tid,
-                trace_parm[StepTraceConstant.FORWARD_PROPAGATION],
-                (trace_parm[StepTraceConstant.BACK_PROPAGATION] - trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
-                OrderedDict([("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
-                             ("FP Start", trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
-                             ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
-                             ("FP_BP Time(us)", trace_parm.get(StepTraceConstant.FORWARD_TO_BACK))]),
-                "FP_BP Time"]
+        return [
+            "FP_BP Time {}".format(trace_parm[StepTraceConstant.ITER_ID]),
+            pid,
+            tid,
+            trace_parm[StepTraceConstant.FORWARD_PROPAGATION],
+            (trace_parm[StepTraceConstant.BACK_PROPAGATION] - trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
+            OrderedDict(
+                [
+                    ("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
+                    ("FP Start", trace_parm[StepTraceConstant.FORWARD_PROPAGATION]),
+                    ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
+                    ("FP_BP Time(us)", trace_parm.get(StepTraceConstant.FORWARD_TO_BACK)),
+                ]
+            ),
+            "FP_BP Time",
+        ]
 
     @staticmethod
     def make_grad_refresh_data(trace_parm: dict, pid: int, tid: int) -> list:
@@ -133,15 +146,22 @@ class TimeLineJsonMaker:
         :param tid: tid
         :return: list
         """
-        return ["Iteration Refresh {}".format(trace_parm[StepTraceConstant.ITER_ID]),
-                pid, tid,
-                trace_parm[StepTraceConstant.BACK_PROPAGATION],
-                (trace_parm[StepTraceConstant.STEP_END] - trace_parm[StepTraceConstant.BACK_PROPAGATION]),
-                OrderedDict([("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
-                             ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
-                             ("Iteration End", trace_parm[StepTraceConstant.STEP_END]),
-                             ("Iteration Refresh(us)", trace_parm.get(StepTraceConstant.ITERATION_REFRESH))]),
-                "Iteration Refresh"]
+        return [
+            "Iteration Refresh {}".format(trace_parm[StepTraceConstant.ITER_ID]),
+            pid,
+            tid,
+            trace_parm[StepTraceConstant.BACK_PROPAGATION],
+            (trace_parm[StepTraceConstant.STEP_END] - trace_parm[StepTraceConstant.BACK_PROPAGATION]),
+            OrderedDict(
+                [
+                    ("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
+                    ("BP End", trace_parm[StepTraceConstant.BACK_PROPAGATION]),
+                    ("Iteration End", trace_parm[StepTraceConstant.STEP_END]),
+                    ("Iteration Refresh(us)", trace_parm.get(StepTraceConstant.ITERATION_REFRESH)),
+                ]
+            ),
+            "Iteration Refresh",
+        ]
 
     @staticmethod
     def make_data_aug_dict0(trace_parm: dict, pid: int, tid: int) -> dict:
@@ -152,17 +172,26 @@ class TimeLineJsonMaker:
         :param tid: tid
         :return: dict
         """
-        return OrderedDict([("name", "Data_aug Bound {}".format(trace_parm[StepTraceConstant.ITER_ID] - 1)),
-                            ("cat", "Data_aug Bound"),
-                            ("ph", "t"),
-                            ("ts", InfoConfReader().trans_into_local_time(
-                                raw_timestamp=InfoConfReader().time_from_syscnt(
-                                    trace_parm[StepTraceConstant.FORWARD_PROPAGATION],
-                                    NumberConstant.MICRO_SECOND), use_us=True)),
-                            ("pid", pid),
-                            ("tid", tid),
-                            ("id", "Data_aug Bound {}_{}".format(pid, tid)),
-                            ("args", OrderedDict([("Iteration ID", trace_parm[StepTraceConstant.ITER_ID])]))])
+        return OrderedDict(
+            [
+                ("name", "Data_aug Bound {}".format(trace_parm[StepTraceConstant.ITER_ID] - 1)),
+                ("cat", "Data_aug Bound"),
+                ("ph", "t"),
+                (
+                    "ts",
+                    InfoConfReader().trans_into_local_time(
+                        raw_timestamp=InfoConfReader().time_from_syscnt(
+                            trace_parm[StepTraceConstant.FORWARD_PROPAGATION], NumberConstant.MICRO_SECOND
+                        ),
+                        use_us=True,
+                    ),
+                ),
+                ("pid", pid),
+                ("tid", tid),
+                ("id", "Data_aug Bound {}_{}".format(pid, tid)),
+                ("args", OrderedDict([("Iteration ID", trace_parm[StepTraceConstant.ITER_ID])])),
+            ]
+        )
 
     @staticmethod
     def make_data_aug_dict1(trace_parm: dict, pid: int, tid: int) -> dict:
@@ -179,23 +208,28 @@ class TimeLineJsonMaker:
 
         data_aug_bound = data_aug_bound * NumberConstant.MICRO_SECOND / InfoConfReader().get_freq(StrConstant.HWTS)
         ts = InfoConfReader().trans_into_local_time(
-            raw_timestamp=InfoConfReader().time_from_syscnt(ts, NumberConstant.MICRO_SECOND), use_us=True)
+            raw_timestamp=InfoConfReader().time_from_syscnt(ts, NumberConstant.MICRO_SECOND), use_us=True
+        )
 
-        return OrderedDict([("name", "Data_aug Bound {}".format(trace_parm[StepTraceConstant.ITER_ID])),
-                            ("cat", "Data_aug Bound"),
-                            ("ph", "s"),
-                            ("ts", ts),
-                            ("pid", pid),
-                            ("tid", tid),
-                            ("id", "Data_aug Bound {}_{}".format(pid, tid)),
-                            ("args", OrderedDict([("Data_aug Bound(us)",
-                                                   data_aug_bound)]))])
+        return OrderedDict(
+            [
+                ("name", "Data_aug Bound {}".format(trace_parm[StepTraceConstant.ITER_ID])),
+                ("cat", "Data_aug Bound"),
+                ("ph", "s"),
+                ("ts", ts),
+                ("pid", pid),
+                ("tid", tid),
+                ("id", "Data_aug Bound {}_{}".format(pid, tid)),
+                ("args", OrderedDict([("Data_aug Bound(us)", data_aug_bound)])),
+            ]
+        )
 
 
 class StepTraceViewer:
     """
     viewer of training trace data
     """
+
     model_to_pid = {}
     SORT_INDEX_OFFSET = 70000
 
@@ -207,20 +241,22 @@ class StepTraceViewer:
         :param message: message
         :return: data
         """
-        sql = "select iteration_id, " \
-              "(case when FP_start={2} then 'N/A' else FP_start end), " \
-              "(case when BP_end={2} then 'N/A' else BP_end end), " \
-              "iteration_end, " \
-              "(case when iteration_time={2} then 'N/A' else iteration_time end), " \
-              "(case when fp_bp_time={2} then 'N/A' else fp_bp_time end), " \
-              "(case when grad_refresh_bound={2} then 'N/A' else grad_refresh_bound end), " \
-              "(case when data_aug_bound={2} then 'N/A' else data_aug_bound end), " \
-              "(case when model_id={3} then 'N/A' else model_id end) " \
-              " from {1} where device_id=?".format(
-            StepTraceConstant.syscnt_to_micro(),
-            DBNameConstant.TABLE_TRAINING_TRACE,
-            NumberConstant.NULL_NUMBER,
-            NumberConstant.DEFAULT_MODEL_ID)
+        sql = (
+            "select iteration_id, "
+            "(case when FP_start={1} then 'N/A' else FP_start end), "
+            "(case when BP_end={1} then 'N/A' else BP_end end), "
+            "iteration_end, "
+            "(case when iteration_time={1} then 'N/A' else iteration_time end), "
+            "(case when fp_bp_time={1} then 'N/A' else fp_bp_time end), "
+            "(case when grad_refresh_bound={1} then 'N/A' else grad_refresh_bound end), "
+            "(case when data_aug_bound={1} then 'N/A' else data_aug_bound end), "
+            "(case when model_id={2} then 'N/A' else model_id end) "
+            " from {0} where device_id=?".format(
+                DBNameConstant.TABLE_TRAINING_TRACE,
+                NumberConstant.NULL_NUMBER,
+                NumberConstant.DEFAULT_MODEL_ID,
+            )
+        )
         data = DBManager.fetch_all_data(curs, sql, (message["device_id"],))
         return data
 
@@ -252,18 +288,40 @@ class StepTraceViewer:
             # if model_id is -1,it has been set "N/A"
             model_ids_set.remove(Constant.NA)
         model_ids = sorted(model_ids_set)
-        result_data.extend(TraceViewManager.metadata_event(
-            [["process_name", InfoConfReader().get_json_pid_data(),
-              InfoConfReader().get_json_tid_data(), "Step Trace"]]))
+        result_data.extend(
+            TraceViewManager.metadata_event(
+                [
+                    [
+                        "process_name",
+                        InfoConfReader().get_json_pid_data(),
+                        InfoConfReader().get_json_tid_data(),
+                        "Step Trace",
+                    ]
+                ]
+            )
+        )
         for i, model_id in enumerate(model_ids):
-            StepTraceViewer.model_to_pid[model_id] = InfoConfReader().get_json_pid_data() + i + \
-                                                     StepTraceViewer.SORT_INDEX_OFFSET
-            result_data.extend(TraceViewManager.metadata_event(
-                [["thread_name", InfoConfReader().get_json_pid_data(),
-                  StepTraceViewer.model_to_pid.get(model_id), "Model ID:{}".format(model_id)],
-                 ["thread_sort_index", InfoConfReader().get_json_pid_data(),
-                  StepTraceViewer.model_to_pid.get(model_id), int(model_id) + StepTraceViewer.SORT_INDEX_OFFSET]
-                 ]))
+            StepTraceViewer.model_to_pid[model_id] = (
+                InfoConfReader().get_json_pid_data() + i + StepTraceViewer.SORT_INDEX_OFFSET
+            )
+            result_data.extend(
+                TraceViewManager.metadata_event(
+                    [
+                        [
+                            "thread_name",
+                            InfoConfReader().get_json_pid_data(),
+                            StepTraceViewer.model_to_pid.get(model_id),
+                            "Model ID:{}".format(model_id),
+                        ],
+                        [
+                            "thread_sort_index",
+                            InfoConfReader().get_json_pid_data(),
+                            StepTraceViewer.model_to_pid.get(model_id),
+                            int(model_id) + StepTraceViewer.SORT_INDEX_OFFSET,
+                        ],
+                    ]
+                )
+            )
 
     @staticmethod
     def add_reduce_headers(conn: any, headers: list, message: dict) -> None:
@@ -275,14 +333,18 @@ class StepTraceViewer:
         :return:
         """
         if DBManager.judge_table_exist(conn.cursor(), DBNameConstant.TABLE_ALL_REDUCE):
-            reduce_data = conn.cursor().execute(
-                "select max(count) from "
-                "(select count(*) as count from  {0} where device_id=?"
-                " group by iteration_end, model_id);".format(DBNameConstant.TABLE_ALL_REDUCE),
-                (message["device_id"],)).fetchone()
+            reduce_data = (
+                conn.cursor()
+                .execute(
+                    "select max(count) from "
+                    "(select count(*) as count from  {0} where device_id=?"
+                    " group by iteration_end, model_id);".format(DBNameConstant.TABLE_ALL_REDUCE),
+                    (message["device_id"],),
+                )
+                .fetchone()
+            )
             if reduce_data[0]:
-                headers += ["Reduce Start(us)", "Reduce Duration(us)"] * \
-                           int(reduce_data[0])
+                headers += ["Reduce Start(us)", "Reduce Duration(us)"] * int(reduce_data[0])
 
     @staticmethod
     def format_reduce_json(data: list, trace_parm: dict, pid: int, tid: int, result_data: list) -> None:
@@ -303,20 +365,25 @@ class StepTraceViewer:
             trace_parm[StepTraceConstant.REDUCE_START] = reduce_data[0]
             trace_parm[StepTraceConstant.REDUCE_END] = reduce_data[1]
             grad_refresh_data = [
-                "Reduce_{}_{}".format(trace_parm[StepTraceConstant.ITER_ID], i), pid, tid,
+                "Reduce_{}_{}".format(trace_parm[StepTraceConstant.ITER_ID], i),
+                pid,
+                tid,
                 trace_parm[StepTraceConstant.REDUCE_START],
                 (trace_parm[StepTraceConstant.REDUCE_END] - trace_parm[StepTraceConstant.REDUCE_START]),
-                OrderedDict([
-                    ("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
-                    ("Reduce Start {}".format(i), trace_parm[StepTraceConstant.REDUCE_START]),
-                    ("Reduce End {}".format(i), trace_parm[StepTraceConstant.REDUCE_END])
-                ]),
-                "Reduce"
+                OrderedDict(
+                    [
+                        ("Iteration ID", trace_parm[StepTraceConstant.ITER_ID]),
+                        ("Reduce Start {}".format(i), trace_parm[StepTraceConstant.REDUCE_START]),
+                        ("Reduce End {}".format(i), trace_parm[StepTraceConstant.REDUCE_END]),
+                    ]
+                ),
+                "Reduce",
             ]
             StepTraceViewer.update_reduce(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, grad_refresh_data, i)
             reduce_trace_data.append(grad_refresh_data)
-            result_data.extend(TraceViewManager.time_graph_trace(
-                TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, reduce_trace_data))
+            result_data.extend(
+                TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, reduce_trace_data)
+            )
             i = i + 1
 
     @staticmethod
@@ -346,8 +413,9 @@ class StepTraceViewer:
         merge_data = StepTraceViewer._reformat_step_trace_data(data, conn)
         DBManager.destroy_db_connect(conn, curs)
         start_ts, _ = InfoConfReader().get_collect_time()
-        logging.info("There are %d records before step_trace data filtering, timestamp is %s.",
-                     len(merge_data), start_ts)
+        logging.info(
+            "There are %d records before step_trace data filtering, timestamp is %s.", len(merge_data), start_ts
+        )
 
         def data_time_fetcher(item):
             if is_number(item[3]) and is_number(item[4]):
@@ -449,69 +517,85 @@ class StepTraceViewer:
                 tid,
                 get_next_start,
                 get_next_end - get_next_start,
-                OrderedDict([
-                    ("GetNext Start", get_next_start),
-                    ("GetNext End", get_next_end),
-                    ("GetNext Time(us)",
-                     get_next_end - get_next_start
-                     ),
-                ]),
-                "GetNext Time"
+                OrderedDict(
+                    [
+                        ("GetNext Start", get_next_start),
+                        ("GetNext End", get_next_end),
+                        ("GetNext Time(us)", get_next_end - get_next_start),
+                    ]
+                ),
+                "GetNext Time",
             ]
             StepTraceViewer.update_get_next_data(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, refresh_data)
             get_next_trace_data.append(refresh_data)
-        result_data.extend(TraceViewManager.time_graph_trace(
-            TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, get_next_trace_data))
+        result_data.extend(
+            TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, get_next_trace_data)
+        )
 
     @staticmethod
     def update_iteration(headers: list, data: list) -> None:
         StepTraceViewer.update_ts_and_dur(headers, data)
         data[headers.index('args')]['FP Start'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['FP Start'])
+            data[headers.index('args')]['FP Start']
+        )
         data[headers.index('args')]['BP End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['BP End'])
+            data[headers.index('args')]['BP End']
+        )
         data[headers.index('args')]['Iteration End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['Iteration End'])
+            data[headers.index('args')]['Iteration End']
+        )
         data[headers.index('args')]['Iteration Time(us)'] = StepTraceViewer.calculate_duration(
-            data[headers.index('args')]['Iteration Time(us)'])
+            data[headers.index('args')]['Iteration Time(us)']
+        )
 
     @staticmethod
     def update_fp_bp_time(headers: list, data: list) -> None:
         StepTraceViewer.update_ts_and_dur(headers, data)
         data[headers.index('args')]['FP_BP Time(us)'] = StepTraceViewer.calculate_duration(
-            data[headers.index('args')]['FP_BP Time(us)'])
+            data[headers.index('args')]['FP_BP Time(us)']
+        )
         data[headers.index('args')]['FP Start'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['FP Start'])
+            data[headers.index('args')]['FP Start']
+        )
         data[headers.index('args')]['BP End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['BP End'])
+            data[headers.index('args')]['BP End']
+        )
 
     @staticmethod
     def update_reduce(headers: list, data: list, index: int) -> None:
         StepTraceViewer.update_ts_and_dur(headers, data)
         data[headers.index('args')]['Reduce Start ' + str(index)] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['Reduce Start ' + str(index)])
+            data[headers.index('args')]['Reduce Start ' + str(index)]
+        )
         data[headers.index('args')]['Reduce End ' + str(index)] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['Reduce End ' + str(index)])
+            data[headers.index('args')]['Reduce End ' + str(index)]
+        )
 
     @staticmethod
     def update_get_next_data(headers: list, data: list) -> None:
         StepTraceViewer.update_ts_and_dur(headers, data)
         data[headers.index('args')]['GetNext Start'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['GetNext Start'])
+            data[headers.index('args')]['GetNext Start']
+        )
         data[headers.index('args')]['GetNext End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['GetNext End'])
+            data[headers.index('args')]['GetNext End']
+        )
         data[headers.index('args')]['GetNext Time(us)'] = StepTraceViewer.calculate_duration(
-            data[headers.index('args')]['GetNext Time(us)'])
+            data[headers.index('args')]['GetNext Time(us)']
+        )
 
     @staticmethod
     def update_grad_refresh_data(headers: list, data: list) -> list:
         StepTraceViewer.update_ts_and_dur(headers, data)
         data[headers.index('args')]['BP End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['BP End'])
+            data[headers.index('args')]['BP End']
+        )
         data[headers.index('args')]['Iteration End'] = StepTraceViewer.calculate_localtime(
-            data[headers.index('args')]['Iteration End'])
+            data[headers.index('args')]['Iteration End']
+        )
         data[headers.index('args')]['Iteration Refresh(us)'] = StepTraceViewer.calculate_duration(
-            data[headers.index('args')]['Iteration Refresh(us)'])
+            data[headers.index('args')]['Iteration Refresh(us)']
+        )
         return data
 
     @staticmethod
@@ -537,17 +621,17 @@ class StepTraceViewer:
         for line in data:
             trace = list(line)
             if len(trace) >= 4:  # trace[3] refers to iteration end
-                reduce_data = StepTraceViewer.__select_reduce(conn,
-                                                              trace)
+                reduce_data = StepTraceViewer.__select_reduce(conn, trace)
                 for item in reduce_data:
                     trace += [
-                        format_high_precision_for_csv(
-                            InfoConfReader().trans_syscnt_into_local_time(item[0])),
-                        round((item[1] - item[0]) * StepTraceConstant.syscnt_to_micro(),
-                              NumberConstant.ROUND_THREE_DECIMAL)
+                        format_high_precision_for_csv(InfoConfReader().trans_syscnt_into_local_time(item[0])),
+                        round(
+                            (item[1] - item[0]) * StepTraceConstant.syscnt_to_micro(),
+                            NumberConstant.ROUND_THREE_DECIMAL,
+                        ),
                     ]
-            trace[1:4] = map(lambda x: format_high_precision_summary_data(x), trace[1:4])
-            trace[4:8] = map(lambda x: StepTraceViewer.calculate_duration(x), trace[4:8])
+            trace[1:4] = map(format_high_precision_summary_data, trace[1:4])
+            trace[4:8] = map(StepTraceViewer.calculate_duration, trace[4:8])
             merge_data.append(trace)
         return merge_data
 
@@ -563,9 +647,7 @@ class StepTraceViewer:
         iteration_end = trace[3]
         model_id = NumberConstant.DEFAULT_MODEL_ID if trace[-1] == "N/A" else trace[-1]
 
-        sql = "select start, end from {0} " \
-              "where iteration_end=? and model_id=?" \
-            .format(DBNameConstant.TABLE_ALL_REDUCE)
+        sql = "select start, end from {0} where iteration_end=? and model_id=?".format(DBNameConstant.TABLE_ALL_REDUCE)
         result = DBManager.fetch_all_data(curs, sql, (iteration_end, model_id))
         curs.close()
         return result
@@ -582,13 +664,15 @@ class StepTraceViewer:
         iteration_id = trace[0]
         model_id = NumberConstant.DEFAULT_MODEL_ID if trace[-1] == "N/A" else trace[-1]
 
-        sql = "select " \
-              "(case when start_time={1} then 'N/A' else start_time end), " \
-              "(case when end_time={1} then 'N/A' else end_time end) " \
-              "from {0} where index_id=? and model_id=?" \
-            .format(DBNameConstant.TABLE_GET_NEXT,
-                    NumberConstant.NULL_NUMBER,
-                    )
+        sql = (
+            "select "
+            "(case when start_time={1} then 'N/A' else start_time end), "
+            "(case when end_time={1} then 'N/A' else end_time end) "
+            "from {0} where index_id=? and model_id=?".format(
+                DBNameConstant.TABLE_GET_NEXT,
+                NumberConstant.NULL_NUMBER,
+            )
+        )
         result = DBManager.fetch_all_data(curs, sql, (iteration_id, model_id))
         curs.close()
         return result
@@ -599,19 +683,21 @@ class StepTraceViewer:
         Select date from traing_trace limited by count and sort
         """
 
-        sql = "select iteration_id, " \
-              "(case when FP_start={1} then 'N/A' else FP_start end), " \
-              "(case when BP_end={1} then 'N/A' else BP_end end), " \
-              "iteration_end, " \
-              "(case when iteration_time={1} then 'N/A' else iteration_time end), " \
-              "(case when fp_bp_time={1} then 'N/A' else fp_bp_time end), " \
-              "(case when grad_refresh_bound={1} then 'N/A' else grad_refresh_bound end), " \
-              "(case when data_aug_bound={1} then 'N/A' else data_aug_bound end), " \
-              "(case when model_id={2} then 'N/A' else model_id end) " \
-              "from {0} " \
-              "where model_id=? and iteration_id>=? and iteration_id<=?".format(DBNameConstant.TABLE_TRAINING_TRACE,
-                                                                                NumberConstant.NULL_NUMBER,
-                                                                                NumberConstant.DEFAULT_MODEL_ID)
+        sql = (
+            "select iteration_id, "
+            "(case when FP_start={1} then 'N/A' else FP_start end), "
+            "(case when BP_end={1} then 'N/A' else BP_end end), "
+            "iteration_end, "
+            "(case when iteration_time={1} then 'N/A' else iteration_time end), "
+            "(case when fp_bp_time={1} then 'N/A' else fp_bp_time end), "
+            "(case when grad_refresh_bound={1} then 'N/A' else grad_refresh_bound end), "
+            "(case when data_aug_bound={1} then 'N/A' else data_aug_bound end), "
+            "(case when model_id={2} then 'N/A' else model_id end) "
+            "from {0} "
+            "where model_id=? and iteration_id>=? and iteration_id<=?".format(
+                DBNameConstant.TABLE_TRAINING_TRACE, NumberConstant.NULL_NUMBER, NumberConstant.DEFAULT_MODEL_ID
+            )
+        )
         return DBManager.fetch_all_data(curs, sql, (iter_range.model_id, *iter_range.get_iteration_range()))
 
     @staticmethod
@@ -642,13 +728,15 @@ class StepTraceViewer:
             if data[1] == "N/A" or data[2] == "N/A":
                 trace_view_data.append(iter_time_data)
                 result_data.extend(
-                    TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, trace_view_data))
+                    TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, trace_view_data)
+                )
             else:
                 fp_bp_data = TimeLineJsonMaker.make_fp_bp_data(trace_parm, pid, tid)
                 StepTraceViewer.update_fp_bp_time(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, fp_bp_data)
                 grad_refresh_data = TimeLineJsonMaker.make_grad_refresh_data(trace_parm, pid, tid)
                 grad_refresh_data = StepTraceViewer.update_grad_refresh_data(
-                    TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, grad_refresh_data)
+                    TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, grad_refresh_data
+                )
                 result_dict["data_aug_dict0"] = TimeLineJsonMaker.make_data_aug_dict0(trace_parm, pid, tid)
                 result_dict["data_aug_dict1"] = TimeLineJsonMaker.make_data_aug_dict1(trace_parm, pid, tid)
 
@@ -656,7 +744,8 @@ class StepTraceViewer:
                 trace_view_data.append(fp_bp_data)
                 trace_view_data.append(grad_refresh_data)
                 result_data.extend(
-                    TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, trace_view_data))
+                    TraceViewManager.time_graph_trace(TraceViewHeaderConstant.GRPC_TIME_GRAPH_HEAD, trace_view_data)
+                )
                 result_data.extend([result_dict.get("data_aug_dict0", {}), result_dict.get("data_aug_dict1", {})])
 
             StepTraceViewer.format_reduce_json(trace_item.get("all_reduce", []), trace_parm, pid, tid, result_data)

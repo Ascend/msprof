@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,12 +14,13 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import logging
 import os
 import sqlite3
 from collections import defaultdict
 
-from common_func.common import CommonConstant
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
@@ -43,6 +44,7 @@ class MergeOpCounterCalculator(MsMultiProcess):
     """
     class to merge GE DB and runtime tasktime data
     """
+
     TABLE_PATH = ConfigManager.TABLES
     MODEL_NAME_INDEX = 8
     MODEL_ID_INDEX = 7
@@ -64,16 +66,20 @@ class MergeOpCounterCalculator(MsMultiProcess):
         start_ts, _ = InfoConfReader().get_collect_time()
         start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
         # ge or subtask need modify the context_id or subtask_id so that it should be same.
-        sql = "select op_type, {0}.task_type, count(op_type), sum(duration) as total_time, " \
-              "min(duration) as min, sum(duration)/count(op_type) as avg, " \
-              "max(duration) as max, {0}.model_id from {0}, {1} " \
-              "where {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id " \
-              "and {0}.batch_id={1}.batch_id " \
-              "and {0}.context_id={1}.subtask_id " \
-              "and {1}.start_time > {2} " \
-              "group by op_type,{0}.task_type" \
-            .format(DBNameConstant.TABLE_OP_COUNTER_GE_MERGE, DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
-                    start_time_raw_timestamp)
+        sql = (
+            "select op_type, {0}.task_type, count(op_type), sum(duration) as total_time, "
+            "min(duration) as min, sum(duration)/count(op_type) as avg, "
+            "max(duration) as max, {0}.model_id from {0}, {1} "
+            "where {0}.task_id={1}.task_id and {0}.stream_id={1}.stream_id "
+            "and {0}.batch_id={1}.batch_id "
+            "and {0}.context_id={1}.subtask_id "
+            "and {1}.start_time > {2} "
+            "group by op_type,{0}.task_type".format(
+                DBNameConstant.TABLE_OP_COUNTER_GE_MERGE,
+                DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
+                start_time_raw_timestamp,
+            )
+        )
         return sql
 
     @staticmethod
@@ -112,8 +118,9 @@ class MergeOpCounterCalculator(MsMultiProcess):
 
     def create_and_insert_db(self: any) -> None:
         if not self._is_db_need_to_create():
-            logging.warning("No need to create db for op counter, "
-                            "maybe the data of framework or task is not collected.")
+            logging.warning(
+                "No need to create db for op counter, maybe the data of framework or task is not collected."
+            )
             return
         self.create_db(self.TABLE_PATH)
         self._create_ge_merge()
@@ -128,22 +135,24 @@ class MergeOpCounterCalculator(MsMultiProcess):
         :return: connection of op statics
         """
         self.conn, self.curs = DBManager.create_connect_db(
-            PathManager.get_db_path(self.project_path, DBNameConstant.DB_OP_COUNTER))
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_OP_COUNTER)
+        )
         if not self.conn or not self.curs:
             logging.error("unable to create op counter db connection")
             raise ProfException(ProfException.PROF_SYSTEM_EXIT)
-        ge_create_sql = DBManager.sql_create_general_table("GeMergeMap", DBNameConstant.TABLE_OP_COUNTER_GE_MERGE,
-                                                           map_path)
+        ge_create_sql = DBManager.sql_create_general_table(
+            "GeMergeMap", DBNameConstant.TABLE_OP_COUNTER_GE_MERGE, map_path
+        )
         DBManager.execute_sql(self.conn, ge_create_sql)
 
-        rts_task_create_sql = DBManager.sql_create_general_table("RtsTaskMap",
-                                                                 DBNameConstant.TABLE_OP_COUNTER_RTS_TASK,
-                                                                 map_path)
+        rts_task_create_sql = DBManager.sql_create_general_table(
+            "RtsTaskMap", DBNameConstant.TABLE_OP_COUNTER_RTS_TASK, map_path
+        )
         DBManager.execute_sql(self.conn, rts_task_create_sql)
 
-        op_report_create_sql = DBManager.sql_create_general_table("OpReportMap",
-                                                                  DBNameConstant.TABLE_OP_COUNTER_OP_REPORT,
-                                                                  map_path)
+        op_report_create_sql = DBManager.sql_create_general_table(
+            "OpReportMap", DBNameConstant.TABLE_OP_COUNTER_OP_REPORT, map_path
+        )
         DBManager.execute_sql(self.conn, op_report_create_sql)
 
     def _init_params(self: any) -> None:
@@ -163,10 +172,13 @@ class MergeOpCounterCalculator(MsMultiProcess):
         if DBManager.check_tables_in_db(ge_db_path, DBNameConstant.TABLE_GE_TASK):
             return True
         if ChipManager().is_chip_v1():
-            return DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                                                DBNameConstant.TABLE_RUNTIME_TASK_TIME)
-        return DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_HWTS),
-                                            DBNameConstant.TABLE_HWTS_TASK_TIME)
+            return DBManager.check_tables_in_db(
+                PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
+                DBNameConstant.TABLE_RUNTIME_TASK_TIME,
+            )
+        return DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_HWTS), DBNameConstant.TABLE_HWTS_TASK_TIME
+        )
 
     def _get_ge_data(self: any, ge_curs: any) -> list:
         device_id = InfoConfReader().get_device_id()
@@ -174,9 +186,11 @@ class MergeOpCounterCalculator(MsMultiProcess):
         hccl_ai_cpu = Constant.TASK_TYPE_HCCL_AI_CPU
         ge_data = []
         iter_list = MsprofIteration(self.project_path).get_index_id_list_with_index_and_model(self.iter_range)
-        ge_sql = f"select model_id, op_name, op_type, task_type, task_id, stream_id, batch_id, context_id " \
-                 f"from {DBNameConstant.TABLE_GE_TASK} where index_id=? and model_id=? and device_id={device_id} " \
-                 f"and task_type != '{hccl_task_type}' and task_type != '{hccl_ai_cpu}'"
+        ge_sql = (
+            f"select model_id, op_name, op_type, task_type, task_id, stream_id, batch_id, context_id "
+            f"from {DBNameConstant.TABLE_GE_TASK} where index_id=? and model_id=? and device_id={device_id} "
+            f"and task_type != '{hccl_task_type}' and task_type != '{hccl_ai_cpu}'"
+        )
         for index_and_model in iter_list:
             ge_data.extend(DBManager.fetch_all_data(ge_curs, ge_sql, index_and_model))
 
@@ -186,7 +200,8 @@ class MergeOpCounterCalculator(MsMultiProcess):
         if not DBManager.judge_table_exist(self.curs, DBNameConstant.TABLE_OP_COUNTER_GE_MERGE):
             return []
         ge_sql = "SELECT task_type, stream_id, task_id, batch_id, context_id from {0}".format(
-            DBNameConstant.TABLE_OP_COUNTER_GE_MERGE)
+            DBNameConstant.TABLE_OP_COUNTER_GE_MERGE
+        )
         return DBManager.fetch_all_data(self.curs, ge_sql, dto_class=GeTaskDto)
 
     def _create_ge_merge(self: any) -> None:
@@ -195,12 +210,14 @@ class MergeOpCounterCalculator(MsMultiProcess):
         :return: None
         """
         ge_conn, ge_curs = DBManager.check_connect_db_path(
-            PathManager.get_db_path(self.project_path, DBNameConstant.DB_GE_INFO))
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_GE_INFO)
+        )
         if ge_conn and ge_curs and DBManager.judge_table_exist(ge_curs, DBNameConstant.TABLE_GE_TASK):
             ge_data = self._get_ge_data(ge_curs)
             if ge_data:
-                insert_sql = "insert into {} values({value})".format(DBNameConstant.TABLE_OP_COUNTER_GE_MERGE,
-                                                                     value='?,' * (len(ge_data[0]) - 1) + '?')
+                insert_sql = "insert into {} values({value})".format(
+                    DBNameConstant.TABLE_OP_COUNTER_GE_MERGE, value='?,' * (len(ge_data[0]) - 1) + '?'
+                )
                 DBManager.executemany_sql(self.conn, insert_sql, ge_data)
         DBManager.destroy_db_connect(ge_conn, ge_curs)
 
@@ -221,8 +238,20 @@ class MergeOpCounterCalculator(MsMultiProcess):
                 logging.error("Get tasks from %s error", DBNameConstant.TABLE_ASCEND_TASK)
                 return
             ascend_tasks = [TopDownTask(*task) for task in tasks]
-            rts_data = [[task.task_id, task.stream_id, task.start_time, task.duration, task.device_task_type,
-                         task.index_id, task.model_id, task.batch_id, task.context_id] for task in ascend_tasks]
+            rts_data = [
+                [
+                    task.task_id,
+                    task.stream_id,
+                    task.start_time,
+                    task.duration,
+                    task.device_task_type,
+                    task.index_id,
+                    task.model_id,
+                    task.batch_id,
+                    task.context_id,
+                ]
+                for task in ascend_tasks
+            ]
             try:
                 DBManager.insert_data_into_table(self.conn, DBNameConstant.TABLE_OP_COUNTER_RTS_TASK, rts_data)
             except sqlite3.Error as err:
@@ -254,8 +283,13 @@ class MergeOpCounterCalculator(MsMultiProcess):
         type_time = defaultdict(dict)
         for task in task_data:
             type_time[task[self.MODEL_NAME_INDEX]]["{}_{}".format(task[0], task[1])] = {
-                'op_type': task[0], 'task_type': task[1], 'count': task[2], 'duration': task[3],
-                'min': task[4], 'avg': task[5], 'max': task[6]
+                'op_type': task[0],
+                'task_type': task[1],
+                'count': task[2],
+                'duration': task[3],
+                'min': task[4],
+                'avg': task[5],
+                'max': task[6],
             }
         total_time = self._cal_total(type_time)
         total_data = []
@@ -263,22 +297,27 @@ class MergeOpCounterCalculator(MsMultiProcess):
             for op_type in type_time[model]:
                 task_data = type_time[model][op_type]
                 try:
-                    task_duration = round(float(task_data["duration"] / total_time[model] * 100),
-                                          NumberConstant.DECIMAL_ACCURACY)
+                    task_duration = round(
+                        float(task_data["duration"] / total_time[model] * 100), NumberConstant.DECIMAL_ACCURACY
+                    )
                 except ZeroDivisionError:
                     task_duration = 0
                 total_data.append(
-                    (model,
-                     task_data['op_type'],
-                     str(task_data['task_type']),
-                     task_data["count"],
-                     round(float(task_data["duration"]), NumberConstant.DECIMAL_ACCURACY),
-                     round(float(task_data["min"]), NumberConstant.DECIMAL_ACCURACY),
-                     round(float(task_data["avg"]), NumberConstant.DECIMAL_ACCURACY),
-                     round(float(task_data["max"]), NumberConstant.DECIMAL_ACCURACY),
-                     task_duration))
+                    (
+                        model,
+                        task_data['op_type'],
+                        str(task_data['task_type']),
+                        task_data["count"],
+                        round(float(task_data["duration"]), NumberConstant.DECIMAL_ACCURACY),
+                        round(float(task_data["min"]), NumberConstant.DECIMAL_ACCURACY),
+                        round(float(task_data["avg"]), NumberConstant.DECIMAL_ACCURACY),
+                        round(float(task_data["max"]), NumberConstant.DECIMAL_ACCURACY),
+                        task_duration,
+                    )
+                )
         if total_data:
             sorted_total_data = sorted(total_data, key=lambda x: x[7], reverse=True)
-            sql = 'insert into {} values({})'.format(DBNameConstant.TABLE_OP_COUNTER_OP_REPORT,
-                                                     '?,' * (len(sorted_total_data[0]) - 1) + '?')
+            sql = 'insert into {} values({})'.format(
+                DBNameConstant.TABLE_OP_COUNTER_OP_REPORT, '?,' * (len(sorted_total_data[0]) - 1) + '?'
+            )
             DBManager.executemany_sql(self.conn, sql, sorted_total_data)

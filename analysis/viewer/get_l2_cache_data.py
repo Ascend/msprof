@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -53,7 +53,7 @@ def add_op_name(l2_cache_header: list, l2_cache_data: list, op_dict: dict) -> bo
     stream_id_inx = l2_cache_header.index("Stream Id")
     for index, sub in enumerate(l2_cache_data):
         key = "{}-{}".format(sub[task_id_inx], sub[stream_id_inx])  # key is task_id-stream_id
-        tmp = list(l2_cache_data[index])
+        tmp = list(sub)
         tmp.append(op_dict[key] if key in op_dict else Constant.NA)
         l2_cache_data[index] = tmp
     return True
@@ -66,6 +66,6 @@ def process_hit_rate(l2_cache_header: list, l2_cache_data: list) -> list:
         return l2_cache_data
     hit_rate_inx = l2_cache_header.index("Hit Rate")
     return [
-        _l2_cache_data[:hit_rate_inx] + (Constant.NA,) + _l2_cache_data[hit_rate_inx + 1:]
+        _l2_cache_data[:hit_rate_inx] + (Constant.NA,) + _l2_cache_data[hit_rate_inx + 1 :]
         for _l2_cache_data in l2_cache_data
     ]

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import re
@@ -43,23 +45,20 @@ class DataPreparationParser(DataParser, MsMultiProcess):
     HOST_QUEUE_TABLE_ELEMENTS = 5
     DATA_PREPARATION_TAG_TO_TABLE = {
         DataTag.DATA_QUEUE: DBNameConstant.TABLE_DATA_QUEUE,
-        DataTag.HOST_QUEUE: DBNameConstant.TABLE_HOST_QUEUE
+        DataTag.HOST_QUEUE: DBNameConstant.TABLE_HOST_QUEUE,
     }
     HOST_DATASET_NOT_SINK_MODE = 0
     HOST_DATASET_SINK_MODE = 1
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = self._sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
         self._data = {}
         self._host_queue_mode = Constant.DEFAULT_INVALID_VALUE
-        self._tag_to_parser = {
-            DataTag.DATA_QUEUE: self._parse_data_queue,
-            DataTag.HOST_QUEUE: self._parse_host_queue
-        }
+        self._tag_to_parser = {DataTag.DATA_QUEUE: self._parse_data_queue, DataTag.HOST_QUEUE: self._parse_host_queue}
 
     @staticmethod
     def format_host_queue_raw_data(mode: int, data_lines: list) -> list:
@@ -76,8 +75,9 @@ class DataPreparationParser(DataParser, MsMultiProcess):
     def _read_data_queue(file_path: str) -> list:
         check_file_readable(file_path)
         with FileOpen(file_path, 'rb') as file:
-            line = str(file.file_reader.read().replace(b'\n\x00', b' ___ ').replace(b'\x00', b' ___ '),
-                       encoding='utf-8')
+            line = str(
+                file.file_reader.read().replace(b'\n\x00', b' ___ ').replace(b'\x00', b' ___ '), encoding='utf-8'
+            )
             lines = list(filter(None, line.split(" ___ ")))
         return lines
 
@@ -87,7 +87,7 @@ class DataPreparationParser(DataParser, MsMultiProcess):
         :return: None
         """
         try:
-            for tag in DataPreparationParser.DATA_PREPARATION_TAG_TO_TABLE.keys():
+            for tag in DataPreparationParser.DATA_PREPARATION_TAG_TO_TABLE:
                 files = self._file_list.get(tag, [])
                 if not files:
                     continue
@@ -136,8 +136,9 @@ class DataPreparationParser(DataParser, MsMultiProcess):
     def _parse_host_queue(self: any, file_list: list) -> list:
         file_list.sort(key=lambda x: int(x.split("_")[-1]))
         self._check_host_queue_mode(file_list)
-        return self.parse_plaintext_data(file_list, partial(DataPreparationParser.format_host_queue_raw_data,
-                                                            self._host_queue_mode))
+        return self.parse_plaintext_data(
+            file_list, partial(DataPreparationParser.format_host_queue_raw_data, self._host_queue_mode)
+        )
 
     def _parse_data_queue(self: any, file_list: list) -> list:
         data_list = []
@@ -161,9 +162,10 @@ class DataPreparationParser(DataParser, MsMultiProcess):
                 res_data = [0] * self.DATA_QUEUE_TABLE_ELEMENTS
                 # split and pick each value after the colon
                 res_data[:-1] = re.split('[:,]', data)[1::2]
-                res_data[self.DTAT_QUEUE_NUMBER_VALUE_START_INDEX:] = list(
-                    map(int, res_data[self.DTAT_QUEUE_NUMBER_VALUE_START_INDEX:]))
-                res_data[-1] = (res_data[self.DTAT_QUEUE_END_TIME_INDEX] - res_data[self.DTAT_QUEUE_START_TIME_INDEX])
+                res_data[self.DTAT_QUEUE_NUMBER_VALUE_START_INDEX :] = list(
+                    map(int, res_data[self.DTAT_QUEUE_NUMBER_VALUE_START_INDEX :])
+                )
+                res_data[-1] = res_data[self.DTAT_QUEUE_END_TIME_INDEX] - res_data[self.DTAT_QUEUE_START_TIME_INDEX]
                 result_list[index] = res_data
         except (ValueError, IndexError) as err:
             logging.error(err, exc_info=Constant.TRACE_BACK_SWITCH)

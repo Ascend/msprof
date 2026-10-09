@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -20,7 +20,6 @@ import os
 import sqlite3
 
 from common_func.ai_stack_data_check_manager import AiStackDataCheckManager
-from common_func.batch_counter import BatchCounter
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileManager, FileOpen
@@ -29,7 +28,6 @@ from common_func.ms_multi_process import MsMultiProcess
 from common_func.msprof_exception import ProfException
 from common_func.msvp_common import is_valid_original_data
 from common_func.path_manager import PathManager
-from common_func.profiling_scene import ProfilingScene
 from framework.offset_calculator import OffsetCalculator
 from msconfig.config_manager import ConfigManager
 from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
@@ -42,6 +40,7 @@ class AicpuBinDataParser(MsMultiProcess):
     """
     parse ai cpu data by dp channel
     """
+
     TAG_AICPU = "AICPU"
     LIMIT_AI_CPU_LEN = 5000
     TABLES_PATH = ConfigManager.TABLES
@@ -68,27 +67,32 @@ class AicpuBinDataParser(MsMultiProcess):
         ai_cpu_file = file_path
         file_size = os.path.getsize(ai_cpu_file)
         struct_nums = file_size // StructFmt.AI_CPU_FMT_SIZE
-        offset_calculator = OffsetCalculator(self._file_list, StructFmt.AI_CPU_FMT_SIZE,
-                                             self.project_path)
+        offset_calculator = OffsetCalculator(self._file_list, StructFmt.AI_CPU_FMT_SIZE, self.project_path)
         with FileOpen(ai_cpu_file, 'rb') as cpu_f:
             cpu_f = offset_calculator.pre_process(cpu_f.file_reader, file_size)
         for index in range(struct_nums):
             ai_cpu = AiCpuData().ai_cpu_decode(
-                cpu_f[index * StructFmt.AI_CPU_FMT_SIZE: (index + 1) * StructFmt.AI_CPU_FMT_SIZE])
-            if ai_cpu.ai_cpu_time_consuming.ai_cpu_task_start_time != 0 and \
-                    ai_cpu.ai_cpu_time_consuming.ai_cpu_task_end_time:
+                cpu_f[index * StructFmt.AI_CPU_FMT_SIZE : (index + 1) * StructFmt.AI_CPU_FMT_SIZE]
+            )
+            if (
+                ai_cpu.ai_cpu_time_consuming.ai_cpu_task_start_time != 0
+                and ai_cpu.ai_cpu_time_consuming.ai_cpu_task_end_time
+            ):
                 if self._iter_recorder.check_task_before_max_iter(ai_cpu.ai_cpu_time_consuming.ai_cpu_task_end_syscnt):
                     self.ai_cpu_datas.append(
-                        [ai_cpu.stream_id,
-                         ai_cpu.task_id,
-                         ai_cpu.ai_cpu_time_consuming.ai_cpu_task_start_time,
-                         ai_cpu.ai_cpu_time_consuming.ai_cpu_task_end_time,
-                         self.NONE_NODE_NAME,
-                         ai_cpu.ai_cpu_time_consuming.compute_time,
-                         ai_cpu.ai_cpu_time_consuming.memory_copy_time,
-                         ai_cpu.ai_cpu_time_consuming.ai_cpu_task_time,
-                         ai_cpu.ai_cpu_time_consuming.dispatch_time,
-                         ai_cpu.ai_cpu_time_consuming.total_time])
+                        [
+                            ai_cpu.stream_id,
+                            ai_cpu.task_id,
+                            ai_cpu.ai_cpu_time_consuming.ai_cpu_task_start_time,
+                            ai_cpu.ai_cpu_time_consuming.ai_cpu_task_end_time,
+                            self.NONE_NODE_NAME,
+                            ai_cpu.ai_cpu_time_consuming.compute_time,
+                            ai_cpu.ai_cpu_time_consuming.memory_copy_time,
+                            ai_cpu.ai_cpu_time_consuming.ai_cpu_task_time,
+                            ai_cpu.ai_cpu_time_consuming.dispatch_time,
+                            ai_cpu.ai_cpu_time_consuming.total_time,
+                        ]
+                    )
                 else:
                     self._overstep_task_cnt = self._overstep_task_cnt + 1
             struct_nums -= 1

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -16,14 +16,11 @@
 
 import logging
 
-from common_func.batch_counter import BatchCounter
-from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.iter_recorder import IterRecorder
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.platform.chip_manager import ChipManager
-from common_func.profiling_scene import ProfilingScene
 from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
 
 
@@ -31,6 +28,7 @@ class AICpuFromTsCollector:
     """
     AI Cpu from ts collector
     """
+
     STREAM_TASK_KEY_FMT = "{0}-{1}"
     STREAM_TASK_BATCH_KEY_FMT = "{0}-{1}-{2}"
     AI_CPU_TYPE = 1
@@ -54,10 +52,7 @@ class AICpuFromTsCollector:
                 start_ms = InfoConfReader().time_from_syscnt(start) / NumberConstant.MS_TO_NS
                 end_ms = InfoConfReader().time_from_syscnt(end) / NumberConstant.MS_TO_NS
 
-            self.aicpu_list.append([int(stream_id),
-                                    int(task_id),
-                                    start_ms,
-                                    end_ms])
+            self.aicpu_list.append([int(stream_id), int(task_id), start_ms, end_ms])
 
     def save_aicpu(self: any) -> None:
         """

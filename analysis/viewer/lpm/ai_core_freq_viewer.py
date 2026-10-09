@@ -1,18 +1,21 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
+
 import copy
 from collections import OrderedDict
 from decimal import Decimal
@@ -47,29 +50,48 @@ class AiCoreFreqViewer(LpmConvInfoViewer):
         3、concat 1/2 freq
         """
         result = []
-        flag = (not ChipManager().is_chip_v4() and not ChipManager().is_chip_v1_1_1()
-                and not ChipManager().is_chip_v3_3() or InfoConfReader().is_host_profiling())
+        flag = (
+            not ChipManager().is_chip_v4()
+            and not ChipManager().is_chip_v1_1_1()
+            and not ChipManager().is_chip_v3_3()
+            or InfoConfReader().is_host_profiling()
+        )
         if flag:
             return result
 
         # add header for freq view
-        result.extend(TraceViewManager.metadata_event([["process_name", self._pid,
-                                                        InfoConfReader().get_json_tid_data(),
-                                                        TraceViewHeaderConstant.PROCESS_AI_CORE_FREQ]]))
+        result.extend(
+            TraceViewManager.metadata_event(
+                [
+                    [
+                        "process_name",
+                        self._pid,
+                        InfoConfReader().get_json_tid_data(),
+                        TraceViewHeaderConstant.PROCESS_AI_CORE_FREQ,
+                    ]
+                ]
+            )
+        )
         # freq unit is MHZ
         freq_lists = []
         with self.freq_model as _model:
             freq_rows = _model.get_data()
             if not freq_rows:
-                freq_rows.append((InfoConfReader().get_dev_cnt(),
-                                  InfoConfReader().get_freq(StrConstant.AIC) / NumberConstant.FREQ_TO_MHz))
+                freq_rows.append(
+                    (
+                        InfoConfReader().get_dev_cnt(),
+                        InfoConfReader().get_freq(StrConstant.AIC) / NumberConstant.FREQ_TO_MHz,
+                    )
+                )
             for row in freq_rows:
                 # row index 0 is syscnt, and row index 1 is frequency
                 to_local_ts = InfoConfReader().trans_syscnt_into_local_time(row[0])
                 data_list = [
                     TraceViewHeaderConstant.PROCESS_AI_CORE_FREQ,
-                    to_local_ts, self._pid, 0,
-                    OrderedDict({"MHz": row[1]})
+                    to_local_ts,
+                    self._pid,
+                    0,
+                    OrderedDict({"MHz": row[1]}),
                 ]
                 freq_lists.append(data_list)
         _, end_ts = InfoConfReader().get_collect_time()
@@ -81,7 +103,8 @@ class AiCoreFreqViewer(LpmConvInfoViewer):
         freq_lists.append(final_data)
         filled_freq = self._split_and_fill_data(freq_lists)
         changed_frequency = TraceViewManager.column_graph_trace(
-            TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, filled_freq)
+            TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, filled_freq
+        )
         result.extend(changed_frequency)
 
         return result

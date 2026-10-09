@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -57,13 +57,14 @@ class ClusterInfoViewModel(ViewModel):
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_rank_or_device_ids(self: any) -> set:
-        sql = f"select case when rank_id='N/A' then device_id else rank_id end " \
-              f"from {DBNameConstant.TABLE_CLUSTER_RANK}"
+        sql = f"select case when rank_id='N/A' then device_id else rank_id end from {DBNameConstant.TABLE_CLUSTER_RANK}"
         return set(chain.from_iterable(DBManager.fetch_all_data(self.cur, sql)))
 
     def get_dir_name(self: any, rank_or_device_id: int) -> set:
-        sql = f"select dir_name from {DBNameConstant.TABLE_CLUSTER_RANK} " \
-              f"where (rank_id='N/A' and device_id={rank_or_device_id}) or rank_id={rank_or_device_id} "
+        sql = (
+            f"select dir_name from {DBNameConstant.TABLE_CLUSTER_RANK} "
+            f"where (rank_id='N/A' and device_id={rank_or_device_id}) or rank_id={rank_or_device_id} "
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_info_based_on_rank_or_device_id(self: any, rank_id: int) -> any:
@@ -71,6 +72,8 @@ class ClusterInfoViewModel(ViewModel):
         return DBManager.fetch_one_data(self.cur, sql, (rank_id, rank_id), ClusterRankDto)
 
     def get_all_rank_id_and_dirnames(self: any) -> list:
-        sql = f"select case when rank_id='N/A' then device_id else rank_id end, dir_name " \
-              f"from {DBNameConstant.TABLE_CLUSTER_RANK}"
+        sql = (
+            f"select case when rank_id='N/A' then device_id else rank_id end, dir_name "
+            f"from {DBNameConstant.TABLE_CLUSTER_RANK}"
+        )
         return DBManager.fetch_all_data(self.cur, sql)

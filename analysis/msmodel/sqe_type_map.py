@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -17,7 +17,6 @@
 from enum import Enum
 from enum import unique
 from common_func.platform.chip_manager import ChipManager
-from profiling_bean.prof_enum.chip_model import ChipModel
 
 
 class SqeType:
@@ -26,6 +25,7 @@ class SqeType:
         """
         Chip's sqetype whose task schedule is stars type
         """
+
         AI_CORE = 0
         AI_CPU = 1
         AIV_SQE = 2
@@ -53,6 +53,7 @@ class SqeType:
         """
         Chip's sqetype whose task schedule is hwts type
         """
+
         AI_CORE = 0
         AI_CPU = 1
         AIV_SQE = 2
@@ -70,6 +71,7 @@ class SqeType:
         """
         Chip's sqetype whose task schedule is ChipV6 type
         """
+
         AI_CORE = 0
         AIV_SQE = 1
         FUSION = 2

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -38,8 +38,7 @@ class ApiDataModel(ParserModel):
             return data.struct_type, 0
         # acl and hccl have two hash values, other type set default second value：0
         if data.level == 'acl':
-            return AclApiTag(data.acl_type).name, \
-                   hash_dict[data.level].get(data.struct_type, data.struct_type)
+            return AclApiTag(data.acl_type).name, hash_dict[data.level].get(data.struct_type, data.struct_type)
         return hash_dict[data.level].get(data.struct_type, data.struct_type), 0
 
     def flush(self: any, data_list: list, table_name: str = DBNameConstant.TABLE_API_DATA) -> None:
@@ -62,8 +61,13 @@ class ApiDataModel(ParserModel):
         ge_dict = hash_dict_data.get_ge_hash_dict()
         return [
             [
-                *self.update_type_hash_value(data, type_dict), data.level, data.thread_id,
-                ge_dict.get(data.item_id, data.item_id), data.start, data.end, connection_id,
+                *self.update_type_hash_value(data, type_dict),
+                data.level,
+                data.thread_id,
+                ge_dict.get(data.item_id, data.item_id),
+                data.start,
+                data.end,
+                connection_id,
             ]
             for connection_id, data in data_list
         ]

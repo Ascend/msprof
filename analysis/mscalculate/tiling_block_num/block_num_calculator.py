@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -50,8 +50,9 @@ class BlockNumCalculator(ICalculator, MsMultiProcess):
         with self._ge_model as _ge_model:
             if not _ge_model.check_table():
                 return
-            ge_task_data = _ge_model.get_ge_info_by_device_id(DBNameConstant.TABLE_GE_TASK,
-                                                              InfoConfReader().get_device_id())
+            ge_task_data = _ge_model.get_ge_info_by_device_id(
+                DBNameConstant.TABLE_GE_TASK, InfoConfReader().get_device_id()
+            )
         if not ge_task_data:
             return
 
@@ -71,9 +72,13 @@ class BlockNumCalculator(ICalculator, MsMultiProcess):
                 search_key = (ge_data.stream_id, ge_data.task_id, ge_data.batch_id)
             if search_key in processed_block_num_data:
                 tiling_block_num = processed_block_num_data.get(search_key).block_num
-                self._data.append(ge_data.replace(block_num=tiling_block_num & self.INVALID_BLOCK_NUM_VALUE,
-                                                  mix_block_num=(tiling_block_num & self.INVALID_BLOCK_NUM_VALUE) * (
-                                                          tiling_block_num >> self.BITS_FOR_BLOCK_NUM)))
+                self._data.append(
+                    ge_data.replace(
+                        block_num=tiling_block_num & self.INVALID_BLOCK_NUM_VALUE,
+                        mix_block_num=(tiling_block_num & self.INVALID_BLOCK_NUM_VALUE)
+                        * (tiling_block_num >> self.BITS_FOR_BLOCK_NUM),
+                    )
+                )
             else:
                 self._data.append(ge_data)
 
@@ -81,8 +86,9 @@ class BlockNumCalculator(ICalculator, MsMultiProcess):
         if not self._data:
             return
         with self._ge_model as _ge_model:
-            delete_sql = f"delete from {DBNameConstant.TABLE_GE_TASK} " \
-                         f"where device_id={InfoConfReader().get_device_id()}"
+            delete_sql = (
+                f"delete from {DBNameConstant.TABLE_GE_TASK} where device_id={InfoConfReader().get_device_id()}"
+            )
             DBManager.execute_sql(_ge_model.conn, delete_sql)
             _ge_model.insert_data_to_db(DBNameConstant.TABLE_GE_TASK, self._data)
 

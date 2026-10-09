@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import configparser
 import logging
@@ -40,6 +42,7 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
     """
     calculator for soc pmu
     """
+
     REQUEST_EVENTS = "request_events"
     HIT_EVENTS = "hit_events"
     MISS_EVENTS = "miss_events"
@@ -105,8 +108,11 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
             return
         db_path = PathManager.get_db_path(self._project_path, DBNameConstant.DB_SOC_PMU)
         if DBManager.check_tables_in_db(db_path, DBNameConstant.TABLE_SOC_PMU_SUMMARY):
-            logging.info("The Table %s already exists in the %s, and won't be calculate again.",
-                         DBNameConstant.TABLE_SOC_PMU_SUMMARY, DBNameConstant.DB_SOC_PMU)
+            logging.info(
+                "The Table %s already exists in the %s, and won't be calculate again.",
+                DBNameConstant.TABLE_SOC_PMU_SUMMARY,
+                DBNameConstant.DB_SOC_PMU,
+            )
             return
         logging.info("Start to calculate the data of soc pmu.")
         if not self._pre_check():
@@ -139,7 +145,7 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
         if abs_event_type in self._events:
             return {
                 "coefficient": 1 if abs_event_type == event_type else -1,
-                "index": self._events.index(abs_event_type)
+                "index": self._events.index(abs_event_type),
             }
         else:
             return Constant.INVALID_INDEX_DICT
@@ -158,11 +164,12 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
 
     def _check_event_indexes(self: any) -> bool:
         if not self._is_valid_index(self._event_indexes):
-            logging.error("Invalid soc pmu events, in platform: %s,"
-                          " excepted soc pmu events: %s, collected: %s",
-                          self._platform_type,
-                          str(self._cfg_parser.items(self._platform_type)),
-                          ",".join(self._events))
+            logging.error(
+                "Invalid soc pmu events, in platform: %s, excepted soc pmu events: %s, collected: %s",
+                self._platform_type,
+                str(self._cfg_parser.items(self._platform_type)),
+                ",".join(self._events),
+            )
             return False
         return True
 
@@ -170,12 +177,14 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
         """
         Calculate hit rate and miss rate.
         """
+
         def calculate_event_value(event_type, event_values):
-            return sum(int(event_values[idx['index']]) * idx['coefficient']
-                       for idx in self._event_indexes.get(event_type))
+            return sum(
+                int(event_values[idx['index']]) * idx['coefficient'] for idx in self._event_indexes.get(event_type)
+            )
 
         for i, events in enumerate(self._soc_pmu_ps_data):
-            event_values = events[self.NO_EVENT_LENGTH:]
+            event_values = events[self.NO_EVENT_LENGTH :]
             request = calculate_event_value(self.REQUEST_EVENTS, event_values)
             hit = calculate_event_value(self.HIT_EVENTS, event_values)
             miss = calculate_event_value(self.MISS_EVENTS, event_values)
@@ -183,7 +192,7 @@ class SocPmuCalculator(ICalculator, MsMultiProcess):
             hit_rate = HitRateMetric(hit, request).run_rules()
             miss_rate = VictimRateMetric(miss, request).run_rules()
 
-            self._soc_pmu_cal_data.append(events[:self.NO_EVENT_LENGTH] + [hit_rate, miss_rate])
+            self._soc_pmu_cal_data.append(events[: self.NO_EVENT_LENGTH] + [hit_rate, miss_rate])
 
     def _pre_check(self: any) -> bool:
         """

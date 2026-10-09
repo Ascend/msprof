@@ -1,32 +1,33 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 
 #include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/ccu_mission_processor.h"
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
-#include "analysis/csrc/application/database/db_constant.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Domain::Environment;
@@ -34,7 +35,8 @@ using namespace Analysis::Infra;
 using namespace Analysis::Utils;
 using namespace Analysis::Application;
 
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string BASE_PATH = "./ccu_processor_test";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
@@ -49,87 +51,72 @@ const std::string CHANNEL_TABLE = "OriginChannel";
 const std::string WAIT_TABLE = "CCUWaitSignalInfo";
 const std::string GROUP_TABLE = "CCUGroupInfo";
 
-using MissionSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint64_t, uint64_t,
-    uint64_t, uint64_t>>;
+using MissionSeedData =
+    std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
 using ChannelSeedData = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t>>;
 using WaitSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, uint32_t, uint16_t>>;
-using GroupSeedData = std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, std::string, std::string,
-    std::string, uint64_t>>;
+using GroupSeedData =
+    std::vector<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t, std::string, std::string, std::string, uint64_t>>;
 
 MissionSeedData BuildMissionData()
 {
-    return {
-        {1, 10, 100, 200, 5, 0, 1000, 0, 4000},
-        {1, 10, 100, 200, 6, 2000, 0, 6000, 0},
-        {1, 10, 100, 200, 9, 2500, 0, 8000, 0}
-    };
+    return {{1, 10, 100, 200, 5, 0, 1000, 0, 4000},
+            {1, 10, 100, 200, 6, 2000, 0, 6000, 0},
+            {1, 10, 100, 200, 9, 2500, 0, 8000, 0}};
 }
 
 ChannelSeedData BuildChannelData()
 {
-    return {
-        {4, 9000, 0, 0, 999},
-        {3, 3000, 0, 0, 88},
-        {4, 7500, 0, 0, 120},
-        {5, 9000, 0, 0, 999}
-    };
+    return {{4, 9000, 0, 0, 999}, {3, 3000, 0, 0, 88}, {4, 7500, 0, 0, 120}, {5, 9000, 0, 0, 999}};
 }
 
-WaitSeedData BuildWaitData()
-{
-    return {
-        {1, 10, 200, 0, 255, 3},
-        {1, 10, 200, 0, 255, 4}
-    };
-}
+WaitSeedData BuildWaitData() { return {{1, 10, 200, 0, 255, 3}, {1, 10, 200, 0, 255, 4}}; }
 
-GroupSeedData BuildGroupData()
-{
-    return {
-        {1, 10, 100, 0, "SUM", "FP16", "FP16", 1024}
-    };
-}
+GroupSeedData BuildGroupData() { return {{1, 10, 100, 0, "SUM", "FP16", "FP16", 1024}}; }
 
 nlohmann::json BuildContextRecord()
 {
-    return {
-        // Use a tiny, self-consistent time base so fake syscnt data (1000~8000) won't be filtered out.
-        {"startCollectionTimeBegin", "0"},
-        {"endCollectionTimeEnd", "999999"},
-        {"startClockMonotonicRaw", "0"},
-        {"hostCntvct", "0"},
-        {"devCntvct", "0"},
-        {"CPU", {{{"Frequency", "1000.000000"}}}},
-        {"DeviceInfo", {{{"hwts_frequency", "1000.000000"}}}},
-        {"hostMonotonic", "0"},
-        {"hostCntvctDiff", "0"}
-    };
+    return {// Use a tiny, self-consistent time base so fake syscnt data (1000~8000) won't be filtered out.
+            {"startCollectionTimeBegin", "0"},
+            {"endCollectionTimeEnd", "999999"},
+            {"startClockMonotonicRaw", "0"},
+            {"hostCntvct", "0"},
+            {"devCntvct", "0"},
+            {"CPU", {{{"Frequency", "1000.000000"}}}},
+            {"DeviceInfo", {{{"hwts_frequency", "1000.000000"}}}},
+            {"hostMonotonic", "0"},
+            {"hostCntvctDiff", "0"}};
 }
 
 const CCUMissionTimelineData *FindByType(const std::vector<CCUMissionTimelineData> &datas, const std::string &type)
 {
-    for (const auto &data : datas) {
-        if (data.timeType == type) {
+    for (const auto &data : datas)
+    {
+        if (data.timeType == type)
+        {
             return &data;
         }
     }
     return nullptr;
 }
 
-const CCUMissionTimelineData *FindByStreamAndType(const std::vector<CCUMissionTimelineData> &datas,
-                                                  uint32_t streamId, const std::string &type)
+const CCUMissionTimelineData *FindByStreamAndType(const std::vector<CCUMissionTimelineData> &datas, uint32_t streamId,
+                                                  const std::string &type)
 {
-    for (const auto &data : datas) {
-        if (data.streamId == streamId && data.timeType == type) {
+    for (const auto &data : datas)
+    {
+        if (data.streamId == streamId && data.timeType == type)
+        {
             return &data;
         }
     }
     return nullptr;
 }
-}
+}  // namespace
 
-class CcuMissionProcessorUTest : public testing::Test {
-protected:
+class CcuMissionProcessorUTest : public testing::Test
+{
+   protected:
     void SetUp() override
     {
         RebuildBaseDir();
@@ -146,14 +133,16 @@ protected:
         MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
         MOCKER_CPP(&DataProcessor::SaveToDataInventory<CCUMissionTimelineData>).reset();
         MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             EXPECT_TRUE(File::RemoveDir(BASE_PATH, DEPTH));
         }
     }
 
     static void RebuildBaseDir()
     {
-        if (File::Check(BASE_PATH)) {
+        if (File::Check(BASE_PATH))
+        {
             File::RemoveDir(BASE_PATH, DEPTH);
         }
         EXPECT_TRUE(File::CreateDir(BASE_PATH));
@@ -169,53 +158,60 @@ protected:
     {
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_DB_PATH);
-        if (createMissionTable) {
-            std::vector<TableColumn> missionCols {
-                {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE}, {"lp_instr_id", SQL_INTEGER_TYPE},
-                {"setckebit_instr_id", SQL_INTEGER_TYPE}, {"rel_id", SQL_INTEGER_TYPE},
-                {"setckebit_start_time", SQL_INTEGER_TYPE}, {"lp_start_time", SQL_INTEGER_TYPE},
-                {"rel_end_time", SQL_INTEGER_TYPE}, {"lp_end_time", SQL_INTEGER_TYPE}
-            };
+        if (createMissionTable)
+        {
+            std::vector<TableColumn> missionCols{
+                {"stream_id", SQL_INTEGER_TYPE},     {"task_id", SQL_INTEGER_TYPE},
+                {"lp_instr_id", SQL_INTEGER_TYPE},   {"setckebit_instr_id", SQL_INTEGER_TYPE},
+                {"rel_id", SQL_INTEGER_TYPE},        {"setckebit_start_time", SQL_INTEGER_TYPE},
+                {"lp_start_time", SQL_INTEGER_TYPE}, {"rel_end_time", SQL_INTEGER_TYPE},
+                {"lp_end_time", SQL_INTEGER_TYPE}};
             EXPECT_TRUE(dbRunner->CreateTable(MISSION_TABLE, missionCols));
-            if (!missionData.empty()) {
+            if (!missionData.empty())
+            {
                 EXPECT_TRUE(dbRunner->InsertData(MISSION_TABLE, missionData));
             }
         }
-        if (createChannelTable) {
-            std::vector<TableColumn> channelCols {
-                {"channel_id", SQL_INTEGER_TYPE}, {"timestamp", SQL_INTEGER_TYPE}, {"max_bw", SQL_INTEGER_TYPE},
-                {"min_bw", SQL_INTEGER_TYPE}, {"avg_bw", SQL_INTEGER_TYPE}
-            };
+        if (createChannelTable)
+        {
+            std::vector<TableColumn> channelCols{{"channel_id", SQL_INTEGER_TYPE},
+                                                 {"timestamp", SQL_INTEGER_TYPE},
+                                                 {"max_bw", SQL_INTEGER_TYPE},
+                                                 {"min_bw", SQL_INTEGER_TYPE},
+                                                 {"avg_bw", SQL_INTEGER_TYPE}};
             EXPECT_TRUE(dbRunner->CreateTable(CHANNEL_TABLE, channelCols));
-            if (!channelData.empty()) {
+            if (!channelData.empty())
+            {
                 EXPECT_TRUE(dbRunner->InsertData(CHANNEL_TABLE, channelData));
             }
         }
     }
 
-    static void CreateCcuAddInfoDb(const WaitSeedData &waitData, const GroupSeedData &groupData,
-                                   bool createWaitTable, bool createGroupTable)
+    static void CreateCcuAddInfoDb(const WaitSeedData &waitData, const GroupSeedData &groupData, bool createWaitTable,
+                                   bool createGroupTable)
     {
         std::shared_ptr<DBRunner> dbRunner;
         MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
-        if (createWaitTable) {
-            std::vector<TableColumn> waitCols {
-                {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE}, {"instr_id", SQL_INTEGER_TYPE},
-                {"die_id", SQL_INTEGER_TYPE}, {"mask", SQL_INTEGER_TYPE}, {"channel_id", SQL_INTEGER_TYPE}
-            };
+        if (createWaitTable)
+        {
+            std::vector<TableColumn> waitCols{{"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE},
+                                              {"instr_id", SQL_INTEGER_TYPE},  {"die_id", SQL_INTEGER_TYPE},
+                                              {"mask", SQL_INTEGER_TYPE},      {"channel_id", SQL_INTEGER_TYPE}};
             EXPECT_TRUE(dbRunner->CreateTable(WAIT_TABLE, waitCols));
-            if (!waitData.empty()) {
+            if (!waitData.empty())
+            {
                 EXPECT_TRUE(dbRunner->InsertData(WAIT_TABLE, waitData));
             }
         }
-        if (createGroupTable) {
-            std::vector<TableColumn> groupCols {
-                {"stream_id", SQL_INTEGER_TYPE}, {"task_id", SQL_INTEGER_TYPE}, {"instr_id", SQL_INTEGER_TYPE},
-                {"die_id", SQL_INTEGER_TYPE}, {"reduce_op_type", SQL_TEXT_TYPE}, {"input_data_type", SQL_TEXT_TYPE},
-                {"output_data_type", SQL_TEXT_TYPE}, {"data_size", SQL_INTEGER_TYPE}
-            };
+        if (createGroupTable)
+        {
+            std::vector<TableColumn> groupCols{{"stream_id", SQL_INTEGER_TYPE},     {"task_id", SQL_INTEGER_TYPE},
+                                               {"instr_id", SQL_INTEGER_TYPE},      {"die_id", SQL_INTEGER_TYPE},
+                                               {"reduce_op_type", SQL_TEXT_TYPE},   {"input_data_type", SQL_TEXT_TYPE},
+                                               {"output_data_type", SQL_TEXT_TYPE}, {"data_size", SQL_INTEGER_TYPE}};
             EXPECT_TRUE(dbRunner->CreateTable(GROUP_TABLE, groupCols));
-            if (!groupData.empty()) {
+            if (!groupData.empty())
+            {
                 EXPECT_TRUE(dbRunner->InsertData(GROUP_TABLE, groupData));
             }
         }
@@ -255,25 +251,14 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldUsePrefixMaxDelayForChannelZero)
 {
     std::shared_ptr<DBRunner> ccuDbRunner;
     MAKE_SHARED_RETURN_VOID(ccuDbRunner, DBRunner, CCU_DB_PATH);
-    ChannelSeedData channelData {
-        {0, 7900, 0, 0, 77},
-        {4, 7500, 0, 0, 150},
-        {0, 7000, 0, 0, 75},
-        {0, 7000, 0, 0, 150},
-        {0, 8000, 0, 0, 999},
-        {0, 8000, 0, 0, 500},
-        {0, 9000, 0, 0, 1000}
-    };
+    ChannelSeedData channelData{{0, 7900, 0, 0, 77},  {4, 7500, 0, 0, 150}, {0, 7000, 0, 0, 75},  {0, 7000, 0, 0, 150},
+                                {0, 8000, 0, 0, 999}, {0, 8000, 0, 0, 500}, {0, 9000, 0, 0, 1000}};
     EXPECT_TRUE(ccuDbRunner->DeleteData("DELETE FROM " + CHANNEL_TABLE));
     EXPECT_TRUE(ccuDbRunner->InsertData(CHANNEL_TABLE, channelData));
 
     std::shared_ptr<DBRunner> addInfoDbRunner;
     MAKE_SHARED_RETURN_VOID(addInfoDbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
-    WaitSeedData waitData {
-        {1, 10, 200, 0, 255, 4},
-        {1, 10, 200, 0, 255, 0},
-        {1, 10, 200, 0, 255, 0}
-    };
+    WaitSeedData waitData{{1, 10, 200, 0, 255, 4}, {1, 10, 200, 0, 255, 0}, {1, 10, 200, 0, 255, 0}};
     EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + WAIT_TABLE));
     EXPECT_TRUE(addInfoDbRunner->InsertData(WAIT_TABLE, waitData));
 
@@ -294,19 +279,17 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldIncludeStreamIdWhenAssociatingHost
 {
     std::shared_ptr<DBRunner> ccuDbRunner;
     MAKE_SHARED_RETURN_VOID(ccuDbRunner, DBRunner, CCU_DB_PATH);
-    MissionSeedData missionData {
-        {1, 10, 100, 0, 0, 0, 1000, 0, 4000},
-        {1, 10, 0, 200, 5, 2000, 0, 6000, 0},
-        {70000, 10, 100, 0, 0, 0, 1000, 0, 4000},
-        {70000, 10, 0, 200, 6, 2000, 0, 6000, 0}
-    };
+    MissionSeedData missionData{{1, 10, 100, 0, 0, 0, 1000, 0, 4000},
+                                {1, 10, 0, 200, 5, 2000, 0, 6000, 0},
+                                {70000, 10, 100, 0, 0, 0, 1000, 0, 4000},
+                                {70000, 10, 0, 200, 6, 2000, 0, 6000, 0}};
     EXPECT_TRUE(ccuDbRunner->DeleteData("DELETE FROM " + MISSION_TABLE));
     EXPECT_TRUE(ccuDbRunner->InsertData(MISSION_TABLE, missionData));
 
     std::shared_ptr<DBRunner> addInfoDbRunner;
     MAKE_SHARED_RETURN_VOID(addInfoDbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
-    WaitSeedData waitData {{70000, 10, 200, 0, 255, 3}};
-    GroupSeedData groupData {{70000, 10, 100, 0, "SUM", "FP16", "FP16", 1024}};
+    WaitSeedData waitData{{70000, 10, 200, 0, 255, 3}};
+    GroupSeedData groupData{{70000, 10, 100, 0, "SUM", "FP16", "FP16", 1024}};
     EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + WAIT_TABLE));
     EXPECT_TRUE(addInfoDbRunner->InsertData(WAIT_TABLE, waitData));
     EXPECT_TRUE(addInfoDbRunner->DeleteData("DELETE FROM " + GROUP_TABLE));
@@ -337,7 +320,7 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldOmitLoopBandwidthForNonpositiveDur
 {
     std::shared_ptr<DBRunner> dbRunner;
     MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_DB_PATH);
-    MissionSeedData missionData {{1, 10, 100, 0, 0, 0, 4000, 0, 1000}};
+    MissionSeedData missionData{{1, 10, 100, 0, 0, 0, 4000, 0, 1000}};
     EXPECT_TRUE(dbRunner->DeleteData("DELETE FROM " + MISSION_TABLE));
     EXPECT_TRUE(dbRunner->InsertData(MISSION_TABLE, missionData));
 
@@ -357,10 +340,7 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldIgnoreChannelSamplesAtOrAfterMissi
 {
     std::shared_ptr<DBRunner> dbRunner;
     MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_DB_PATH);
-    ChannelSeedData channelData {
-        {3, 8000, 0, 0, 88},
-        {4, 9000, 0, 0, 120}
-    };
+    ChannelSeedData channelData{{3, 8000, 0, 0, 88}, {4, 9000, 0, 0, 120}};
     EXPECT_TRUE(dbRunner->DeleteData("DELETE FROM " + CHANNEL_TABLE));
     EXPECT_TRUE(dbRunner->InsertData(CHANNEL_TABLE, channelData));
 
@@ -445,7 +425,7 @@ TEST_F(CcuMissionProcessorUTest, TestRunShouldReturnTrueWhenLoopGroupWithReserve
 {
     std::shared_ptr<DBRunner> dbRunner;
     MAKE_SHARED_RETURN_VOID(dbRunner, DBRunner, CCU_ADD_INFO_DB_PATH);
-    GroupSeedData reservedGroup {{1, 10, 100, 0, "RESERVED", "FP16", "FP16", 1024}};
+    GroupSeedData reservedGroup{{1, 10, 100, 0, "RESERVED", "FP16", "FP16", 1024}};
     EXPECT_TRUE(dbRunner->DeleteData("DELETE FROM " + GROUP_TABLE));
     EXPECT_TRUE(dbRunner->InsertData(GROUP_TABLE, reservedGroup));
 

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import struct
@@ -72,7 +74,6 @@ class RuntimeOpInfoBean(AddInfoBean):
         for task id
         """
         return self._task_id
-
 
     @property
     def task_type(self: any) -> str:
@@ -141,6 +142,7 @@ class RuntimeOpInfo256Bean(RuntimeOpInfoBean, GeTensorBaseBean):
     """
     Runtime Op Info Bean (length 256)
     """
+
     TENSOR_LEN = 11
     TENSOR_PER_LEN = 18
 
@@ -148,20 +150,18 @@ class RuntimeOpInfo256Bean(RuntimeOpInfoBean, GeTensorBaseBean):
         RuntimeOpInfoBean.__init__(self, *args)
         GeTensorBaseBean.__init__(self)
         data = args[0]
-        self._deal_with_tensor_data(data[self.TENSOR_PER_LEN:], self.tensor_num, self.TENSOR_LEN)
+        self._deal_with_tensor_data(data[self.TENSOR_PER_LEN :], self.tensor_num, self.TENSOR_LEN)
 
 
 class RuntimeTensorBean(GeTensorBaseBean):
     """
     runtime tensor bean
     """
+
     TENSOR_LEN = 11
     TENSOR_PER_LEN = 0
 
-    def __init__(self: any) -> None:
-        super().__init__()
-
     def decode(self: any, binary_data: bytes, additional_fmt: str, tensor_num: int) -> any:
         parse_data = struct.unpack_from(StructFmt.BYTE_ORDER_CHAR + tensor_num * additional_fmt, binary_data)
-        self._deal_with_tensor_data(parse_data[self.TENSOR_PER_LEN:], tensor_num, self.TENSOR_LEN)
+        self._deal_with_tensor_data(parse_data[self.TENSOR_PER_LEN :], tensor_num, self.TENSOR_LEN)
         return self

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -31,7 +31,7 @@ class MemcpyRecorder:
         self.tag_to_state = {
             MemoryCopyConstant.RECEIVE_TAG: ReceiveState(self),
             MemoryCopyConstant.START_TAG: StartState(self),
-            MemoryCopyConstant.END_TAG: EndState(self)
+            MemoryCopyConstant.END_TAG: EndState(self),
         }
 
         self.stream_id = stream_id
@@ -44,9 +44,13 @@ class MemcpyRecorder:
         start a new batch
         :return: None
         """
-        self.each_batch_timestamp.append([MemoryCopyConstant.DEFAULT_TIMESTAMP,
-                                          MemoryCopyConstant.DEFAULT_TIMESTAMP,
-                                          MemoryCopyConstant.DEFAULT_TIMESTAMP])
+        self.each_batch_timestamp.append(
+            [
+                MemoryCopyConstant.DEFAULT_TIMESTAMP,
+                MemoryCopyConstant.DEFAULT_TIMESTAMP,
+                MemoryCopyConstant.DEFAULT_TIMESTAMP,
+            ]
+        )
 
     def process_state_tag(self: any, tag: int, timestamp: int) -> None:
         """
@@ -70,7 +74,7 @@ class MemcpyState:
         self.tag_to_func = {
             MemoryCopyConstant.RECEIVE_TAG: self.process_receive_tag,
             MemoryCopyConstant.START_TAG: self.process_start_tag,
-            MemoryCopyConstant.END_TAG: self.process_end_tag
+            MemoryCopyConstant.END_TAG: self.process_end_tag,
         }
         self.memcpy_recorder = memcpy_recorder
 
@@ -88,10 +92,12 @@ class MemcpyState:
         process other tag
         :param timestamp: timestamp
         """
-        logging.warning("The state tag of stream %d task %d timestamp %d is unknown",
-                      self.memcpy_recorder.stream_id,
-                      self.memcpy_recorder.task_id,
-                      timestamp)
+        logging.warning(
+            "The state tag of stream %d task %d timestamp %d is unknown",
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+            timestamp,
+        )
 
     @abstractmethod
     def process_receive_tag(self: any, timestamp: int) -> None:
@@ -121,24 +127,28 @@ class ReceiveState(MemcpyState):
     """
 
     def process_receive_tag(self: any, timestamp: int) -> None:
-        logging.warning("The state tag %d of stream %d task %d is repeating.",
-                        MemoryCopyConstant.RECEIVE_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "The state tag %d of stream %d task %d is repeating.",
+            MemoryCopyConstant.RECEIVE_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )
 
     def process_start_tag(self: any, timestamp: int) -> None:
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_START_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_START_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
     def process_end_tag(self: any, timestamp: int) -> None:
-        logging.warning("Miss state tag %d of stream %d task %d.",
-                        MemoryCopyConstant.START_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "Miss state tag %d of stream %d task %d.",
+            MemoryCopyConstant.START_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_END_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_END_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
 
 class StartState(MemcpyState):
@@ -147,25 +157,29 @@ class StartState(MemcpyState):
     """
 
     def process_receive_tag(self: any, timestamp: int) -> None:
-        logging.warning("Miss state tag %d of stream %d task %d.",
-                        MemoryCopyConstant.END_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "Miss state tag %d of stream %d task %d.",
+            MemoryCopyConstant.END_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )
         self.memcpy_recorder.start_new_batch()
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_RECEIVE_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_RECEIVE_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
     def process_start_tag(self: any, timestamp: int) -> None:
-        logging.warning("The state tag %d of stream %d task %d is repeating.",
-                        MemoryCopyConstant.START_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "The state tag %d of stream %d task %d is repeating.",
+            MemoryCopyConstant.START_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )
 
     def process_end_tag(self: any, timestamp: int) -> None:
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_END_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_END_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
 
 class EndState(MemcpyState):
@@ -176,21 +190,25 @@ class EndState(MemcpyState):
     def process_receive_tag(self: any, timestamp: int) -> None:
         self.memcpy_recorder.start_new_batch()
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_RECEIVE_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_RECEIVE_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
     def process_start_tag(self: any, timestamp: int) -> None:
-        logging.warning("Miss state tag %d of stream %d task %d.",
-                        MemoryCopyConstant.RECEIVE_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "Miss state tag %d of stream %d task %d.",
+            MemoryCopyConstant.RECEIVE_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )
         self.memcpy_recorder.start_new_batch()
         self.memcpy_recorder.each_batch_timestamp[self.NEWEST_BATCH_INDEX][
-            MemoryCopyConstant.STATES_TIMESTAMPS_START_INDEX] = InfoConfReader().time_from_syscnt(
-                timestamp, NumberConstant.MICRO_SECOND)
+            MemoryCopyConstant.STATES_TIMESTAMPS_START_INDEX
+        ] = InfoConfReader().time_from_syscnt(timestamp, NumberConstant.MICRO_SECOND)
 
     def process_end_tag(self: any, timestamp: int) -> None:
-        logging.warning("The state tag %d of stream %d task %d is repeating.",
-                        MemoryCopyConstant.END_TAG,
-                        self.memcpy_recorder.stream_id,
-                        self.memcpy_recorder.task_id)
+        logging.warning(
+            "The state tag %d of stream %d task %d is repeating.",
+            MemoryCopyConstant.END_TAG,
+            self.memcpy_recorder.stream_id,
+            self.memcpy_recorder.task_id,
+        )

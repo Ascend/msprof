@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 from common_func.db_manager import ClassRowType
 from common_func.db_manager import DBManager
@@ -65,32 +67,36 @@ class BiuPerfModel(BaseModel):
         """
         get biu flow process for meta timeline. Pid and tid are unique, so min values are chosen
         """
-        sql = "select 'process_name', min(pid), min(tid), " \
-              "unit_name from {} group by unit_name".format(DBNameConstant.TABLE_BIU_FLOW)
+        sql = "select 'process_name', min(pid), min(tid), unit_name from {} group by unit_name".format(
+            DBNameConstant.TABLE_BIU_FLOW
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_biu_flow_thread(self: any) -> list:
         """
         get biu flow thread for meta timeline. Pid and tid are unique, so min values are chosen
         """
-        sql = "select 'thread_name', min(pid), min(tid), " \
-              "flow_type from {} group by unit_name, flow_type".format(DBNameConstant.TABLE_BIU_FLOW)
+        sql = "select 'thread_name', min(pid), min(tid), flow_type from {} group by unit_name, flow_type".format(
+            DBNameConstant.TABLE_BIU_FLOW
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_biu_cycles_process(self: any) -> list:
         """
         get biu cycles process for meta timeline. Pid and tid are unique, so min values are chosen
         """
-        sql = "select 'process_name', min(pid), min(tid), " \
-              "unit_name from {} group by unit_name".format(DBNameConstant.TABLE_BIU_CYCLES)
+        sql = "select 'process_name', min(pid), min(tid), unit_name from {} group by unit_name".format(
+            DBNameConstant.TABLE_BIU_CYCLES
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_biu_cycles_thread(self: any) -> list:
         """
         get biu cycles thread for meta timeline. Pid and tid are unique, so min values are chosen
         """
-        sql = "select 'thread_name', min(pid), min(tid), " \
-              "cycle_type from {} group by unit_name, cycle_type".format(DBNameConstant.TABLE_BIU_CYCLES)
+        sql = "select 'thread_name', min(pid), min(tid), cycle_type from {} group by unit_name, cycle_type".format(
+            DBNameConstant.TABLE_BIU_CYCLES
+        )
         return DBManager.fetch_all_data(self.cur, sql)
 
     def get_biu_flow_data(self: any) -> list:
@@ -104,6 +110,7 @@ class BiuPerfModel(BaseModel):
         """
         get biu cycles data
         """
-        sql = "select pid, tid, interval_start, duration, cycle_num, ratio " \
-              "from {}".format(DBNameConstant.TABLE_BIU_CYCLES)
+        sql = "select pid, tid, interval_start, duration, cycle_num, ratio from {}".format(
+            DBNameConstant.TABLE_BIU_CYCLES
+        )
         return DBManager.fetch_all_data(self.cur, sql)

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -87,8 +87,7 @@ class ParsingCoreSampleData(MsMultiProcess):
         try:
             for file_name in self.file_list:
                 if is_valid_original_data(file_name, self.result_dir):
-                    logging.info(
-                        "start parsing data file: %s", file_name)
+                    logging.info("start parsing data file: %s", file_name)
                     self.read_binary_data(file_name)
                     FileManager.add_complete_file(self.result_dir, file_name)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
@@ -99,10 +98,12 @@ class ParsingCoreSampleData(MsMultiProcess):
         save ai core / aiv sample based data to db
         :return:
         """
-        self.model = AiCoreSampleModel(self.result_dir, self._db_name, [DBNameConstant.TABLE_EVENT_COUNT],
-                                       self._metrics_type)
-        check_aicore_events(self._event,
-                            is_custom=judge_custom_pmu_scene(self.sample_config, metrics_type=self._metrics_type))
+        self.model = AiCoreSampleModel(
+            self.result_dir, self._db_name, [DBNameConstant.TABLE_EVENT_COUNT], self._metrics_type
+        )
+        check_aicore_events(
+            self._event, is_custom=judge_custom_pmu_scene(self.sample_config, metrics_type=self._metrics_type)
+        )
         if self.model and self.ai_core_data:
             self.model.init()
             self.model.create_core_table(self._event, self.ai_core_data)
@@ -136,17 +137,20 @@ class ParsingCoreSampleData(MsMultiProcess):
     def _insert_ai_core_data(self: any, file_size: int, ai_core_data: list) -> None:
         delta_dev = InfoConfReader().get_delta_time()
         for _index in range(file_size // self._fmt_size):
-            binary_data = ai_core_data[_index * self._fmt_size:(_index + 1) * self._fmt_size]
+            binary_data = ai_core_data[_index * self._fmt_size : (_index + 1) * self._fmt_size]
             if not binary_data[0]:
                 break
             aicore_data_bean = self._decoder.decode(binary_data)
             if aicore_data_bean is not None:
                 tmp = [
-                    aicore_data_bean.count_num, aicore_data_bean.mode, self._replayid,
+                    aicore_data_bean.count_num,
+                    aicore_data_bean.mode,
+                    self._replayid,
                     aicore_data_bean.timestamp + delta_dev * NumberConstant.NANO_SECOND,
-                    aicore_data_bean.core_id, aicore_data_bean.task_cyc
+                    aicore_data_bean.core_id,
+                    aicore_data_bean.task_cyc,
                 ]
-                tmp.extend(aicore_data_bean.event_count[:aicore_data_bean.count_num])
+                tmp.extend(aicore_data_bean.event_count[: aicore_data_bean.count_num])
                 self.ai_core_data.append(tmp)
             else:
                 break
@@ -204,17 +208,19 @@ class ParsingFftsAICoreSampleData(ParsingCoreSampleData):
         self.calculate = OffsetCalculator(self.file_list, self._fmt_size, self.result_dir)
         self.data_dict = {
             'aic': {
-                'data_list': [], 'db_name': DBNameConstant.DB_NAME_AICORE,
+                'data_list': [],
+                'db_name': DBNameConstant.DB_NAME_AICORE,
                 'event': self.sample_config.get("ai_core_profiling_events", "").split(","),
                 'metrics_key': self.sample_config.get(StrConstant.AI_CORE_PROFILING_METRICS),
-                'metric_type': StrConstant.AI_CORE_PROFILING_METRICS
+                'metric_type': StrConstant.AI_CORE_PROFILING_METRICS,
             },
             'aiv': {
-                'data_list': [], 'db_name': DBNameConstant.DB_NAME_AI_VECTOR_CORE,
+                'data_list': [],
+                'db_name': DBNameConstant.DB_NAME_AI_VECTOR_CORE,
                 'event': self.sample_config.get("aiv_profiling_events", "").split(","),
                 'metrics_key': self.sample_config.get(StrConstant.AIV_PROFILING_METRICS),
-                'metric_type': StrConstant.AIV_PROFILING_METRICS
-            }
+                'metric_type': StrConstant.AIV_PROFILING_METRICS,
+            },
         }
 
     def save(self: any) -> None:
@@ -246,7 +252,7 @@ class ParsingFftsAICoreSampleData(ParsingCoreSampleData):
     def _insert_ai_core_data(self: any, file_size: int, ai_core_data: list) -> None:
         delta_dev = InfoConfReader().get_delta_time()
         for _index in range(file_size // self._fmt_size):
-            binary_data = ai_core_data[_index * self._fmt_size:(_index + 1) * self._fmt_size]
+            binary_data = ai_core_data[_index * self._fmt_size : (_index + 1) * self._fmt_size]
 
             if not binary_data[0]:
                 break
@@ -254,11 +260,14 @@ class ParsingFftsAICoreSampleData(ParsingCoreSampleData):
             if aicore_data_bean is not None:
                 timestamp = self._calculate_timestamp(aicore_data_bean, delta_dev)
                 tmp = [
-                    aicore_data_bean.count_num, aicore_data_bean.mode, self._replayid,
-                    timestamp, aicore_data_bean.core_id, aicore_data_bean.task_cyc
-
+                    aicore_data_bean.count_num,
+                    aicore_data_bean.mode,
+                    self._replayid,
+                    timestamp,
+                    aicore_data_bean.core_id,
+                    aicore_data_bean.task_cyc,
                 ]
-                tmp.extend(aicore_data_bean.event_count[:aicore_data_bean.count_num])
+                tmp.extend(aicore_data_bean.event_count[: aicore_data_bean.count_num])
             else:
                 break
             # core id in [0, 24]:aic  in [25, +):aiv

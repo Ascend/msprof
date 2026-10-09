@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -19,8 +19,11 @@ import stat
 
 
 class DBOpen:
-
-    def __init__(self, db_name, sqlite_dir=None, ):
+    def __init__(
+        self,
+        db_name,
+        sqlite_dir=None,
+    ):
         self._sqlite_path = os.path.dirname(os.path.abspath(__file__)) if sqlite_dir is None else sqlite_dir
         self._db_name = db_name
         self._db_path = os.path.join(self._sqlite_path, self._db_name)
@@ -39,8 +42,15 @@ class DBOpen:
             self._conn = sqlite3.connect(self._db_path)
             self._curs = self._conn.cursor()
             return self._conn, self._curs
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                sqlite3.OperationalError, sqlite3.DatabaseError):
+        except (
+            OSError,
+            SystemError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ):
             return None, None
 
     @property
@@ -60,8 +70,7 @@ class DBOpen:
         self._conn.commit()
 
     def insert_data(self, table_name, data):
-        insert_sql = "insert into {0} values ({value})".format(
-            table_name, value="?," * (len(data[0]) - 1) + "?")
+        insert_sql = "insert into {0} values ({value})".format(table_name, value="?," * (len(data[0]) - 1) + "?")
         self._curs.executemany(insert_sql, data)
         self._conn.commit()
 
@@ -75,8 +84,15 @@ class DBOpen:
                 self._curs.close()
             if isinstance(self._conn, sqlite3.Connection):
                 self._conn.close()
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                sqlite3.OperationalError, sqlite3.DatabaseError):
+        except (
+            OSError,
+            SystemError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ):
             print("%s close failed" % self._db_path)
 
     def _destroy_db_file(self):
@@ -85,7 +101,6 @@ class DBOpen:
 
 
 class DBManager:
-
     def __init__(self):
         self.db_path, _ = os.path.split(os.path.abspath(__file__))
         self.conn = None
@@ -101,8 +116,15 @@ class DBManager:
                 os.chmod(self.db_path, stat.S_IRWXU + stat.S_IRWXG + stat.S_IRWXO)
                 return self.conn, self.curs
             return None, None
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                sqlite3.OperationalError, sqlite3.DatabaseError):
+        except (
+            OSError,
+            SystemError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ):
             return None, None
 
     def create_table(self, db_name, table='test', insert="", data=""):
@@ -144,14 +166,20 @@ class DBManager:
             conn = sqlite3.connect(db_path)
             curs = conn.cursor()
             return conn, curs
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                sqlite3.OperationalError, sqlite3.DatabaseError):
+        except (
+            OSError,
+            SystemError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ):
             return None, None
 
     @staticmethod
     def insert_sql(table_name, data):
-        insert = "insert into {0} values ({value})".format(
-            table_name, value="?," * (len(data[0]) - 1) + "?")
+        insert = "insert into {0} values ({value})".format(table_name, value="?," * (len(data[0]) - 1) + "?")
         return insert
 
 

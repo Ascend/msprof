@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -40,8 +42,11 @@ class ParsingCpuUsageData(MsMultiProcess):
         super().__init__(sample_config)
         self.project_path = sample_config.get("result_dir", "")
         self._file_list = file_list
-        self._model = SysUsageModel(self.project_path, DBNameConstant.DB_HOST_SYS_USAGE_CPU,
-                                    [DBNameConstant.TABLE_SYS_USAGE, DBNameConstant.TABLE_PID_USAGE])
+        self._model = SysUsageModel(
+            self.project_path,
+            DBNameConstant.DB_HOST_SYS_USAGE_CPU,
+            [DBNameConstant.TABLE_SYS_USAGE, DBNameConstant.TABLE_PID_USAGE],
+        )
         self.data_dict = {"sys_data_list": [], "pid_data_list": []}
         self.file_all = None
 
@@ -123,6 +128,7 @@ class ParsingCpuUsageData(MsMultiProcess):
                 timestamp = tmp_list[0]
             if match_flag:
                 if re.match(r'cpu', line):
+                    # pylint: disable=possibly-used-before-assignment
                     self._sys_data_match_cpu(tmp_list, line, timestamp)
                     tmp_list = Utils.generator_to_list(None for _ in range(13))
                 elif line == '\n':
@@ -155,8 +161,7 @@ class ParsingCpuUsageData(MsMultiProcess):
         if "ProcessName" in line:
             proc_data_list[1] = ''.join(line.split(':')[1:]).strip()
         if re.match(r'cpu', line):
-            proc_data_list[7] = sum(
-                Utils.generator_to_list(float(i) for i in line.split(' ')[1:] if i != ''))
+            proc_data_list[7] = sum(Utils.generator_to_list(float(i) for i in line.split(' ')[1:] if i != ''))
             self.data_dict.setdefault("pid_data_list", []).append(proc_data_list)
             return Utils.generator_to_list(None for _ in range(8))
         return proc_data_list
@@ -169,7 +174,7 @@ class ParsingCpuUsageData(MsMultiProcess):
         line_data = Utils.generator_to_list(i for i in line.split(' ') if i != "")
         if len(line_data) >= 11:  # 10 is the minimum length for line.split
             tmp_list[0] = timestamp
-            tmp_list[1: 12] = line_data[0: 11]
+            tmp_list[1:12] = line_data[0:11]
         if ctrl_cpu and tmp_list[1] in ctrl_cpu:
             tmp_list[12] = "ctrlcpu"
         elif ai_cpu and tmp_list[1] in ai_cpu:

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -35,8 +35,7 @@ class AcsqTaskViewer:
 
     def __init__(self: any, configs: dict) -> None:
         self.configs = configs
-        self._model = AcsqTaskModel(configs.get('result_dir'), DBNameConstant.DB_SOC_LOG,
-                                    [])
+        self._model = AcsqTaskModel(configs.get('result_dir'), DBNameConstant.DB_SOC_LOG, [])
 
     @staticmethod
     def get_timeline_header() -> list:
@@ -77,17 +76,25 @@ class AcsqTaskViewer:
         with self._model as _model:
             data_list = _model.get_summary_data()
         self._update_kernel_name(data_list)
-        res_list = [[data.op_name, data.task_type, data.stream_id, data.task_id, data.task_time,
-                     "\"" + str(data.start_time) + "\"", "\"" + str(data.end_time) + "\"",
-                     ] for data in data_list]
+        res_list = [
+            [
+                data.op_name,
+                data.task_type,
+                data.stream_id,
+                data.task_id,
+                data.task_time,
+                "\"" + str(data.start_time) + "\"",
+                "\"" + str(data.end_time) + "\"",
+            ]
+            for data in data_list
+        ]
         return headers, res_list, len(res_list)
 
     def _update_kernel_name(self: any, data_list: list):
         conn, cur = DBManager.check_connect_db(self.configs.get('result_dir'), DBNameConstant.DB_AICORE_OP_SUMMARY)
         if not (cur and conn and DBManager.judge_table_exist(cur, DBNameConstant.TABLE_SUMMARY_GE)):
             return
-        ge_sql = "select op_name, stream_id, task_id from {}".format(
-            DBNameConstant.TABLE_SUMMARY_GE)
+        ge_sql = "select op_name, stream_id, task_id from {}".format(DBNameConstant.TABLE_SUMMARY_GE)
         ge_data = DBManager.fetch_all_data(cur, ge_sql, dto_class=GeTaskDto)
         op_name_dict = {"{0}-{1}".format(data.stream_id, data.task_id): data.op_name for data in ge_data}
         for data in data_list:

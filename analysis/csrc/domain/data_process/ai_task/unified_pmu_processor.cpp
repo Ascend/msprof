@@ -1,18 +1,20 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------
+ */
 #include "analysis/csrc/domain/data_process/ai_task/unified_pmu_processor.h"
 
 #include <algorithm>
@@ -306,7 +308,7 @@ bool UnifiedPmuProcessor::FormatTaskBasedData(const OTFormat &oriData, std::vect
     }
     if (!Utils::Reserve(processedData, oriData.size()))
     {
-        ERROR("Reserve for % task-based data failed, columnName is %.", columnName);
+        ERROR("Reserve for % task-based data failed, columnName is %.", oriData.size(), columnName);
         return false;
     }
     // 当前task-based pmu存在一个问题:
@@ -476,7 +478,7 @@ bool UnifiedPmuProcessor::FormatSampleBasedTimelineData(const OSTFormat &oriData
     }
     if (!Utils::Reserve(processedData, processedData.size() + oriData.size()))
     {
-        ERROR("Reserve for % sample-based timeline data failed.");
+        ERROR("Reserve for % sample-based timeline data failed.", processedData.size() + oriData.size());
         return false;
     }
     std::unordered_map<uint32_t, double> coreIdTimeMap;
@@ -577,7 +579,7 @@ bool UnifiedPmuProcessor::FormatSampleBasedSummaryData(const OSSFormat &oriData,
     }
     if (!Utils::Reserve(processedData, processedData.size() + oriData.size()))
     {
-        ERROR("Reserve for % sample-based summary data failed.");
+        ERROR("Reserve for % sample-based summary data failed.", processedData.size() + oriData.size());
         return false;
     }
     SampleSummaryData tempData;

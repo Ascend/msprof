@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -21,7 +21,7 @@ from collections import OrderedDict
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.msvp_common import float_calculate, format_high_precision_for_csv
+from common_func.msvp_common import float_calculate
 from common_func.utils import Utils
 
 
@@ -30,24 +30,23 @@ def _insert_hbm_data(data: list, hbm_id_count: int) -> None:
     calculate_val1 = float_calculate([float_calculate(hbm_lst1), hbm_id_count], '/')
     hbm_lst2 = Utils.generator_to_list(x[2] for x in data)
     calculate_val2 = float_calculate([float_calculate(hbm_lst2), hbm_id_count], '/')
-    data.insert(0,
-                ("Average",
-                 _reformat_hbm_data(calculate_val1),
-                 _reformat_hbm_data(calculate_val2)))
+    data.insert(0, ("Average", _reformat_hbm_data(calculate_val1), _reformat_hbm_data(calculate_val2)))
 
 
 def _get_hbm_result_ata(curs: any, device_id: str, hbm_id_count: int) -> list:
-    sql = 'select hbmId,' \
-          '(select AVG(bandwidth) from HBMbwData where event_type="read"),' \
-          '(select AVG(bandwidth) from HBMbwData where event_type="write") from HBMbwData ' \
-          'where device_id=? group by hbmId'
+    sql = (
+        'select hbmId,'
+        '(select AVG(bandwidth) from HBMbwData where event_type="read"),'
+        '(select AVG(bandwidth) from HBMbwData where event_type="write") from HBMbwData '
+        'where device_id=? group by hbmId'
+    )
     data = DBManager.fetch_all_data(curs, sql, (device_id,))
     _insert_hbm_data(data, hbm_id_count)
     result_data = {'rate': 'MB/s', 'table': []}
     for tmp in data:
-        result_data.get('table', []).append(OrderedDict([('Task', tmp[0]),
-                                                         ('Read(MB/s)', tmp[1]),
-                                                         ('Write(MB/s)', tmp[2])]))
+        result_data.get('table', []).append(
+            OrderedDict([('Task', tmp[0]), ('Read(MB/s)', tmp[1]), ('Write(MB/s)', tmp[2])])
+        )
     return result_data
 
 
@@ -68,8 +67,9 @@ def get_hbm_summary(project_path: str, device_id: str) -> str:
     if res:
         return res
     try:
-        hbm_id_count = curs.execute('select count(distinct(hbmId)) from HBMbwData where device_id=?',
-                                    (device_id,)).fetchone()[0]
+        hbm_id_count = curs.execute(
+            'select count(distinct(hbmId)) from HBMbwData where device_id=?', (device_id,)
+        ).fetchone()[0]
     except sqlite3.Error:
         return json.dumps({'status': NumberConstant.ERROR, 'info': 'Failed to get HBM data. '})
     else:
@@ -90,19 +90,22 @@ def get_hbm_summary_data(project_path: str, device_id: str) -> any:
     if res:
         return res
     try:
-        hbm_id_count = curs.execute('select count(distinct(hbmId)) from HBMbwData where device_id=?',
-                                    (device_id,)).fetchone()[0]
+        hbm_id_count = curs.execute(
+            'select count(distinct(hbmId)) from HBMbwData where device_id=?', (device_id,)
+        ).fetchone()[0]
     except sqlite3.Error:
         return []
     else:
         if not hbm_id_count:
             return json.dumps({'status': NumberConstant.ERROR, "info": "Failed to get hbm data."})
-        sql = 'select hbmId,' \
-              'sum(case when event_type="read" then bandwidth else 0 end) / ' \
-              'sum(case when event_type="read" then 1 else 0 end) as read,' \
-              'sum(case when event_type="write" then bandwidth else 0 end) / ' \
-              'sum(case when event_type="write" then 1 else 0 end) as write' \
-              ' FROM "HBMbwData"  WHERE device_id = ? GROUP BY hbmid'.format(accuracy=NumberConstant.DECIMAL_ACCURACY)
+        sql = (
+            'select hbmId,'
+            'sum(case when event_type="read" then bandwidth else 0 end) / '
+            'sum(case when event_type="read" then 1 else 0 end) as read,'
+            'sum(case when event_type="write" then bandwidth else 0 end) / '
+            'sum(case when event_type="write" then 1 else 0 end) as write'
+            ' FROM "HBMbwData"  WHERE device_id = ? GROUP BY hbmid'
+        )
         data = DBManager.fetch_all_data(curs, sql, (device_id,))
         _insert_hbm_data(data, hbm_id_count)
         data = _format_hbm_data(data)

@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import re
@@ -23,7 +25,6 @@ from common_func.file_manager import FileManager
 from common_func.file_manager import FileOpen
 from common_func.file_name_manager import get_file_name_pattern_match
 from common_func.file_name_manager import get_pid_mem_compiles
-from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msvp_common import is_valid_original_data
 from common_func.path_manager import PathManager
@@ -38,16 +39,26 @@ class ParsingMemoryData(MsMultiProcess):
 
     PID_DATA_PATTERN = r'^(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)'
     SYS_DATA_METRIC = (
-        'MemTotal', 'MemFree', 'Buffers', 'Cached', 'Shmem', 'CommitLimit',
-        'Committed_AS', 'HugePages_Total', 'HugePages_Free'
+        'MemTotal',
+        'MemFree',
+        'Buffers',
+        'Cached',
+        'Shmem',
+        'CommitLimit',
+        'Committed_AS',
+        'HugePages_Total',
+        'HugePages_Free',
     )
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
         self.project_path = sample_config.get("result_dir", "")
         self._file_list = file_list
-        self._model = SysMemModel(self.project_path, DBNameConstant.DB_HOST_SYS_USAGE_MEM,
-                                  [DBNameConstant.TABLE_SYS_MEM, DBNameConstant.TABLE_PID_MEM])
+        self._model = SysMemModel(
+            self.project_path,
+            DBNameConstant.DB_HOST_SYS_USAGE_MEM,
+            [DBNameConstant.TABLE_SYS_MEM, DBNameConstant.TABLE_PID_MEM],
+        )
         self.data_dict = {'pid_data_list': [], 'sys_data_list': []}
 
     def match_sys_data(self: any, line: str, tmp_list: list) -> tuple:

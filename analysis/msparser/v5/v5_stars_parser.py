@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -44,7 +44,7 @@ class V5StarsParser(DataParser, MsMultiProcess):
 
     def __init__(self: any, file_list: dict, sample_config: dict) -> None:
         super().__init__(sample_config)
-        super(DataParser, self).__init__(sample_config)
+        super(DataParser, self).__init__(sample_config)  # pylint: disable=bad-super-call
         self._file_list = file_list
         self._sample_config = sample_config
         self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)
@@ -55,15 +55,14 @@ class V5StarsParser(DataParser, MsMultiProcess):
         parse function
         """
         v5_stars_file_list = self._file_list.get(DataTag.V5_STARS_PROFILE, [])
-        offset_calculator = OffsetCalculator(v5_stars_file_list,
-                                             struct.calcsize(StructFmt.V5_STARS_PROFILE_FMT),
-                                             self._project_path)
+        offset_calculator = OffsetCalculator(
+            v5_stars_file_list, struct.calcsize(StructFmt.V5_STARS_PROFILE_FMT), self._project_path
+        )
         for _file in v5_stars_file_list:
             if not is_valid_original_data(_file, self._project_path):
                 continue
             _file_path = self.get_file_path_and_check(_file)
-            logging.info(
-                "start parsing v5_stars_profile data file: %s", _file)
+            logging.info("start parsing v5_stars_profile data file: %s", _file)
             self._read_data(_file_path, offset_calculator)
 
     def save(self: any) -> None:
@@ -74,8 +73,7 @@ class V5StarsParser(DataParser, MsMultiProcess):
         if self._stars_profile_data:
             stars_profile_model = V5StarsModel(self._project_path)
             with stars_profile_model:
-                stars_profile_model.flush(self._reformat_data(self._stars_profile_data),
-                                          DBNameConstant.TABLE_V5_TASK)
+                stars_profile_model.flush(self._reformat_data(self._stars_profile_data), DBNameConstant.TABLE_V5_TASK)
 
     def ms_run(self: any) -> None:
         """
@@ -99,7 +97,7 @@ class V5StarsParser(DataParser, MsMultiProcess):
         with FileOpen(file_path, 'rb') as _open_file:
             _all_data = offset.pre_process(_open_file.file_reader, file_size)
             for _index in range(file_size // struct_size):
-                data = _all_data[_index * struct_size:(_index + 1) * struct_size]
+                data = _all_data[_index * struct_size : (_index + 1) * struct_size]
                 self._stars_profile_data.append(V5StarsBean.decode(data))
 
     def _reformat_data(self: any, data_list: list) -> list:
@@ -116,12 +114,20 @@ class V5StarsParser(DataParser, MsMultiProcess):
                     # steam_id and block_num
                     host_data = [self.INVALID_STREAM_ID, self.INVALID_BLOCK_NUM]
                     logging.error(
-                        "Can not find model_id = %d and task_id = %d in host data info!", data.model_id, data.task_id)
+                        "Can not find model_id = %d and task_id = %d in host data info!", data.model_id, data.task_id
+                    )
                 else:
                     host_data = host_data_dict.get((data.model_id, data.task_id))[0]
                 res_list[i] = [
-                    data.model_id, host_data[0], data.task_id, data.task_type,
-                    start, end, end - start, data.total_cycle, host_data[1]
+                    data.model_id,
+                    host_data[0],
+                    data.task_id,
+                    data.task_type,
+                    start,
+                    end,
+                    end - start,
+                    data.total_cycle,
+                    host_data[1],
                 ]
                 res_list[i].extend(data.pmu_list)
         return res_list

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -35,14 +35,12 @@ def parse_net_stats(line: str) -> any:
     """
     parse net status by line
     """
-    NetStats = namedtuple('netstats', ['intf', 'rxbytes', 'rxpackets', 'rxerrs',
-                                       'txbytes', 'txpackets', 'txerrs'])
+    NetStats = namedtuple('netstats', ['intf', 'rxbytes', 'rxpackets', 'rxerrs', 'txbytes', 'txpackets', 'txerrs'])
     try:
         intf, rxbytes, rxpackets, rxerrs, txbytes, txpackets, txerrs = init_params(line)
         return NetStats(intf, rxbytes, rxpackets, rxerrs, txbytes, txpackets, txerrs)
     except (TypeError, ValueError, RuntimeError) as parse_file_except:
-        logging.error("Error in parsing network data:%s", str(parse_file_except),
-                      exc_info=Constant.TRACE_BACK_SWITCH)
+        logging.error("Error in parsing network data:%s", str(parse_file_except), exc_info=Constant.TRACE_BACK_SWITCH)
         return NetStats(0, 0, 0, 0, 0, 0, 0)
     finally:
         pass
@@ -74,7 +72,7 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
     class for parsing host mem usage data
     """
 
-    NS_TO_S = 10 ** 9
+    NS_TO_S = 10**9
 
     def __init__(self: any, result_dir: str, file_name: str = "") -> None:
         super().__init__(result_dir, file_name)
@@ -101,8 +99,14 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
         """
         get timeline header
         """
-        return [["process_name", InfoConfReader().get_json_pid_data(),
-                 InfoConfReader().get_json_tid_data(), "Network Usage"]]
+        return [
+            [
+                "process_name",
+                InfoConfReader().get_json_pid_data(),
+                InfoConfReader().get_json_tid_data(),
+                "Network Usage",
+            ]
+        ]
 
     def init(self: any) -> None:
         """
@@ -117,11 +121,11 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
         try:
             with FileOpen(self.file_name, "r") as file:
                 self._parse_network_usage(file.file_reader)
-                logging.info(
-                    "Finish parsing network usage data file: %s", os.path.basename(self.file_name))
+                logging.info("Finish parsing network usage data file: %s", os.path.basename(self.file_name))
         except (FileNotFoundError, ValueError, IOError) as parse_file_except:
-            logging.error("Error in parsing network data:%s", str(parse_file_except),
-                          exc_info=Constant.TRACE_BACK_SWITCH)
+            logging.error(
+                "Error in parsing network data:%s", str(parse_file_except), exc_info=Constant.TRACE_BACK_SWITCH
+            )
         finally:
             pass
 
@@ -136,8 +140,9 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
             if is_number(speed) and speed != -1:
                 self.speeds[net.get("netCardName")] = net.get("speed") * Constant.MBPS_TO_BYTES
 
-    def write_per_usage(self: any, curr_timestamp: float, curr_data: dict,
-                        last_timestamp: float, last_data: dict) -> None:
+    def write_per_usage(
+        self: any, curr_timestamp: float, curr_data: dict, last_timestamp: float, last_data: dict
+    ) -> None:
         """
         calculate usage then insert to db
         """
@@ -164,8 +169,13 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
         usage = usage.quantize(NumberConstant.USAGE_PLACES) if intf else 0
         transit_speed = float(speed) * intf_num / NumberConstant.KILOBYTE
         self.cur_model.insert_single_data(
-            [last_timestamp * HostNetworkUsagePresenter.NS_TO_S,
-             curr_timestamp * HostNetworkUsagePresenter.NS_TO_S, str(usage), transit_speed])
+            [
+                last_timestamp * HostNetworkUsagePresenter.NS_TO_S,
+                curr_timestamp * HostNetworkUsagePresenter.NS_TO_S,
+                str(usage),
+                transit_speed,
+            ]
+        )
 
     def write_usage_items(self: any, file: any) -> None:
         """
@@ -181,8 +191,7 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
             if line.startswith('time'):
                 # compute with last sample point
                 if last_timestamp is not None:
-                    self.write_per_usage(curr_timestamp,
-                                         curr_data, last_timestamp, last_data)
+                    self.write_per_usage(curr_timestamp, curr_data, last_timestamp, last_data)
                 # set curr -> last
                 last_data = Utils.dict_copy(curr_data)
                 last_timestamp = curr_timestamp
@@ -195,8 +204,7 @@ class HostNetworkUsagePresenter(HostProfPresenterBase):
                 self._update_cur_data(line, curr_data)
 
         if curr_data:
-            self.write_per_usage(curr_timestamp, curr_data,
-                                 last_timestamp, last_data)
+            self.write_per_usage(curr_timestamp, curr_data, last_timestamp, last_data)
 
     def get_network_usage_data(self: any) -> dict:
         """

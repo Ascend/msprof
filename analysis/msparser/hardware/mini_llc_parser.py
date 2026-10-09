@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 from collections import OrderedDict
@@ -43,10 +45,17 @@ class MiniLLCParser(MsMultiProcess):
         self._file_list = file_list.get(DataTag.LLC, [])
         self.sample_config = sample_config
         self.project_path = self.sample_config.get("result_dir")
-        self._model = MiniLlcModel(self.project_path, DBNameConstant.DB_LLC,
-                                   [DBNameConstant.TABLE_MINI_LLC_METRICS, DBNameConstant.TABLE_LLC_DSID,
-                                    DBNameConstant.TABLE_LLC_ORIGIN, DBNameConstant.TABLE_LLC_BANDWIDTH,
-                                    DBNameConstant.TABLE_LLC_CAPACITY])
+        self._model = MiniLlcModel(
+            self.project_path,
+            DBNameConstant.DB_LLC,
+            [
+                DBNameConstant.TABLE_MINI_LLC_METRICS,
+                DBNameConstant.TABLE_LLC_DSID,
+                DBNameConstant.TABLE_LLC_ORIGIN,
+                DBNameConstant.TABLE_LLC_BANDWIDTH,
+                DBNameConstant.TABLE_LLC_CAPACITY,
+            ],
+        )
         self.metric_tmp = OrderedDict()
         self.dsid_tmp = OrderedDict()
         self.llc_data = {'metric': [], 'dsid': [], 'original_data': []}
@@ -127,7 +136,7 @@ class MiniLLCParser(MsMultiProcess):
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error("%s: %s", file_name, err, exc_info=Constant.TRACE_BACK_SWITCH)
             return
-        
+
         metric_tmp = self.format_metric_data()
         self.llc_data.setdefault('metric', []).append(list(metric_tmp.values()))
         self.llc_data.setdefault('dsid', []).append(list(self.dsid_tmp.values()))
@@ -140,8 +149,7 @@ class MiniLLCParser(MsMultiProcess):
             for file_name in self._file_list:
                 if is_valid_original_data(file_name, self.project_path):
                     device_id = self.sample_config.get("device_id", "0")
-                    logging.info(
-                        "start parsing llc data file: %s", file_name)
+                    logging.info("start parsing llc data file: %s", file_name)
                     self.read_binary_data(file_name, device_id, '0')  # replay id is 0
         except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:
             logging.error(err, exc_info=Constant.TRACE_BACK_SWITCH)
@@ -174,11 +182,9 @@ class MiniLLCParser(MsMultiProcess):
         line[0] = start_time + float(line[0])
         self.llc_data.setdefault('original_data', []).append(headers + line)
         if line[-1].startswith("dsid"):
-            self.handle_llc_data(self.dsid_tmp, line, self.llc_data.get('dsid', []), headers[0],
-                                 headers[1])
+            self.handle_llc_data(self.dsid_tmp, line, self.llc_data.get('dsid', []), headers[0], headers[1])
         else:
-            self.handle_llc_data(self.metric_tmp, line, self.llc_data.get('metric', []), headers[0],
-                                 headers[1])
+            self.handle_llc_data(self.metric_tmp, line, self.llc_data.get('metric', []), headers[0], headers[1])
 
     def _read_binary_helper(self: any, llc_file: any, start_time: int, headers: list) -> None:
         while 1:

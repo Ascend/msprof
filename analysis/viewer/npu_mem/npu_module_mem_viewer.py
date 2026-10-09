@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 
@@ -54,11 +56,12 @@ class NpuModuleMemViewer:
         return self._npu_module_mem_reformat(origin_summary_data)
 
     def _npu_module_mem_reformat(self, data_dict: dict) -> tuple:
+        invalid_module_ids = set()
         for datum in data_dict:
             try:
                 module_name = ModuleName(datum.module_id).name
             except ValueError:
-                logging.warning("Invalid module id, please check!")
+                invalid_module_ids.add(datum.module_id)
                 module_name = ModuleName.UNKNOWN.name
             if datum.total_size > 0:
                 total_size = round(datum.total_size / NumberConstant.KILOBYTE, NumberConstant.ROUND_THREE_DECIMAL)
@@ -79,4 +82,6 @@ class NpuModuleMemViewer:
                     datum.device_type,
                 ]
             )
+        if invalid_module_ids:
+            logging.warning("Invalid module id, please check! invalid module ids: %s", sorted(invalid_module_ids))
         return self._configs.get(StrConstant.CONFIG_HEADERS), self._data, len(self._data)

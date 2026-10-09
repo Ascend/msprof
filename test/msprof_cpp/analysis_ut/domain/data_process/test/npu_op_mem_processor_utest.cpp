@@ -1,45 +1,48 @@
-﻿/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- * -------------------------------------------------------------------------*/
-#include "gtest/gtest.h"
-#include "analysis/csrc/domain/data_process/system/npu_op_mem_processor.h"
-#include "mockcpp/mockcpp.hpp"
+ * -------------------------------------------------------------------------
+ */
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/system/npu_op_mem_processor.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "reserve_mock_utils.h"
 
 using namespace Analysis::Domain;
 using namespace Domain::Environment;
 using namespace Analysis::Utils;
 using namespace Analysis::Application;
-namespace {
+namespace
+{
 const int DEPTH = 0;
 const std::string NPU_OP_MEM_DIR = "./npu_op_mem";
 const std::string DB_SUFFIX = "task_memory.db";
 const std::string PROF0 = File::PathJoin({NPU_OP_MEM_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "NpuOpMemRaw";
-using OriDataFormat = std::vector<std::tuple<std::string, std::string, int64_t, double, uint32_t, uint64_t,
-                                             uint64_t, uint32_t, uint32_t, std::string>>;
-const OriDataFormat DATA_A{{"7891295173964629722", "20074680643584", 196608, 7686603804672, 2973237, 262144, 623706112,
-                            10000, 6, "NPU:1"},
-                           {"7891295173964629722", "20074680643584", -196608, 7686603809555, 2973237, 65536, 623706112,
-                            10000, 6, "NPU:1"}};
-}
+using OriDataFormat = std::vector<std::tuple<std::string, std::string, int64_t, double, uint32_t, uint64_t, uint64_t,
+                                             uint32_t, uint32_t, std::string>>;
+const OriDataFormat DATA_A{
+    {"7891295173964629722", "20074680643584", 196608, 7686603804672, 2973237, 262144, 623706112, 10000, 6, "NPU:1"},
+    {"7891295173964629722", "20074680643584", -196608, 7686603809555, 2973237, 65536, 623706112, 10000, 6, "NPU:1"}};
+}  // namespace
 
-class NpuOpMemProcessorUTest : public testing::Test {
-protected:
+class NpuOpMemProcessorUTest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
@@ -90,24 +93,16 @@ TEST_F(NpuOpMemProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
 {
     auto processor = NpuOpMemProcessor(PROF0);
     DataInventory dataInventory;
-    MOCKER_CPP(&DBInfo::ConstructDBRunner)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&DBInfo::ConstructDBRunner).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
     MOCKER_CPP(&DBInfo::ConstructDBRunner).reset();
-    MOCKER_CPP(&DataProcessor::CheckPathAndTable)
-        .stubs()
-        .will(returnValue(CHECK_FAILED));
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_FAILED));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
     MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
-    MOCKER_CPP(&Context::GetSyscntConversionParams)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetSyscntConversionParams).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
     MOCKER_CPP(&Context::GetSyscntConversionParams).reset();
-    MOCKER_CPP(&Context::GetProfTimeRecordInfo)
-        .stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&Context::GetProfTimeRecordInfo).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
     MOCKER_CPP(&Context::GetProfTimeRecordInfo).reset();
 
@@ -117,7 +112,6 @@ TEST_F(NpuOpMemProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
     // 覆盖dataInventory里面没有GeHashMap，写日志并返回false的分支
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NPU_OP_MEM));
 }
-
 
 TEST_F(NpuOpMemProcessorUTest, TestRunShouldReturnFalseWhenFormatDataFail)
 {

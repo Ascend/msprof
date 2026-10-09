@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -31,10 +31,13 @@ def get_ge_model_data(params: dict, table_name: str, configs: dict) -> tuple:
     """
     result_data = []
     project_path = params.get(StrConstant.PARAM_RESULT_DIR)
-    search_data_sql = "select {0}.model_name, {1}.model_id, fusion_name, op_names, memory_input/{BYTES_TO_KB}, " \
-                      "memory_output/{BYTES_TO_KB}, memory_weight/{BYTES_TO_KB}, memory_workspace/{BYTES_TO_KB}," \
-                      " memory_total/{BYTES_TO_KB} from {1} inner join {0} where {0}.model_id={1}.model_id " \
-        .format(table_name, DBNameConstant.TABLE_GE_FUSION_OP_INFO, BYTES_TO_KB=NumberConstant.BYTES_TO_KB)
+    search_data_sql = (
+        "select {0}.model_name, {1}.model_id, fusion_name, op_names, memory_input/{BYTES_TO_KB}, "
+        "memory_output/{BYTES_TO_KB}, memory_weight/{BYTES_TO_KB}, memory_workspace/{BYTES_TO_KB},"
+        " memory_total/{BYTES_TO_KB} from {1} inner join {0} where {0}.model_id={1}.model_id ".format(
+            table_name, DBNameConstant.TABLE_GE_FUSION_OP_INFO, BYTES_TO_KB=NumberConstant.BYTES_TO_KB
+        )
+    )
     model_view = ViewModel(project_path, configs.get(StrConstant.CONFIG_DB), [table_name])
     if not model_view.check_table():
         return MsvpConstant.MSVP_EMPTY_DATA

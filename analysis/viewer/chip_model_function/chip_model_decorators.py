@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -15,16 +15,21 @@
 # -------------------------------------------------------------------------
 from functools import wraps
 from common_func.constant import Constant
-from profiling_bean.prof_enum.chip_model import ChipModel
 from common_func.platform.chip_manager import ChipManager
+from profiling_bean.prof_enum.chip_model import ChipModel
 
 # 部分表头带单位，是因为sample-based和task-based的表头不一致
 NOT_SUPPORT_PMU_FOR_CHIP_V1_1 = [
-    "vec_ratio", "vec_time",
-    "ub_read_bw", "ub_read_bw(GB/s)",
-    "ub_write_bw", "ub_write_bw(GB/s)",
-    "l0c_write_bw", "l0c_write_bw(GB/s)",
-    "l2_write_bw", "l2_write_bw(GB/s)",
+    "vec_ratio",
+    "vec_time",
+    "ub_read_bw",
+    "ub_read_bw(GB/s)",
+    "ub_write_bw",
+    "ub_write_bw(GB/s)",
+    "l0c_write_bw",
+    "l0c_write_bw(GB/s)",
+    "l2_write_bw",
+    "l2_write_bw(GB/s)",
     "vec_fp32_ratio",
     "vec_fp16_ratio",
     "vec_int32_ratio",

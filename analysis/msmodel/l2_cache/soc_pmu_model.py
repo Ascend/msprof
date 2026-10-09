@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -26,7 +26,7 @@ class SocPmuModel(ParserModel):
     """
 
     def __init__(self: any, result_dir: str, tale_list: list) -> None:
-        super(SocPmuModel, self).__init__(result_dir, DBNameConstant.DB_SOC_PMU, tale_list)
+        super().__init__(result_dir, DBNameConstant.DB_SOC_PMU, tale_list)
 
     def flush(self: any, data_list: list, table_name: str = DBNameConstant.TABLE_SOC_PMU) -> None:
         """
@@ -43,8 +43,7 @@ class SocPmuCalculatorModel(ParserModel):
     RAW_DATA_EVENTS_INDEX = -1
 
     def __init__(self: any, result_dir: str) -> None:
-        super(SocPmuCalculatorModel, self).__init__(result_dir, DBNameConstant.DB_SOC_PMU,
-                                                    [DBNameConstant.TABLE_SOC_PMU_SUMMARY])
+        super().__init__(result_dir, DBNameConstant.DB_SOC_PMU, [DBNameConstant.TABLE_SOC_PMU_SUMMARY])
 
     @staticmethod
     def split_events_data(soc_pmu_ps_data: list) -> list:
@@ -72,8 +71,6 @@ class SocPmuViewerModel(ViewModel):
     """
     soc pmu viewer model class
     """
-    def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
-        super().__init__(result_dir, db_name, table_list)
 
     def get_summary_data(self: any) -> list:
         """

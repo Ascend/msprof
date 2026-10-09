@@ -1,20 +1,20 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -61,8 +61,9 @@ class StreamExpandSpecParser(MsMultiProcess):
             with FileOpen(stream_expand_file, "rb") as stream_info_f:
                 stream_expand_info_data = self.calculate.pre_process(stream_info_f.file_reader, _file_size)
                 struct_nums = _file_size // StructFmt.STREAM_EXPAND_FMT_SIZE
-                struct_data = struct.unpack(StructFmt.BYTE_ORDER_CHAR + StructFmt.STREAM_EXPAND_FMT * struct_nums,
-                                            stream_expand_info_data)
+                struct_data = struct.unpack(
+                    StructFmt.BYTE_ORDER_CHAR + StructFmt.STREAM_EXPAND_FMT * struct_nums, stream_expand_info_data
+                )
                 # 获取二进制文件中第7个字段: expandStatus，是否为stream扩容场景，1为扩容场景，0为非扩容场景
                 self._stream_expand_data.append([struct_data[6]])
             return NumberConstant.SUCCESS

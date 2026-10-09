@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -35,10 +35,9 @@ class MemoryCopyViewer:
 
     def __init__(self: any, project_path: str) -> None:
         self._project_path = project_path
-        self._model = MemcpyModel(self._project_path,
-                                  DBNameConstant.DB_MEMORY_COPY,
-                                  DBNameConstant.TABLE_TS_MEMCPY_CALCULATION
-                                  )
+        self._model = MemcpyModel(
+            self._project_path, DBNameConstant.DB_MEMORY_COPY, DBNameConstant.TABLE_TS_MEMCPY_CALCULATION
+        )
         self._pid = InfoConfReader().get_json_pid_data()
 
     @staticmethod
@@ -89,9 +88,24 @@ class MemoryCopyViewer:
                 pending = MemoryCopyConstant.DEFAULT_VIEWER_VALUE
                 op_name = MemoryCopyConstant.DEFAULT_VIEWER_VALUE
 
-                summary_data.append((default_time_ratio, sum_val, task_count, avg_val,
-                                     min_val, max_val, waiting, running,
-                                     pending, datum[1], StrConstant.AYNC_MEMCPY, datum[2], op_name, datum[3]))
+                summary_data.append(
+                    (
+                        default_time_ratio,
+                        sum_val,
+                        task_count,
+                        avg_val,
+                        min_val,
+                        max_val,
+                        waiting,
+                        running,
+                        pending,
+                        datum[1],
+                        StrConstant.AYNC_MEMCPY,
+                        datum[2],
+                        op_name,
+                        datum[3],
+                    )
+                )
         return summary_data
 
     def get_memory_copy_non_chip0_summary(self: any) -> list:
@@ -109,10 +123,8 @@ class MemoryCopyViewer:
 
             for datum in export_data:
                 export_datum = []
-                task_start = format_high_precision_for_csv(
-                    InfoConfReader().trans_into_local_time(datum[5], True))
-                task_stop = format_high_precision_for_csv(
-                    InfoConfReader().trans_into_local_time(datum[6], True))
+                task_start = format_high_precision_for_csv(InfoConfReader().trans_into_local_time(datum[5], True))
+                task_stop = format_high_precision_for_csv(InfoConfReader().trans_into_local_time(datum[6], True))
                 export_datum.append(datum[0])
                 export_datum.append(datum[1])
                 export_datum.append(datum[2])
@@ -132,25 +144,24 @@ class MemoryCopyViewer:
         """
         timeline_data = []
         if self._model.check_db():
-            export_data = self._model.return_task_scheduler_timeline(
-                DBNameConstant.TABLE_TS_MEMCPY_CALCULATION)
+            export_data = self._model.return_task_scheduler_timeline(DBNameConstant.TABLE_TS_MEMCPY_CALCULATION)
             for datum in export_data:
                 start_time = InfoConfReader().trans_into_local_time(raw_timestamp=datum[3], use_us=True)
                 end_time = InfoConfReader().trans_into_local_time(raw_timestamp=datum[4], use_us=True)
                 receive_time = InfoConfReader().trans_into_local_time(raw_timestamp=datum[2], use_us=True)
-                args = OrderedDict([("Task Type", datum[1]),
-                                    ("Stream Id", datum[6]),
-                                    ("Task Id", datum[7]),
-                                    ("Receive Time", receive_time),
-                                    ("Start Time", start_time),
-                                    ("End Time", end_time)])
+                args = OrderedDict(
+                    [
+                        ("Task Type", datum[1]),
+                        ("Stream Id", datum[6]),
+                        ("Task Id", datum[7]),
+                        ("Receive Time", receive_time),
+                        ("Start Time", start_time),
+                        ("End Time", end_time),
+                    ]
+                )
 
                 logic_stream_id = GeLogicStreamSingleton().get_logic_stream_id(datum[6])
-                timeline_datum = [
-                    datum[0], self._pid, logic_stream_id,
-                    start_time, datum[5], args
-                ]
+                timeline_datum = [datum[0], self._pid, logic_stream_id, start_time, datum[5], args]
                 timeline_data.append(timeline_datum)
 
-        return TraceViewManager.time_graph_trace(
-            TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, timeline_data)
+        return TraceViewManager.time_graph_trace(TraceViewHeaderConstant.TOP_DOWN_TIME_GRAPH_HEAD, timeline_data)

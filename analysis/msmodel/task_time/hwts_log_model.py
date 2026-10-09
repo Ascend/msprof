@@ -1,18 +1,20 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+
+# pylint: disable=duplicate-code
 
 import logging
 import os
@@ -33,8 +35,9 @@ class HwtsLogModel(ParserModel):
     """
 
     def __init__(self: any, result_dir: str) -> None:
-        super(HwtsLogModel, self).__init__(result_dir, DBNameConstant.DB_HWTS,
-                                           [DBNameConstant.TABLE_HWTS_TASK, DBNameConstant.TABLE_HWTS_TASK_TIME])
+        super().__init__(
+            result_dir, DBNameConstant.DB_HWTS, [DBNameConstant.TABLE_HWTS_TASK, DBNameConstant.TABLE_HWTS_TASK_TIME]
+        )
 
     def flush(self: any, data_list: list, table_name: str) -> None:
         """
@@ -58,14 +61,20 @@ class HwtsLogModel(ParserModel):
 
     def get_hwts_data_within_time_range(self: any, start_time: float, end_time: float) -> list:
         # in this chip subtask_id is always 0xffffffff
-        sql = "select {1}.stream_id, {1}.task_id, {0} as context_id, {1}.running as timestamp, " \
-              "{1}.complete - {1}.running as duration, {1}.task_type from {1} " \
-              "{2} order by timestamp" \
-            .format(NumberConstant.DEFAULT_GE_CONTEXT_ID, DBNameConstant.TABLE_HWTS_TASK_TIME,
-                    SqlWhereCondition.get_interval_intersection_condition(
-                        start_time, end_time, DBNameConstant.TABLE_HWTS_TASK_TIME, "running", "complete"))
+        sql = (
+            "select {1}.stream_id, {1}.task_id, {0} as context_id, {1}.running as timestamp, "
+            "{1}.complete - {1}.running as duration, {1}.task_type from {1} "
+            "{2} order by timestamp".format(
+                NumberConstant.DEFAULT_GE_CONTEXT_ID,
+                DBNameConstant.TABLE_HWTS_TASK_TIME,
+                SqlWhereCondition.get_interval_intersection_condition(
+                    start_time, end_time, DBNameConstant.TABLE_HWTS_TASK_TIME, "running", "complete"
+                ),
+            )
+        )
         device_tasks = DBManager.fetch_all_data(self.cur, sql, dto_class=DeviceTask)
         if not device_tasks:
-            logging.error("get device task from %s.%s error",
-                          DBNameConstant.DB_HWTS, DBNameConstant.TABLE_HWTS_TASK_TIME)
+            logging.error(
+                "get device task from %s.%s error", DBNameConstant.DB_HWTS, DBNameConstant.TABLE_HWTS_TASK_TIME
+            )
         return device_tasks

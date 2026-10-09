@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -15,7 +15,6 @@
 # -------------------------------------------------------------------------
 
 import logging
-from common_func.platform.chip_manager import ChipManager
 from common_func.utils import Utils
 from profiling_bean.struct_info.struct_decoder import StructDecoder
 
@@ -24,6 +23,7 @@ class AicPmuBean(StructDecoder):
     """
     class used to decode aic pmu data
     """
+
     last_cnt = -1
 
     def __init__(self: any, *args: any) -> None:
@@ -76,6 +76,9 @@ class AicPmuBean(StructDecoder):
             return
         expected_cnt = (AicPmuBean.last_cnt + 1) % 16
         if expected_cnt != self._cnt:
-            logging.error("An lost before the operator (stream id = %d, task id = %d) count has been detected",
-                          self._stream_id, self._task_id)
+            logging.error(
+                "An lost before the operator (stream id = %d, task id = %d) count has been detected",
+                self._stream_id,
+                self._task_id,
+            )
         AicPmuBean.last_cnt = self._cnt

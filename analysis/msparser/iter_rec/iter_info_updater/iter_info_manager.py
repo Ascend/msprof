@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -28,9 +28,9 @@ class IterInfoManager:
     def __init__(self: any, project_path: str) -> None:
         self.project_path = project_path
         self.iter_to_iter_info = {}
-        self._ts_track_model = TsTrackModel(self.project_path,
-                                            DBNameConstant.DB_STEP_TRACE,
-                                            [ProfilingScene().get_step_table_name()])
+        self._ts_track_model = TsTrackModel(
+            self.project_path, DBNameConstant.DB_STEP_TRACE, [ProfilingScene().get_step_table_name()]
+        )
         self._ge_model = GeInfoModel(self.project_path)
 
     @classmethod
@@ -38,12 +38,14 @@ class IterInfoManager:
         """
         check parallel by num of items satisfied condition
         """
-        if not DBManager.check_tables_in_db(PathManager.get_db_path(result_dir, DBNameConstant.DB_STEP_TRACE),
-                                            DBNameConstant.TABLE_STEP_TRACE_DATA):
+        if not DBManager.check_tables_in_db(
+            PathManager.get_db_path(result_dir, DBNameConstant.DB_STEP_TRACE), DBNameConstant.TABLE_STEP_TRACE_DATA
+        ):
             return False
 
-        with TsTrackModel(result_dir, DBNameConstant.DB_STEP_TRACE,
-                          [ProfilingScene().get_step_table_name()]) as ts_track_model:
+        with TsTrackModel(
+            result_dir, DBNameConstant.DB_STEP_TRACE, [ProfilingScene().get_step_table_name()]
+        ) as ts_track_model:
             step_trace_data = ts_track_model.get_step_trace_data(ProfilingScene().get_step_table_name())
         if not step_trace_data:
             return False
@@ -65,8 +67,9 @@ class IterInfoManager:
             step_trace_data = self._ts_track_model.get_step_trace_data(ProfilingScene().get_step_table_name())
         self.register_parallel_set(step_trace_data)
 
-        if not DBManager.check_tables_in_db(PathManager.get_db_path(self.project_path, DBNameConstant.DB_GE_INFO),
-                                            DBNameConstant.TABLE_GE_TASK):
+        if not DBManager.check_tables_in_db(
+            PathManager.get_db_path(self.project_path, DBNameConstant.DB_GE_INFO), DBNameConstant.TABLE_GE_TASK
+        ):
             return
         with self._ge_model:
             static_task_dict = self._ge_model.get_ge_task_data(Constant.GE_STATIC_SHAPE)
@@ -79,22 +82,30 @@ class IterInfoManager:
         """
         is_parallel = self.check_parallel(self.project_path)
         for index, step_trace_datum in enumerate(step_trace_data):
-            iter_info = self.iter_to_iter_info.setdefault(step_trace_datum.iter_id,
-                                                          IterInfo(step_trace_datum.model_id,
-                                                                   step_trace_datum.index_id,
-                                                                   step_trace_datum.iter_id,
-                                                                   step_trace_datum.step_start,
-                                                                   step_trace_datum.step_end))
+            iter_info = self.iter_to_iter_info.setdefault(
+                step_trace_datum.iter_id,
+                IterInfo(
+                    step_trace_datum.model_id,
+                    step_trace_datum.index_id,
+                    step_trace_datum.iter_id,
+                    step_trace_datum.step_start,
+                    step_trace_datum.step_end,
+                ),
+            )
             if not is_parallel:
                 iter_info.behind_parallel_iter.add(step_trace_datum.iter_id)
                 continue
             for behind_datum in step_trace_data[index:]:
-                behind_iter_info = self.iter_to_iter_info.setdefault(behind_datum.iter_id,
-                                                                     IterInfo(behind_datum.model_id,
-                                                                              behind_datum.index_id,
-                                                                              behind_datum.iter_id,
-                                                                              behind_datum.step_start,
-                                                                              behind_datum.step_end))
+                behind_iter_info = self.iter_to_iter_info.setdefault(
+                    behind_datum.iter_id,
+                    IterInfo(
+                        behind_datum.model_id,
+                        behind_datum.index_id,
+                        behind_datum.iter_id,
+                        behind_datum.step_start,
+                        behind_datum.step_end,
+                    ),
+                )
                 if behind_iter_info.start_time < iter_info.end_time <= behind_iter_info.end_time:
                     iter_info.behind_parallel_iter.add(behind_datum.iter_id)
 
@@ -105,7 +116,5 @@ class IterInfoManager:
         for iter_info_bean in self.iter_to_iter_info.values():
             iter_info_bean.static_aic_task_set = static_task_dict.get(iter_info_bean.model_id, set([]))
             iter_info_bean.dynamic_aic_task_set = dynamic_task_dict.get(
-                GeInfoModel.MODEL_INDEX_KEY_FMT.format(
-                    iter_info_bean.model_id,
-                    iter_info_bean.index_id),
-                set([]))
+                GeInfoModel.MODEL_INDEX_KEY_FMT.format(iter_info_bean.model_id, iter_info_bean.index_id), set([])
+            )

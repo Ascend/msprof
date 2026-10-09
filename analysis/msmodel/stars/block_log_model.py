@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -54,9 +54,10 @@ class BlockLogViewModel(ViewModel):
         """
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_BLOCK_LOG):
             return []
-        sql = "select task_type, stream_id, task_id, task_time/{NS_TO_US} as task_time, " \
-              "start_time, end_time from {}".format(
-            DBNameConstant.TABLE_BLOCK_LOG, NS_TO_US=NumberConstant.NS_TO_US)
+        sql = (
+            "select task_type, stream_id, task_id, task_time/{NS_TO_US} as task_time, "
+            "start_time, end_time from {}".format(DBNameConstant.TABLE_BLOCK_LOG, NS_TO_US=NumberConstant.NS_TO_US)
+        )
         task_time_data = DBManager.fetch_all_data(self.cur, sql, dto_class=TaskTimeDto)
         return task_time_data
 
@@ -64,11 +65,15 @@ class BlockLogViewModel(ViewModel):
         if not DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_BLOCK_LOG):
             return []
         # acsq task subtask_id is always 0xffffffff
-        sql = "select {1}.stream_id, {1}.task_id, {1}.block_id, {0} as context_id, {1}.start_time," \
-              "task_time as duration,  {1}.task_type as device_task_type, {1}.core_type, {1}.core_id from {1} " \
-            .format(NumberConstant.DEFAULT_GE_CONTEXT_ID, DBNameConstant.TABLE_BLOCK_LOG)
+        sql = (
+            "select {1}.stream_id, {1}.task_id, {1}.block_id, {0} as context_id, {1}.start_time,"
+            "task_time as duration,  {1}.task_type as device_task_type, {1}.core_type, {1}.core_id from {1} ".format(
+                NumberConstant.DEFAULT_GE_CONTEXT_ID, DBNameConstant.TABLE_BLOCK_LOG
+            )
+        )
         device_tasks = DBManager.fetch_all_data(self.cur, sql, dto_class=BlockLogDto)
         if not device_tasks:
-            logging.error("get device AIC/AIV block from %s.%s error",
-                          DBNameConstant.DB_SOC_LOG, DBNameConstant.TABLE_BLOCK_LOG)
+            logging.error(
+                "get device AIC/AIV block from %s.%s error", DBNameConstant.DB_SOC_LOG, DBNameConstant.TABLE_BLOCK_LOG
+            )
         return device_tasks

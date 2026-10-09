@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -14,13 +14,9 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import logging
-import sqlite3
 
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
-from common_func.empty_class import EmptyClass
 from common_func.ms_constant.number_constant import NumberConstant
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
@@ -37,8 +33,11 @@ class HwtsIterModel(ParserModel):
     TASK_TYPE = "task"
 
     def __init__(self: any, result_dir: str) -> None:
-        super().__init__(result_dir, DBNameConstant.DB_HWTS_REC, [DBNameConstant.TABLE_HWTS_ITER_SYS,
-                                                                  DBNameConstant.TABLE_HWTS_BATCH])
+        super().__init__(
+            result_dir,
+            DBNameConstant.DB_HWTS_REC,
+            [DBNameConstant.TABLE_HWTS_ITER_SYS, DBNameConstant.TABLE_HWTS_BATCH],
+        )
 
     def flush(self: any, data_list: list, table_name: str) -> None:
         """
@@ -65,13 +64,13 @@ class HwtsIterModel(ParserModel):
         """
         offset_count_dict = {
             self.AI_CORE_TYPE: f"select min(ai_core_offset) as ai_core_offset, "
-                               f"max(ai_core_offset + ai_core_num) - min(ai_core_offset) as ai_core_num "
-                               f"from {DBNameConstant.TABLE_HWTS_ITER_SYS} "
-                               f"where model_id=? and index_id>=? and index_id<=?",
+            f"max(ai_core_offset + ai_core_num) - min(ai_core_offset) as ai_core_num "
+            f"from {DBNameConstant.TABLE_HWTS_ITER_SYS} "
+            f"where model_id=? and index_id>=? and index_id<=?",
             self.TASK_TYPE: f"select min(task_offset) as task_offset, "
-                            f"max(task_offset + task_count) - min(task_offset) as task_count "
-                            f"from {DBNameConstant.TABLE_HWTS_ITER_SYS} "
-                            f"where model_id=? and index_id>=? and index_id<=?"
+            f"max(task_offset + task_count) - min(task_offset) as task_count "
+            f"from {DBNameConstant.TABLE_HWTS_ITER_SYS} "
+            f"where model_id=? and index_id>=? and index_id<=?",
         }
 
         return self._get_task_num(iteration, offset_count_dict.get(data_type))
@@ -81,15 +80,15 @@ class HwtsIterModel(ParserModel):
         check whether the table exists.
         :return: exits or not
         """
-        if not self.conn or not self.cur \
-                or not DBManager.judge_table_exist(self.cur, table_name):
+        if not self.conn or not self.cur or not DBManager.judge_table_exist(self.cur, table_name):
             return False
         return True
 
     def check_iter_data_in_db(self, table_name: str):
         conn, cur = DBManager.check_connect_db(self.result_dir, self.db_name)
-        if not all([conn, cur, DBManager.judge_table_exist(cur, table_name),
-                    DBManager.judge_row_exist(cur, table_name)]):
+        if not all(
+            [conn, cur, DBManager.judge_table_exist(cur, table_name), DBManager.judge_row_exist(cur, table_name)]
+        ):
             return False
         return True
 
@@ -114,5 +113,6 @@ class HwtsIterViewModel(ViewModel):
 
     def get_ai_core_op_data(self: any) -> list:
         sql = "select start_time, end_time from {} where is_ai_core=1 and start_time<>{}".format(
-            DBNameConstant.TABLE_HWTS_BATCH, NumberConstant.INVALID_OP_EXE_TIME)
+            DBNameConstant.TABLE_HWTS_BATCH, NumberConstant.INVALID_OP_EXE_TIME
+        )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=TimeSectionDto)

@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -25,9 +25,6 @@ class QosModel(ParserModel):
     QoS model class
     """
 
-    def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
-        super().__init__(result_dir, db_name, table_list)
-
     def flush(self: any, data_list: list) -> None:
         """
         flush qos data to db
@@ -42,14 +39,12 @@ class QosViewModel(ViewModel):
     QoS view model class
     """
 
-    def __init__(self: any, result_dir: str, db_name: str, table_list: list) -> None:
-        super().__init__(result_dir, db_name, table_list)
-
     def get_timeline_data(self: any) -> list:
         """
         get qos bandwidth data
         :return: list
         """
         sql = "select timestamp, die_id, bw1, bw2, bw3, bw4, bw5, bw6, bw7, bw8, bw9, bw10 from {};".format(
-            DBNameConstant.TABLE_QOS_BW)
+            DBNameConstant.TABLE_QOS_BW
+        )
         return DBManager.fetch_all_data(self.cur, sql)

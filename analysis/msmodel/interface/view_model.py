@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -38,8 +38,7 @@ class ViewModel(BaseModel):
         """
         create db and tables
         """
-        self.conn, self.cur = DBManager.create_connect_db(
-            PathManager.get_db_path(self.result_dir, self.db_name))
+        self.conn, self.cur = DBManager.create_connect_db(PathManager.get_db_path(self.result_dir, self.db_name))
         if not (self.conn and self.cur):
             return False
         return True
@@ -62,7 +61,8 @@ class ViewModel(BaseModel):
         conn_check, _ = DBManager.check_connect_db_path(attach_db_path)
         if isinstance(conn_check, sqlite3.Connection):
             conn_check.close()
-            self.cur.execute("attach database '{0}' as {1}".format(attach_db_path,
-                                                                   "{}_attach".format(db_name.split(".")[0])))
+            self.cur.execute(
+                "attach database '{0}' as {1}".format(attach_db_path, "{}_attach".format(db_name.split(".")[0]))
+            )
             return True
         return False

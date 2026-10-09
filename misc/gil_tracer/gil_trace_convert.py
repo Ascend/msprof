@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -36,14 +36,7 @@ def parse_args():
 
 
 def create_x_event(name: str, ts: float, dur: float, pid: int, tid: int) -> dict:
-    return {
-        'name': name,
-        'ph': 'X',
-        'ts': ts,
-        'dur': dur,
-        'pid': pid,
-        'tid': tid
-    }
+    return {'name': name, 'ph': 'X', 'ts': ts, 'dur': dur, 'pid': pid, 'tid': tid}
 
 
 def convert_gil_trace(trace_data: list) -> list:
@@ -77,7 +70,9 @@ def convert_gil_trace(trace_data: list) -> list:
                     events[j]['ts'] = str(events[j]['ts'])
                     hold_gil_ts = Decimal(event['ts']) + Decimal(event['dur'])
                     hold_gil_dur = Decimal(events[j]['ts']) - hold_gil_ts
-                    hold_gil_x_event = create_x_event(HOLD_GIL_EVENT_NAME, str(hold_gil_ts), float(hold_gil_dur), pid, tid)
+                    hold_gil_x_event = create_x_event(
+                        HOLD_GIL_EVENT_NAME, str(hold_gil_ts), float(hold_gil_dur), pid, tid
+                    )
                     converted_events.append(event)
                     converted_events.append(hold_gil_x_event)
                     converted_events.append(events[j])
@@ -90,9 +85,12 @@ def convert_gil_trace(trace_data: list) -> list:
 
     for pid, tids in pid_tid_map.items():
         m_events = [{'name': 'process_name', 'ph': 'M', 'pid': pid, 'tid': 0, 'args': {'name': "GIL Trace"}}]
-        m_events.extend([{
-            'name': 'thread_name', 'ph': 'M', 'pid': pid, 'tid': tid, 'args': {'name': f"Thread {tid}"}
-        } for tid in tids])
+        m_events.extend(
+            [
+                {'name': 'thread_name', 'ph': 'M', 'pid': pid, 'tid': tid, 'args': {'name': f"Thread {tid}"}}
+                for tid in tids
+            ]
+        )
         converted_events.extend(m_events)
     return converted_events
 
@@ -100,18 +98,18 @@ def convert_gil_trace(trace_data: list) -> list:
 def main():
     args = parse_args()
 
-    logging.info(f"Start to convert GIL trace file: {args.input}")
+    logging.info("Start to convert GIL trace file: %s", args.input)
 
     try:
-        trace_data = FileManager.read_json_file(args.input)
+        trace_data = FileManager.read_json_file(args.input)  # pylint: disable=no-member
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         sys.exit(1)
 
     try:
         converted_events = convert_gil_trace(trace_data)
     except Exception as e:
-        logging.error(f"Failed to convert GIL trace file: {e}")
+        logging.error("Failed to convert GIL trace file: %s", e)
         sys.exit(1)
 
     try:
@@ -119,10 +117,10 @@ def main():
             args.output += '.json'
         FileManager.create_json_file(converted_events, args.output)
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         sys.exit(1)
 
-    logging.info(f"Finish to convert GIL trace file: {args.input} to {args.output}")
+    logging.info("Finish to convert GIL trace file: %s to %s", args.input, args.output)
 
 
 if __name__ == '__main__':
