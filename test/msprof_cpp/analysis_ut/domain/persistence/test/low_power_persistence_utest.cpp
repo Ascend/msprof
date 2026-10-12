@@ -43,6 +43,7 @@ constexpr uint64_t REFERENCE_SYSCNT = 1000;
 constexpr uint64_t HOST_MONOTONIC_NS = 5000;
 constexpr uint64_t LOW_POWER_SYSCNT = 1100;
 constexpr double EXPECTED_TIMESTAMP_NS = 6000.0;
+constexpr double EXPECTED_CHIP_V620_DATA0_SOFT = ((20U << 16U) | 21U) / 100.0;
 }
 
 class LowPowerPersistenceUTest : public testing::Test {
@@ -84,19 +85,44 @@ TEST_F(LowPowerPersistenceUTest, ShouldSavePythonCompatibleLowPowerTableWithNano
     ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
 
     DBRunner runner(DB_PATH);
-    std::vector<std::tuple<double, uint32_t, uint32_t, uint32_t>> rows;
-    ASSERT_TRUE(runner.QueryData("SELECT timestamp, die_id, data0_hard, data9_soft FROM LowPower", rows));
+    std::vector<std::tuple<double, uint32_t, uint32_t, double, uint32_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT timestamp, die_id, data0_hard, data0_soft, data9_soft FROM LowPower", rows));
     ASSERT_EQ(1UL, rows.size());
     ASSERT_DOUBLE_EQ(EXPECTED_TIMESTAMP_NS, std::get<0>(rows[0]));
     ASSERT_EQ(3U, std::get<1>(rows[0]));
     ASSERT_EQ(10U, std::get<2>(rows[0]));
-    ASSERT_EQ(29U, std::get<3>(rows[0]));
+    ASSERT_DOUBLE_EQ(20.0, std::get<3>(rows[0]));
+    ASSERT_EQ(29U, std::get<4>(rows[0]));
 
     const auto columns = runner.GetTableColumns("LowPower");
     ASSERT_EQ(LOW_POWER_BASE_COLUMN_COUNT + LOW_POWER_SAMPLE_COUNT, columns.size());
     for (const auto& column : columns) {
         ASSERT_EQ("NUMERIC", column.type);
     }
+}
+
+TEST_F(LowPowerPersistenceUTest, ShouldCombineData0SoftHighAndLowSamplesOnChipV620)
+{
+    context_.deviceContextInfo.deviceInfo.chipID = CHIP_V6_2_0;
+    auto source = std::make_shared<std::vector<HalSocProfileData>>();
+    HalSocProfileData item;
+    item.type = SOC_PROFILE_LOW_POWER;
+    item.lowPower.sysCnt = LOW_POWER_SYSCNT;
+    item.lowPower.dieId = 3;
+    for (uint32_t i = 0; i < LOW_POWER_SAMPLE_COUNT; ++i) {
+        item.lowPower.sampleData[i] = static_cast<uint16_t>(10 + i);
+    }
+    source->push_back(item);
+    ASSERT_TRUE(dataInventory_.Inject(source));
+
+    LowPowerPersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
+
+    DBRunner runner(DB_PATH);
+    std::vector<std::tuple<double>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT data0_soft FROM LowPower", rows));
+    ASSERT_EQ(1UL, rows.size());
+    ASSERT_DOUBLE_EQ(EXPECTED_CHIP_V620_DATA0_SOFT, std::get<0>(rows[0]));
 }
 
 TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseForEmptyData)

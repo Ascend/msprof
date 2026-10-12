@@ -42,25 +42,41 @@ namespace
 constexpr size_t LOW_POWER_BASE_COLUMN_COUNT = 2;
 constexpr size_t LOW_POWER_COLUMN_COUNT = LOW_POWER_BASE_COLUMN_COUNT + LOW_POWER_SAMPLE_COUNT;
 
-template <size_t... Index>
-auto GenerateRow(const HalLowPowerData& data, double timestamp,
-                 IndexSequence<Index...>) -> decltype(std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
-                                                                      static_cast<uint32_t>(data.sampleData[Index])...))
+constexpr size_t LOW_POWER_DATA0_SOFT_INDEX = 10;
+constexpr uint32_t LOW_POWER_HIGH_16_SHIFT = 16;
+constexpr double LOW_POWER_DATA0_SOFT_SCALE = 100.0;
+
+double GetLowPowerSampleValue(const HalLowPowerData& data, size_t index, bool isChipV620)
 {
-    return std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
-                           static_cast<uint32_t>(data.sampleData[Index])...);
+    if (isChipV620 && index == LOW_POWER_DATA0_SOFT_INDEX)
+    {
+        const uint32_t combinedValue =
+            (static_cast<uint32_t>(data.sampleData[LOW_POWER_DATA0_SOFT_INDEX]) << LOW_POWER_HIGH_16_SHIFT) |
+            static_cast<uint32_t>(data.sampleData[LOW_POWER_DATA0_SOFT_INDEX + 1]);
+        return static_cast<double>(combinedValue) / LOW_POWER_DATA0_SOFT_SCALE;
+    }
+    return static_cast<double>(data.sampleData[index]);
 }
 
-using LowPowerRow = decltype(GenerateRow(std::declval<const HalLowPowerData&>(), std::declval<double>(),
+template <size_t... Index>
+auto GenerateRow(const HalLowPowerData& data, double timestamp, bool isChipV620, IndexSequence<Index...>)
+    -> decltype(std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
+                                GetLowPowerSampleValue(data, Index, isChipV620)...))
+{
+    return std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
+                           GetLowPowerSampleValue(data, Index, isChipV620)...);
+}
+
+using LowPowerRow = decltype(GenerateRow(std::declval<const HalLowPowerData&>(), std::declval<double>(), false,
                                          MakeIndexSequence<LOW_POWER_SAMPLE_COUNT>{}));
 using ProcessedData = std::vector<LowPowerRow>;
 
 static_assert(std::tuple_size<LowPowerRow>::value == LOW_POWER_COLUMN_COUNT,
               "The LowPower row size must match the expected database column count");
 
-LowPowerRow GenerateRow(const HalLowPowerData& data, double timestamp)
+LowPowerRow GenerateRow(const HalLowPowerData& data, double timestamp, bool isChipV620)
 {
-    return GenerateRow(data, timestamp, MakeIndexSequence<LOW_POWER_SAMPLE_COUNT>{});
+    return GenerateRow(data, timestamp, isChipV620, MakeIndexSequence<LOW_POWER_SAMPLE_COUNT>{});
 }
 
 bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const DeviceContext& context,
@@ -72,6 +88,7 @@ bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const De
         return false;
     }
     const auto params = context.GetSyscntConversionParams();
+    const bool isChipV620 = context.GetChipID() == CHIP_V6_2_0;
     for (const auto& item : source)
     {
         if (item.type != SOC_PROFILE_LOW_POWER)
@@ -79,7 +96,7 @@ bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const De
             continue;
         }
         const auto& lowPower = item.lowPower;
-        result.emplace_back(GenerateRow(lowPower, GetTimeFromSyscnt(lowPower.sysCnt, params).Double()));
+        result.emplace_back(GenerateRow(lowPower, GetTimeFromSyscnt(lowPower.sysCnt, params).Double(), isChipV620));
     }
     return true;
 }

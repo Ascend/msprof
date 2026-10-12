@@ -16,26 +16,43 @@
 import struct
 import unittest
 
-from msparser.stars.low_power_parser import LowPowerParser
 from common_func.info_conf_reader import InfoConfReader
-from constant.info_json_construct import InfoJson
+from common_func.platform.chip_manager import ChipManager
 from constant.info_json_construct import DeviceInfo
+from constant.info_json_construct import InfoJson
+from msparser.stars.low_power_parser import LowPowerParser
+from profiling_bean.prof_enum.chip_model import ChipModel
 
 NAMESPACE = 'msparser.stars.low_power_parser'
 
 
 class TestInterSocParser(unittest.TestCase):
 
+    def setUp(self):
+        self._chip_id = ChipManager().chip_id
+
+    def tearDown(self):
+        ChipManager().chip_id = self._chip_id
+
     def test_preprocess_data(self):
-        data = struct.pack("=HHLQ12LHHLQ12LHHLQ12L", 29, 27603, 0, 100, 838631199, 1139847156, 1204041200, 1208639554,
-                           1275068416, 1342177280, 1409286144, 1476395008, 2147483648,
-                           2214592512, 2281701376, 2348810240, 29, 27603, 0, 100, 2415919104, 3255989866, 3288334336,
-                           3355443200, 3422552064, 3489660928,
-                           3556769792, 3623878656, 3690987520, 3758096384, 3825205248, 3892314112, 29, 27603, 0, 100,
-                           3959422976, 4026531840, 4093640704, 4227858433, 0, 0, 0, 0, 0, 0, 0, 0)
+        data = struct.pack("=HHLQQ20H", 29, 27603, 0, 100, 200, *range(20))
         check = LowPowerParser('test', 'lowpower.db', ['LowPower'])
         InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1150)]).apply()
-        check.handle('', data[0:64])
-        check.handle('', data[64:128])
-        check.handle('', data[128:])
+        check.handle('', data)
         check.preprocess_data()
+
+        self.assertEqual(len(check._data_list), 1)
+        self.assertEqual(check._data_list[0][2:], [1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18])
+
+    def test_preprocess_data_should_combine_data0_soft_on_chip_v620(self):
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        data = struct.pack("=HHLQQ20H", 29, 27603, 0, 100, 200, *range(20))
+        check = LowPowerParser('test', 'lowpower.db', ['LowPower'])
+        InfoJson(pid=1, DeviceInfo=[DeviceInfo(hwts_frequency=1150)]).apply()
+        check.handle('', data)
+        check.preprocess_data()
+
+        data0_soft_column_index = 12
+        expected_data0_soft = ((11 << 16) | 10) / 100
+        self.assertAlmostEqual(check._data_list[0][data0_soft_column_index], expected_data0_soft)
+        self.assertEqual(check._data_list[0][data0_soft_column_index + 1], 10)
