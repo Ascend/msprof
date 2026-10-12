@@ -13,6 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include "gtest/gtest.h"
@@ -124,6 +125,49 @@ TEST_F(NpuModuleMemAssemblerUTest, ShouldReturnTrueSuccessful)
     EXPECT_EQ("RUNTIME", GetCsvField(res[2], COMPONENT_INDEX));
     EXPECT_EQ("PYPTO", GetCsvField(res[3], COMPONENT_INDEX));
     EXPECT_EQ("UNKNOWN", GetCsvField(res[4], COMPONENT_INDEX));
+}
+
+/**
+ * test: 排序只作用于本地数组，不修改数据中心里的数据
+ * 输入按 moduleId 逆序，装配结果仍按 (moduleId, timestamp) 升序，且数据中心里的顺序保持不变
+ * (同一份数据会被 DB 落盘节点 DB:npu_module_mem 读取，两个节点同级、可能并发)
+ */
+TEST_F(NpuModuleMemAssemblerUTest, ShouldKeepInventoryOrderWhenSorting)
+{
+    DataInventory dataInventory;
+    std::vector<NpuModuleMemData> data = GenerateTaskData();
+    std::reverse(data.begin(), data.end());
+    std::vector<uint32_t> inputOrder;
+    for (const auto &item : data)
+    {
+        inputOrder.emplace_back(item.moduleId);
+    }
+    std::shared_ptr<std::vector<NpuModuleMemData>> dataS;
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<NpuModuleMemData>, data);
+    dataInventory.Inject(dataS);
+
+    NpuModuleMemAssembler assembler(PROCESSOR_NAME_NPU_MODULE_MEM, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // 1) 装配结果仍按 (moduleId, timestamp) 升序
+    auto files = File::GetOriginData(RESULT_PATH, {NPU_MODULE_MEMORY_NAME}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(0ul, reader.ReadText(res));
+    ASSERT_EQ(5ul, res.size());
+    const size_t COMPONENT_INDEX = 1;
+    EXPECT_EQ("UNKNOWN", GetCsvField(res[1], COMPONENT_INDEX));
+    EXPECT_EQ("RUNTIME", GetCsvField(res[2], COMPONENT_INDEX));
+    EXPECT_EQ("PYPTO", GetCsvField(res[3], COMPONENT_INDEX));
+    EXPECT_EQ("UNKNOWN", GetCsvField(res[4], COMPONENT_INDEX));
+
+    // 2) 数据中心里的数据顺序未被改动
+    ASSERT_EQ(inputOrder.size(), dataS->size());
+    for (size_t i = 0; i < inputOrder.size(); ++i)
+    {
+        EXPECT_EQ(inputOrder[i], dataS->at(i).moduleId) << "inventory order changed at index " << i;
+    }
 }
 
 /**

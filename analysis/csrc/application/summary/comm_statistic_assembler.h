@@ -18,24 +18,28 @@
 #define ANALYSIS_APPLICATION_SUMMARY_COMMUNICATION_STATISTIC_ASSEMBLE_H
 
 #include "analysis/csrc/application/summary/summary_assembler.h"
-#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/hccl_statistic_data.h"
+#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 
-namespace Analysis {
-namespace Application {
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
 
-class CommStatisticAssembler : public SummaryAssembler {
-public:
+class CommStatisticAssembler : public SummaryAssembler
+{
+   public:
     CommStatisticAssembler() = default;
     CommStatisticAssembler(const std::string& name, const std::string& profPath);
-private:
+
+   private:
     uint8_t AssembleData(DataInventory& dataInventory);
-    void GenerateCommStatistic(std::vector<HcclStatisticData>& commStatisticData);
+    // 入参为数据中心里的数据，只读：排序在函数内部对本地指针数组做
+    void GenerateCommStatistic(const std::vector<HcclStatisticData>& commStatisticData);
 };
-}
-}
+}  // namespace Application
+}  // namespace Analysis
 
-
-#endif // ANALYSIS_APPLICATION_SUMMARY_COMMUNICATION_STATISTIC_ASSEMBLE_H
+#endif  // ANALYSIS_APPLICATION_SUMMARY_COMMUNICATION_STATISTIC_ASSEMBLE_H

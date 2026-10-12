@@ -33,7 +33,7 @@ struct TopDownTask
     std::string deviceTaskType = "";
     std::string hostTaskType = "";
     uint64_t modelId = 0;
-    int64_t connectionId = 0;
+    int64_t connectionId = -1;  // -1 表示该任务没有 connection id(设备侧独立任务)，0 是合法值
     double startTime = 0;
     double endTime = 0;
 

@@ -79,6 +79,23 @@ const std::unordered_set<std::string> NOT_SUPPORT_PMU_FOR_CHIP_V1 = {
     "vec_fp32_ratio",      "vec_fp16_ratio",     "vec_int32_ratio",    "vec_misc_ratio",   "vec_bankgroup_cflt_ratio",
     "vec_bank_cflt_ratio", "vec_resc_cflt_ratio"};
 const std::string TASK_BASED = "task-based";
+// metric_summary 每算子一行的时间列，写侧(chipV4落库/python侧stars落库)换算成 host 开机 monotonic ns，
+// 与 startClockMonotonicRaw 同轴，可直接比较
+const std::string END_TIME_COLUMN_NAME = "end_time";
+
+// 老生产者(create_metric_table，如 V1/V5 的 python 侧 aic pmu)建出的 MetricSummary 没有 end_time 列，
+// 此时不能下推时间过滤，否则每一列查询都会失败并把整张表当失败处理
+bool HasEndTimeColumn(DBInfo &metricDB)
+{
+    for (const auto &column : metricDB.dbRunner->GetTableColumns(metricDB.tableName))
+    {
+        if (column.name == END_TIME_COLUMN_NAME)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 }  // namespace
 
 MetricProcessor::MetricProcessor(const std::string &profPath) : DataProcessor(profPath) {}
@@ -258,7 +275,25 @@ bool MetricProcessor::TaskBasedProcessByDevice(const std::pair<const std::string
                                                Analysis::Infra::DBInfo &metricDB,
                                                std::map<TaskId, std::vector<std::vector<std::string>>> &processedData)
 {
-    std::vector<std::vector<std::string>> oriData = GetTaskBasedData(dbPathAndDeviceID.first, headers, metricDB);
+    Utils::ProfTimeRecord record;
+    if (!Context::GetInstance().GetProfTimeRecordInfo(record, profPath_, dbPathAndDeviceID.second))
+    {
+        ERROR("GetProfTimeRecordInfo failed, profPath is %, deviceId is %.", profPath_, dbPathAndDeviceID.second);
+        return false;
+    }
+    std::vector<std::vector<std::string>> oriData;
+    size_t rowCount = 0;
+    if (!GetTaskBasedData(dbPathAndDeviceID.first, headers, metricDB, record.baseTimeNs, oriData, rowCount))
+    {
+        ERROR("Get task-based data failed, dbPath is %.", dbPathAndDeviceID.first);
+        return false;
+    }
+    // 查询成功但一行不剩：要么行都被 end_time 条件丢掉了(warmup)，要么表本身为空，都按"无数据"处理，不算失败。
+    if (rowCount == 0)
+    {
+        INFO("No metric row remains, dbPath is %.", dbPathAndDeviceID.first);
+        return true;
+    }
 
     if (!FormatTaskBasedData(oriData, processedData, dbPathAndDeviceID.second))
     {
@@ -269,20 +304,33 @@ bool MetricProcessor::TaskBasedProcessByDevice(const std::pair<const std::string
     return true;
 }
 
-std::vector<std::vector<std::string>> MetricProcessor::GetTaskBasedData(const std::string &dbPath,
-                                                                        const std::vector<std::string> &headers,
-                                                                        DBInfo &metricDB)
+bool MetricProcessor::GetTaskBasedData(const std::string &dbPath, const std::vector<std::string> &headers,
+                                       DBInfo &metricDB, uint64_t baseTimeNs,
+                                       std::vector<std::vector<std::string>> &oriData, size_t &rowCount)
 {
-    std::vector<std::vector<std::string>> oriData;
+    rowCount = 0;
     std::vector<std::tuple<std::string>> lineData;
     auto version = Context::GetInstance().GetPlatformVersion(DEFAULT_DEVICE_ID, profPath_);
     const bool IS_CHIP_V1 = Context::GetInstance().IsChipV1(version);
 
-    MAKE_SHARED_RETURN_VALUE(metricDB.dbRunner, DBRunner, oriData, dbPath);
+    MAKE_SHARED_RETURN_VALUE(metricDB.dbRunner, DBRunner, false, dbPath);
     if (metricDB.dbRunner == nullptr)
     {
         ERROR("Create % connection failed.", dbPath);
-        return oriData;
+        return false;
+    }
+    // end_time 是开机 monotonic ns，与 baseTimeNs(startClockMonotonicRaw) 同轴；结束不晚于采集开始的行属于
+    // warmup，直接下推丢掉(end_time == baseTimeNs 也按 warmup 处理，与 HCCL/Python 侧口径一致)。
+    // 表里没有 end_time 列时不下推，否则每一列查询都会失败。
+    // 每一列都带同一条 WHERE，否则按列拼表时行会错位。
+    std::string endTimeFilter;
+    if (HasEndTimeColumn(metricDB))
+    {
+        endTimeFilter = " WHERE " + END_TIME_COLUMN_NAME + " > " + std::to_string(baseTimeNs);
+    }
+    else
+    {
+        WARN("% has no % column, the warmup rows can not be filtered.", dbPath, END_TIME_COLUMN_NAME);
     }
     // 遍历tableColumns, 按列请求每个tableColumnKey的数据,再直接把vector<string> data列按表头顺序拼起来, 形成metric表
     for (auto &header : headers)
@@ -290,11 +338,11 @@ std::vector<std::vector<std::string>> MetricProcessor::GetTaskBasedData(const st
         std::string sql;
         if (header.find("cycle") != std::string::npos)
         {
-            sql = "SELECT " + header + " FROM " + metricDB.tableName;
+            sql = "SELECT " + header + " FROM " + metricDB.tableName + endTimeFilter;
         }
         else
         {
-            sql = "SELECT ROUND(" + header + ", 3) FROM " + metricDB.tableName;
+            sql = "SELECT ROUND(" + header + ", 3) FROM " + metricDB.tableName + endTimeFilter;
         }
         if (!metricDB.dbRunner->QueryData(sql, lineData))
         {
@@ -325,7 +373,7 @@ std::vector<std::vector<std::string>> MetricProcessor::GetTaskBasedData(const st
     // 获得taskIdColumns的数据, 插入oriData表
     for (auto &taskIdColumn : taskIdColumns)
     {
-        std::string sql = "SELECT " + taskIdColumn + " FROM " + metricDB.tableName;
+        std::string sql = "SELECT " + taskIdColumn + " FROM " + metricDB.tableName + endTimeFilter;
         if (!metricDB.dbRunner->QueryData(sql, lineData))
         {
             ERROR("Query taskId data failed, db path is %.", dbPath);
@@ -333,7 +381,15 @@ std::vector<std::vector<std::string>> MetricProcessor::GetTaskBasedData(const st
         }
         InsertLineDataToOriData(oriData, lineData);
     }
-    return oriData;
+    // 一列都没取到说明查询本身不可用(连接或表结构问题), 交由调用方按失败处理
+    if (oriData.empty())
+    {
+        ERROR("No column data can be fetched, db path is %.", dbPath);
+        return false;
+    }
+    // 同一张表按列拼装, 各列行数一致；行数为 0 表示查询成功但被时间条件全部过滤
+    rowCount = oriData.front().size();
+    return true;
 }
 
 void MetricProcessor::InsertLineDataToOriData(std::vector<std::vector<std::string>> &oriData,

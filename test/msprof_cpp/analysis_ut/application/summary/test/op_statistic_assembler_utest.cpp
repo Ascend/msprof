@@ -15,6 +15,8 @@
  * -------------------------------------------------------------------------*/
 
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/summary/op_statistic_assembler.h"
@@ -112,6 +114,44 @@ TEST_F(OpStatisticAssemblerUTest, ShouldReturnTrueWhenOpStatisticExist)
     EXPECT_EQ(expectRowOne, res[1]); // 1 the first result
     std::string expectRowTwo{"0,ArgMaxV2,AI_VECTOR_CORE,3202,771407100,35960,240914.147,706500,6.513"};
     EXPECT_EQ(expectRowTwo, res[2]); // 2 the second
+}
+
+TEST_F(OpStatisticAssemblerUTest, ShouldKeepInventoryOrderWhenSorting)
+{
+    // 排序只作用于本地数组：输入升序，装配后 CSV 仍按 totalTime 降序，且数据中心顺序不变
+    DataInventory dataInventory;
+    auto opStatisticData = GenerateOpStatisticData();
+    std::reverse(opStatisticData.begin(), opStatisticData.end());
+    std::vector<std::string> inputOrder;
+    for (const auto& item : opStatisticData)
+    {
+        inputOrder.emplace_back(item.opType);
+    }
+    std::shared_ptr<std::vector<OpStatisticData>> opStatisticDataS;
+    MAKE_SHARED_NO_OPERATION(opStatisticDataS, std::vector<OpStatisticData>, opStatisticData);
+    dataInventory.Inject(opStatisticDataS);
+
+    OpStatisticAssembler assembler(PROCESSOR_NAME_OP_STATISTIC, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // 1) 装配结果仍按 totalTime 降序
+    auto files = File::GetOriginData(RESULT_PATH, {OP_STATISTIC_NAME}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    ASSERT_EQ(3ul, res.size());
+    std::string expectRowOne{"0,RmsNormTactic,AI_CORE,384,5412825240,219280,14095899.062,42146680,45.699"};
+    EXPECT_EQ(expectRowOne, res[1]);
+    std::string expectRowTwo{"0,ArgMaxV2,AI_VECTOR_CORE,3202,771407100,35960,240914.147,706500,6.513"};
+    EXPECT_EQ(expectRowTwo, res[2]);
+
+    // 2) 数据中心里的数据顺序未被改动
+    ASSERT_EQ(inputOrder.size(), opStatisticDataS->size());
+    for (size_t i = 0; i < inputOrder.size(); ++i)
+    {
+        EXPECT_EQ(inputOrder[i], opStatisticDataS->at(i).opType) << "inventory order changed at index " << i;
+    }
 }
 
 TEST_F(OpStatisticAssemblerUTest, ShouldReturnFalseWhenDataExistAndResEmpty)

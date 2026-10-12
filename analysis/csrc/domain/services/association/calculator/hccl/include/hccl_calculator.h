@@ -38,11 +38,15 @@ namespace Domain
 {
 using namespace Infra;
 
+// connectionId 的无效值，与 Python 侧 Constant.DEFAULT_INVALID_VALUE 保持一致。
+// 只有 -1 表示"没有 connection id"，0 是合法的 connection id。
+constexpr int64_t INVALID_CONNECTION_ID = -1;
+
 // 成员按对齐降序排列（8B → 4B → 2B → string），减少结构体内存填充
 struct DeviceHcclOp
 {
     int64_t rankSize;
-    int64_t connectionId;
+    int64_t connectionId = INVALID_CONNECTION_ID;
     uint64_t modelId;
     uint64_t count;
     double start;
@@ -160,6 +164,14 @@ void HcclCalculator::FilterRecordsBeforeStartTime(std::vector<T>& data, double s
     INFO("There are % records after % data filtering.", data.size(), dataName);
 }
 
+// 同一通信域内的 index 分配状态：nextIndex 是组内下一个可用 index(0 基)，indexByConn 记录已占用 index 的
+// connectionId。nextIndex 与 indexByConn.size() 在存在无效 connectionId 时不再相等，因此单独维护。
+struct GroupIndexState
+{
+    int64_t nextIndex = 0;
+    std::unordered_map<int64_t, int64_t> indexByConn;
+};
+
 template <typename Op>
 void HcclCalculator::UpdateOpNameByGroupName(std::vector<Op>& ops, double startTimeRawTimestamp)
 {
@@ -167,20 +179,32 @@ void HcclCalculator::UpdateOpNameByGroupName(std::vector<Op>& ops, double startT
     // 先按 (start, end) 重新排序
     std::sort(ops.begin(), ops.end(),
               [](const Op& op1, const Op& op2) { return std::tie(op1.start, op1.end) < std::tie(op2.start, op2.end); });
-    //  if data start in warmup, index will be set -1
-    //  else index++ when groupName in group_dict or group name set first
-    std::unordered_map<std::string, int64_t> hcclGroup;
+    // op_name 末两段是 {通信域内第几个算子}_{该算子第几次出现}：同一通信域里 connectionId 第一次出现才占用一个
+    // index，再次出现复用自己的 index，重复执行只体现在 iterId 上。
+    // connectionId 无效(-1)时无法标识下发，退回按出现顺序自增，避免同域不同算子共用同一 index。
+    // end 不晚于采集开始的行是 warmup，不写入映射，index 保持 -1。
+    std::unordered_map<std::string, GroupIndexState> groupIndex;
     for (auto& data : ops)
     {
-        auto groupIt = hcclGroup.find(data.groupName);
-        if (groupIt == hcclGroup.end())
-        {
-            // Python defaultdict(lambda: -1)
-            groupIt = hcclGroup.emplace(data.groupName, -1).first;
-        }
+        int64_t index = -1;
         if (data.end > startTimeRawTimestamp)
         {
-            ++groupIt->second;
+            auto& state = groupIndex[data.groupName];
+            if (data.connectionId == INVALID_CONNECTION_ID)
+            {
+                index = state.nextIndex;
+                ++state.nextIndex;
+            }
+            else
+            {
+                auto connIt = state.indexByConn.find(data.connectionId);
+                if (connIt == state.indexByConn.end())
+                {
+                    connIt = state.indexByConn.emplace(data.connectionId, state.nextIndex).first;
+                    ++state.nextIndex;
+                }
+                index = connIt->second;
+            }
         }
         const size_t kSubGroupNamePos = 3;
         size_t subPoint = 0;
@@ -188,7 +212,7 @@ void HcclCalculator::UpdateOpNameByGroupName(std::vector<Op>& ops, double startT
         {
             subPoint = data.groupName.size() - kSubGroupNamePos;
         }
-        data.opName = Utils::Join("_", data.opName, data.groupName.substr(subPoint), std::to_string(groupIt->second),
+        data.opName = Utils::Join("_", data.opName, data.groupName.substr(subPoint), std::to_string(index),
                                   std::to_string(data.iterId));
     }
 }
@@ -201,8 +225,9 @@ bool HcclCalculator::GenerateOpReportData(const std::vector<Op>& ops, std::vecto
     std::unordered_map<std::string, Stat> statisticsTable;
     for (const auto& op : ops)
     {
-        // 过滤 warmup 算子（end 早于采集起始时间）
-        if (op.end < startTimeRawTimestamp) continue;
+        // 过滤 warmup 算子：结束不晚于采集开始(end == startTimeRawTimestamp 也算 warmup)，
+        // 与 MergeHcclTaskData / UpdateOpNameByGroupName 的口径保持一致
+        if (op.end <= startTimeRawTimestamp) continue;
         auto& record = statisticsTable[op.opType];
         double duration = op.end - op.start;
         record.opType = op.opType;

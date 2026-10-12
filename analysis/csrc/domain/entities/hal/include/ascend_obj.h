@@ -73,7 +73,7 @@ struct HcclBigOpDesc
     uint16_t deviceId = 0;
     uint64_t modelId = 0;
     int32_t indexId = 0;
-    int64_t connectionId = 0;
+    int64_t connectionId = -1;  // -1 表示该算子无node直连
     uint32_t threadId = 0;
     std::shared_ptr<ParserCompactInfo> nodeDesc = nullptr;
     std::shared_ptr<ParserCompactInfo> opInfoDesc = nullptr;
@@ -151,7 +151,7 @@ struct HostTask
     uint32_t threadId = 0;
     uint32_t streamId = 0;
     uint32_t contextId = 0;
-    int64_t connectionId = 0;  // -1 表示该任务无node直连
+    int64_t connectionId = -1;  // -1 表示该任务无node直连
     uint64_t modelId = 0;
     uint64_t taskType = 0;
     uint64_t timeStamp = 0;

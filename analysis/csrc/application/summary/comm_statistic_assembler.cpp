@@ -33,24 +33,30 @@ CommStatisticAssembler::CommStatisticAssembler(const std::string& name, const st
                 "Min Time(us)", "Avg Time(us)", "Max Time(us)", "Ratio(%)"};
 }
 
-void CommStatisticAssembler::GenerateCommStatistic(std::vector<HcclStatisticData>& commStatisticData)
+void CommStatisticAssembler::GenerateCommStatistic(const std::vector<HcclStatisticData>& commStatisticData)
 {
-    // 按totalTime降序排序
-    std::sort(commStatisticData.begin(), commStatisticData.end(),
-              [](const HcclStatisticData& a, const HcclStatisticData& b)
-              {
-                  return a.totalTime > b.totalTime;  // 降序排序
-              });
-    for (const auto& data : commStatisticData)
+    // 按totalTime降序排序。只排序本地指针数组，不修改数据中心里的数据
+    std::vector<const HcclStatisticData*> sortedData;
+    sortedData.reserve(commStatisticData.size());
+    for (const auto& item : commStatisticData)
     {
-        std::vector<std::string> row = {std::to_string(data.deviceId),
-                                        data.opType,
-                                        data.count,
-                                        DoubleToStr(data.totalTime),
-                                        DoubleToStr(data.min),
-                                        DoubleToStr(data.avg),
-                                        DoubleToStr(data.max),
-                                        DoubleToStr(data.ratio)};
+        sortedData.emplace_back(&item);
+    }
+    std::sort(sortedData.begin(), sortedData.end(),
+              [](const HcclStatisticData* a, const HcclStatisticData* b)
+              {
+                  return a->totalTime > b->totalTime;  // 降序排序
+              });
+    for (const auto* data : sortedData)
+    {
+        std::vector<std::string> row = {std::to_string(data->deviceId),
+                                        data->opType,
+                                        data->count,
+                                        DoubleToStr(data->totalTime),
+                                        DoubleToStr(data->min),
+                                        DoubleToStr(data->avg),
+                                        DoubleToStr(data->max),
+                                        DoubleToStr(data->ratio)};
         res_.emplace_back(row);
     }
 }

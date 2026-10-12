@@ -238,6 +238,19 @@ class TestKfcCalculator(unittest.TestCase):
             self.assertEqual("g1", hccl_kernels[0].group_name)
         InfoConfReader()._start_info.clear()
 
+    def test_get_kfc_host_hccl_op_should_skip_invalid_kfc_connection_id(self: any) -> None:
+        """kfc_connection_ids 里的 -1(该节点没有 kfc connection id)不进映射，无效 id 的 kernel 不能被判成 HCCL"""
+        InfoConfReader()._start_info = {"collectionTimeBegin": "9"}
+        InfoConfReader()._end_info = {}
+        hccl_op = HcclOps(connection_id=99, op_name="all_reduce", group_name="g1", kfc_connection_ids="-1,500")
+        with mock.patch(NAMESPACE + ".HcclViewModel") as mock_vm:
+            mock_vm.return_value.__enter__.return_value.check_table.return_value = True
+            mock_vm.return_value.__enter__.return_value.get_hccl_ops.return_value = [hccl_op]
+            check = KfcCalculator([], CONFIG)
+            result = check.get_kfc_host_hccl_op()
+            self.assertEqual([500], list(result.keys()))
+        InfoConfReader()._start_info.clear()
+
     def test_assign_op_and_plane_should_set_task_op_id_from_kernel_connection_id(self: any) -> None:
         """task 侧 op_id 取 op 的 connection_id（关联语义），落在 op 时间范围内标记 is_master"""
         InfoConfReader()._start_info = {"collectionTimeBegin": "9"}

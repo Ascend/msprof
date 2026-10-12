@@ -125,6 +125,74 @@ TEST_F(KfcCalculatorUTest, TestGetKfcHostHcclOp)
     EXPECT_EQ("g2", map.at(502)->groupName);
 }
 
+// GetKfcHostHcclOp：kfc_connection_ids 里的无效值(-1，python 侧"该节点没有 kfc connection id"的占位)不能进映射，
+// 否则自身没有有效 connection id 的 MC2 kernel 会被误判成 HCCL
+TEST_F(KfcCalculatorUTest, TestGetKfcHostHcclOpShouldSkipInvalidKfcConnectionId)
+{
+    std::vector<DeviceHcclHostOp> hostOps;
+    DeviceHcclHostOp op1;
+    op1.connectionId = 1001;
+    op1.kfcConnectionIds = "-1,500";
+    op1.opName = "hcom_allReduce_";
+    op1.groupName = "g1";
+    hostOps.emplace_back(op1);
+
+    auto map = calculator_->GetKfcHostHcclOp(hostOps);
+    ASSERT_EQ(1u, map.size());
+    EXPECT_EQ(map.end(), map.find(INVALID_CONNECTION_ID));
+    EXPECT_EQ(1001, map.at(500)->connectionId);
+}
+
+// UpdateOpNameByGroupName 是 protected static 模板，通过子类 using 暴露供单测直接调用
+// (文件末尾另有 TestableKfcCalculator 暴露其它成员，这里单独一个子类避免依赖其定义顺序)
+class TestableKfcOpNameCalculator : public KfcCalculator
+{
+   public:
+    using KfcCalculator::UpdateOpNameByGroupName;
+};
+
+// MC2 op_name：有效 connection_id 重复出现复用同一个 index，多次执行只体现在 iter_id 上
+// (MC2 kernel 的 connectionId 由 GetHcclAndMc2Op 从 kfcConnectionId 回填，这里直接构造故显式赋值)
+TEST(TestableKfcOpNameCalculatorTest, TestUpdateOpNameByGroupNameShouldReuseIndexForSameConnectionId)
+{
+    std::vector<DeviceKfcOp> kernels;
+    auto kernel1 = MakeKernel(2, 110, 0, 0, 2000, 2200, 900, "kfc_mc2_op");
+    kernel1.connectionId = 900;
+    kernel1.groupName = "g2";
+    kernel1.iterId = 1;
+    auto kernel2 = MakeKernel(2, 110, 0, 0, 3000, 3200, 900, "kfc_mc2_op");
+    kernel2.connectionId = 900;
+    kernel2.groupName = "g2";
+    kernel2.iterId = 2;
+    kernels.emplace_back(kernel1);
+    kernels.emplace_back(kernel2);
+
+    TestableKfcOpNameCalculator::UpdateOpNameByGroupName(kernels, 0);
+
+    EXPECT_EQ("kfc_mc2_op_g2_0_1", kernels[0].opName);
+    EXPECT_EQ("kfc_mc2_op_g2_0_2", kernels[1].opName);
+}
+
+// MC2 op_name：kernel 没有有效 connection_id 时退回按出现顺序自增，
+// 否则同域不同算子会共用同一 index，在 iter_id 相同时拼出完全相同的 op_name
+TEST(TestableKfcOpNameCalculatorTest, TestUpdateOpNameByGroupNameShouldDistinguishKernelsWithoutConnectionId)
+{
+    std::vector<DeviceKfcOp> kernels;
+    auto kernel1 = MakeKernel(2, 110, 0, 0, 2000, 2200, INVALID_CONNECTION_ID, "kfc_mc2_op");
+    kernel1.groupName = "g2";
+    kernel1.iterId = 1;
+    auto kernel2 = MakeKernel(2, 120, 0, 0, 3000, 3200, INVALID_CONNECTION_ID, "kfc_mc2_op2");
+    kernel2.groupName = "g2";
+    kernel2.iterId = 1;
+    kernels.emplace_back(kernel1);
+    kernels.emplace_back(kernel2);
+
+    TestableKfcOpNameCalculator::UpdateOpNameByGroupName(kernels, 0);
+
+    EXPECT_EQ("kfc_mc2_op_g2_0_1", kernels[0].opName);
+    EXPECT_EQ("kfc_mc2_op2_g2_1_1", kernels[1].opName);
+}
+
 // GetHcclAndMc2Op：匹配到 HCCL_OP 的 kernel 归为 HCCL，未匹配的归为 MC2；iter_id 按四元组出现次数递增
 TEST_F(KfcCalculatorUTest, TestGetHcclAndMc2Op)
 {

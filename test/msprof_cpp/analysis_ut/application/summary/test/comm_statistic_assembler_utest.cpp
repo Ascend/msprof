@@ -14,6 +14,8 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/summary/comm_statistic_assembler.h"
@@ -108,6 +110,44 @@ TEST_F(CommStatisticAssemblerUTest, ShouldReturnTrueWhenCommStatisticExist)
     EXPECT_EQ(expectRowOne, res[1]); // 1 the first result
     std::string expectRowTwo{"0,hcom_allGather_,3202,771407100,35960,240914.147,706500,6.513"};
     EXPECT_EQ(expectRowTwo, res[2]); // 2 the second
+}
+
+TEST_F(CommStatisticAssemblerUTest, ShouldKeepInventoryOrderWhenSorting)
+{
+    // 排序只作用于本地数组：输入升序，装配后 CSV 仍按 totalTime 降序，且数据中心顺序不变
+    DataInventory dataInventory;
+    auto commStatisticData = GenerateCommStatisticData();
+    std::reverse(commStatisticData.begin(), commStatisticData.end());
+    std::vector<std::string> inputOrder;
+    for (const auto& item : commStatisticData)
+    {
+        inputOrder.emplace_back(item.opType);
+    }
+    std::shared_ptr<std::vector<HcclStatisticData>> commStatisticDataS;
+    MAKE_SHARED_NO_OPERATION(commStatisticDataS, std::vector<HcclStatisticData>, commStatisticData);
+    dataInventory.Inject(commStatisticDataS);
+
+    CommStatisticAssembler assembler(PROCESSOR_NAME_COMM_STATISTIC, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+
+    // 1) 装配结果仍按 totalTime 降序
+    auto files = File::GetOriginData(RESULT_PATH, {COMM_STATISTIC_NAME}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    ASSERT_EQ(3ul, res.size());
+    std::string expectRowOne{"0,hcom_send_,384,5412825240,219280,14095899.062,42146680,45.699"};
+    EXPECT_EQ(expectRowOne, res[1]);
+    std::string expectRowTwo{"0,hcom_allGather_,3202,771407100,35960,240914.147,706500,6.513"};
+    EXPECT_EQ(expectRowTwo, res[2]);
+
+    // 2) 数据中心里的数据顺序未被改动
+    ASSERT_EQ(inputOrder.size(), commStatisticDataS->size());
+    for (size_t i = 0; i < inputOrder.size(); ++i)
+    {
+        EXPECT_EQ(inputOrder[i], commStatisticDataS->at(i).opType) << "inventory order changed at index " << i;
+    }
 }
 
 TEST_F(CommStatisticAssemblerUTest, ShouldReturnFalseWhenDataExistAndResEmpty)

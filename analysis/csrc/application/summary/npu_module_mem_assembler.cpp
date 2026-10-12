@@ -51,25 +51,32 @@ uint8_t NpuModuleMemAssembler::AssembleData(DataInventory &dataInventory)
         WARN("No data to export npu module memory summary");
         return DATA_NOT_EXIST;
     }
-    // sort
-    std::sort(npuModuleMemData->begin(), npuModuleMemData->end(),
-              [](const NpuModuleMemData &a, const NpuModuleMemData &b)
+    // 按 (moduleId, timestamp) 排序输出。只排序本地指针数组，不修改数据中心里的数据：
+    // 同一份数据还会被 DB 落盘节点(DB:npu_module_mem)读取，两个节点同级、可能并发执行。
+    std::vector<const NpuModuleMemData *> sortedData;
+    sortedData.reserve(npuModuleMemData->size());
+    for (const auto &item : *npuModuleMemData)
+    {
+        sortedData.emplace_back(&item);
+    }
+    std::sort(sortedData.begin(), sortedData.end(),
+              [](const NpuModuleMemData *a, const NpuModuleMemData *b)
               {
-                  if (a.moduleId == b.moduleId)
+                  if (a->moduleId == b->moduleId)
                   {
-                      return a.timestamp < b.timestamp;
+                      return a->timestamp < b->timestamp;
                   }
-                  return a.moduleId < b.moduleId;
+                  return a->moduleId < b->moduleId;
               });
-    for (auto &item : *npuModuleMemData)
+    for (const auto *item : sortedData)
     {
         // push data to res
         res_.emplace_back(std::vector<std::string>{
-            std::to_string(item.deviceId),
-            moduleMap_.find(item.moduleId) != moduleMap_.end() ? moduleMap_.at(item.moduleId)
-                                                               : Analysis::Common::UNKNOWN,
-            DivideByPowersOfTenWithPrecision(item.timestamp, true),
-            std::to_string(item.totalReserved / Analysis::Common::BYTE_SIZE), item.deviceType});
+            std::to_string(item->deviceId),
+            moduleMap_.find(item->moduleId) != moduleMap_.end() ? moduleMap_.at(item->moduleId)
+                                                                : Analysis::Common::UNKNOWN,
+            DivideByPowersOfTenWithPrecision(item->timestamp, true),
+            std::to_string(item->totalReserved / Analysis::Common::BYTE_SIZE), item->deviceType});
     }
     if (res_.empty())
     {
