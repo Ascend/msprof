@@ -380,6 +380,12 @@ std::unordered_map<int64_t, const DeviceHcclHostOp*> KfcCalculator::GetKfcHostHc
     {
         for (auto kfcConnectionId : SplitCommaToInt64(data.kfcConnectionIds))
         {
+            // -1 是"该节点没有 kfc connection id"的占位(python 侧会原样写进 kfc_connection_ids)，
+            // 不能进映射，否则自身无有效 connection id 的 MC2 kernel 会被误判成 HCCL
+            if (kfcConnectionId == INVALID_CONNECTION_ID)
+            {
+                continue;
+            }
             kfcHcclOpMap[kfcConnectionId] = &data;
         }
     }

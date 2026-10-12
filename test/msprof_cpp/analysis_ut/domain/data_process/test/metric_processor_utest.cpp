@@ -45,15 +45,18 @@ using TempTaskFormatA1 = std::vector<std::tuple<double, double, double, double, 
 using TempTaskFormat = std::vector<std::tuple<double, double, double, double, double, double, double, double, double,
                                               double, double, uint32_t, uint32_t, uint32_t, double, double, uint32_t>>;
 
+// end_time 低于 startClockMonotonicRaw(36470610791630) 的行是 warmup，取数后应被丢掉。
+// 保留行的 end_time 高于该阈值，GetLocalTime 之后结束时间不早于采集开始。
 const TempTaskFormatA1 TASK_DATA_A1 = {
+    {1.0, 1, 1, 0.1, 1, 0.1, 1, 0.1, 1, 0.1, 1, 1, 1, 1, 0},
     {318.36, 14135332, 160, 0.5025757004648825, 180, 0.5653976630229928, 200, 0.6282196255811032, 300,
-     0.9423294383716547, 20, 68, 21203781495130.004, 21203812838010.004, 0},
+     0.9423294383716547, 20, 68, 36470610791630.0, 36470610891630.0, 0},
     {327.19, 14527061, 160, 0.489012500382041, 180, 0.5501390629297961, 200, 0.6112656254775513, 300,
-     0.9168984382163269, 21, 68, 21203781495130.004, 21203813146290.004, 0},
+     0.9168984382163269, 21, 68, 36470610791630.0, 36470610991630.0, 0},
     {313.94, 13939056, 160, 0.5096515257692553, 180, 0.5733579664904122, 200, 0.6370644072115691, 300,
-     0.9555966108173536, 22, 68, 21203781495130.004, 21203813447710.004, 0},
+     0.9555966108173536, 22, 68, 36470610791630.0, 36470611091630.0, 0},
     {315.17, 13993558, 160, 0.5076625313322969, 180, 0.571120347748834, 200, 0.6345781641653711, 300,
-     0.9518672462480566, 23, 68, 21203781495130.004, 21203813750090.004, 0},
+     0.9518672462480566, 23, 68, 36470610791630.0, 36470611191630.0, 0},
 };
 
 // 非stars的表头 当前C化代码不适用,仅用于检验memoryBound
@@ -66,14 +69,15 @@ const TableColumns TASK_METRIC_SUMMARY_A1 = {
 };
 
 const TempTaskFormat TASK_DATA_A2 = {
+    {1, 1, 1, 0.1, 1, 0.1, 1, 1, 0.1, 0.1, 0, 1, 1, 1, 1, 1, 0},
     {318.36, 14135332, 197.9849315375118, 0.62189009780598, 160, 0.5025757004648825, 75.1, 6668981, 0.87503179271316,
-     0.01165155516263, 0, 22, 68, 2344, 21203781495130.004, 21203812838010.004, 0},
+     0.01165155516263, 0, 22, 68, 2344, 36470610791630.0, 36470610891630.0, 0},
     {327.19, 14527061, 197.98020025179216, 0.60509245469541, 160, 0.489012500382041, 76.41, 6785309, 0.87503201991243,
-     0.01145179976328, 0, 22, 68, 2356, 21203781495130.004, 21203813146290.004, 0},
+     0.01145179976328, 0, 22, 68, 2356, 36470610791630.0, 36470610991630.0, 0},
     {313.94, 13939056, 197.98647121440646, 0.63065066960058, 160, 0.5096515257692553, 61.91, 5497563, 0.8750522076782,
-     0.01413426276334, 0, 22, 68, 2357, 21203781495130.004, 21203813447710.004, 0},
+     0.01413426276334, 0, 22, 68, 2357, 36470610791630.0, 36470611091630.0, 0},
     {315.17, 13993558, 197.98357473417414, 0.62818026694855, 160, 0.5076625313322969, 61.88, 5495101, 0.87502004421757,
-     0.01414059541399, 0, 22, 68, 2358, 21203781495130.004, 21203813750090.004, 0},
+     0.01414059541399, 0, 22, 68, 2358, 36470610791630.0, 36470611191630.0, 0},
 };
 
 const TableColumns TASK_METRIC_SUMMARY_A2 = {
@@ -396,7 +400,31 @@ using MS_TYPE = std::vector<
     std::tuple<double, double, double, double, double, double, double, double, double, double, double, double, double,
                double, double, double, double, double, uint32_t, uint32_t, uint32_t, double, double, uint16_t>>;
 
-const MS_TYPE MS_DATA = {{3.515,
+const MS_TYPE MS_DATA = {{9.9,
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          9,
+                          9,
+                          1,
+                          1,
+                          1,
+                          0},
+                         {3.515,
                           2812,
                           1.125,
                           0.125,
@@ -417,8 +445,8 @@ const MS_TYPE MS_DATA = {{3.515,
                           1,
                           2,
                           UINT32_MAX,
-                          21203781495130.004,
-                          21203812838010.004,
+                          36470610791630.0,
+                          36470610891630.0,
                           0},
                          {3.515,
                           2812,
@@ -441,8 +469,8 @@ const MS_TYPE MS_DATA = {{3.515,
                           2,
                           2,
                           UINT32_MAX,
-                          21203781497130.004,
-                          21203812738010.004,
+                          36470610791630.0,
+                          36470610991630.0,
                           0}};
 
 TEST_F(MetricProcessorUTest, TestTaskRunShouldReturnTrueWhenRunMemoryAccessSuccess)
@@ -469,6 +497,14 @@ TEST_F(MetricProcessorUTest, TestTaskRunShouldReturnTrueWhenRunMemoryAccessSucce
     DataInventory dataInventory;
     auto processor = MetricProcessor(PROF_PATH_A2);
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));
+    auto metricSummary = dataInventory.GetPtr<MetricSummary>();
+    ASSERT_NE(metricSummary, nullptr);
+    size_t rowCount = 0;
+    for (const auto &item : metricSummary->data)
+    {
+        rowCount += item.second.size();
+    }
+    EXPECT_EQ(2u, rowCount);
     MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
     MOCKER_CPP(&Context::IsChipV1).stubs().will(returnValue(true));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));
@@ -518,4 +554,114 @@ TEST_F(MetricProcessorUTest, TestRunShouldReturnFalseWhenFormatTaskBasedDataFail
     MOCKER_CPP(&MetricProcessor::FormatTaskBasedData).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));
     MOCKER_CPP(&MetricProcessor::FormatTaskBasedData).reset();
+}
+
+// 老生产者(create_metric_table，如 V1/V5 的 python 侧 aic pmu)建出的 MetricSummary 没有 end_time 列，
+// 此时不能下推时间过滤，否则每一列查询都会失败并把整张表当失败处理
+const std::string PROF_PATH_NO_END_TIME = File::PathJoin({METRIC_DIR, "PROF_PLATFORM_6_NO_END_TIME"});
+const TableColumns NO_END_TIME_METRIC_SUMMARY = {{"total_time", SQL_NUMERIC_TYPE},
+                                                 {"total_cycles", SQL_NUMERIC_TYPE},
+                                                 {"task_id", SQL_INTEGER_TYPE},
+                                                 {"stream_id", SQL_INTEGER_TYPE},
+                                                 {"core_type", SQL_INTEGER_TYPE},
+                                                 {"batch_id", SQL_INTEGER_TYPE}};
+using NoEndTimeFormat = std::vector<std::tuple<double, double, uint32_t, uint32_t, uint32_t, uint32_t>>;
+const NoEndTimeFormat NO_END_TIME_DATA = {{3.515, 2812, 1, 2, 0, 0}, {4.515, 3812, 3, 4, 0, 0}};
+
+// 全部行都是 warmup(end_time 早于 startClockMonotonicRaw)时按"无数据"成功返回，而不是当失败
+const std::string PROF_PATH_ALL_WARMUP = File::PathJoin({METRIC_DIR, "PROF_PLATFORM_6_ALL_WARMUP"});
+const TableColumns WARMUP_ONLY_METRIC_SUMMARY = {{"aic_total_time", SQL_NUMERIC_TYPE},
+                                                 {"aic_total_cycles", SQL_NUMERIC_TYPE},
+                                                 {"task_id", SQL_INTEGER_TYPE},
+                                                 {"stream_id", SQL_INTEGER_TYPE},
+                                                 {"subtask_id", SQL_INTEGER_TYPE},
+                                                 {"start_time", SQL_NUMERIC_TYPE},
+                                                 {"end_time", SQL_NUMERIC_TYPE},
+                                                 {"batch_id", SQL_INTEGER_TYPE}};
+using WarmupOnlyFormat = std::vector<std::tuple<double, double, uint32_t, uint32_t, uint32_t, double, double, uint32_t>>;
+const WarmupOnlyFormat ALL_WARMUP_DATA = {
+    {1.0, 1, 1, 1, UINT32_MAX, 1, 1, 0},  // end_time(1) 远早于 startClockMonotonicRaw(36470610791630)
+    {2.0, 2, 2, 2, UINT32_MAX, 2, 2, 0},
+};
+
+namespace
+{
+size_t CountMetricRows(const std::shared_ptr<MetricSummary> &metricSummary)
+{
+    size_t rowCount = 0;
+    for (const auto &item : metricSummary->data)
+    {
+        rowCount += item.second.size();
+    }
+    return rowCount;
+}
+}  // namespace
+
+TEST_F(MetricProcessorUTest, TestTaskRunShouldReturnTrueWhenMetricSummaryHasNoEndTimeColumn)
+{
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1701069323851824"},
+        {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},
+        {"DeviceInfo", {{{"aic_frequency", "1000"}, {"ai_core_num", 24}}}},
+        {"ai_core_profiling_mode", TASK_BASED},
+        {"platform_version", "15"},  // 非 chipV4：subtask_id 用 'N/A' 补齐，表里不需要该列
+    };
+    auto sqlitePath = File::PathJoin({PROF_PATH_NO_END_TIME, DEVICE_PREFIX + "0", SQLITE});
+    // File::CreateDir 不递归建目录，需要逐级创建
+    EXPECT_TRUE(File::CreateDir(PROF_PATH_NO_END_TIME));
+    EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_NO_END_TIME, DEVICE_PREFIX + "0"})));
+    EXPECT_TRUE(File::CreateDir(sqlitePath));
+    std::shared_ptr<DBRunner> metricRunner;
+    MAKE_SHARED_NO_OPERATION(metricRunner, DBRunner, File::PathJoin({sqlitePath, METRIC_SUMMARY_DB}));
+    ASSERT_NE(metricRunner, nullptr);
+    EXPECT_TRUE(metricRunner->CreateTable("MetricSummary", NO_END_TIME_METRIC_SUMMARY));
+    EXPECT_TRUE(metricRunner->InsertData("MetricSummary", NO_END_TIME_DATA));
+    // 先释放连接，避免后面清理目录时文件句柄仍被占用
+    metricRunner.reset();
+
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+    DataInventory dataInventory;
+    auto processor = MetricProcessor(PROF_PATH_NO_END_TIME);
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));
+    MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+
+    auto metricSummary = dataInventory.GetPtr<MetricSummary>();
+    ASSERT_NE(metricSummary, nullptr);
+    // 没有 end_time 列时不做时间过滤，两行都要保留
+    EXPECT_EQ(2u, CountMetricRows(metricSummary));
+}
+
+TEST_F(MetricProcessorUTest, TestTaskRunShouldReturnTrueWhenAllRowsAreWarmup)
+{
+    nlohmann::json record = {
+        {"startCollectionTimeBegin", "1701069323851824"},
+        {"endCollectionTimeEnd", "1701069338041681"},
+        {"startClockMonotonicRaw", "36470610791630"},
+        {"DeviceInfo", {{{"aic_frequency", "1000"}, {"ai_core_num", 24}}}},
+        {"ai_core_profiling_mode", TASK_BASED},
+        {"platform_version", "15"},
+    };
+    auto sqlitePath = File::PathJoin({PROF_PATH_ALL_WARMUP, DEVICE_PREFIX + "0", SQLITE});
+    // File::CreateDir 不递归建目录，需要逐级创建
+    EXPECT_TRUE(File::CreateDir(PROF_PATH_ALL_WARMUP));
+    EXPECT_TRUE(File::CreateDir(File::PathJoin({PROF_PATH_ALL_WARMUP, DEVICE_PREFIX + "0"})));
+    EXPECT_TRUE(File::CreateDir(sqlitePath));
+    std::shared_ptr<DBRunner> metricRunner;
+    MAKE_SHARED_NO_OPERATION(metricRunner, DBRunner, File::PathJoin({sqlitePath, METRIC_SUMMARY_DB}));
+    ASSERT_NE(metricRunner, nullptr);
+    EXPECT_TRUE(metricRunner->CreateTable("MetricSummary", WARMUP_ONLY_METRIC_SUMMARY));
+    EXPECT_TRUE(metricRunner->InsertData("MetricSummary", ALL_WARMUP_DATA));
+    metricRunner.reset();
+
+    MOCKER_CPP(&Context::GetInfoByDeviceId).stubs().will(returnValue(record));
+    DataInventory dataInventory;
+    auto processor = MetricProcessor(PROF_PATH_ALL_WARMUP);
+    // 行全被 end_time 条件过滤掉属于正常情况(采集开始前的 warmup)，不应按失败处理
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_METRIC_SUMMARY));
+    MOCKER_CPP(&Context::GetInfoByDeviceId).reset();
+
+    auto metricSummary = dataInventory.GetPtr<MetricSummary>();
+    ASSERT_NE(metricSummary, nullptr);
+    EXPECT_EQ(0u, CountMetricRows(metricSummary));
 }

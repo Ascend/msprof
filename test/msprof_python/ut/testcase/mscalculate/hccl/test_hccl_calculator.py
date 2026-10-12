@@ -73,6 +73,22 @@ class TestHcclCalculator(unittest.TestCase):
             check = HcclCalculator([], CONFIG)
             check.ms_run()
 
+    def test_calculate_should_drop_warmup_tasks_before_merge(self):
+        """取数后、合并前丢掉结束不晚于采集开始的 task"""
+        check = HcclCalculator([], CONFIG)
+        check.start_time_raw_timestamp = 100
+        warmup = HcclTask(timestamp=10, duration=40, task_id=1)
+        later = HcclTask(timestamp=1000, duration=100, task_id=2)
+        with mock.patch(NAMESPACE + ".DBManager.check_tables_in_db", return_value=True), \
+                mock.patch.object(check, "_model") as mock_model, \
+                mock.patch.object(check, "_merge_hccl_ops_and_tasks", return_value=[]) as mock_merge:
+            mock_model.__enter__.return_value = mock_model
+            mock_model.get_hccl_task_data.return_value = [warmup, later]
+            mock_model.get_hccl_ops.return_value = []
+            check.calculate()
+        # 10+40=50 <= 100 属于 warmup，不参与合并；只剩 task_id=2
+        self.assertEqual([2], [task.task_id for task in mock_merge.call_args[0][1]])
+
     # ============================================================
     # _judge_calculate_again
     # ============================================================
@@ -585,24 +601,51 @@ class TestHcclCalculator(unittest.TestCase):
     # ============================================================
 
     def test_update_op_name_by_group_name_should_use_iter_id_suffix(self: any) -> None:
-        """op_name 格式: {name}_{group[-3:]}_{index}_{iter_id}"""
+        """同一 connection_id 重复执行时 groupIndex 不变，iter_id 区分次数"""
         hccl_ops = [
-            HcclOps(op_name="hcom_allreduce", group_name="12345", start=100, end=200, iter_id=1),
-            HcclOps(op_name="hcom_allreduce", group_name="12345", start=300, end=400, iter_id=2),
+            HcclOps(op_name="hcom_allreduce", group_name="12345", start=100, end=200, iter_id=1, connection_id=612),
+            HcclOps(op_name="hcom_allgather", group_name="12345", start=300, end=400, iter_id=1, connection_id=613),
+            HcclOps(op_name="hcom_allreduce", group_name="12345", start=500, end=600, iter_id=2, connection_id=612),
         ]
         HcclCalculator.update_op_name_by_group_name(hccl_ops, start_time_raw_timestamp=50)
         self.assertEqual("hcom_allreduce_345_0_1", hccl_ops[0].op_name)
-        self.assertEqual("hcom_allreduce_345_1_2", hccl_ops[1].op_name)
+        self.assertEqual("hcom_allgather_345_1_1", hccl_ops[1].op_name)
+        self.assertEqual("hcom_allreduce_345_0_2", hccl_ops[2].op_name)
 
     def test_update_op_name_by_group_name_should_skip_ops_before_threshold(self: any) -> None:
-        """end <= threshold 的 op 不递增 group 索引（保持 -1）"""
+        """end <= threshold 的 op 不写入映射，正式执行仍从 0 开始"""
         hccl_ops = [
-            HcclOps(op_name="op_a", group_name="12345", start=10, end=50, iter_id=1),
-            HcclOps(op_name="op_a", group_name="12345", start=100, end=200, iter_id=1),
+            HcclOps(op_name="op_a", group_name="12345", start=10, end=50, iter_id=1, connection_id=612),
+            HcclOps(op_name="op_a", group_name="12345", start=100, end=200, iter_id=1, connection_id=612),
         ]
         HcclCalculator.update_op_name_by_group_name(hccl_ops, start_time_raw_timestamp=60)
         self.assertEqual("op_a_345_-1_1", hccl_ops[0].op_name)
         self.assertEqual("op_a_345_0_1", hccl_ops[1].op_name)
+
+    def test_drop_tasks_ended_by_collect_start_should_keep_only_later_end(self: any) -> None:
+        tasks = [
+            HcclTask(timestamp=10, duration=40, task_id=1),
+            HcclTask(timestamp=90, duration=10, task_id=2),
+            HcclTask(timestamp=1000, duration=100, task_id=3),
+        ]
+        kept = HcclCalculator.drop_tasks_ended_by_collect_start(tasks, 100)
+        self.assertEqual([3], [task.task_id for task in kept])
+
+    def test_update_op_name_by_group_name_should_fallback_when_connection_id_invalid(self: any) -> None:
+        """connection_id 无效(-1)时退回按出现顺序自增，避免同域不同算子共用同一 index"""
+        hccl_ops = [
+            HcclOps(op_name="op_a", group_name="12345", start=10, end=20, iter_id=1),
+            HcclOps(op_name="op_b", group_name="12345", start=30, end=40, iter_id=1),
+            HcclOps(op_name="op_a", group_name="12345", start=50, end=60, iter_id=2, connection_id=612),
+            HcclOps(op_name="op_c", group_name="12345", start=70, end=80, iter_id=3, connection_id=612),
+        ]
+        HcclCalculator.update_op_name_by_group_name(hccl_ops, start_time_raw_timestamp=0)
+        # 无有效 connection_id 的算子各占一个 index
+        self.assertEqual("op_a_345_0_1", hccl_ops[0].op_name)
+        self.assertEqual("op_b_345_1_1", hccl_ops[1].op_name)
+        # 有效 connection_id 首次出现占用下一个 index，再次出现复用
+        self.assertEqual("op_a_345_2_2", hccl_ops[2].op_name)
+        self.assertEqual("op_c_345_2_3", hccl_ops[3].op_name)
 
     # ============================================================
     # generate_op_report_data

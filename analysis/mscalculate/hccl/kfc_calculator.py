@@ -441,7 +441,12 @@ class KfcCalculator(ICalculator, MsMultiProcess):
         kfc_hccl_op_map = {}
         for data in hccl_ops:
             for kfc_connection_id in data.kfc_connection_ids.split(","):
-                kfc_hccl_op_map[int(kfc_connection_id)] = data
+                connection_id = int(kfc_connection_id)
+                # -1 是"该节点没有 kfc connection id"的占位，不能进映射，
+                # 否则自身无有效 connection id 的 MC2 kernel 会被误判成 HCCL
+                if connection_id == Constant.DEFAULT_INVALID_VALUE:
+                    continue
+                kfc_hccl_op_map[connection_id] = data
         return kfc_hccl_op_map
 
     def ms_run(self: any) -> None:

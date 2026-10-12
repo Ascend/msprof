@@ -44,8 +44,8 @@ struct DeviceKfcOp
     uint64_t modelId = 0;
     uint64_t count = 0;
     int64_t rankSize = 0;
-    int64_t kfcConnectionId = 0;  // kfc_connection_id
-    int64_t connectionId = 0;     // 匹配到 HCCL_OP 后回填 connection_id，MC2 下等于 kfc_connection_id
+    int64_t kfcConnectionId = INVALID_CONNECTION_ID;  // kfc_connection_id
+    int64_t connectionId = INVALID_CONNECTION_ID;  // 匹配到 HCCL_OP 后回填 connection_id，MC2 下等于 kfc_connection_id
     double start = 0.0;
     double end = 0.0;
     int32_t indexId = 0;
@@ -82,7 +82,7 @@ struct DeviceMasterStreamHcclTask
 // 成员按对齐降序排列（8B → 4B → 2B → string），减少结构体内存填充
 struct DeviceHcclHostOp
 {
-    int64_t connectionId = 0;
+    int64_t connectionId = INVALID_CONNECTION_ID;
     std::string kfcConnectionIds;  // 逗号分隔，一行对应多个 kfc_connection_id
     std::string opName;
     std::string groupName;

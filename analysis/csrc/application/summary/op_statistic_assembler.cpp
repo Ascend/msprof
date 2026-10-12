@@ -34,20 +34,26 @@ OpStatisticAssembler::OpStatisticAssembler(const std::string& name, const std::s
     headers_ = {"Device_id",    "OP Type",      "Core Type",    "Count",   "Total Time(us)",
                 "Min Time(us)", "Avg Time(us)", "Max Time(us)", "Ratio(%)"};
 }
-void OpStatisticAssembler::GenerateOpStatistic(std::vector<OpStatisticData>& opStatisticData)
+void OpStatisticAssembler::GenerateOpStatistic(const std::vector<OpStatisticData>& opStatisticData)
 {
-    // 按totalTime降序排序
-    std::sort(opStatisticData.begin(), opStatisticData.end(),
-              [](const OpStatisticData& a, const OpStatisticData& b)
+    // 按totalTime降序排序。只排序本地指针数组，不修改数据中心里的数据
+    std::vector<const OpStatisticData*> sortedData;
+    sortedData.reserve(opStatisticData.size());
+    for (const auto& item : opStatisticData)
+    {
+        sortedData.emplace_back(&item);
+    }
+    std::sort(sortedData.begin(), sortedData.end(),
+              [](const OpStatisticData* a, const OpStatisticData* b)
               {
-                  return a.totalTime > b.totalTime;  // 降序排序
+                  return a->totalTime > b->totalTime;  // 降序排序
               });
-    for (const auto& data : opStatisticData)
+    for (const auto* data : sortedData)
     {
         std::vector<std::string> row = {
-            std::to_string(data.deviceId), data.opType,           data.coreType,         data.count,
-            DoubleToStr(data.totalTime),   DoubleToStr(data.min), DoubleToStr(data.avg), DoubleToStr(data.max),
-            DoubleToStr(data.ratio)};
+            std::to_string(data->deviceId), data->opType,           data->coreType,         data->count,
+            DoubleToStr(data->totalTime),   DoubleToStr(data->min), DoubleToStr(data->avg), DoubleToStr(data->max),
+            DoubleToStr(data->ratio)};
         res_.emplace_back(row);
     }
 }

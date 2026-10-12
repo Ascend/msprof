@@ -20,6 +20,7 @@ from collections import defaultdict
 from collections import deque
 from typing import List
 from typing import Union
+from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
@@ -162,14 +163,40 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         return bandwidth
 
     @staticmethod
+    def drop_tasks_ended_by_collect_start(hccl_tasks: list, start_time_raw_timestamp: int) -> list:
+        """配对之后、编 iter_id 之前丢掉结束不晚于采集开始的执行。"""
+        logging.info(
+            "There are %s records before hccl task data filtering, filterTime is %s.",
+            len(hccl_tasks),
+            start_time_raw_timestamp,
+        )
+        kept = [task for task in hccl_tasks if task.timestamp + task.duration > start_time_raw_timestamp]
+        logging.info("There are %s records after hccl task data filtering.", len(kept))
+        return kept
+
+    @staticmethod
     def update_op_name_by_group_name(hccl_ops: List[HcclOps], start_time_raw_timestamp: int) -> None:
         # 前面多线程数据处理 此处的task可能不保序 重新排序
         hccl_ops.sort(key=lambda x: (x.start, x.end))
-        group_dict = defaultdict(lambda: -1)
+        # op_name 末两段是 {通信域内第几个算子}_{该算子第几次出现}：同一通信域里 connection_id 第一次出现才占用
+        # 一个 index，再次出现复用自己的 index，重复执行只体现在 iter_id 上。
+        # connection_id 无效(-1)时无法标识下发，退回按出现顺序自增，避免同域不同算子共用同一 index。
+        # end 不晚于采集开始的行是 warmup，不写入映射，index 保持 -1。
+        next_index = defaultdict(int)  # 组内下一个可用 index，等价原 defaultdict(lambda: -1) 自增
+        index_by_conn = defaultdict(dict)  # 组内 connection_id -> index
         for i, op in enumerate(hccl_ops):
+            index = -1
             if op.end > start_time_raw_timestamp:
-                group_dict[op.group_name] += 1
-            index = group_dict[op.group_name]
+                conn_index = index_by_conn[op.group_name]
+                if op.connection_id == Constant.DEFAULT_INVALID_VALUE:
+                    index = next_index[op.group_name]
+                    next_index[op.group_name] += 1
+                elif op.connection_id in conn_index:
+                    index = conn_index[op.connection_id]
+                else:
+                    index = next_index[op.group_name]
+                    conn_index[op.connection_id] = index
+                    next_index[op.group_name] += 1
             hccl_ops[i] = op.replace(op_name=f"{op.op_name}_{op.group_name[-3:]}_{str(index)}_{str(op.iter_id)}")
 
     @staticmethod
@@ -179,7 +206,9 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         """
         op_type_group = defaultdict(lambda: {"count": 0, "total_time": 0, "min": float("inf"), "max": -float("inf")})
         for data in ops:
-            if data.end < start_time_raw_timestamp:
+            # 过滤 warmup 算子：结束不晚于采集开始(end == start_time_raw_timestamp 也算 warmup)，
+            # 与 drop_tasks_ended_by_collect_start / update_op_name_by_group_name 口径保持一致
+            if data.end <= start_time_raw_timestamp:
                 continue
             duration = data.end - data.start
             op_type_group[data.op_type]["count"] += 1
@@ -216,7 +245,9 @@ class HcclCalculator(ICalculator, MsMultiProcess):
                 return
 
             iter_range: IterationRange = self.sample_config.get(StrConstant.PARAM_ITER_ID)
-            hccl_tasks = hccl_model.get_hccl_task_data()
+            hccl_tasks = self.drop_tasks_ended_by_collect_start(
+                hccl_model.get_hccl_task_data(), self.start_time_raw_timestamp
+            )
             host_ops = hccl_model.get_hccl_ops(model_id=iter_range.model_id, index_id=iter_range.iteration_id)
             hccl_ops = self._merge_hccl_ops_and_tasks(host_ops, hccl_tasks)
 

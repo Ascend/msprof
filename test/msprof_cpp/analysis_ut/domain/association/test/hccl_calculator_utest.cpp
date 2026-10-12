@@ -243,7 +243,7 @@ public:
 };
 
 static DeviceHcclOp MakeDeviceHcclOp(double start, double end, uint32_t iterId, const std::string& opName,
-                                     const std::string& groupName)
+                                     const std::string& groupName, int64_t connectionId)
 {
     DeviceHcclOp op;
     op.start = start;
@@ -251,6 +251,7 @@ static DeviceHcclOp MakeDeviceHcclOp(double start, double end, uint32_t iterId, 
     op.iterId = iterId;
     op.opName = opName;
     op.groupName = groupName;
+    op.connectionId = connectionId;
     return op;
 }
 
@@ -258,6 +259,9 @@ TEST_F(HcclCalculatorUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
 {
     HcclCalculator calculator;
     DeviceContext context;
+    // 显式声明采集起始时间(DeviceStartInfo 默认值)：本用例的期望数据都晚于该时间，warmup 过滤不会丢数据。
+    // 若以后改成真实时间戳，下面的 expectBandwidth/expectOpName 必须同步调整。
+    context.deviceContextInfo.startInfo.clockMonotonicRaw = 0;
     ASSERT_EQ(Analysis::ANALYSIS_OK, calculator.Run(dataInventory_, context));
 
     auto hcclOpData = dataInventory_.GetPtr<std::vector<HcclOp>>();
@@ -333,19 +337,10 @@ TEST_F(HcclCalculatorUTest, TestGetHcclStatisticsDataShouldBeFilteredWhenProcess
     EXPECT_EQ(HCCL_OP_DATA.size(), hcclOpData->size());
 
     auto hcclTaskData = dataInventory_.GetPtr<std::vector<DeviceHcclTask>>();
-    // 去除4条时间为-1的非法数据
-    EXPECT_EQ(HCCL_TASK_DATA.size() - 4, hcclTaskData->size());
+    // 去掉 4 条 startTime 为 -1 的任务，再去掉 9 条结束不晚于采集开始的 broadcast
+    EXPECT_EQ(HCCL_TASK_DATA.size() - 4 - 9, hcclTaskData->size());
 
     std::vector<std::string> expectOpName = {
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
-        "hcom_broadcast_",
         "hcom_allReduce_",
         "hcom_allReduce_",
         "hcom_allReduce_",
@@ -378,14 +373,15 @@ TEST_F(HcclCalculatorUTest, TestGetHcclStatisticsDataShouldBeFilteredWhenProcess
 
 TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldAppendLast3CharsAndCountIndexByGroup)
 {
-    // 输入乱序，验证函数先按 (start, end) 排序后再更新 opName；
-    // 同一 groupName 的算子按 warmup 边界(严格 >)递增 index：warmup 内为 -1，越过采集起始时间从 0 起
+    // 输入乱序，验证函数先按 (start, end) 排序后再更新 opName。
+    // 同一通信域里 connectionId 第一次出现才递增；再次出现复用自己的 index。end 不大于采集开始时为 -1。
     std::vector<DeviceHcclOp> ops;
-    ops.emplace_back(MakeDeviceHcclOp(250, 300, 4, "opD", "group_1"));
-    ops.emplace_back(MakeDeviceHcclOp(50, 50, 1, "opA", "group_1"));
-    ops.emplace_back(MakeDeviceHcclOp(10, 20, 5, "opE", "x_y"));
-    ops.emplace_back(MakeDeviceHcclOp(150, 200, 3, "opC", "group_1"));
-    ops.emplace_back(MakeDeviceHcclOp(100, 100, 2, "opB", "group_1"));
+    ops.emplace_back(MakeDeviceHcclOp(250, 300, 4, "opD", "group_1", 4));
+    ops.emplace_back(MakeDeviceHcclOp(50, 50, 1, "opA", "group_1", 1));
+    ops.emplace_back(MakeDeviceHcclOp(10, 20, 5, "opE", "x_y", 5));
+    ops.emplace_back(MakeDeviceHcclOp(150, 200, 3, "opC", "group_1", 3));
+    ops.emplace_back(MakeDeviceHcclOp(100, 100, 2, "opB", "group_1", 2));
+    ops.emplace_back(MakeDeviceHcclOp(400, 500, 6, "opC", "group_1", 3));
 
     TestableHcclCalculator::UpdateOpNameByGroupName(ops, 100);
 
@@ -395,13 +391,34 @@ TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldAppendLast3Cha
     }
     // groupName 长度>3 时取末尾3字符拼接："group_1" → "p_1"
     EXPECT_EQ("opA_p_1_-1_1", nameByIterId[1]);
-    // end == startTime 严格不大于，不触发 ++，index 保持 -1（warmup 边界）
+    // end == startTime 严格不大于，不写入映射，index 保持 -1
     EXPECT_EQ("opB_p_1_-1_2", nameByIterId[2]);
-    // 越过 warmup 后同一 groupName 的 index 从 0 递增
+    // 不同 connectionId 各占一个 index
     EXPECT_EQ("opC_p_1_0_3", nameByIterId[3]);
     EXPECT_EQ("opD_p_1_1_4", nameByIterId[4]);
     // groupName 长度==3 时不截断，取整串
     EXPECT_EQ("opE_x_y_-1_5", nameByIterId[5]);
+    // 同一个 connectionId 再出现，复用第一次的 index
+    EXPECT_EQ("opC_p_1_0_6", nameByIterId[6]);
+}
+
+TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldFallbackWhenConnectionIdInvalid)
+{
+    // connectionId 无效(-1)时无法标识下发：退回按出现顺序自增，避免同域不同算子共用同一 index
+    std::vector<DeviceHcclOp> ops;
+    ops.emplace_back(MakeDeviceHcclOp(10, 20, 1, "opA", "group_1", INVALID_CONNECTION_ID));
+    ops.emplace_back(MakeDeviceHcclOp(30, 40, 1, "opB", "group_1", INVALID_CONNECTION_ID));
+    ops.emplace_back(MakeDeviceHcclOp(50, 60, 2, "opA", "group_1", 7));
+    ops.emplace_back(MakeDeviceHcclOp(70, 80, 3, "opC", "group_1", 7));
+
+    TestableHcclCalculator::UpdateOpNameByGroupName(ops, 0);
+
+    // 无有效 connectionId 的算子各占一个 index
+    EXPECT_EQ("opA_p_1_0_1", ops[0].opName);
+    EXPECT_EQ("opB_p_1_1_1", ops[1].opName);
+    // 有效 connectionId 首次出现占用下一个 index，再次出现复用
+    EXPECT_EQ("opA_p_1_2_2", ops[2].opName);
+    EXPECT_EQ("opC_p_1_2_3", ops[3].opName);
 }
 
 TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldHandleShortAndEmptyGroupName)
@@ -409,9 +426,9 @@ TEST(TestableHcclCalculatorTest, TestUpdateOpNameByGroupNameShouldHandleShortAnd
     // groupName 长度 <= 3（含空串）时 subPoint 保持 0，取整串拼接；
     // 若去掉 size() > 3 守卫，size_t 下溢会使 substr(huge) 抛 std::out_of_range 导致 abort
     std::vector<DeviceHcclOp> ops;
-    ops.emplace_back(MakeDeviceHcclOp(10, 20, 1, "opA", "ab"));
-    ops.emplace_back(MakeDeviceHcclOp(30, 40, 2, "opB", ""));
-    ops.emplace_back(MakeDeviceHcclOp(50, 60, 3, "opC", "abc"));
+    ops.emplace_back(MakeDeviceHcclOp(10, 20, 1, "opA", "ab", 1));
+    ops.emplace_back(MakeDeviceHcclOp(30, 40, 2, "opB", "", 2));
+    ops.emplace_back(MakeDeviceHcclOp(50, 60, 3, "opC", "abc", 3));
 
     // startTime 为 0，所有算子都在 warmup 之外，各 group 的 index 从 0 起
     TestableHcclCalculator::UpdateOpNameByGroupName(ops, 0);
@@ -483,4 +500,29 @@ TEST(TestableHcclCalculatorTest, TestMergeHcclTaskDataShouldSkipUnmatchedWarmupW
     ASSERT_TRUE(calculator.MergeHcclTaskData(ascendTasks, hcclTasks, deviceHcclTasks, 100));
     ASSERT_EQ(1u, deviceHcclTasks.size());
     EXPECT_EQ("later", deviceHcclTasks[0].hcclName);
+}
+
+TEST(TestableHcclCalculatorTest, TestMergeHcclTaskDataShouldDropMatchedTaskEndedByCollectStart)
+{
+    auto ascendTasks = std::make_shared<std::vector<TopDownTask>>();
+    ascendTasks->emplace_back(TopDownTask(false, 10, 0, 1, 0, -1, "device", "host", 4294967295, 0, 10, 50));
+    ascendTasks->emplace_back(TopDownTask(false, 10, 0, 1, 0, -1, "device", "host", 4294967295, 0, 90, 100));
+    ascendTasks->emplace_back(TopDownTask(false, 10, 0, 1, 0, -1, "device", "host", 4294967295, 0, 1000, 1100));
+
+    auto hcclTasks = std::make_shared<std::vector<HcclTask>>();
+    HcclTask matched;
+    matched.timestamp = 200;
+    matched.streamId = 1;
+    matched.taskId = 10;
+    matched.contextId = 0;
+    matched.batchId = 0;
+    matched.name = "later";
+    hcclTasks->emplace_back(matched);
+
+    std::vector<DeviceHcclTask> deviceHcclTasks;
+    TestableHcclCalculator calculator;
+    ASSERT_TRUE(calculator.MergeHcclTaskData(ascendTasks, hcclTasks, deviceHcclTasks, 100));
+    ASSERT_EQ(1u, deviceHcclTasks.size());
+    EXPECT_DOUBLE_EQ(1000, deviceHcclTasks[0].timestamp);
+    EXPECT_DOUBLE_EQ(100, deviceHcclTasks[0].duration);
 }

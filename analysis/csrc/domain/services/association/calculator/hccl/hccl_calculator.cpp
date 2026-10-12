@@ -159,6 +159,17 @@ bool HcclCalculator::MergeHcclTaskData(const std::shared_ptr<std::vector<TopDown
             }
         }
     }
+    // 在编 iterId 之前丢掉结束不晚于采集开始的执行(end == collectStart 也算 warmup，与
+    // UpdateOpNameByGroupName / GenerateOpReportData / python 侧同一口径)。op.end 来自这里的 TopDown 时间，
+    // 只滤 HCCLTask.timestamp 仍会把 warmup 的 device 执行配进来。
+    const double collectStart = static_cast<double>(startTimeRawTimestamp);
+    INFO("There are % records before % data filtering, filterTime is %.", deviceHcclTasks.size(), "HcclTask",
+         collectStart);
+    deviceHcclTasks.erase(
+        std::remove_if(deviceHcclTasks.begin(), deviceHcclTasks.end(), [collectStart](const DeviceHcclTask& task)
+                       { return task.timestamp + task.duration <= collectStart; }),
+        deviceHcclTasks.end());
+    INFO("There are % records after % data filtering.", deviceHcclTasks.size(), "HcclTask");
     return true;
 }
 
