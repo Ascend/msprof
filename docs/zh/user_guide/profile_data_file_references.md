@@ -56,7 +56,7 @@
 
 > [!NOTE]
 >
-> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)》
 
 <!-- npu="950" id1 -->
 - Ascend 950PR&950DT系列产品：支持

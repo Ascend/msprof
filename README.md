@@ -93,8 +93,6 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 🙏 致谢
 
-本工具由华为公司的下列部门贡献：
+本工具由华为技术有限公司与开发者联合贡献。
 
-🔹 昇腾计算MindStudio开发部
-
-感谢来自社区的每一个PR，欢迎贡献。
+感谢来自社区的每一个PR，欢迎贡献！
