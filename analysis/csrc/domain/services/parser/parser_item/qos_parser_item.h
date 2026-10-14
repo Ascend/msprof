@@ -24,7 +24,7 @@ namespace Analysis
 namespace Domain
 {
 int QosV4ParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halData, uint16_t expandStatus);
-int QosV6ParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halData, uint16_t expandStatus);
+int QosProfileParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halData, uint16_t expandStatus);
 }  // namespace Domain
 }  // namespace Analysis
 

@@ -34,11 +34,6 @@ namespace Analysis
 {
 namespace Domain
 {
-namespace
-{
-const uint16_t STARS_MAGIC_NUM = 0x6bd3;
-}  // namespace
-
 uint32_t QosParserBase::GetTrunkSize() { return Analysis::QOS_STRUCT_SIZE; }
 
 bool QosParserBase::ParseDataItem(uint8_t *binaryData,
@@ -50,7 +45,7 @@ bool QosParserBase::ParseDataItem(uint8_t *binaryData,
     {
         return false;
     }
-    data.timestamp = Utils::GetTimeFromSyscnt(data.timestamp, timeParams).Uint64();
+    data.timestamp = Utils::GetTimeFromSyscnt(static_cast<uint64_t>(data.timestamp), timeParams).Double();
     return true;
 }
 
@@ -100,24 +95,7 @@ std::vector<std::string> QosParser::GetFilePattern() { return filePrefix_; }
 
 uint32_t QosParser::GetParserItemType() const { return QOS_V4_ITEM_TYPE; }
 
-std::vector<std::string> StarsQosParser::GetFilePattern() { return filePrefix_; }
-
-uint32_t StarsQosParser::GetParserItemType() const { return QOS_V6_ITEM_TYPE; }
-
-bool StarsQosParser::IsDataItemValid(const uint8_t *binaryData) const
-{
-    const uint16_t header = Utils::ReadLittleEndian<uint16_t>(binaryData);
-    const uint16_t magicNum = Utils::ReadLittleEndian<uint16_t>(binaryData + sizeof(uint16_t));
-    return magicNum == STARS_MAGIC_NUM && (header & 0x3fU) == QOS_V6_ITEM_TYPE;
-}
-
-// REGISTER_PROCESS_SEQUENCE(QosParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(QosParser, CHIP_V4_1_0);
-//
-// namespace STARS_QOS_REGISTER
-//{
-// REGISTER_PROCESS_SEQUENCE(StarsQosParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(StarsQosParser, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
-// }  // namespace STARS_QOS_REGISTER
+REGISTER_PROCESS_SEQUENCE(QosParser, false);
+REGISTER_PROCESS_SUPPORT_CHIP(QosParser, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis

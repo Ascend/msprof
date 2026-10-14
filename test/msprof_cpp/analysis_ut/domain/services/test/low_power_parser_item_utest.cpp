@@ -20,7 +20,7 @@
 
 #include <array>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item/low_power_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
@@ -62,7 +62,7 @@ std::array<uint8_t, STARS_SOC_PROFILE_STRUCT_SIZE> CreateLowPowerRecord(uint16_t
 TEST(LowPowerParserItemUTest, ShouldDecodeLowPowerFieldsAndSwapAdjacentSamples)
 {
     auto record = CreateLowPowerRecord(17, 9, 0x0102030405060708ULL);
-    HalSocProfileData result;
+    HalLogData result;
     const int count = LowPowerParserItem(record.data(), record.size(), reinterpret_cast<uint8_t*>(&result), 0);
 
     ASSERT_EQ(DEFAULT_CNT, count);
@@ -78,14 +78,15 @@ TEST(LowPowerParserItemUTest, ShouldDecodeLowPowerFieldsAndSwapAdjacentSamples)
 TEST(LowPowerParserItemUTest, ShouldRejectInvalidRecordSize)
 {
     auto record = CreateLowPowerRecord(1, 1, 100);
-    HalSocProfileData result;
+    HalLogData result;
     ASSERT_EQ(PARSER_ERROR_SIZE_MISMATCH,
               LowPowerParserItem(record.data(), record.size() - 1, reinterpret_cast<uint8_t*>(&result), 0));
 }
 
-TEST(LowPowerParserItemUTest, ShouldRegisterOnlyForSocProfileParser)
+TEST(LowPowerParserItemUTest, ShouldRegisterOnlyForSocProfileParserV6)
 {
-    ASSERT_NE(nullptr, ParserItemFactory::GetParseItem(SOC_PROFILE_PARSER, PARSER_ITEM_LOW_POWER));
+    ASSERT_EQ(nullptr, ParserItemFactory::GetParseItem(SOC_PROFILE_PARSER, PARSER_ITEM_LOW_POWER));
+    ASSERT_NE(nullptr, ParserItemFactory::GetParseItem(SOC_PROFILE_PARSER_V6, PARSER_ITEM_LOW_POWER));
     ASSERT_EQ(nullptr, ParserItemFactory::GetParseItem(LOG_PARSER_V6, PARSER_ITEM_LOW_POWER));
 }
 

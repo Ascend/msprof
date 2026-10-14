@@ -20,6 +20,7 @@
 
 #include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_parser.h"
+#include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
@@ -36,11 +37,11 @@ const int WRITE = 1;
 // acc_id, read_bandwidth, write_bandwidth, read_ost, write_ost, timestamp
 using ProcessedDataFormat = std::vector<std::tuple<uint16_t, uint64_t, uint64_t, uint64_t, uint64_t, double>>;
 
-ProcessedDataFormat GenerateAccPmuData(std::vector<HalLogData>& logData, const DeviceContext& context)
+ProcessedDataFormat GenerateAccPmuData(const std::vector<HalLogData>& logData, const DeviceContext& context)
 {
     auto params = context.GetSyscntConversionParams();
     ProcessedDataFormat processedData;
-    for (auto& data : logData)
+    for (const auto& data : logData)
     {
         if (data.type != ACC_PMU)
         {
@@ -56,23 +57,37 @@ ProcessedDataFormat GenerateAccPmuData(std::vector<HalLogData>& logData, const D
 uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
-    auto accPmu = dataInventory.GetPtr<std::vector<HalLogData>>();
-    if (!accPmu)
+    // ACC_PMU 同时注册于 LOG_PARSER 与 SOC_PROFILE_PARSER，分别落 std::vector<HalLogData> 与 HalSocProfileData，
+    // 两路数据都需要持久化到 acc_pmu.db 的 AccPmu 表。
+    auto taskLog = dataInventory.GetPtr<std::vector<HalLogData>>();
+    auto socProfile = dataInventory.GetPtr<HalSocProfileData>();
+    if (!taskLog && !socProfile)
     {
         ERROR("acc pmu data is null.");
         return ANALYSIS_ERROR;
     }
-    DBInfo accPmuDB("acc_pmu.db", "AccPmu");
-    MAKE_SHARED0_RETURN_VALUE(accPmuDB.database, AccPmuDB, ANALYSIS_ERROR);
-    std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, accPmuDB.dbName});
-    INFO("Start to process %.", dbPath);
-    MAKE_SHARED_RETURN_VALUE(accPmuDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
-    auto data = GenerateAccPmuData(*accPmu, deviceContext);
+
+    ProcessedDataFormat data;
+    if (taskLog)
+    {
+        data = GenerateAccPmuData(*taskLog, deviceContext);
+    }
+    if (socProfile)
+    {
+        auto profileData = GenerateAccPmuData(socProfile->items, deviceContext);
+        data.insert(data.end(), profileData.begin(), profileData.end());
+    }
     if (data.empty())
     {
         INFO("There is no acc pmu data don't need to persistence!");
         return ANALYSIS_OK;
     }
+
+    DBInfo accPmuDB("acc_pmu.db", "AccPmu");
+    MAKE_SHARED0_RETURN_VALUE(accPmuDB.database, AccPmuDB, ANALYSIS_ERROR);
+    std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, accPmuDB.dbName});
+    INFO("Start to process %.", dbPath);
+    MAKE_SHARED_RETURN_VALUE(accPmuDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
     auto res = SaveData(data, accPmuDB, dbPath);
     if (res)
     {
@@ -82,8 +97,8 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
     ERROR("Save % data failed: %", accPmuDB.tableName, dbPath);
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser);
-REGISTER_PROCESS_DEPENDENT_DATA(AccPmuPersistence, std::vector<HalLogData>);
+REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser, StarsSocProfileParser);
+REGISTER_PROCESS_DEPENDENT_DATA(AccPmuPersistence, std::vector<HalLogData>, HalSocProfileData);
 REGISTER_PROCESS_SUPPORT_CHIP(AccPmuPersistence, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis

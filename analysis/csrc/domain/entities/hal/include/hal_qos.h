@@ -32,7 +32,7 @@ enum QosParserItemType : uint32_t
 
 struct HalQosBwData
 {
-    uint64_t timestamp{};
+    double timestamp{};
     int32_t dieId{};
     std::array<uint32_t, 10> metrics{};
 };

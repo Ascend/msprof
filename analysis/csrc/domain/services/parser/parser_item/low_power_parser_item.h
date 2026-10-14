@@ -18,7 +18,7 @@
 
 #include <cstdint>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 
 namespace Analysis
 {

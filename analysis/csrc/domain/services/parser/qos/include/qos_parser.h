@@ -48,16 +48,6 @@ class QosParser final : public QosParserBase
 
     std::vector<std::string> filePrefix_{"qos.data."};
 };
-
-class StarsQosParser final : public QosParserBase
-{
-   private:
-    std::vector<std::string> GetFilePattern() override;
-    uint32_t GetParserItemType() const override;
-    bool IsDataItemValid(const uint8_t *binaryData) const override;
-
-    std::vector<std::string> filePrefix_{"stars_soc_profile.data."};
-};
 }  // namespace Domain
 }  // namespace Analysis
 

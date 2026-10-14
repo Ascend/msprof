@@ -50,8 +50,8 @@ class TestConfigDataParsers(unittest.TestCase):
                     self.assertEqual(name in names, not (enabled and all_export and version and task))
                 self.assertIn("AicpuAddInfoParser", names)
 
-    def test_device_scene_whitelist_keeps_v61_disabled_until_unified_switch(self):
-        self.assertNotIn(ChipModel.CHIP_V6_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
+    def test_device_scene_whitelist_enables_v61(self):
+        self.assertIn(ChipModel.CHIP_V6_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
         self.assertIn(ChipModel.CHIP_V4_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
         self.assertNotIn(ChipModel.CHIP_V6_2_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
 
@@ -135,6 +135,13 @@ class TestConfigDataParsers(unittest.TestCase):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser")
         self.assertTrue(ret)
+
+    def test_load_can_cpp_parse_or_calculate_device_data_should_return_false_for_tstrack_on_v6(self):
+        # V6 TS_TRACK 尚未完成 C++ 原生适配，落盘回退至 Python TstrackParser，
+        # 故 V6 上不应将 TstrackParser 划入 C++ 跳过列表，与 C++ 侧仅 V4 落盘对齐，避免两侧重复写库。
+        for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
+            with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
+                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"))
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_not_in_whitelist(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0

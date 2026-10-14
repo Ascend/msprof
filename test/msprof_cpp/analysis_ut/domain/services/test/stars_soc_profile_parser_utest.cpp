@@ -22,7 +22,7 @@
 #include <fstream>
 #include <vector>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/parser/parser_item/low_power_parser_item.h"
@@ -49,7 +49,7 @@ int TestSocProfileParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8
     {
         return -1;
     }
-    auto* target = reinterpret_cast<HalSocProfileData*>(halUniData);
+    auto* target = reinterpret_cast<HalLogData*>(halUniData);
     target->type = SOC_PROFILE_LOW_POWER;
     target->lowPower.sysCnt = 9876;
     return DEFAULT_CNT;
@@ -65,8 +65,8 @@ int FailedSocProfileParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uin
     return ANALYSIS_ERROR;
 }
 
-REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, TEST_PROFILE_FUNC_TYPE, TestSocProfileParserItem);
-REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, TEST_FAILED_PROFILE_FUNC_TYPE, FailedSocProfileParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, TEST_PROFILE_FUNC_TYPE, TestSocProfileParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, TEST_FAILED_PROFILE_FUNC_TYPE, FailedSocProfileParserItem);
 
 void WriteU16(std::array<uint8_t, STARS_SOC_PROFILE_STRUCT_SIZE>& record, uint32_t offset, uint16_t value)
 {
@@ -113,6 +113,7 @@ protected:
         ASSERT_TRUE(File::CreateDir(PROFILE_PATH));
         ASSERT_TRUE(File::CreateDir(File::PathJoin({PROFILE_PATH, "data"})));
         context_.deviceContextInfo.deviceFilePath = PROFILE_PATH;
+        context_.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
     }
 
     void TearDown() override
@@ -134,14 +135,14 @@ TEST_F(StarsSocProfileParserUTest, ShouldReadOnlyProfileFileAndKeepOnlyLowPowerR
 
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_EQ(1UL, result->size());
-    ASSERT_EQ(SOC_PROFILE_LOW_POWER, result->at(0).type);
-    ASSERT_EQ(100UL, result->at(0).lowPower.sysCnt);
-    ASSERT_EQ(2, result->at(0).lowPower.dieId);
-    ASSERT_EQ(1, result->at(0).lowPower.sampleData[0]);
-    ASSERT_EQ(0, result->at(0).lowPower.sampleData[1]);
+    ASSERT_EQ(1UL, result->items.size());
+    ASSERT_EQ(SOC_PROFILE_LOW_POWER, result->items.at(0).type);
+    ASSERT_EQ(100UL, result->items.at(0).lowPower.sysCnt);
+    ASSERT_EQ(2, result->items.at(0).lowPower.dieId);
+    ASSERT_EQ(1, result->items.at(0).lowPower.sampleData[0]);
+    ASSERT_EQ(0, result->items.at(0).lowPower.sampleData[1]);
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldAcceptSingleRecordAndPreserveSliceOrder)
@@ -151,11 +152,11 @@ TEST_F(StarsSocProfileParserUTest, ShouldAcceptSingleRecordAndPreserveSliceOrder
 
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_EQ(2UL, result->size());
-    ASSERT_EQ(100UL, result->at(0).lowPower.sysCnt);
-    ASSERT_EQ(200UL, result->at(1).lowPower.sysCnt);
+    ASSERT_EQ(2UL, result->items.size());
+    ASSERT_EQ(100UL, result->items.at(0).lowPower.sysCnt);
+    ASSERT_EQ(200UL, result->items.at(1).lowPower.sysCnt);
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldDispatchRegisteredParserItemByFuncType)
@@ -164,19 +165,19 @@ TEST_F(StarsSocProfileParserUTest, ShouldDispatchRegisteredParserItemByFuncType)
 
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_EQ(1UL, result->size());
-    ASSERT_EQ(9876UL, result->at(0).lowPower.sysCnt);
+    ASSERT_EQ(1UL, result->items.size());
+    ASSERT_EQ(9876UL, result->items.at(0).lowPower.sysCnt);
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldReturnEmptyDataWhenProfileFileDoesNotExist)
 {
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_TRUE(result->empty());
+    ASSERT_TRUE(result->items.empty());
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldReturnEmptyDataWhenAllRecordsHaveInvalidMagic)
@@ -187,9 +188,9 @@ TEST_F(StarsSocProfileParserUTest, ShouldReturnEmptyDataWhenAllRecordsHaveInvali
 
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_TRUE(result->empty());
+    ASSERT_TRUE(result->items.empty());
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldKeepValidRecordsWhenOneParserItemFails)
@@ -201,11 +202,11 @@ TEST_F(StarsSocProfileParserUTest, ShouldKeepValidRecordsWhenOneParserItemFails)
 
     StarsSocProfileParser parser;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
-    auto result = dataInventory_.GetPtr<std::vector<HalSocProfileData>>();
+    auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_EQ(2UL, result->size());
-    ASSERT_EQ(100UL, result->at(0).lowPower.sysCnt);
-    ASSERT_EQ(300UL, result->at(1).lowPower.sysCnt);
+    ASSERT_EQ(2UL, result->items.size());
+    ASSERT_EQ(100UL, result->items.at(0).lowPower.sysCnt);
+    ASSERT_EQ(300UL, result->items.at(1).lowPower.sysCnt);
 }
 
 }  // namespace Domain

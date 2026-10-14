@@ -21,7 +21,7 @@
 
 #include <tuple>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/persistence/device/low_power_persistence.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
@@ -70,15 +70,15 @@ protected:
 
 TEST_F(LowPowerPersistenceUTest, ShouldSavePythonCompatibleLowPowerTableWithNanosecondTimestamp)
 {
-    auto source = std::make_shared<std::vector<HalSocProfileData>>();
-    HalSocProfileData item;
+    auto source = std::make_shared<HalSocProfileData>();
+    HalLogData item;
     item.type = SOC_PROFILE_LOW_POWER;
     item.lowPower.sysCnt = LOW_POWER_SYSCNT;
     item.lowPower.dieId = 3;
     for (uint32_t i = 0; i < LOW_POWER_SAMPLE_COUNT; ++i) {
         item.lowPower.sampleData[i] = static_cast<uint16_t>(10 + i);
     }
-    source->push_back(item);
+    source->items.push_back(item);
     ASSERT_TRUE(dataInventory_.Inject(source));
 
     LowPowerPersistence persistence;
@@ -127,7 +127,7 @@ TEST_F(LowPowerPersistenceUTest, ShouldCombineData0SoftHighAndLowSamplesOnChipV6
 
 TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseForEmptyData)
 {
-    auto source = std::make_shared<std::vector<HalSocProfileData>>();
+    auto source = std::make_shared<HalSocProfileData>();
     ASSERT_TRUE(dataInventory_.Inject(source));
 
     LowPowerPersistence persistence;
@@ -137,8 +137,8 @@ TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseForEmptyData)
 
 TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseWhenNoLowPowerDataRemainsAfterFiltering)
 {
-    auto source = std::make_shared<std::vector<HalSocProfileData>>();
-    source->emplace_back();
+    auto source = std::make_shared<HalSocProfileData>();
+    source->items.emplace_back();
     ASSERT_TRUE(dataInventory_.Inject(source));
 
     LowPowerPersistence persistence;
@@ -148,11 +148,11 @@ TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseWhenNoLowPowerDataRemain
 
 TEST_F(LowPowerPersistenceUTest, ShouldReturnErrorWhenSavingLowPowerDataFails)
 {
-    auto source = std::make_shared<std::vector<HalSocProfileData>>();
-    HalSocProfileData item;
+    auto source = std::make_shared<HalSocProfileData>();
+    HalLogData item;
     item.type = SOC_PROFILE_LOW_POWER;
     item.lowPower.sysCnt = LOW_POWER_SYSCNT;
-    source->push_back(item);
+    source->items.push_back(item);
     ASSERT_TRUE(dataInventory_.Inject(source));
 
     MOCKER_CPP(&DBRunner::CreateTable).stubs().will(returnValue(false));

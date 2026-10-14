@@ -51,9 +51,14 @@ int AccPmuParserItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halU
     {
         ERROR("memcpy accPmu failed! accId is %", accPmu->accId);
     }
-    return accPmu->cnt;
+    return DEFAULT_CNT;
 }
 
+// ACC_PMU 同时注册于 LOG_PARSER（stars_soc）与 SOC_PROFILE_PARSER（stars_soc_profile）两路，复用同一解析函数。
+// 两路报文头均为 6-bit funcType 位域（bit 0-5），PARSER_ITEM_ACC_PMU(0b011010=26) 编码一致；
+// 且两路 trunk size 均为 64（STARS_SOC_STRUCT_SIZE == STARS_SOC_PROFILE_STRUCT_SIZE == sizeof(AccPmu)），
+// AccPmu 载荷布局（timestamp/accId/bandwidth/ost）完全相同，故可安全复用。
 REGISTER_PARSER_ITEM(LOG_PARSER, PARSER_ITEM_ACC_PMU, AccPmuParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, PARSER_ITEM_ACC_PMU, AccPmuParserItem);
 }  // namespace Domain
 }  // namespace Analysis

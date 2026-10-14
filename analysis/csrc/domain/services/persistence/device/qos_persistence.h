@@ -26,7 +26,7 @@ namespace Analysis
 {
 namespace Domain
 {
-using QosBwRow = std::tuple<uint64_t, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
+using QosBwRow = std::tuple<double, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
                             uint32_t, uint32_t, uint32_t>;
 
 class QosPersistence : public Infra::Process

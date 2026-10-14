@@ -53,9 +53,9 @@ class TestCppEnableScene(unittest.TestCase):
             result = scene.is_cpp_enable()
             self.assertFalse(result)
 
-    def test_parse_scene_should_return_false_when_chip_v6_1(self):
+    def test_parse_scene_should_return_true_when_chip_v6_1(self):
         """
-        Test DeviceParseScene should return false when chip is v6.1
+        Test DeviceParseScene should return true when chip is v6.1
         """
         with mock.patch('common_func.cpp_enable_scene.check_so_valid') as mock_check_so, \
                 mock.patch('common_func.cpp_enable_scene.ChipManager') as mock_chip_manager:
@@ -65,7 +65,7 @@ class TestCppEnableScene(unittest.TestCase):
 
             scene = DeviceParseScene()
             result = scene.is_cpp_enable()
-            self.assertFalse(result)
+            self.assertTrue(result)
 
     def test_parse_scene_should_return_true_when_chip_v4(self):
         """

@@ -157,6 +157,17 @@ class TestCppPipelineDecider(unittest.TestCase):
         self.assertFalse(result.can_run_in_cpp)
         self.assertEqual(self.reason_codes(result), {"CHIP_UNSUPPORTED"})
 
+    def test_v6_device_ccu_tags_are_supported(self):
+        path_facts = replace(
+            self.path_facts,
+            chip_model=ChipModel.CHIP_V6_1_0,
+            raw_tags=frozenset({DataTag.CCU_MISSION.name, DataTag.CCU_CHANNEL.name}),
+        )
+        facts = replace(self.facts, result_paths=(path_facts,))
+        result = self.decide(facts=facts)
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+        self.assertNotIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
+
     def test_collection_facts_are_accumulated(self):
         facts = replace(
             self.facts,
@@ -168,13 +179,13 @@ class TestCppPipelineDecider(unittest.TestCase):
                     all_data_export_supported=False,
                     ai_core_mode="sample-based",
                     custom_pmu_fields=("ai_core_metrics",),
-                    raw_tags=frozenset({DataTag.QOS.name}),
+                    raw_tags=frozenset({DataTag.AI_CORE.name}),
                     unknown_raw_files=("future.data",),
                 ),
                 replace(
                     self.path_facts,
                     path="/collection/device_1",
-                    chip_model=ChipModel.CHIP_V6_1_0,
+                    chip_model=ChipModel.CHIP_V6_2_0,
                 ),
             ),
         )

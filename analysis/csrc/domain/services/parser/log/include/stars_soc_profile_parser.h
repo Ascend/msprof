@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/parser/parser.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 
@@ -35,12 +35,12 @@ class StarsSocProfileParser : public Parser
     std::vector<std::string> GetFilePattern() override;
     uint32_t GetTrunkSize() override;
     uint32_t ParseData(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
-    virtual ParserType GetParserType() const { return SOC_PROFILE_PARSER; }
 
    private:
-    std::vector<HalSocProfileData> halUniData_;
+    std::vector<HalLogData> halUniData_;
     std::vector<std::string> filePrefix_{"stars_soc_profile."};
     uint32_t invalidCnt_{0};
+    ParserType parserType_{SOC_PROFILE_PARSER};  // V6 芯片解析时切换为 SOC_PROFILE_PARSER_V6
 };
 
 }  // namespace Domain

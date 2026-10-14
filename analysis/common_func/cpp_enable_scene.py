@@ -132,7 +132,7 @@ class DeviceParseScene(CppEnableScene):
     Parse scene: check whether cpp parse is enabled
     """
 
-    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0]
+    SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0]
 
 
 class ExportDBScene(CppEnableScene):

@@ -73,6 +73,6 @@ uint32_t FreqPersistence::ProcessEntry(DataInventory& dataInventory, const Conte
 }
 REGISTER_PROCESS_SEQUENCE(FreqPersistence, true, FreqParser);
 REGISTER_PROCESS_DEPENDENT_DATA(FreqPersistence, std::vector<HalFreqLpmData>);
-REGISTER_PROCESS_SUPPORT_CHIP(FreqPersistence, CHIP_V4_1_0, CHIP_V1_1_1);
+REGISTER_PROCESS_SUPPORT_CHIP(FreqPersistence, CHIP_V1_1_1);
 }  // namespace Domain
 }  // namespace Analysis

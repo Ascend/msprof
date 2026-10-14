@@ -182,6 +182,7 @@ class ConfigDataParsers:
         if ChipManager().chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1) and section in [
             "CCUMissionParser",
             "CCUChannelParser",
+            "ParsingUBData",
         ]:
             return True
         if ChipManager().is_chip_v4() and section in [
@@ -195,6 +196,7 @@ class ConfigDataParsers:
             "KfcCalculator",
             "LpmInfoConvParser",
             "TstrackParser",  # 写 step_trace.db/trace.db 共 10 张表，对应 C++ TsTrack/StepTrace/TracePersistence
+            "ParsingQosData",
         ]:
             return True
         return False

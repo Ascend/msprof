@@ -18,6 +18,7 @@
 
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 
+#include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
@@ -63,7 +64,7 @@ uint32_t StarsSocProfileParser::ParseDataItem(uint8_t* binaryData, uint32_t bina
         return ANALYSIS_OK;
     }
 
-    auto parser = ParserItemFactory::GetParseItem(GetParserType(), header->funcType);
+    auto parser = ParserItemFactory::GetParseItem(parserType_, header->funcType);
     if (parser == nullptr)
     {
         WARN("There is no Parser function to handle SocProfile data! functype is %", header->funcType);
@@ -79,7 +80,8 @@ uint32_t StarsSocProfileParser::ParseDataItem(uint8_t* binaryData, uint32_t bina
 
 uint32_t StarsSocProfileParser::ParseData(DataInventory& dataInventory, const Infra::Context& context)
 {
-    (void)context;
+    const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
+    parserType_ = deviceContext.isChipV6() ? SOC_PROFILE_PARSER_V6 : SOC_PROFILE_PARSER;
     const uint32_t trunkSize = GetTrunkSize();
     const uint64_t structCount = binaryDataSize / trunkSize;
     INFO("StarsSocProfile structCount: %", structCount);
@@ -93,13 +95,13 @@ uint32_t StarsSocProfileParser::ParseData(DataInventory& dataInventory, const In
     for (uint64_t i = 0; i < structCount; ++i)
     {
         auto* record = &binaryData[i * trunkSize];
-        HalSocProfileData item;
+        HalLogData item;
         if (ParseDataItem(record, trunkSize, ReinterpretConvert<uint8_t*>(&item)) == ANALYSIS_ERROR)
         {
             ++parseFailedCnt;
             continue;
         }
-        if (item.type != SOC_PROFILE_INVALID)
+        if (item.type != INVALID_LOG)
         {
             halUniData_.emplace_back(std::move(item));
         }
@@ -113,8 +115,8 @@ uint32_t StarsSocProfileParser::ParseData(DataInventory& dataInventory, const In
         ERROR("% chunks failed to parse StarsSocProfile data", parseFailedCnt);
     }
 
-    std::shared_ptr<std::vector<HalSocProfileData>> data;
-    MAKE_SHARED_RETURN_VALUE(data, std::vector<HalSocProfileData>, ANALYSIS_ERROR, std::move(halUniData_));
+    std::shared_ptr<HalSocProfileData> data;
+    MAKE_SHARED_RETURN_VALUE(data, HalSocProfileData, ANALYSIS_ERROR, std::move(halUniData_));
     if (!dataInventory.Inject(data))
     {
         ERROR("Inject StarsSocProfile data into DataInventory failed");
@@ -122,6 +124,9 @@ uint32_t StarsSocProfileParser::ParseData(DataInventory& dataInventory, const In
     }
     return ANALYSIS_OK;
 }
+
+// REGISTER_PROCESS_SEQUENCE(StarsSocProfileParser, false);
+// REGISTER_PROCESS_SUPPORT_CHIP(StarsSocProfileParser, CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

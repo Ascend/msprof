@@ -18,6 +18,7 @@
 
 #include "analysis/csrc/domain/services/parser/parser_item/qos_parser_item.h"
 
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_qos.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
@@ -83,18 +84,25 @@ int QosV4ParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halDat
     return ParseQosRecord(record, halData, INVALID_VALUE);
 }
 
-int QosV6ParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halData, uint16_t)
+int QosProfileParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halData, uint16_t)
 {
-    if (binaryDataSize != Analysis::QOS_STRUCT_SIZE)
+    if (binaryDataSize != Analysis::STARS_SOC_PROFILE_STRUCT_SIZE)
     {
         return PARSER_ERROR_SIZE_MISMATCH;
     }
     const auto *record = reinterpret_cast<const StarsQosRawRecord *>(binaryData);
-    const int32_t dieId = static_cast<int32_t>(ReadRawField(&record->header) >> 10U);
-    return ParseQosRecord(record, halData, dieId);
+    auto *data = reinterpret_cast<HalLogData *>(halData);
+    data->type = SOC_PROFILE_QOS;
+    data->qos.dieId = static_cast<int32_t>(ReadRawField(&record->header) >> 10U);
+    data->qos.timestamp = ReadRawField(&record->syscnt);
+    for (size_t index = 0; index < data->qos.metrics.size(); ++index)
+    {
+        data->qos.metrics[index] = ReadRawField(&record->metrics[index]);
+    }
+    return DEFAULT_CNT;
 }
 
 REGISTER_PARSER_ITEM(QOS_PARSER, QOS_V4_ITEM_TYPE, QosV4ParseItem);
-REGISTER_PARSER_ITEM(QOS_PARSER, QOS_V6_ITEM_TYPE, QosV6ParseItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, QOS_V6_ITEM_TYPE, QosProfileParseItem);
 }  // namespace Domain
 }  // namespace Analysis

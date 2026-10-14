@@ -126,7 +126,7 @@ def dump_device_data(device_path: str) -> None:
     """
     调用device c化
     """
-    if not ChipManager().is_chip_v4():
+    if not (ChipManager().is_chip_v4() or ChipManager().is_chip_v6_1()):
         logging.info("Do not support parsing by msprof_analysis.so!")
         return
     if ConfigMgr.is_ai_core_sample_based(device_path):

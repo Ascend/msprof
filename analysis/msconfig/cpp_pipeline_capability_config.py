@@ -120,17 +120,55 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.STARS_LOG.name,
         DataTag.FFTS_PMU.name,
         DataTag.TS_TRACK.name,
-        DataTag.FREQ.name,
         DataTag.AICPU_ADD_INFO.name,
         DataTag.LPM_INFO.name,
+        DataTag.QOS.name,
     }
 )
 
-# 当前全 C 流程仅放行 V4，其他芯片待对应 SO 能力交付后再补充注册。
+V6_HOST_TAGS = frozenset(
+    {
+        DataTag.API_EVENT.name,
+        DataTag.HASH_DICT.name,
+        DataTag.TASK_TRACK.name,
+        DataTag.MEMCPY_INFO.name,
+        DataTag.HCCL_INFO.name,
+        DataTag.TENSOR_ADD_INFO.name,
+        DataTag.FUSION_ADD_INFO.name,
+        DataTag.GRAPH_ADD_INFO.name,
+        DataTag.NODE_BASIC_INFO.name,
+        DataTag.NODE_ATTR_INFO.name,
+        DataTag.CTX_ID.name,
+        DataTag.HCCL_OP_INFO.name,
+        DataTag.DPU_TASK_TRACK.name,
+        DataTag.RUNTIME_OP_INFO.name,
+        DataTag.CAPTURE_STREAM_INFO.name,
+        DataTag.MC2_COMM_INFO.name,
+        DataTag.STREAM_EXPAND.name,
+        DataTag.CCU_TASK.name,
+        DataTag.CCU_WAIT_SIGNAL.name,
+        DataTag.CCU_GROUP.name,
+    }
+)
+
+
+V6_DEVICE_TAGS = frozenset(
+    {
+        DataTag.STARS_LOG.name,
+        DataTag.FFTS_PMU.name,
+        DataTag.UB.name,
+        DataTag.CCU_MISSION.name,
+        DataTag.CCU_CHANNEL.name,
+    }
+)
+
+
+# 当前全 C 流程仅放行 V4/V6_1_0，其他芯片待对应 SO 能力交付后再补充注册。
 DEFAULT_CAPABILITY_REGISTRY = CapabilityRegistry(
     version="1.0",
     command_capabilities=COMMAND_CAPABILITIES,
     supported_tags_by_chip={
         ChipModel.CHIP_V4_1_0: {DataPosition.HOST: V4_HOST_TAGS, DataPosition.DEVICE: V4_DEVICE_TAGS},
+        ChipModel.CHIP_V6_1_0: {DataPosition.HOST: V6_HOST_TAGS, DataPosition.DEVICE: V6_DEVICE_TAGS},
     },
 )

@@ -182,6 +182,8 @@ uint32_t TsTrackPersistence::ProcessEntry(DataInventory& dataInventory, const Co
 }
 REGISTER_PROCESS_SEQUENCE(TsTrackPersistence, true, TsTrackParser);
 REGISTER_PROCESS_DEPENDENT_DATA(TsTrackPersistence, std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(TsTrackPersistence, CHIP_ID_ALL);
+// V6 TS_TRACK 落盘回退至 Python 侧（C++ 未完成 V6 原生适配），此处仅 V4 落盘，避免与 Python 重复写库。
+REGISTER_PROCESS_SUPPORT_CHIP(TsTrackPersistence, CHIP_V4_1_0);
+// REGISTER_PROCESS_SUPPORT_CHIP(TracePersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

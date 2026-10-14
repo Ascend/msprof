@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -79,8 +79,7 @@ LowPowerRow GenerateRow(const HalLowPowerData& data, double timestamp, bool isCh
     return GenerateRow(data, timestamp, isChipV620, MakeIndexSequence<LOW_POWER_SAMPLE_COUNT>{});
 }
 
-bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const DeviceContext& context,
-                          ProcessedData& result)
+bool GenerateLowPowerData(const std::vector<HalLogData>& source, const DeviceContext& context, ProcessedData& result)
 {
     if (!Reserve(result, source.size()))
     {
@@ -105,20 +104,20 @@ bool GenerateLowPowerData(const std::vector<HalSocProfileData>& source, const De
 uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     const auto& deviceContext = static_cast<const DeviceContext&>(context);
-    auto socProfileData = dataInventory.GetPtr<std::vector<HalSocProfileData>>();
+    auto socProfileData = dataInventory.GetPtr<HalSocProfileData>();
     if (socProfileData == nullptr)
     {
         ERROR("There is no LowPower data to persist");
         return ANALYSIS_ERROR;
     }
-    if (socProfileData->empty())
+    if (socProfileData->items.empty())
     {
         INFO("LowPower data is empty, no persistence is required");
         return ANALYSIS_OK;
     }
 
     ProcessedData data;
-    if (!GenerateLowPowerData(*socProfileData, deviceContext, data))
+    if (!GenerateLowPowerData(socProfileData->items, deviceContext, data))
     {
         return ANALYSIS_ERROR;
     }
@@ -146,6 +145,10 @@ uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const C
     }
     return ANALYSIS_OK;
 }
+
+// REGISTER_PROCESS_SEQUENCE(LowPowerPersistence, true, StarsSocProfileParser);
+// REGISTER_PROCESS_DEPENDENT_DATA(LowPowerPersistence, HalSocProfileData);
+// REGISTER_PROCESS_SUPPORT_CHIP(LowPowerPersistence, CHIP_V6_1_0, CHIP_V6_2_0);
 
 }  // namespace Domain
 }  // namespace Analysis

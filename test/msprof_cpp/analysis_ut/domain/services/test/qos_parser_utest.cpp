@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "analysis/csrc/domain/services/device_context/device_context.h"
+#include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/qos/include/qos_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/qos_persistence.h"
@@ -205,7 +206,7 @@ TEST_F(QosParserUTest, ShouldParseV6StarsQosWithoutCompletingSharedSourceFile)
     source[0] = 0;
     source.insert(source.end(), unrelated.begin(), unrelated.end());
     ASSERT_TRUE(WriteBin(source, DATA_DIR, fileName));
-    StarsQosParser parser;
+    StarsSocProfileParser parser;
     QosPersistence persistence;
     Infra::DataInventory inventory;
 
@@ -228,7 +229,7 @@ TEST_F(QosParserUTest, ShouldIgnoreV6StarsRecordWithInvalidMagicOrFunctionType)
     invalidFunc[0] = static_cast<uint8_t>((invalidFunc[0] & 0xc0U) | 0x01U);
     invalidMagic.insert(invalidMagic.end(), invalidFunc.begin(), invalidFunc.end());
     ASSERT_TRUE(WriteBin(invalidMagic, DATA_DIR, "stars_soc_profile.data.0.slice_0"));
-    StarsQosParser parser;
+    StarsSocProfileParser parser;
     QosPersistence persistence;
     Infra::DataInventory inventory;
 

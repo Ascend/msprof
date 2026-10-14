@@ -17,25 +17,45 @@
 #ifndef MSPROF_ANALYSIS_HAL_LOG_H
 #define MSPROF_ANALYSIS_HAL_LOG_H
 
+#include <array>
+#include <vector>
+
 #include "analysis/csrc/domain/entities/hal/include/hal.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_qos.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
-enum HalLogType {
+enum HalLogType
+{
     ACSQ_LOG = 0,
     FFTS_LOG,
     ACC_PMU,
-    INVALID_LOG = 3
+    SOC_PROFILE_LOW_POWER,
+    SOC_PROFILE_QOS,
+    INVALID_LOG = 5,
 };
 
-struct HalAcsqLog {
+constexpr uint32_t LOW_POWER_SAMPLE_COUNT = 20;
+
+struct HalLowPowerData
+{
+    uint64_t sysCnt = 0;
+    uint16_t dieId = 0;
+    std::array<uint16_t, LOW_POWER_SAMPLE_COUNT> sampleData{{0}};
+};
+
+struct HalAcsqLog
+{
     bool isEndTimestamp = true;
     uint64_t timestamp = 0;
     uint16_t taskType = 0;
 };
 
-struct HalFftsPlusLog {
+struct HalFftsPlusLog
+{
     bool isEndTimestamp = true;
     uint64_t timestamp = 0;
     uint16_t subTaskType = 0;
@@ -43,26 +63,40 @@ struct HalFftsPlusLog {
     uint16_t threadId = 0;
 };
 
-struct HalAccPmu {
+struct HalAccPmu
+{
     uint64_t timestamp = 0;
     uint16_t accId = 0;
     uint64_t bandwidth[2] = {0};
     uint64_t ost[2] = {0};
 };
 
-struct HalLogData {
+struct HalLogData
+{
     HalUniData hd;
 
-    HalLogType type;
+    HalLogType type = INVALID_LOG;
 
-    union {
+    union
+    {
         HalAcsqLog acsq;
         HalFftsPlusLog ffts;
         HalAccPmu accPmu;
+        HalLowPowerData lowPower;
+        HalQosBwData qos;
     };
     HalLogData() {}
 };
-}
-}
 
-#endif // MSPROF_ANALYSIS_HAL_LOG_H
+// StarsSocProfileParser 与 StarsSocParser 均产出 HalLogData，但语义不同（soc profile vs task log）。
+// DataInventory 以 typeid 作为 key，同类型仅能注入一份，故用独立容器类型区分两路数据，避免注入冲突。
+struct HalSocProfileData
+{
+    std::vector<HalLogData> items;
+    HalSocProfileData() = default;
+    explicit HalSocProfileData(std::vector<HalLogData> data) : items(std::move(data)) {}
+};
+}  // namespace Domain
+}  // namespace Analysis
+
+#endif  // MSPROF_ANALYSIS_HAL_LOG_H

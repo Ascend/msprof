@@ -18,7 +18,7 @@
 
 #include "analysis/csrc/domain/services/parser/parser_item/low_power_parser_item.h"
 
-#include "analysis/csrc/domain/entities/hal/include/hal_soc_profile.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/log.h"
@@ -31,8 +31,6 @@ namespace Domain
 {
 using namespace Analysis::Utils;
 
-static_assert(sizeof(LowPowerData) == STARS_SOC_PROFILE_STRUCT_SIZE, "The size of LowPowerData must be 64 bytes");
-
 int LowPowerParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* halUniData, uint16_t expandStatus)
 {
     (void)expandStatus;
@@ -44,7 +42,7 @@ int LowPowerParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* ha
     }
 
     auto* source = ReinterpretConvert<LowPowerData*>(binaryData);
-    auto* target = ReinterpretConvert<HalSocProfileData*>(halUniData);
+    auto* target = ReinterpretConvert<HalLogData*>(halUniData);
     target->type = SOC_PROFILE_LOW_POWER;
     target->lowPower.dieId = source->dieId;
     target->lowPower.sysCnt = source->sysCnt;
@@ -55,7 +53,7 @@ int LowPowerParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* ha
     return DEFAULT_CNT;
 }
 
-REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, PARSER_ITEM_LOW_POWER, LowPowerParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, PARSER_ITEM_LOW_POWER, LowPowerParserItem);
 
 }  // namespace Domain
 }  // namespace Analysis
