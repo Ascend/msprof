@@ -39,7 +39,7 @@ repos:
       - id: codespell
         args: [
           "-L",
-          "CANN,cann,datas,Cann,eles,fo,ot,subtile,dout,ser,modul,egals,usig,egal,flate,nd,Nd,stap,windo,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
+          "CANN,cann,datas,Cann,eles,fo,ot,subtile,dout,ser,modul,egals,usig,egal,flate,nd,Nd,stap,windo,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog,mata",
           "--skip",
           "*.py,*.cpp,*.hpp,*.c,*.h",
         ]
