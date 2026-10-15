@@ -104,15 +104,16 @@ TEST_F(LowPowerPersistenceUTest, ShouldSavePythonCompatibleLowPowerTableWithNano
 TEST_F(LowPowerPersistenceUTest, ShouldCombineData0SoftHighAndLowSamplesOnChipV620)
 {
     context_.deviceContextInfo.deviceInfo.chipID = CHIP_V6_2_0;
-    auto source = std::make_shared<std::vector<HalSocProfileData>>();
-    HalSocProfileData item;
+    auto source = std::make_shared<HalSocProfileData>();
+    HalLogData item;
+    item.lowPower = HalLowPowerData{};
     item.type = SOC_PROFILE_LOW_POWER;
     item.lowPower.sysCnt = LOW_POWER_SYSCNT;
     item.lowPower.dieId = 3;
     for (uint32_t i = 0; i < LOW_POWER_SAMPLE_COUNT; ++i) {
         item.lowPower.sampleData[i] = static_cast<uint16_t>(10 + i);
     }
-    source->push_back(item);
+    source->items.push_back(item);
     ASSERT_TRUE(dataInventory_.Inject(source));
 
     LowPowerPersistence persistence;

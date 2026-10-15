@@ -52,6 +52,12 @@ const std::unordered_map<uint32_t, std::string> deviceTaskAcsqTypeMap{
     {16, "ROCCE_SQE"},       {17, "PCIE_DMA_SQE"},  {18, "HOST_CPU_SQE"},     {19, "CDQM_SQE"},
     {20, "C_CORE_SQE"}};
 
+const std::unordered_map<uint32_t, std::string> deviceTaskAcsqV6TypeMap{
+    {0, "AI_CORE"},   {1, "AIV_SQE"},           {2, "FUSION"},          {3, "PLACE_HOLDER_SQE"}, {4, "AICPU_H"},
+    {5, "AICPU_D"},   {6, "NOTIFY_RECORD_SQE"}, {7, "NOTIFY_WAIT_SQE"}, {8, "WRITE_VALUE_SQE"},  {9, "UBDMA"},
+    {10, "ASYNCDMA"}, {11, "SDMA_SQE"},         {12, "VPC_SQE"},        {13, "JPEGE_SQE"},       {14, "JPEGD_SQE"},
+    {15, "CMO_SQE"},  {16, "CCU_SQE"},          {20, "CONDITION_SQE"},  {21, "END_SQE"}};
+
 const std::unordered_map<uint32_t, std::string> deviceTaskFftsPlusTypeMap{{0, "AIC"},
                                                                           {1, "AIV"},
                                                                           {3, "Notify Wait"},
@@ -69,13 +75,14 @@ const std::unordered_map<uint32_t, std::string> deviceTaskFftsPlusTypeMap{{0, "A
 
 }  // namespace
 
-std::string GetDeviceTaskTypeStr(const DeviceTask& task)
+std::string GetDeviceTaskTypeStr(const DeviceTask& task, bool isChipV6)
 {
     std::string res = UNKNOWN;
     if (task.logType == HalLogType::ACSQ_LOG)
     {
-        auto it = deviceTaskAcsqTypeMap.find(task.taskType);
-        if (it != deviceTaskAcsqTypeMap.end())
+        const auto& types = isChipV6 ? deviceTaskAcsqV6TypeMap : deviceTaskAcsqTypeMap;
+        auto it = types.find(task.taskType);
+        if (it != types.end())
         {
             res = it->second;
         }
@@ -92,7 +99,7 @@ std::string GetDeviceTaskTypeStr(const DeviceTask& task)
 }
 
 void MergeByHostAndDeviceTask(std::vector<TopDownTask>& res, HostTask& hostTask, std::vector<DeviceTask>& deviceTask,
-                              SyscntConversionParams& params)
+                              SyscntConversionParams& params, bool isChipV6)
 {
     uint64_t count = 0;
     for (auto& task : deviceTask)
@@ -101,8 +108,8 @@ void MergeByHostAndDeviceTask(std::vector<TopDownTask>& res, HostTask& hostTask,
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
         // 有多个deviceTask且是第一个算子，标记记为true
         res.emplace_back((count == 0 && deviceTask.size() > 1), hostTask.taskId, hostTask.batchId, hostTask.streamId,
-                         hostTask.contextId, hostTask.requestId, GetDeviceTaskTypeStr(task), hostTask.taskTypeStr,
-                         hostTask.modelId, hostTask.connectionId, start.Double(), end.Double());
+                         hostTask.contextId, hostTask.requestId, GetDeviceTaskTypeStr(task, isChipV6),
+                         hostTask.taskTypeStr, hostTask.modelId, hostTask.connectionId, start.Double(), end.Double());
         count++;
     }
 }
@@ -117,21 +124,21 @@ void MergeByOnlyHostTask(std::vector<TopDownTask>& res, std::vector<HostTask>& h
 }
 
 void MergeByOnlyDeviceTask(std::vector<TopDownTask>& res, std::vector<DeviceTask>& deviceTask, const TaskId& key,
-                           SyscntConversionParams& params)
+                           SyscntConversionParams& params, bool isChipV6)
 {
     for (auto& task : deviceTask)
     {
         auto start = GetTimeFromSyscnt(task.taskStart, params);
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
         res.emplace_back(false, key.taskId, key.batchId, key.streamId, key.contextId, DEFAULT_INDEX_ID,
-                         GetDeviceTaskTypeStr(task), UNKNOWN, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID, start.Double(),
-                         end.Double());
+                         GetDeviceTaskTypeStr(task, isChipV6), UNKNOWN, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID,
+                         start.Double(), end.Double());
     }
 }
 
 std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTask>>& hostTasks,
                                              std::map<TaskId, std::vector<DeviceTask>>& deviceTasks,
-                                             SyscntConversionParams& params)
+                                             SyscntConversionParams& params, bool isChipV6)
 {
     std::set<TaskId> totalTaskId;
     std::transform(hostTasks.begin(), hostTasks.end(), std::inserter(totalTaskId, totalTaskId.begin()),
@@ -159,7 +166,7 @@ std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTa
             }
             if (hostIt->second.size() == 1)
             {
-                MergeByHostAndDeviceTask(res, hostIt->second[0], deviceIt->second, params);
+                MergeByHostAndDeviceTask(res, hostIt->second[0], deviceIt->second, params, isChipV6);
                 matchSize += deviceIt->second.size();
             }
             else
@@ -170,7 +177,7 @@ std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTa
         }
         else if (hostIt == hostTasks.end())
         {
-            MergeByOnlyDeviceTask(res, deviceIt->second, key, params);
+            MergeByOnlyDeviceTask(res, deviceIt->second, key, params, isChipV6);
         }
         else
         {  // 因为所有的key都是从hostTasks与deviceTasks中取的，所以一定不会有两者都找不到key的情况，该分支为device为空
@@ -225,7 +232,7 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
         WARN("There is no HostTask or DeviceTask, can't generate AscendTask!");
         return ANALYSIS_ERROR;
     }
-    res = GenerateTopDownTask(*hostTasks, *deviceTasks, params);
+    res = GenerateTopDownTask(*hostTasks, *deviceTasks, params, deviceContext.isChipV6());
     MAKE_SHARED_RETURN_VALUE(data, std::vector<TopDownTask>, ANALYSIS_ERROR, std::move(res));
     dataInventory.Inject(data);
     return ANALYSIS_OK;

@@ -330,6 +330,27 @@ const std::map<std::string, std::string> STARS_SQE_TYPE_TABLE{
     {"16", "ROCCE_SQE"},       {"17", "PCIE_DMA_SQE"},  {"18", "HOST_CPU_SQE"},     {"19", "CDQM_SQE"},
     {"20", "C_CORE_SQE"}};
 
+// SQE types for V6 chips, matching Python SqeType.ChipV6SqeType.
+const std::map<std::string, std::string> CHIP_V6_SQE_TYPE_TABLE{{"0", "AI_CORE"},
+                                                                {"1", "AIV_SQE"},
+                                                                {"2", "FUSION"},
+                                                                {"3", "PLACE_HOLDER_SQE"},
+                                                                {"4", "AICPU_H"},
+                                                                {"5", "AICPU_D"},
+                                                                {"6", "NOTIFY_RECORD_SQE"},
+                                                                {"7", "NOTIFY_WAIT_SQE"},
+                                                                {"8", "WRITE_VALUE_SQE"},
+                                                                {"9", "UBDMA"},
+                                                                {"10", "ASYNCDMA"},
+                                                                {"11", "SDMA_SQE"},
+                                                                {"12", "VPC_SQE"},
+                                                                {"13", "JPEGE_SQE"},
+                                                                {"14", "JPEGD_SQE"},
+                                                                {"15", "CMO_SQE"},
+                                                                {"16", "CCU_SQE"},
+                                                                {"20", "CONDITION_SQE"},
+                                                                {"21", "END_SQE"}};
+
 // TS为hwts时芯片的sqetype
 const std::map<std::string, std::string> HW_SQE_TYPE_TABLE{
     {"0", "AI_CORE"},          {"1", "AI_CPU"},         {"2", "AIV_SQE"},           {"3", "PLACE_HOLDER_SQE"},

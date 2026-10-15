@@ -119,6 +119,36 @@ TEST_F(AscendTaskAssociationUTest, ShouldGenerateAscendTaskWhenProcessRun)
     }
 }
 
+TEST_F(AscendTaskAssociationUTest, ShouldSelectDeviceSqeTypesByChip)
+{
+    for (const auto chip : {CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0}) {
+        DataInventory inventory;
+        auto hostTasks = std::make_shared<std::map<TaskId, std::vector<HostTask>>>(GeneratorHostTask());
+        auto deviceTasks = std::make_shared<std::map<TaskId, std::vector<DeviceTask>>>(GenerateDeviceTask());
+        for (auto& entry : *deviceTasks) {
+            entry.second.front().logType = ACSQ_LOG;
+            entry.second.front().taskType = 1;
+        }
+        auto streamInfo = std::make_shared<HostStreamInfo>();
+        streamInfo->streamIdMap.emplace(1, 1);
+        ASSERT_TRUE(inventory.Inject(hostTasks));
+        ASSERT_TRUE(inventory.Inject(deviceTasks));
+        ASSERT_TRUE(inventory.Inject(streamInfo));
+        DeviceContext context;
+        context.deviceContextInfo.deviceInfo.chipID = chip;
+        AscendTaskAssociation association;
+        ASSERT_EQ(ANALYSIS_OK, association.Run(inventory, context));
+        auto result = inventory.GetPtr<std::vector<TopDownTask>>();
+        ASSERT_NE(nullptr, result);
+        ASSERT_EQ(3UL, result->size());
+        for (const auto& task : *result) {
+            if (task.batchId == 1 || task.batchId == 2) {
+                EXPECT_EQ(chip == CHIP_V4_1_0 ? "AI_CPU" : "AIV_SQE", task.deviceTaskType);
+            }
+        }
+    }
+}
+
 TEST_F(AscendTaskAssociationUTest, ShouldReturnErrorWhenDeviceTaskIsEmpty)
 {
     AscendTaskAssociation association;

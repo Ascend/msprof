@@ -143,14 +143,14 @@ std::string TaskProcessor::GetTaskType(const std::string &hostType, const std::s
                                        uint16_t platformVersion)
 {
     std::string taskType;
-    std::map<std::string, std::string> sqeType;
-    if (Context::IsStarsChip(platformVersion))
+    const auto *sqeType = &HW_SQE_TYPE_TABLE;
+    if (Context::IsChipV6(platformVersion))
     {
-        sqeType = STARS_SQE_TYPE_TABLE;
+        sqeType = &CHIP_V6_SQE_TYPE_TABLE;
     }
-    else
+    else if (Context::IsStarsChip(platformVersion))
     {
-        sqeType = HW_SQE_TYPE_TABLE;
+        sqeType = &STARS_SQE_TYPE_TABLE;
     }
     if (hostType != "FFTS_PLUS" && hostType != "UNKNOWN")
     {
@@ -166,13 +166,11 @@ std::string TaskProcessor::GetTaskType(const std::string &hostType, const std::s
         {
             taskType = deviceType;
         }
-        else if (platformVersion != static_cast<int>(Chip::CHIP_V2_1_0) && sqeType.find(deviceType) != sqeType.end())
-        {
-            taskType = sqeType[deviceType];
-        }
         else
         {
-            taskType = "Other";
+            const auto it = sqeType->find(deviceType);
+            taskType =
+                platformVersion != static_cast<int>(Chip::CHIP_V2_1_0) && it != sqeType->end() ? it->second : "Other";
         }
     }
     return taskType;

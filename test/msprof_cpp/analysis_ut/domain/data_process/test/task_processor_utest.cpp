@@ -88,6 +88,27 @@ class TaskProcessorUTest : public testing::Test
     }
 };
 
+TEST_F(TaskProcessorUTest, ShouldSelectSqeTypesByChip)
+{
+    TaskProcessor processor(PROF_PATH_A);
+    using Analysis::Domain::Environment::Chip;
+    const std::map<std::string, std::string> expected{
+        {"1", "AIV_SQE"}, {"2", "FUSION"}, {"4", "AICPU_H"}, {"5", "AICPU_D"},
+        {"9", "UBDMA"}, {"10", "ASYNCDMA"}, {"15", "CMO_SQE"}, {"16", "CCU_SQE"},
+        {"20", "CONDITION_SQE"}, {"21", "END_SQE"}};
+    for (const auto chip : {Chip::CHIP_V6_1_0, Chip::CHIP_V6_1_1, Chip::CHIP_V6_2_0}) {
+        const auto version = static_cast<uint16_t>(chip);
+        for (const auto& type : expected) {
+            EXPECT_EQ(type.second, processor.GetTaskType("UNKNOWN", type.first, version));
+        }
+        EXPECT_EQ("Other", processor.GetTaskType("UNKNOWN", "17", version));
+        EXPECT_EQ("KERNEL_AICORE", processor.GetTaskType("KERNEL_AICORE", "1", version));
+        EXPECT_EQ("Write Value", processor.GetTaskType("FFTS_PLUS", "Write Value", version));
+    }
+    EXPECT_EQ("AI_CPU", processor.GetTaskType("UNKNOWN", "1", static_cast<uint16_t>(Chip::CHIP_V4_1_0)));
+    EXPECT_EQ("SDMA_SQE", processor.GetTaskType("UNKNOWN", "9", static_cast<uint16_t>(Chip::CHIP_V3_1_0)));
+}
+
 TEST_F(TaskProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)
 {
     DataInventory dataInventory;
