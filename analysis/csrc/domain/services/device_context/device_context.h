@@ -169,6 +169,7 @@ struct DeviceStartInfo
 struct DeviceContextInfo
 {
     std::string deviceFilePath;
+    std::string collectionVersion{"1.0"};
     DeviceInfo deviceInfo;
     SampleInfo sampleInfo;
     DfxInfo dfxInfo;
@@ -207,6 +208,8 @@ class DeviceContext : public Infra::Context
     }
 
     std::string GetDeviceFilePath() const { return this->deviceContextInfo.deviceFilePath; }
+
+    const std::string &GetCollectionVersion() const { return this->deviceContextInfo.collectionVersion; }
 
     // 获取 syscnt 转 wall-clock 所需的换算参数，源数据取自本 context 已加载的 host/device 启动日志
     // 内联实现以复用宿主数据的换算逻辑，避免各调用侧重复定义相同换算代码

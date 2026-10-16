@@ -39,7 +39,9 @@ enum ParserType
     LPM_INFO_PARSER,
     TRACK_PARSER_V6,
     QOS_PARSER,
-    UB_PARSER
+    UB_PARSER,
+    NPU_MEM_PARSER,
+    NPU_MODULE_MEM_PARSER
 };
 const int MIN_COUNT = 2;
 const int VALID_CNT = 15;

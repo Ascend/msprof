@@ -50,6 +50,7 @@ uint16_t GetDeviceIdByDevicePath(const std::string &filePath);
 bool IsNumber(const std::string &s);
 // 将两个uint32_t 拼成uint64_t
 uint64_t Contact(uint32_t high, uint32_t low);
+bool AddWithoutOverflow(uint64_t left, uint64_t right, uint64_t &result);
 bool IsDoubleEqual(double checkDouble, double standard);
 std::string AddQuotation(std::string str);
 // SQLite SQL 字面量和标识符转义。

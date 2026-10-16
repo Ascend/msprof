@@ -99,6 +99,7 @@ bool DeviceContext::GetInfoJson()
     try
     {
         deviceContextInfo.deviceInfo = info;
+        deviceContextInfo.collectionVersion = deviceContextInfo.deviceInfo.collectionVersion;
     }
     catch (const std::exception& e)
     {

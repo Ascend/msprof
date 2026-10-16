@@ -181,6 +181,16 @@ uint64_t Contact(uint32_t high, uint32_t low)
     return (static_cast<uint64_t>(high) << shift) | low;
 }
 
+bool AddWithoutOverflow(uint64_t left, uint64_t right, uint64_t &result)
+{
+    if (left > UINT64_MAX - right)
+    {
+        return false;
+    }
+    result = left + right;
+    return true;
+}
+
 bool IsDoubleEqual(double checkDouble, double standard)
 {
     const double eps = 1e-9;

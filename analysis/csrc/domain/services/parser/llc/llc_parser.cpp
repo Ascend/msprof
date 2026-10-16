@@ -78,16 +78,6 @@ static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<doub
 #error "LLC V1 timestamp conversion must not be compiled with fast-math"
 #endif
 
-bool AddWithoutOverflow(uint64_t lhs, uint64_t rhs, uint64_t &result)
-{
-    if (lhs > std::numeric_limits<uint64_t>::max() - rhs)
-    {
-        return false;
-    }
-    result = lhs + rhs;
-    return true;
-}
-
 bool ValidateV1TimeContext(const HostStartLog &hostStart, const DeviceStartLog &deviceStart,
                            const DeviceStartInfo &startInfo)
 {
@@ -129,7 +119,7 @@ bool ConvertV1Timestamp(uint64_t rawTimestamp, const HostStartLog &hostStart, co
     }
     const uint64_t rawNs = rawTimestamp * NS_TO_US;
     uint64_t samplingTimestamp;
-    if (!AddWithoutOverflow(rawNs, deviceStart.clockMonotonicRaw, samplingTimestamp))
+    if (!Utils::AddWithoutOverflow(rawNs, deviceStart.clockMonotonicRaw, samplingTimestamp))
     {
         return false;
     }

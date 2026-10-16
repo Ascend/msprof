@@ -27,5 +27,7 @@ const int TS_TRACK_STRUCT_SIZE = 40;
 const int FREQ_STRUCT_SIZE = 888;
 const int QOS_STRUCT_SIZE = 64;
 const int UB_STRUCT_SIZE = 128;
+const int NPU_MEM_STRUCT_SIZE = 32;
+const int NPU_MODULE_MEM_STRUCT_SIZE = 24;
 }  // namespace Analysis
 #endif  // ANALYSIS_INFRA_RESOURCE_BINARY_STRUCT_INFO_H
