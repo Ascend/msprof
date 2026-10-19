@@ -77,38 +77,132 @@
 
 ### 代码测试
 
-#### 运行测试
+在提交代码前，请确保所有测试通过，可通过以下方式执行测试。
 
-在提交代码前，请确保所有测试通过：
+> [!NOTE]
+>
+> C++和Python的覆盖率检查是相互独立的，建议分开执行。
+
+#### C++单元测试（UT）
+
+在代码仓根目录执行如下测试命令：
 
 ```bash
-# Python单元测试
-cd test/msprof_python/ut
-python -m pytest
-
-# C++单元测试
-cd test/msprof_cpp/analysis_ut
-# 根据具体测试框架运行测试
+# 全量C++单元测试
+bash scripts/execute_cpp_test_case.sh
+# 或指定all
+bash scripts/execute_cpp_test_case.sh all
 ```
 
-#### 添加测试
+```bash
+# analysis模块单元测试
+bash scripts/execute_cpp_test_case.sh analysis
+```
 
-- 为新功能添加相应的单元测试
-- 确保测试覆盖主要逻辑分支
-- 测试用例应该具有良好的可读性和维护性
-- 测试数据应该放在`test/`目录下的相应位置
+- all：编译并执行全量C++单元测试，默认值。
+- analysis：编译并执行analysis模块的单元测试。
 
-#### 代码覆盖率
+#### C++代码覆盖率
 
-可以使用以下脚本生成覆盖率报告：
+前置依赖：lcov >= 2.0、genhtml，计算增量覆盖率diff时还需要lcov_cobertura、diff-cover。
+
+环境变量：
+
+- DIFF_BASE：增量比较基线，默认origin/${targetBranch:-master}。
+- FAIL_UNDER：增量行覆盖率门槛（百分比），默认80。
+- targetBranch：未设置DIFF_BASE时使用，默认master。
+
+在代码仓根目录执行如下命令，生成C++单元测试覆盖率报告：
 
 ```bash
-# Python覆盖率
-bash scripts/generate_coverage_py.sh
-
-# C++覆盖率
+# 全量代码覆盖率
 bash scripts/generate_coverage_cpp.sh
+# 或指定all
+bash scripts/generate_coverage_cpp.sh all
 ```
+
+```bash
+# 全量 + 增量
+bash scripts/generate_coverage_cpp.sh diff
+```
+
+```bash
+# 全量 + analysis模块
+bash scripts/generate_coverage_cpp.sh analysis
+```
+
+```bash
+# 全量 + 增量 + analysis（表示在all的基础上再计算代码差异和analysis模块的覆盖率）
+bash scripts/generate_coverage_cpp.sh analysis diff
+```
+
+- all：构建所有C++代码，生成全量C++代码覆盖率报告，默认值。
+  - 全量覆盖率的采集代码范围在各*_utest.dir下的analysis/csrc（不含UT源码）。
+  - 全量覆盖率报告保存在test/build_llt/output/cpp_coverage/result目录下，生成HTML文件。
+- diff：在all的基础上增加计算代码差异部分的覆盖率并生成增量报告。
+  - 增量覆盖率采集代码范围在analysis/csrc整个目录。
+  - 增量覆盖率报告保存为test/build_llt/output/cpp_coverage/result/ut_incremental_coverage_report.html文件。
+- analysis：在all的基础上增加计算analysis模块的覆盖率并生成覆盖率报告。
+
+> [!NOTE]
+>
+> 每次运行会清除上次的cpp_coverage目录和*.gcda，再重新编译、执行C++单元测试（UT）并采集。
+
+#### Python单元测试（UT）
+
+在代码仓根目录执行如下测试命令：
+
+```bash
+bash scripts/execute_py_test_case.sh
+```
+
+#### Python代码覆盖率
+
+前置依赖：coverage、pytest，计算增量覆盖率diff时还需要diff-cover。
+
+环境变量：
+
+- DIFF_BASE：增量比较基线，默认origin/${targetBranch:-master}。
+- FAIL_UNDER：增量行覆盖率门槛（百分比），默认80。
+- targetBranch：未设置DIFF_BASE时使用，默认master。
+
+在代码仓根目录执行如下命令，生成Python单元测试覆盖率报告：
+
+```bash
+# 全量代码覆盖率
+bash scripts/generate_coverage_py.sh
+```
+
+```bash
+# 全量 + 增量
+bash scripts/generate_coverage_py.sh diff
+```
+
+- 直接执行脚本不配置参数：构建所有Python代码，生成全量Python代码覆盖率报告。
+
+  - 全量覆盖率的采集代码范围在analysis目录下的.py文件（coverage --source）。
+
+  - 全量覆盖率报告保存为如下文件：
+
+    test/build_llt/output/python_coverage/html
+
+    test/build_llt/output/python_coverage/coverage.xml
+
+    test/build_llt/output/python_coverage/python_coverage_report.log
+
+- diff：在计算全量代码覆盖率的基础上增加计算代码差异部分的覆盖率并生成增量报告。
+
+  - 增量覆盖率采集代码范围在analysis目录及子目录下的所有.py文件（不包含test目录）。
+
+  - 增量覆盖率报告保存为如下文件：
+
+    test/build_llt/output/python_coverage/inc_coverage_result.html
+
+    test/build_llt/output/python_coverage/incremental.json
+
+> [!NOTE]
+>
+> 每次运行会清除上次的python_coverage目录，再重新执行Python单元测试并采集。
 
 ### 文档开发
 
