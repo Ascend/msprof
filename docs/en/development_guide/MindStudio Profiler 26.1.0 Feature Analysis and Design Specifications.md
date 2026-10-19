@@ -1,7 +1,7 @@
 
 # Background
 
-Building on the end-to-end software and hardware scheduling capabilities of the Ascend 950PR/Ascend 950DT chips, these features primarily extend tuning capabilities for the scheduler, computation and communication paths, AICore computing units, and system hardware metrics on Ascend 950PR/Ascend 950DT, thereby supporting performance tuning and analysis.
+Inheriting the full-process hardware and software scheduling capabilities of the generation chip, this feature mainly extends the tuning capabilities for scheduling, computation and communication, AI Core computation units, and system hardware metrics of the 950PR&950DT chips, supporting performance tuning analysis.
 
 # Use Cases
 
@@ -9,7 +9,7 @@ Building on the end-to-end software and hardware scheduling capabilities of the 
 
 Feature 1: Presenting D/U-Die bandwidth information
 
-Usage restriction: Ascend 950PR/Ascend 950DT
+Usage Restriction: 950PR&950DT form factor
 
 Usage constraint: NA
 
@@ -23,7 +23,7 @@ DFX design:
 
 Feature 2: Presenting fusion tasks
 
-Usage restriction: Ascend 950PR/Ascend 950DT
+Usage Restriction: 950PR&950DT form factor
 
 Usage constraint: NA
 
@@ -37,7 +37,7 @@ DFX design:
 
 Feature 3: Statistics and presentation of DPU operator execution time
 
-Usage restriction: Ascend 950PR/Ascend 950DT and DPU-based computation
+Usage Restriction: 950PR&950DT form factor, using DPU for computation
 
 Usage constraint: NA
 
@@ -51,7 +51,7 @@ DFX design:
 
 Feature 4: Inheriting features across chip generations
 
-Usage restriction: Ascend 950PR/Ascend 950DT chips
+Usage Restriction: 950PR&950DT chips
 
 Usage constraint: NA
 
@@ -66,7 +66,7 @@ DFX design:
 1. Design approach
 
    ```text
-   Ascend 950PR/Ascend 950DT all-scenario architecture diagram
+     950PR&950DT All-Scenario Architecture Diagram
 
      ┌───────────────────────────────────────────────────────────────────────────────┐
      │                                 AI Framework                                  │
@@ -102,7 +102,7 @@ DFX design:
 
    ```
 
-   Building on the end-to-end software and hardware scheduling capabilities of the Ascend 950PR/Ascend 950DT chips and leveraging their capabilities, these features primarily extend tuning capabilities for the scheduler, computation and communication paths, AICore computing units, and system-level hardware metrics.
+   The full-process hardware and software scheduling capabilities of the generation chip, combined with the 950PR&950DT chip capabilities, mainly extend tuning capabilities in multiple areas such as the scheduler, computation and communication paths, AI Core computation units, and system-level hardware metrics.
 
    - Add the fusion task type to the Stars scheduler.
    - Support inter-die bandwidth for AICore computing units.
@@ -114,7 +114,7 @@ DFX design:
    1. D/U-Die bandwidth implementation
 
       ```text
-        D/U-Die structure
+        D/U Die structure diagram
 
         ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐
         │ UDie0 │<-->│ DDie0 │<-->│ DDie1 │<-->│ UDie1 │
@@ -143,8 +143,8 @@ DFX design:
 
    3. DPU operator implementation
 
-      ```text
-      DPU data presentation
+      ``` text
+      DPU Data Presentation Diagram
 
 
                                        ┌─────────┐
@@ -163,7 +163,7 @@ DFX design:
 
       ```
 
-      Ascend 950PR/Ascend 950DT chips have a DPU compute module on the host side. The module includes computation and communication tasks and supports differentiation by device ID. DPU and NPU IDs are separate. Data is also associated and presented through unique IDs. A new CANN: DPU track is added to the timeline trace to support performance analysis.
+      The 950PR&950DT generation chip adds a DPU computing module on the Host side, which includes computing and communication tasks, supports differentiation by Device ID, and separates the DPU and NPU IDs. Data parsing is also associated and presented through unique IDs. The timeline trace diagram adds DPU lane data for the CANN layer to support performance analysis.
 
       **Computation tasks**: Tasks are dispatched to and executed directly by the DPU module on the host side and are not dispatched to the device.
 
@@ -185,7 +185,7 @@ DFX design:
 
 # User Guide
 
-- Interface description: Ascend 950PR/Ascend 950DT supports the `reports` parameter to control the timeline content to be returned.
+- Interface description: 950PR&950DT supports the reports parameter to control the timeline data content returned.
 - Interface prototype: `msprof --reports`
 - Input/Output parameters
 
@@ -217,11 +217,11 @@ DFX design:
 
 | Test Case | Prerequisites | Expected Input | Expected Output |
 | --- | --- | --- | --- |
-| D/U-Die bandwidth data collection | The Ascend 950PR/Ascend 950DT CANN software package is correctly installed. | Run the service application through msprof: `msprof --output=* ./main [args]` | 1. PROF profile data is collected, and a message indicating that automatic parsing is complete is displayed.<br>2. Timeline data is generated, and a new track displays a D/U-Die bandwidth bar chart. |
-| Fusion task presentation | The Ascend 950PR/Ascend 950DT CANN software package is correctly installed. | Run the service application through msprof: `msprof --output=* ./main [args]` | 1. PROF profile data is collected, and a message indicating that automatic parsing is complete is displayed.<br>2. Timeline data is generated, and fusion task execution-time information is displayed under Ascend Hardware. |
-| DPU operator execution-time statistics and presentation | The Ascend 950PR/Ascend 950DT CANN software package is correctly installed. | Run the service application through msprof: `msprof --output=* ./main [args]` | 1. PROF profile data is collected, and a message indicating that automatic parsing is complete is displayed.<br>2. Timeline data is generated, and DPU task execution-time information is displayed under CANN: DPU. |
-| msprof command-line support for the `reports` parameter | The Ascend 950PR/Ascend 950DT CANN software package is correctly installed.<br>`reports_sample_config.json` is included and only `"ascend": true` is configured; all other options are set to `false`. | Run the service application through msprof: `msprof --output=* ./main [args] --reports="reports_sample_config.json"` | 1. PROF profile data is collected, and a message indicating that automatic parsing is complete is displayed.<br>2. Timeline data is generated, and only the Ascend Hardware track is presented. |
-| msprof command-line support for parsing the default exported DB | The Ascend 950PR/Ascend 950DT CANN software package is correctly installed. | Run the service application through msprof: `msprof --output=* ./main [args]` | 1. PROF profile data is collected, and a message indicating that automatic parsing is complete is displayed.<br>2. The generated deliverables include a DB file. |
+| D/U-Die bandwidth data collection use case | The 950PR&950DT CANN software package is correctly installed. | Execute the business application through msprof: msprof --output=* ./main [args] | 1. PROF performance data is collected, and a message indicating automatic parsing completion is printed.<br />2. Timeline data is generated, and the newly added lane can display the D/U-Die bandwidth bar chart. |
+| Fusion Task presentation use case | The 950PR&950DT CANN software package is correctly installed. | Execute the business application through msprof: msprof --output=* ./main [args] | 1. PROF performance data is collected, and a message indicating automatic parsing completion is printed.<br />2. Timeline data is generated, and the fusion task duration information can be displayed under Ascend Hardware. |
+| DPU operator duration statistics and presentation capability use case | The 950PR&950DT CANN software package is correctly installed. | Execute the business application through msprof: msprof --output=* ./main [args] | 1. PROF performance data is collected, and a message indicating automatic parsing completion is printed.<br />2. Timeline data is generated, and the duration of DPU tasks can be displayed under the newly added CANN: DPU. |
+| msprof command line supports the reports parameter use case | The 950PR&950DT CANN software package is correctly installed.<br />The built-in reports_sample_config.json (only "ascend: true" is configured, and all others are false). | Execute the business application through msprof: msprof --output=* ./main [args] --reports="reports_sample_config.json" | 1. PROF performance data is collected, and a message indicating automatic parsing completion is printed.<br />2. Timeline data is generated, and only the AscendHardware lane is displayed. |
+| msprof command line supports parsing and exporting DB by default | The 950PR&950DT CANN software package is correctly installed. | Execute the business application through msprof: msprof --output=* ./main [args] | 1. PROF performance data is collected, and a message indicating automatic parsing completion is printed.<br />2. The generated deliverables include DB files. |
 | | | | |
 
 # (Optional) Drawbacks

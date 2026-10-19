@@ -1,4 +1,4 @@
-# Profile Data File Reference (DB)<a name="EN-US_TOPIC_0000002477463220"></a>
+# Profile Data File Reference (DB)<a name="en-us_TOPIC_0000002477463220"></a>
 
 Once the `msprof` command execution is complete, a `msprof_{Timestamp}.db` database file is generated to summarize all profile data. You are advised to use MindStudio Insight or a database development tool such as Navicat Premium to open the file. The profile data summarized by the .db file is as follows:
 
@@ -39,7 +39,7 @@ There is no enable or disable option for this table. It is generated automatical
 |50003|trace|
 |50004|mstx|
 
-## ENUM\_MODULE
+## `ENUM_MODULE`
 
 Enumeration table.
 
@@ -56,54 +56,42 @@ There is no enable or disable option for this table. It is generated automatical
 
 |id|name|
 |--|--|
-|0|SLOG|
+|0|UNKNOWN|
 |1|IDEDD|
-|2|SCC|
+|2|IDEDH|
 |3|HCCL|
 |4|FMK|
-|5|CCU|
+|5|HIAIENGINE|
 |6|DVPP|
 |7|RUNTIME|
 |8|CCE|
-|9|HDC|
-|10|DRV|
-|11|NET|
+|9|HLT|
 |22|DEVMM|
-|23|KERNEL|
 |24|LIBMEDIA|
 |25|CCECPU|
-|27|ROS|
+|26|ASCENDDK|
+|27|HCCP_SCHEDULE|
 |28|HCCP|
 |29|ROCE|
 |30|TEFUSION|
 |31|PROFILING|
 |32|DP|
 |33|APP|
-|34|TS|
 |35|TSDUMP|
 |36|AICPU|
-|37|LP|
+|37|AICPU_SCHEDULE|
 |38|TDT|
 |39|FE|
 |40|MD|
 |41|MB|
 |42|ME|
-|43|IMU|
-|44|IMP|
 |45|GE|
-|47|CAMERA|
 |48|ASCENDCL|
-|49|TEEOS|
-|50|ISP|
-|51|SIS|
-|52|HSM|
-|53|DSS|
 |54|PROCMGR|
-|55|BBOX|
 |56|AIVECTOR|
 |57|TBE|
 |58|FV|
-|59|MDCMAP|
+|59|PYPTO|
 |60|TUNE|
 |61|HSS|
 |62|FFTS|
@@ -118,12 +106,11 @@ There is no enable or disable option for this table. It is generated automatical
 |71|ATRACE|
 |72|RTC|
 |73|SYSMONITOR|
-|74|AMP|
-|75|ADETECT|
-|76|MBUFF|
-|77|CUSTOM|
+|74|AML|
+|75|MBUFF|
+|76|CUSTOM_SCHEDULE|
 
-## ENUM\_HCCL\_DATA\_TYPE
+## `ENUM_HCCL_DATA_TYPE`
 
 Enumeration table.
 
@@ -161,7 +148,7 @@ There is no enable or disable option for this table. It is generated automatical
 |65534|N/A|
 |65535|INVALID_TYPE|
 
-## ENUM\_HCCL\_LINK\_TYPE
+## `ENUM_HCCL_LINK_TYPE`
 
 Enumeration table.
 
@@ -191,7 +178,7 @@ There is no enable or disable option for this table. It is generated automatical
 |65534|N/A|
 |65535|INVALID_TYPE|
 
-## ENUM\_HCCL\_TRANSPORT\_TYPE
+## `ENUM_HCCL_TRANSPORT_TYPE`
 
 Enumeration table.
 
@@ -217,7 +204,7 @@ There is no enable or disable option for this table. It is generated automatical
 |65534|N/A|
 |65535|INVALID_TYPE|
 
-## ENUM\_HCCL\_RDMA\_TYPE
+## `ENUM_HCCL_RDMA_TYPE`
 
 Enumeration table.
 
@@ -240,7 +227,7 @@ There is no enable or disable option for this table. It is generated automatical
 |65534|N/A|
 |65535|INVALID_TYPE|
 
-## ENUM\_MSTX\_EVENT\_TYPE
+## `ENUM_MSTX_EVENT_TYPE`
 
 Enumeration table.
 
@@ -262,7 +249,7 @@ There is no enable or disable option for this table. It is generated automatical
 |2|start/end|
 |3|marker_ex|
 
-## ENUM\_MEMCPY\_OPERATION
+## `ENUM_MEMCPY_OPERATION`
 
 Enumeration table.
 
@@ -289,7 +276,7 @@ There is no enable or disable option for this table. It is generated automatical
 |7|device to host ex|
 |65535|other|
 
-## ENUM\_OVERLAP\_ANALYSIS\_TYPE
+## `ENUM_OVERLAP_ANALYSIS_TYPE`
 
 Enumeration table.
 
@@ -310,7 +297,7 @@ There is no enable or disable option for this table. It is generated automatical
 |1|COMMUNICATION|
 |2|COMM_NOT_OVERLAP_COMP|
 |3|FREE|
-|65535|RESERVE|
+|65535|RESERVED|
 
 ## STRING_IDS
 
@@ -325,7 +312,7 @@ There is no enable or disable option for this table.
 |id|INTEGER|Index, string ID|
 |value|TEXT|String value|
 
-## SESSION\_TIME\_INFO
+## `SESSION_TIME_INFO`
 
 Stores the start and end time of the profile data. If the profiling process exits unexpectedly, the default end time is the start time plus 30 minutes.
 
@@ -338,7 +325,7 @@ There is no enable or disable option for this table.
 |startTimeNs|INTEGER|Unix time when a task starts (ns)|
 |endTimeNs|INTEGER|Unix time when a task ends (ns)|
 
-## NPU\_INFO
+## `NPU_INFO`
 
 Stores the chip models corresponding to the device IDs.
 
@@ -351,7 +338,7 @@ There is no enable or disable option for this table.
 |id|INTEGER|Device ID. The value `–1` indicates that the device ID was not collected.|
 |name|TEXT|Chip model of the device.|
 
-## HOST\_INFO
+## `HOST_INFO`
 
 Stores the unique host IDs and names.
 
@@ -386,7 +373,7 @@ This table is controlled by `--task-time`.
 |taskId|INTEGER|ID of the operator task.|
 |modelId|INTEGER|Model ID of the operator task.|
 
-## COMPUTE\_TASK\_INFO
+## `COMPUTE_TASK_INFO`
 
 Stores information about compute operators.
 
@@ -411,10 +398,10 @@ This table is controlled by `--task-time`.
 |attrInfo|INTEGER|Operator attribute information used to describe the operator shape and custom operator parameters. The value maps to `STRING_IDS(attrInfo)`.|
 |opState|INTEGER|Indicates whether an operator is dynamic or static. Valid values: `dynamic`, `static`, and `N/A` (unidentified scenario or operator). The value maps to `STRING_IDS(opState)`.|
 |hf32Eligible|INTEGER|Indicates whether the HF32 precision flag is used. Valid values: `YES` (used), `NO` (not used), and `N/A` (unidentified scenario or operator). The value maps to `STRING_IDS(hf32Eligible)`.|
-|gridDim|INTEGER|Number of enabled thread blocks in the thread block grid of the Single-Instruction Multiple-Threads (SIMT) model. An AI Vector (AIV) core executes only one thread block task at a time. Only Ascend 950 products support this field.STRING_IDS(gridDim)|
-|blockDim|INTEGER|Number of enabled threads in a thread block of the Single-Instruction Multiple-Threads (SIMT) model. A maximum of 2048 threads can be enabled in a thread block. Only Ascend 950 products support this field.STRING_IDS(blockDim)|
+|gridDim|INTEGER|Indicates the number of thread blocks enabled in the thread block grid of the SIMT thread model. At any given time, one AIV core executes only one thread block task. Only 950PR&950DT products support this field. STRING_IDS(gridDim)|
+|blockDim|INTEGER|Indicates the number of threads enabled in a thread block of the SIMT thread model. A thread block can enable up to 2048 threads. Only 950PR&950DT products support this field. STRING_IDS(blockDim)|
 
-## COMMUNICATION\_TASK\_INFO
+## `COMMUNICATION_TASK_INFO`
 
 Stores information about small communication operators.
 
@@ -424,7 +411,7 @@ The `--task-time`, `--hccl`, and `--ascendcl` options control the collection of 
 
 |Field|Type| Description                                                                    |
 |--|--|------------------------------------------------------------------------|
-|timestampNs|INTEGER| Start time of the small communication operator (ns).                           |
+|timestampNs|INTEGER| Start time of the communication small operator, unit: ns |
 |name|INTEGER| Operator name, which maps to `STRING_IDS(name)`.                                                  |
 |globalTaskId|INTEGER| Global operator task ID, which is used as an index named `CommunicationTaskIndex` to associate with the `TASK` table.                      |
 |taskType|INTEGER| Operator task type, which maps to `STRING_IDS(taskType)`.                                             |
@@ -442,7 +429,7 @@ The `--task-time`, `--hccl`, and `--ascendcl` options control the collection of 
 |isMaster|INTEGER| Indicates whether the operator is a primary or secondary stream communication operator. The primary stream operator is used for analysis. Valid values:<br>`0`: secondary stream<br>`1`: primary stream                                    |
 |bandwidth|NUMERIC| Bandwidth data of the small communication operator (bytes/s).                                                |
 
-## COMMUNICATION\_OP
+## `COMMUNICATION_OP`
 
 Stores information about large communication operators.
 
@@ -460,13 +447,13 @@ The `--task-time` and `--hccl` options control the collection of the correspondi
 | opId        |INTEGER|ID of the corresponding large communication operator, which is used as an index to associate with the `COMMUNICATION_TASK_INFO` table.|
 | relay       |INTEGER|Rail borrowing flag.|
 | retry       |INTEGER|Retransmission flag.|
-| dataType    |INTEGER|Data type transmitted by the large communication operator (such as INT8 and FP32). The value maps to `ENUM_HCCL_DATA_TYPE(dataType)`.|
+| dataType    |INTEGER|Data type transmitted by the large operator, such as (INT8, FP32), ENUM_HCCL_DATA_TYPE(dataType)|
 | algType     |INTEGER|Algorithm used by the communication operator, which may consist of multiple phases (such as `HD-MESH`). The value maps to `STRING_IDS(algType)`.|
 | count       |NUMERIC|Volume of the `dataType` data transmitted by the operator.|
 | opType      |INTEGER|Operator type, which maps to `STRING_IDS(opType)`, such as `hcom_broadcast_`.|
 | deviceId    |INTEGER|Device ID.|
 
-## CANN\_API
+## `CANN_API`
 
 Stores data about CANN APIs.
 
@@ -497,9 +484,9 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |eventName|NUMERIC|QoS event name, which maps to `STRING_IDS(eventName)`|
 |bandwidth|NUMERIC|Bandwidth at the time of the QoS event (bytes/s)|
 |timestampNs|NUMERIC|Local time (ns)|
-|dieId|INTEGER|Die ID used to distinguish chip scenarios. Only Ascend 950 products support this field.<br>For Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, and Atlas A3 training products/Atlas A3 inference products, chip scenarios cannot be distinguished. The default value is `-1`, indicating that there is no die ID in the current chip scenario.|
+|dieId|INTEGER|dieId used to distinguish chip scenarios, supported only by 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
 
-## AICORE\_FREQ
+## `AICORE_FREQ`
 
 Stores AI Core frequency information.
 
@@ -512,11 +499,11 @@ There is no enable or disable option for this table. It is generated automatical
 | deviceId    |INTEGER|Device ID|
 | timestampNs |NUMERIC|Local timestamp of frequency change (ns)|
 | freq        |INTEGER|AI Core frequency (MHz)|
-| dieId |INTEGER|Die ID used to distinguish chip scenarios. Only Ascend 950 products support this field.<br>For Atlas 200I/500 A2 inference products, Atlas A2 training products/Atlas A2 inference products, and Atlas A3 training products/Atlas A3 inference products, chip scenarios cannot be distinguished. The default value is `-1`, indicating that there is no die ID in the current chip scenario.|
+| dieId |INTEGER|dieId used to distinguish chip scenarios, supported only by 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
 
-## ACC\_PMU
+## `ACC_PMU`
 
-Stores the ACC\_PMU data.
+Stores the `ACC_PMU` data.
 
 This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 
@@ -532,7 +519,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |timestampNs|NUMERIC|Local time (ns)|
 |deviceId|INTEGER|Device ID.|
 
-## SOC\_BANDWIDTH\_LEVEL
+## `SOC_BANDWIDTH_LEVEL`
 
 Stores SoC bandwidth level information.
 
@@ -543,7 +530,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |Field|Type|Description|
 |--|--|--|
 |l2BufferBwLevel|INTEGER|L2 buffer bandwidth level|
-|mataBwLevel|INTEGER|Mata bandwidth level| <!-- codespell:ignore -->
+|metaBwLevel|INTEGER|Meta bandwidth level|
 |timestampNs|NUMERIC|Local time (ns)|
 |deviceId|INTEGER|Device ID.|
 
@@ -624,7 +611,8 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |throughput|NUMERIC|L3 cache throughput (bytes/s).|
 |mode|INTEGER|Mode, which is used to distinguish reads and writes. The value maps to `STRING_IDS(mode)`.|
 
-## TASK\_PMU\_INFO
+<!-- npu="910b,310b" id1 -->
+## `TASK_PMU_INFO`
 
 Stores the PMU data of compute operators.
 
@@ -634,17 +622,26 @@ Control options:
 - `aic_metrics` of Ascend PyTorch Profiler
 - `aic_metrics` of MindSpore Profiler
 
-Only Atlas 200I/500 A2 inference products, Atlas A2 training products, and Atlas A2 inference products support the collection of such data.
+Supported products:
+
+<!-- npu="310b" id2 -->
+- Atlas 200I/500 A2 inference products
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products
+<!-- end id3 -->
 
 **Table 1** Format
 
 |Field|Type|Description|
 |--|--|--|
+|timestampNs|INTEGER|Local time, unit: ns|
 |globalTaskId|INTEGER|Global operator task ID, which is used to associate with the `TASK` table|
 |name|INTEGER|PMU metric name, which maps to `STRING_IDS(name)`|
 |value|NUMERIC|Value of the corresponding metric|
+<!-- end id1 -->
 
-## SAMPLE\_PMU\_TIMELINE
+## `SAMPLE_PMU_TIMELINE`
 
 Stores sample-based PMU data, which is used to display timeline data.
 
@@ -666,7 +663,7 @@ Control options:
 |coreId|INTEGER|Core ID|
 |coreType|INTEGER|Core type (AIC or AIV), which maps to `STRING_IDS(coreType)`|
 
-## SAMPLE\_PMU\_SUMMARY
+## `SAMPLE_PMU_SUMMARY`
 
 Stores sample-based PMU data, which is used to display summary data.
 
@@ -686,7 +683,7 @@ Control options:
 |coreId|INTEGER|Core ID|
 |coreType|INTEGER|Core type (AIC or AIV), which maps to `STRING_IDS(coreType)`|
 
-## NPU\_MEM
+## `NPU_MEM`
 
 Stores NPU memory usage data.
 
@@ -702,7 +699,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |timestampNs|INTEGER|Local time (ns)|
 |deviceId|INTEGER|Device ID.|
 
-## NPU\_MODULE\_MEM
+## `NPU_MODULE_MEM`
 
 Stores memory usage of the NPU component.
 
@@ -717,7 +714,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |totalReserved|NUMERIC|Memory usage (bytes)|
 |deviceId|INTEGER|Device ID.|
 
-## NPU\_OP\_MEM
+## `NPU_OP_MEM`
 
 Stores memory usage of CANN operators (supported only by GE operators)
 
@@ -902,7 +899,7 @@ Control options:
 |txNonpostLatencyAvg|NUMERIC|Average transmission latency in PCIe Non-Post mode at the TX side (ns)|
 |rxPostMin|NUMERIC|Minimum bandwidth for receiving PCIe posted data at the RX side (bytes/s)|
 |rxPostMax|NUMERIC|Maximum bandwidth for receiving PCIe posted data at the RX side (bytes/s)|
-|rxPostAvg|NUMERIC|Average bandwidth for receiving PCIe posted data at the RX side (bytes/s)|
+|rxPostAvg|NUMERIC|Average receive-side PCIe Post data transmission bandwidth, in Byte/s|
 |rxNonpostMin|NUMERIC|Minimum bandwidth for receiving PCIe non-posted data at the RX side (bytes/s)|
 |rxNonpostMax|NUMERIC|Maximum bandwidth for receiving PCIe non-posted data at the RX side (bytes/s)|
 |rxNonpostAvg|NUMERIC|Average bandwidth for receiving PCIe non-posted data at the RX side (bytes/s)|
@@ -910,7 +907,7 @@ Control options:
 |rxCplMax|NUMERIC|Maximum throughput of completion packets received at the RX side for write requests (bytes/s)|
 |rxCplAvg|NUMERIC|Average throughput of completion packets received at the RX side for write requests (bytes/s)|
 
-## META\_DATA
+## `META_DATA`
 
 Stores basic data. Currently, only version information is stored.
 
@@ -932,7 +929,7 @@ There is no enable or disable option for this table. It is generated automatical
 |SCHEMA_VERSION_MINOR|Minor version number, such as `0`. When the column or type is changed, compatibility issues occur.|
 |SCHEMA_VERSION_MICRO|Micro version number, such as `2`. The version number changes when the table is updated. There is no compatibility issue.|
 
-## MSTX\_EVENTS
+## `MSTX_EVENTS`
 
 Stores host-side data collected by mstx APIs. Device-side data is aggregated in the `TASK` table.
 
@@ -953,7 +950,7 @@ The `--msproftx` option controls the table output, while the mstx APIs control t
 | domainId     |INTEGER|Domain ID for host-side TX instrumentation data.|
 | connectionId |INTEGER|Connection ID for host-side TX instrumentation data. The value maps to `TASK(connectionId)`.|
 
-## COMMUNICATION\_SCHEDULE\_TASK\_INFO
+## `COMMUNICATION_SCHEDULE_TASK_INFO`
 
 Stores communication scheduling information. Currently, only the description of AICPU communication operators is supported.
 
@@ -968,7 +965,7 @@ There is no enable or disable option for this table. It is generated automatical
 |taskType|INTEGER|Type of the accelerator that executes the operator on the host. The value maps to `STRING_IDS(taskType)`.|
 |opType|INTEGER|Operator type, which maps to `STRING_IDS(opType)`.|
 
-## MEMCPY\_INFO
+## `MEMCPY_INFO`
 
 Stores information about the copied data size and copy direction of memcpy operators.
 
@@ -982,7 +979,7 @@ This table is controlled by `--runtime-api`.
 |size|NUMERIC|Copied data size|
 |memcpyOperation|NUMERIC|Copy type, which maps to `STRING_IDS(memcpyOperation)`|
 
-## CPU\_USAGE
+## `CPU_USAGE`
 
 Stores information about host-side CPU utilization.
 
@@ -996,7 +993,21 @@ This table is controlled by `--host-sys=cpu`.
 |cpuId|NUMERIC|CPU ID|
 |usage|NUMERIC|CPU utilization (%)|
 
-## HOST\_MEM\_USAGE
+## `CPU_FREQ`
+
+Host-side CPU frequency.
+
+Controlled by the `--host-sys=cpu` switch.
+
+**Table 1** Format
+
+| Field | Type | Description |
+| ----------- | ------- | ------------------------ |
+| timestampNs | NUMERIC | Local time at sampling, unit: ns |
+| cpuId | NUMERIC | CPU ID |
+| freq | NUMERIC | Frequency, unit: MHz |
+
+## `HOST_MEM_USAGE`
 
 Stores information about host-side memory usage.
 
@@ -1009,7 +1020,7 @@ This table is controlled by `--host-sys=mem`.
 |timestampNs|NUMERIC|Local sampling time (ns)|
 |usage|NUMERIC|Usage (%)|
 
-## HOST\_DISK\_USAGE
+## `HOST_DISK_USAGE`
 
 Stores information about host-side drive I/O usage.
 
@@ -1024,7 +1035,7 @@ This table is controlled by `--host-sys=disk`.
 |writeRate|NUMERIC|Drive write rate (bytes/s)|
 |usage|NUMERIC|Usage (%)|
 
-## HOST\_NETWORK\_USAGE
+## `HOST_NETWORK_USAGE`
 
 Stores information about host-side system-level network I/O usage.
 
@@ -1038,7 +1049,7 @@ This table is controlled by `--host-sys=network`.
 |usage|NUMERIC|Usage (%)|
 |speed|NUMERIC|Network usage rate (bytes/s)|
 
-## OSRT\_API
+## `OSRT_API`
 
 Stores host-side `syscall` and `pthreadcall` data.
 
@@ -1053,7 +1064,7 @@ This table is controlled by `--host-sys=osrt`.
 |startNs|INTEGER|Start time of the API call (ns).|
 |endNs|INTEGER|End time of the API call (ns).|
 
-## OVERLAP\_ANALYSIS
+## `OVERLAP_ANALYSIS`
 
 Stores data on the overlap between collective communication operators and compute and communication pipelines. This data is collected and parsed only when compute operators or inter-rank communication are involved.
 
@@ -1069,7 +1080,7 @@ There is no enable or disable option for this table. It is generated automatical
 |endNs|NUMERIC|Event end time (ns).|
 |type|INTEGER|Event type, which maps to `ENUM_OVERLAP_ANALYSIS_TYPE(type)`.|
 
-## NETDEV\_STATS
+## `NETDEV_STATS`
 
 Stores hardware-sampled bandwidth metrics to identify communication issues. Specifically, these metrics serve as overview items for preliminary troubleshooting. For example, if the communication duration is abnormal, prioritize checking for network congestion.
 
@@ -1105,7 +1116,7 @@ Control options:
 |nicRxByte|INTEGER|Number of bytes received by the NIC|
 |nicRxBandwidth|NUMERIC|RX bandwidth of the NIC (bytes/s)|
 
-## RANK\_DEVICE\_MAP
+## `RANK_DEVICE_MAP`
 
 Stores the mapping between `rankId` and `deviceId`.
 

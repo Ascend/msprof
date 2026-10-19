@@ -152,10 +152,12 @@ N/A
 
 ### 2.3.1 Hardware Restrictions
 
-| Product Type| Supported or Not|
-|---|---|
-| Atlas A3 training products/inference products| Supported|
-| Atlas A2 training products/inference products| Supported|
+<!-- npu="A3" id2 -->
+- Atlas A3 products: Supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+<!-- end id3 -->
 
 ### 2.3.2 Technical Restrictions
 

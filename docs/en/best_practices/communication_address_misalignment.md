@@ -1,10 +1,10 @@
-# Performance Degradation Caused by Misaligned Communication Addresses
+# Performance Degradation Caused by Communication Address Misalignment
 
-## Background
+## 1. Background
 
-In a foundation-model training scenario, distributed training is performed on 8 Ascend 910B NPUs, with approximately 70B model parameters. During training, the execution time of a single step is much longer than expected. A communication bottleneck is suspected, and profiling is required to identify the root cause.
+In a foundation-model training scenario, distributed training is performed on 8 Atlas A2 products, with approximately 70B model parameters. During training, the execution time of a single step is found to far exceed expectations, and a communication bottleneck is suspected. The specific cause needs to be located using profiling tools.
 
-## Symptoms
+## 2. Symptoms
 
 The issue can be reproduced consistently. During 8-rank training, communication accounts for more than 40% of the execution time of a single step, and the execution time of the `AllReduce` operator fluctuates significantly. In some steps, communication takes 2 to 3 times as long as in others. Single-rank inference performs normally, ruling out a computation bottleneck.
 
@@ -13,9 +13,9 @@ The issue can be reproduced consistently. During 8-rank training, communication 
 
 > Compute time remains stable at approximately 320 ms, while communication time fluctuates significantly between 195 ms and 410 ms, indicating an anomaly in the communication path.
 
-## Troubleshooting Process
+## 3. Troubleshooting Process
 
-### 1 Collecting Profile Data to Confirm the Communication Bottleneck
+### 3.1 Collecting Performance Data to Confirm the Communication Bottleneck
 
 Use `torch_npu.profiler` to collect profile data for a complete training step and confirm the proportion of communication time and the specific operators involved.
 
@@ -42,19 +42,19 @@ with torch_npu.profiler.profile(
 
 The timeline shows two distinctly different execution patterns for the `AllReduce` operator:
 
-- **Pattern A (normal)**: `AllReduce` takes approximately 200 ms, with collective communication initiated directly inside HCCL.
-- **Pattern B (abnormal)**: `AllReduce` takes approximately 400 ms, with an additional `memcpy` operation inside HCCL.
+- Pattern A (normal): AllReduce takes approximately 200 ms, with collective communication initiated directly inside HCCL.
+- Pattern B (abnormal): AllReduce takes approximately 400 ms, with an additional memcpy operation inside HCCL.
 
 <div align="center"><img src="../figures/profiler_case_align_timeline.png" /></div>
 <div align="center"><b>Figure 2: Timeline comparison of the two AllReduce patterns</b></div>
 
 > Pattern B contains an additional `memcpy` operation compared with Pattern A, adding approximately 200 ms. The address or size of the input tensor may not meet HCCL alignment requirements, causing the library to perform an alignment copy first.
 
-### 2 Confirming Address Misalignment
+### 3.2 Confirming Address Misalignment
 
-The additional `memcpy` observed in the Step 1 timeline is itself a typical indication of address misalignment. The HCCL communication library requires input data to be aligned to 128 bytes. When the data is not aligned, HCCL automatically performs an alignment copy internally. In the timeline, this operation appears as an additional `memcpy` within the `AllReduce` operator. In normal steps, the memory allocation happens to be aligned, so the `AllReduce` operator contains only collective communication and no `memcpy`.
+The additional memcpy observed in the timeline in [Collecting Performance Data to Confirm the Communication Bottleneck](#31-collecting-performance-data-to-confirm-the-communication-bottleneck) is itself a typical indication of address misalignment. The HCCL communication library requires input data to be aligned to 128 bytes. When the data is not aligned, the library automatically performs an alignment copy internally, which appears in the timeline as an additional memcpy within the AllReduce operator. In a normal step, because memory allocation happens to be aligned, the AllReduce operator contains only collective communication and no memcpy.
 
-### 3 Tracing the Source of the Misaligned Tensor
+### 3.3 Tracing the Source of the Misaligned Tensor
 
 After confirming the address misalignment, trace the upstream operator that produces the misaligned tensor. `with_stack=True` was enabled in the collection configuration in Step 1, so each operator event in the timeline contains a call stack. In `chrome://tracing`, click the `AllReduce` operator in Pattern B to view its complete call chain:
 
@@ -72,34 +72,34 @@ The call stack shows that the input tensor for this `AllReduce` is allocated by 
 
 > Because whether the memory address returned by `torch.empty()` is aligned to 128 bytes depends on the current state of the memory allocator, the issue manifests as non-deterministic behavior: each allocation may produce a different result, and the `AllReduce` execution time fluctuates accordingly.
 
-## Root Cause
+## 4. Root Cause
 
 When the custom operator uses `torch.empty()` to allocate output tensors without specifying `memory_format`, some starting addresses fail to meet the 128-byte HCCL alignment requirement. Consequently, HCCL automatically performs an alignment copy internally, adding approximately 200 ms of overhead.
 
 This is a framework adaptation issue. The user did not consider the alignment constraint imposed by the HCCL communication library on input data.
 
-## Conclusion
+## 5. Conclusion
 
 1. The HCCL communication library requires input tensor addresses to be aligned to 128 bytes. When this requirement is not met, HCCL automatically performs an alignment copy internally, adding approximately 200 ms of overhead.
 2. An additional `memcpy` operation within an `AllReduce` operator in the profiling timeline is a typical indication of misaligned communication addresses and can serve as a troubleshooting signal.
 3. Alignment issues manifest as non-deterministic behavior: the same operator may behave differently depending on the state of the memory allocator, unlike a stable performance bottleneck.
 4. **Resolution**: Ensure that the tensor passed to the communication operation satisfies the required address alignment, either by using an alignment-guaranteed allocation method or by explicitly handling alignment before communication.
 
-```python
-# Ensure alignment before communication
-if tensor.data_ptr() % 128 != 0:
-    tensor = tensor.contiguous()
-```
+   ```python
+   # Force alignment before communication.
+   if tensor.data_ptr() % 128 != 0:
+       tensor = tensor.contiguous()
+   ```
 
-## Methodology Summary
+## 6. Methodology Summary
 
 1. When communication accounts for a high proportion of execution time, first use profiling to determine whether the issue is bandwidth-related or caused by additional overhead inside an operator.
 2. If the `AllReduce` execution time fluctuates significantly and an additional `memcpy` operation is present in the timeline, prioritize checking whether the tensor address is aligned.
 3. Trace upward through the call stack to the upstream operator that produces the tensor and check how its memory is allocated.
-4. Alignment issues typically manifest as non-deterministic behavior: the same code may behave differently depending on the state of the memory allocator.
+4. Alignment issues typically manifest as "randomness" (the same code behaves inconsistently depending on the state of the memory allocator).
 
-## Suggestions for Tool Improvements
+## 7. Suggestions for Tool Improvement
 
-- In the profiling timeline, directly indicate the tensor address alignment status on communication operators such as `AllReduce` to make such issues easier to identify.
+- In the profiling timeline, directly indicate the tensor address alignment status on communication operators such as AllReduce to make such issues easier to identify.
 - Add automated diagnostic capabilities for HCCL communication alignment checks and flag misaligned communication operators in the collected data.
-- Add explicit markers for `memcpy` operations identified within `AllReduce` operators to distinguish them from ordinary memory copy operations.
+- Add explicit markers for memcpy operations identified within AllReduce operators to distinguish them from ordinary memory copy operations.

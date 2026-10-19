@@ -4,18 +4,28 @@
 
 **Supported Products<a name="en-us_topic_0000001276273570_section1281125681015"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001276273570_section4362143220451"></a>**
 
-After collecting the profile data, use `get_msprof_info.py` to obtain device information from the `device_{id}` or `host` directory within the `PROF_XXX` directory. The following table describes the function and installation directory of `get_msprof_info.py`.
+After profile data collection, use `get_msprof_info.py` to obtain device information from files in the `PROF_XXX` or host directory. The `device_{id}` functions and installation paths are as follows:
 
 **Table 1** Script description
 
@@ -73,7 +83,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 |Result Size|Result data size (MB)|
 |device_info|Device information|
 |AI Core Number|Number of AI Cores|
-|AI CPU Number|Number of AICPUs|
+|AICPU Number|Number of AICPUs|
 |Control CPU Number|Number of Control CPUs|
 |Control CPU Type|Control CPU type|
 |Device Id|Device ID|
@@ -115,18 +125,28 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 
 **Supported Products<a name="en-us_topic_0000001265229666_section1281125681015"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001265229666_section1598625522114"></a>**
 
-For a parsed timeline data file in JSON format, the system identifies the duration for opening it on the Google Chrome browser (`chrome://tracing`) and slices it into a proper number of slice files, so that you can quickly open it. The slicing operation is triggered during profile data export.
+Performance data file sharding means that, for a parsed timeline data file (.json), the system identifies how long the .json file takes to open in the Chrome browser ("`chrome://tracing`") and appropriately splits the .json file into a suitable number of shards to facilitate quick opening by users. The sharding operation is started when performance data export is performed.
 
 **File Format<a name="en-us_topic_0000001265229666_section18515142717224"></a>**
 
@@ -173,7 +193,9 @@ To export profile data using `msprof.py`, perform the following steps:
 
 >[!NOTE]
 >
->- Direct parsing, querying, and exporting are not supported on the device for the Atlas 200I/500 A2 inference products in the Ascend RC scenario. The generated `PROF_XXX` directory must be copied to an environment with the Toolkit package installed.
+<!-- npu="310b" id7 -->
+>- In the Ascend RC scenario of the Atlas 200I/500 A2 inference products, direct parsing, querying, and exporting on the device are not supported. The collected `PROF_XXX` directory must be copied to an environment where the Toolkit package is installed for the operations.
+<!-- end id7 -->
 >
 >- `msprof.py` must be executed by the user created during installation.
 
@@ -181,14 +203,24 @@ To export profile data using `msprof.py`, perform the following steps:
 
 **Supported Products<a name="en-us_topic_0000001265229758_section17436144114294"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: Supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: Supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: Supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001265229758_section14143165719292"></a>**
 
@@ -201,7 +233,7 @@ None
 **Syntax<a name="en-us_topic_0000001265229758_section2822141353814"></a>**
 
 ```bash
-python3 msprof.py import -dir <dir>
+python3 msprof.py import -dir <dir> [--cluster]
 ```
 
 **Parameters and Command-line Options<a name="en-us_topic_0000001265229758_section144107596381"></a>**
@@ -211,7 +243,7 @@ python3 msprof.py import -dir <dir>
 |Parameter/Option|**Mandatory (Yes/No)**|Description|
 |--|--|--|
 |import|Yes|Parses profile data in `import` mode. When the profile data is parsed using the import method, a new .db file will be regenerated even if one already exists in the raw profile data directory.|
-|--cluster|Yes (for cluster scenarios)|Parses and aggregates profile data in cluster scenarios. This option is supported only when the `import` parameter is specified.<br>The `-dir` option specifies the parent directory of `PROF_XXX`. The parsing result is stored in the `sqlite` directory generated under `PROF_XXX`.|
+|--cluster|Required in cluster scenarios|Parses and aggregates performance data in cluster scenarios. Supported only when the import parameter is configured.<br>The **-dir** parameter must be specified as the PROF_XXX parent directory. After specification, the parsing result generates a sqlite directory at the same level as the PROF_XXX directory.|
 |-dir or --collection-dir|Yes|Specifies the directory of the collected profile data. It must be `PROF_XXX` or its parent directory, such as `/home/profiler_data/PROF_XXX`.|
 |-h or --help|No|Displays the help information. This option is used only to obtain usage instructions.|
 
@@ -238,14 +270,24 @@ To export final timeline data or .db files, proceed to [Exporting Profile Data](
 
 **Supported Products<a name="en-us_topic_0000001312709849_section17436144114294"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: Supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: Supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: Supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: Supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: Supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001312709849_section2149245124116"></a>**
 
@@ -310,14 +352,24 @@ After the command for querying profile data is executed, the results will be pri
 
 **Supported Products<a name="en-us_topic_0000001265069834_section17436144114294"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference product: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001265069834_section4946111125919"></a>**
 
@@ -355,8 +407,8 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
 |--|--|--|
 |-dir or --collection-dir|Yes|Specifies the directory of the collected profile data. It must be `PROF_XXX` or its parent directory, such as `/home/HwHiAiUser/profiler_data/PROF_XXX`.|
 |-reports|No|Specifies a custom `reports_sample_config.json` configuration file to export the corresponding profile data based on the scope specified in the file. The parameter implementation is the same as that of `msprof --reports`. For details, see [Example (`--reports` Option)](msprof_parsing_instruct.md#en-us_topic_0000001265229686_section1128153151819).|
-|--model-id|No|Specifies the model ID. The value must be a positive integer. This option must be specified in combination with `--iteration-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the step mode. That is, the value of `--iteration-id` specifies parsing by step. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. (The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.)|
-|--iteration-id|No|Specifies the iteration ID. The value must be a positive integer. This option must be specified in combination with `--model-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products, as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the iteration ID for step-based statistics collection. The iteration ID is incremented by 1 each time a step is executed. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. (The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.)|
+|--model-id|Optional|Model ID. It must be configured as a positive integer. It must be configured together with `--iteration-id` to export the performance data of the specified computation iteration under this Model. When neither `--model-id` nor `--iteration-id` is configured, all performance data is exported by default.<br/>&#8226; For Atlas A2 products and Atlas A3 products, `--model-id 4294967295` is supported, which is the Step mode, that is, the value configured for `--iteration-id` is parsed at the Step granularity. Only performance data of the MindSpore framework (version 2.3 or later) is supported for parsing.<br/>&#8226; When `--model-id` is configured with other values, it specifies the iteration ID counted at the Graph granularity (each time a Graph is executed, the Iteration ID increases by 1; when a script is compiled into multiple Graphs, this ID is inconsistent with the Step ID at the script level).|
+|--iteration-id|Optional|Iteration ID. It must be configured as a positive integer. It must be configured together with `--model-id` to export the performance data of the specified computation iteration under this Model. When neither `--model-id` nor `--iteration-id` is configured, all performance data is exported by default.<br>&#8226; For Atlas A2 products and Atlas A3 products, `--model-id 4294967295` is supported, indicating the iteration ID counted at the Step granularity (each time a Step is completed, the Iteration ID increases by 1). Only performance data of the MindSpore framework (version 2.3 or later) is supported for parsing.<br/>&#8226; When `--model-id` is configured with other values, it specifies the iteration ID counted at the Graph granularity (each time a Graph is executed, the Iteration ID increases by 1; when a script is compiled into multiple Graphs, this ID is inconsistent with the Step ID at the script level).|
 |--iteration-count|No|Specifies the number of consecutive iterations for which data will be exported. The value ranges from 1 to 5. The value of `--iteration-id` is used as the starting step. For example, if `--iteration-count` is `3` and `--iteration-id` is `1`, data for steps 1, 2, and 3 will be exported.|
 |--format|No|Specifies the format of the exported summary data file. The value can be `csv` (default) or `json`. This option is supported only when the `summary` parameter is configured.<br>This document uses CSV files as examples for all summary file descriptions.|
 |--clear|No|Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. When this option is specified, the data clearance mode is enabled. This option is not specified by default.|
@@ -396,7 +448,7 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
 
 **Output Description<a name="en-us_topic_0000001265069834_section54271276213"></a>**
 
-After the preceding command is executed, the `mindstudio_profiler_output` directory and `msprof_*.db` file are generated in the `PROF_XXX` directory under the `--collection-dir` directory.
+After the preceding command is executed, the `mindstudio_profiler_output` directory and `msprof_*.db` file are generated in the `PROF_XXX` directory in the `--collection-dir` directory.
 
 The following examples show the directory structure of the generated profile data:
 
@@ -453,29 +505,39 @@ The following examples show the directory structure of the generated profile dat
 >- In multi-device scenarios, if a single collection process is started, only one `PROF_XXX` directory is generated. If multiple processes are started, multiple `PROF_XXX` directories are generated. The device directories are created within these `PROF_XXX` directories. The specific number of device directories per `PROF_XXX` depends on the actual user operations and does not affect profile data analysis.
 >- For details about profile data, see [Profile Data File References](profile_data_file_references.md).
 >- The files in the `mindstudio_profiler_output` directory are generated based on the actual profile data. If specific data files are not collected, the corresponding timeline and summary data will not be exported.
->- You can run the `export` command to directly export summary reports from the profile data parsing result. Even if the profile data has not been parsed, running the `export` command separately will parse the data and export the result files.
+>- The export command can directly export data files from the parsed performance data. When the performance data has not been parsed, executing the export command alone can also parse the performance data and export the data files.
 >- If the msProf collection process is forcibly interrupted, the tool saves the raw profile data already collected, which can still be parsed and exported using the `export` command.
 
 ## Performance Tuning Suggestions
 
 > [!NOTE]
 >
-> This function provides tuning suggestions after msProf parses the profile data and is no longer being updated. For more advanced profile data analysis and tuning suggestions, see [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/en/quick_start/msprof-analyze_quick_start.md).
+> This function outputs tuning suggestions after parsing with the `msprof` tool and is no longer evolving. For more functions that analyze performance data and output tuning suggestions, see [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/en/quick_start/msprof-analyze_quick_start.md).
 
 **Supported Products<a name="en-us_topic_0000002441319698_section5889102116569"></a>**
 
-> [!NOTE]
+>[!NOTE]
 >
-> For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> For the specific models of Ascend products, see [Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: supported
+<!-- end id6 -->
 
 In cluster or multi-rank communication scenarios, performance tuning suggestions will be output to the screen after the profile data export command is executed. The details are as follows:
 
@@ -507,11 +569,11 @@ In cluster or multi-rank communication scenarios, performance tuning suggestions
     - Some slow links cause increased communication time between a few ranks. Other ranks must wait for the communication to complete, thereby dragging down the performance of the entire cluster.
     - Abnormalities in bandwidth or communication operators prevent network-wide links from reaching normal bandwidth rates. This increases the communication time for all ranks, and in this case, no typical slow ranks or slow links exist.
 
-    Analysis of HCCS, PCIe, and RDMA is performed using the communication matrix. Bottleneck analysis and tuning suggestions are provided based on the average status of each link type. For scenarios involving slow links, full details of the slow links and corresponding tuning suggestions are provided.
+    Analyze HCCS, PCIe, and RDMA through the communication matrix. For the average condition of each link type, provide bottleneck analysis and tuning suggestions. For slow links, provide all information about the slow links and tuning suggestions.
 
     The analysis suggestions are as follows:
 
-    1. Time consumption ratios of the three link types.
+    1. Execution time ratios of the three link types.
     2. Specific status of each link type:
         1. Average link information: Includes total transmission duration, average bandwidth, and average large packet transmission rate. Tuning suggestions are provided based on this information.
         2. Slowest link information: If the link bandwidth is less than 20% of the average bandwidth, the tool outputs information regarding the slowest link, including transmission duration, transmission size, transmission bandwidth, bandwidth usage, and large packet ratio. Tuning suggestions are provided based on this information.

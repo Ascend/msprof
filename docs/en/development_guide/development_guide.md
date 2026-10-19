@@ -1,10 +1,10 @@
-# Developer Guide
+# msProf Developer Guide
 
-This document is intended for MindStudio Profiler developers and maintenance personnel. It describes the source code directory structure, build methods, data collection and parsing workflows, verification methods for feature changes, and requirements for synchronized documentation updates. This guide is based on the current MindStudio Profiler (msProf) repository and existing documentation. It applies to scenarios such as adding command-line parameters, extending parsing capabilities, adding deliverables, or maintaining runfile installation methods.
+This document is intended for msProf developers and maintenance personnel. It describes the source code directory structure, build methods, data collection and parsing workflows, verification methods after functional changes, and requirements for synchronized documentation updates. This document is written primarily based on the current msProf repository and existing documentation, and applies to scenarios such as adding new command parameters, extending parsing capabilities, adding deliverables, or maintaining the runfile installation method.
 
 ## 1. msProf Development Overview
 
-msProf provides capabilities for collecting, parsing, and exporting AI task execution profile data and Ascend AI processor system data. Development work is generally categorized into the following areas.
+msProf provides capabilities for collecting, parsing, and exporting AI task execution profile data and Ascend AI processor system data. Development work is generally categorized into the following areas:
 
 | Development Object | Typical Content |
 | --- | --- |
@@ -43,37 +43,62 @@ Before starting development, identify the specific layer that your changes will 
 
 ## 3. Development Environment Settings
 
-### 3.1 Foundational Software
+### 3.1 Method 1: One-Click devcontainer Development Environment (Recommended)
 
-| Software | Version Requirement | Purpose |
-| --- | --- | --- |
-| Git | No specific requirement | Code pulling and committing |
-| Python | 3.7.5 or later | Parsing script execution |
-| SQLite3 | Building dependency | Parsing-related capabilities |
-| Bash | Recommended for Linux environments | Build and script execution |
+msProf has a built-in [devcontainer](https://containers.dev/) development environment configuration. After opening the repository in VS Code, developers can enter a standardized container with one click, without manually installing any dependencies. The container automatically completes the following preparations:
 
-### 3.2 Prerequisites
+- Python 3 environment and compilation toolchain (GCC 11.2.0, CMake 3.14+)
+- System dependency installation (python3-devel, pip including `pytest/coverage`)
+- Pre-download of third-party dependencies (googletest, mockcpp, boost, protobuf, json, rapidjson, securec)
+- Automatic enabling of pre-commit (including gitleaks secret scanning)
+- clangd C++ language service ready
+- Git identity synchronization
 
-1. A compatible version of the CANN environment has been installed.
-2. The `cann` installation directory is available.
-3. The SQLite3 dependencies required for building from source have been installed.
+**Prerequisites:**
 
-Example:
+| Environment | Requirement |
+|------|------|
+| PC | VS Code, with the Dev Containers extension and Remote-SSH extension installed |
+| Linux server | Docker service running |
 
-```bash
-sudo apt update
-sudo apt install sqlite3 libsqlite3-dev
-```
+**Usage steps:**
 
-or:
+1. Clone the `msprof` repository to the Linux server.
+2. Connect VS Code to the server through Remote-SSH and open the repository directory.
+3. VS Code automatically detects the .devcontainer configuration. Click **"Reopen in Container"** in the lower-left corner.
+4. After the container starts, `post-create.sh` is automatically executed to complete initialization (about 1 to 2 minutes).
+5. Press Ctrl+Shift+P → Tasks: Run Task to select a build task.
 
-```bash
-sudo yum install sqlite sqlite-devel
-```
+**Built-in VS Code tasks:**
+
+| Task | Shortcut | Description |
+|------|--------|------|
+| `Build: Release Mode` | `Ctrl+Shift+B` | One-click Release build (equivalent to `bash build/build.sh`) |
+| `Build: Debug Mode` | — | Debug compilation (with debug symbols) |
+| `Test: Run Unit Tests` | — | Runs C++ and Python unit tests |
+| `Clean: All Workspace` | — | Cleans all build artifacts (build/CMakeFiles, prefix/, output/, test/build_llt/, etc.) |
+
+**Intelligent code navigation:**
+
+- C++: After building, clangd enables cross-file navigation (`F12`), reference lookup (Shift+`F12`), and code completion.
+- Python: Pylance provides semantic navigation and type inference
+
+**Graphical debugging:**
+
+- Open a Python source file and press `F5` to select Python: Debug Active File to start debugpy debugging
+- Breakpoints, variable inspection, call stacks, and other features all work normally
+
+### 3.2 Method 2: Manual Environment Configuration
+
+If devcontainer cannot be used, complete the compilation and test environment setup by following the section in *[msProf Installation Guide — Source Installation](../install_guide/msprof_install_guide.md#231-environment-setup)*.
+
+> **Note:** The method for building the environment image and the matching software versions are maintained by the MindStudio unified image production guide and are not redefined in this repository.
 
 ## 4. Obtaining Code and Building
 
 ### 4.1 Obtaining Code
+
+In the compilation container above, run the following command to obtain the code:
 
 ```bash
 git clone https://gitcode.com/Ascend/msprof.git
@@ -88,13 +113,13 @@ bash scripts/download_thirdparty.sh
 
 ### 4.3 Building the Runfile
 
-`build/build.sh` allows you to specify the capability to be included in the runfile by using `--mode`.
+The compilation command of the msProf tool runfile can be configured with the following parameters.
 
-| Mode | Description |
-| --- | --- |
-| `all` | Builds a full-featured runfile with collection and parsing capabilities. |
-| `collector` | Builds a runfile with only collection capabilities. |
-| `analysis` | Builds a runfile with only parsing capabilities. |
+| Parameter | Optional/Required | Description |
+| --- | --- | --- |
+| `--build_type` | Optional | Type of the runfile to compile. Valid values:<br>&#8226; `Release`: Compiles a software package for production environment deployment.<br>&#8226; `Debug`: Compiles a software package for development and debugging (only the Debug software package of the **parse** part is supported).<br>The default value is `Release`. |
+| `--mode` | Optional | Method for compiling the runfile. Valid values:<br>&#8226; `all`: Compiles a software package that includes the msProf collection and parsing functions.<br>&#8226; `collector`: Compiles a software package that includes only the msProf collection function.<br>&#8226; `analysis`: Compiles a software package that includes only the msProf parsing function.<br>The default value is `analysis`. |
+| `--version` | Optional | Configures the version number of the runfile, which is user-defined.<br>The default value is `none`. |
 
 Example:
 
@@ -142,8 +167,8 @@ The following table describes the common documents to be updated.
 | --- | --- |
 | `msprof --export` parameters | `en/user_guide/msprof_parsing_instruct.md` |
 | `msprof.py import/query/export` parameters | `en/user_guide/extended_functions.md` |
-| Installation, uninstallation, and verification parameters | `en/install_guide/msprof_install_guide.md` |
-| Quick Start paths or basic examples | `en/quick_start/msprof_quick_start.md` |
+| Installation, uninstallation, and verification parameters | `en/getting_started/msprof_install_guide.md` |
+| Quick Start paths or basic examples | `en/getting_started/quick_start.md` |
 
 ### 5.2 Adding Parsing Capabilities
 
@@ -236,12 +261,12 @@ Focus on the following items:
 
 ## 7. Requirements for Documentation Updates
 
-Development changes to msProf directly impact user documentation. Updating code without corresponding documentation updates is strictly prohibited. Use the following table to identify documents that require updates.
+Development changes to msProf usually directly affect the documentation. It is forbidden to modify only the code without updating the documentation. It is recommended to check the following table synchronously:
 
 | Change Content | Document to Update |
 | --- | --- |
-| Installation methods, dependencies, or packaging parameters | `en/install_guide/msprof_install_guide.md` |
-| Basic usage workflows or examples | `en/quick_start/msprof_quick_start.md` |
+| Installation methods, dependencies, or packaging parameters | `en/getting_started/msprof_install_guide.md` |
+| Basic usage workflows or examples | `en/getting_started/quick_start.md` |
 | Parsing workflows or command-line parameters | `en/user_guide/msprof_parsing_instruct.md` |
 | Script capabilities or advanced usage | `en/user_guide/extended_functions.md` |
 | Exported files, fields, or layers | `en/user_guide/profile_data_file_references.md` |

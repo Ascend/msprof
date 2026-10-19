@@ -1,8 +1,8 @@
-# FAQ
+# FAQs
 
 ## 1. Troubleshooting
 
-- **Q: Why is nothing displayed when I drag the `PROF` directory into MindStudio Insight?**
+- **Q: Why is nothing displayed when I drag the PROF directory into MindStudio Insight?**
 - A: Check whether the `mindstudio_profiler_output` directory exists in the PROF directory. If the directory does not exist, run `msprof --export=on --output={PROF path}` to parse the data.
 
 - **Q: Where are the PLOG logs stored? How can I configure them?**
@@ -30,13 +30,13 @@
 - **Q: Why is no data collected in the current path after I configure msProf for dynamic data collection?**
 - A: Check the `prof_dir` path first. If it is a relative path, it is relative to the path of the script, not the path of `profiler_config.json`.
 
-- **Q: What should I do if `Not enough space left in /root` is displayed when I run `mindstudio-profiler_26.1.0_aarch64.run --install`?**
-- A: During the extraction phase, the installation package uses `/root` as the temporary directory by default. If there is insufficient space in `/root`, the installation fails. This does not indicate that the `.run` package itself is corrupted.
+- **Q: What should I do if `Not enough space left in /root` is displayed when I run `mindstudio-profiler_26.0.0_aarch64.run` `--install`?**
+- A: During the extraction phase, the installation package uses `/root` as the temporary directory by default. If there is insufficient space in `/root`, the installation fails. This does not indicate that the runfile itself is corrupted.
   - Clean up unnecessary files under `/root` to ensure sufficient free space, and then run the installation again.
   - If you cannot free up space under `/root`, set `TMPDIR` to switch the temporary extraction directory to another location with more available space. For example:
 
   ```bash
   mkdir -p /path/to/tmpdir
   export TMPDIR=/path/to/tmpdir
-  ./mindstudio-profiler_26.1.0_aarch64.run --install
+  ./mindstudio-profiler_26.0.0_aarch64.run --install
   ```

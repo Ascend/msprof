@@ -10,11 +10,11 @@ To address this issue, the GIL Tracer tool is developed by integrating openEuler
 
   1. Collect Python GIL data using either the command line or APIs.
   2. Process the collected GIL data and convert it into Chrome Trace JSON format.
-  3. Import the converted data into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/overview.md) together with Profiler data for visualization and analysis. For Profiler data collection, see section [msProf Profile Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/devaids/Profiling/atlasprofiling_16_0010.html).
+  3. Import the data together with Profiler data into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/overview.md) for visualization. For Profiler data collection, see [msProf Performance Data Collection](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/en/profiling/README.md).
 
 ## Preparations
 
-  1. Install `sysTrace`. For details, see [sysTrace Installation Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/installation.md).
+  1. Install `sysTrace`. For details, see [sysTrace Installation Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/installation.md).
   2. Add the `sysTrace` binary to the `PATH` environment variable.
 
       ```bash
@@ -22,8 +22,8 @@ To address this issue, the GIL Tracer tool is developed by integrating openEuler
       ```
 
   3. Configure `sysTrace` environment variables, including:
-      1. Runtime dependencies. For details, see [sysTrace User Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/introduction.md).
-      2. Logging and data directory configurations. For details, see [sysTrace Data Collection Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/data_collection.md).
+      1. Runtime dependencies. For details, see [sysTrace User Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/introduction.md).
+      2. Logging and data directory configurations. For details, see [sysTrace Data Collection Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/data_collection.md).
   4. Obtain the collection and conversion scripts `gil_trace_record.py` and `gil_trace_convert.py`, and the file utility script `file_manager.py` provided in the repository. Synchronous collection of Profiler and GIL data is recommended.
 
 ## GIL Data Collection
@@ -168,7 +168,7 @@ Each colored block represents a GIL event, which belongs to one of three types:
 
 When you use APIs to collect GIL and Profiler data simultaneously, MindStudio Insight can display both datasets together. This facilitates the analysis and optimization of Python multithreading performance issues.
 
-![GIL Trace with Profiler](./figures/profiler_gil_tracer_en.PNG "GIL Trace with Profiler")
+![GIL Trace with Profiler](./figures/profiler_gil_tracer.PNG "GIL Trace with Profiler")
 
 ## Security Statement
 

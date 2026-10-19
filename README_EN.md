@@ -6,7 +6,7 @@
  [![Quick Start](https://badgen.net/badge/Quick%20Start/QuickStart/blue)](docs/en/quick_start/msprof_quick_start.md)
  [![AI Q&A DeepWiki](https://badgen.net/badge/AI%20Q%26A/DeepWiki/blue)](https://deepwiki.com/Ascend/msprof)
  [![AI Q&A ZRead](https://badgen.net/badge/AI%20Q%26A/ZRead/blue)](https://zread.ai/Ascend/msprof)
- [![Exact Search](https://badgen.net/badge/Exact%20Search/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io/zh-cn/latest/msprof)
+ [![Exact Search](https://badgen.net/badge/Exact%20Search/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io/zh-cn/latest/msprof/)
  [![Ascend Community](https://badgen.net/badge/Ascend%20Community/Community/blue)](https://www.hiascend.com/en/developer/software/mindstudio)
  [![Report an Issue](https://badgen.net/badge/Report%20an%20Issue/Issues/blue)](https://gitcode.com/Ascend/msprof/issues)
 
@@ -20,7 +20,7 @@ English | [简体中文](./README.md)
 
 ## ℹ️ Overview
 
-MindStudio Profiler (msProf) is a performance analysis tool for AI training and inference scenarios. It supports the collection and parsing of software and hardware profile data from the CANN layer and the Ascend AI Processor NPU hardware layer, helping users identify performance issues during model training or inference. `msProf` also provides the foundational capability for other profiling collection interfaces, and many upper-layer performance collection and analysis capabilities rely on `msProf` for underlying data collection.
+MindStudio Profiler (msProf) is a performance analysis tool for AI training and inference scenarios. It supports the collection and parsing of software and hardware profile data from the CANN layer and the Ascend AI Processor NPU hardware layer, helping users identify performance issues during model training or inference. msProf also provides the foundational capability for other profiling collection interfaces, and many upper-layer performance collection and analysis capabilities rely on msProf for underlying data collection. For a complete overview of Ascend performance tuning tools, see [MindStudio Profiler Documentation Overview](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/).
 
 <div align="center">
   <img src="./docs/en/figures/msprof.png" alt="Architecture diagram" width="700">
@@ -30,8 +30,8 @@ MindStudio Profiler (msProf) is a performance analysis tool for AI training and 
 
 | Feature | Description | Documentation | Source Code Repository |
 | --- | --- | :---: | --- |
-| **Profile data collection** | Collects software and hardware profile data from the CANN platform and Ascend AI Processors using the `msProf` command. | [Profile Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/devaids/Profiling/atlasprofiling_16_0010.html) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
-| **Profile data parsing** | Parses the collected profile data using the `msProf` tool to generate readable analysis results. | [Profile Data Parsing](docs/en/user_guide/msprof_parsing_instruct.md) | [analysis](analysis) |
+| **Profile data collection** | Collects software and hardware profile data from the CANN platform and Ascend AI Processors using the `msprof` command. | [Profile Data Collection](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/en/profiling/README.md) | [msprof](https://gitcode.com/cann/runtime/tree/9.2.0/src/dfx/msprof) |
+| **Profile data parsing** | Parses the collected profile data using the msProf tool to generate readable analysis results. | [Profile Data Parsing](docs/en/user_guide/msprof_parsing_instruct.md) | [analysis](https://gitcode.com/Ascend/msprof/tree/26.2.0/analysis) |
 
 ## 🚀 Quick Start
 
@@ -50,9 +50,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 📦 Installation Guide
 
-msProf is included in the CANN Toolkit development suite. You are advised to download and install the CANN package directly. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download).
-
-To install msProf through building from source code, see [msProf Installation Guide](docs/en/install_guide/msprof_install_guide.md).
+For the environment dependencies and installation method, see [msProf Installation Guide](docs/en/install_guide/msprof_install_guide.md).
 
 ## 📘 User Guide
 
@@ -60,11 +58,11 @@ For detailed usage instructions, see [msProf User Guide](docs/en/user_guide/mspr
 
 ## 💡 Typical Cases
 
-To understand and master the tool through typical problem scenarios, see [msProf Typical Cases](docs/en/best_practices/basic_cases.md).
+To understand and master the tool through typical problem scenarios, see [msProf Typical Cases](docs/en/best_practices/README.md).
 
-## ❓ FAQ
+## ❓ FAQs
 
-For common questions and solutions, see [msProf FAQ](docs/en/support/faq.md).
+For common questions and solutions, see [msProf FAQs](docs/en/support/faq.md).
 
 ## 🌌 Smart Search
 
@@ -91,7 +89,7 @@ We welcome everyone to contribute to the community. If you have any questions or
 
 | Instant Messaging (WeChat Group) | Official News (Official Account) | In-Depth Support (Assistant / Forum) |
 | :---: | :----: | :---- |
-| <img src="https://raw.gitcode.com/Ascend/docs/files/master/common/Writing_Template/figures/qr_code_wechat_work.png" width="120"><br><sub>*Scan to join the technical discussion group*</sub> | <img src="https://raw.gitcode.com/Ascend/docs/files/master/common/Writing_Template/figures/qr_code_wechat_official_account.png" width="120"><br><sub>*Scan to follow the official account*</sub> | Scan the QR code to join the group and follow the official account for the fastest way to connect with MindStudio users and developers:<br> **Ask questions:** Discuss technical issues with community members in real time<br>**Stay updated:** Get the latest version releases and feature update notifications firsthand<br> **Share experience:** Exchange best practices and practical insights with fellow developers  <br> <br> **More support channels**:<br>👉 Ascend Assistant: [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square\&logo=wechat\&logoColor=white)](https://gitcode.com/Ascend/msit/blob/master/docs/zh/figures/readme/xiaozhushou.png)<br> 👉 Ascend Forum: [![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square\&logo=RSS\&logoColor=white)](https://www.hiascend.com/forum/) |
+| <img src="https://raw.gitcode.com/Ascend/docs/files/master/common/Writing_Template/figures/qr_code_wechat_work.png" width="120"><br><sub>*Scan to join the technical discussion group*</sub> | <img src="https://raw.gitcode.com/Ascend/docs/files/master/common/Writing_Template/figures/qr_code_wechat_official_account.png" width="120"><br><sub>*Scan to follow the official account*</sub> | Scan the QR code to join the group and follow the official account for the fastest way to connect with MindStudio users and developers:<br> **Ask questions:** Discuss technical issues with community members in real time<br>**Stay updated:** Get the latest version releases and feature update notifications firsthand<br> **Share experience:** Exchange best practices and practical insights with fellow developers  <br> <br> **More support channels**:<br>👉 Ascend Assistant: [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://gitcode.com/Ascend/msit/blob/master/docs/zh/figures/readme/xiaozhushou.png)<br> 👉 Ascend Forum: [![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
 
 ## 🙏 Acknowledgments
 

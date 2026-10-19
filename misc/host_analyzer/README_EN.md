@@ -1,12 +1,12 @@
 # Host Diagnostic and Tuning Tool
 
-## Introduction
+## Overview
 
 In current AI training and inference scenarios, task dispatching on the host side (CPU), such as operator scheduling and memory allocation, and task execution on the device side (NPU) are performed asynchronously. When task dispatching on the host side takes longer than task execution on the device side, the device may become idle while waiting for new tasks, resulting in a performance bottleneck known as a HostBound issue.
 
 To address this issue, we developed a host-side diagnostic and tuning tool that provides easy-to-use CPU core binding capabilities. By binding processes and threads to different CPU cores, the tool reduces mutual interference and resource contention.
 
-## Prerequisites
+## Preparations
 
 1. Obtain the parameter parsing and CPU core binding scripts provided in the repository: [entrance.py](./entrance.py) and [cpu_binder.py](./cpu_binder.py).
 
@@ -16,9 +16,9 @@ To address this issue, we developed a host-side diagnostic and tuning tool that 
 
 #### Description
 
-Provides the custom CPU core binding capability based on the configuration specified in the user-provided JSON file to bind processes or threads to specified CPU cores. If no configuration is provided, an empirically optimized strategy is used for CPU core binding:
+Provides custom core binding capability. Performs process/thread-level core binding according to the configuration scheme in the user-input JSON. When no input is provided, core binding is performed using the empirically optimal scheme:
 
-  - For each NPU, one CPU core is allocated to each key thread, `acl_thread` and `release_thread`, and one CPU core is allocated to `dev[i]_sq_task` (which can be bound on the host; skipped if the process cannot be found). One CPU core is allocated to each operator-related interrupt, `sq_send_trigger_irq` and `cq_update_irq` (write permission to the `/proc` directory is required; skipped if the required permissions are unavailable). The remaining inference threads are jointly allocated to six CPU cores. Therefore, each NPU is bound to 11 CPU cores. NPU affinity and the latency of cross-NUMA memory access are considered during CPU allocation.
+A separate CPU core is allocated to the key threads `acl_thread` and `release_thread` of each card, and a separate CPU core is allocated to `dev[i]_sq_task` (which can be bound on the host; skipped if it cannot be found). A separate CPU core is allocated to each operator-related interrupt, `sq_send_trigger_irq` and `cq_update_irq` (write permission to the `/proc` directory is required; skipped if the required permission is unavailable). The remaining inference threads are jointly allocated to six CPU cores. Therefore, each NPU card is bound to 11 CPU cores. NPU affinity and cross-NUMA memory access latency are considered during CPU allocation.
 
 #### Syntax
 
@@ -28,24 +28,24 @@ python3 entrance.py bind [-l] [-c <config_path>]
 
 #### Command-line Options
 
-| Option | Required (Yes/No) | Description |
-| --- | --- | --- |
-| `-l/--log-level` | No | Specifies the log level to be printed. The type is `int`. Valid values: `0`, `1`, `2`, or `3`. Default value: `1`. |
-| `-c/--config` | No | Specifies the JSON configuration file required for custom CPU core binding. If this parameter is not specified, CPU core binding is performed according to the default strategy. The type is `str`. Default value: `None`. |
+| Parameter | Optional/Required | Description |
+| -------------- | --------- | ------------------------------------------------------------ |
+| -l/--log-level | Optional | Specifies the log level to be printed. The type is `int`. Valid values: `0`, `1`, `2`, or `3`. Default value: `1`. |
+| -c/--config | Optional | Specifies the JSON configuration file required for custom core binding. If this parameter is not specified, core binding is performed according to the default policy. The type is `str`. Default value: `None`. |
 
 #### JSON Configuration File Parameters
 
-| Parameter | Required (Yes/No) | Description |
-| --- | --- | --- |
-| `custom_bind` | Yes | A JSON key of type `str`. The corresponding value must be a `List[Dict]`, with each group of CPU core binding objects stored as an item in the list. |
-| `process_name` | No | Specifies the name of the process or thread to be bound. Whether the name refers to a process or thread is determined by `is_thread`. If the specified process or thread is not associated with an NPU, the number of processes or threads must be equal to the length of `cpu_list`. Default value: `None`. |
-| `pid` | No | Specifies one or more PIDs to be bound. The number of PIDs must be equal to the length of `cpu_list`. The type is `List[int]`. Default value: `[]`. |
-| `cpu_list` | Yes | Specifies the list of CPUs to which the target is bound. One or more CPU ranges can be specified. The type is `List[str]`. Default value: `[]`. |
-| `mem_bind` | No | Specifies whether to migrate memory to the corresponding NUMA node after CPU core binding. The type is `bool`. The value can be one of the following:<br>• `true`: Migrates memory to the corresponding NUMA node after CPU core binding.<br>• `false`: Does not migrate memory to the corresponding NUMA node after CPU core binding.<br>Default value: `false`. |
-| `is_thread` | No | Specifies whether the ID to be bound is a process ID or thread ID. The type is `bool`. The value can be one of the following:<br>• `true`: Binds a thread ID.<br>• `false`: Binds a process ID.<br>Default value: `false`. |
-| `is_irq` | No | Specifies whether the target to be bound is a hardware interrupt. The type is `bool`. The value can be one of the following:<br>• `true`: The target is a hardware interrupt.<br>• `false`: The target is not a hardware interrupt.<br>Default value: `false`. |
-| `irq_id` | No | Specifies the IDs of the hardware interrupts to be bound. The type is `List[int]`. |
-| `bind_sub_process` | No | Specifies whether to also bind all child threads of the specified process or thread. The type is `bool`. The value can be one of the following:<br>• `true`: Also binds all child threads of the specified process or thread.<br>• `false`: Does not bind the child threads of the specified process or thread.<br>Default value: `false`. |
+| Parameter        | Optional/Required | Description                                                  |
+| ---------------- | ----------------- | ------------------------------------------------------------ |
+| `custom_bind`      | Required          | A JSON key of type `str`. The corresponding value must be a `List[Dict]`, with each group of core binding objects stored as an item in the list. |
+| `process_name`     | Optional          | Specifies the name of the process or thread to be bound. Whether the name refers to a process or thread is determined by `is_thread`. If the specified process or thread is not associated with an NPU, the number of processes or threads must be equal to the length of `cpu_list`. Default value: `None`. |
+| `pid`              | Optional          | Specifies one or more PIDs to be bound. The number of PIDs must be equal to the length of `cpu_list`. The type is `List[int]`. Default value: `[]`. |
+| `cpu_list`         | Required          | Specifies the list of CPUs to which the target is bound. One or more CPU ranges can be specified. The type is `List[str]`. Default value: `[]`. |
+| `mem_bind`         | Optional          | Specifies whether to migrate memory to the corresponding NUMA node after CPU core binding. The type is `bool`. The value can be one of the following:<br>&bull; `true`: Migrates memory to the corresponding NUMA node after CPU core binding.<br>&bull; `false`: Does not migrate memory to the corresponding NUMA node after CPU core binding.<br>Default value: `false`. |
+| `is_thread`        | Optional          | Specifies whether the ID to be bound is a process ID or thread ID. The type is `bool`. The value can be one of the following:<br>&bull; `true`: Binds a thread ID.<br>&bull; `false`: Binds a process ID.<br>Default value: `false`. |
+| `is_irq`           | Optional          | Specifies whether the target to be bound is a hardware interrupt. The type is `bool`. The value can be one of the following:<br>&bull; `true`: The target is a hardware interrupt.<br>&bull; `false`: The target is not a hardware interrupt.<br>Default value: `false`. |
+| `irq_id`           | Optional          | Specifies the IDs of the hardware interrupts to be bound. The type is `List[int]`. |
+| `bind_sub_process` | Optional          | Specifies whether to also bind all child threads of the specified process or thread. The type is `bool`. The value can be one of the following:<br>&bull; `true`: Also binds all child threads of the specified process or thread.<br>&bull; `false`: Does not bind the child threads of the specified process or thread.<br>Default value: `false`. |
 
 #### JSON Configuration File Example
 
@@ -91,7 +91,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
 
 - Example 1
 
-  ```python
+  ```bash
   python3 entrance.py bind -c ./bind_design.json
   ```
 

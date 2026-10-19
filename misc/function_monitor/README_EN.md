@@ -9,8 +9,8 @@ To address this issue, the Function Monitor tool is developed by integrating the
  **Procedure**
 
 1. Use a Python decorator or `with` statement to collect function execution duration and CPU PMU metrics. The tool supports data filtering based on execution duration thresholds and persistently writes the collected results to log files.
-2. Process the collected log files and convert them into Chrome Trace JSON format.
-3. Import the data into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/overview.md) for visualization to analyze the relationship between function execution duration and CPU PMU metrics.
+2. Post-process the collected log files and convert them to Chrome Trace Json format.
+3. Import them into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/overview.md) for visualization, and analyze the relationship between function execution time and CPU PMU metrics.
 
 ## Precautions
 
@@ -29,9 +29,9 @@ You can collect data using either a Python function decorator or `with` statemen
 
 | Environment Variable | Mandatory (Yes/No) | Description |
 | --- | --- | --- |
-| ENABLE_FUNCTION_MONITOR | No | Specifies whether to enable function monitoring and data collection. Valid values: `True` (enables Function Monitor) or `False` (disables it). Default value: `False`. |
-| ENABLE_LIBKPERF | No | Specifies whether to use `libkperf` to collect CPU PMU metrics. Valid values: `True` (enables `libkperf`) or `False` (disables it). Default value: `False`. |
-| FUNCTION_MONITOR_LOG_PATH | No | Specifies the storage path for Function Monitor logs. If you do not specify a path, logs are stored in the `function_monitor_log` directory under the home directory of the current user, such as `/home/user/function_monitor_log`. |
+| ENABLE_FUNCTION_MONITOR | Optional | Specifies whether to enable Function Monitor function monitoring collection. It can be set to `True` or `False`. To enable function monitoring collection, it must be set to `True`. The default value is `False`, indicating that it is disabled. |
+| ENABLE_LIBKPERF | Optional | Specifies whether to use `libkperf` to collect CPU PMU metrics. It can be set to `True` or `False`. The default value is `False`, indicating that it is disabled. |
+| FUNCTION_MONITOR_LOG_PATH | Optional | Specifies the storage path of the function monitoring collection log file. If not specified, it defaults to the `function_monitor_log` directory under the current user's home directory (for example, `/home/user/function_monitor_log`). |
 
 When you set `ENABLE_LIBKPERF` to `True`, you can specify the list of perf events to collect by using the `evt_list` parameter of the `PerformanceMonitor` class in `function_monitor.py`. The default value is `['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']`.
 
@@ -53,7 +53,7 @@ The `@function_monitor` decorator provided in `function_monitor.py` embeds data 
 
 **Example**
 
-1. Set environment variables.
+1. Set the environment variables.
 
     ```bash
     export ENABLE_FUNCTION_MONITOR=True
@@ -61,7 +61,7 @@ The `@function_monitor` decorator provided in `function_monitor.py` embeds data 
     export FUNCTION_MONITOR_LOG_PATH=${HOME}/function_monitor_log
     ```
 
-2. Modify the `evt_list` parameter of the `PerformanceMonitor` class in `function_monitor.py` to specify the perf events to collect. The default value is **`['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']`**.
+2. Modify the `evt_list` parameter of the `PerformanceMonitor` class in `function_monitor.py` to specify the perf event list to be collected as `['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']`.
 
     ```python
     class PerformanceMonitor:
@@ -79,7 +79,7 @@ The `@function_monitor` decorator provided in `function_monitor.py` embeds data 
                 self.monitor_enabled = False
     ```
 
-3. Apply the `@function_monitor` decorator in the PyTorch model script to functions that require data collection.
+3. Import the `@function_monitor` decorator in the PyTorch model script and decorate the functions whose data is to be collected.
 
     ```python
     import os
@@ -114,13 +114,13 @@ The `function_monitor.py` script also provides the `FunctionMonitorContext` cont
 
 | Parameter | Mandatory (Yes/No) | Description |
 | --- | --- | --- |
-| func_name | Yes | Specifies the name of the function to be monitored. |
-| process_name | No | Specifies the name of the process to be monitored. If omitted, the tool uses the current process name by default. |
-| threshold_ms | No | Specifies the execution duration threshold for data collection in milliseconds (ms). The tool records functions in the log file only when their execution duration exceeds this threshold. Default value: `1`. |
+| func_name | Required | Sets the name of the function whose data is to be collected. |
+| process_name | Optional | Sets the name of the process whose data is to be collected. If not specified, it defaults to the current process name. |
+| threshold_ms | Optional | Sets the execution time threshold for data collection. Only when the function execution time exceeds this threshold will it be recorded in the log file. The unit is ms. If not specified, it defaults to `1`. |
 
 **Example**
 
-1. Set environment variables.
+1. Set the environment variables.
 
     ```bash
     export ENABLE_FUNCTION_MONITOR=True
@@ -128,7 +128,7 @@ The `function_monitor.py` script also provides the `FunctionMonitorContext` cont
     export FUNCTION_MONITOR_LOG_PATH=${HOME}/function_monitor_log
     ```
 
-2. Modify the `evt_list` parameter of the `PerformanceMonitor` class in `function_monitor.py` to specify the perf events to collect. The default value is **`['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']`**.
+2. Modify the `evt_list` parameter of the `PerformanceMonitor` class in `function_monitor.py` to specify the perf event list to be collected as `['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']`.
 
     ```python
     class PerformanceMonitor:
@@ -146,7 +146,7 @@ The `function_monitor.py` script also provides the `FunctionMonitorContext` cont
                 self.monitor_enabled = False
     ```
 
-3. Import the `FunctionMonitorContext` context manager in the PyTorch model script, and encapsulate the target code block within a `with` statement block.
+3. Import the `FunctionMonitorContext` context manager in the PyTorch model script, and encapsulate the code block whose data is to be collected in a with statement block.
 
     ```python
     import os
@@ -187,8 +187,8 @@ python log2trace.py --input <input_file> --output <output_file>
 
 | Option | Mandatory (Yes/No) | Description |
 | --- | --- | --- |
-| --input | Yes | Specifies the path to the input `function_monitor` log file, including the file name. |
-| --output | No | Specifies the path for the output Chrome Trace JSON file, including the file name. If omitted, the tool generates a file in the current directory using the input file name with a `_trace.json` suffix. |
+| --input | Required | Specifies the path of the input function_monitor collection log file, which must point to the file name. |
+| --output | Optional | Specifies the path of the output Chrome Trace Json file, which must point to the file name. If not specified, a file with the same name as the input file but with the suffix `_trace.json` is generated in the current directory by default. |
 
 **Example**
 

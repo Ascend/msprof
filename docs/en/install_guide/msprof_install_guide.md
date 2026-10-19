@@ -1,10 +1,10 @@
-# MindStudio Profiler Installation Guide
+# msProf Installation Guide
 
-## 1. Installation Description
+## 1. Installation Overview
 
 This tool has been integrated into CANN. If CANN has been installed and this tool does not need to be updated, you can directly use it without following the instructions in this document.
 
-If CANN has not been installed in your environment, install the Ascend NPU driver and CANN software (including the Toolkit and ops) by referring to [CANN Quick Installation](https://www.hiascend.com/en/cann/download), and configure environment variables.
+If CANN has not been installed in your environment, install the Ascend NPU driver and CANN software (including the Toolkit and ops) by referring to [CANN Quick Installation](https://www.hiascend.com/cann/download), and configure environment variables.
 
 If you need to upgrade this tool separately or use the latest version, you can install it in any of the following ways: [Online Installation](#21-online-installation), [Offline Installation](#22-offline-installation), and [Source Installation](#23-source-installation).
 
@@ -12,104 +12,78 @@ If you need to upgrade this tool separately or use the latest version, you can i
 
 ### 2.1 Online Installation
 
-If your device has Internet access, you can run a single command to automatically download and install the tool. Visit the [Ascend community](https://www.hiascend.com/en/developer/software/mindstudio/download), select the target CANN version, and choose "Online Installation". The system will guide you through the subsequent operations.
+If your device has Internet access, you can run a single command to automatically download and install the tool. Visit the Visit the Ascend community's [MindStudio download page](https://www.hiascend.com/developer/software/mindstudio/download), select the target CANN version, and choose "Online Installation". The system will guide you through the subsequent operations.
 
 ### 2.2 Offline Installation
 
-For devices that are not connected to the Internet, such as those on an enterprise intranet, download the complete offline installation package on a device that has Internet access and then transfer the package to the target device for installation. Visit the [Ascend community](https://www.hiascend.com/en/developer/software/mindstudio/download), select the target CANN version, and choose "offline installation". The system will guide you through the subsequent operations.
+For devices that are not connected to the Internet, such as those on an enterprise intranet, download the complete offline installation package on a device that has Internet access and then transfer the package to the target device for installation. Visit the Visit the Ascend community's [MindStudio download page](https://www.hiascend.com/developer/software/mindstudio/download), select the target CANN version, and choose "offline installation". The system will guide you through the subsequent operations.
 
 ### 2.3 Source Installation
 
-To use the latest features, you can download the source code from this repository to build, package, and install the tool.
+If you need to use the features of the latest code, or modify the source code to enhance functionality, you can download the code from this repository, compile and package the tool yourself, and complete the installation.
 
-> [!NOTE]
->
-> The built runfile of msProf must be installed as an overwrite in an environment where CANN is already installed.
+#### 2.3.1 Environment Setup
 
-#### 2.3.1 Build Environment Setup
+Source builds must use the standard MindStudio build environment.
 
-1. Install dependencies.
+- For daily development or when using released images, see *[MindStudio Tool Development Environment Installation Guide](https://gitcode.com/Ascend/msot/blob/26.2.0/docs/en/common/dev_env_setup.md)*.
+- To reproduce the environment from a base operating system, perform source build verification, or unit test verification, you must refer to *[MindStudio Unified Build Image Creation Guide](https://gitcode.com/Ascend/msot/blob/26.2.0/docs/en/common/docker_image_build_guide.md)* and build the environment image locally from the openEuler base image.
 
-   msProf requires SQLite3 to build from source. Run the following commands to install SQLite3 or ensure it is already installed in your environment.
+The source build and unit test commands described later in this document are all executed in the container of the specified image or the container of the environment image built on site. The CANN software package version, GCC version, and Python version are subject to the unified image creation guide, and this repository does not maintain them separately.
 
-   - Install SQLite3 on Ubuntu.
+After the image is built, you must use the `ctr_in.py` command provided in Chapter 7 of the unified image creation guide to start and enter the container in an interactive terminal. Do not create a container using a standard `docker run` command, and do not use `docker exec <container_name> bash -c '<command>'` as a substitute for the interactive environment; otherwise, the Python, GCC, and CANN environment initialization may be skipped.
 
-     ```shell
-      sudo apt update
-      sudo apt install sqlite3 libsqlite3-dev
-     ```
+After entering the interactive container shell opened by `ctr_in.py`, run the following command to clone this repository:
 
-   - Install SQLite3 on openEuler or CentOS.
-
-     ```shell
-     sudo yum install sqlite sqlite-devel
-     ```
-
-2. Clone this repository.
-
-   ```shell
-   git clone https://gitcode.com/Ascend/msprof.git -b master
-   ```
-
-3. Download third-party dependencies.
-
-   ```shell
-   cd msprof
-   # Download third-party dependencies
-   bash scripts/download_thirdparty.sh
-   ```
-
-#### 2.3.2 Building and Packaging
-
-The `build/build.sh` build script allows you to specify the build type by using the `--mode` option:
-
-- `all`: builds the full-featured runfile (including collection and parsing features).
-- `analysis`: builds the parsing runfile (including only the parsing feature).
-
-For details about more parameters, see [Command-line Options for Building a Runfile](#61-command-line-options-for-building-a-runfile).
-
-After the build is complete, the runfile is generated in the `output` directory within the current path. The file name format is `mindstudio-profiler_{version}_{arch}.run`. `version` represents the version number and `arch` represents the system architecture (automatically adapted based on the current system).
-
-##### 2.3.2.1 Method 1: Building the full-featured runfile of msProf (recommended)
-
-```shell
-# Build the full-featured runfile, including msProf collection and parsing features
-bash build/build.sh --mode=all --version=26.1.0
+```bash
+cd ~
+git clone https://gitcode.com/Ascend/msprof.git -b 26.2.0
 ```
 
-##### 2.3.2.2 Method 2: Building the msProf parsing runfile
+#### 2.3.2 Building
 
-```shell
-# Build the parsing package independently
-bash build/build.sh --mode=analysis --version=26.1.0
+In the same interactive container shell started using `ctr_in.py`, run the following commands from the repository root directory to download dependencies and build the tool:
+
+```bash
+cd ~/msprof
+python3 build.py
 ```
 
-#### 2.3.3 Installing the Runfile
+After a successful build, the installation package is generated in the `artifacts/` directory.
 
-1. The runfile is generated in the `output` directory. Run the following command to grant the execute permission to the runfile:
+#### 2.3.3 Running Unit Tests (Optional)
+
+This step is not required for installation. If you need to verify the basic functionality of the code, you can run unit tests:
+
+```bash
+cd ~/msprof
+python3 build.py test
+```
+
+A command return code of 0 with no failed test cases indicates that the unit tests have passed.
+
+#### 2.3.4 Installing the Runfile
+
+The generated whl package is packaged into the runfile, so you can install the runfile directly:
+
+1. Run the following command to make the runfile executable:
 
    ```shell
-   cd output
-   chmod +x mindstudio-profiler_26.1.0_{arch}.run
+   cd ~/msprof/artifacts
+   chmod +x mindstudio-profiler_<version>_{arch}.run
    ```
 
 2. Run the installation command.
 
    ```shell
-   ./mindstudio-profiler_26.1.0_{arch}.run --install
+   ./mindstudio-profiler_<version>_{arch}.run --install
    ```
 
-   The installation command supports options such as `--install-path`. For details, see [Command-line Options for Installing a Runfile](#62-command-line-options-for-installing-a-runfile).
-
-   When the installation command is executed, the `--check` option is automatically executed to check the consistency and integrity of the software package. If the following information is displayed, the software package is verified successfully.
-
-   ```ColdFusion
-   Verifying archive integrity...  100%   SHA256 checksums are OK. All good.
-   ```
+   The installation command supports parameters such as `--install-path`. For details, see [Command-line Options for Installing a Runfile](#61-command-line-options-for-installing-a-runfile).
 
    If the following information is displayed, the software is successfully installed.
 
-   ```ColdFusion
+   ```text
    mindstudio-profiler package install success.
    ```
 
@@ -123,7 +97,7 @@ msprof --help
 
 If no error is reported and the help information is displayed, the installation is successful.
 
-If `msprof --help` indicates that the command does not exist, check whether the current terminal is using the Python environment where `msprof` is installed.
+If running `msprof --help` results in a command-not-found error, check whether the current terminal is using the Python environment where `msprof` is installed.
 
 ## 4. Uninstallation
 
@@ -132,13 +106,13 @@ To uninstall the tool, perform the following steps:
 1. Download the script.
 
    ```bash
-   curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.1.0/ms_install.py
+   curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.2.0/ms_install.py
    ```
 
    > [!NOTE]
    >
    > - Internet access is required to download the script. If your target environment is offline or does not allow internet access, download the script on an internet-connected device first, then copy it to the target device.
-   > - If the command does not respond, or you encounter connection failures, SSL certificate errors, or other issues, refer to the [FAQ](https://www.hiascend.com/developer/blog/details/02176213671719317003).
+   > - If the command does not respond, or you encounter connection failures, SSL certificate errors, or other issues, refer to the [FAQs](https://www.hiascend.com/developer/blog/details/02176213671719317003).
 
 2. Uninstall the tool.
 
@@ -150,7 +124,7 @@ To uninstall the tool, perform the following steps:
 
    If the uninstallation is successful, the following information is displayed:
 
-   ```ColdFusion
+   ```text
    Successfully uninstalled 1 tool ({tools_name})
    ```
 
@@ -158,21 +132,11 @@ To uninstall the tool, perform the following steps:
 
 Upgrades follow the "uninstall first, then install" process. Simply run the installation command. The tool will automatically remove the previous version and guide you through the upgrade process.
 
-You can run the `msprof --version` command to view the version information of the current environment and then select the version to upgrade to. When upgrading the tool, pay attention to version compatibility. For details, see [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes_en.md).
+You can run the `msprof` `--version` command to view the version information of the current environment, and then select the version to upgrade. When upgrading, pay attention to the version compatibility. For details, see *[Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.2.0/release_notes.md)*.
 
 ## 6. Appendixes
 
-### 6.1 Command-line Options for Building a Runfile
-
-The following table describes the command-line options for building a runfile of msProf.
-
-| Option        | Mandatory (Yes/No)| Description                                                                                                                      |
-| ------------ | --------- |--------------------------------------------------------------------------------------------------------------------------|
-| --build_type | No     | Specifies the runfile build type. Valid values:<br>&#8226; `Release`: builds a package for deployment in the production environment.<br>&#8226; `Debug`: builds a package for development and debugging. This value supports only building runfiles with the parsing feature.<br>Default value: `Release`|
-| --mode       | No     | Specifies the features to be included in the runfile. Valid values:<br>&#8226; `all`: builds a software package that includes both the msProf collection and parsing features.<br>&#8226; `analysis`: builds a software package that includes only the msProf parsing feature.<br>Default value: `analysis`         |
-| --version    | No     | Specifies the version number of the runfile. This value is user-defined.<br>Default value: `none`                                                                                          |
-
-### 6.2 Command-line Options for Installing a Runfile
+### 6.1 Command-line Options for Installing a Runfile
 
 The following table describes the command-line options for installing a runfile of msProf.
 

@@ -1,69 +1,63 @@
-# msProf Use Case: Performance Analysis of a ResNet50 Inference Model
-
-## 1. Use Case Name
-
-**Collecting and Analyzing Profile Data of a ResNet50 Inference Model on an Ascend NPU Using the msProf Command-Line Tool**
+# ResNet50 Inference Model Performance Analysis
 
 This use case uses a ResNet50 inference model as an example to demonstrate how to use the MindStudio Profiler (msProf) provided by Huawei Ascend MindStudio to collect and parse profile data and identify performance bottlenecks.
 
-### 1.1 Prerequisites
+## 1. Prerequisites
 
-#### 1.1.1 Environment Requirements
+### 1.1 Environment Requirements
 
-* The **CANN Toolkit development package** and **ops package** are installed.
-* The **MindStudio Insight** visualization and analysis tool is installed.
+- The Ascend NPU driver and CANN software (including the Toolkit and ops packages) are installed. For details, see [CANN Quick Installation](https://www.hiascend.com/cann/download).
+- The MindStudio Insight visualization and analysis tool is installed. For details, see the [MindStudio download](https://www.hiascend.com/developer/software/mindstudio/download) page on the Ascend community website.
 
-#### 1.1.2 Configuring Environment Variables
+### 1.2 Configuring Environment Variables
 
-Run the following command to configure the CANN environment variables (using CANN 9.1.0 as an example):
+Run the following command to configure the CANN environment variables (using CANN 9.1.0 as an example).
 
 ```bash
 source /usr/local/Ascend/cann/set_env.sh
 ```
 
-#### 1.1.3 Verifying Tool Availability
+### 1.3 Verifying Tool Availability
 
-Run the following command to verify that the msProf tool is available and check its version:
+Run the following command to verify the installed version of msProf.
 
 ```bash
 msprof --version
 ```
 
-Also verify the NPU device status to ensure that the device is available:
+Also verify the NPU device status to ensure that the NPU is functioning properly.
 
 ```bash
 npu-smi info
 ```
 
-#### 1.1.4 Preparing the ResNet50 Inference Script
+### 1.4 Preparing the ResNet50 Inference Script
 
 Ensure that the `resnet50_infer.py` inference script can run properly on an Ascend NPU. The script must include model loading, data preprocessing, and inference execution logic.
 
-### 1.2 Using the Tool
+## 2. Using the Tool
 
-#### 1.2.1 Collecting Profile Data
+### 2.1 Collecting Profile Data
 
-**(1) Run the profile data collection command**
-
-Use the msProf command-line tool to collect profile data of the ResNet50 inference model:
+Use the msProf command-line tool to collect performance data for the inference model.
 
 ```bash
 msprof --output="./prof_data" --task-time=l1 python3 resnet50_infer.py
 ```
 
-![Figure 1](../figures/msprof_collection_result.png)
-
-**Command-line options**
-
 | Option | Description |
 | --- | --- |
-| `--output` | Specifies the directory for storing profile data. The default is the directory where the AI task file is located. |
-| `--task-time` | Specifies the data collection level. The default is level `l0`. |
+| `--output` | Storage path of the performance data. The default value is the directory where the AI task file resides. |
+| `--task-time` | Data collection level. The default value is l0. |
 
-**Examples of other common commands:**
+The command produces the following output.
+
+![Figure 1](../figures/msprof_collection_result.png)
+
+**Examples of other common commands**
 
 ```bash
-# Pass a Python script and its parameters
+# Run a Python script with arguments
 msprof --output=/home/projects/output python3 /home/projects/MyApp/out/sample_run.py param1 param2
 
 # Pass a binary executable
@@ -76,9 +70,9 @@ msprof --output=/home/projects/output /home/projects/MyApp/out/main parameter1 p
 msprof --output=/home/projects/output /home/projects/MyApp/out/sample_run.sh param1 param2
 ```
 
-#### 1.2.2 Parsing Profile Data
+### 2.2 Parsing Profile Data
 
-After data collection is complete, run the following command to parse the profile data and generate a report for analysis:
+After collection is complete, run the following command to parse the performance data and generate a report for performance analysis.
 
 ```bash
 msprof --export=on --output="./prof_data"
@@ -86,18 +80,20 @@ msprof --export=on --output="./prof_data"
 
 After parsing, a `PROF_XXX` directory (or an `OPPROF` directory, depending on the collection mode) is generated in the directory specified by `--output`. The directory contains the automatically parsed profile data.
 
-#### 1.2.3 Viewing Profile Data
+### 2.3 Viewing Profile Data
 
-**(1) View the generated file structure**
+1. View the generated directory structure.
 
-```bash
-ls -la ./prof_data/PROF_XXX/
-```
+    ```bash
+    ls -la ./prof_data/PROF_XXX/
+    ```
 
-![Figure 2](../figures/prof_data_structure.png)
+    ![Figure 2](../figures/prof_data_structure.png)
 
-For details about the formats and deliverables of the collected and parsed data, see [Profile Data File Reference](../user_guide/profile_data_file_references.md).
+    For details about the formats and deliverables of the collected and parsed data, see *[Profile Data File Reference](../user_guide/profile_data_file_references.md)*.
 
-**(2) Analyze profile data using MindStudio Insight**
+2. Use MindStudio Insight for visual analysis.
 
-Navigate to the `PROF_XXX/mindstudio_profiler_output` directory and import the profile data into MindStudio Insight for visual analysis. MindStudio Insight provides various data visualization views, including the timeline, communication analysis, and computation duration, to help users quickly identify performance bottlenecks.
+    Go to the `PROF_XXX/mindstudio_profiler_output` directory and import the performance data into the MindStudio Insight tool for visual analysis. MindStudio Insight provides multiple visualization options, including timeline view, communication analysis, and computation duration visualization, helping users quickly locate performance bottlenecks.
+
+    For details, see *[MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/system_tuning.md)*.

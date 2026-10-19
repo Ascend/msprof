@@ -10,7 +10,7 @@ You can support this project in the following ways:
 - Review pull requests and help other contributors.
 - Promote the project by sharing msProf in blog posts and on social media, or by starring the repository.
 
-## Finding Issues to Contribute To
+## Finding Issues to Work On
 
 Want to start contributing? You can look for the following types of issues:
 
@@ -30,7 +30,7 @@ You can also view the [Issues](https://gitcode.com/Ascend/msprof/issues) to lear
 
 ### Development and Testing
 
-1. Fork the source code repository to your personal repository and develop the code there.
+1. Fork the repository, then clone your fork and develop your changes there.
 
    ```bash
    git clone https://gitcode.com/<your-username>/msprof.git
@@ -51,7 +51,7 @@ You can also view the [Issues](https://gitcode.com/Ascend/msprof/issues) to lear
 
 5. Develop the documentation.
 
-   If your changes involve adding, modifying, or removing features, provide the relevant documentation. For detailed requirements, see [Documentation Development](#documentation-development).
+   If your changes add, modify, or remove features, update the relevant documentation. For detailed requirements, see [Documentation Development](#documentation-development).
 
 6. Submit a pull request.
 
@@ -142,26 +142,26 @@ Before submitting a pull request, ensure that:
 
 #### Submission Process
 
-1. **Create a branch**
+1. **Creating a branch**
 
    ```bash
    git checkout -b feature/<your-feature-name>
    ```
 
-2. **Commit the changes**
+2. **Committing the changes**
 
    ```bash
    git add .
    git commit -m "feat: <your feature description>"
    ```
 
-3. **Push to the remote repository**
+3. **Pushing to the remote repository**
 
    ```bash
    git push origin feature/<your-feature-name>
    ```
 
-4. **Create a pull request**
+4. **Creating a pull request**
 
    Create a pull request on GitCode and provide the following information:
 
@@ -175,14 +175,14 @@ Before submitting a pull request, ensure that:
 
    3. Associate the pull request with the relevant issue.
 
-5. **Code review**
+5. **Reviewing the code**
 
    1. After submitting a pull request, notify the relevant "owners" (Reviewers and Committers) to review the changes.
    2. Modify the code based on the review comments and resubmit the changes. Multiple iterations may be required during this process, so please respond promptly and maintain communication.
 
    The relevant "owners" will be identified during the pull request process. You can specify the relevant "owners" during the pull request process or contact the MindStudio team through the information provided in [README](../../../README_EN.md).
 
-6. **Code merge**
+6. **Merging the pull request**
 
    A pull request requires the following four labels to complete the merge:
 
