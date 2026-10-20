@@ -125,8 +125,8 @@ uint32_t StarsSocProfileParser::ParseData(DataInventory& dataInventory, const In
     return ANALYSIS_OK;
 }
 
-// REGISTER_PROCESS_SEQUENCE(StarsSocProfileParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(StarsSocProfileParser, CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0);
+REGISTER_PROCESS_SEQUENCE(StarsSocProfileParser, false);
+REGISTER_PROCESS_SUPPORT_CHIP(StarsSocProfileParser, CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

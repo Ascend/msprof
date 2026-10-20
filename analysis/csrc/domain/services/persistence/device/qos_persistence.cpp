@@ -79,6 +79,7 @@ uint32_t QosPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
     const auto &deviceContext = static_cast<const DeviceContext &>(context);
     const auto v4Data = dataInventory.GetPtr<std::vector<HalQosBwData>>();
     const auto socProfile = dataInventory.GetPtr<HalSocProfileData>();
+    INFO("start c model qos data process");
     if (v4Data == nullptr && socProfile == nullptr)
     {
         ERROR("QoS raw data is null.");
@@ -116,7 +117,6 @@ uint32_t QosPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
 
 REGISTER_PROCESS_SEQUENCE(QosPersistence, false, QosParser, StarsSocProfileParser);
 REGISTER_PROCESS_DEPENDENT_DATA(QosPersistence, std::vector<HalQosBwData>, HalSocProfileData);
-// qos数据在v6上会从soc_profiling文件中获取，先打开V4
-REGISTER_PROCESS_SUPPORT_CHIP(QosPersistence, CHIP_V4_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(QosPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

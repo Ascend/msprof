@@ -72,6 +72,7 @@ TEST_F(LowPowerPersistenceUTest, ShouldSavePythonCompatibleLowPowerTableWithNano
 {
     auto source = std::make_shared<HalSocProfileData>();
     HalLogData item;
+    item.lowPower = HalLowPowerData{};
     item.type = SOC_PROFILE_LOW_POWER;
     item.lowPower.sysCnt = LOW_POWER_SYSCNT;
     item.lowPower.dieId = 3;
@@ -85,7 +86,7 @@ TEST_F(LowPowerPersistenceUTest, ShouldSavePythonCompatibleLowPowerTableWithNano
     ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
 
     DBRunner runner(DB_PATH);
-    std::vector<std::tuple<double, uint32_t, uint32_t, double, uint32_t>> rows;
+    std::vector<std::tuple<double, int32_t, uint32_t, double, uint32_t>> rows;
     ASSERT_TRUE(runner.QueryData("SELECT timestamp, die_id, data0_hard, data0_soft, data9_soft FROM LowPower", rows));
     ASSERT_EQ(1UL, rows.size());
     ASSERT_DOUBLE_EQ(EXPECTED_TIMESTAMP_NS, std::get<0>(rows[0]));
@@ -126,6 +127,27 @@ TEST_F(LowPowerPersistenceUTest, ShouldCombineData0SoftHighAndLowSamplesOnChipV6
     ASSERT_DOUBLE_EQ(EXPECTED_CHIP_V620_DATA0_SOFT, std::get<0>(rows[0]));
 }
 
+TEST_F(LowPowerPersistenceUTest, ShouldSaveDefaultDieIdAsNegativeOne)
+{
+    auto source = std::make_shared<HalSocProfileData>();
+    HalLogData item;
+    // HalLogData's constructor does not initialize its anonymous union.
+    item.lowPower = HalLowPowerData{};
+    item.type = SOC_PROFILE_LOW_POWER;
+    item.lowPower.sysCnt = LOW_POWER_SYSCNT;
+    source->items.push_back(item);
+    ASSERT_TRUE(dataInventory_.Inject(source));
+
+    LowPowerPersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
+
+    DBRunner runner(DB_PATH);
+    std::vector<std::tuple<int32_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT die_id FROM LowPower", rows));
+    ASSERT_EQ(1UL, rows.size());
+    ASSERT_EQ(-1, std::get<0>(rows[0]));
+}
+
 TEST_F(LowPowerPersistenceUTest, ShouldNotCreateDatabaseForEmptyData)
 {
     auto source = std::make_shared<HalSocProfileData>();
@@ -151,6 +173,7 @@ TEST_F(LowPowerPersistenceUTest, ShouldReturnErrorWhenSavingLowPowerDataFails)
 {
     auto source = std::make_shared<HalSocProfileData>();
     HalLogData item;
+    item.lowPower = HalLowPowerData{};
     item.type = SOC_PROFILE_LOW_POWER;
     item.lowPower.sysCnt = LOW_POWER_SYSCNT;
     source->items.push_back(item);

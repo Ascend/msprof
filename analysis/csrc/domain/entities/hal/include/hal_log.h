@@ -35,15 +35,50 @@ enum HalLogType
     ACC_PMU,
     SOC_PROFILE_LOW_POWER,
     SOC_PROFILE_QOS,
-    INVALID_LOG = 5,
+    SOC_PROFILE_SIO,
+    SOC_PROFILE_CHIP_TRANS,
+    SOC_PROFILE_INTER_SOC,
+    INVALID_LOG = 8,
 };
 
 constexpr uint32_t LOW_POWER_SAMPLE_COUNT = 20;
+constexpr uint32_t SIO_BANDWIDTH_COUNT = 8;
+
+struct HalSioData
+{
+    uint64_t sysCnt = 0;
+    uint32_t accId = 0;
+    std::array<uint32_t, SIO_BANDWIDTH_COUNT> bandwidth{{0}};
+};
+
+enum HalChipTransType
+{
+    CHIP_TRANS_INVALID = 0,
+    CHIP_TRANS_V6,   // V6 芯片，落表 PcieInfoV6
+    CHIP_TRANS_PA,   // 非 V6 芯片，acc_type == 0b111111，落表 PaLinkInfo
+    CHIP_TRANS_PCIE  // 非 V6 芯片，acc_type == 0b100010，落表 PcieInfo
+};
+
+struct HalChipTransData
+{
+    uint64_t sysCnt = 0;
+    HalChipTransType transType = CHIP_TRANS_INVALID;
+    int32_t id = -1;      // V6: die_id; 非 V6: pa_link_id / pcie_id（取自 event_id）
+    uint64_t value1 = 0;  // V6: write_bandwidth; 非 V6: pa rx / pcie write
+    uint64_t value2 = 0;  // V6: read_bandwidth; 非 V6: pa tx / pcie read
+};
+
+struct HalInterSocData
+{
+    uint64_t sysCnt = 0;
+    uint32_t l2BufferBwLevel = 0;
+    uint32_t mataBwLevel = 0;
+};
 
 struct HalLowPowerData
 {
     uint64_t sysCnt = 0;
-    uint16_t dieId = 0;
+    int16_t dieId = -1;
     std::array<uint16_t, LOW_POWER_SAMPLE_COUNT> sampleData{{0}};
 };
 
@@ -71,6 +106,9 @@ struct HalAccPmu
     uint64_t ost[2] = {0};
 };
 
+// type 标识匿名 union 中的有效成员；默认构造只初始化 hd 和 type，不初始化 union。
+// 写入方必须先初始化对应成员再交给下游；读取方必须按 type 分发，只读取对应成员。
+// 需要成员默认值时，应显式赋值（如 lowPower = HalLowPowerData{}），仅设置 type 不会初始化成员。
 struct HalLogData
 {
     HalUniData hd;
@@ -84,6 +122,9 @@ struct HalLogData
         HalAccPmu accPmu;
         HalLowPowerData lowPower;
         HalQosBwData qos;
+        HalSioData sio;
+        HalChipTransData chipTrans;
+        HalInterSocData interSoc;
     };
     HalLogData() {}
 };

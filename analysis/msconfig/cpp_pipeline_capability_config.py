@@ -123,6 +123,7 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.AICPU_ADD_INFO.name,
         DataTag.LPM_INFO.name,
         DataTag.QOS.name,
+        DataTag.SOC_PROFILER.name,
     }
 )
 
@@ -159,6 +160,7 @@ V6_DEVICE_TAGS = frozenset(
         DataTag.UB.name,
         DataTag.CCU_MISSION.name,
         DataTag.CCU_CHANNEL.name,
+        DataTag.SOC_PROFILER.name,
     }
 )
 

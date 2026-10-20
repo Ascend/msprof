@@ -183,6 +183,11 @@ class ConfigDataParsers:
             "CCUMissionParser",
             "CCUChannelParser",
             "ParsingUBData",
+            "LowPowerParser",
+            "SocProfilerParser",
+            "SioParser",
+            "StarsChipTransParser",
+            "StarsQosParser",
         ]:
             return True
         if ChipManager().is_chip_v4() and section in [
@@ -197,6 +202,11 @@ class ConfigDataParsers:
             "LpmInfoConvParser",
             "TstrackParser",  # 写 step_trace.db/trace.db 共 10 张表，对应 C++ TsTrack/StepTrace/TracePersistence
             "ParsingQosData",
+            "SocProfilerParser",
+            "AccPmuParser",
+            "InterSocParser",
+            "SioParser",
+            "StarsChipTransParser",
         ]:
             return True
         return False

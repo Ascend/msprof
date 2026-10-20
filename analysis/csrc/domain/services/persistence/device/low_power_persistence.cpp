@@ -39,9 +39,6 @@ using namespace Utils;
 
 namespace
 {
-constexpr size_t LOW_POWER_BASE_COLUMN_COUNT = 2;
-constexpr size_t LOW_POWER_COLUMN_COUNT = LOW_POWER_BASE_COLUMN_COUNT + LOW_POWER_SAMPLE_COUNT;
-
 constexpr size_t LOW_POWER_DATA0_SOFT_INDEX = 10;
 constexpr uint32_t LOW_POWER_HIGH_16_SHIFT = 16;
 constexpr double LOW_POWER_DATA0_SOFT_SCALE = 100.0;
@@ -60,19 +57,16 @@ double GetLowPowerSampleValue(const HalLowPowerData& data, size_t index, bool is
 
 template <size_t... Index>
 auto GenerateRow(const HalLowPowerData& data, double timestamp, bool isChipV620, IndexSequence<Index...>)
-    -> decltype(std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
+    -> decltype(std::make_tuple(timestamp, static_cast<int32_t>(data.dieId),
                                 GetLowPowerSampleValue(data, Index, isChipV620)...))
 {
-    return std::make_tuple(timestamp, static_cast<uint32_t>(data.dieId),
+    return std::make_tuple(timestamp, static_cast<int32_t>(data.dieId),
                            GetLowPowerSampleValue(data, Index, isChipV620)...);
 }
 
 using LowPowerRow = decltype(GenerateRow(std::declval<const HalLowPowerData&>(), std::declval<double>(), false,
                                          MakeIndexSequence<LOW_POWER_SAMPLE_COUNT>{}));
 using ProcessedData = std::vector<LowPowerRow>;
-
-static_assert(std::tuple_size<LowPowerRow>::value == LOW_POWER_COLUMN_COUNT,
-              "The LowPower row size must match the expected database column count");
 
 LowPowerRow GenerateRow(const HalLowPowerData& data, double timestamp, bool isChipV620)
 {
@@ -105,6 +99,7 @@ uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const C
 {
     const auto& deviceContext = static_cast<const DeviceContext&>(context);
     auto socProfileData = dataInventory.GetPtr<HalSocProfileData>();
+    INFO("start c model lowpower data process");
     if (socProfileData == nullptr)
     {
         ERROR("There is no LowPower data to persist");
@@ -129,13 +124,6 @@ uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const C
 
     DBInfo lowPowerDB("lowpower.db", "LowPower");
     MAKE_SHARED0_RETURN_VALUE(lowPowerDB.database, LowPowerDB, ANALYSIS_ERROR);
-    const auto columns = lowPowerDB.database->GetTableCols(lowPowerDB.tableName);
-    if (columns.size() != LOW_POWER_COLUMN_COUNT)
-    {
-        ERROR("The LowPower table column count is invalid, actual: %, expected: %", columns.size(),
-              LOW_POWER_COLUMN_COUNT);
-        return ANALYSIS_ERROR;
-    }
     std::string dbPath = File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, lowPowerDB.dbName});
     MAKE_SHARED_RETURN_VALUE(lowPowerDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
     if (!SaveData(data, lowPowerDB, dbPath))
@@ -146,9 +134,9 @@ uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const C
     return ANALYSIS_OK;
 }
 
-// REGISTER_PROCESS_SEQUENCE(LowPowerPersistence, true, StarsSocProfileParser);
-// REGISTER_PROCESS_DEPENDENT_DATA(LowPowerPersistence, HalSocProfileData);
-// REGISTER_PROCESS_SUPPORT_CHIP(LowPowerPersistence, CHIP_V6_1_0, CHIP_V6_2_0);
+REGISTER_PROCESS_SEQUENCE(LowPowerPersistence, true, StarsSocProfileParser);
+REGISTER_PROCESS_DEPENDENT_DATA(LowPowerPersistence, HalSocProfileData);
+REGISTER_PROCESS_SUPPORT_CHIP(LowPowerPersistence, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

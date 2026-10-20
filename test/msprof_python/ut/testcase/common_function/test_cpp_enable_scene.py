@@ -89,6 +89,12 @@ class TestCppEnableScene(unittest.TestCase):
             mock_chip_manager_instance.chip_id = ChipModel.CHIP_V6_2_0
             self.assertFalse(DeviceParseScene().is_cpp_enable())
 
+    def test_parse_scene_should_return_false_when_chip_v6_1_1(self):
+        with mock.patch('common_func.cpp_enable_scene.check_so_valid', return_value=True), \
+                mock.patch('common_func.cpp_enable_scene.ChipManager') as mock_chip_manager:
+            mock_chip_manager.return_value.chip_id = ChipModel.CHIP_V6_1_1
+            self.assertFalse(DeviceParseScene().is_cpp_enable())
+
     def test_export_timeline_scene_should_return_true_when_valid(self):
         """
         Test ExportTimelineScene should return true when valid

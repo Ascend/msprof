@@ -50,10 +50,11 @@ class TestConfigDataParsers(unittest.TestCase):
                     self.assertEqual(name in names, not (enabled and all_export and version and task))
                 self.assertIn("AicpuAddInfoParser", names)
 
-    def test_device_scene_whitelist_enables_v61(self):
+    def test_device_scene_whitelist_enables_supported_chips(self):
         self.assertIn(ChipModel.CHIP_V6_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
         self.assertIn(ChipModel.CHIP_V4_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
         self.assertNotIn(ChipModel.CHIP_V6_2_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
+        self.assertNotIn(ChipModel.CHIP_V6_1_1, DeviceParseScene.SCENE_CHIP_WHITELIST)
 
     def test_ccu_native_ownership_is_limited_to_v61(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0):
