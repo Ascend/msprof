@@ -61,6 +61,10 @@ Before using this tool, understand the following constraints:
 
     During profile data parsing, if the configured drive or user directory space is full, the parsing fails or the file cannot be flushed to the drive. In this case, clear the drive or user directory space.
 
+- Data directory naming constraints
+
+    We recommend keeping the original names of the `PROF_*` data directories generated during collection, as renaming them may affect some data parsing or result export functions.
+
 - Compatibility and scenario constraints
 
     Python 3.7.5 or later is supported. To reproduce the training sample in [Quick Start](../quick_start/msprof_quick_start.md), you are advised to use Python 3.9 or later.

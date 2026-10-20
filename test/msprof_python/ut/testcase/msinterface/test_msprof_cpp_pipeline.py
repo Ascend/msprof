@@ -265,7 +265,7 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                     mock.patch("msinterface.msprof_import.try_full_cpp_pipeline", return_value=allowed) as run,
                     mock.patch.object(command, "_start_parse") as parse,
                 ):
-                    command._process_data(self.path_table)
+                    command._execute_prof_task(self.path_table)
                     request = run.call_args.args[0]
                     self.assertEqual(request.collection_path, "/root/PROF_0")
                     self.assertEqual(request.command, "import")
@@ -276,19 +276,25 @@ class TestPipelineCommandIntegration(unittest.TestCase):
             mock.patch.object(command, "_start_parse") as parse,
             self.assertRaises(ProfException),
         ):
-            command._process_data(self.path_table)
+            command._execute_prof_task(self.path_table)
         parse.assert_not_called()
 
     def test_import_discovery_preserves_collection_and_cluster(self):
         command = ImportCommand(Namespace(collection_path="/root", cluster_flag=False))
+        def scan(path, *_args, **_kwargs):
+            if path == "/root":
+                return [("PROF_0", "/root/PROF_0", False)]
+            return [("device_0", "/root/PROF_0/device_0", True)]
+
         with (
             mock.patch(
-                "msinterface.msprof_import.DataCheckManager.iter_valid_profiling_sub_paths",
-                return_value=[("device_0", "/root/PROF_0/device_0", True)],
+                "msinterface.prof_parallel_plan.DataCheckManager.iter_valid_profiling_sub_paths",
+                side_effect=scan,
             ),
+            mock.patch("msinterface.prof_parallel_plan._get_raw_data_bytes", return_value=None),
             mock.patch("msinterface.msprof_import.try_full_cpp_pipeline", return_value=True) as run,
         ):
-            command._process_sub_dirs("PROF_0", is_cluster=True)
+            command._process_sub_dirs()
         request = run.call_args.args[0]
         self.assertEqual(request.collection_path, "/root/PROF_0")
         self.assertTrue(request.is_cluster)
@@ -343,7 +349,7 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                 command = ExportCommand("db", Namespace(collection_path="/root/PROF_0"))
                 with (
                     mock.patch(
-                        "msinterface.msprof_export.DataCheckManager.iter_valid_profiling_sub_paths",
+                        "msinterface.prof_parallel_plan.DataCheckManager.iter_valid_profiling_sub_paths",
                         return_value=[("host", "/root/PROF_0/host", True)],
                     ),
                     mock.patch.object(command, "_update_cluster_params"),

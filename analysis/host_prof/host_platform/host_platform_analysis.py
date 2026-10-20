@@ -50,29 +50,39 @@ class HostPlatformAnalysis(MsMultiProcess):
         return HostPlatformAnalysis.__name__
 
     @classmethod
-    def create_platform_dir(cls: any, path: str) -> str:
+    def get_platform_dir(cls: any, path: str) -> str:
+        """Derive the platform output path using the PROF timestamp and random identifier."""
         prof_result_path = re.search(cls.PROF_RESULT_PATTERN, path)
         if prof_result_path:
             name = re.search(cls.PROF_NAME_PATTERN, prof_result_path.group(0))
             if name:
                 tokens = name.group(0).split("_")
-                if len(tokens) > 2 and tokens[2].isnumeric():
+                if len(tokens) > 3 and tokens[2].isnumeric():
                     parent_dir = pathlib.Path(prof_result_path.group(0)).parent
-                    try:
-                        check_dir_writable(str(parent_dir))
-                    except Exception as e:
-                        logging.warning(str(e))
-                        return ""
-                    platform_path = parent_dir.joinpath(cls.PLATFORM + tokens[2])
-                    if os.path.exists(platform_path):
-                        PathManager.del_dir(str(platform_path))
-                    try:
-                        os.mkdir(platform_path)
-                    except Exception as e:
-                        logging.warning("Can't create directory for the platform analysis data: %s", str(e))
-                        return ""
-                    return str(platform_path)
+                    return str(parent_dir.joinpath(cls.PLATFORM + tokens[2] + "_" + tokens[3]))
+                else:
+                    logging.warning("Invalid PROF name format, can't derive platform directory.")
         return ""
+
+    @classmethod
+    def create_platform_dir(cls: any, path: str) -> str:
+        platform_dir = cls.get_platform_dir(path)
+        if not platform_dir:
+            return ""
+        platform_path = pathlib.Path(platform_dir)
+        try:
+            check_dir_writable(str(platform_path.parent))
+        except Exception as e:
+            logging.warning(str(e))
+            return ""
+        if os.path.exists(platform_path):
+            PathManager.del_dir(str(platform_path))
+        try:
+            os.mkdir(platform_path)
+        except Exception as e:
+            logging.warning("Can't create directory for the platform analysis data: %s", str(e))
+            return ""
+        return str(platform_path)
 
     def ms_run(self: any) -> None:
         """

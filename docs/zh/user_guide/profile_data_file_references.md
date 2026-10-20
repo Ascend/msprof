@@ -19,7 +19,7 @@
         ├── msprof_{timestamp}.json
         ├── op_summary_{timestamp}.csv
         └── ...
-    PLATFORM_{timestamp}   // NUMA性能数据结果，当前用于内部可视化绘图，用户无需关注
+    PLATFORM_{timestamp}_{random_id}   // NUMA性能数据结果，当前用于内部可视化绘图，用户无需关注
     ├── platform.db
     └── metrics.csv
    ```
@@ -44,7 +44,7 @@
 
   详细介绍请参见[Text格式性能数据](#ZH-CN_TOPIC_0000002509383184)。
 
-上述PLATFORM_{timestamp}目录详细介绍请参见[PLATFORM\_{timestamp}](#ZH-CN_TOPIC_0000012509383185)。
+上述PLATFORM_{timestamp}_{random_id}目录详细介绍请参见[PLATFORM\_{timestamp}\_{random\_id}](#ZH-CN_TOPIC_0000012509383185)。
 
 ## Text格式性能数据<a name="ZH-CN_TOPIC_0000002509383184"></a>
 
@@ -2556,7 +2556,7 @@ msprof\_\*.json文件Stars Soc Info层级数据如下图所示。
 |字段名|字段含义|
 |--|--|
 |L2 Buffer Bw Level|L2 Buffer带宽等级信息。当有缓存带宽信息时，不建议参考该字段值，该字段为粗粒度的统计值。|
-|Mata Bw Level|Mata带宽等级信息。以数值从低到高表示负载程度，数值越高，负载越重，可用于观察带宽负载的变化趋势。|
+|Mata Bw Level|Mata带宽等级信息。以数值从低到高表示负载程度，数值越高，负载越重，可用于观察带宽负载的变化趋势。 <!-- codespell:ignore mata -->|
 <!-- end id63 -->
 
 <!-- npu="950,A3,910b" id64 -->
@@ -3704,7 +3704,9 @@ ub_*.csv文件内容格式示例如下：
 | UBTxPortBandWidth(MB/s) | UB当前时刻的发送带宽，单位MB/s。 |
 <!-- end id72 -->
 
-## PLATFORM_{timestamp}<a name="ZH-CN_TOPIC_0000012509383185"></a>
+## PLATFORM_{timestamp}_{random_id}<a name="ZH-CN_TOPIC_0000012509383185"></a>
+
+目录名中的 `timestamp` 和 `random_id` 分别取自所属 `PROF_<编号>_<timestamp>_<random_id>` 目录的时间戳与随机标识，用于区分同一采集时间的不同 PROF。仅当 host 原始数据中存在可解析的 NUMA 平台数据时生成此目录。历史已生成的 `PLATFORM_{timestamp}` 目录不自动迁移。
 
 当前仅包含platform.db和metrics.csv文件，其中platform.db用于内部可视化绘图无需关注，metrics.csv记录各个numa节点在各个时间段下的带宽信息。
 

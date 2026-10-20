@@ -13,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+import os
 import unittest
 from argparse import Namespace
 from unittest import mock
@@ -24,9 +25,30 @@ from common_func.profiling_scene import ExportMode, ProfilingScene
 from msinterface.msprof_import import ImportCommand
 
 NAMESPACE = 'msinterface.msprof_import'
+# PROF 目录发现逻辑已迁移至并行规划模块，目录迭代相关 patch 需指向新位置。
+PLAN_NAMESPACE = 'msinterface.prof_parallel_plan'
 
 
 class TestImportCommand(unittest.TestCase):
+    def test_all_prof_members_warns_on_metadata_error_and_keeps_other_members(self):
+        command = ImportCommand(Namespace(collection_path='root', cluster_flag=True))
+        error = PermissionError('metadata denied')
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['host', 'device_0', 'device_1']), \
+                mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', side_effect=[True, error, True]), \
+                mock.patch(NAMESPACE + '.logging.warning') as warning:
+            self.assertEqual(command._all_prof_members('prof'),
+                             (os.path.join('prof', 'host'), os.path.join('prof', 'device_1')))
+        warning.assert_called_once_with(
+            'Failed to read profiling metadata in "%s"; member excluded from memory estimation: %s',
+            os.path.join('prof', 'device_0'), error)
+
+    def test_cluster_discovery_does_not_require_prof_prefix(self):
+        command = ImportCommand(Namespace(collection_path='root', cluster_flag=True))
+        with mock.patch(NAMESPACE + '.get_path_dir', return_value=['capture_a', 'prof_lower']), \
+                mock.patch.object(command, '_dir_exception_check') as check:
+            self.assertEqual(command._get_prof_dirs(), ['capture_a', 'prof_lower'])
+        self.assertEqual(check.call_count, 3)
+
     def test_prepare_for_cluster_parse_should_prepare_root_without_loading_device_info(self):
         command = ImportCommand(Namespace(collection_path="test", cluster_flag=True))
         with mock.patch(NAMESPACE + '.os.path.exists', return_value=False), \
@@ -51,7 +73,7 @@ class TestImportCommand(unittest.TestCase):
     def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
         args = Namespace(collection_path="test", cluster_flag=False)
         command = ImportCommand(args)
-        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                         return_value=[('device_0', 'valid/device_0', True)]), \
                 mock.patch.object(command, '_start_parse') as start_parse:
             command._process_sub_dirs()
@@ -62,7 +84,7 @@ class TestImportCommand(unittest.TestCase):
     def test_process_sub_dirs_should_propagate_profiling_data_parse_error(self):
         command = ImportCommand(Namespace(collection_path="test", cluster_flag=False))
         expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
-        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                         return_value=[('device_0', 'valid/device_0', True)]), \
                 mock.patch.object(command, '_start_parse', side_effect=expected_error), \
                 self.assertRaises(ProfException) as context:
@@ -89,7 +111,7 @@ class TestImportCommand(unittest.TestCase):
             args_dic = {"collection_path": "test", "cluster_flag": False}
             args = Namespace(**args_dic)
             with mock.patch(NAMESPACE + '.ImportCommand._parse_data'), \
-                    mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                    mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                                return_value=[('host', 'host', True)]), \
                     mock.patch('os.path.join', return_value=True), \
                     mock.patch('os.path.realpath', return_value='home\\process'), \
@@ -98,7 +120,7 @@ class TestImportCommand(unittest.TestCase):
                 ChipManager().chip_id = 5
                 key = ImportCommand(args)
                 key.process()
-                with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', return_value=[]), \
+                with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', return_value=[]), \
                         mock.patch(NAMESPACE + '.warn'), \
                         mock.patch('os.listdir', return_value=['123']):
                     key = ImportCommand(args)

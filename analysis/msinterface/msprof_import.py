@@ -14,6 +14,7 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import logging
 import os
 import shutil
 
@@ -33,7 +34,10 @@ from common_func.path_manager import PathManager
 from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from msinterface.msprof_c_interface import dump_device_data
 from msinterface.msprof_cpp_pipeline import try_full_cpp_pipeline
-from msparser.cluster.cluster_info_parser import ClusterInfoParser, ClusterBasicInfo
+from msinterface.prof_parallel_plan import CommandOptions, ProfTaskCollector
+from msinterface.prof_parallel_plan import build_prof_task
+from msinterface.prof_parallel_scheduler import schedule_prof_tasks
+from msparser.cluster.cluster_info_parser import ClusterBasicInfo, ClusterInfoParser
 from msparser.cluster.cluster_step_trace_parser import ClusterStepTraceParser
 from msparser.parallel.cluster_parallel_collector import ClusterParallelCollector
 
@@ -98,39 +102,38 @@ class ImportCommand:
         if not self.valid_data_count:
             warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
 
-    def _process_sub_dirs(self: any, subdir: str = '', is_cluster: bool = False) -> None:
-        collect_path = self.collection_path
-        if subdir:
-            collect_path = os.path.join(self.collection_path, subdir)
-        path_table = {
-            StrConstant.HOST_PATH: "",
-            StrConstant.DEVICE_PATH: [],
-            "collection_path": collect_path,
-            "is_cluster": is_cluster or self.is_cluster_scene,
-        }
-        for sub_dir, valid_sub_path, contain_info_json in DataCheckManager.iter_valid_profiling_sub_paths(
-            collect_path, self.FILE_NAME, skip_invalid=is_cluster
-        ):
-            if contain_info_json:
-                if sub_dir == StrConstant.HOST_PATH:
-                    path_table[StrConstant.HOST_PATH] = valid_sub_path
-                else:
-                    path_table[StrConstant.DEVICE_PATH].append(valid_sub_path)
-            elif collect_path and is_cluster:
-                warn(
-                    self.FILE_NAME,
-                    'Invalid parsing dir(%s), -dir must be profiling data dir, such as PROF_XXX_XXX_XXX' % collect_path,
-                )
-            else:
-                self._process_sub_dirs(sub_dir, is_cluster=True)
-        self._process_data(path_table)
+    def _process_sub_dirs(self: any) -> None:
+        """采集目录级收集与调度（不限目录名前缀，仅发现当前层）。"""
+        options = self._build_command_options()
+        discovery = ProfTaskCollector(self.FILE_NAME).collect(options)
+        self.valid_data_count += discovery.valid_data_count
+        schedule_prof_tasks(
+            discovery.tasks,
+            options,
+            serial_runner=lambda task: self._execute_prof_task(task.to_path_table('import')),
+            valid_count=discovery.valid_prof_count,
+        )
 
-    def _process_data(self, path_table: dict):
+    def _build_command_options(self: any) -> CommandOptions:
+        return CommandOptions(
+            input_root=self.collection_path,
+            command='import',
+            command_type=None,
+            cluster_flag=self.is_cluster_scene,
+            export_mode=None,
+            model_id=None,
+            iteration_id=None,
+            iteration_count=0,
+            export_format=None,
+            reports_path='',
+            clear_mode=False,
+        )
+
+    def _execute_prof_task(self, path_table: dict):
+        """单个 PROF 的原执行链：计数只在父进程收集阶段进行。"""
         if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):
             warn(self.FILE_NAME, 'Can not find any host or device path in dir("%s"). ' % self.collection_path)
             return
-        self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
-        self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
         # start parse
         request = CppPipelineDecisionRequest.from_path_table(
             PipelineCommand.IMPORT,
@@ -241,9 +244,16 @@ class ImportCommand:
         print_info(
             MsProfCommonConstant.COMMON_FILE_NAME, 'Start parse unresolved dirs in "%s" ...' % self.collection_path
         )
-        path_table = {StrConstant.HOST_PATH: "", StrConstant.DEVICE_PATH: []}
+        options = self._build_command_options()
+        tasks = []
         for pro_dir, result_dir_list in unresolved_dirs.items():
             prof_path = os.path.join(self.collection_path, pro_dir)
+            path_table = {
+                StrConstant.HOST_PATH: "",
+                StrConstant.DEVICE_PATH: [],
+                "collection_path": prof_path,
+                "is_cluster": True,
+            }
             for result_dir in result_dir_list:
                 result_path = get_valid_sub_path(prof_path, result_dir, False)
                 # 统一收集合法路径 后续统一处理
@@ -251,8 +261,49 @@ class ImportCommand:
                     path_table[StrConstant.HOST_PATH] = result_path
                 else:
                     path_table[StrConstant.DEVICE_PATH].append(result_path)
-            self._process_data(path_table)
+            members = self._all_prof_members(prof_path)
+            tasks.append(
+                build_prof_task(
+                    len(tasks),
+                    prof_path,
+                    path_table[StrConstant.HOST_PATH],
+                    path_table[StrConstant.DEVICE_PATH],
+                    members,
+                    True,
+                )
+            )
+            self.valid_data_count += int(bool(path_table[StrConstant.HOST_PATH]))
+            self.valid_data_count += len(path_table[StrConstant.DEVICE_PATH])
+        valid_prof_count = len({name.split(os.sep)[0] for name in self.device_cluster_basic_info})
+        schedule_prof_tasks(
+            tasks,
+            options,
+            serial_runner=lambda task: self._execute_prof_task(task.to_path_table('import')),
+            valid_count=valid_prof_count,
+            pending_count=len(tasks),
+        )
         print_info(MsProfCommonConstant.COMMON_FILE_NAME, 'Unresolved dirs parse finished!')
+
+    def _all_prof_members(self: any, prof_path: str) -> tuple:
+        """收集 PROF 直接子级中通过 info.json 检查的成员（含 host）。
+
+        不区分成员是否已有解析产物。元数据检查发生 OSError 的成员被跳过；
+        返回值仅含已收集路径，本方法不额外标记输入不完整或数据量未知。
+        目录枚举失败则沿 get_path_dir 的原异常路径上抛。
+        """
+        members = []
+        for member_name in get_path_dir(prof_path):
+            member_path = os.path.join(prof_path, member_name)
+            try:
+                if DataCheckManager.contain_info_json_data(member_path):
+                    members.append(member_path)
+            except OSError as error:
+                logging.warning(
+                    'Failed to read profiling metadata in "%s"; member excluded from memory estimation: %s',
+                    member_path,
+                    error,
+                )
+        return tuple(members)
 
     def _prepare_for_cluster_parse(self: any) -> None:
         cluster_sqlite_path = PathManager.get_sql_dir(self.collection_path)

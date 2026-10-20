@@ -85,4 +85,9 @@ def run_in_subprocess(func, *args: any):
     """
     proc = multiprocessing.Process(target=func, args=args)
     proc.start()
-    proc.join()
+    try:
+        proc.join()
+    except KeyboardInterrupt:
+        proc.terminate()
+        proc.join()
+        raise

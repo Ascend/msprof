@@ -42,6 +42,8 @@ from profiling_bean.prof_enum.export_data_type import ExportDataType
 from sqlite.db_manager import DBManager
 
 NAMESPACE = 'msinterface.msprof_export'
+# PROF 目录发现逻辑已迁移至并行规划模块，DataCheckManager 相关 patch 需指向新位置。
+PLAN_NAMESPACE = 'msinterface.prof_parallel_plan'
 
 
 def create_trace_db():
@@ -127,15 +129,18 @@ class TestExportCommand(unittest.TestCase):
 
     def test_process_sub_dirs_should_skip_empty_tables_after_valid_child(self):
         command = ExportCommand('summary', Namespace(collection_path='test'))
-        # The valid child runs first, so the parent and empty sibling see a nonzero total.
+        # 根目录无合法成员：PROF_1 作为当前层 PROF 目录生成任务；ordinary_dir 非 PROF 前缀被忽略。
         def scan(path, *_args, **_kwargs):
             if path == command.collection_path:
-                return [('PROF_1', 'PROF_1', False), ('ordinary_dir', 'ordinary_dir', False)]
+                return [
+                    ('PROF_1', os.path.join(command.collection_path, 'PROF_1'), False),
+                    ('ordinary_dir', os.path.join(command.collection_path, 'ordinary_dir'), False),
+                ]
             if path == os.path.join(command.collection_path, 'PROF_1'):
                 return [('device_0', 'valid/device_0', True)]
             return []
 
-        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', side_effect=scan), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths', side_effect=scan), \
                 mock.patch.object(command, '_try_full_cpp_pipeline', return_value=False) as cpp_pipeline, \
                 mock.patch(NAMESPACE + '.run_in_subprocess') as worker:
             command._process_sub_dirs()
@@ -160,7 +165,7 @@ class TestExportCommand(unittest.TestCase):
     def test_process_sub_dirs_should_skip_invalid_child_and_process_valid_child(self):
         args = Namespace(collection_path="test")
         command = ExportCommand("summary", args)
-        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                         return_value=[('device_0', 'valid/device_0', True)]), \
                 mock.patch(NAMESPACE + '.run_in_subprocess') as run_in_subprocess:
             command._process_sub_dirs()
@@ -171,7 +176,7 @@ class TestExportCommand(unittest.TestCase):
     def test_process_sub_dirs_should_propagate_profiling_data_export_error(self):
         command = ExportCommand("summary", Namespace(collection_path="test"))
         expected_error = ProfException(ProfException.PROF_INVALID_DATA_ERROR)
-        with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                         return_value=[('device_0', 'valid/device_0', True)]), \
                 mock.patch(NAMESPACE + '.run_in_subprocess', side_effect=expected_error), \
                 self.assertRaises(ProfException) as context:
@@ -189,12 +194,12 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {"collection_path": "test", "iteration_id": 1, "model_id": None}
         args = Namespace(**args_dic)
         sample_config = {"llc_profiling": ""}
-        with mock.patch(NAMESPACE + ".DataCheckManager.check_data_exist", return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + ".DataCheckManager.check_data_exist", return_value=True), \
                 mock.patch(NAMESPACE + ".ConfigMgr.read_sample_config", return_value=sample_config):
             test = ExportCommand("timeline", args)
             InfoConfReader()._sample_json = {"devices": '0'}
             test._add_export_type("")
-        with mock.patch(NAMESPACE + ".DataCheckManager.check_data_exist", return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + ".DataCheckManager.check_data_exist", return_value=True), \
                 mock.patch(NAMESPACE + ".ConfigMgr.read_sample_config", return_value=sample_config):
             test = ExportCommand("summary", args)
             InfoConfReader()._sample_json = {"devices": '0'}
@@ -205,7 +210,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {'collection_path': 'test', 'iteration_id': 1, 'model_id': None}
         args = Namespace(**args_dic)
         sample_config = {'helper_profiling': ''}
-        with mock.patch(NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=sample_config), \
                 mock.patch(NAMESPACE + '.ExportCommand._is_host_export', return_value=True), \
                 mock.patch(NAMESPACE + '.AiStackDataCheckManager._is_device_exist', return_value=True), \
@@ -222,7 +227,7 @@ class TestExportCommand(unittest.TestCase):
         args = Namespace(**args_dic)
         InfoConfReader()._sample_json = {"devices": '64'}
         sample_config = {'helper_profiling': ''}
-        with mock.patch(NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=sample_config), \
                 mock.patch(NAMESPACE + '.ExportCommand._is_host_export', return_value=True), \
                 mock.patch(NAMESPACE + '.AiStackDataCheckManager._is_device_exist', return_value=True), \
@@ -237,7 +242,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {'collection_path': 'test', 'iteration_id': 1, 'model_id': None}
         args = Namespace(**args_dic)
         sample_config = {'helper_profiling': ''}
-        with mock.patch(NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=sample_config), \
                 mock.patch(NAMESPACE + '.ExportCommand._is_host_export', return_value=False), \
                 mock.patch(NAMESPACE + '.AiStackDataCheckManager._is_device_exist', return_value=True), \
@@ -253,7 +258,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {'collection_path': 'test', 'iteration_id': 1, 'model_id': None}
         args = Namespace(**args_dic)
         sample_config = {'helper_profiling': ''}
-        with mock.patch(NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=sample_config), \
                 mock.patch(NAMESPACE + '.ExportCommand._is_host_export', return_value=True), \
                 mock.patch(NAMESPACE + '.AiStackDataCheckManager._is_device_exist', return_value=False), \
@@ -269,7 +274,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {'collection_path': 'test', 'iteration_id': 1, 'model_id': None}
         args = Namespace(**args_dic)
         sample_config = {'helper_profiling': ''}
-        with mock.patch(NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
+        with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.check_data_exist', return_value=True), \
                 mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=sample_config), \
                 mock.patch(NAMESPACE + '.ExportCommand._is_host_export', return_value=True), \
                 mock.patch(NAMESPACE + '.AiStackDataCheckManager._is_device_exist', return_value=False), \
@@ -534,13 +539,14 @@ class TestExportCommand(unittest.TestCase):
         with mock.patch(NAMESPACE + '.check_path_valid'), \
                 mock.patch('common_func.data_check_manager.get_path_dir', return_value=['device_0']), \
                 mock.patch('common_func.msprof_common.check_path_valid'), \
+                mock.patch.object(ExportCommand, '_try_full_cpp_pipeline', return_value=False), \
                 mock.patch(NAMESPACE + '.run_in_subprocess'):
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
+            with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
                 test.process()
                 self.assertEqual(test.valid_data_count, 1)
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False):
+            with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=False):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
                 with mock.patch(NAMESPACE + '.warn') as warning:
@@ -572,8 +578,9 @@ class TestExportCommand(unittest.TestCase):
                 mock.patch(NAMESPACE + '.ExportCommand._start_parse'), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_calculate'), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_view') as start_view, \
+                mock.patch.object(ExportCommand, '_try_full_cpp_pipeline', return_value=False), \
                 mock.patch(NAMESPACE + '.run_in_subprocess', side_effect=lambda func, *args: func(*args)):
-            with mock.patch(NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
+            with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.contain_info_json_data', return_value=True):
                 test = ExportCommand("summary", args)
                 test.list_map["devices_list"] = ["1"]
                 test.process()
@@ -584,7 +591,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                            side_effect=[[('PROF_1', 'test/PROF_1', False)],
                                         [('device_0', 'test/PROF_1/device_0', True)]]), \
                 mock.patch(NAMESPACE + '.run_in_subprocess'), \
@@ -601,7 +608,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                            return_value=[('host', 'host', True)]), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_parse'), \
                 mock.patch(NAMESPACE + '.ExportCommand._start_calculate'), \
@@ -624,7 +631,7 @@ class TestExportCommand(unittest.TestCase):
         args_dic = {"collection_path": "test"}
         args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + '.check_path_valid'), \
-                mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+                mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                            return_value=[('host', 'host', False)]):
             # 无info_json
             test = ExportCommand("timeline", args)
@@ -635,7 +642,7 @@ class TestExportCommand(unittest.TestCase):
                 f'The path "{test.collection_path}" does not contain valid profiling data.'
             )
             self.assertEqual(test.valid_data_count, 0)
-            with mock.patch(NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
+            with mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                             return_value=[('host', 'host', True)]), \
                     mock.patch('common_func.msprof_common.prepare_log'), \
                     mock.patch('framework.file_dispatch.FileDispatch.dispatch_calculator'), \

@@ -28,7 +28,6 @@ from common_func.common import warn
 from common_func.config_mgr import ConfigMgr
 from common_func.constant import Constant
 from common_func.cpp_pipeline_decision import CppPipelineDecisionRequest
-from common_func.data_check_manager import DataCheckManager
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileManager
@@ -66,6 +65,9 @@ from msinterface.msprof_cpp_pipeline import try_full_cpp_pipeline
 from msinterface.msprof_export_data import MsProfExportDataUtils
 from msinterface.msprof_output_summary import MsprofOutputSummary
 from msinterface.msprof_timeline import MsprofTimeline
+from msinterface.prof_parallel_plan import CommandOptions
+from msinterface.prof_parallel_plan import ProfTaskCollector
+from msinterface.prof_parallel_scheduler import schedule_prof_tasks
 from msmodel.compact_info.task_track_model import TaskTrackModel
 from msmodel.step_trace.ts_track_model import TsTrackModel
 from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
@@ -698,35 +700,45 @@ class ExportCommand:
             self._cluster_params['is_cluster_scene'] = True
             self._cluster_params.setdefault('cluster_path', []).append(sub_path)
 
-    def _process_sub_dirs(self: any, sub_path: str = '', is_cluster: bool = False) -> None:
-        collect_path = self.collection_path
-        if sub_path:
-            collect_path = os.path.join(self.collection_path, sub_path)
-        path_table = {StrConstant.HOST_PATH: "", StrConstant.DEVICE_PATH: []}
-        for sub_dir, valid_sub_path, contain_info_json in DataCheckManager.iter_valid_profiling_sub_paths(
-            collect_path, self.FILE_NAME, skip_invalid=is_cluster
-        ):
-            if contain_info_json:
-                self._update_cluster_params(valid_sub_path, is_cluster)
-                # 统一收集合法路径 后续统一处理
-                if sub_dir == StrConstant.HOST_PATH:
-                    path_table[StrConstant.HOST_PATH] = valid_sub_path
-                else:
-                    path_table[StrConstant.DEVICE_PATH].append(valid_sub_path)
-                path_table.setdefault("collection_path", collect_path)
-            elif valid_sub_path and is_cluster:
-                warn(
-                    self.FILE_NAME,
-                    'Invalid parsing dir("%s"), -dir must be profiling data dir '
-                    'such as PROF_XXX_XXX_XXX' % collect_path,
-                )
-            else:
-                self._process_sub_dirs(sub_dir, is_cluster=True)
-            self.list_map['devices_list'] = ''
+    def _process_sub_dirs(self: any) -> None:
+        """采集目录级收集与调度（不限目录名前缀，仅发现当前层）。"""
+        options = self._build_command_options()
+        discovery = ProfTaskCollector(
+            self.FILE_NAME,
+            on_valid_member=self._update_cluster_params,
+        ).collect(options)
+        self.valid_data_count += discovery.valid_data_count
+        schedule_prof_tasks(
+            discovery.tasks,
+            options,
+            serial_runner=self._serial_prof_task,
+            valid_count=discovery.valid_prof_count,
+        )
+
+    def _build_command_options(self: any) -> CommandOptions:
+        return CommandOptions(
+            input_root=self.collection_path,
+            command='export',
+            command_type=self.command_type,
+            cluster_flag=False,
+            export_mode=ProfilingScene().get_mode(),
+            model_id=self.list_map.get('model_id'),
+            iteration_id=self._requested_iteration_id,
+            iteration_count=self.iteration_count,
+            export_format=self.export_format,
+            reports_path=self.reports_path,
+            clear_mode=self.clear_mode,
+        )
+
+    def _serial_prof_task(self: any, task: any) -> None:
+        """父进程串行回调：沿用原实例并按原目录循环重置临时状态。"""
+        self.list_map['devices_list'] = ''
+        self._execute_prof_task(task.to_path_table('export'))
+
+    def _execute_prof_task(self, path_table: dict) -> None:
+        """单个 PROF 的原执行块（host 平台分析 + C++ 判定 + 子进程导出）。"""
         if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):
             return
-        self.valid_data_count += bool(path_table.get(StrConstant.HOST_PATH))
-        self.valid_data_count += len(path_table.get(StrConstant.DEVICE_PATH))
         host_path = path_table.get(StrConstant.HOST_PATH)
         if host_path:
             HostPlatformAnalysis({"result_dir": host_path}).ms_run()

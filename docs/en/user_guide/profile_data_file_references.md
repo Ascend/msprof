@@ -19,7 +19,7 @@ The following example shows the structure of a profile data directory:
         ├── msprof_{timestamp}.json
         ├── op_summary_{timestamp}.csv
         └── ...
-    PLATFORM_{timestamp}   // NUMA profile data result, which is used for internal visualization. You can ignore it.
+    PLATFORM_{timestamp}_{random_id}   // NUMA profile data result, which is used for internal visualization. You can ignore it.
     ├── platform.db
     └── metrics.csv
    ```
@@ -44,7 +44,7 @@ The profile data files in the `PROF_XXX` directory are classified into the follo
 
   For details, see [Profile Data in Text Format](#en-us_TOPIC_0000002509383184).
 
-For details about the `PLATFORM_{timestamp}` directory, see [Platform Data](#en-us_TOPIC_0000012509383185).
+For details about the `PLATFORM_{timestamp}_{random_id}` directory, see [Platform Data](#en-us_TOPIC_0000012509383185).
 
 ## Profile Data in Text Format<a name="en-us_TOPIC_0000002509383184"></a>
 
@@ -2122,7 +2122,7 @@ The following figure shows data on the **Stars Soc Info** track in `msprof_*.jso
 |Field|Description|
 |--|--|
 |L2 Buffer Bw Level|L2 buffer bandwidth level information. When buffer bandwidth information is available, avoid using this field as a reference, as it provides only coarse-grained statistics.|
-|Mata Bw Level|Mata bandwidth level information. The load level is indicated by a numerical value in ascending order. A higher value indicates a heavier load. This can be used to analyze the change trend of bandwidth load.|
+|Mata Bw Level|Mata bandwidth level information. The load level is indicated by a numerical value in ascending order. A higher value indicates a heavier load. This can be used to analyze the change trend of bandwidth load. <!-- codespell:ignore mata -->|
 
 #### Stars Chip Trans (Inter-Chip Transmission Bandwidth Information)<a name="EN-US_TOPIC_0000002477303258"></a>
 
@@ -2947,7 +2947,9 @@ The following example shows the content format of `ub_*.csv`.
 | UBRxPortBandWidth(MB/s) | UB RX bandwidth at the current time (MB/s)|
 | UBTxPortBandWidth(MB/s) | UB TX bandwidth at the current time (MB/s)|
 
-## PLATFORM_{timestamp}<a name="en-us_TOPIC_0000012509383185"></a>
+## PLATFORM_{timestamp}_{random_id}<a name="en-us_TOPIC_0000012509383185"></a>
+
+The `timestamp` and `random_id` fields come from the corresponding `PROF_<number>_<timestamp>_<random_id>` directory. The random identifier separates outputs for different PROF directories with the same timestamp. This directory is generated only when the host raw data contains parseable NUMA platform data. Existing `PLATFORM_{timestamp}` directories are not automatically migrated.
 
 Currently, only the `platform.db` and `metrics.csv` files are included. The `platform.db` file is used for internal visualization and can be ignored. The `metrics.csv` file records the bandwidth information of each NUMA node in each time segment.
 
