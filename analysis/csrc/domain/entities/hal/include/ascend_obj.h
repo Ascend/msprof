@@ -49,7 +49,6 @@ struct OpDesc
     std::shared_ptr<ParserCompactInfo> nodeAttr = nullptr;
     std::shared_ptr<ParserCompactInfo> runtimeTrackDesc = nullptr;
     std::shared_ptr<ParserConcatTensorInfo> tensorDesc = nullptr;
-    std::shared_ptr<ParserAdditionalInfo> ctxId = nullptr;
 };
 
 // 通信小算子描述信息

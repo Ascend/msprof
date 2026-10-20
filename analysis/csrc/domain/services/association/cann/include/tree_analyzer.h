@@ -115,7 +115,7 @@ class TreeAnalyzer
     // 获取其他节点的信息
     std::shared_ptr<HostTask> GetOtherTaskDesc(const std::shared_ptr<TreeNode> &node);
     // 获取算子信息，key为OpName + timeStamp
-    ComputeOpDescs GetComputeOpDescs(const std::shared_ptr<TreeNode> &nodeNode, bool useCtxId);
+    ComputeOpDescs GetComputeOpDescs(const std::shared_ptr<TreeNode> &nodeNode);
     // 获取TreeNode中指定EventType的Records
     std::vector<std::shared_ptr<Event>> GetNodeRecordsByType(const std::shared_ptr<TreeNode> &node,
                                                              const EventType &type);
@@ -137,7 +137,7 @@ class TreeAnalyzer
                                           int64_t connectionId);
     // 根据输入参数生成HostTask数组
     HostTasks GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<ParserCompactInfo> &track,
-                                  int64_t connectionId);
+                                  int64_t connectionId, uint32_t ctxId);
 
     void UpdateComputeDescForFftsSituation(ComputeOpDescs &descs, const std::shared_ptr<Event> &track);
     void UpdateComputeDescForHcclSituation(ComputeOpDescs &descs, const std::shared_ptr<Event> &track,

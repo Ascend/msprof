@@ -154,9 +154,8 @@ void TreeBuilder::MultiThreadAddLevelEvents()
     auto contextIdEvents = cannWarehouse_->contextIdEvents;
     auto hcclInfoEvents = cannWarehouse_->hcclInfoEvents;
     auto hcclOpInfoEvents = cannWarehouse_->hcclOpInfoEvents;
-    auto ctxIdPair = GroupCtxIdEvents(contextIdEvents);
-    auto nodeCtxIdEvents = ctxIdPair.first;
-    auto hcclCtxIdEvents = ctxIdPair.second;
+    // 计算类算子不再依赖 context_id_info，仅 HCCL 层使用
+    auto hcclCtxIdEvents = FilterHcclCtxIdEvents(contextIdEvents);
 
     // 2. 向核心树的对应Level的TreeNode添加附加Event
     // 多线程添加，每一个Level一个线程
@@ -170,12 +169,11 @@ void TreeBuilder::MultiThreadAddLevelEvents()
 
     // Node Level
     pool.AddTask(
-        [this, &nodeCtxIdEvents, &tensorInfoEvents, &nodeBasicInfoEvents, &nodeAttrInfoEvents, &hcclOpInfoEvents]()
+        [this, &tensorInfoEvents, &nodeBasicInfoEvents, &nodeAttrInfoEvents, &hcclOpInfoEvents]()
         {
             AddLevelEvents(nodeBasicInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_BASIC_INFO);
             AddLevelEvents(nodeAttrInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_NODE_ATTR_INFO);
             AddLevelEvents(tensorInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_TENSOR_INFO);
-            AddLevelEvents(nodeCtxIdEvents, nodeLevelNodes_, EventType::EVENT_TYPE_CONTEXT_ID);
             AddLevelEvents(hcclOpInfoEvents, nodeLevelNodes_, EventType::EVENT_TYPE_HCCL_OP_INFO);
         });
 
@@ -214,33 +212,26 @@ std::shared_ptr<TreeNode> TreeBuilder::GenerateRoot()
     return rootNode;
 }
 
-// 将ctxIdEvents按Level分为Node和HCCL层
-EventQueuePair TreeBuilder::GroupCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdEvents)
+// 计算类算子不再消费 context_id_info，仅保留 HCCL 层的 ctx 事件
+std::shared_ptr<EventQueue> TreeBuilder::FilterHcclCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdEvents)
 {
     uint64_t ctxIdSize = 0;
     if (ctxIdEvents)
     {
         ctxIdSize = ctxIdEvents->GetSize();
     }
-    std::shared_ptr<EventQueue> nodeCtxIdEvent;
-    MAKE_SHARED_RETURN_VALUE(nodeCtxIdEvent, EventQueue, {}, threadId_, ctxIdSize);
     std::shared_ptr<EventQueue> hcclCtxIdEvent;
     MAKE_SHARED_RETURN_VALUE(hcclCtxIdEvent, EventQueue, {}, threadId_, ctxIdSize);
 
     while (ctxIdEvents && !ctxIdEvents->Empty())
     {
         auto ctxId = ctxIdEvents->Pop();
-        if (ctxId->info.level == MSPROF_REPORT_NODE_LEVEL)
-        {
-            nodeCtxIdEvent->Push(ctxId);
-        }
-        else if (ctxId->info.level == MSPROF_REPORT_HCCL_NODE_LEVEL)
+        if (ctxId->info.level == MSPROF_REPORT_HCCL_NODE_LEVEL)
         {
             hcclCtxIdEvent->Push(ctxId);
         }
     }
-
-    return std::make_pair(nodeCtxIdEvent, hcclCtxIdEvent);
+    return hcclCtxIdEvent;
 }
 
 size_t TreeBuilder::GetEventOffset(size_t idx, std::shared_ptr<Event> &event,

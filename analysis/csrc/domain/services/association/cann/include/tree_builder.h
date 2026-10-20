@@ -72,8 +72,8 @@ class TreeBuilder
    private:
     // 建树核心逻辑
     std::shared_ptr<TreeNode> BuildTree(std::shared_ptr<TreeNode>, int depth);
-    // 将ctxIdEvents按Level分为Node和HCCL层
-    EventQueuePair GroupCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdEvents);
+    // 过滤出 HCCL 层的 ctxIdEvents（计算类算子不再消费 context_id_info）
+    std::shared_ptr<EventQueue> FilterHcclCtxIdEvents(std::shared_ptr<EventQueue> &ctxIdEvents);
     // 建树时记录各个Level的TreeNode
     void RecordTreeNode(const std::shared_ptr<TreeNode> &treeNode, const uint16_t &eventLevel);
     std::shared_ptr<TreeNode> GenerateRoot();

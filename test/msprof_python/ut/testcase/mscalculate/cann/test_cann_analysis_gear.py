@@ -352,7 +352,8 @@ class TestCANNAnalysisGear(unittest.TestCase):
 
         self.assertTrue(
             DBManager.check_item_in_table(PathManager.get_db_path(self.PROF_HOST_DIR, DBNameConstant.DB_GE_INFO),
-                                          DBNameConstant.TABLE_GE_TASK, 'context_id', 8))
+                                          DBNameConstant.TABLE_GE_TASK, 'context_id',
+                                          NumberConstant.DEFAULT_GE_CONTEXT_ID))
 
         self.assertEqual(
             DBManager.get_table_data_count(PathManager.get_db_path(self.PROF_HOST_DIR, DBNameConstant.DB_HCCL),
@@ -507,7 +508,7 @@ class TestTaskGear(TestCANNAnalysisGear):
         ids = gear.get_context_ids(call_stack, "KERNEL_AICORE")
         self.assertEqual(ids, str(NumberConstant.DEFAULT_GE_CONTEXT_ID))
 
-    def test_get_context_ids_should_return_valid_ids_when_node_contains_single_context_ids(self):
+    def test_get_context_ids_should_ignore_node_context_ids_when_node_contains_single_context_ids(self):
         gear = TaskGear("")
         node_event = Event.invalid_event()
         node_event.struct_type = "1"
@@ -520,9 +521,9 @@ class TestTaskGear(TestCANNAnalysisGear):
         node_event.additional_record = [addition_info1, addition_info2]
         call_stack = {Constant.NODE_LEVEL: node_event, Constant.HCCL_LEVEL: Event.invalid_event()}
         ids = gear.get_context_ids(call_stack, "KERNEL_AICORE")
-        self.assertEqual(ids, f"1,2,{str(NumberConstant.DEFAULT_GE_CONTEXT_ID)}")
+        self.assertEqual(ids, str(NumberConstant.DEFAULT_GE_CONTEXT_ID))
 
-    def test_get_context_ids_should_return_valid_ids_when_node_contains_mutil_context_ids(self):
+    def test_get_context_ids_should_ignore_node_context_ids_when_node_contains_mutil_context_ids(self):
         gear = TaskGear("")
         node_event = Event.invalid_event()
         node_event.struct_type = "1"
@@ -535,9 +536,9 @@ class TestTaskGear(TestCANNAnalysisGear):
         node_event.additional_record = [addition_info1, addition_info2]
         call_stack = {Constant.NODE_LEVEL: node_event, Constant.HCCL_LEVEL: Event.invalid_event()}
         ids = gear.get_context_ids(call_stack, "KERNEL_AICORE")
-        self.assertEqual(ids, f"1,2,3,4,{str(NumberConstant.DEFAULT_GE_CONTEXT_ID)}")
+        self.assertEqual(ids, str(NumberConstant.DEFAULT_GE_CONTEXT_ID))
 
-    def test_get_context_ids_should_return_valid_ids_when_node_contains_mutil_context_ids_hccl_contains_context(self):
+    def test_get_context_ids_should_ignore_node_context_ids_when_hccl_contains_context(self):
         gear = TaskGear("")
         node_event = Event.invalid_event()
         node_event.struct_type = "1"
@@ -558,7 +559,7 @@ class TestTaskGear(TestCANNAnalysisGear):
 
         call_stack = {Constant.NODE_LEVEL: node_event, Constant.HCCL_LEVEL: hccl_event}
         ids = gear.get_context_ids(call_stack, "KERNEL_AICORE")
-        self.assertEqual(ids, f"1,2,3,4,5,6,7,8,{str(NumberConstant.DEFAULT_GE_CONTEXT_ID)}")
+        self.assertEqual(ids, f"5,6,7,8,{str(NumberConstant.DEFAULT_GE_CONTEXT_ID)}")
 
     def test_get_context_ids_should_return_empty_when_hccl_context_ids_length_is_not_2(self):
         gear = TaskGear("")

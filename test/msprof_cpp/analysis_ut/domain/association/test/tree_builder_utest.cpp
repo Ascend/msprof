@@ -368,12 +368,12 @@ TEST_F(TreeBuilderUTest, TestBuildTreeShouldBuildCorrectTreeWhenCANNWarehouseNot
         "[FusionOpInfo200_200] Dummy210_210 [TaskTrack210_210] ",  // 第二层
         "Api110_130 [NodeBasicInfo115_115] [NodeBasicInfo115_115] [NodeBasicInfo130_130] "
         "[NodeAttrInfo115_115] [NodeAttrInfo115_115] [NodeAttrInfo130_130] "
-        "[TensorInfo113_113] [TensorInfo130_130] [ContextId130_130] "
+        "[TensorInfo113_113] [TensorInfo130_130] "
         "[HcclOpInfo115_115] [HcclOpInfo115_115] [HcclOpInfo130_130] Api150_170 [NodeBasicInfo155_155] "
         "[NodeBasicInfo160_160] [NodeBasicInfo170_170] "
         "[NodeAttrInfo155_155] [NodeAttrInfo160_160] [NodeAttrInfo170_170] "
         "[TensorInfo151_151] [TensorInfo152_152] "
-        "[TensorInfo170_170] [ContextId151_151] [ContextId170_170] "
+        "[TensorInfo170_170] "
         "[HcclOpInfo155_155] [HcclOpInfo160_160] [HcclOpInfo170_170] Api175_180 Dummy175_175 "
         "[TaskTrack175_175] Dummy190_190 [TaskTrack190_190] ", // 第三层
         "Api115_125 [ContextId117_117] [ContextId125_125] [HcclInfo120_120] "

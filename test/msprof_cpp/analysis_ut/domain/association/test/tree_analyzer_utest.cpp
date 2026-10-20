@@ -719,13 +719,13 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario2L0)
     auto geFusionOpInfos = ana->GetGeFusionOpInfos();
 
     std::vector<uint64_t> expectComputeTaskTimes{110, 120, 168, 1300, 1320};
-    std::vector<uint64_t> expectComputeTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, 0, 0, 0};
+    std::vector<uint64_t> expectComputeTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, 0, 0};
     std::vector<uint64_t> expectHcclTaskTimes{220, 220, 220, 330, 330, 330};
-    // 多出的一个220，一个330分别标识ffts+大任务, 多出的一个168标识MIX算子
-    std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 168, 220, 220, 220, 220,
+    // 多出的一个220，一个330分别标识ffts+大任务
+    std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 220, 220, 220, 220,
                                           330, 330, 330, 330, 1300, 1320};
-    // DEFAULT_CONTEXT_ID分别代表一个tk,
-    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 0, 1, 1, 2, 2, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+    // DEFAULT_CONTEXT_ID分别代表一个tk
+    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 1, 1, 2, 2, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     const uint64_t expectbigOPsNum = 2;
@@ -849,14 +849,14 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario2L2)
     auto geFusionOpInfos = ana->GetGeFusionOpInfos();
 
     std::vector<uint64_t> expectComputeTaskTimes{110, 120, 168, 1300, 1320};
-    std::vector<uint64_t> expectComputeTaskCtxIds{0, 0, 0, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
+    std::vector<uint64_t> expectComputeTaskCtxIds{0, 0, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     std::vector<uint64_t> expectHcclTaskTimes{220, 220, 220, 330, 330, 330};
     std::vector<uint64_t> expectHcclTaskCtxIds{0, 0, 1, 1, 2, 2};
-    // 多出的一个220，一个330分别标识ffts+大任务, 多出的一个168标识MIX算子
-    std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 168, 220, 220, 220, 220, 330, 330, 330, 330,
+    // 多出的一个220，一个330分别标识ffts+大任务
+    std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 220, 220, 220, 220, 330, 330, 330, 330,
                                           850, 1300, 1320};
-    // DEFAULT_CONTEXT_ID分别代表一个tk,
-    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 0, 1, 1, 2, 2,
+    // DEFAULT_CONTEXT_ID分别代表一个tk
+    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 1, 1, 2, 2,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
@@ -958,7 +958,7 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerGenComputeHostTasks)
     auto ana = GetAnalyzerForScenarioEmptyPath();
     std::unordered_map<std::string, std::shared_ptr<Operator>> ops{};
 
-    HostTasks ht = ana -> GenComputeHostTasks(ops, nullptr, 0);
+    HostTasks ht = ana -> GenComputeHostTasks(ops, nullptr, 0, DEFAULT_CONTEXT_ID);
     EXPECT_EQ(ht, HostTasks{});
 }
 

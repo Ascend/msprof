@@ -268,7 +268,6 @@ class TaskGear(CANNGear):
     KERNEL_MIX_AIC = "KERNEL_MIX_AIC"
     KERNEL_MIX_AIV = "KERNEL_MIX_AIV"
     KERNEL_SIMT = "KERNEL_SIMT"
-    CONTEXT_ID_WHITE_LIST = [KERNEL_AICORE, KERNEL_AIVEC, KERNEL_FFTS_PLUS_TASK_TYPE, KERNEL_MIX_AIC, KERNEL_MIX_AIV]
     RTS_TASK_TYPE_MAP = {
         KERNEL_AICORE: GeTaskType.AI_CORE.name,
         KERNEL_AIVEC: GeTaskType.AI_VECTOR_CORE.name,
@@ -356,16 +355,6 @@ class TaskGear(CANNGear):
         return mem_cpy_info_dto, task_track_dtos
 
     @classmethod
-    def get_context_ids_in_node(cls: any, node_event: Event) -> list:
-        if node_event.is_invalid():
-            return []
-        ids = []
-        for record in node_event.additional_record:
-            if isinstance(record.dto, CtxIdDto):
-                ids.append(record.dto.ctx_id)
-        return ids
-
-    @classmethod
     def get_context_ids_in_hccl(cls: any, hccl_event: Event) -> list:
         if hccl_event.is_invalid():
             return []
@@ -383,13 +372,23 @@ class TaskGear(CANNGear):
         return ids
 
     @classmethod
+    def get_compute_context_id(cls: any, task_type: str) -> int:
+        """
+        计算类算子的 context id：mix 类固定为 0，其余使用默认值；
+        不再依赖 context_id_info 附加信息（该数据仅 HCCL 层使用）。
+        """
+        mapped_type = cls.RTS_TASK_TYPE_MAP.get(task_type, task_type)
+        if mapped_type in [GeTaskType.MIX_AIC.name, GeTaskType.MIX_AIV.name] and not ChipManager().is_chip_v6():
+            return 0
+        return cls.INVALID_CONTEXT_ID
+
+    @classmethod
     def get_context_ids(cls, call_stack: dict, task_type: str) -> str:
         default_ids = [str(NumberConstant.DEFAULT_GE_CONTEXT_ID)]
         if task_type in [cls.KERNEL_MIX_AIC, cls.KERNEL_MIX_AIV]:
             default_ids.append("0")
-        node_context_ids = cls.get_context_ids_in_node(call_stack.get(Constant.NODE_LEVEL))
         hccl_context_ids = cls.get_context_ids_in_hccl(call_stack.get(Constant.HCCL_LEVEL))
-        context_ids = list(OrderedDict.fromkeys(node_context_ids + hccl_context_ids + default_ids))
+        context_ids = list(OrderedDict.fromkeys(hccl_context_ids + default_ids))
 
         return ",".join(context_ids)
 
@@ -451,12 +450,12 @@ class TaskGear(CANNGear):
 
         model_id = self.get_model_id(task_track_dto, model_dto)
         request_id = model_dto.request_id if model_dto.request_id is not None else -1
-        # 根据task type是否在白名单内对context_ids和connection_id进行处理，以应对Node@Launch下有多个Task的问题
-        # 对于在白名单内的task正常生成context_ids，反之使用对应的默认值
-        if task_track_dto.task_type in self.CONTEXT_ID_WHITE_LIST and not ChipManager().is_chip_v6():
+        # 只有 HCCL 任务仍使用 context_id_info；计算类算子不再依赖该附加信息
+        hccl_event: Event = call_stack.get(Constant.HCCL_LEVEL)
+        if self.is_hccl_task(hccl_event, task_track_dto):
             context_ids = self.get_context_ids(call_stack, task_track_dto.task_type)
         else:
-            context_ids = str(NumberConstant.DEFAULT_GE_CONTEXT_ID)
+            context_ids = str(self.get_compute_context_id(task_track_dto.task_type))
 
         connection_id = Constant.DEFAULT_INVALID_VALUE
         if node_dto.connection_id is not None:
@@ -700,8 +699,9 @@ class TaskGear(CANNGear):
         request_id = model_info[1]
         tensor_info_dto: TensorInfoDto = node_desc.tensor_info
         has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0
+        # 计算类算子不再依赖 context_id_info：mix 类为 0，其余为默认上下文；ctx_info 仅用于取 op_name
         ctx_id_dto: CtxIdDto = node_desc.ctx_info
-        cxt_ids = str(ctx_id_dto.ctx_id).split(',')
+        cxt_ids = [str(self.get_compute_context_id(add_dto.task_type))]
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
         op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
         task_type = Constant.NA
@@ -752,7 +752,9 @@ class TaskGear(CANNGear):
         tensor_info_dto: TensorInfoDto = node_desc.tensor_info
         ctx_id_dto: CtxIdDto = node_desc.ctx_info
         node_attr_info: NodeAttrInfoDto = node_desc.node_attr_info
-        cxt_ids = str(ctx_id_dto.ctx_id).split(',')
+        # 计算类算子不再依赖 context_id_info：mix 类为 0，其余为默认上下文；ctx_info 仅用于取 op_name
+        ctx_id_dto: CtxIdDto = node_desc.ctx_info
+        cxt_ids = [str(self.get_compute_context_id(node_basic_info_dto.task_type or add_dto.task_type))]
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
         op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
         task_type = node_basic_info_dto.task_type
@@ -805,8 +807,8 @@ class TaskGear(CANNGear):
         request_id = model_info[1]
         tensor_info_dto: TensorInfoDto = node_desc.tensor_info
         has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0
-        ctx_id_dto: CtxIdDto = node_desc.ctx_info
-        cxt_ids = str(ctx_id_dto.ctx_id).split(',')
+        # 计算类算子不再依赖 context_id_info：mix 类为 0，其余为默认上下文
+        cxt_ids = [str(self.get_compute_context_id(add_dto.task_type))]
         op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, node_dto.item_id)
         op_type = op_name
         task_type = self.RTS_TASK_TYPE_MAP.get(add_dto.task_type, add_dto.task_type)
@@ -862,11 +864,8 @@ class TaskGear(CANNGear):
             op_name = rts_trk.kernel_name
 
         request_id = -1
-        context_id = (
-            0
-            if (task_type in [GeTaskType.MIX_AIC.name, GeTaskType.MIX_AIV.name] and not ChipManager().is_chip_v6())
-            else self.INVALID_CONTEXT_ID
-        )  # op_flag在level0 或者无补充信息时填NA
+        # 计算类算子不再依赖 context_id_info：mix 类为 0，其余为默认上下文
+        context_id = self.get_compute_context_id(task_type)  # op_flag在level0 或者无补充信息时填NA
         op_flag = Constant.NA if (is_level0 or not op_info.is_valid) else ("YES" if op_info.op_flag else "NO")
 
         if is_level0:

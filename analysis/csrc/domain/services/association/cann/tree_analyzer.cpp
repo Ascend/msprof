@@ -69,10 +69,6 @@ const std::string KERNEL_MIX_AIC_TASK_TYPE = "KERNEL_MIX_AIC";
 const std::string KERNEL_MIX_AIV_TASK_TYPE = "KERNEL_MIX_AIV";
 const std::string KERNEL_AI_CPU_TASK_TYPE = "KERNEL_AICPU";
 
-const std::set<std::string> CONTEXT_ID_WHITE_LIST = {
-    KERNEL_AI_CORE_TASK_TYPE,   KERNEL_AI_VECTOR_CORE_TASK_TYPE,
-    KERNEL_FFTS_PLUS_TASK_TYPE, Analysis::Common::KERNEL_SIMT_TASK_TYPE,
-    KERNEL_MIX_AIC_TASK_TYPE,   KERNEL_MIX_AIV_TASK_TYPE};
 const std::set<std::string> KERNEL_COMPUTE_WHITE_LIST = {
     KERNEL_AI_CORE_TASK_TYPE, KERNEL_AI_VECTOR_CORE_TASK_TYPE,
     KERNEL_AI_CPU_TASK_TYPE,  Analysis::Common::KERNEL_SIMT_TASK_TYPE,
@@ -397,11 +393,11 @@ std::shared_ptr<HostTask> TreeAnalyzer::GenHostTask(const std::shared_ptr<Parser
 }
 
 HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shared_ptr<ParserCompactInfo> &track,
-                                            int64_t connectionId)
+                                            int64_t connectionId, uint32_t ctxId)
 {
     auto modelNode = path_.find(MSPROF_REPORT_MODEL_LEVEL) != path_.end() ? path_[MSPROF_REPORT_MODEL_LEVEL] : nullptr;
     auto modelApi = modelNode == nullptr ? nullptr : modelNode->event->apiPtr;
-    // L0场景没有上报Node层补充信息且该任务非ctx类任务
+    // L0场景没有上报Node层补充信息
     if (ops.empty())
     {
         // 补充一条有效的Op信息
@@ -416,8 +412,7 @@ HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shar
         desc->runtimeTrackDesc = track;
         MAKE_SHARED_RETURN_VALUE(op, Operator, {}, desc, nodeNode->event->apiPtr->itemId, OpType::OPTYPE_COMPUTE);
         auto taskTypeVal = track->data.runtimeTrack.taskType;
-        auto task =
-            GenHostTask(track, modelApi, op, DEFAULT_CONTEXT_ID, static_cast<uint16_t>(taskTypeVal), connectionId);
+        auto task = GenHostTask(track, modelApi, op, ctxId, static_cast<uint16_t>(taskTypeVal), connectionId);
         return (task != nullptr) ? HostTasks{task} : HostTasks{};
     }
 
@@ -433,26 +428,11 @@ HostTasks TreeAnalyzer::GenComputeHostTasks(ComputeOpDescs &ops, const std::shar
             continue;
         }
 
-        std::vector<uint32_t> ctxIds;
-        // 只有FFTS+类型应该保留CtxId
-        if (desc->ctxId && !IsChipV6())
-        {
-            auto ctxIdInfo = desc->ctxId->contextIdInfo;
-            ctxIds.assign(ctxIdInfo.ctxIds, ctxIdInfo.ctxIds + ctxIdInfo.ctxIdNum);
-        }
-        else
-        {
-            ctxIds = {DEFAULT_CONTEXT_ID};
-        }
         desc->runtimeTrackDesc = track;
-        for (const auto &ctxId : ctxIds)
+        auto task = GenHostTask(track, modelApi, pair.second, ctxId, static_cast<uint16_t>(taskTypeVal), connectionId);
+        if (task)
         {
-            auto task =
-                GenHostTask(track, modelApi, pair.second, ctxId, static_cast<uint16_t>(taskTypeVal), connectionId);
-            if (task)
-            {
-                results.emplace_back(task);
-            }
+            results.emplace_back(task);
         }
     }
     return results;
@@ -564,8 +544,10 @@ HostTasks TreeAnalyzer::GetComputeTaskDescs(const std::shared_ptr<TreeNode> &nod
     auto track = tracks.back()->compactPtr;
     auto taskTypeVal = track->data.runtimeTrack.taskType;
     std::string type = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
-    bool useCtxId = CONTEXT_ID_WHITE_LIST.find(type) != CONTEXT_ID_WHITE_LIST.end();
-    ComputeOpDescs ops = GetComputeOpDescs(nodeNode, useCtxId);
+    // 计算类算子不再依赖 context_id 附加信息：mix 类使用 0，其余使用默认上下文
+    uint32_t ctxId =
+        (type == KERNEL_MIX_AIC_TASK_TYPE || type == KERNEL_MIX_AIV_TASK_TYPE) && !IsChipV6() ? 0 : DEFAULT_CONTEXT_ID;
+    ComputeOpDescs ops = GetComputeOpDescs(nodeNode);
     // 特殊场景，刷新算子描述
     UpdateComputeDescForFftsSituation(ops, tracks.back());
     if (IsHcclTask())
@@ -585,7 +567,7 @@ HostTasks TreeAnalyzer::GetComputeTaskDescs(const std::shared_ptr<TreeNode> &nod
         BindLaunchItemIdWhenReferToKernelName(ops, nodeNode->event->apiPtr->itemId);
     }
 
-    auto results = GenComputeHostTasks(ops, track, nodeNode->event->id);
+    auto results = GenComputeHostTasks(ops, track, nodeNode->event->id, ctxId);
     return results;
 }
 
@@ -659,7 +641,7 @@ std::shared_ptr<HostTask> TreeAnalyzer::GetOtherTaskDesc(const std::shared_ptr<T
     return task;
 }
 
-ComputeOpDescs TreeAnalyzer::GetComputeOpDescs(const std::shared_ptr<TreeNode> &nodeNode, bool useCtxId)
+ComputeOpDescs TreeAnalyzer::GetComputeOpDescs(const std::shared_ptr<TreeNode> &nodeNode)
 {
     ComputeOpDescs opDescs;
     if (!nodeNode)
@@ -690,36 +672,19 @@ ComputeOpDescs TreeAnalyzer::GetComputeOpDescs(const std::shared_ptr<TreeNode> &
             UpdateComputeOpDescs<ParserConcatTensorInfo, &OpDesc::tensorDesc>(opDescs, trace, trace->opName,
                                                                               nodeNode->event->id);
         }
-        else if (record->info.type == EventType::EVENT_TYPE_CONTEXT_ID)
-        {
-            if (!useCtxId)
-            {
-                continue;
-            }
-            std::shared_ptr<ParserAdditionalInfo> trace;
-            MAKE_SHARED_RETURN_VALUE(trace, ParserAdditionalInfo, opDescs, *(record->additionPtr));
-            auto ctxIdNode = trace->contextIdInfo;
-            UpdateComputeOpDescs<ParserAdditionalInfo, &OpDesc::ctxId>(opDescs, trace, ctxIdNode.opName,
-                                                                       nodeNode->event->id);
-        }
         else if (record->info.type == EventType::EVENT_TYPE_HCCL_OP_INFO)
         {
+            continue;
+        }
+        else if (record->info.type == EventType::EVENT_TYPE_CONTEXT_ID)
+        {
+            // 计算类算子不再消费 context_id_info（仅 HCCL 层使用，见 GetHcclSmallOpDescs）
             continue;
         }
         else
         {
             ERROR("Unsupported additional type = %, threadId = %", static_cast<uint16_t>(record->info.type), threadId_);
         }
-    }
-    if (!GetNodeRecordsByType(nodeNode, EventType::EVENT_TYPE_CONTEXT_ID).empty())
-    {
-        std::shared_ptr<OpDesc> desc;
-        MAKE_SHARED_RETURN_VALUE(desc, OpDesc, {});
-        std::shared_ptr<Operator> op;
-        // 层次太深，参数传递过于复杂，逃生通道，用opType区分是否为占位的任务（标记ffts+任务群对应的大任务）
-        MAKE_SHARED_RETURN_VALUE(op, Operator, {}, desc, PLACEHOLDER_OP_NAME, OpType::OPTYPE_INVALID);
-        auto name = Utils::Join("_", std::to_string(PLACEHOLDER_OP_NAME), std::to_string(UINT64_MAX));
-        opDescs.insert({name, op});
     }
     return opDescs;
 }

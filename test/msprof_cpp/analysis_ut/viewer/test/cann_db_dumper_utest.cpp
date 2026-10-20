@@ -92,7 +92,6 @@ class CannDBDumperUtest : public testing::Test
         kernelDesc->nodeDesc = std::make_shared<ParserCompactInfo>();
         kernelDesc->nodeDesc->data.nodeBasicInfo = msprofNodeBasicInfo;
         kernelDesc->nodeDesc->data.nodeAttrInfo = msprofNodeAttrInfo;
-        kernelDesc->ctxId = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
         auto kernelOp = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
         kernelTask->op = kernelOp;
         std::shared_ptr<HostTask> computeTaskPointer = kernelTask;
@@ -152,7 +151,6 @@ class CannDBDumperUtest : public testing::Test
                 runtimeTrackDesc->data.runtimeTrack.kernelInfo.ratio = ratio;
             }
             kernelDesc->runtimeTrackDesc = runtimeTrackDesc;
-            kernelDesc->ctxId = std::make_shared<ParserAdditionalInfo>(ParserAdditionalInfo{});
             kernelTask->op = std::make_shared<Operator>(kernelDesc, 0, OpType::OPTYPE_COMPUTE);
             kernelTasks->push_back(std::make_shared<HostTask>(*kernelTask));
         };
