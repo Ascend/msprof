@@ -332,6 +332,10 @@ const TableColumns RoceReceiveSend = {{"device_id", SQL_INTEGER_TYPE},
                                       {"tx_dropped_rate", SQL_REAL_TYPE},
                                       {"func_id", SQL_INTEGER_TYPE}};
 
+const TableColumns HBMOriginalData = {{"device_id", SQL_INTEGER_TYPE}, {"replayid", SQL_INTEGER_TYPE},
+                                      {"timestamp", SQL_REAL_TYPE},    {"counts", SQL_INTEGER_TYPE},
+                                      {"event_type", SQL_TEXT_TYPE},   {"hbmid", SQL_INTEGER_TYPE}};
+
 const TableColumns HBMbwData = {{"device_id", SQL_INTEGER_TYPE},
                                 {"timestamp", SQL_REAL_TYPE},
                                 {"bandwidth", SQL_REAL_TYPE},
@@ -567,14 +571,15 @@ const TableColumns MemcpyInfo = {
     {"memcpy_direction", SQL_NUMERIC_TYPE},
 };
 
-const TableColumns NetDevStats = {{"timestamp", SQL_INTEGER_TYPE},        {"mac_tx_pfc_pkt", SQL_INTEGER_TYPE},
-                                  {"mac_rx_pfc_pkt", SQL_INTEGER_TYPE},   {"mac_tx_total_oct", SQL_INTEGER_TYPE},
-                                  {"mac_rx_total_oct", SQL_INTEGER_TYPE}, {"mac_tx_bad_oct", SQL_INTEGER_TYPE},
-                                  {"mac_rx_bad_oct", SQL_INTEGER_TYPE},   {"roce_tx_all_pkt", SQL_INTEGER_TYPE},
-                                  {"roce_rx_all_pkt", SQL_INTEGER_TYPE},  {"roce_tx_err_pkt", SQL_INTEGER_TYPE},
-                                  {"roce_rx_err_pkt", SQL_INTEGER_TYPE},  {"roce_tx_cnp_pkt", SQL_INTEGER_TYPE},
-                                  {"roce_rx_cnp_pkt", SQL_INTEGER_TYPE},  {"roce_new_pkt_rty", SQL_INTEGER_TYPE},
-                                  {"nic_tx_all_oct", SQL_INTEGER_TYPE},   {"nic_rx_all_oct", SQL_INTEGER_TYPE}};
+const TableColumns NetDevStats = {{"device_id", SQL_INTEGER_TYPE},        {"timestamp", SQL_INTEGER_TYPE},
+                                  {"mac_tx_pfc_pkt", SQL_INTEGER_TYPE},   {"mac_rx_pfc_pkt", SQL_INTEGER_TYPE},
+                                  {"mac_tx_total_oct", SQL_INTEGER_TYPE}, {"mac_rx_total_oct", SQL_INTEGER_TYPE},
+                                  {"mac_tx_bad_oct", SQL_INTEGER_TYPE},   {"mac_rx_bad_oct", SQL_INTEGER_TYPE},
+                                  {"roce_tx_all_pkt", SQL_INTEGER_TYPE},  {"roce_rx_all_pkt", SQL_INTEGER_TYPE},
+                                  {"roce_tx_err_pkt", SQL_INTEGER_TYPE},  {"roce_rx_err_pkt", SQL_INTEGER_TYPE},
+                                  {"roce_tx_cnp_pkt", SQL_INTEGER_TYPE},  {"roce_rx_cnp_pkt", SQL_INTEGER_TYPE},
+                                  {"roce_new_pkt_rty", SQL_INTEGER_TYPE}, {"nic_tx_all_oct", SQL_INTEGER_TYPE},
+                                  {"nic_rx_all_oct", SQL_INTEGER_TYPE}};
 
 const TableColumns OpReport = {
     {"op_type", SQL_TEXT_TYPE},       {"core_type", SQL_TEXT_TYPE}, {"occurrences", SQL_TEXT_TYPE},
@@ -892,6 +897,7 @@ RoceReceiveSendDB::RoceReceiveSendDB()
 HBMDB::HBMDB()
 {
     dbName_ = "hbm.db";
+    tableColNames_["HBMOriginalData"] = HBMOriginalData;
     tableColNames_["HBMbwData"] = HBMbwData;
 }
 

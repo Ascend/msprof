@@ -138,6 +138,9 @@ struct SampleInfo
     // llc
     std::string llcProfiling;
 
+    // hbm sample info
+    std::string hbmProfilingEvents;
+
     SampleInfo() : aiCoreProfilingEvents(DEFAULT_PMU_LENGTH), aivProfilingEvents(DEFAULT_PMU_LENGTH) {}
 };
 

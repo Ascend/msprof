@@ -36,7 +36,9 @@ const std::vector<std::string> DATA_ASSEMBLE_LIST{
     PROCESSOR_OP_SUMMARY,      PROCESSOR_NAME_COMM_STATISTIC, PROCESSOR_NAME_OP_STATISTIC,
     PROCESSOR_NAME_NPU_MEM,    PROCESSOR_NAME_NPU_MODULE_MEM, PROCESSOR_NAME_API,
     PROCESSOR_NAME_FUSION_OP,  PROCESSOR_TASK_TIME_SUMMARY,   PROCESSOR_NAME_STEP_TRACE,
-    PROCESSOR_NAME_PAGE_FAULT, PROCESSOR_NAME_AICPU};
+    PROCESSOR_NAME_PAGE_FAULT, PROCESSOR_NAME_AICPU,
+    // PROCESSOR_NAME_HBM,  // 暂由 Python 导出 HBM summary。
+};
 
 const std::unordered_map<std::string, std::string> SUMMARY_DELIVERABLES{
     {"op_summary", PROCESSOR_OP_SUMMARY},
@@ -52,6 +54,7 @@ const std::unordered_map<std::string, std::string> SUMMARY_DELIVERABLES{
     {"aicpu", PROCESSOR_NAME_AICPU},
     {"dp", PROCESSOR_NAME_AICPU},
     {"aicpu_mi", PROCESSOR_NAME_AICPU},
+    // {"hbm", PROCESSOR_NAME_HBM},  // 暂不声明 HBM summary 的 C++ 导出能力。
 };
 
 }  // namespace

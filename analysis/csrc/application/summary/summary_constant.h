@@ -43,6 +43,7 @@ const std::string PAGE_FAULT_NAME = "page_fault";
 const std::string AICPU_NAME = "aicpu";
 const std::string AICPU_DP_NAME = "dp";
 const std::string AICPU_MI_NAME = "aicpu_mi";
+const std::string HBM_SUMMARY_NAME = "hbm";
 
 const std::string SUMMARY_SUFFIX = ".csv";
 const std::string SLICE = "slice";

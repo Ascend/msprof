@@ -188,7 +188,13 @@ uint32_t Parser::ReadDataEntry(const DeviceContext &deviceContext)
 uint32_t Parser::ProcessEntry(DataInventory &dataInventory, const Infra::Context &context)
 {
     const DeviceContext &deviceContext = static_cast<const DeviceContext &>(context);
-    uint32_t code = this->ReadDataEntry(deviceContext);
+    uint32_t code = this->Prepare(deviceContext);
+    if (code != Analysis::ANALYSIS_OK)
+    {
+        ERROR("Prepare parser error: %", code);
+        return Analysis::PARSER_GET_FILE_ERROR;
+    }
+    code = this->ReadDataEntry(deviceContext);
     if (code != Analysis::ANALYSIS_OK)
     {
         ERROR("ReadData error: %", code);

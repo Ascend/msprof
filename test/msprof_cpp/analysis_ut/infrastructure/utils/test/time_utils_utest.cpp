@@ -81,3 +81,11 @@ TEST_F(TimeUtilsUTest, TestGetDurTimeFromSyscntShouldReturnTimestamp)
     uint64_t expectRes = 366650;
     EXPECT_EQ(expectRes, GetDurTimeFromSyscnt(sysCnt, params).Uint64());
 }
+
+TEST_F(TimeUtilsUTest, ShouldComposeSamplingTimeAndLocalTime)
+{
+    auto hostTime = GetTimeBySamplingTimestamp(123456.5, 200000, 100000);
+    EXPECT_EQ("223456.5", hostTime.Str());
+    ProfTimeRecord record{1000000, 0, 500000};
+    EXPECT_EQ("723456.5", GetLocalTime(hostTime, record).Str());
+}

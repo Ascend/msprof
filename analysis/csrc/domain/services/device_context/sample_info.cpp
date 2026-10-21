@@ -168,6 +168,7 @@ struct adl_serializer<SampleInfo>
         std::string profLevel = jsonData.value("profLevel", "l0");
         std::string profLevelHisi = jsonData.value("prof_level", "level0");
         infoData.isLevel0 = (profLevel == "l0" && profLevelHisi == "level0");  // 同时为level0时说明是level0
+        infoData.hbmProfilingEvents = jsonData.value("hbm_profiling_events", "");
     }
 };
 

@@ -17,6 +17,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/track DEVIC
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq DEVICE_PERSISTENCE_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context DEVICE_PERSISTENCE_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/hbm DEVICE_PERSISTENCE_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/netdev_stats DEVICE_PERSISTENCE_SOURCE)
 
 list(APPEND DEVICE_PERSISTENCE_SOURCE
     ${TOP_DIR}/analysis/csrc/domain/services/parser/log/stars_soc_profile_parser.cpp

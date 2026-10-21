@@ -70,5 +70,30 @@ TEST_F(DeviceInfoUTest, TestGetInfoJsonShouldReturnFalseWhenInfoJsonInvalid)
     deviceContext.deviceContextInfo = deviceContextInfo;
     EXPECT_FALSE(deviceContext.GetInfoJson());
 }
+
+TEST_F(DeviceInfoUTest, TestGetInfoJsonShouldLoadCollectionVersion)
+{
+    const std::string validDeviceDir = "./device_version";
+    ASSERT_TRUE(File::CreateDir(validDeviceDir));
+    nlohmann::json info = {
+        {"version", "2.0"},
+        {"platform_version", "5"},
+        {"devices", "0"},
+        {"DeviceInfo", {{{"hwts_frequency", "49.000000"},
+                          {"aic_frequency", "1850"},
+                          {"aiv_frequency", "1850"},
+                          {"ai_core_num", 25},
+                          {"aiv_num", 25}}}}
+    };
+    FileWriter writer(File::PathJoin({validDeviceDir, INFO_JSON}));
+    writer.WriteText(info.dump());
+    writer.Close();
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = validDeviceDir;
+
+    EXPECT_TRUE(context.GetInfoJson());
+    EXPECT_EQ("2.0", context.GetCollectionVersion());
+    EXPECT_TRUE(File::RemoveDir(validDeviceDir, 0));
+}
 }  // Domain
 }  // Analysis

@@ -134,6 +134,7 @@ TEST_F(DeviceContextUTest, ShouldReadCollectionVersionOneFromInfoJson)
 
     ASSERT_TRUE(context.GetInfoJson());
     EXPECT_EQ("1.0", context.deviceContextInfo.deviceInfo.collectionVersion);
+    EXPECT_EQ("1.0", context.GetCollectionVersion());
 }
 
 TEST_F(DeviceContextUTest, ShouldReadCollectionVersionTwoFromInfoJson)
@@ -145,6 +146,7 @@ TEST_F(DeviceContextUTest, ShouldReadCollectionVersionTwoFromInfoJson)
 
     ASSERT_TRUE(context.GetInfoJson());
     EXPECT_EQ("2.0", context.deviceContextInfo.deviceInfo.collectionVersion);
+    EXPECT_EQ("2.0", context.GetCollectionVersion());
 }
 
 TEST_F(DeviceContextUTest, ShouldMarkCollectionVersionUnavailableWhenInfoJsonOmitsVersion)
@@ -156,6 +158,7 @@ TEST_F(DeviceContextUTest, ShouldMarkCollectionVersionUnavailableWhenInfoJsonOmi
 
     ASSERT_TRUE(context.GetInfoJson());
     EXPECT_EQ("N/A", context.deviceContextInfo.deviceInfo.collectionVersion);
+    EXPECT_EQ("N/A", context.GetCollectionVersion());
 }
 
 TEST_F(DeviceContextUTest, ShouldReadLlcReadModeFromSampleJson)
@@ -256,6 +259,36 @@ TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldCreateSqliteDirForEachDev
     // 断言的是 DeviceContextEntry(PROF_DIR, "").size() == 1。留着 device_1 会让那条
     // 用例只能靠 gtest 的声明顺序侥幸通过，一旦 shuffle 或调整顺序就会失败。
     File::RemoveDir(device1, 0);
+}
+
+TEST_F(DeviceContextUTest, TestGetSampleJsonShouldLoadHbmProfilingEvents)
+{
+    const std::string sampleDir = "./device_sample";
+    ASSERT_TRUE(File::CreateDir(sampleDir));
+    nlohmann::json sample = {
+        {"ai_core_profiling", "off"},
+        {"ai_core_metrics", "PipeUtilization"},
+        {"ai_core_profiling_events", ""},
+        {"ai_core_profiling_mode", "task-based"},
+        {"aicore_sampling_interval", 10},
+        {"aiv_profiling", "off"},
+        {"aiv_metrics", "PipeUtilization"},
+        {"aiv_profiling_events", ""},
+        {"aiv_profiling_mode", "task-based"},
+        {"aiv_sampling_interval", 10},
+        {"hbm_profiling_events", "read"}
+    };
+    FileWriter writer(File::PathJoin({sampleDir, SAMPLE_JSON}));
+    writer.WriteText(sample.dump());
+    writer.Close();
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = sampleDir;
+
+    ASSERT_TRUE(context.GetSampleJson());
+    SampleInfo sampleInfo;
+    context.Getter(sampleInfo);
+    EXPECT_EQ("read", sampleInfo.hbmProfilingEvents);
+    EXPECT_TRUE(File::RemoveDir(sampleDir, 0));
 }
 
 }  // Domain

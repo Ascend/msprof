@@ -7,6 +7,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/process DEVICE_PARS
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/adapter DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/hbm DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/netdev_stats DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/log DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pmu DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/track DEVICE_PARSER_SOURCE)
@@ -31,6 +33,8 @@ list(APPEND DEVICE_PARSER_SOURCE
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/persistence_utils.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/qos_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/ub_persistence.cpp
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/hbm_persistence.cpp
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/netdev_stats_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/npu_mem_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/npu_module_mem_persistence.cpp
 )

@@ -207,6 +207,8 @@ class ConfigDataParsers:
             "InterSocParser",
             "SioParser",
             "StarsChipTransParser",
+            # "ParsingHBMData",  # 暂不启用 C++ 解析，保留 Python parser。
+            # "NetDevStatsParser",  # 暂不启用 C++ 解析，保留 Python parser。
         ]:
             return True
         return False

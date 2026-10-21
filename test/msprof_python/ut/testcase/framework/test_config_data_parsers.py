@@ -132,6 +132,25 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("AscendTaskCalculator")
         self.assertTrue(ret)
 
+    def test_hbm_and_netdev_should_remain_python_owned_until_cpp_is_enabled(self):
+        for chip in ChipModel:
+            with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
+                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingHBMData"))
+                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NetDevStatsParser"))
+
+    def test_get_parsers_should_keep_hbm_and_netdev_when_device_cpp_is_enabled(self):
+        with mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
+                mock.patch.object(ChipManager(), "chip_id", ChipModel.CHIP_V4_1_0), \
+                mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
+                mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=True), \
+                mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
+                mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True):
+            parser_names = self._parser_names(ConfigDataParsers.get_parsers(
+                ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V4_1_0.value), True))
+        self.assertIn("ParsingHBMData", parser_names)
+        self.assertIn("NetDevStatsParser", parser_names)
+        self.assertNotIn("FreqParser", parser_names)
+
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_tstrack_parser(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser")
@@ -148,6 +167,11 @@ class TestConfigDataParsers(unittest.TestCase):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NpuMemParser")
         self.assertFalse(ret)
+
+    def test_load_can_cpp_parse_or_calculate_device_data_should_keep_chip_gate(self):
+        ChipManager().chip_id = ChipModel.CHIP_V3_3_0
+        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingHBMData"))
+        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NetDevStatsParser"))
 
     def test_llc_and_pcie_should_not_enter_cpp_skip_list_even_for_existing_chip_five_gate(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
