@@ -16,10 +16,17 @@
  * -------------------------------------------------------------------------
  */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include <cerrno>
+#include <memory>
+#include <tuple>
+#include <vector>
+
 #include "analysis/csrc/domain/services/host_worker/host_trace_worker.h"
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
+#include "securec.h"
 
 using namespace Analysis::Domain;
 using namespace Analysis::Utils;
@@ -31,11 +38,13 @@ using namespace Analysis::Domain::Host::Cann;
 // 写成 "./" 会把 sqlite 目录落到工作区里。
 const std::string TEST_HOST_FILE_PATH = "./host_trace_host";
 
-class HostTraceWorkerUtest : public testing::Test {
-protected:
+class HostTraceWorkerUtest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
-        if (File::Exist(TEST_HOST_FILE_PATH)) {
+        if (File::Exist(TEST_HOST_FILE_PATH))
+        {
             File::RemoveDir(TEST_HOST_FILE_PATH, 0);
         }
         File::CreateDir(TEST_HOST_FILE_PATH);
@@ -44,12 +53,12 @@ protected:
     virtual void TearDown()
     {
         GlobalMockObject::verify();
-        if (File::Exist(TEST_HOST_FILE_PATH)) {
+        if (File::Exist(TEST_HOST_FILE_PATH))
+        {
             File::RemoveDir(TEST_HOST_FILE_PATH, 0);
         }
     }
 };
-
 
 TEST_F(HostTraceWorkerUtest, TestKernelHostTraceWorkerShouldReturnTrueWhenInputDirIsEmpty)
 {
@@ -66,4 +75,59 @@ TEST_F(HostTraceWorkerUtest, TestKernelHostTraceWorkerShouldReturnTrueWhenGroupR
     MOCKER_CPP(&EventGrouper::GetGroupEvents).stubs().will(returnValue(mockWarehouses));
     auto ret = hostTraceWorker.Run();
     EXPECT_EQ(ret, true);
+}
+
+TEST_F(HostTraceWorkerUtest, GeZeroPhysicalStreamsDoNotCreateDatabase)
+{
+    auto grouper = std::make_shared<EventGrouper>(TEST_HOST_FILE_PATH);
+    auto info = std::make_shared<ParserAdditionalInfo>();
+    *info = {};
+    info->data[0] = 7;
+    grouper->GetDumpWarehouse().logicStreamInfoData.emplace_back(info);
+    HostTraceWorker worker(TEST_HOST_FILE_PATH);
+    ThreadPool pool(1);
+    pool.Start();
+    worker.DumpGeLogicStream(pool, grouper);
+    pool.WaitAllTasks();
+    pool.Stop();
+    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_logic_stream_info.db"})));
+}
+
+TEST_F(HostTraceWorkerUtest, GePopulatedRowsDumpWithoutPlatformFiltering)
+{
+    ASSERT_TRUE(File::CreateDir(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite"})));
+    auto grouper = std::make_shared<EventGrouper>(TEST_HOST_FILE_PATH);
+    auto info = std::make_shared<ParserAdditionalInfo>();
+    const uint32_t payload[] = {7, 1, 100};
+    *info = {};
+    ASSERT_EQ(EOK, memcpy_s(info->data, sizeof(info->data), payload, sizeof(payload)));
+    grouper->GetDumpWarehouse().logicStreamInfoData.emplace_back(info);
+    HostTraceWorker worker(TEST_HOST_FILE_PATH);
+    ThreadPool pool(1);
+    pool.Start();
+    worker.DumpGeLogicStream(pool, grouper);
+    pool.WaitAllTasks();
+    pool.Stop();
+    Analysis::Infra::DBRunner runner(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_logic_stream_info.db"}));
+    std::vector<std::tuple<uint32_t, uint32_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT physic_stream, logic_stream FROM GeLogicStreamInfo", rows));
+    ASSERT_EQ(1U, rows.size());
+    EXPECT_EQ(100U, std::get<0>(rows.front()));
+    EXPECT_EQ(7U, std::get<1>(rows.front()));
+}
+
+TEST_F(HostTraceWorkerUtest, GeInvalidPhysicalCountDoesNotCreateDatabase)
+{
+    auto grouper = std::make_shared<EventGrouper>(TEST_HOST_FILE_PATH);
+    auto info = std::make_shared<ParserAdditionalInfo>();
+    *info = {};
+    info->logicStreamInfo.physicStreamNum = GE_LOGIC_STREAM_PHYSIC_SLOT + 1;
+    grouper->GetDumpWarehouse().logicStreamInfoData.emplace_back(info);
+    HostTraceWorker worker(TEST_HOST_FILE_PATH);
+    ThreadPool pool(1);
+    pool.Start();
+    worker.DumpGeLogicStream(pool, grouper);
+    pool.WaitAllTasks();
+    pool.Stop();
+    EXPECT_FALSE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_logic_stream_info.db"})));
 }

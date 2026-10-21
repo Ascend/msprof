@@ -351,6 +351,48 @@ struct ParserHcclInfo
     uint32_t reserve2;
 };
 
+constexpr uint16_t DPU_HCCL_TRACK_DEVICE_ID_MASK = 0xFFFU;
+constexpr uint32_t GE_LOGIC_STREAM_PHYSIC_SLOT = 56;
+
+// DPU HCCL additional payload
+struct ParserDpuHcclInfo
+{
+    uint64_t itemId;
+    uint64_t cclTag;
+    uint64_t groupName;
+    uint32_t localRank;
+    uint32_t remoteRank;
+    uint32_t rankSize;
+    uint32_t stage;
+    uint64_t notifyId;
+    uint64_t startTime;
+    uint64_t durationEstimated;
+    uint64_t srcAddr;
+    uint64_t dstAddr;
+    uint64_t dataSize;
+    uint32_t taskId;
+    uint32_t aicpuTaskId;
+    uint16_t streamId;
+    uint16_t planeId;
+    uint16_t npuDeviceId;
+    uint16_t filed24;
+    uint8_t opType;
+    uint8_t dataType;
+    uint8_t linkType;
+    uint8_t transportType;
+    uint8_t rdmaType;
+    uint8_t role;
+    uint8_t workFlowMode;
+    uint8_t reserved;
+};
+
+struct ParserLogicStreamInfo
+{
+    uint32_t logicStreamId;
+    uint32_t physicStreamNum;
+    uint32_t physicStreamIds[GE_LOGIC_STREAM_PHYSIC_SLOT];
+};
+
 struct ParserMultiThread
 {
     uint32_t threadNum;
@@ -544,6 +586,8 @@ struct ParserAdditionalInfo
     union
     {
         uint8_t data[MSPROF_ADDITIONAL_INFO_DATA_LENGTH];
+        ParserDpuHcclInfo dpuHcclInfo;
+        ParserLogicStreamInfo logicStreamInfo;
         ParserAicpuNodeAdditionalData aicpuNode;
         ParserAicpuDpAdditionalData aicpuDp;
         ParserAicpuModelAdditionalData aicpuModel;

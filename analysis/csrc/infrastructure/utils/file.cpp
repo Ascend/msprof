@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <set>
 #include <unordered_map>
@@ -400,8 +401,33 @@ int FileReader::ReadBinary(std::stringstream &ss)
         ERROR("File '%' not open.", path_);
         return ANALYSIS_ERROR;
     }
+    inStream_.clear();
     inStream_.seekg(0, std::ios::beg);
-    ss << inStream_.rdbuf();
+    if (inStream_.fail())
+    {
+        ERROR("Seek file '%' failed.", path_);
+        return ANALYSIS_ERROR;
+    }
+    std::array<char, 4096> buffer{};
+    while (inStream_)
+    {
+        inStream_.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        const auto count = inStream_.gcount();
+        if (count > 0)
+        {
+            ss.write(buffer.data(), count);
+            if (ss.fail())
+            {
+                ERROR("Read binary file '%' failed.", path_);
+                return ANALYSIS_ERROR;
+            }
+        }
+    }
+    if (inStream_.bad() || (!inStream_.eof() && inStream_.fail()) || ss.fail())
+    {
+        ERROR("Read binary file '%' failed.", path_);
+        return ANALYSIS_ERROR;
+    }
     return ANALYSIS_OK;
 }
 

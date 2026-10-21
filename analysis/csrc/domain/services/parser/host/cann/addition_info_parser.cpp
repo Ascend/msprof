@@ -23,6 +23,7 @@
 
 #include "analysis/csrc/domain/services/adapter/parser_struct_adapter.h"
 #include "analysis/csrc/domain/services/parser/host/cann/tensor_desc_formatter.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
@@ -126,6 +127,24 @@ int AdditionInfoParser::ProduceData()
 }
 
 bool AdditionInfoParser::IsDataValid(const MsprofAdditionalInfo &) const { return true; }
+
+int LogicStreamInfoParser::ProduceData()
+{
+    const auto status = AdditionInfoParser::ProduceData();
+    if (status != ANALYSIS_OK)
+    {
+        return status;
+    }
+    for (const auto &info : additionalData_)
+    {
+        if (info->logicStreamInfo.physicStreamNum > GE_LOGIC_STREAM_PHYSIC_SLOT)
+        {
+            ERROR("%: Invalid physical stream count, batch rejected.", parserName_);
+            return ANALYSIS_ERROR;
+        }
+    }
+    return ANALYSIS_OK;
+}
 
 bool TaskMemoryParser::IsDataValid(const MsprofAdditionalInfo &additionalInfo) const
 {

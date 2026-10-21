@@ -291,6 +291,13 @@ bool ParserAdditionalInfoAdapter::AdapterAdditionalInfo(MsprofAdditionalInfo* ad
         case AdditionalInfoFormat::CCU_GROUP_INFO_TYPE:
             AdapterCcuGroupInfo(addition, parsed);
             return true;
+        case AdditionalInfoFormat::ADDITIONAL_INFO_TYPE:
+            if (memcpy_s(parsed->data, sizeof(parsed->data), addition->data, sizeof(addition->data)) != EOK)
+            {
+                ERROR("Copy additional info payload failed.");
+                return false;
+            }
+            return true;
         default:
             ERROR("Unsupported Additional Info: %.", static_cast<uint32_t>(parserType));
             return false;

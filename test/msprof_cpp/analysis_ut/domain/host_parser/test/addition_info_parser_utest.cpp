@@ -16,13 +16,17 @@
  * -------------------------------------------------------------------------
  */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
+#include <cerrno>
 #include <string>
+#include <vector>
 
 #include "analysis/csrc/domain/services/parser/host/cann/addition_info_parser.h"
+#include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/parser_struct.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
+#include "securec.h"
 #include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 
 using namespace Analysis::Domain;
@@ -36,7 +40,8 @@ const uint32_t TENSOR_NUM_TO_CONCAT = 3;
 const std::string TASK_MEMORY_DATA_DIR = "./task_memory_addition_parser_test";
 const std::string STATIC_OP_MEM_DATA_DIR = "./static_op_mem_addition_parser_test";
 
-namespace {
+namespace
+{
 std::string MakeTaskMemoryRecord(uint16_t magic, uint64_t operatorId, uint64_t addr = 1, int64_t size = 1,
                                  uint64_t timestamp = 100, uint32_t dataLen = sizeof(MsprofMemoryInfo))
 {
@@ -90,16 +95,12 @@ void WriteStaticOpMemFile(const std::string &fileName, const std::string &conten
 }
 }  // namespace
 
-class AdditionInfoParserUTest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
+class AdditionInfoParserUTest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { GlobalMockObject::verify(); }
 
-    virtual void TearDown()
-    {
-    }
+    virtual void TearDown() {}
 
     static void SetUpTestCase()
     {
@@ -110,10 +111,7 @@ protected:
         GenTensorData(MSPROF_REPORT_NODE_LEVEL, TENSOR_NUM_TO_CONCAT);
     }
 
-    static void TearDownTestCase()
-    {
-        EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0));
-    }
+    static void TearDownTestCase() { EXPECT_TRUE(File::RemoveDir(DATA_DIR, 0)); }
 
     /* GenAdditionalInfoData数据构造：
      1. 生成(aging/unaging)的additional二进制数据文件，包括fusion_op_info，graph_id_map，context_id_info和hccl_info。
@@ -127,19 +125,24 @@ protected:
         std::vector<MsprofAdditionalInfo> agingTraces;
         std::vector<MsprofAdditionalInfo> unAgingTraces;
         const uint32_t dataLen = 8;
-        for (uint32_t i = 0; i < DATA_NUM; ++i) {
+        for (uint32_t i = 0; i < DATA_NUM; ++i)
+        {
             MsprofAdditionalInfo info{};
             info.level = level;
             info.type = static_cast<uint32_t>(type);
             info.threadId = i;
             info.dataLen = dataLen;
             info.timeStamp = DATA_NUM + i;
-            if (i >= DATA_NUM - invalidDataNum) {
+            if (i >= DATA_NUM - invalidDataNum)
+            {
                 info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
             }
-            if (i * 2 < DATA_NUM) {  // agingTraces和unAgingTraces各生成DATA_NUM / 2个数据
+            if (i * 2 < DATA_NUM)
+            {  // agingTraces和unAgingTraces各生成DATA_NUM / 2个数据
                 unAgingTraces.emplace_back(info);
-            } else {
+            }
+            else
+            {
                 agingTraces.emplace_back(info);
             }
         }
@@ -161,7 +164,8 @@ protected:
      1. unaging和aging文件中，tensor_info数据的读取
      2. 设置invalidDataNum，验证无效数据的处理
      3. 多条tensor数据合成一个ConcatTensorInfo数据，tensorNum相加
-     4. 多条tensor数据合并，单个tensor_info中tensor数量小于5，汇总后tensorNum>=20的情况也可以正常合并，不丢弃剩余tensor信息
+     4.
+     多条tensor数据合并，单个tensor_info中tensor数量小于5，汇总后tensorNum>=20的情况也可以正常合并，不丢弃剩余tensor信息
      5. 文件切片，其中需要合并的tensor数据会分布在两个文件中(slice_0的尾部和slice_1的头部) */
     static void GenTensorData(uint16_t level, uint32_t concatTensorNum, uint16_t invalidDataNum = 0,
                               uint32_t tensorNum = MSPROF_GE_TENSOR_DATA_NUM)
@@ -169,22 +173,27 @@ protected:
         const uint32_t dataLen = 8;
         std::vector<MsprofAdditionalInfo> agingTraces;
         std::vector<MsprofAdditionalInfo> unAgingTraces;
-        for (uint32_t i = 0; i < TENSOR_DATA_NUM; ++i) {
+        for (uint32_t i = 0; i < TENSOR_DATA_NUM; ++i)
+        {
             MsprofAdditionalInfo info{};
             info.level = level;
             info.type = static_cast<uint32_t>(EventType::EVENT_TYPE_TENSOR_INFO);
             info.threadId = i / concatTensorNum;
             info.dataLen = dataLen;
             info.timeStamp = TENSOR_DATA_NUM + i / concatTensorNum;
-            if (i >= TENSOR_DATA_NUM - invalidDataNum) {
+            if (i >= TENSOR_DATA_NUM - invalidDataNum)
+            {
                 info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM + 1;
             }
-            auto tensorInfo = ReinterpretConvert<MsprofTensorInfo*>(info.data);
+            auto tensorInfo = ReinterpretConvert<MsprofTensorInfo *>(info.data);
             tensorInfo->opName = i / concatTensorNum + 1;
             tensorInfo->tensorNum = tensorNum;
-            if (i * 2 < TENSOR_DATA_NUM) {  // agingTraces和unAgingTraces各生成TENSOR_DATA_NUM / 2个数据
+            if (i * 2 < TENSOR_DATA_NUM)
+            {  // agingTraces和unAgingTraces各生成TENSOR_DATA_NUM / 2个数据
                 unAgingTraces.emplace_back(info);
-            } else {
+            }
+            else
+            {
                 agingTraces.emplace_back(info);
             }
         }
@@ -193,12 +202,13 @@ protected:
         fakeGen->WriteBin<MsprofAdditionalInfo>(agingTraces, EventType::EVENT_TYPE_TENSOR_INFO, true);
     }
 
-    static void Check(const std::vector<std::shared_ptr<ParserAdditionalInfo>> &data,
-                      EventType type, uint16_t level, uint16_t dataNum)
+    static void Check(const std::vector<std::shared_ptr<ParserAdditionalInfo>> &data, EventType type, uint16_t level,
+                      uint16_t dataNum)
     {
         ASSERT_EQ(dataNum, data.size());
         const uint32_t dataLen = 8;
-        for (size_t i = 0; i < dataNum; ++i) {
+        for (size_t i = 0; i < dataNum; ++i)
+        {
             EXPECT_EQ(MSPROF_DATA_HEAD_MAGIC_NUM, data[i]->magicNumber);
             EXPECT_EQ(level, data[i]->level);
             EXPECT_EQ(static_cast<uint32_t>(type), data[i]->type);
@@ -209,30 +219,20 @@ protected:
     }
 };
 
-class TaskMemoryParserUTest : public testing::Test {
-protected:
-    void SetUp() override
-    {
-        File::CreateDir(TASK_MEMORY_DATA_DIR);
-    }
+class TaskMemoryParserUTest : public testing::Test
+{
+   protected:
+    void SetUp() override { File::CreateDir(TASK_MEMORY_DATA_DIR); }
 
-    void TearDown() override
-    {
-        File::RemoveDir(TASK_MEMORY_DATA_DIR, 0);
-    }
+    void TearDown() override { File::RemoveDir(TASK_MEMORY_DATA_DIR, 0); }
 };
 
-class StaticOpMemParserUTest : public testing::Test {
-protected:
-    void SetUp() override
-    {
-        File::CreateDir(STATIC_OP_MEM_DATA_DIR);
-    }
+class StaticOpMemParserUTest : public testing::Test
+{
+   protected:
+    void SetUp() override { File::CreateDir(STATIC_OP_MEM_DATA_DIR); }
 
-    void TearDown() override
-    {
-        File::RemoveDir(STATIC_OP_MEM_DATA_DIR, 0);
-    }
+    void TearDown() override { File::RemoveDir(STATIC_OP_MEM_DATA_DIR, 0); }
 };
 
 TEST_F(AdditionInfoParserUTest, TestCtxIdParserShouldReturn30DataWhenParseSuccess)
@@ -253,8 +253,7 @@ TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmp
 
 TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
 {
-    MOCKER_CPP(&ChunkGenerator::Pop).stubs()
-        .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
+    MOCKER_CPP(&ChunkGenerator::Pop).stubs().will(returnValue(static_cast<CHAR_PTR>(nullptr)));
     auto parser = std::make_shared<CtxIdParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserAdditionalInfo>();
     EXPECT_EQ(0, data.size());
@@ -271,7 +270,8 @@ TEST_F(AdditionInfoParserUTest, TestAdditionInfoParserProduceDataShouldReturn29D
 
 TEST_F(AdditionInfoParserUTest, TestFusionOpInfoParserShouldReturn30DataWhenParseSuccess)
 {
-    auto parser = std::make_shared<FusionOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto parser =
+        std::make_shared<FusionOpInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserAdditionalInfo>();
     Check(data, EventType::EVENT_TYPE_FUSION_OP_INFO, MSPROF_REPORT_NODE_LEVEL, DATA_NUM);
 }
@@ -292,12 +292,14 @@ TEST_F(AdditionInfoParserUTest, TestHcclInfoParserShouldReturn30DataWhenParseSuc
 
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserShouldReturn6000ConcatTensorInfoDataWhenParseSuccess)
 {
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto parser =
+        std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto concatTensorInfo = parser->ParseData<ParserConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint32_t dataNum = TENSOR_DATA_NUM / TENSOR_NUM_TO_CONCAT;
     ASSERT_EQ(dataNum, concatTensorInfo.size());
-    for (size_t i = 0; i < dataNum; ++i) {
+    for (size_t i = 0; i < dataNum; ++i)
+    {
         EXPECT_EQ(MSPROF_DATA_HEAD_MAGIC_NUM, concatTensorInfo[i]->magicNumber);
         EXPECT_EQ(MSPROF_REPORT_NODE_LEVEL, concatTensorInfo[i]->level);
         EXPECT_EQ(static_cast<uint32_t>(EventType::EVENT_TYPE_TENSOR_INFO), concatTensorInfo[i]->type);
@@ -309,7 +311,8 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserShouldReturn6000ConcatTensor
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenReserveFailed)
 {
     MOCKER_CPP(&Reserve<std::shared_ptr<ParserConcatTensorInfo>>).stubs().will(returnValue(false));
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto parser =
+        std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserConcatTensorInfo>();
     EXPECT_EQ(0, data.size());
     MOCKER_CPP(&Reserve<std::shared_ptr<ParserConcatTensorInfo>>).reset();
@@ -317,9 +320,9 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmpty
 
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmptyWhenPopNullptr)
 {
-    MOCKER_CPP(&ChunkGenerator::Pop).stubs()
-        .will(returnValue(static_cast<CHAR_PTR>(nullptr)));
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    MOCKER_CPP(&ChunkGenerator::Pop).stubs().will(returnValue(static_cast<CHAR_PTR>(nullptr)));
+    auto parser =
+        std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserConcatTensorInfo>();
     EXPECT_EQ(0, data.size());
 }
@@ -327,12 +330,14 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturnEmpty
 TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturn6000DataWhen1DataIsInvalid)
 {
     GenTensorData(MSPROF_REPORT_NODE_LEVEL, TENSOR_NUM_TO_CONCAT, 1);
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto parser =
+        std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint32_t dataNum = TENSOR_DATA_NUM / TENSOR_NUM_TO_CONCAT;
     ASSERT_EQ(dataNum, data.size());
-    for (size_t i = 0; i < dataNum; ++i) {
+    for (size_t i = 0; i < dataNum; ++i)
+    {
         EXPECT_EQ(MSPROF_DATA_HEAD_MAGIC_NUM, data[i]->magicNumber);
         EXPECT_EQ(MSPROF_REPORT_NODE_LEVEL, data[i]->level);
         EXPECT_EQ(static_cast<uint32_t>(EventType::EVENT_TYPE_TENSOR_INFO), data[i]->type);
@@ -345,12 +350,14 @@ TEST_F(AdditionInfoParserUTest, TestTensorInfoParserProduceDataShouldReturn3600D
     uint32_t concatTensorNum = 8;
     uint32_t geTensorNum = 3;
     GenTensorData(MSPROF_REPORT_NODE_LEVEL, concatTensorNum, 0, geTensorNum);
-    auto parser = std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
+    auto parser =
+        std::make_shared<TensorInfoParser>(File::PathJoin(std::vector<std::string>{DATA_DIR, "host", "data"}));
     auto data = parser->ParseData<ParserConcatTensorInfo>();
     const uint32_t dataLen = 8;
     const uint16_t dataNum = TENSOR_DATA_NUM / concatTensorNum;
     ASSERT_EQ(dataNum, data.size());
-    for (size_t i = 0; i < dataNum; ++i) {
+    for (size_t i = 0; i < dataNum; ++i)
+    {
         EXPECT_EQ(MSPROF_DATA_HEAD_MAGIC_NUM, data[i]->magicNumber);
         EXPECT_EQ(MSPROF_REPORT_NODE_LEVEL, data[i]->level);
         EXPECT_EQ(static_cast<uint32_t>(EventType::EVENT_TYPE_TENSOR_INFO), data[i]->type);
@@ -372,9 +379,8 @@ TEST_F(TaskMemoryParserUTest, ParseShouldDiscardInvalidRecordsAndDecodeValidReco
 {
     WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
                         MakeTaskMemoryRecord(0x1234, 6) +
-                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 7, 1, 1, 9,
-                                             sizeof(MsprofMemoryInfo) - 1) +
-                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 8, 9, -10, 11));
+                            MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 7, 1, 1, 9, sizeof(MsprofMemoryInfo) - 1) +
+                            MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 8, 9, -10, 11));
 
     TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
     auto data = parser.ParseData<ParserAdditionalInfo>();
@@ -399,9 +405,8 @@ TEST_F(TaskMemoryParserUTest, ParseShouldDiscardInvalidRecordsAndDecodeValidReco
 TEST_F(TaskMemoryParserUTest, ParseShouldReturnSuccessAndEmptyWhenAllRecordsAreInvalid)
 {
     WriteTaskMemoryFile("aging.additional.task_memory_info.slice_0",
-                        MakeTaskMemoryRecord(0x1234, 1) +
-                        MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2, 1, 1, 100,
-                                             sizeof(MsprofMemoryInfo) - 1));
+                        MakeTaskMemoryRecord(0x1234, 1) + MakeTaskMemoryRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2, 1, 1, 100,
+                                                                               sizeof(MsprofMemoryInfo) - 1));
 
     TaskMemoryParser parser(TASK_MEMORY_DATA_DIR);
     auto data = parser.ParseData<ParserAdditionalInfo>();
@@ -448,11 +453,11 @@ TEST_F(TaskMemoryParserUTest, ParseShouldUseChunkGeneratorAgingAndSliceOrder)
 
 TEST_F(StaticOpMemParserUTest, ParseShouldDiscardInvalidRecordsAndDecodeValidRecord)
 {
-    WriteStaticOpMemFile("unaging.additional.static_op_mem.slice_0",
-                         MakeStaticOpMemRecord(0x1234, 1024, 1, 2) +
-                         MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2048, 3, 4,
-                                               sizeof(MsprofStaticOpMem) - 1) +
-                         MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, -3072, 5, 6));
+    WriteStaticOpMemFile(
+        "unaging.additional.static_op_mem.slice_0",
+        MakeStaticOpMemRecord(0x1234, 1024, 1, 2) +
+            MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 2048, 3, 4, sizeof(MsprofStaticOpMem) - 1) +
+            MakeStaticOpMemRecord(MSPROF_DATA_HEAD_MAGIC_NUM, -3072, 5, 6));
 
     StaticOpMemParser parser(STATIC_OP_MEM_DATA_DIR);
     auto data = parser.ParseData<ParserAdditionalInfo>();
@@ -475,4 +480,272 @@ TEST_F(StaticOpMemParserUTest, ParseShouldReturnNotExistWhenTargetFileDoesNotExi
 
     EXPECT_EQ(parser.GetStatus(), ParserStatus::NOT_EXIST);
     EXPECT_TRUE(data.empty());
+}
+
+namespace
+{
+const std::string DPU_HCCL_GE_DATA_DIR = "./dpu_hccl_ge_addition_parser_test";
+const std::string DPU_BAD_MAGIC = "DpuHcclInfoParser: Invalid magic number, record discarded, 0 records remaining.";
+const std::string GE_BAD_MAGIC = "LogicStreamInfoParser: Invalid magic number, record discarded, 0 records remaining.";
+const std::string GE_BATCH_DISCARDED = "LogicStreamInfoParser: Invalid physical stream count, batch rejected.";
+const std::string DPU_SLICE0 = File::PathJoin({DPU_HCCL_GE_DATA_DIR, "unaging.additional.dpu_hccl_info.slice_0"});
+const std::string GE_SLICE0 = File::PathJoin({DPU_HCCL_GE_DATA_DIR, "unaging.additional.logic_stream_info.slice_0"});
+const std::string DPU_CHUNK_SIZE_INVALID = "The read chunk file size is invalid: " + DPU_SLICE0;
+const std::string GE_CHUNK_SIZE_INVALID = "The read chunk file size is invalid: " + GE_SLICE0;
+const std::string DPU_READ_CHUNK_FAILED = "DpuHcclInfoParser: Read Chunk failed.";
+const std::string GE_READ_CHUNK_FAILED = "LogicStreamInfoParser: Read Chunk failed.";
+std::vector<std::string> g_errorMessages;
+
+void CaptureErrorMessage(Analysis::Log *, const std::string &message, const std::string &level, const std::string &,
+                         const uint32_t &)
+{
+    if (level == "[ERROR]")
+    {
+        g_errorMessages.push_back(message);
+    }
+}
+
+std::string DpuRecord(uint16_t magic, uint16_t level)
+{
+    MsprofAdditionalInfo info{};
+    info.magicNumber = magic;
+    info.level = level;
+    return std::string(reinterpret_cast<const char *>(&info), sizeof(info));
+}
+
+std::string GeRecord(uint32_t physicStreamNum)
+{
+    MsprofAdditionalInfo info{};
+    info.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    info.level = MSPROF_REPORT_NODE_LEVEL;
+    info.dataLen = MSPROF_ADDITIONAL_INFO_DATA_LENGTH;
+    auto *payload = reinterpret_cast<ParserLogicStreamInfo *>(info.data);
+    payload->logicStreamId = 7;
+    payload->physicStreamNum = physicStreamNum;
+    return std::string(reinterpret_cast<const char *>(&info), sizeof(info));
+}
+
+std::string DpuAllValid()
+{
+    return DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_NODE_LEVEL) +
+           DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_HCCL_NODE_LEVEL);
+}
+
+std::string DpuBadMagicAfterValid()
+{
+    return DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_NODE_LEVEL) +
+           DpuRecord(0x1234, MSPROF_REPORT_NODE_LEVEL);
+}
+
+std::string DpuBadMagicBetweenValid()
+{
+    return DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_NODE_LEVEL) +
+           DpuRecord(0x1234, MSPROF_REPORT_NODE_LEVEL) +
+           DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_HCCL_NODE_LEVEL);
+}
+
+std::string DpuBadLevel() { return DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, 7); }
+
+std::string GeAtSlotLimit() { return GeRecord(GE_LOGIC_STREAM_PHYSIC_SLOT); }
+
+std::string GeExceedsAfterValid() { return GeRecord(3) + GeRecord(GE_LOGIC_STREAM_PHYSIC_SLOT + 1); }
+
+std::string GeRecordWithMagic(uint16_t magic, uint32_t physicStreamNum)
+{
+    MsprofAdditionalInfo info{};
+    info.magicNumber = magic;
+    info.level = MSPROF_REPORT_NODE_LEVEL;
+    info.dataLen = MSPROF_ADDITIONAL_INFO_DATA_LENGTH;
+    auto *payload = reinterpret_cast<ParserLogicStreamInfo *>(info.data);
+    payload->logicStreamId = 7;
+    payload->physicStreamNum = physicStreamNum;
+    return std::string(reinterpret_cast<const char *>(&info), sizeof(info));
+}
+
+std::string GeBadMagicAfterValid() { return GeRecord(3) + GeRecordWithMagic(0x1234, 3); }
+
+std::string GeBadMagicBetweenValid() { return GeRecord(3) + GeRecordWithMagic(0x1234, 3) + GeRecord(3); }
+
+std::string NoContent() { return std::string(); }
+
+std::string DpuHalfRecordOnly() { return std::string(100, 'a'); }
+
+std::string DpuHeadRemainderThenTwoRecords() { return std::string(10, 'x') + DpuAllValid(); }
+
+std::string GeHalfRecordOnly() { return std::string(100, 'b'); }
+
+std::string GeTwoRecordsOfThreeStreams() { return GeRecord(3) + GeRecord(3); }
+}  // namespace
+
+struct DpuHcclGeErrorParam
+{
+    const char *name;
+    bool logicStream;
+    std::string (*content)();
+    size_t records;
+    std::vector<std::string> errors;
+    std::string (*secondSlice)();
+    bool noFile;
+    ParserStatus expectedStatus;
+};
+
+class DpuHcclGeParserErrorUTest : public testing::TestWithParam<DpuHcclGeErrorParam>
+{
+   protected:
+    void SetUp() override
+    {
+        g_errorMessages.clear();
+        File::RemoveDir(DPU_HCCL_GE_DATA_DIR, 0);
+        File::CreateDir(DPU_HCCL_GE_DATA_DIR);
+    }
+
+    void TearDown() override
+    {
+        GlobalMockObject::verify();
+        File::RemoveDir(DPU_HCCL_GE_DATA_DIR, 0);
+    }
+};
+
+TEST_P(DpuHcclGeParserErrorUTest, ErrorTextAndRecordCount)
+{
+    const auto &param = GetParam();
+    const std::string fileName =
+        param.logicStream ? "unaging.additional.logic_stream_info.slice_0" : "unaging.additional.dpu_hccl_info.slice_0";
+    if (!param.noFile)
+    {
+        const std::string content = param.content();
+        FileWriter writer(File::PathJoin({DPU_HCCL_GE_DATA_DIR, fileName}), std::ios::out | std::ios::binary);
+        writer.WriteText(content.data(), content.size());
+    }
+    if (param.secondSlice != nullptr)
+    {
+        const std::string secondName = param.logicStream ? "unaging.additional.logic_stream_info.slice_1"
+                                                         : "unaging.additional.dpu_hccl_info.slice_1";
+        const std::string content = param.secondSlice();
+        FileWriter writer(File::PathJoin({DPU_HCCL_GE_DATA_DIR, secondName}), std::ios::out | std::ios::binary);
+        writer.WriteText(content.data(), content.size());
+    }
+    MOCKER_CPP(&Analysis::Log::LogMsg).stubs().will(invoke(CaptureErrorMessage));
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> data;
+    ParserStatus status = ParserStatus::NOT_EXIST;
+    if (param.logicStream)
+    {
+        LogicStreamInfoParser parser(DPU_HCCL_GE_DATA_DIR);
+        data = parser.ParseData<ParserAdditionalInfo>();
+        status = parser.GetStatus();
+    }
+    else
+    {
+        DpuHcclInfoParser parser(DPU_HCCL_GE_DATA_DIR);
+        data = parser.ParseData<ParserAdditionalInfo>();
+        status = parser.GetStatus();
+    }
+    GlobalMockObject::verify();
+    EXPECT_EQ(param.expectedStatus, status);
+    EXPECT_EQ(param.records, data.size());
+    EXPECT_EQ(param.errors, g_errorMessages);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    DpuHcclGeErrors, DpuHcclGeParserErrorUTest,
+    testing::Values(
+        DpuHcclGeErrorParam{"DpuAllValid", false, DpuAllValid, 2, {}, nullptr, false, ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"DpuBadMagicAfterValid",
+                            false,
+                            DpuBadMagicAfterValid,
+                            1,
+                            {DPU_BAD_MAGIC},
+                            nullptr,
+                            false,
+                            ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"DpuBadMagicBetweenValid",
+                            false,
+                            DpuBadMagicBetweenValid,
+                            2,
+                            {"DpuHcclInfoParser: Invalid magic number, record discarded, 1 records remaining."},
+                            nullptr,
+                            false,
+                            ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"DpuOddLevelKept", false, DpuBadLevel, 1, {}, nullptr, false, ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"GeAtSlotLimit", true, GeAtSlotLimit, 1, {}, nullptr, false, ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"GeExceedsAfterValid",
+                            true,
+                            GeExceedsAfterValid,
+                            0,
+                            {GE_BATCH_DISCARDED, "LogicStreamInfoParser: Format data failed."},
+                            nullptr,
+                            false,
+                            ParserStatus::ERROR},
+        DpuHcclGeErrorParam{"GeBadMagicAfterValid",
+                            true,
+                            GeBadMagicAfterValid,
+                            1,
+                            {GE_BAD_MAGIC},
+                            nullptr,
+                            false,
+                            ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"GeBadMagicBetweenValid",
+                            true,
+                            GeBadMagicBetweenValid,
+                            2,
+                            {"LogicStreamInfoParser: Invalid magic number, record discarded, 1 records remaining."},
+                            nullptr,
+                            false,
+                            ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"DpuHalfRecordOnly",
+                            false,
+                            DpuHalfRecordOnly,
+                            0,
+                            {DPU_CHUNK_SIZE_INVALID, DPU_READ_CHUNK_FAILED},
+                            nullptr,
+                            false,
+                            ParserStatus::ERROR},
+        DpuHcclGeErrorParam{"GeHalfRecordOnly",
+                            true,
+                            GeHalfRecordOnly,
+                            0,
+                            {GE_CHUNK_SIZE_INVALID, GE_READ_CHUNK_FAILED},
+                            nullptr,
+                            false,
+                            ParserStatus::ERROR},
+        DpuHcclGeErrorParam{"DpuUnalignedSliceFails",
+                            false,
+                            DpuHeadRemainderThenTwoRecords,
+                            0,
+                            {DPU_CHUNK_SIZE_INVALID, DPU_READ_CHUNK_FAILED},
+                            nullptr,
+                            false,
+                            ParserStatus::ERROR},
+        DpuHcclGeErrorParam{
+            "DpuTwoSlicesFourRecords", false, DpuAllValid, 4, {}, DpuAllValid, false, ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"GeTwoSlicesFourRecords",
+                            true,
+                            GeTwoRecordsOfThreeStreams,
+                            4,
+                            {},
+                            GeTwoRecordsOfThreeStreams,
+                            false,
+                            ParserStatus::SUCCESS},
+        DpuHcclGeErrorParam{"DpuNoSliceFile", false, NoContent, 0, {}, nullptr, true, ParserStatus::NOT_EXIST},
+        DpuHcclGeErrorParam{"DpuZeroByteSlice", false, NoContent, 0, {}, nullptr, false, ParserStatus::NOT_EXIST},
+        DpuHcclGeErrorParam{"GeNoSliceFile", true, NoContent, 0, {}, nullptr, true, ParserStatus::NOT_EXIST},
+        DpuHcclGeErrorParam{"GeZeroByteSlice", true, NoContent, 0, {}, nullptr, false, ParserStatus::NOT_EXIST}),
+    [](const testing::TestParamInfo<DpuHcclGeErrorParam> &info) { return std::string(info.param.name); });
+
+TEST_F(AdditionInfoParserUTest, GenericPayloadCopyFailureReturnsParserError)
+{
+    File::RemoveDir(DPU_HCCL_GE_DATA_DIR, 0);
+    ASSERT_TRUE(File::CreateDir(DPU_HCCL_GE_DATA_DIR));
+    const auto record = DpuRecord(MSPROF_DATA_HEAD_MAGIC_NUM, MSPROF_REPORT_NODE_LEVEL);
+    {
+        FileWriter writer(File::PathJoin({DPU_HCCL_GE_DATA_DIR, "unaging.additional.dpu_hccl_info.slice_0"}),
+                          std::ios::out | std::ios::binary);
+        writer.WriteText(record.data(), record.size());
+    }
+    MOCKER(memcpy_s).stubs().will(returnValue(EINVAL));
+    DpuHcclInfoParser parser(DPU_HCCL_GE_DATA_DIR);
+    EXPECT_TRUE(parser.ParseData<ParserAdditionalInfo>().empty());
+    EXPECT_EQ(ParserStatus::ERROR, parser.GetStatus());
+    GlobalMockObject::verify();
+    EXPECT_TRUE(File::RemoveDir(DPU_HCCL_GE_DATA_DIR, 0));
 }

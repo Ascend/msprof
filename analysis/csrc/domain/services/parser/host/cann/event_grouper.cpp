@@ -18,6 +18,8 @@
 
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
 
+#include <set>
+
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/compact_info_parser.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
@@ -180,6 +182,14 @@ void EventGrouper::GroupLookup(ThreadPool &pool)
                     "Mc2CommInfo");
             });
     }
+    // DPU HCCL / GE lookup is temporarily disabled pending integration validation.
+    // pool.AddTask([this]() {
+    //     GroupEvents<DpuHcclInfoParser, ParserAdditionalInfo, &CANNDumpWarehouse::dpuHcclInfoData>("DpuHcclInfo");
+    // });
+    // pool.AddTask([this]() {
+    //     GroupEvents<LogicStreamInfoParser, ParserAdditionalInfo,
+    //     &CANNDumpWarehouse::logicStreamInfoData>("LogicStreamInfo");
+    // });
     if (NeedLookup(EventType::EVENT_TYPE_GRAPH_ID_MAP))
     {
         pool.AddTask(

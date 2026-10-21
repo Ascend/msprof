@@ -71,6 +71,39 @@ class Mc2CommInfoParser final : public AdditionInfoParser
     };
 };  // class Mc2CommInfoParser
 
+class DpuHcclInfoParser final : public AdditionInfoParser
+{
+   public:
+    explicit DpuHcclInfoParser(const std::string &path) : AdditionInfoParser(path, "DpuHcclInfoParser")
+    {
+        Init(filePrefix_);
+    }
+
+   private:
+    std::vector<std::string> filePrefix_ = {
+        "unaging.additional.dpu_hccl_info.slice",
+        "aging.additional.dpu_hccl_info.slice",
+    };
+};  // class DpuHcclInfoParser
+
+class LogicStreamInfoParser final : public AdditionInfoParser
+{
+   public:
+    explicit LogicStreamInfoParser(const std::string &path) : AdditionInfoParser(path, "LogicStreamInfoParser")
+    {
+        Init(filePrefix_);
+    }
+
+   private:
+    int ProduceData() override;
+
+   private:
+    std::vector<std::string> filePrefix_ = {
+        "unaging.additional.logic_stream_info.slice",
+        "aging.additional.logic_stream_info.slice",
+    };
+};  // class LogicStreamInfoParser
+
 // 该类的作用是CtxId数据的解析
 
 class CtxIdParser final : public AdditionInfoParser

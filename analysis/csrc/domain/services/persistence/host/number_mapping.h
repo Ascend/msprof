@@ -17,15 +17,20 @@
 #ifndef ANALYSIS_VIEWER_DATABASE_DRAFTS_NUMBER_MAPPING_H
 #define ANALYSIS_VIEWER_DATABASE_DRAFTS_NUMBER_MAPPING_H
 
-#include <string>
 #include <stdint.h>
 
-namespace Analysis {
-namespace Domain {
-class NumberMapping {
-public:
+#include <string>
+
+namespace Analysis
+{
+namespace Domain
+{
+class NumberMapping
+{
+   public:
     // 对象类型
-    enum class MappingType {
+    enum class MappingType
+    {
         GE_DATA_TYPE = 0,
         GE_FORMAT,
         GE_TASK_TYPE,
@@ -36,11 +41,12 @@ public:
         HCCL_OP_TYPE,
         LEVEL,
         ACL_API_TAG,
-        HCCL_ALG_TYPE
+        HCCL_ALG_TYPE,
+        HCCL_ROLE_TYPE
     };
     static std::string Get(MappingType type, uint32_t key);
 };
 
-} // Domain
-} // Analysis
-#endif // ANALYSIS_VIEWER_DATABASE_DRAFTS_NUMBER_MAPPING_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_VIEWER_DATABASE_DRAFTS_NUMBER_MAPPING_H

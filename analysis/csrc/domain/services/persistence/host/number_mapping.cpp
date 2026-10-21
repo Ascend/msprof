@@ -18,6 +18,8 @@
 
 #include "number_mapping.h"
 
+#include <unordered_map>
+
 #include "analysis/csrc/infrastructure/dfx/log.h"
 
 namespace Analysis
@@ -224,26 +226,42 @@ const std::unordered_map<uint32_t, std::string> aclApiTagMap{
     {6, "ACL_ASCENDC"}, {7, "HOST_HCCL"}, {9, "ACL_DVPP"}, {10, "ACL_GRAPH"}, {11, "ACL_ATB"},
 
 };
-std::vector<std::unordered_map<uint32_t, std::string>> allMaps{
-    geDataTypeMap,        geFormatMap,     geTaskTypeMap, hcclDataTypeMap, hcclLinkTypeMap,
-    hcclTransportTypeMap, hcclRdmaTypeMap, hcclOpTypeMap, levelMap,        aclApiTagMap};
+const std::unordered_map<uint32_t, std::string> hcclRoleTypeMap{
+    {0, "DST"}, {1, "SRC"}, {255, "RESERVED"}, {UINT32_MAX, "INVALID_TYPE"}};
+
+const std::unordered_map<NumberMapping::MappingType, std::unordered_map<uint32_t, std::string>> allMaps{
+    {NumberMapping::MappingType::GE_DATA_TYPE, geDataTypeMap},
+    {NumberMapping::MappingType::GE_FORMAT, geFormatMap},
+    {NumberMapping::MappingType::GE_TASK_TYPE, geTaskTypeMap},
+    {NumberMapping::MappingType::HCCL_DATA_TYPE, hcclDataTypeMap},
+    {NumberMapping::MappingType::HCCL_LINK_TYPE, hcclLinkTypeMap},
+    {NumberMapping::MappingType::HCCL_TRANSPORT_TYPE, hcclTransportTypeMap},
+    {NumberMapping::MappingType::HCCL_RDMA_TYPE, hcclRdmaTypeMap},
+    {NumberMapping::MappingType::HCCL_OP_TYPE, hcclOpTypeMap},
+    {NumberMapping::MappingType::LEVEL, levelMap},
+    {NumberMapping::MappingType::ACL_API_TAG, aclApiTagMap},
+    {NumberMapping::MappingType::HCCL_ROLE_TYPE, hcclRoleTypeMap},
+};
 
 }  // namespace
 
 std::string NumberMapping::Get(MappingType type, uint32_t key)
 {
     auto enumValue = static_cast<uint32_t>(type);
-    if (allMaps.size() <= enumValue)
+    const auto mapIt = allMaps.find(type);
+    if (mapIt == allMaps.end())
     {
         ERROR("wrong mapping type %, please check code", enumValue);
         return std::to_string(key);
     }
-    if (allMaps.at(enumValue).find(key) == allMaps.at(enumValue).end())
+    const auto &typeMap = mapIt->second;
+    const auto keyIt = typeMap.find(key);
+    if (keyIt == typeMap.end())
     {
         ERROR("Unknown key: %, type: %", key, enumValue);
         return std::to_string(key);
     }
-    return allMaps.at(enumValue).at(key);
+    return keyIt->second;
 }
 }  // namespace Domain
 }  // namespace Analysis

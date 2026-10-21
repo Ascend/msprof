@@ -8,6 +8,10 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/utils PARSER_SOURCE
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db PARSER_SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db/include PARSER_SOURCES)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/domain/host_parser/test PARSER_SOURCES)
+list(APPEND PARSER_SOURCES
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/dpu_hccl_track_dumper.cpp
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/host/ge_logic_stream_dumper.cpp
+)
 
 add_executable(host_parser_utest
     ${PARSER_SOURCES}

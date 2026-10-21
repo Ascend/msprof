@@ -16,17 +16,17 @@
  * -------------------------------------------------------------------------
  */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis;
 using namespace Analysis::Utils;
 
-class FileUTest : public testing::Test {
-protected:
+class FileUTest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
         GlobalMockObject::verify();
@@ -182,11 +182,7 @@ TEST_F(FileUTest, TestGetFilesWithPrefixShouldReturn2SubFilesWhenGetFileMatchPre
 TEST_F(FileUTest, TestFilterFileWithSuffixShouldReturn2FilesWhenFilterSuffix)
 {
     std::vector<std::string> files = {
-        "test1",
-        "test2",
-        "test3",
-        "test1.done",
-        "test2.done",
+        "test1", "test2", "test3", "test1.done", "test2.done",
     };
     const size_t fileNumNotFiltered = 5;
     EXPECT_EQ(fileNumNotFiltered, File::FilterFileWithSuffix(files, "").size());
@@ -210,8 +206,7 @@ TEST_F(FileUTest, TestFileCheck)
 TEST_F(FileUTest, TestFileCheckShouldReturnFalseWhenFileSizeTooLarge)
 {
     const uint32_t maxReadBytes = 64 * 1024 * 1024;
-    MOCKER_CPP(&File::Size).stubs()
-        .will(returnValue(maxReadBytes + 1));
+    MOCKER_CPP(&File::Size).stubs().will(returnValue(maxReadBytes + 1));
     EXPECT_FALSE(File::Check("test_file", maxReadBytes));
 }
 
@@ -223,8 +218,7 @@ TEST_F(FileUTest, TestFileReaderCheckShouldReturnFalseWhenNotFile)
 
 TEST_F(FileUTest, TestFileReaderCheckShouldReturnFalseWhenFileNoReadAccess)
 {
-    MOCKER_CPP(&File::Access).stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&File::Access).stubs().will(returnValue(false));
     EXPECT_FALSE(FileReader::Check("test_file"));
 }
 
@@ -242,8 +236,7 @@ TEST_F(FileUTest, TestFileReaderOpenShouldNotOpenWhenEmptyPath)
 
 TEST_F(FileUTest, TestFileReaderOpenShouldOpenWhenAlreadyOpened)
 {
-    MOCKER_CPP(&FileReader::IsOpen).stubs()
-        .will(returnValue(true));
+    MOCKER_CPP(&FileReader::IsOpen).stubs().will(returnValue(true));
     FileReader fd;
     fd.Open("test_file");
     EXPECT_TRUE(fd.IsOpen());
@@ -251,8 +244,7 @@ TEST_F(FileUTest, TestFileReaderOpenShouldOpenWhenAlreadyOpened)
 
 TEST_F(FileUTest, TestFileReaderOpenShouldNotOpenWhenOpenedFailed)
 {
-    MOCKER_CPP(&FileReader::Check).stubs()
-        .will(returnValue(true));
+    MOCKER_CPP(&FileReader::Check).stubs().will(returnValue(true));
     FileReader fd;
     fd.Open("test_file_not_exist");
     EXPECT_FALSE(fd.IsOpen());
@@ -278,6 +270,56 @@ TEST_F(FileUTest, TestReadBinaryShouldReturnOKWhenReadSuccess)
     fd.Open("test_file");
     std::stringstream ss;
     EXPECT_EQ(ANALYSIS_OK, fd.ReadBinary(ss));
+}
+
+TEST_F(FileUTest, TestReadBinaryShouldReturnOKWhenFileIsEmpty)
+{
+    {
+        FileWriter writer("test_file", std::ios::out | std::ios::binary | std::ios::trunc);
+        ASSERT_TRUE(writer.IsOpen());
+        writer.Close();
+    }
+    ASSERT_EQ(0, File::Size("test_file"));
+    FileReader fd;
+    fd.Open("test_file", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(fd.IsOpen());
+    std::stringstream ss;
+    EXPECT_EQ(ANALYSIS_OK, fd.ReadBinary(ss));
+    EXPECT_TRUE(ss.str().empty());
+}
+
+TEST_F(FileUTest, TestReadBinaryShouldRoundTripMultiChunkBinaryContent)
+{
+    const std::string payload(5000, static_cast<char>(0xA5));
+    {
+        FileWriter writer("test_file", std::ios::out | std::ios::binary | std::ios::trunc);
+        ASSERT_TRUE(writer.IsOpen());
+        writer.WriteText(payload.data(), payload.size());
+        writer.Close();
+    }
+    FileReader fd;
+    fd.Open("test_file", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(fd.IsOpen());
+    std::stringstream ss;
+    EXPECT_EQ(ANALYSIS_OK, fd.ReadBinary(ss));
+    EXPECT_EQ(payload, ss.str());
+}
+
+TEST_F(FileUTest, TestReadBinaryShouldReturnErrorWhenOutputStreamBad)
+{
+    const std::string payload(64, 'B');
+    {
+        FileWriter writer("test_file", std::ios::out | std::ios::binary | std::ios::trunc);
+        ASSERT_TRUE(writer.IsOpen());
+        writer.WriteText(payload.data(), payload.size());
+        writer.Close();
+    }
+    FileReader fd;
+    fd.Open("test_file", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(fd.IsOpen());
+    std::stringstream ss;
+    ss.setstate(std::ios::badbit);
+    EXPECT_EQ(ANALYSIS_ERROR, fd.ReadBinary(ss));
 }
 
 TEST_F(FileUTest, TestReadTextShouldReturnErrorWhenFileNotOpen)
@@ -338,10 +380,8 @@ TEST_F(FileUTest, TestFileWriterCheckShouldReturnFalseWhenPathIsDir)
 
 TEST_F(FileUTest, TestFileWriterCheckShouldReturnFalseWhenFileNoWriteAccess)
 {
-    MOCKER_CPP(&File::Exist).stubs()
-        .will(returnValue(true));
-    MOCKER_CPP(&File::Access).stubs()
-        .will(returnValue(false));
+    MOCKER_CPP(&File::Exist).stubs().will(returnValue(true));
+    MOCKER_CPP(&File::Access).stubs().will(returnValue(false));
     EXPECT_FALSE(FileWriter::Check("test_file"));
 }
 
@@ -359,8 +399,7 @@ TEST_F(FileUTest, TestFileWriterOpenShouldNotOpenWhenEmptyPath)
 
 TEST_F(FileUTest, TestFileWriterOpenShouldOpenWhenAlreadyOpened)
 {
-    MOCKER_CPP(&FileWriter::IsOpen).stubs()
-        .will(returnValue(true));
+    MOCKER_CPP(&FileWriter::IsOpen).stubs().will(returnValue(true));
     FileWriter fw;
     fw.Open("test_file");
     EXPECT_TRUE(fw.IsOpen());
@@ -385,7 +424,7 @@ TEST_F(FileUTest, TestWriteTextBack)
     FileWriter fd("test_file");
     ASSERT_TRUE(fd.IsOpen());
     fd.WriteText("test");
-    fd.WriteTextBack("test", 1);  // 往回覆盖1位
+    fd.WriteTextBack("test", 1);    // 往回覆盖1位
     fd.WriteTextBack("test", 100);  // 往回覆盖100位
 }
 
@@ -413,15 +452,16 @@ TEST_F(FileUTest, TestGetOriginDataShouldReturn2ValidFileWhen2ValidAnd2Invalid)
 
 TEST_F(FileUTest, TestSortFilesByAgingANdSliceNumShouldReturnSortedFilesWhenInputIsOutOfOrder)
 {
-    std::vector<std::string> files = {"PROF/aging.file.slice_1", "PROF/unaging.file.slice_1",
+    std::vector<std::string> files = {"PROF/aging.file.slice_1",  "PROF/unaging.file.slice_1",
                                       "PROF/aging.file.slice_12", "PROF/unaging.file.slice_12",
-                                      "PROF/aging.file.slice_6", "PROF/unaging.file.slice_6"};
-    std::vector<std::string> expectFiles = {"PROF/unaging.file.slice_1", "PROF/unaging.file.slice_6",
+                                      "PROF/aging.file.slice_6",  "PROF/unaging.file.slice_6"};
+    std::vector<std::string> expectFiles = {"PROF/unaging.file.slice_1",  "PROF/unaging.file.slice_6",
                                             "PROF/unaging.file.slice_12", "PROF/aging.file.slice_1",
-                                            "PROF/aging.file.slice_6", "PROF/aging.file.slice_12"};
+                                            "PROF/aging.file.slice_6",    "PROF/aging.file.slice_12"};
     auto newFiles = File::SortFilesByAgingAndSliceNum(files);
     EXPECT_EQ(newFiles.size(), files.size());
-    for (uint32_t i = 0; i < expectFiles.size(); i++) {
+    for (uint32_t i = 0; i < expectFiles.size(); i++)
+    {
         EXPECT_EQ(newFiles[i], expectFiles[i]);
     }
 }
@@ -438,7 +478,8 @@ TEST_F(FileUTest, TestSortFilesByAgingANdSliceNumShouldReturnSortedFilesWhenInpu
                                             "./PROF/host/data/aging.additional.tensor_info.slice_1"};
     auto newFiles = File::SortFilesByAgingAndSliceNum(files);
     EXPECT_EQ(newFiles.size(), files.size());
-    for (uint32_t i = 0; i < expectFiles.size(); i++) {
+    for (uint32_t i = 0; i < expectFiles.size(); i++)
+    {
         EXPECT_EQ(newFiles[i], expectFiles[i]);
     }
 }

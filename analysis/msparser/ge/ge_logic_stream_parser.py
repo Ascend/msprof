@@ -68,6 +68,8 @@ class GeLogicStreamParser(DataParser, MsMultiProcess):
         if not self._ge_logic_stream_data:
             return
         format_data = self.format_stream_data()
+        if not format_data:
+            return
         model = GeLogicStreamInfoModel(self._project_path)
         with model as _model:
             _model.flush(format_data)
@@ -87,7 +89,14 @@ class GeLogicStreamParser(DataParser, MsMultiProcess):
             return
         try:
             self.parse()
-        except (OSError, IOError, SystemError, ValueError, TypeError, RuntimeError) as err:
+        except (
+            OSError,
+            IOError,
+            SystemError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+        ) as err:
             logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)
             return
         try:

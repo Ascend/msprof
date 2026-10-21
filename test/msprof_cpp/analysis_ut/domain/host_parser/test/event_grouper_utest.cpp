@@ -15,36 +15,40 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  */
-#include <fstream>
 #include <dirent.h>
-#include <unistd.h>
 #include <sys/stat.h>
-#include <vector>
-#include <string>
-#include <memory>
-#include <unordered_map>
-#include <fstream>
-#include "gtest/gtest.h"
+#include <unistd.h>
 
-#include "analysis/csrc/infrastructure/dfx/log.h"
+#include <fstream>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/event_grouper.h"
-#include "analysis/csrc/infrastructure/utils/utils.h"
+#include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
+#include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
-#include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
-#include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "test/msprof_cpp/analysis_ut/domain/services/test/fake_generator.h"
+#include "test/msprof_cpp/analysis_ut/fake/fake_trace_generator.h"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Domain::Host::Cann;
 const std::string TEST_FILE = "./unaging.additional.type_info_dic.slice_0";
 
-class EventGrouperUTest : public testing::Test {
-protected:
+class EventGrouperUTest : public testing::Test
+{
+   protected:
     // 所有测试用例之前执行
     static void SetUpTestCase()
     {
-        if (File::Exist(TEST_FILE)) {
+        if (File::Exist(TEST_FILE))
+        {
             File::DeleteFile(TEST_FILE);  // 删除test_file文件
         }
         // 创建test_file文件
@@ -72,7 +76,8 @@ void GenApiEventsBin(const std::string &fakeDataDir, const int num)
 {
     std::vector<MsprofApi> apiTrace;
     const int n = 2;
-    for (int i = n; i < num + n - 1; i++) {
+    for (int i = n; i < num + n - 1; i++)
+    {
         auto tmp = MsprofApi{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = MSPROF_REPORT_MODEL_LEVEL;
@@ -96,7 +101,8 @@ void GenApiEventsBin(const std::string &fakeDataDir, const int num)
     tmp.itemId = static_cast<uint32_t>(num + n - 1);
     apiTrace.emplace_back(tmp);
     // 补充不正常的api
-    for (int i = n; i < num + n - 1; i++) {
+    for (int i = n; i < num + n - 1; i++)
+    {
         auto tmp = MsprofApi{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = MSPROF_REPORT_MODEL_LEVEL;
@@ -118,7 +124,8 @@ void GenApiEventsBin(const std::string &fakeDataDir, const int num)
 void GenNodeApiEventsBin(const std::string &fakeDataDir)
 {
     std::vector<MsprofApi> apiTrace;
-    auto addApi = [&](uint32_t type, uint64_t begin, uint64_t end) {
+    auto addApi = [&](uint32_t type, uint64_t begin, uint64_t end)
+    {
         auto tmp = MsprofApi{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = MSPROF_REPORT_NODE_LEVEL;
@@ -234,7 +241,8 @@ void GenAdditionalInfoEventsBin(const std::string &fakeDataDir, EventType type, 
     const int n = 2;
     uint8_t fakeData[size];
     std::vector<MsprofAdditionalInfo> traces;
-    for (int i = n; i < num + n; i++) {
+    for (int i = n; i < num + n; i++)
+    {
         auto tmp = MsprofAdditionalInfo{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = level;
@@ -258,7 +266,8 @@ void GenCompactInfoEventsBin(const std::string &fakeDataDir, EventType type, uin
     std::vector<MsprofCompactInfo> traces;
     uint8_t fakeData[size];
 
-    for (int i = n; i < num + n; i++) {
+    for (int i = n; i < num + n; i++)
+    {
         auto tmp = MsprofCompactInfo{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = level;
@@ -267,15 +276,22 @@ void GenCompactInfoEventsBin(const std::string &fakeDataDir, EventType type, uin
         tmp.dataLen = size;
         tmp.timeStamp = static_cast<uint64_t>(n * i + 1);
 
-        if (type == EventType::EVENT_TYPE_NODE_BASIC_INFO) {
+        if (type == EventType::EVENT_TYPE_NODE_BASIC_INFO)
+        {
             tmp.data.nodeBasicInfo = MsprofNodeBasicInfo{};
-        } else if (type == EventType::EVENT_TYPE_TASK_TRACK) {
+        }
+        else if (type == EventType::EVENT_TYPE_TASK_TRACK)
+        {
             tmp.data.runtimeTrack = MsprofRuntimeTrack{};
-        } else if (type == EventType::EVENT_TYPE_DPU_TASK_TRACK) {
+        }
+        else if (type == EventType::EVENT_TYPE_DPU_TASK_TRACK)
+        {
             tmp.data.dpuTrack = MsprofDpuTrack{};
             tmp.data.dpuTrack.deviceId = static_cast<uint16_t>(i);
             tmp.data.dpuTrack.taskId = static_cast<uint32_t>(i);
-        } else {
+        }
+        else
+        {
             memcpy(tmp.data.info, fakeData, size);
         }
         traces.emplace_back(tmp);
@@ -288,26 +304,46 @@ void GenCompactInfoEventsBin(const std::string &fakeDataDir, EventType type, uin
 uint64_t g_getCannEventsNum(std::set<uint32_t> &tids, CANNWarehouses &cwhs, const std::string &eventName)
 {
     uint64_t cnt = 0;
-    for (auto tid: tids) {
-        if (eventName == "kernelEvents" && cwhs[tid].kernelEvents != nullptr) {
+    for (auto tid : tids)
+    {
+        if (eventName == "kernelEvents" && cwhs[tid].kernelEvents != nullptr)
+        {
             cnt += cwhs[tid].kernelEvents->GetSize();
-        } else if (eventName == "graphIdMapEvents" && cwhs[tid].graphIdMapEvents != nullptr) {
+        }
+        else if (eventName == "graphIdMapEvents" && cwhs[tid].graphIdMapEvents != nullptr)
+        {
             cnt += cwhs[tid].graphIdMapEvents->GetSize();
-        } else if (eventName == "fusionOpInfoEvents" && cwhs[tid].fusionOpInfoEvents != nullptr) {
+        }
+        else if (eventName == "fusionOpInfoEvents" && cwhs[tid].fusionOpInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].fusionOpInfoEvents->GetSize();
-        } else if (eventName == "nodeBasicInfoEvents" && cwhs[tid].nodeBasicInfoEvents != nullptr) {
+        }
+        else if (eventName == "nodeBasicInfoEvents" && cwhs[tid].nodeBasicInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].nodeBasicInfoEvents->GetSize();
-        } else if (eventName == "nodeAttrInfoEvents" && cwhs[tid].nodeAttrInfoEvents != nullptr) {
+        }
+        else if (eventName == "nodeAttrInfoEvents" && cwhs[tid].nodeAttrInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].nodeAttrInfoEvents->GetSize();
-        } else if (eventName == "tensorInfoEvents" && cwhs[tid].tensorInfoEvents != nullptr) {
+        }
+        else if (eventName == "tensorInfoEvents" && cwhs[tid].tensorInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].tensorInfoEvents->GetSize();
-        } else if (eventName == "contextIdEvents" && cwhs[tid].contextIdEvents != nullptr) {
+        }
+        else if (eventName == "contextIdEvents" && cwhs[tid].contextIdEvents != nullptr)
+        {
             cnt += cwhs[tid].contextIdEvents->GetSize();
-        } else if (eventName == "hcclInfoEvents" && cwhs[tid].hcclInfoEvents != nullptr) {
+        }
+        else if (eventName == "hcclInfoEvents" && cwhs[tid].hcclInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].hcclInfoEvents->GetSize();
-        } else if (eventName == "taskTrackEvents" && cwhs[tid].taskTrackEvents != nullptr) {
+        }
+        else if (eventName == "taskTrackEvents" && cwhs[tid].taskTrackEvents != nullptr)
+        {
             cnt += cwhs[tid].taskTrackEvents->GetSize();
-        } else if (eventName == "hcclOpInfoEvents" && cwhs[tid].hcclOpInfoEvents != nullptr) {
+        }
+        else if (eventName == "hcclOpInfoEvents" && cwhs[tid].hcclOpInfoEvents != nullptr)
+        {
             cnt += cwhs[tid].hcclOpInfoEvents->GetSize();
         }
     }
@@ -392,24 +428,15 @@ TEST_F(EventGrouperUTest, TestGroupShouldGroupCorrespondingEventsWhenDataDirHasA
     const std::string hostDataDir = fakeDataDir + "/host/data";
     // 生成所有类型Fake数据
     GenApiEventsBin(fakeDataDir, MaxNum);
-    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_GRAPH_ID_MAP,
-                               MSPROF_REPORT_MODEL_LEVEL, MaxNum);
-    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_FUSION_OP_INFO,
-                               MSPROF_REPORT_MODEL_LEVEL, MaxNum);
-    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_NODE_BASIC_INFO,
-                            MSPROF_REPORT_NODE_LEVEL, MaxNum);
-    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_NODE_ATTR_INFO,
-                            MSPROF_REPORT_NODE_LEVEL, MaxNum);
-    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_TENSOR_INFO,
-                               MSPROF_REPORT_HCCL_NODE_LEVEL, MaxNum);
-    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_CONTEXT_ID,
-                               MSPROF_REPORT_NODE_LEVEL, MaxNum);
-    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_HCCL_INFO,
-                               MSPROF_REPORT_HCCL_NODE_LEVEL, MaxNum);
-    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_TASK_TRACK,
-                            MSPROF_REPORT_RUNTIME_LEVEL, MaxNum);
-    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_HCCL_OP_INFO,
-                            MSPROF_REPORT_NODE_LEVEL, MaxNum);
+    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_GRAPH_ID_MAP, MSPROF_REPORT_MODEL_LEVEL, MaxNum);
+    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_FUSION_OP_INFO, MSPROF_REPORT_MODEL_LEVEL, MaxNum);
+    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_NODE_BASIC_INFO, MSPROF_REPORT_NODE_LEVEL, MaxNum);
+    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, MaxNum);
+    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_TENSOR_INFO, MSPROF_REPORT_HCCL_NODE_LEVEL, MaxNum);
+    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_CONTEXT_ID, MSPROF_REPORT_NODE_LEVEL, MaxNum);
+    GenAdditionalInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_HCCL_INFO, MSPROF_REPORT_HCCL_NODE_LEVEL, MaxNum);
+    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_TASK_TRACK, MSPROF_REPORT_RUNTIME_LEVEL, MaxNum);
+    GenCompactInfoEventsBin(fakeDataDir, EventType::EVENT_TYPE_HCCL_OP_INFO, MSPROF_REPORT_NODE_LEVEL, MaxNum);
 
     // 多线程解析
     auto grouper = std::make_shared<EventGrouper>(hostDataDir);
@@ -534,7 +561,8 @@ void GenMixedRtsDpuTaskTrackBin(const std::string &fakeDataDir, const int npuNum
 {
     std::vector<MsprofCompactInfo> traces;
     const uint64_t dpuDeviceTypeBits = static_cast<uint64_t>(1) << 12;
-    for (int i = 0; i < npuNum + dpuNum; ++i) {
+    for (int i = 0; i < npuNum + dpuNum; ++i)
+    {
         auto tmp = MsprofCompactInfo{};
         tmp.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
         tmp.level = MSPROF_REPORT_RUNTIME_LEVEL;
@@ -545,9 +573,12 @@ void GenMixedRtsDpuTaskTrackBin(const std::string &fakeDataDir, const int npuNum
         tmp.data.runtimeTrack.taskType = 1;
         tmp.data.runtimeTrack.taskId = static_cast<uint32_t>(i);
         tmp.data.runtimeTrack.kernelName = static_cast<uint64_t>(100 + i);
-        if (i < dpuNum) {
+        if (i < dpuNum)
+        {
             tmp.data.runtimeTrack.deviceId = static_cast<uint16_t>(dpuDeviceTypeBits | (i & 0xFFF));
-        } else {
+        }
+        else
+        {
             tmp.data.runtimeTrack.deviceId = 0;
         }
         traces.emplace_back(tmp);
@@ -639,3 +670,48 @@ TEST_F(EventGrouperUTest, TestGroupShouldPutStreamExpandSpecToDumpWarehouseNotTr
     EXPECT_TRUE(grouper.GetGroupEvents().Empty());
     EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));
 }
+
+struct DpuHcclGeChipParam
+{
+    const char *name;
+    uint16_t chip;
+    size_t dpuHcclInfoSize;
+    size_t logicStreamInfoSize;
+};
+
+class EventGrouperDpuHcclGeChipUTest : public testing::TestWithParam<DpuHcclGeChipParam>
+{
+   protected:
+    void TearDown() override { GlobalMockObject::verify(); }
+};
+
+TEST_P(EventGrouperDpuHcclGeChipUTest, TemporarilyDisabledLookupKeepsPythonOwnership)
+{
+    const auto &param = GetParam();
+    const std::string fakeDataDir = std::string("./fakeDpuHcclGeChip_") + param.name;
+    const std::string hostDataDir = fakeDataDir + "/host/data";
+    File::RemoveDir(fakeDataDir, 0);
+    ASSERT_TRUE(File::CreateDir(fakeDataDir));
+    ASSERT_TRUE(File::CreateDir(fakeDataDir + "/host"));
+    ASSERT_TRUE(File::CreateDir(hostDataDir));
+    MsprofAdditionalInfo record{};
+    record.magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
+    record.level = MSPROF_REPORT_NODE_LEVEL;
+    std::vector<MsprofAdditionalInfo> dpuRecords{record};
+    ASSERT_TRUE(WriteBin(dpuRecords, hostDataDir, "unaging.additional.dpu_hccl_info.slice_0"));
+    std::vector<MsprofAdditionalInfo> geRecords{record};
+    ASSERT_TRUE(WriteBin(geRecords, hostDataDir, "unaging.additional.logic_stream_info.slice_0"));
+    MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion).stubs().will(returnValue(param.chip));
+
+    EventGrouper grouper(hostDataDir);
+    ASSERT_TRUE(grouper.Group());
+    EXPECT_EQ(param.dpuHcclInfoSize, grouper.GetDumpWarehouse().dpuHcclInfoData.size());
+    EXPECT_EQ(param.logicStreamInfoSize, grouper.GetDumpWarehouse().logicStreamInfoData.size());
+    EXPECT_TRUE(File::RemoveDir(fakeDataDir, 0));
+}
+
+INSTANTIATE_TEST_SUITE_P(DpuHcclGeChips, EventGrouperDpuHcclGeChipUTest,
+                         testing::Values(DpuHcclGeChipParam{"Chip15", 15, 0, 0}, DpuHcclGeChipParam{"Chip5", 5, 0, 0},
+                                         DpuHcclGeChipParam{"Chip0", 0, 0, 0}),
+                         [](const testing::TestParamInfo<DpuHcclGeChipParam> &info)
+                         { return std::string(info.param.name); });

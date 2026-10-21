@@ -26,8 +26,10 @@
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/capture_stream_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/ccu_add_info_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/dpu_hccl_track_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/dpu_task_track_db_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/flip_task_db_dumper.h"
+#include "analysis/csrc/domain/services/persistence/host/ge_logic_stream_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/mc2_comm_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/memcpy_info_dumper.h"
 #include "analysis/csrc/domain/services/persistence/host/model_name_db_dumper.h"
@@ -41,7 +43,6 @@ namespace Analysis
 {
 namespace Domain
 {
-
 bool HostTraceWorker::Run()
 {
     TimeLogger t{"HostTraceWorker"};
@@ -83,6 +84,9 @@ void HostTraceWorker::DumpAsyncHostData(ThreadPool &pool, const std::shared_ptr<
     DumpCaptureStreamInfo(pool, formattedCaptureData);
     DumpMc2CommInfo(pool, grouper, formattedCaptureData);
     DumpDpuTaskTrack(pool, grouper);
+    // DPU HCCL / GE persistence is temporarily disabled with their lookup calls.
+    // DumpDpuHcclTrack(pool, grouper);
+    // DumpGeLogicStream(pool, grouper);
     DumpStreamExpandSpec(pool, grouper);
     // DumpStaticOpMem(pool, grouper);
     DumpHostSystemProfileData(pool);
@@ -342,6 +346,54 @@ void HostTraceWorker::DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<E
             if (!ret)
             {
                 ERROR("Dump dpu task track data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpDpuHcclTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, grouper]()
+        {
+            const auto &records = grouper->GetDumpWarehouse().dpuHcclInfoData;
+            if (records.empty())
+            {
+                return;
+            }
+            TimeLogger t{"Dump dpu hccl track data start"};
+            DpuHcclTrackDumper dumper(hostPath_);
+            if (!dumper.DumpData(records))
+            {
+                ERROR("Dump dpu hccl track data failed");
+            }
+        });
+}
+
+void HostTraceWorker::DumpGeLogicStream(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+{
+    pool.AddTask(
+        [this, grouper]()
+        {
+            const auto &records = grouper->GetDumpWarehouse().logicStreamInfoData;
+            if (records.empty())
+            {
+                return;
+            }
+            TimeLogger t{"Dump ge logic stream data start"};
+            GeLogicStreamRows rows;
+            if (!FormatLogicStreamInfo(records, rows))
+            {
+                ERROR("Format ge logic stream data failed");
+                return;
+            }
+            if (rows.empty())
+            {
+                return;
+            }
+            GeLogicStreamDumper dumper(hostPath_);
+            if (!dumper.DumpData(rows))
+            {
+                ERROR("Dump ge logic stream data failed");
             }
         });
 }

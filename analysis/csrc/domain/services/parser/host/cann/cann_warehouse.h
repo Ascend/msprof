@@ -65,6 +65,8 @@ struct CANNDumpWarehouse
     std::vector<std::shared_ptr<ParserAdditionalInfo>> graphIdMapData;
     std::vector<std::shared_ptr<ParserAdditionalInfo>> staticOpMemData;
     std::vector<std::shared_ptr<CcuInfoData>> ccuInfoData;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> dpuHcclInfoData;
+    std::vector<std::shared_ptr<ParserAdditionalInfo>> logicStreamInfoData;
 };
 
 }  // namespace Cann
