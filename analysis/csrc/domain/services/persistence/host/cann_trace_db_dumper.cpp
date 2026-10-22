@@ -18,6 +18,9 @@
 
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 
+#include <set>
+
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
@@ -39,6 +42,7 @@ using TypeData = Analysis::Domain::Host::Cann::TypeData;
 using MappingType = NumberMapping::MappingType;
 using namespace Infra;
 using namespace Analysis::Common;
+using namespace Analysis::Application;
 
 using HCCLOpsDumpData =
     std::vector<std::tuple<uint32_t, uint64_t, int32_t, uint32_t, std::string, std::string, std::string, int64_t,
@@ -57,16 +61,45 @@ using GeFusionOpsDumpData = std::vector<std::tuple<uint64_t, std::string, uint32
 
 namespace
 {
-const std::unordered_map<std::string, uint32_t> RtsTaskTypeMap = {
-    {KERNEL_AICORE_TASK_TYPE, 0},  {KERNEL_AICPU_TASK_TYPE, 1},   {KERNEL_AIVEC_TASK_TYPE, 2},
-    {KERNEL_MIX_AIC_TASK_TYPE, 4}, {KERNEL_MIX_AIV_TASK_TYPE, 5}, {KERNEL_SIMT_TASK_TYPE, 2},
-};  // KERNEL_SIMT类型算子是aiv类型的
+// taskTrack(runtime) 的任务类型到 TaskInfo 中 GE 任务类型名的映射
+const std::unordered_map<std::string, std::string> RtsToGeTaskTypeMap = {
+    {KERNEL_AICORE_TASK_TYPE, TASK_TYPE_AI_CORE},
+    {KERNEL_AICPU_TASK_TYPE, TASK_TYPE_AI_CPU},
+    {KERNEL_AIVEC_TASK_TYPE, TASK_TYPE_AI_VECTOR_CORE},
+    {KERNEL_MIX_AIC_TASK_TYPE, TASK_TYPE_MIX_AIC},
+    {KERNEL_MIX_AIV_TASK_TYPE, TASK_TYPE_MIX_AIV},
+    {KERNEL_SIMT_TASK_TYPE, TASK_TYPE_AI_VECTOR_CORE},  // KERNEL_SIMT 类型算子是 aiv 类型的
+};
 
 std::string TransTaskTypeFromRtsToGe(uint64_t rtsTaskType)
 {
-    std::string taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, rtsTaskType);
-    auto it = RtsTaskTypeMap.find(taskType);
-    return (it != RtsTaskTypeMap.end()) ? NumberMapping::Get(MappingType::GE_TASK_TYPE, it->second) : taskType;
+    auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, rtsTaskType);
+    auto it = RtsToGeTaskTypeMap.find(taskType);
+    return (it != RtsToGeTaskTypeMap.end()) ? it->second : taskType;
+}
+
+// node basic 的 taskType 只有以下取值可信：3/WRITE_BACK、6/FFTS_PLUS、7/DSA_SQE、8/DVPP、10/FUSION、11/INVALID。
+// 0/AI_CORE、1/AI_CPU、2/AI_VECTOR_CORE、4/MIX_AIC、5/MIX_AIV 在部分场景与真实 kernel 类型不一致，统一以
+// taskTrack 的 taskType 为准；9/COMMUNICATION 需按实际执行单元二次判断，见 ResolveDumpedTaskType；
+// 未来新增的枚举值同样兜底到 taskTrack。
+const std::set<std::string> TRUSTED_NODE_BASIC_TASK_TYPES = {
+    TASK_TYPE_WRITE_BACK, TASK_TYPE_FFTS_PLUS, TASK_TYPE_DSA_SQE, TASK_TYPE_DVPP, TASK_TYPE_FUSION, TASK_TYPE_INVALID};
+
+std::string ResolveDumpedTaskType(uint32_t nodeTaskType, uint64_t rtsTaskType)
+{
+    auto nodeTaskTypeName = NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeTaskType);
+    if (nodeTaskTypeName == TASK_TYPE_COMMUNICATION)
+    {
+        // HCCL 层上报的通信算子若实际由 AI_CPU 执行（taskTrack 为 KERNEL_AICPU），taskType 记为 AI_CPU，
+        // 以便 AI CPU 数据链路识别；其它执行单元（如 Reduce TBE 跑在 AI_CORE）仍记为 COMMUNICATION。
+        auto taskTrackTaskType = TransTaskTypeFromRtsToGe(rtsTaskType);
+        return taskTrackTaskType == TASK_TYPE_AI_CPU ? TASK_TYPE_AI_CPU : TASK_TYPE_COMMUNICATION;
+    }
+    if (TRUSTED_NODE_BASIC_TASK_TYPES.count(nodeTaskTypeName) != 0)
+    {
+        return nodeTaskTypeName;
+    }
+    return TransTaskTypeFromRtsToGe(rtsTaskType);
 }
 
 bool IsReferToKernelName(uint64_t hash) { return HashData::GetInstance().Get(hash) == REFER_TO_KERNEL_NAME; }
@@ -314,7 +347,7 @@ void CANNTraceDBDumper::AddTensorShapeInfo(const std::shared_ptr<ParserConcatTen
     auto mixBlockNum = hasNodeBasicInfo ? blockNum * (nodeBasicInfo->blockNum >> 16) : 0;
     auto opFlag = hasNodeBasicInfo ? (nodeBasicInfo->opFlag ? "YES" : "NO") : NA;
     auto opState = hasNodeBasicInfo ? std::to_string(nodeBasicInfo->opState) : NA;
-    auto taskType = hasNodeBasicInfo ? NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeBasicInfo->taskType) : NA;
+    auto taskType = hasNodeBasicInfo ? ResolveDumpedTaskType(nodeBasicInfo->taskType, task->taskType) : NA;
     auto opType = hasNodeBasicInfo ? HashData::GetInstance().Get(nodeBasicInfo->opType) : NA;
     auto runtimeTrackDesc = desc->runtimeTrackDesc;
     std::string gridDim = NA;
@@ -346,21 +379,20 @@ void CANNTraceDBDumper::AddTaskInfoForOnlyTaskTrack(const std::shared_ptr<HostTa
         return;
     }
 
-    std::string taskType;
+    // taskType 统一走 taskTrack 转换。RuntimeOpInfo 里的 taskType 是 payload 自己的 GE 类型，不再写入 TaskInfo。
+    std::string taskType = isLevel0 ? NA : TransTaskTypeFromRtsToGe(task->taskType);
     std::string opType;
     std::string opName;
     // opFlag在level0 或者无补充信息时填NA
     auto opFlag = (isLevel0 || !info.isValid) ? NA : (info.opFlag ? "YES" : "NO");
     if (info.isValid)
     {
-        taskType = isLevel0 ? NA : info.taskType;
         opType = isLevel0 ? NA : info.opType;
         opName = info.opName;
     }
     else
     {
         std::string kernelName = HashData::GetInstance().Get(task->kernelName);
-        taskType = isLevel0 ? NA : TransTaskTypeFromRtsToGe(task->taskType);
         opType = isLevel0 ? NA : kernelName;
         opName = kernelName;
     }
@@ -520,7 +552,7 @@ void CANNTraceDBDumper::AddTaskInfo(const std::shared_ptr<HostTask> &task, TaskI
         ProcessRuntimeTrackInfo(runtimeTrackDesc, blockNum, mixBlockNum, gridDim, blockDim);
         data.emplace_back(task->modelId, ResolveTaskOpName(task, HashData::GetInstance().Get(nodeBasicInfo.opName)),
                           task->streamId, task->taskId, blockNum, mixBlockNum, opState,
-                          NumberMapping::Get(MappingType::GE_TASK_TYPE, nodeBasicInfo.taskType),
+                          ResolveDumpedTaskType(nodeBasicInfo.taskType, task->taskType),
                           HashData::GetInstance().Get(nodeBasicInfo.opType), task->requestId, task->threadId,
                           task->timeStamp, task->batchId, 0, NA, NA, NA, NA, NA, NA, task->deviceId, task->contextId,
                           opFlag, hashId, gridDim, blockDim);

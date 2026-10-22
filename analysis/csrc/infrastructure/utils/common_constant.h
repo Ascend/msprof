@@ -89,7 +89,19 @@ const uint64_t FREQ_TO_MHz = 1000000;
 // ===== Analysis::Application specific constants =====
 namespace Application
 {
+// GE 任务类型名（与 number_mapping.cpp 中 GE_TASK_TYPE 映射的取值保持一致）
+const std::string TASK_TYPE_AI_CORE = "AI_CORE";
+const std::string TASK_TYPE_AI_CPU = "AI_CPU";
+const std::string TASK_TYPE_AI_VECTOR_CORE = "AI_VECTOR_CORE";
+const std::string TASK_TYPE_WRITE_BACK = "WRITE_BACK";
+const std::string TASK_TYPE_MIX_AIC = "MIX_AIC";
+const std::string TASK_TYPE_MIX_AIV = "MIX_AIV";
 const std::string TASK_TYPE_FFTS_PLUS = "FFTS_PLUS";
+const std::string TASK_TYPE_DSA_SQE = "DSA_SQE";
+const std::string TASK_TYPE_DVPP = "DVPP";
+const std::string TASK_TYPE_COMMUNICATION = "COMMUNICATION";
+const std::string TASK_TYPE_FUSION = "FUSION";
+const std::string TASK_TYPE_INVALID = "INVALID";
 const std::string OTHER_DIRECTION = "other";
 const int SORT_INDEX_OFFSET = 70000;
 const std::string ITER_CAT = "Iteration Time";

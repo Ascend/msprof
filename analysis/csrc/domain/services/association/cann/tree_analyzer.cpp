@@ -50,15 +50,12 @@ inline uint32_t GetTaskIdBit() { return IsChipV6() ? 0xFFFFFFFF : 0x0000FFFF; }
 const uint32_t VALID_CTXID_NUM = 2;
 const int64_t INVALID_VALUE = -1;
 const uint16_t AICORE_TASK_TYPE = 0;
-const uint16_t AICPU_TASK_TYPE = 1;
 const uint64_t INVALID_MODEL_ID = 4294967295;
 const uint64_t PLACEHOLDER_OP_NAME = UINT64_MAX;
 const std::string KERNEL_TASK_PREFIX = "KERNEL";
 const std::string LCCL_PREFIX = "Lccl";
 const std::string GE_STEP_INFO_API_TYPE = "step_info";
 const uint32_t FFTS_PLUS_TASK_TYPE = 6;
-const uint32_t HCCL_TASK_TYPE = 9;
-const uint32_t HCCL_AI_CPU_TASK_TYPE = 256;
 const std::string MSPROF_RUNTIME_MODEL_EXECUTE = "MODEL_EXECUTE";             /* model_execute task type */
 const std::string MSPROF_RUNTIME_MODEL_WAIT_COMPLETE = "MODEL_WAIT_COMPLETE"; /* model_notify_wait task type */
 const std::string KERNEL_FFTS_PLUS_TASK_TYPE = "FFTS_PLUS";
@@ -467,8 +464,7 @@ void TreeAnalyzer::UpdateComputeDescForFftsSituation(ComputeOpDescs &descs, cons
     }
 }
 
-void TreeAnalyzer::UpdateComputeDescForHcclSituation(ComputeOpDescs &descs, const std::shared_ptr<Event> &track,
-                                                     uint64_t item_id)
+void TreeAnalyzer::UpdateComputeDescForHcclSituation(ComputeOpDescs &descs, uint64_t item_id)
 {
     if (descs.empty())
     {
@@ -492,36 +488,8 @@ void TreeAnalyzer::UpdateComputeDescForHcclSituation(ComputeOpDescs &descs, cons
             // 避免内存泄露
             MAKE_SHARED0_NO_OPERATION(pair.second->opDesc->nodeDesc, ParserCompactInfo);
         }
-        // 特殊场景2：hccl类任务将opName刷成item id
+        // hccl类任务将opName刷成item id。taskType 不在这里改，落库时再决定用 node basic 还是 taskTrack。
         pair.second->opDesc->nodeDesc->data.nodeBasicInfo.opName = item_id;
-        auto taskTypeVal = track->compactPtr->data.runtimeTrack.taskType;
-        auto taskTypeStr = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
-        if (taskTypeStr == KERNEL_AI_CPU_TASK_TYPE)
-        {
-            // 特殊场景3：HCCL AICPU任务，该任务需要将任务类型刷为HCCL_AICPU
-            pair.second->opDesc->nodeDesc->data.nodeBasicInfo.taskType = HCCL_AI_CPU_TASK_TYPE;
-        }
-        else if (taskTypeStr == KERNEL_AI_CORE_TASK_TYPE)
-        {
-            // 特殊场景4：HCCL AICORE(Reduce TBE)任务，该任务需要将任务类型刷为AI_CORE
-            pair.second->opDesc->nodeDesc->data.nodeBasicInfo.taskType = HCCL_TASK_TYPE;
-        }
-    }
-}
-
-void TreeAnalyzer::UpdateComputeDescForHelperSituation(ComputeOpDescs &descs)
-{
-    for (auto &pair : descs)
-    {
-        if (!pair.second->opDesc || !pair.second->opDesc->nodeDesc)
-        {
-            continue;
-        }
-        // helper场景：HCCL算子运行在AI_CPU上, 但没有HCCL层api，任务类型刷为AICPU
-        if (pair.second->opDesc->nodeDesc->data.nodeBasicInfo.taskType == HCCL_TASK_TYPE)
-        {
-            pair.second->opDesc->nodeDesc->data.nodeBasicInfo.taskType = AICPU_TASK_TYPE;
-        }
     }
 }
 
@@ -555,11 +523,7 @@ HostTasks TreeAnalyzer::GetComputeTaskDescs(const std::shared_ptr<TreeNode> &nod
         auto hcclNode =
             path_.find(MSPROF_REPORT_HCCL_NODE_LEVEL) != path_.end() ? path_[MSPROF_REPORT_HCCL_NODE_LEVEL] : nullptr;
         auto item_id = hcclNode == nullptr ? 0 : hcclNode->event->apiPtr->itemId;
-        UpdateComputeDescForHcclSituation(ops, tracks.back(), item_id);
-    }
-    else if (type == KERNEL_AI_CPU_TASK_TYPE)
-    {
-        UpdateComputeDescForHelperSituation(ops);
+        UpdateComputeDescForHcclSituation(ops, item_id);
     }
 
     if (!IsHcclTask() && nodeNode->event && nodeNode->event->apiPtr)

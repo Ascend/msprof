@@ -134,10 +134,6 @@ class AiCoreOpReport:
         # 全导和按step导，task type的索引是6; 按子图导，task type的索引是7
         task_type_idx, op_name_idx = (7, 4) if ProfilingScene().is_graph_export() else (6, 3)
         for datum in data:
-            if datum[task_type_idx] == Constant.TASK_TYPE_HCCL_AI_CPU:
-                # 针对helper场景, 去除运行在AI_CPU的HCCL小算子,
-                logging.info("Found ai cpu hccl small op of stream %d, task %d", datum[2], datum[1])
-                continue
             #  1-task_id, 2-stream_id, -2-context_id, -1-batch_id, (batch_id, task_id, stream_id, context_id)作为key
             key = (datum[-1],) + datum[1:3] + (datum[-2],)
             if not AiCoreOpReport.IS_PMU_UNIQUE_ID:
@@ -176,9 +172,9 @@ class AiCoreOpReport:
         # 全导和按step导，task type的索引是6; 按子图导，task type的索引是7
         task_type_idx, op_name_idx = (7, 4) if ProfilingScene().is_graph_export() else (6, 3)
         for datum in data:
-            if datum[task_type_idx] in (Constant.TASK_TYPE_HCCL_AI_CPU, Constant.TASK_TYPE_COMMUNICATION) and not datum[
-                op_name_idx
-            ].endswith(StrConstant.AIV_KERNEL):
+            if datum[task_type_idx] == Constant.TASK_TYPE_COMMUNICATION and not datum[op_name_idx].endswith(
+                StrConstant.AIV_KERNEL
+            ):
                 logging.info("Found hccl small op of stream %d, task %d", datum[2], datum[1])
                 continue
             datum = datum[:-1]  # 去除batch_id, 不在交付件中展现

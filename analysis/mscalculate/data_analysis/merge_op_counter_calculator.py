@@ -183,13 +183,12 @@ class MergeOpCounterCalculator(MsMultiProcess):
     def _get_ge_data(self: any, ge_curs: any) -> list:
         device_id = InfoConfReader().get_device_id()
         hccl_task_type = Constant.TASK_TYPE_COMMUNICATION
-        hccl_ai_cpu = Constant.TASK_TYPE_HCCL_AI_CPU
         ge_data = []
         iter_list = MsprofIteration(self.project_path).get_index_id_list_with_index_and_model(self.iter_range)
         ge_sql = (
             f"select model_id, op_name, op_type, task_type, task_id, stream_id, batch_id, context_id "
             f"from {DBNameConstant.TABLE_GE_TASK} where index_id=? and model_id=? and device_id={device_id} "
-            f"and task_type != '{hccl_task_type}' and task_type != '{hccl_ai_cpu}'"
+            f"and task_type != '{hccl_task_type}'"
         )
         for index_and_model in iter_list:
             ge_data.extend(DBManager.fetch_all_data(ge_curs, ge_sql, index_and_model))

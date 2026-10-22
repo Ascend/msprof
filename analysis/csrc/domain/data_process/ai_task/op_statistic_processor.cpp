@@ -71,8 +71,7 @@ using DeviceTotalNsMap = std::unordered_map<uint16_t, double>;
 // WRITE_BACK and INVALID remain in the ratio denominator and are filtered only from op_statistic.csv.
 bool isOpReportRequired(const AssociatedTaskData &associatedTask)
 {
-    return associatedTask.taskInfo->taskType != TASK_TYPE_COMMUNICATION &&
-           associatedTask.taskInfo->taskType != TASK_TYPE_HCCL_AI_CPU;
+    return associatedTask.taskInfo->taskType != TASK_TYPE_COMMUNICATION;
 }
 
 bool isOpStatisticRequired(const OpStatisticAggKey &key)

@@ -207,8 +207,7 @@ TEST(OpStatisticProcessorUTest, TestRunShouldUseCompleteOpReportForRatioAndFilte
         {makeAssociatedTask(0, 1, 1, "N/A", "AI_CORE", 1000), communication,
          makeAssociatedTask(0, 1, 3, "MatMul", "AI_CORE", 2000),
          makeAssociatedTask(0, 1, 4, "Write", "WRITE_BACK", 3000),
-         makeAssociatedTask(0, 1, 5, "Invalid", "INVALID", 4000),
-         makeAssociatedTask(0, 1, 6, "CpuTask", "HCCL_AI_CPU", 5000)});
+         makeAssociatedTask(0, 1, 5, "Invalid", "INVALID", 4000)});
 
     EXPECT_TRUE(OpStatisticProcessor(PROF_PATH).Run(dataInventory, PROCESSOR_NAME_OP_STATISTIC));
     auto result = dataInventory.GetPtr<std::vector<OpStatisticData>>();

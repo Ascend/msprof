@@ -44,9 +44,9 @@ TaskId makeTaskId(const TaskData &taskData)
 
 bool isOpSummaryRequired(const TaskInfoData &taskInfo)
 {
-    const bool isExcludedTaskType =
-        taskInfo.taskType == TASK_TYPE_WRITE_BACK || taskInfo.taskType == TASK_TYPE_INVALID ||
-        taskInfo.taskType == TASK_TYPE_HCCL_AI_CPU || taskInfo.taskType == TASK_TYPE_COMMUNICATION;
+    const bool isExcludedTaskType = taskInfo.taskType == TASK_TYPE_WRITE_BACK ||
+                                    taskInfo.taskType == TASK_TYPE_INVALID ||
+                                    taskInfo.taskType == TASK_TYPE_COMMUNICATION;
     const bool isCommunicationAivKernel =
         taskInfo.taskType == TASK_TYPE_COMMUNICATION && EndsWith(taskInfo.opName, AIV_KERNEL);
     return !isExcludedTaskType || isCommunicationAivKernel;

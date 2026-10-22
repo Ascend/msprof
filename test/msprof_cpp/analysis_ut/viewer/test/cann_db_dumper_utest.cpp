@@ -19,7 +19,11 @@
 #include <dirent.h>
 
 #include <iostream>
+#include <map>
+#include <utility>
+#include <vector>
 
+#include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
 #include "analysis/csrc/domain/services/parser/host/cann/rt_add_info_center.h"
@@ -540,9 +544,12 @@ TEST_F(CannDBDumperUtest, TestDumpGeFusionOps)
 TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenTaskHasSimtRuntimeTrack)
 {
     MOCKER_CPP(&Analysis::Domain::Environment::Context::IsLevel0).stubs().will(returnValue(false));
+    // 每条任务会查两次：ResolveDumpedTaskType 取任务类型，ProcessRuntimeTrackInfo 判断 SIMT。
     MOCKER_CPP(&TypeData::Get)
         .stubs()
         .will(returnValue(std::string("KERNEL_SIMT")))
+        .then(returnValue(std::string("KERNEL_SIMT")))
+        .then(returnValue(std::string("KERNEL_AICORE")))
         .then(returnValue(std::string("KERNEL_AICORE")));
     MockGetComputeTasksWithMixedRuntimeTracks();
     CANNTraceDBDumper cannTraceDbDumper(".");
@@ -563,6 +570,106 @@ TEST_F(CannDBDumperUtest, TestCANNDumperShouldReturnTrueWhenTaskHasSimtRuntimeTr
     EXPECT_EQ(std::get<5>(taskInfoData[1]), 300u);
     EXPECT_EQ(std::get<24>(taskInfoData[1]), "N/A");
     EXPECT_EQ(std::get<25>(taskInfoData[1]), "N/A");
+}
+
+static std::shared_ptr<HostTask> MakeNodeBasicComputeTask(uint32_t nodeTaskType, uint64_t rtsTaskType)
+{
+    auto hostTask = std::make_shared<HostTask>();
+    auto desc = std::make_shared<OpDesc>();
+    desc->nodeDesc = std::make_shared<ParserCompactInfo>();
+    desc->nodeDesc->data.nodeBasicInfo.taskType = nodeTaskType;
+    hostTask->op = std::make_shared<Operator>(desc, 0, OpType::OPTYPE_COMPUTE);
+    hostTask->taskType = rtsTaskType;
+    return hostTask;
+}
+
+static std::string DumpNodeBasicTaskType(CANNTraceDBDumper &dumper, uint32_t nodeTaskType, uint64_t rtsTaskType)
+{
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    dumper.AddTaskInfo(MakeNodeBasicComputeTask(nodeTaskType, rtsTaskType), taskInfoData, false);
+    EXPECT_EQ(taskInfoData.size(), 1ul);
+    return taskInfoData.empty() ? std::string() : std::get<7>(taskInfoData[0]);
+}
+
+// node basic / runtime 上报的 GE task type 原始取值（与 number_mapping.cpp 中 GE_TASK_TYPE 映射一致）
+const std::map<std::string, uint32_t> GE_TASK_TYPE_ID = {
+    {TASK_TYPE_AI_CORE, 0},        {TASK_TYPE_AI_CPU, 1},        {TASK_TYPE_AI_VECTOR_CORE, 2},
+    {TASK_TYPE_WRITE_BACK, 3},     {TASK_TYPE_MIX_AIC, 4},       {TASK_TYPE_MIX_AIV, 5},
+    {TASK_TYPE_FFTS_PLUS, 6},      {TASK_TYPE_DSA_SQE, 7},       {TASK_TYPE_DVPP, 8},
+    {TASK_TYPE_COMMUNICATION, 9},  {TASK_TYPE_FUSION, 10},       {TASK_TYPE_INVALID, 11},
+};
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldKeepTrustedNodeBasicTaskType)
+{
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    const std::vector<std::string> trustedTypes = {TASK_TYPE_WRITE_BACK, TASK_TYPE_FFTS_PLUS,
+                                                   TASK_TYPE_DSA_SQE, TASK_TYPE_DVPP,
+                                                   TASK_TYPE_FUSION, TASK_TYPE_INVALID};
+    for (const auto &taskType : trustedTypes)
+    {
+        EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, GE_TASK_TYPE_ID.at(taskType), 0), taskType);
+    }
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldUseAiCpuWhenHcclTaskRunsOnAiCpu)
+{
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    const uint32_t hcclNodeTaskType = GE_TASK_TYPE_ID.at(TASK_TYPE_COMMUNICATION);
+    // HCCL 层上报的通信算子若实际由 AI_CPU 执行，taskType 记为 AI_CPU
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICPU")));
+    EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, hcclNodeTaskType, 1), TASK_TYPE_AI_CPU);
+    GlobalMockObject::verify();
+
+    // 其它执行单元（如 Reduce TBE 跑在 AI_CORE）仍记为 COMMUNICATION
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICORE")));
+    EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, hcclNodeTaskType, 0), TASK_TYPE_COMMUNICATION);
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoShouldUseTaskTrackWhenNodeBasicTaskTypeIsUntrusted)
+{
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICPU")));
+    const std::vector<std::string> untrustedTypes = {TASK_TYPE_AI_CORE, TASK_TYPE_AI_CPU,
+                                                     TASK_TYPE_AI_VECTOR_CORE, TASK_TYPE_MIX_AIC,
+                                                     TASK_TYPE_MIX_AIV};
+    for (const auto &taskType : untrustedTypes)
+    {
+        EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, GE_TASK_TYPE_ID.at(taskType), 1), TASK_TYPE_AI_CPU);
+    }
+    GlobalMockObject::verify();
+
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AIVEC")));
+    EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, GE_TASK_TYPE_ID.at(TASK_TYPE_AI_CORE), 66),
+              TASK_TYPE_AI_VECTOR_CORE);
+    GlobalMockObject::verify();
+
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("STARS_COMMON")));
+    EXPECT_EQ(DumpNodeBasicTaskType(cannTraceDbDumper, GE_TASK_TYPE_ID.at(TASK_TYPE_AI_CORE), 50), "STARS_COMMON");
+}
+
+TEST_F(CannDBDumperUtest, TestAddTaskInfoForOnlyTaskTrackShouldIgnoreRuntimeOpInfoTaskType)
+{
+    // RuntimeOpInfo 自带的 GE taskType 不可信，TaskInfo 的 task_type 必须来自 taskTrack
+    RuntimeOpInfo info;
+    info.isValid = true;
+    info.taskType = TASK_TYPE_AI_CPU;
+    info.opName = "op";
+    info.opType = "tbe";
+    info.opFlag = 1;
+    MOCKER_CPP(&Analysis::Domain::Host::Cann::RTAddInfoCenter::Get).stubs().will(returnValue(info));
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AIVEC")));
+
+    auto hostTask = std::make_shared<HostTask>();
+    hostTask->op = std::make_shared<Operator>(std::make_shared<OpDesc>(), 0, OpType::OPTYPE_RESERVED);
+    hostTask->kernelName = 1;
+    hostTask->taskType = 0;
+
+    CANNTraceDBDumper cannTraceDbDumper(TEST_DB_FILE_PATH);
+    CANNTraceDBDumper::TaskInfoData taskInfoData;
+    cannTraceDbDumper.AddTaskInfo(hostTask, taskInfoData, false);
+
+    ASSERT_EQ(taskInfoData.size(), 1ul);
+    EXPECT_EQ(std::get<7>(taskInfoData[0]), TASK_TYPE_AI_VECTOR_CORE);
 }
 
 static void InjectReferToKernelNameHash()

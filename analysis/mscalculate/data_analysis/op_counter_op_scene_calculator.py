@@ -57,11 +57,10 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
         ge_sql = (
             "select model_id, op_name, op_type, task_type, "
             "task_id, stream_id, batch_id,context_id from {0} where device_id={1} "
-            "and task_type != '{2}' and task_type != '{3}'".format(
+            "and task_type != '{2}'".format(
                 DBNameConstant.TABLE_GE_TASK,
                 device_id,
                 Constant.TASK_TYPE_COMMUNICATION,
-                Constant.TASK_TYPE_HCCL_AI_CPU,
             )
         )
         return ge_sql

@@ -203,14 +203,15 @@ class TestAiCoreOpReport(unittest.TestCase):
         expect_res = [
             (1, 2, 3, "11", 16, op_state, "AI_CPU", "N/A"),
             (4, 5, 6, "11", 16, op_state, "AI_CPU", "N/A"),
-            (7, 8, 9, "11", 16, op_state, 10, "N/A")
+            (7, 8, 9, "11", 16, op_state, 10, "N/A"),
+            (1, 3, 3, "11", 16, op_state, "AI_CPU", "N/A"),
         ]
         data = [
             (1, 2, 3, "11", 16, op_state, "AI_CPU", 0),
             (4, 5, 6, "11", 16, op_state, "AI_CPU", 0),
             (7, 8, 9, "11", 16, op_state, 10, 0),
             (1, 2, 3, "11", 16, op_state, "COMMUNICATION", 0),
-            (1, 3, 3, "11", 16, op_state, "HCCL_AI_CPU", 0)
+            (1, 3, 3, "11", 16, op_state, "AI_CPU", 0)
         ]
         ai_core_group_dict = {
             (0, 2, 3, "AI_CPU"): deque([(10,)]), (0, 5, 6, "AI_CPU"): deque([(40,)]),
@@ -219,12 +220,13 @@ class TestAiCoreOpReport(unittest.TestCase):
         res = AiCoreOpReport._union_task_ge_ai_core_data(data, ai_core_group_dict)
         self.assertEqual(res, expect_res)
 
-    def test_union_task_ge_ai_core_data_should_return_3_data_when_have_no_pmu_data(self):
+    def test_union_task_ge_ai_core_data_should_keep_ai_cpu_and_aiv_data_when_have_no_pmu_data(self):
         op_state = "N/A"
         expect_res = [
             (1, 2, 3, "AI_CPU", 16, op_state, "AI_CPU"),
             (4, 5, 6, "AI_CPU", 16, op_state, "AI_CPU"),
             (7, 8, 9, "10", 16, op_state, 10),
+            (1, 3, 3, "AI_CPU", 16, op_state, "AI_CPU"),
             (7, 8, 9, "AivKernel", 16, op_state, "COMMUNICATION"),
         ]
         data = [
@@ -232,7 +234,7 @@ class TestAiCoreOpReport(unittest.TestCase):
             (4, 5, 6, "AI_CPU", 16, op_state, "AI_CPU", 0),
             (7, 8, 9, "10", 16, op_state, 10, 0),
             (1, 2, 3, "COMMUNICATION", 16, op_state, "COMMUNICATION", 0),
-            (1, 3, 3, "HCCL_AI_CPU", 16, op_state, "HCCL_AI_CPU", 0),
+            (1, 3, 3, "AI_CPU", 16, op_state, "AI_CPU", 0),
             (7, 8, 9, "AivKernel", 16, op_state, "COMMUNICATION", 0),
         ]
         ai_core_group_dict = {}

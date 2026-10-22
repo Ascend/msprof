@@ -276,6 +276,16 @@ class TaskGear(CANNGear):
         KERNEL_AICPU: GeTaskType.AI_CPU.name,
         KERNEL_SIMT: GeTaskType.AI_VECTOR_CORE.name,  # KERNEL_SIMT类型算子是aiv类型的
     }
+    # node basic 里不准的五类（AI_CORE/AI_CPU/AI_VECTOR_CORE/MIX_AIC/MIX_AIV）不采用，其余可信；
+    # task_type 以 taskTrack 为准。Python 的 9 枚举名是 HCCL，落库与 C++ 对齐写成 COMMUNICATION。
+    TRUSTED_NODE_BASIC_TASK_TYPES = (
+        GeTaskType.WRITE_BACK.name,
+        GeTaskType.FFTS_PLUS.name,
+        GeTaskType.DSA_SQE.name,
+        GeTaskType.DVPP.name,
+        GeTaskType.FUSION.name,
+        GeTaskType.INVALID.name,
+    )
 
     class RuntimeApi:
         def __init__(self, start, end, struct_type, thread_id):
@@ -629,15 +639,17 @@ class TaskGear(CANNGear):
             return is_not_hccl_task
         return False
 
-    def get_truth_task_type_for_kernel_hccl_task(self, add_dto):
-        task_type = Constant.TASK_TYPE_COMMUNICATION
-        if add_dto.task_type == self.KERNEL_AICPU:
-            # helper场景: HCCL算子运行在AI_CPU上
-            task_type = Constant.TASK_TYPE_HCCL_AI_CPU
-        if add_dto.task_type == self.KERNEL_AICORE:
-            # Reduce tbe
-            task_type = Constant.TASK_TYPE_COMMUNICATION
-        return task_type
+    def resolve_task_type_from_node_basic(self, node_basic_task_type, rts_task_type):
+        task_type_from_task_track = self.RTS_TASK_TYPE_MAP.get(rts_task_type, rts_task_type)
+        if node_basic_task_type in (Constant.TASK_TYPE_COMMUNICATION, GeTaskType.HCCL.name):
+            # HCCL 层上报的通信算子若实际由 AI_CPU 执行（taskTrack 为 KERNEL_AICPU），task_type 记为 AI_CPU，
+            # 以便 AI CPU 数据链路识别；其它执行单元（如 Reduce TBE 跑在 AI_CORE）仍记为 COMMUNICATION。
+            if task_type_from_task_track == GeTaskType.AI_CPU.name:
+                return task_type_from_task_track
+            return Constant.TASK_TYPE_COMMUNICATION
+        if node_basic_task_type in self.TRUSTED_NODE_BASIC_TASK_TYPES:
+            return node_basic_task_type
+        return task_type_from_task_track
 
     def add_kernel_task(self, call_stack: dict, add_dto: TaskTrackDto, is_level0: bool):
         node_event: Event = call_stack.get(Constant.NODE_LEVEL)
@@ -662,7 +674,9 @@ class TaskGear(CANNGear):
             # or hccl (reduce TBE op) op which is not same thread with node launch. 此场景在当前分支下失效 待具体数据验证
             node_descs = self.get_node_descs(node_event)
             node_desc = next(iter(node_descs.values()), self.NodeDesc())
-            self.add_kernel_task_l0([node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id])
+            self.add_kernel_task_l0(
+                [node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id], is_level0
+            )
             return
 
         node_descs = self.get_node_descs(node_event)
@@ -681,7 +695,9 @@ class TaskGear(CANNGear):
                     self.add_kernel_task_refer_to_kernel_name([node_dto, node_desc], add_dto, [model_id, request_id])
                     continue
                 # this happens when prof data is collected in level 0 with ffts plus
-                self.add_kernel_task_l0([node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id])
+                self.add_kernel_task_l0(
+                    [node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id], is_level0
+                )
                 continue
             if node_basic_info_dto.task_type == self.FFTS_PLUS_TASK_TYPE:
                 continue
@@ -690,7 +706,9 @@ class TaskGear(CANNGear):
                 [node_dto, node_desc], add_dto, [hccl_event, hccl_dto], [model_id, request_id]
             )
 
-    def add_kernel_task_l0(self, node_info: list, add_dto: TaskTrackDto, hccl_info: list, model_info: list):
+    def add_kernel_task_l0(
+        self, node_info: list, add_dto: TaskTrackDto, hccl_info: list, model_info: list, is_level0: bool
+    ):
         node_dto = node_info[0]
         node_desc = node_info[1]
         hccl_event = hccl_info[0]
@@ -704,10 +722,10 @@ class TaskGear(CANNGear):
         cxt_ids = [str(self.get_compute_context_id(add_dto.task_type))]
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
         op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
-        task_type = Constant.NA
+        # 与 C++ AddTaskInfoForOnlyTaskTrack 保持一致：level0 不落 taskType，其余以 taskTrack 为准
+        task_type = Constant.NA if is_level0 else self.RTS_TASK_TYPE_MAP.get(add_dto.task_type, add_dto.task_type)
         if self.is_hccl_task(hccl_event, add_dto):
             op_name = hccl_dto.item_id
-            task_type = self.get_truth_task_type_for_kernel_hccl_task(add_dto)
         for cxt_id in cxt_ids:
             self.task_info.append(
                 [
@@ -757,17 +775,9 @@ class TaskGear(CANNGear):
         cxt_ids = [str(self.get_compute_context_id(node_basic_info_dto.task_type or add_dto.task_type))]
         op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id
         op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)
-        task_type = node_basic_info_dto.task_type
+        task_type = self.resolve_task_type_from_node_basic(node_basic_info_dto.task_type, add_dto.task_type)
         if self.is_hccl_task(hccl_event, add_dto):
-            # notice: reduce TBE op
             op_name = hccl_dto.item_id
-            task_type = self.get_truth_task_type_for_kernel_hccl_task(add_dto)
-        elif (
-            task_type in (Constant.TASK_TYPE_COMMUNICATION, Constant.TASK_TYPE_HCCL)
-            and add_dto.task_type == self.KERNEL_AICPU
-        ):
-            # helper场景, HCCL算子运行在AI_CPU上, 但没有HCCL层api
-            task_type = Constant.TASK_TYPE_AI_CPU
         for cxt_id in cxt_ids:
             self.task_info.append(
                 [
@@ -854,12 +864,12 @@ class TaskGear(CANNGear):
         if rts_trk.kernel_name == Constant.NA and not op_info.is_valid:
             return
 
+        # task_type 统一走 taskTrack 转换。RuntimeOpInfo.task_type 是 payload 自己的 GE 类型，不再写入 TaskInfo。
+        task_type = Constant.NA if is_level0 else self.RTS_TASK_TYPE_MAP.get(rts_trk.task_type, rts_trk.task_type)
         if op_info.is_valid:
-            task_type = Constant.NA if is_level0 else op_info.task_type
             op_type = Constant.NA if is_level0 else op_info.op_type
             op_name = op_info.op_name
         else:
-            task_type = Constant.NA if is_level0 else self.RTS_TASK_TYPE_MAP.get(rts_trk.task_type, rts_trk.task_type)
             op_type = Constant.NA if is_level0 else rts_trk.kernel_name
             op_name = rts_trk.kernel_name
 

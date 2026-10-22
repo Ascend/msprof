@@ -736,6 +736,7 @@ class TestTaskGear(TestCANNAnalysisGear):
             add_dto,
             [Event.invalid_event(), ApiDataDto()],
             [4, -1],
+            True,
         )
         self.assertEqual(gear.task_info[0][1], "actual_kernel")
         self.assertEqual(gear.task_info[0][7], Constant.NA)
@@ -751,6 +752,7 @@ class TestTaskGear(TestCANNAnalysisGear):
             add_dto,
             [Event.invalid_event(), ApiDataDto()],
             [4, -1],
+            True,
         )
         self.assertEqual(gear.task_info[0][1], "normal_op")
 
@@ -851,6 +853,78 @@ class TestTaskGear(TestCANNAnalysisGear):
         gear.add_kernel_task_refer_to_kernel_name([node_dto, TaskGear.NodeDesc()], add_dto, [4, -1])
         self.assertEqual(len(gear.task_info), 1)
         self.assertEqual(gear.task_info[0][7], GeTaskType.AI_VECTOR_CORE.name)
+        self.assertEqual(gear.task_info[0][7], "AI_VECTOR_CORE")
+
+    def test_resolve_task_type_should_keep_trusted_node_basic_and_convert_the_rest(self):
+        gear = TaskGear("")
+        trusted = {
+            "WRITE_BACK": "WRITE_BACK",
+            "FFTS_PLUS": "FFTS_PLUS",
+            "DSA_SQE": "DSA_SQE",
+            "DVPP": "DVPP",
+            "FUSION": "FUSION",
+            "INVALID": "INVALID",
+            "HCCL": Constant.TASK_TYPE_COMMUNICATION,
+            "COMMUNICATION": Constant.TASK_TYPE_COMMUNICATION,
+        }
+        for node_type, expected in trusted.items():
+            self.assertEqual(gear.resolve_task_type_from_node_basic(node_type, "KERNEL_AICORE"), expected)
+        # HCCL 层上报的通信算子若实际由 AI_CPU 执行，task_type 记为 AI_CPU
+        for node_type in (Constant.TASK_TYPE_HCCL, Constant.TASK_TYPE_COMMUNICATION):
+            self.assertEqual(gear.resolve_task_type_from_node_basic(node_type, "KERNEL_AICPU"), "AI_CPU")
+        for node_type in ("AI_CORE", "AI_CPU", "AI_VECTOR_CORE", "MIX_AIC", "MIX_AIV", "256", None):
+            self.assertEqual(gear.resolve_task_type_from_node_basic(node_type, "KERNEL_AICPU"), "AI_CPU")
+        self.assertEqual(gear.resolve_task_type_from_node_basic("AI_CORE", "KERNEL_AIVEC"), "AI_VECTOR_CORE")
+        self.assertEqual(gear.resolve_task_type_from_node_basic("AI_CORE", "STARS_COMMON"), "STARS_COMMON")
+
+    def test_l1_task_type_should_follow_node_basic_trust_rule(self):
+        gear = TaskGear("")
+        node_dto = ApiDataDto()
+        node_dto.item_id = "op"
+        add_dto = self._make_refer_task_track()
+        add_dto.task_type = "KERNEL_AICPU"
+        node_basic = NodeBasicInfoDto()
+        node_basic.task_type = "AI_CORE"
+        node_basic.op_type = "tbe"
+        ctx = CtxIdDto()
+        hccl_info = [Event.invalid_event(), ApiDataDto()]
+        gear.add_kernel_task_l1_or_l2(
+            [node_dto, TaskGear.NodeDesc(node_basic_info=node_basic, ctx_info=ctx)], add_dto, hccl_info, [4, -1]
+        )
+        self.assertEqual(gear.task_info[0][7], "AI_CPU")
+
+        gear.task_info.clear()
+        node_basic.task_type = "HCCL"
+        add_dto.task_type = "KERNEL_AICORE"
+        gear.add_kernel_task_l1_or_l2(
+            [node_dto, TaskGear.NodeDesc(node_basic_info=node_basic, ctx_info=ctx)], add_dto, hccl_info, [4, -1]
+        )
+        self.assertEqual(gear.task_info[0][7], Constant.TASK_TYPE_COMMUNICATION)
+
+    def test_only_task_track_task_type_should_ignore_runtime_op_info(self):
+        gear = TaskGear("")
+        add_dto = self._make_refer_task_track()
+        add_dto.task_type = "KERNEL_AIVEC"
+        # RuntimeOpInfo 自带的 taskType 不可信，只用于取 opName/opType 等字段
+        op_info = RuntimeOpInfoDto(is_valid=True, model_id=4, op_name="op", op_type="tbe", task_type="AI_CPU")
+        rt_add_info_center = RTAddInfoCenter("./test")
+        with mock.patch.object(rt_add_info_center, "get_op_info_by_id", return_value=(4, op_info)):
+            gear.add_kernel_task_only_task_track(add_dto, False)
+        self.assertEqual(gear.task_info[0][7], "AI_VECTOR_CORE")
+
+    def test_l0_task_type_should_be_na_only_for_level0(self):
+        gear = TaskGear("")
+        node_dto = ApiDataDto()
+        node_dto.item_id = "op"
+        add_dto = self._make_refer_task_track()
+        add_dto.task_type = "KERNEL_AIVEC"
+        hccl_info = [Event.invalid_event(), ApiDataDto()]
+        # 与 C++ AddTaskInfoForOnlyTaskTrack 对齐：level0 不落 taskType
+        gear.add_kernel_task_l0([node_dto, TaskGear.NodeDesc()], add_dto, hccl_info, [4, -1], True)
+        self.assertEqual(gear.task_info[0][7], Constant.NA)
+        # 非 level0（node basic 缺少 taskType）时以 taskTrack 为准
+        gear.task_info.clear()
+        gear.add_kernel_task_l0([node_dto, TaskGear.NodeDesc()], add_dto, hccl_info, [4, -1], False)
         self.assertEqual(gear.task_info[0][7], "AI_VECTOR_CORE")
 
 

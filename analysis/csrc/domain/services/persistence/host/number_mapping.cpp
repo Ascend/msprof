@@ -176,9 +176,8 @@ const std::unordered_map<uint32_t, std::string> geFormatMap{
     {UINT32_MAX, "UNDEFINED"},
 };
 const std::unordered_map<uint32_t, std::string> geTaskTypeMap{
-    {0, "AI_CORE"}, {1, "AI_CPU"},    {2, "AI_VECTOR_CORE"}, {3, "WRITE_BACK"}, {4, "MIX_AIC"},
-    {5, "MIX_AIV"}, {6, "FFTS_PLUS"}, {7, "DSA_SQE"},        {8, "DVPP"},       {9, "COMMUNICATION"},
-    {10, "FUSION"}, {11, "INVALID"},  {256, "HCCL_AI_CPU"}};
+    {0, "AI_CORE"},   {1, "AI_CPU"},  {2, "AI_VECTOR_CORE"}, {3, "WRITE_BACK"},    {4, "MIX_AIC"}, {5, "MIX_AIV"},
+    {6, "FFTS_PLUS"}, {7, "DSA_SQE"}, {8, "DVPP"},           {9, "COMMUNICATION"}, {10, "FUSION"}, {11, "INVALID"}};
 const std::unordered_map<uint32_t, std::string> hcclDataTypeMap{
     {0, "INT8"},
     {1, "INT16"},

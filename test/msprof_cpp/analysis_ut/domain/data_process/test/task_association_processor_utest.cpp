@@ -117,7 +117,7 @@ TEST_F(TaskAssociationProcessorUTest, TestRunShouldKeepAllMatchedTasksAndMarkOpS
                       makeTaskInfo(0, 1, 2, "AllReduce", "COMMUNICATION", 0, 0, "opAivKernel"),
                       makeTaskInfo(0, 1, 3, "AllReduce", "COMMUNICATION", 0, 0, "opNormal"),
                       makeTaskInfo(0, 1, 4, "Write", "WRITE_BACK"),
-                      makeTaskInfo(0, 1, 5, "CpuTask", "HCCL_AI_CPU")},
+                      makeTaskInfo(0, 1, 5, "Invalid", "INVALID")},
                      {makeAscendTask(0, 1, 1, 2000.0), makeAscendTask(0, 1, 2, 3000.0),
                       makeAscendTask(0, 1, 3, 7000.0), makeAscendTask(0, 1, 4, 1000.0),
                       makeAscendTask(0, 1, 5, 5000.0), makeAscendTask(0, 9, 9, 4000.0)});
