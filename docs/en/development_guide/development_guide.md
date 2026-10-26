@@ -167,8 +167,8 @@ The following table describes the common documents to be updated.
 | --- | --- |
 | `msprof --export` parameters | `en/user_guide/msprof_parsing_instruct.md` |
 | `msprof.py import/query/export` parameters | `en/user_guide/extended_functions.md` |
-| Installation, uninstallation, and verification parameters | `en/getting_started/msprof_install_guide.md` |
-| Quick Start paths or basic examples | `en/getting_started/quick_start.md` |
+| Installation, uninstallation, and verification parameters | `en/install_guide/msprof_install_guide.md` |
+| Quick Start paths or basic examples | `en/quick_start/quick_start.md` |
 
 ### 5.2 Adding Parsing Capabilities
 
@@ -265,8 +265,8 @@ Development changes to msProf usually directly affect the documentation. It is f
 
 | Change Content | Document to Update |
 | --- | --- |
-| Installation methods, dependencies, or packaging parameters | `en/getting_started/msprof_install_guide.md` |
-| Basic usage workflows or examples | `en/getting_started/quick_start.md` |
+| Installation methods, dependencies, or packaging parameters | `en/install_guide/msprof_install_guide.md` |
+| Basic usage workflows or examples | `en/quick_start/quick_start.md` |
 | Parsing workflows or command-line parameters | `en/user_guide/msprof_parsing_instruct.md` |
 | Script capabilities or advanced usage | `en/user_guide/extended_functions.md` |
 | Exported files, fields, or layers | `en/user_guide/profile_data_file_references.md` |

@@ -32,7 +32,7 @@ Therefore, you can use the stack call stack feature of profiler to additionally 
 
 1. Most stream synchronization operations are introduced manually or by the application logic. Therefore, first check the workload code and evaluate the necessity of the API calls from the perspective of the workload logic. Remove unnecessary synchronization APIs as appropriate.
 
-2. In addition, some stream synchronization services may be introduced by environment variables. For example, [ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/en/api/environment_variable/op_execution/ASCEND_LAUNCH_BLOCKING.md) performs stream synchronization on each operator to locate problems.
+2. In addition, some stream synchronization services may be introduced by environment variables. For example, [ASCEND_LAUNCH_BLOCKING](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/en/api/environment_variable/ASCEND_LAUNCH_BLOCKING.md) performs stream synchronization on each operator to locate problems.
 
 ## 6. Troubleshooting Methodology Summary
 

@@ -46,7 +46,7 @@ For details, see the following figure.
        data_simplification=False,
        host_sys=[torch_npu.profiler.HostSystem.OSRT],  # Collect process-level system calls
    )
-   
+
    # Add the basic profiling configuration parameters. For details, see the parameter descriptions below.
    with torch_npu.profiler.profile(
        activities=[
@@ -56,7 +56,7 @@ For details, see the following figure.
        schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),  # Used with prof.step()
        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
        experimental_config=experimental_config) as prof:
-   
+
        # Start profile data collection.
        for step in range(steps):  # Training iterations
            train_one_step()       # Training function
@@ -98,7 +98,7 @@ For details, see the following figure.
    | Count | Number of calls to the API. |
    | Avg(us), Max(us), Min(us) | The average, maximum, and minimum duration of this API call, in us. |
 
-   As shown above, system calls such as futex, ioctl, and `pthread_mutex_unlock` have relatively high latency and require further analysis.
+   As shown above, system calls such as `futex`, `ioctl`, and `pthread_mutex_unlock` have relatively high latency and require further analysis.
 
 ## 5. Root Cause
 

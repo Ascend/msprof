@@ -148,7 +148,7 @@ MindStudio Profiler (msProf) supports building from source. During the build pro
 
 If an exception occurs during operation, the tool will exit the process and print error messages. This is expected behavior. You are advised to locate the specific cause of the error based on the error prompts, such as by viewing log files or result files generated during the collection and parsing process.
 
-## strace Usage
+## Strace Usage
 
 In some msProf debugging scenarios, you are advised to use strace to trace system calls. While using strace itself does not present a security risk, you should note the following points:
 

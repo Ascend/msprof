@@ -93,8 +93,6 @@ We welcome everyone to contribute to the community. If you have any questions or
 
 ## 🙏 Acknowledgments
 
-This tool is contributed by the following Huawei department:
-
-🔹 Ascend Computing MindStudio Development Department
+This tool is jointly contributed by Huawei Technologies Co., Ltd. and community developers.
 
 Thank you to everyone in the community for your PRs. We warmly welcome your contributions.

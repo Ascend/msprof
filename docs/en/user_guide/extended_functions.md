@@ -5,7 +5,7 @@
 **Supported Products<a name="en-us_topic_0000001276273570_section1281125681015"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -83,7 +83,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 |Result Size|Result data size (MB)|
 |device_info|Device information|
 |AI Core Number|Number of AI Cores|
-|AICPU Number|Number of AICPUs|
+|AI CPU Number|Number of AI CPUs|
 |Control CPU Number|Number of Control CPUs|
 |Control CPU Type|Control CPU type|
 |Device Id|Device ID|
@@ -126,7 +126,7 @@ In non-cluster scenarios, results are displayed as shown in [Figure 1](#en-us_to
 **Supported Products<a name="en-us_topic_0000001265229666_section1281125681015"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -204,7 +204,7 @@ To export profile data using `msprof.py`, perform the following steps:
 **Supported Products<a name="en-us_topic_0000001265229758_section17436144114294"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -271,7 +271,7 @@ To export final timeline data or .db files, proceed to [Exporting Profile Data](
 **Supported Products<a name="en-us_topic_0000001312709849_section17436144114294"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -353,7 +353,7 @@ After the command for querying profile data is executed, the results will be pri
 **Supported Products<a name="en-us_topic_0000001265069834_section17436144114294"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -521,7 +521,7 @@ The following examples show the directory structure of the generated profile dat
 > For the specific models of Ascend products, see [Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported

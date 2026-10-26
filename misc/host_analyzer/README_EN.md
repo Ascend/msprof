@@ -104,7 +104,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
     6. Bind interrupts `3008`, `3009`, `3264`, `3265`, `2496`, `2497`, `2752`, and `2753` to CPUs `15`, `16`, `27`, `28`, `64`, `65`, `76`, and `77`, respectively.
 - Example 2
 
-  ```python
+  ```bash
   python3 entrance.py bind
   ```
 

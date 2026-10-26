@@ -59,7 +59,7 @@ For details about the preceding `PLATFORM_{timestamp}` directory, see [PLATFORM_
 > For the specific models of Ascend products, see *[Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)*.
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -79,7 +79,7 @@ For details about the preceding `PLATFORM_{timestamp}` directory, see [PLATFORM_
 
 The timeline data table file is `msprof_*.json`.
 
-The following figure shows a sample `msprof*.json` file opened in `chrome://tracing`.
+The following figure shows a sample `msprof_*.json` file opened in `chrome://tracing`.
 
 **Figure 1** Timeline summary display<a name="en-us_topic_0000001751419248_fig10608132131617"></a>
 ![](../figures/timeline_summary.png "Timeline summary")
@@ -292,7 +292,7 @@ The **DPU** track in `msprof_*.json` displays the execution time of operators un
 
 Supported Products:
 
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 
 **Table 4** Field description<a name="en-us_topic_0000001751419248_table21964325015"></a>
 
@@ -308,7 +308,7 @@ Supported Products:
 | Notify Id              | ID for which the collective communication task waits.                                      |
 | Duration Estimated(us) | Estimation task duration.                                            |
 | Src Rank               | Source rank.                                                    |
-| Dst Rank               | Destination rank.<br>For 950PR&950DT products, local on-chip operations display the same value as the src rank.<br>For other products, if this field displays 4294967295, it indicates a local on-chip operation. |
+| Dst Rank               | Destination rank.<br>For Ascend 950PR&950DT products, local on-chip operations display the same value as the src rank.<br>For other products, if this field displays 4294967295, it indicates a local on-chip operation. |
 | Transport Type         | Transmission type. Valid values include: `LOCAL`, `SDMA`, `RDMA`, `UB`, and `RoCE`.             |
 | Size(Byte)             | Data size (bytes). For `notify` tasks, this field is invalid and is populated with `0`.  |
 | Bandwidth(GB/s)        | Bandwidth (GB/s).                                        |
@@ -324,7 +324,7 @@ The **Fusion Task** track in `msprof_*.json` displays the fusion task data.
 
 Supported Products:
 
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 
 **Figure 9**  fusion_task<a name="en-us_topic_0000001751419248_fig12628420371"></a>
 ![](../figures/fusion_task.png "fusion_task")
@@ -346,7 +346,7 @@ Some operators on the **Ascend Hardware** track in `msprof_*.json` are SIMT oper
 
 Supported products:
 
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 
 **Table 6** Field description<a name="en-us_topic_0000001751419248_table21964325015"></a>
 
@@ -375,7 +375,7 @@ Supported products:
 - Atlas A3 products
 <!-- end id31 -->
 <!-- npu="950" id32 -->
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 <!-- end id32 -->
 
 **Figure 10**  Ascend Hardware sampling interval<a name="en-us_topic_0000001751419248_fig12628420271"></a>
@@ -394,7 +394,7 @@ The AI Core, AI Vector Core, and AICPU operator summary data does not contain ti
 **Supported Products<a name="en-us_topic_0000001686107246_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -472,8 +472,8 @@ The content of the `op_summary_*.csv` file varies depending on the msProf collec
 |Output Formats|Output format of the operator. If `task_time` is set to `l0`, this field is not collected and `N/A` is displayed.|
 |Context ID|Context ID, which identifies a small operator of a subtask. If no small operator exists, `N/A` is displayed.|
 |aiv_time(us)|Theoretical execution duration of a task on the AI Vector Core when all blocks are scheduled simultaneously and each block has an equal execution duration (μs). Typically, the scheduling start time varies slightly across different blocks. Therefore, the value of this field is slightly less than the actual task execution time on the AI Vector Core. The field is populated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`.|
-|aicore_time(us)|Theoretical execution time of the Task on the AI Core when all Blocks are scheduled simultaneously and each Block has the same execution duration, in us. Generally, different Blocks start scheduling at slightly different times, so the value of this field is slightly less than the actual execution time of the Task on the AI Core.<br>This data is inaccurate and not recommended for reference when the AI Core frequency changes (for example, during manual frequency adjustment, dynamic frequency adjustment when power consumption exceeds the threshold, and on Atlas 300V/Atlas 300I Pro products).<br>For the specific frequency change points of Atlas 200I/500 A2 inference products, Atlas A2 products, Atlas A3 products, and 950PR&950DT products, see [Viewing the AI Core Frequency](#en-us_topic_0000001751419248_section9194165318231).<br>Generated when --task-time=l1 and --aic-mode=task-based are set.|
-|total_cycles|Total number of cycles executed by the Task on the AI Core, accumulated from the execution cycle counts of all Blocks.<br>Generated when --task-time=l1 and --aic-mode=task-based are set.<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, Atlas A3 products, and 950PR&950DT products, this field is split into aic_total_cycles (total number of cycles executed by the Task on the AI Cube Core) and aiv_total_cycles (total number of cycles executed by the Task on the AI Vector Core).|
+|aicore_time(us)|Theoretical execution time of the Task on the AI Core when all Blocks are scheduled simultaneously and each Block has the same execution duration, in us. Generally, different Blocks start scheduling at slightly different times, so the value of this field is slightly less than the actual execution time of the Task on the AI Core.<br>This data is inaccurate and not recommended for reference when the AI Core frequency changes (for example, during manual frequency adjustment, dynamic frequency adjustment when power consumption exceeds the threshold, and on Atlas 300V/Atlas 300I Pro products).<br>For the specific frequency change points of Atlas 200I/500 A2 inference products, Atlas A2 products, Atlas A3 products, and Ascend 950PR&950DT products, see [Viewing the AI Core Frequency](#en-us_topic_0000001751419248_section9194165318231).<br>Generated when --task-time=l1 and --aic-mode=task-based are set.|
+|total_cycles|Total number of cycles executed by the Task on the AI Core, accumulated from the execution cycle counts of all Blocks.<br>Generated when --task-time=l1 and --aic-mode=task-based are set.<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, Atlas A3 products, and Ascend 950PR&950DT products, this field is split into aic_total_cycles (total number of cycles executed by the Task on the AI Cube Core) and aiv_total_cycles (total number of cycles executed by the Task on the AI Vector Core).|
 |Register value|Value of the custom register whose data is to be collected. This field is determined by custom registers specified in the `--aic-metrics` option.|
 
 The following fields are generated when `--task-time` is set to `l1` and `--aic-mode` is set to `task-based`. When `--task-time` is set to `l0`, these fields are not collected and `N/A` is displayed. The content of the generated data is determined by the value of the `--aic-metrics` option.
@@ -508,14 +508,14 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 
 |Field|Description|
 |--|--|
-| *_mac_fp16_ratio  | Occupancy ratio of cube fp16 instruction cycles in total cycles. 950PR&950DT products support only aic_mac_fp16_ratio. |
-| *_mac_int8_ratio  | Occupancy ratio of cube int8 instruction cycles in total cycles. 950PR&950DT products support only aic_mac_int8_ratio. |
-| *_vec_fp32_ratio  | Occupancy ratio of vec fp32 instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. 950PR&950DT products do not support this field. |
-| *_vec_fp16_ratio  | Occupancy ratio of vec fp16 instruction cycles in total cycles. 950PR&950DT products do not support this field. |
-| *_vec_int32_ratio | Occupancy ratio of vec int32 instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. 950PR&950DT products do not support this field. |
-| *_vec_misc_ratio  | Occupancy ratio of vec misc instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. 950PR&950DT products do not support this field. |
-| *_cube_fops       | Number of cube-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. 950PR&950DT products support only aic_cube_fops. |
-| *_vector_fops     | Number of vector-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. 950PR&950DT products do not support this field. |
+| *_mac_fp16_ratio  | Occupancy ratio of cube fp16 instruction cycles in total cycles. Ascend 950PR&950DT products support only aic_mac_fp16_ratio. |
+| *_mac_int8_ratio  | Occupancy ratio of cube int8 instruction cycles in total cycles. Ascend 950PR&950DT products support only aic_mac_int8_ratio. |
+| *_vec_fp32_ratio  | Occupancy ratio of vec fp32 instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. Ascend 950PR&950DT products do not support this field. |
+| *_vec_fp16_ratio  | Occupancy ratio of vec fp16 instruction cycles in total cycles. Ascend 950PR&950DT products do not support this field. |
+| *_vec_int32_ratio | Occupancy ratio of vec int32 instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. Ascend 950PR&950DT products do not support this field. |
+| *_vec_misc_ratio  | Occupancy ratio of vec misc instruction cycles in total cycles. Atlas 200I/500 A2 inference products do not support this field and default to N/A. Ascend 950PR&950DT products do not support this field. |
+| *_cube_fops       | Number of cube-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. Ascend 950PR&950DT products support only aic_cube_fops. |
+| *_vector_fops     | Number of vector-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. Ascend 950PR&950DT products do not support this field. |
 
 > [!NOTE]
 >
@@ -529,8 +529,8 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_ub_write_bw(GB/s)|UB write bandwidth rate, in GB/s. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given.|
 |*_l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |*_l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|*_l2_read_bw|L2 read bandwidth rate, in GB/s. The 950PR&950DT products do not support this field.|
-|*_l2_write_bw|L2 write bandwidth rate, in GB/s. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given. The 950PR&950DT products do not support this field.|
+|*_l2_read_bw|L2 read bandwidth rate, in GB/s. The Ascend 950PR&950DT products do not support this field.|
+|*_l2_write_bw|L2 write bandwidth rate, in GB/s. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given. The Ascend 950PR&950DT products do not support this field.|
 |*_main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |*_main_mem_write_bw(GB/s)|Main memory write bandwidth rate, in GB/s. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given.|
 
@@ -547,7 +547,7 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |*_l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |*_l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|*_l0c_write_bw(GB/s)|Bandwidth rate at which vectors are written to L0C, in GB/s. This field is not supported by 950PR&950DT products.|
+|*_l0c_write_bw(GB/s)|Bandwidth rate at which vectors are written to L0C, in GB/s. This field is not supported by Ascend 950PR&950DT products.|
 |*_l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |*_l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
@@ -564,7 +564,7 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_ub_write_bw_vector(GB/s)|Bandwidth for Vector to write data to UB (GB/s).|
 |*_ub_read_bw_scalar(GB/s)|Bandwidth for Scalar to read data from UB (GB/s).|
 |*_ub_write_bw_scalar(GB/s)|Bandwidth for Scalar to write data to UB (GB/s).|
-|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth rate at which the vector fixpipe writes to UB (excluding UB backpressure), in GB/s. This field is supported only by 950PR&950DT products.|
+|*_ub_fixp2ub_write_bw(GB/s)|Bandwidth rate at which the vector fixpipe writes to UB (excluding UB backpressure), in GB/s. This field is supported only by Ascend 950PR&950DT products.|
 
 > [!NOTE]
 >
@@ -574,7 +574,7 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 
 |Field|Description|
 |--|--|
-|*_vec_bankgroup_cflt_ratio|Ratio of execution cycles of vec_bankgroup_stall_cycles type instructions to the total cycles. Bankgroup conflicts occur because the block stride value of vector instructions is set unreasonably. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is assigned. The 950PR&950DT products do not support this field.|
+|*_vec_bankgroup_cflt_ratio|Ratio of execution cycles of vec_bankgroup_stall_cycles type instructions to the total cycles. Bankgroup conflicts occur because the block stride value of vector instructions is set unreasonably. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is assigned. The Ascend 950PR&950DT products do not support this field.|
 |*_vec_bank_cflt_ratio|Ratio of execution cycles of vec_bank_stall_cycles type instructions to the total cycles. Bank conflicts occur because the read/write pointer addresses of vector instruction operands are unreasonable. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is assigned.|
 |*_vec_resc_cflt_ratio|Ratio of execution cycles of vec_resc_cflt_ratio type instructions to the total cycles. When an operator involves multiple compute units, concurrent scheduling of multiple units should be ensured as much as possible. When a compute unit is executing computation but the operator logic still dispatches instructions to that unit, the overall computing power is not fully utilized. The Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is assigned.|
 
@@ -614,16 +614,16 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 
 | Field                         | Description                                                    |
 | ------------------------------- | ------------------------------------------------------------ |
-| `*_write_cache_hit`             | Number of write cache hits. This field is not supported by 950PR&950DT products.   |
-| `*_write_cache_miss_allocate`   | Number of times the cache is reallocated after a write cache miss. This field is not supported by 950PR&950DT products. |
-| `*_r*_read_cache_hit`           | Number of read cache hits on the r* channel. This field is not supported by 950PR&950DT products. |
-| `*_r*_read_cache_miss_allocate` | Number of times the cache is reallocated after a read cache miss on the r* channel. This field is not supported by 950PR&950DT products. |
-| `*_read_local_l2_hit`           | Number of read cache hits. This field is supported only by 950PR&950DT products.   |
-| `*_read_local_l2_miss`          | Number of read cache misses. This field is supported only by 950PR&950DT products.     |
-| `*_read_local_l2_victim`        | Number of times a read cache miss triggers eviction of data from the cache. This field is supported only by 950PR&950DT products. |
-| `*_write_local_l2_hit`          | Number of write cache hits. This field is supported only by 950PR&950DT products.   |
-| `*_write_local_l2_miss`         | Number of write cache misses. This field is supported only by 950PR&950DT products.     |
-| `*_write_local_l2_victim`       | Number of times a write cache miss triggers eviction of data from the cache. This field is supported only by 950PR&950DT products. |
+| `*_write_cache_hit`             | Number of write cache hits. This field is not supported by Ascend 950PR&950DT products.   |
+| `*_write_cache_miss_allocate`   | Number of times the cache is reallocated after a write cache miss. This field is not supported by Ascend 950PR&950DT products. |
+| `*_r*_read_cache_hit`           | Number of read cache hits on the r* channel. This field is not supported by Ascend 950PR&950DT products. |
+| `*_r*_read_cache_miss_allocate` | Number of times the cache is reallocated after a read cache miss on the r* channel. This field is not supported by Ascend 950PR&950DT products. |
+| `*_read_local_l2_hit`           | Number of read cache hits. This field is supported only by Ascend 950PR&950DT products.   |
+| `*_read_local_l2_miss`          | Number of read cache misses. This field is supported only by Ascend 950PR&950DT products.     |
+| `*_read_local_l2_victim`        | Number of times a read cache miss triggers eviction of data from the cache. This field is supported only by Ascend 950PR&950DT products. |
+| `*_write_local_l2_hit`          | Number of write cache hits. This field is supported only by Ascend 950PR&950DT products.   |
+| `*_write_local_l2_miss`         | Number of write cache misses. This field is supported only by Ascend 950PR&950DT products.     |
+| `*_write_local_l2_victim`       | Number of times a write cache miss triggers eviction of data from the cache. This field is supported only by Ascend 950PR&950DT products. |
 
 > [!NOTE]
 >
@@ -639,7 +639,7 @@ Supported Products:
 - Atlas A3 products
 <!-- end id38 -->
 <!-- npu="950" id39 -->
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 <!-- end id39 -->
 <!-- npu="310b" id40 -->
 - Atlas 200I/500 A2 inference products
@@ -678,7 +678,7 @@ Statistics about the AI Core and AICPU operator call counts and durations do not
 **Supported Products<a name="en-us_topic_0000001686266978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -729,7 +729,7 @@ Timeline information of API duration statistics is displayed on the **CANN** tra
 **Supported Products<a name="en-us_topic_0000001656264690_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -795,7 +795,7 @@ The preceding figure is sorted by the **Time** column in descending order to ide
 **Supported Products<a name="en-us_topic_0000001798418925_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -882,7 +882,7 @@ Timeline information of the task scheduler profile data is displayed on the **As
 **Supported Products<a name="en-us_topic_0000001679380154_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -963,7 +963,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 **Supported Products<a name="en-us_topic_0000001706482137_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1067,7 +1067,7 @@ Collective communication operator data is collected and parsed only in scenarios
 **Supported Products<a name="en-us_topic_0000001658339478_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1124,7 +1124,7 @@ In multi-rank, multi-server, and cluster scenarios, ranks communicating with eac
 |task id|Task ID.|
 |task type|Task type.|
 |src rank|Source rank.|
-|dst rank|Destination Rank.<br>For 950PR&950DT products, local on-chip operations display the same value as src rank.<br>For other products, if this field displays 4294967295, it is a local on-chip operation.|
+|dst rank|Destination Rank.<br>For Ascend 950PR&950DT products, local on-chip operations display the same value as src rank.<br>For other products, if this field displays 4294967295, it is a local on-chip operation.|
 |transport type|Transmission type. Valid values include: `LOCAL`, `SDMA`, `RDMA`, `UB`, and `RoCE`.|
 |size(Byte)|Data size (bytes). If the size cannot be obtained, `0` is displayed.|
 |data type|Data type.|
@@ -1180,7 +1180,7 @@ The memory usage records of CANN operators do not contain timeline information. 
 **Supported Products<a name="en-us_topic_000000170451978_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1223,7 +1223,7 @@ The memory usage details of CANN operators do not contain timeline information. 
 **Supported Products<a name="en-us_topic_0000001752279281_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1283,7 +1283,7 @@ Timeline information of the NPU memory usage is displayed on the **NPU MEM** tra
 **Supported Products<a name="en-us_topic_0000001704360086_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1326,7 +1326,7 @@ The memory usage data of the NPU components does not contain timeline informatio
 **Supported Products<a name="en-us_topic_0000001797276317_section165442389381"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1368,7 +1368,7 @@ The following example shows the content format of `npu_module_mem_*.csv`.
 
 Data augmentation information is generated only in training scenarios and only the summary data file `dp_*.csv` is generated.
 
-The `dp_*.csv` file can be generated when data preprocessing offload is enabled in the TensorFlow training scenario (that is, the `enable_data_pre_proc` switch is set to `True`). For details, see the "[Training Iteration Loop Offload](https://gitcode.com/cann/tensorflow/blob/master/docs/en/tfadapter_1/migration/performance_tuning/iteration_offload.md)" section in the *TensorFlow 1.15 Model Migration Guide*.
+The `dp_*.csv` file can be generated when data preprocessing offload is enabled in the TensorFlow training scenario (that is, the `enable_data_pre_proc` switch is set to `True`). For details, see the "[Training Iteration Loop Offload](https://gitcode.com/cann/tensorflow/blob/9.2.0/docs/en/tfadapter_1/migration/performance_tuning/iteration_offload.md)" section in the *TensorFlow 1.15 Model Migration Guide*.
 
 **Supported Products<a name="en-us_topic_0000001752181593_section91616487538"></a>**
 
@@ -1413,7 +1413,7 @@ Timeline information about the percentage of AI Core instructions is displayed o
 **Supported Products<a name="en-us_topic_0000001731321225_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1480,12 +1480,12 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |--|--|
 |mac_fp16_ratio|Ratio of cycles taken to execute Cube fp16 instructions to the total cycles.|
 |mac_int8_ratio|Ratio of cycles taken to execute Cube int8 instructions to the total cycles.|
-|vec_fp32_ratio|Ratio of cycles of vec fp32 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The 950PR&950DT products do not support this field.|
-|vec_fp16_ratio|Ratio of cycles of vec fp16 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The 950PR&950DT products do not support this field.|
-|vec_int32_ratio|Ratio of cycles of vec int32 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The 950PR&950DT products do not support this field.|
-|vec_misc_ratio|Ratio of cycles of vec misc instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The 950PR&950DT products do not support this field.|
+|vec_fp32_ratio|Ratio of cycles of vec fp32 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The Ascend 950PR&950DT products do not support this field.|
+|vec_fp16_ratio|Ratio of cycles of vec fp16 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The Ascend 950PR&950DT products do not support this field.|
+|vec_int32_ratio|Ratio of cycles of vec int32 instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The Ascend 950PR&950DT products do not support this field.|
+|vec_misc_ratio|Ratio of cycles of vec misc instructions to total cycles. The Atlas 200I/500 A2 inference products do not support this field and use the default value N/A. The Ascend 950PR&950DT products do not support this field.|
 |cube_fops|Floating-point operations of the Cube type, indicating the computation volume. This field can be used to measure the complexity of an algorithm or model.|
-|vector_fops|Number of vector-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. The 950PR&950DT products do not support this field.|
+|vector_fops|Number of vector-type floating-point operations, that is, the computational workload, which can be used to measure the complexity of an algorithm/model. Here, fops stands for floating point operations, abbreviated as FLOPs. The Ascend 950PR&950DT products do not support this field.|
 
 **Table 4** Field description (Memory)
 
@@ -1495,8 +1495,8 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |ub_write_bw(GB/s)|UB write bandwidth rate, in GB/s. Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given.|
 |l1_read_bw(GB/s)|L1 read bandwidth (GB/s).|
 |l1_write_bw(GB/s)|L1 write bandwidth (GB/s).|
-|l2_read_bw|L2 read bandwidth rate, in GB/s. 950PR&950DT products do not support this field.|
-|l2_write_bw|L2 write bandwidth rate, in GB/s. Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given. 950PR&950DT products do not support this field.|
+|l2_read_bw|L2 read bandwidth rate, in GB/s. Ascend 950PR&950DT products do not support this field.|
+|l2_write_bw|L2 write bandwidth rate, in GB/s. Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given. Ascend 950PR&950DT products do not support this field.|
 |main_mem_read_bw(GB/s)|Main memory read bandwidth (GB/s).|
 |main_mem_write_bw(GB/s)|Main memory write bandwidth rate, in GB/s. Atlas 200I/500 A2 inference products do not support this field, and the default value N/A is given.|
 
@@ -1509,7 +1509,7 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 |l0b_read_bw(GB/s)|l0b read bandwidth (GB/s).|
 |l0b_write_bw(GB/s)|l0b write bandwidth (GB/s).|
 |l0c_read_bw(GB/s)|Bandwidth for Vector to read data from L0C (GB/s).|
-|l0c_write_bw(GB/s)|Bandwidth rate for writing from vector to l0c, in GB/s. 950PR&950DT products do not support this field.|
+|l0c_write_bw(GB/s)|Bandwidth rate for writing from vector to l0c, in GB/s. Ascend 950PR&950DT products do not support this field.|
 |l0c_read_bw_cube(GB/s)|Bandwidth for Cube to read data from L0C (GB/s).|
 |l0c_write_bw_cube(GB/s)|Bandwidth for Cube to write data to L0C (GB/s).|
 
@@ -1530,7 +1530,7 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 
 |Field|Description|
 |--|--|
-|vec_bankgroup_cflt_ratio|Ratio of the execution cycles of vec_bankgroup_stall_cycles instructions to the total cycles. Bankgroup conflicts occur because the block stride value of vector instructions is set unreasonably. The Atlas 200I/500 A2 inference products do not support this field and assigns the default value N/A. The 950PR&950DT products do not support this field.|
+|vec_bankgroup_cflt_ratio|Ratio of the execution cycles of vec_bankgroup_stall_cycles instructions to the total cycles. Bankgroup conflicts occur because the block stride value of vector instructions is set unreasonably. The Atlas 200I/500 A2 inference products do not support this field and assigns the default value N/A. The Ascend 950PR&950DT products do not support this field.|
 |vec_bank_cflt_ratio|Ratio of the execution cycles of vec_bank_stall_cycles instructions to the total cycles. Bank conflicts occur because the read/write pointer addresses of vector instruction operands are unreasonable. The Atlas 200I/500 A2 inference products do not support this field and assigns the default value N/A.|
 |vec_resc_cflt_ratio|Ratio of the execution cycles of vec_resc_cflt_ratio instructions to the total cycles. When an operator involves multiple compute units, concurrent scheduling of multiple units should be ensured as much as possible. When a compute unit is performing computation but the operator logic still dispatches instructions to that unit, the overall computing power is not fully utilized. The Atlas 200I/500 A2 inference products do not support this field and assigns the default value N/A.|
 
@@ -1539,16 +1539,16 @@ File results vary depending on the `--aic-metrics` option value. The complete fi
 
 |Field|Description|
 |--|--|
-|write_cache_hit|Number of write cache hits. This field is not supported by 950PR&950DT products.|
-|write_cache_miss_allocate|Number of times the cache is reallocated after a write cache miss. This field is not supported by 950PR&950DT products.|
-|r*_read_cache_hit|Number of read cache hits on the r* channel. This field is not supported by 950PR&950DT products.|
-|r*_read_cache_miss_allocate|Number of times the cache is reallocated after a read cache miss on the r* channel. This field is not supported by 950PR&950DT products.|
-|read_local_l2_hit|Number of read cache hits. This field is supported only by 950PR&950DT products.|
-|read_local_l2_miss|Number of read cache misses. This field is supported only by 950PR&950DT products.|
-|read_local_l2_victim|Number of times a read cache miss triggers eviction of data from the cache. This field is supported only by 950PR&950DT products.|
-|write_local_l2_hit|Number of write cache hits. This field is supported only by 950PR&950DT products.|
-|write_local_l2_miss|Number of write cache misses. This field is supported only by 950PR&950DT products.|
-|write_local_l2_victim|Number of times a write cache miss triggers eviction of data from the cache. This field is supported only by 950PR&950DT products.|
+|write_cache_hit|Number of write cache hits. This field is not supported by Ascend 950PR&950DT products.|
+|write_cache_miss_allocate|Number of times the cache is reallocated after a write cache miss. This field is not supported by Ascend 950PR&950DT products.|
+|r*_read_cache_hit|Number of read cache hits on the r* channel. This field is not supported by Ascend 950PR&950DT products.|
+|r*_read_cache_miss_allocate|Number of times the cache is reallocated after a read cache miss on the r* channel. This field is not supported by Ascend 950PR&950DT products.|
+|read_local_l2_hit|Number of read cache hits. This field is supported only by Ascend 950PR&950DT products.|
+|read_local_l2_miss|Number of read cache misses. This field is supported only by Ascend 950PR&950DT products.|
+|read_local_l2_victim|Number of times a read cache miss triggers eviction of data from the cache. This field is supported only by Ascend 950PR&950DT products.|
+|write_local_l2_hit|Number of write cache hits. This field is supported only by Ascend 950PR&950DT products.|
+|write_local_l2_miss|Number of write cache misses. This field is supported only by Ascend 950PR&950DT products.|
+|write_local_l2_victim|Number of times a write cache miss triggers eviction of data from the cache. This field is supported only by Ascend 950PR&950DT products.|
 
 Supported Products:
 
@@ -1559,7 +1559,7 @@ Supported Products:
 - Atlas A3 products
 <!-- end id43 -->
 <!-- npu="950" id44 -->
-- 950PR&950DT products
+- Ascend 950PR&950DT products
 <!-- end id44 -->
 <!-- npu="310b" id45 -->
 - Atlas 200I/500 A2 inference products
@@ -1597,7 +1597,7 @@ Statistics about the percentage of AI Vector Core instructions do not contain ti
 **Supported Products<a name="en-us_topic_0000001750641108_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1649,7 +1649,7 @@ The AICPU operator duration data does not contain timeline information. The summ
 **Supported Products<a name="en-us_topic_0000001752101817_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1698,7 +1698,7 @@ Records the sizes of data preparation queues. It is generated when AICPU is enab
 **Supported Products<a name="en-us_topic_0000002013989984_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1744,7 +1744,7 @@ The L2 cache data does not contain timeline information. The summary information
 **Supported Products<a name="en-us_topic_0000001704262430_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1818,7 +1818,7 @@ This profile data file does not exist in single-operator scenarios (such as the 
 **Supported Products<a name="en-us_topic_0000001704421886_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1865,7 +1865,7 @@ Memory statistics for static graph operators do not contain timeline information
 **Supported Products<a name="en-us_topic_0000001924444106_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1913,7 +1913,7 @@ The system memory data does not contain timeline information. The summary inform
 **Supported Products<a name="en-us_topic_0000001751484586_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -1960,7 +1960,7 @@ The process memory usage data does not contain timeline information. The summary
 **Supported Products<a name="en-us_topic_0000001798284369_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2003,7 +2003,7 @@ Utilization data for the AICPU (executing AICPU operators) and Ctrl CPU (executi
 **Supported Products<a name="en-us_topic_0000001798325329_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2048,7 +2048,7 @@ The CPU utilization data of processes does not contain timeline information. The
 **Supported Products<a name="en-us_topic_0000001751325670_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2089,7 +2089,7 @@ Timeline information of the on-chip memory read/write speed data is displayed in
 **Supported Products<a name="en-us_topic_000000170451974_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2159,7 +2159,7 @@ Timeline information of the HCCS collective communication bandwidth data is disp
 **Supported Products<a name="en-us_topic_0000001752359493_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2217,7 +2217,7 @@ Timeline information of NIC summary is displayed on the **NIC** track in `msprof
 **Supported Products<a name="en-us_topic_0000001750414058_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2284,7 +2284,7 @@ Timeline information of the RoCE bandwidth data is displayed on the **RoCE** tra
 **Supported Products<a name="en-us_topic_0000001750572972_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2351,7 +2351,7 @@ Timeline information of the PCIe bandwidth data is displayed on the **PCIe** tra
 **Supported Products<a name="en-us_topic_0000001797493789_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2409,7 +2409,7 @@ The bandwidth and latency data of AI Core and AI Vector does not contain summary
 **Supported Products<a name="en-us_topic_0000001797600917_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2427,7 +2427,7 @@ The bandwidth and latency data of AI Core and AI Vector does not contain summary
 - Atlas training products: Not supported
 <!-- end id6 -->
 
-**`biu_group`, aic_core_group, and aiv_core_group Tracks in `msprof_*.json`<a name="en-us_topic_0000001797600917_section432932191111"></a>**
+**`biu_group`, `aic_core_group`, and `aiv_core_group` Tracks in `msprof_*.json`<a name="en-us_topic_0000001797600917_section432932191111"></a>**
 
 The following uses data from the Atlas A3 products and Atlas A2 products as an example.
 
@@ -2452,7 +2452,7 @@ The following uses data from the Atlas A3 products and Atlas A2 products as an e
 <!-- npu="950" id13 -->
 > [!NOTE]
 >
-> The `biu_group` hierarchy above applies to data of Atlas A3 products and Atlas A2 products. For 950PR&950DT products, the hierarchy is Biu Perf (BIU instruction pipeline), and the lower level is grouped by Group{id}-{core id}, for example, `Group0-aiv0`. The fields under the group are the same as those at the `biu_group` hierarchy.
+> The `biu_group` hierarchy above applies to data of Atlas A3 products and Atlas A2 products. For Ascend 950PR&950DT products, the hierarchy is Biu Perf (BIU instruction pipeline), and the lower level is grouped by Group{id}-{core id}, for example, `Group0-aiv0`. The fields under the group are the same as those at the `biu_group` hierarchy.
 <!-- end id13 -->
 
 **Table 2** Field description (aic_core_group)
@@ -2483,7 +2483,7 @@ The accelerator bandwidth and concurrency data does not contain summary informat
 **Supported Products<a name="en-us_topic_0000001750723840_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2526,7 +2526,7 @@ The SoC transmission bandwidth information does not contain summary information.
 **Supported Products<a name="en-us_topic_0000001797682569_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2556,7 +2556,7 @@ The following figure shows data on the **Stars Soc Info** track in `msprof_*.jso
 |Field|Description|
 |--|--|
 |L2 Buffer Bw Level|L2 buffer bandwidth level information. When buffer bandwidth information is available, avoid using this field as a reference, as it provides only coarse-grained statistics.|
-|Meta Bw Level|Meta bandwidth level information. The load level is indicated by a numerical value in ascending order. A higher value indicates a heavier load. This can be used to analyze the change trend of bandwidth load.|
+|Mata Bw Level|Meta bandwidth level information. The load level is indicated by a numerical value in ascending order. A higher value indicates a heavier load. This can be used to analyze the change trend of bandwidth load.|
 <!-- end id63 -->
 
 <!-- npu="950,A3,910b" id64 -->
@@ -2567,7 +2567,7 @@ The inter-chip transmission bandwidth data does not contain summary information.
 **Supported Products<a name="en-us_topic_0000001750882752_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2596,10 +2596,10 @@ The following figure shows data on the **Stars Chip Trans** track in `msprof_*.j
 
 |Field|Description|
 |--|--|
-|PA Link Rx|PA traffic reception level. When collective communication bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. 950PR&950DT products do not support this data.|
-|PA Link Tx|PA traffic transmission level. When collective communication bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. 950PR&950DT products do not support this data.|
-|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Only 950PR&950DT products support this data.|
-|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Only 950PR&950DT products support this data.|
+|PA Link Rx|PA traffic reception level. When collective communication bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Ascend 950PR&950DT products do not support this data.|
+|PA Link Tx|PA traffic transmission level. When collective communication bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Ascend 950PR&950DT products do not support this data.|
+|PCIE Read Bandwidth|PCIe read bandwidth. When PCIe bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Only Ascend 950PR&950DT products support this data.|
+|PCIE Write Bandwidth|PCIe write bandwidth. When PCIe bandwidth is available, it is not recommended to refer to this field value, as it is a coarse-grained statistical value. Only Ascend 950PR&950DT products support this data.|
 <!-- end id64 -->
 
 #### llc_read_write (L3 Cache Read/Write Rate)<a name="en-us_TOPIC_0000002477463240"></a>
@@ -2609,7 +2609,7 @@ The timeline information of the L3 cache read/write rate data is displayed on th
 **Supported Products<a name="en-us_topic_0000001750960004_section1413114612162"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2668,7 +2668,7 @@ The DVPP data does not contain timeline information. The summary information is 
 **Supported Products<a name="en-us_topic_0000001798325341_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2713,7 +2713,7 @@ The AICPU top function data does not contain timeline information. The summary i
 **Supported Products<a name="en-us_topic_0000001798284377_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2755,7 +2755,7 @@ The AICPU PMU event data does not contain timeline information. The summary info
 **Supported Products<a name="en-us_topic_0000001751325686_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2796,7 +2796,7 @@ The Ctrl CPU top function data does not contain timeline information. The summar
 **Supported Products<a name="en-us_topic_0000001798325349_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2838,7 +2838,7 @@ The Ctrl CPU PMU event data does not contain timeline information. The summary i
 **Supported Products<a name="en-us_topic_0000001751484602_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2880,7 +2880,7 @@ The TS CPU top function data does not contain timeline information. The summary 
 **Supported Products<a name="en-us_topic_0000001798284385_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2923,7 +2923,7 @@ The TS CPU PMU event data does not contain timeline information. The summary inf
 **Supported Products<a name="en-us_topic_0000001751325694_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Not supported
+- Ascend 950PR&950DT products: Not supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -2965,7 +2965,7 @@ The host-side CPU utilization data is displayed on the **CPU Usage** track in `m
 **Supported Products<a name="en-us_topic_0000001751778214_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3022,7 +3022,7 @@ Host-side CPU frequency data is displayed at the CPU Freq level of the `msprof_*
 
 <!-- npu="950" id1 -->
 
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
   <!-- end id1 -->
   <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3063,7 +3063,7 @@ Timeline information about host-side memory usage is displayed on the **Memory U
 **Supported Products<a name="en-us_topic_0000001751619310_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3117,7 +3117,7 @@ Timeline information about host-side drive I/O usage is displayed on the **Disk 
 **Supported Products<a name="en-us_topic_0000001798578961_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3172,7 +3172,7 @@ Timeline information about host-side network I/O usage is displayed on the **Net
 **Supported Products<a name="en-us_topic_0000001798698005_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3226,7 +3226,7 @@ Timeline information of the syscall and pthreadcall data on the host is displaye
 **Supported Products<a name="en-us_topic_0000001751778218_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3286,7 +3286,7 @@ The host-side system CPU utilization data does not contain timeline information.
 **Supported Products<a name="en-us_topic_0000001751619314_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3331,7 +3331,7 @@ The CPU utilization data of host-side processes does not contain timeline inform
 **Supported Products<a name="en-us_topic_0000001798578965_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3372,7 +3372,7 @@ The host-side system memory usage data does not contain timeline information. Th
 **Supported Products<a name="en-us_topic_0000001798698009_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3419,7 +3419,7 @@ The memory usage data for processes on the host does not contain timeline inform
 **Supported Products<a name="en-us_topic_0000001800355893_section91616487538"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3464,7 +3464,7 @@ The following example shows the content format of `process_mem_*.csv`.
 **Product Support<a name="section1568858014"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3513,7 +3513,7 @@ SMMU page table error data. The file name is page_fault_*.csv. This file records
 **Product Support<a name="section156885801410"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -3555,7 +3555,7 @@ Timeline information of the collective communication instructions is displayed o
 **Product Support<a name="section156885801411"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Not supported
@@ -3609,7 +3609,7 @@ The bandwidth data of the collective communication unit (CCU) does not contain t
 **Product Support<a name="section156885801412"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Not supported
@@ -3653,7 +3653,7 @@ Timeline information of the UB bandwidth data is displayed on the **UB** track i
 **Product Support<a name="section156885801414"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Not supported
@@ -3715,7 +3715,7 @@ Currently, this data is used for internal visualization. You can ignore it.
 **Supported Products**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported

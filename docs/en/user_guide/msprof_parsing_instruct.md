@@ -80,7 +80,7 @@ Before using this tool, understand the following constraints:
 **Supported Products**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: supported
+- Ascend 950PR&950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -272,7 +272,7 @@ The structure of the generated profile data directory is as follows:
 **Product Support**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -302,7 +302,7 @@ During profile data parsing, the profile data file information is automatically 
 - Complete profile data collection first.
 - The constraints in Ascend RC scenarios are the same as those described in [Preparations](#preparations).
 
-**Syntax<a name="en-us__topic_0000001265069802_section427441453914"></a>**
+**Syntax<a name="en-us_topic_0000001265069802_section427441453914"></a>**
 
 ```bash
 msprof --query=on --output=<dir>
@@ -355,7 +355,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --model-id=3 --iteratio
 
 <!-- npu="950" id1 -->
 
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
   <!-- end id1 -->
   <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -421,7 +421,7 @@ Running the preceding command generates a `sqlite` directory containing `.db` fi
 **Supported Products<a name="en-us_topic_0000001631250206_en-us_topic_0000002111094444_section5889102116569"></a>**
 
 <!-- npu="950" id1 -->
-- 950PR&950DT products: Supported
+- Ascend 950PR&950DT products: Supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: Supported
@@ -458,7 +458,7 @@ Parses communication profile data into statistics on segment duration, copy oper
 <!-- npu="950" id7 -->
 > [!NOTE]
 >
-> Because communication matrix data collection is not supported in CCU scenarios on 950PR&950DT products, the deliverables related to this feature are not useful for reference.
+> Because communication matrix data collection is not supported in CCU scenarios on Ascend 950PR&950DT products, the deliverables related to this feature are not useful for reference.
 <!-- end id7 -->
 
 **Syntax<a name="en-us_topic_0000001631250206_section916018568431"></a>**

@@ -52,7 +52,7 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 
 If the command outputs `[PASS]`, the operation is successful. If it outputs `[FAIL]`, the possible causes are as follows:
 
-1. The hardware is outside the supported scope of this tutorial: this learning environment supports only Atlas inference products, Atlas A2 products, Atlas A3 products, and 950PR&950DT products. Switch to a compatible hardware environment and try again.
+1. The hardware is outside the supported scope of this tutorial: this learning environment supports only Atlas inference products, Atlas A2 products, Atlas A3 products, and Ascend 950PR&950DT products. Switch to a compatible hardware environment and try again.
 2. The underlying environment is abnormal: `lspci` is not installed, or the current user cannot query the NPU PCI ID using `lspci -n -D`. Contact the environment administrator to verify the underlying environment.
 
 #### 2.1.3 Host: Pulling the Image
@@ -220,7 +220,7 @@ PROF_XXX
 └── mindstudio_profiler_output   # Aggregated profile data from the host and each device
     ├── msprof_{timestamp}.json  # Timeline data in Chrome Trace format
     ├── op_statistic_{timestamp}.csv  # Statistics aggregated by operator type
-    ├── op_summary_{timestamp}.csv  # Detailed data for AICore and AICPU operators
+    ├── op_summary_{timestamp}.csv  # Detailed data for AI Core and AI CPU operators
     └── ...
 ```
 
@@ -239,7 +239,7 @@ You can sort the data by `Total Time(us)` in descending order and focus first on
 
 Records detailed execution information for each operator task. The fields may vary depending on the product version and collection parameters. The following example is for reference only.
 
-You can sort the data by `Task Duration(us)` in descending order to locate long-running tasks, and then check `Task Type` to view the distribution of tasks on AICore and AICPU.
+You can sort the data by `Task Duration(us)` in descending order to locate long-running tasks, and then check `Task Type` to view the distribution of tasks on AI Core and AI CPU.
 
 ![op_summary CSV file](../figures/en-us_image_0000002502718556.png)
 <div style="text-align: center;">

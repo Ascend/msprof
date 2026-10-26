@@ -14,7 +14,7 @@ To address this issue, the GIL Tracer tool is developed by integrating openEuler
 
 ## Preparations
 
-  1. Install `sysTrace`. For details, see [sysTrace Installation Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/installation.md).
+  1. Install `sysTrace`. For details, see [sysTrace Installation Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/installation.md).
   2. Add the `sysTrace` binary to the `PATH` environment variable.
 
       ```bash
@@ -22,8 +22,8 @@ To address this issue, the GIL Tracer tool is developed by integrating openEuler
       ```
 
   3. Configure `sysTrace` environment variables, including:
-      1. Runtime dependencies. For details, see [sysTrace User Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/introduction.md).
-      2. Logging and data directory configurations. For details, see [sysTrace Data Collection Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/en/data_collection.md).
+      1. Runtime dependencies. For details, see [sysTrace User Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/introduction.md).
+      2. Logging and data directory configurations. For details, see [sysTrace Data Collection Guide](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/data_collection.md).
   4. Obtain the collection and conversion scripts `gil_trace_record.py` and `gil_trace_convert.py`, and the file utility script `file_manager.py` provided in the repository. Synchronous collection of Profiler and GIL data is recommended.
 
 ## GIL Data Collection

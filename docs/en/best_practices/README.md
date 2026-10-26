@@ -10,7 +10,7 @@ This chapter provides performance tuning cases for typical performance tuning sc
 
 - Model Code
   - [Optimizing Operators with Long Execution Time](code_high_latency_function.md)
-  - [Dispatch Performance Below Expectations](dispatch_small_batch_performance.md)
+  - [Dispatch Performance Below Expectation](dispatch_small_batch_performance.md)
   - [High Latency in Operator Compilation](operator_compilation_latency.md)
   - [Frequent Calls to Synchronous APIs](sync_api_frequent_call.md)
 - System scheduling

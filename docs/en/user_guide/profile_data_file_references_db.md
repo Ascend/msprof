@@ -335,7 +335,7 @@ There is no enable or disable option for this table.
 
 |Field|Type|Description|
 |--|--|--|
-|id|INTEGER|Device ID. The value `–1` indicates that the device ID was not collected.|
+|id|INTEGER|Device ID. The value `-1` indicates that the device ID was not collected.|
 |name|TEXT|Chip model of the device.|
 
 ## `HOST_INFO`
@@ -398,8 +398,8 @@ This table is controlled by `--task-time`.
 |attrInfo|INTEGER|Operator attribute information used to describe the operator shape and custom operator parameters. The value maps to `STRING_IDS(attrInfo)`.|
 |opState|INTEGER|Indicates whether an operator is dynamic or static. Valid values: `dynamic`, `static`, and `N/A` (unidentified scenario or operator). The value maps to `STRING_IDS(opState)`.|
 |hf32Eligible|INTEGER|Indicates whether the HF32 precision flag is used. Valid values: `YES` (used), `NO` (not used), and `N/A` (unidentified scenario or operator). The value maps to `STRING_IDS(hf32Eligible)`.|
-|gridDim|INTEGER|Indicates the number of thread blocks enabled in the thread block grid of the SIMT thread model. At any given time, one AIV core executes only one thread block task. Only 950PR&950DT products support this field. STRING_IDS(gridDim)|
-|blockDim|INTEGER|Indicates the number of threads enabled in a thread block of the SIMT thread model. A thread block can enable up to 2048 threads. Only 950PR&950DT products support this field. STRING_IDS(blockDim)|
+|gridDim|INTEGER|Indicates the number of thread blocks enabled in the thread block grid of the SIMT thread model. At any given time, one AIV core executes only one thread block task. Only Ascend 950PR&950DT products support this field. STRING_IDS(gridDim)|
+|blockDim|INTEGER|Indicates the number of threads enabled in a thread block of the SIMT thread model. A thread block can enable up to 2048 threads. Only Ascend 950PR&950DT products support this field. STRING_IDS(blockDim)|
 
 ## `COMMUNICATION_TASK_INFO`
 
@@ -484,7 +484,7 @@ This table is controlled by `--sys-hardware-mem` and `--sys-hardware-mem-freq`.
 |eventName|NUMERIC|QoS event name, which maps to `STRING_IDS(eventName)`|
 |bandwidth|NUMERIC|Bandwidth at the time of the QoS event (bytes/s)|
 |timestampNs|NUMERIC|Local time (ns)|
-|dieId|INTEGER|dieId used to distinguish chip scenarios, supported only by 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
+|dieId|INTEGER|dieId used to distinguish chip scenarios, supported only by Ascend 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
 
 ## `AICORE_FREQ`
 
@@ -499,7 +499,7 @@ There is no enable or disable option for this table. It is generated automatical
 | deviceId    |INTEGER|Device ID|
 | timestampNs |NUMERIC|Local timestamp of frequency change (ns)|
 | freq        |INTEGER|AI Core frequency (MHz)|
-| dieId |INTEGER|dieId used to distinguish chip scenarios, supported only by 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
+| dieId |INTEGER|dieId used to distinguish chip scenarios, supported only by Ascend 950PR&950DT products<br>For Atlas 200I/500 A2 inference products, Atlas A2 products, and Atlas A3 products, chip scenario distinction is not supported, and the default value is -1, indicating that the current chip scenario has no dieId content distinction|
 
 ## `ACC_PMU`
 
@@ -1126,5 +1126,5 @@ There is no enable or disable option for this table. It is generated automatical
 
 |Field|Type|Description|
 |--|--|--|
-|rankId|INTEGER|The value is fixed at `–1`.|
-|deviceId|INTEGER|Device ID on the node. The value `–1` indicates that the device ID was not collected.|
+|rankId|INTEGER|The value is fixed at `-1`.|
+|deviceId|INTEGER|Device ID on the node. The value `-1` indicates that the device ID was not collected.|
