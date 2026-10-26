@@ -28,6 +28,12 @@ for arg in "$@"; do
         --level=l0|--level=l1|--level=l0,l1)
             LEVEL="${arg#*=}"
             ;;
+        --devices=*)
+            if [ "${arg#*=}" != "0,1" ]; then
+                echo "Error: this test suite is fixed to devices 0,1"
+                exit 1
+            fi
+            ;;
         --level=*)
             echo "Error: --level can only be l0, l1 or l0,l1"
             exit 1
@@ -55,26 +61,113 @@ if [ ! -z "$test_list" ]; then
     echo -e "$test_list" | sed 's/^/    /'
     echo -e "${WHITE}========================================${NC}"
 
-    for i in $test_list
-    do
-        echo -e "${WHITE}====================${i%.sh} Test Case ====================${NC}"
-        start_time=$(date "+%s")
-        if bash "$i" "$output_path"; then
-            check_exit_code=0
-        else
-            check_exit_code=$?
+    device0=0
+    device1=1
+    runtime_device0=0
+    runtime_device1=1
+    parallel_enabled=1
+
+    run_cases() {
+        local visibility="$1"
+        shift
+        local failed=0
+        local test_case start_time end_time duration_time check_exit_code
+
+        for test_case in "$@"; do
+            echo -e "${WHITE}====================${test_case%.sh} Test Case ====================${NC}"
+            start_time=$(date "+%s")
+            if [ "$visibility" = "all-visible" ]; then
+                if env -u ASCEND_RT_VISIBLE_DEVICES bash "$test_case" "$output_path"; then
+                    check_exit_code=0
+                else
+                    check_exit_code=$?
+                fi
+            elif [ "$visibility" = "inherited" ]; then
+                if bash "$test_case" "$output_path"; then
+                    check_exit_code=0
+                else
+                    check_exit_code=$?
+                fi
+            elif ASCEND_RT_VISIBLE_DEVICES="$visibility" bash "$test_case" "$output_path"; then
+                check_exit_code=0
+            else
+                check_exit_code=$?
+            fi
+            end_time=$(date "+%s")
+            duration_time=$((end_time - start_time))
+            if [ "$check_exit_code" -ne 0 ]; then
+                echo "$test_case fail ${duration_time}" >> "$result_file"
+                echo -e "--------------------------------------${WHITE}${test_case%.sh}${NC}------${RED}FAIL${NC}"
+                failed=1
+            else
+                echo "$test_case pass ${duration_time}" >> "$result_file"
+                echo -e "--------------------------------------${WHITE}${test_case%.sh}${NC}------${GREEN}PASS${NC}"
+            fi
+        done
+        return "$failed"
+    }
+
+    if [ "$parallel_enabled" -eq 0 ]; then
+        for i in $test_list; do
+            if [ "$i" = "l0_test_ascend_msprof_all_sys_switch.sh" ]; then
+                if ! run_cases "all-visible" "$i"; then
+                    failed_cases=$((failed_cases + 1))
+                fi
+            elif ! run_cases "inherited" "$i"; then
+                failed_cases=$((failed_cases + 1))
+            fi
+        done
+    else
+        communication_case=""
+        pending_cases=()
+        for i in $test_list; do
+            if [[ "$i" == *communication.sh ]]; then
+                communication_case="$i"
+            else
+                pending_cases+=("$i")
+            fi
+        done
+
+        if [ -n "$communication_case" ]; then
+            if ! run_cases "${runtime_device0},${runtime_device1}" "$communication_case"; then
+                failed_cases=$((failed_cases + 1))
+            fi
         fi
-        end_time=$(date "+%s")
-        duration_time=$(( ${end_time} - ${start_time} ))
-        if [ 0 -ne ${check_exit_code} ]; then
-            failed_cases=$((failed_cases + 1))
-            echo "$i fail ${duration_time}" >> "$result_file"
-            echo -e "--------------------------------------${WHITE}${i%.sh}${NC}------${RED}FAIL${NC}"
-        else
-            echo "$i pass ${duration_time}" >> "$result_file"
-            echo -e "--------------------------------------${WHITE}${i%.sh}${NC}------${GREEN}PASS${NC}"
-        fi
-    done
+
+        declare -A running_pids=()
+        remaining=${#pending_cases[@]}
+        next_case=0
+
+        while [ "$next_case" -lt "$remaining" ] || [ "${#running_pids[@]}" -gt 0 ]; do
+            for requested_device in "${device0}" "${device1}"; do
+                if [ "$next_case" -ge "$remaining" ] || [ -n "${running_pids[$requested_device]:-}" ]; then
+                    continue
+                fi
+                test_case="${pending_cases[$next_case]}"
+                next_case=$((next_case + 1))
+                if [ "$requested_device" = "$device0" ]; then
+                    visible_device="$runtime_device0"
+                else
+                    visible_device="$runtime_device1"
+                fi
+                run_cases "$visible_device" "$test_case" &
+                running_pids[$requested_device]=$!
+            done
+
+            for requested_device in "${device0}" "${device1}"; do
+                pid="${running_pids[$requested_device]:-}"
+                if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+                    if ! wait "$pid"; then
+                        failed_cases=$((failed_cases + 1))
+                    fi
+                    unset 'running_pids[$requested_device]'
+                fi
+            done
+            if [ "$next_case" -lt "$remaining" ] || [ "${#running_pids[@]}" -gt 0 ]; then
+                sleep 1
+            fi
+        done
+    fi
     echo -e "${GREEN}[DEBUG] End msprof_smoke_test${NC}"
     if [ ${failed_cases} -ne 0 ]; then
         exit 1
