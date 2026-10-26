@@ -97,8 +97,8 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
     ERROR("Save % data failed: %", accPmuDB.tableName, dbPath);
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser, StarsSocProfileParser);
+REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser, StarsSocParserV6, StarsSocProfileParser);
 REGISTER_PROCESS_DEPENDENT_DATA(AccPmuPersistence, std::vector<HalLogData>, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(AccPmuPersistence, CHIP_V4_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(AccPmuPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

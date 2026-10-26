@@ -155,7 +155,7 @@ TEST_F(ChipTransPersistenceUTest, ShouldSaveV4PaAndPcieTables)
     ASSERT_DOUBLE_EQ(EXPECTED_TIMESTAMP_NS, std::get<3>(pcieRows[0]));
 }
 
-TEST_F(ChipTransPersistenceUTest, ShouldCreateEmptyV6TableWhenNoChipTransDataExists)
+TEST_F(ChipTransPersistenceUTest, ShouldNotCreateV6DatabaseWhenNoChipTransDataExists)
 {
     context_.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
     auto source = std::make_shared<HalSocProfileData>();
@@ -164,11 +164,24 @@ TEST_F(ChipTransPersistenceUTest, ShouldCreateEmptyV6TableWhenNoChipTransDataExi
     ChipTransPersistence persistence;
     ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
 
-    DBRunner runner(DB_PATH);
-    std::vector<PcieV6QueryRow> rows;
-    ASSERT_TRUE(runner.QueryData("SELECT die_id, sys_time, pcie_write_bandwidth, pcie_read_bandwidth FROM PcieInfoV6",
-                                 rows));
-    ASSERT_TRUE(rows.empty());
+    EXPECT_FALSE(File::Exist(DB_PATH));
+}
+
+TEST_F(ChipTransPersistenceUTest, ShouldNotCreateDatabaseWhenAllBandwidthDataIsInvalid)
+{
+    context_.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    auto source = std::make_shared<HalSocProfileData>();
+    HalLogData item;
+    item.chipTrans = HalChipTransData{};
+    item.type = SOC_PROFILE_CHIP_TRANS;
+    item.chipTrans.transType = CHIP_TRANS_V6;
+    item.chipTrans.value1 = INVALID_BW;
+    source->items.push_back(item);
+    ASSERT_TRUE(dataInventory_.Inject(source));
+
+    ChipTransPersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
+    EXPECT_FALSE(File::Exist(DB_PATH));
 }
 
 TEST_F(ChipTransPersistenceUTest, ShouldReturnErrorWhenDataIsNull)
@@ -200,7 +213,7 @@ TEST_F(ChipTransPersistenceUTest, ShouldSaveDefaultDieIdAsNegativeOne)
     EXPECT_EQ(-1, std::get<0>(rows[0]));
 }
 
-TEST_F(ChipTransPersistenceUTest, ShouldCreateBothEmptyLegacyTables)
+TEST_F(ChipTransPersistenceUTest, ShouldNotCreateLegacyDatabaseWhenNoChipTransDataExists)
 {
     context_.deviceContextInfo.deviceInfo.chipID = CHIP_V4_1_0;
     ASSERT_TRUE(dataInventory_.Inject(std::make_shared<HalSocProfileData>()));
@@ -208,17 +221,10 @@ TEST_F(ChipTransPersistenceUTest, ShouldCreateBothEmptyLegacyTables)
     ChipTransPersistence persistence;
     ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context_));
 
-    DBRunner runner(DB_PATH);
-    std::vector<PaQueryRow> paRows;
-    std::vector<PcieQueryRow> pcieRows;
-    ASSERT_TRUE(runner.QueryData("SELECT * FROM PaLinkInfo", paRows));
-    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieInfo", pcieRows));
-    EXPECT_TRUE(paRows.empty());
-    EXPECT_TRUE(pcieRows.empty());
-    EXPECT_FALSE(runner.CheckTableExists("PcieInfoV6"));
+    EXPECT_FALSE(File::Exist(DB_PATH));
 }
 
-TEST_F(ChipTransPersistenceUTest, ShouldCreateEmptyPcieTableWhenOnlyPaDataExists)
+TEST_F(ChipTransPersistenceUTest, ShouldNotCreatePcieTableWhenOnlyPaDataExists)
 {
     context_.deviceContextInfo.deviceInfo.chipID = CHIP_V4_1_0;
     auto source = std::make_shared<HalSocProfileData>();
@@ -236,12 +242,10 @@ TEST_F(ChipTransPersistenceUTest, ShouldCreateEmptyPcieTableWhenOnlyPaDataExists
 
     DBRunner runner(DB_PATH);
     std::vector<PaQueryRow> paRows;
-    std::vector<PcieQueryRow> pcieRows;
     ASSERT_TRUE(runner.QueryData("SELECT * FROM PaLinkInfo", paRows));
     ASSERT_EQ(1UL, paRows.size());
     EXPECT_EQ(8, std::get<0>(paRows[0]));
-    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieInfo", pcieRows));
-    EXPECT_TRUE(pcieRows.empty());
+    EXPECT_FALSE(runner.CheckTableExists("PcieInfo"));
 }
 
 }  // namespace Domain

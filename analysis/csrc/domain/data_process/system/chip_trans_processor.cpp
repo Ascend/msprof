@@ -78,7 +78,9 @@ bool ChipTransProcessor::ProcessOneDevice(const std::string& devicePath, ChipTra
         return false;
     }
     bool flag = true;
-    auto status = CheckPathAndTable(paLinkDBPath, paLinkInfo);
+    chipTransData.oriPaData.clear();
+    chipTransData.oriPcieData.clear();
+    auto status = CheckPathAndTable(paLinkDBPath, paLinkInfo, false);
     if (status == CHECK_SUCCESS)
     {
         chipTransData.oriPaData = LoadPaData(paLinkInfo);
@@ -88,7 +90,7 @@ bool ChipTransProcessor::ProcessOneDevice(const std::string& devicePath, ChipTra
         flag = false;
     }
 
-    status = CheckPathAndTable(pcieDBPath, pcieInfo);
+    status = CheckPathAndTable(pcieDBPath, pcieInfo, false);
     if (status == CHECK_SUCCESS)
     {
         chipTransData.oriPcieData = LoadPcieData(pcieInfo);

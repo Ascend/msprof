@@ -23,7 +23,7 @@ class KernelParserWorker
     // typeInfo解析落盘
     void DumpTypeInfoData();
     // NPU算子内存解析、计算及落盘
-    void ProcessNpuOpMemData();
+    void DumpNpuOpMemData();
     // 启动CANN侧数据解析及分析流程
     void LaunchTraceParser();
 

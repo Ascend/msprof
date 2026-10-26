@@ -112,6 +112,7 @@ V4_HOST_TAGS = frozenset(
         DataTag.CCU_TASK.name,
         DataTag.CCU_WAIT_SIGNAL.name,
         DataTag.CCU_GROUP.name,
+        DataTag.MEMORY_OP.name,
     }
 )
 
@@ -124,6 +125,8 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.LPM_INFO.name,
         DataTag.QOS.name,
         DataTag.SOC_PROFILER.name,
+        DataTag.NPU_MEM.name,
+        DataTag.NPU_MODULE_MEM.name,
     }
 )
 
@@ -149,6 +152,7 @@ V6_HOST_TAGS = frozenset(
         DataTag.CCU_TASK.name,
         DataTag.CCU_WAIT_SIGNAL.name,
         DataTag.CCU_GROUP.name,
+        DataTag.MEMORY_OP.name,
     }
 )
 
@@ -157,10 +161,14 @@ V6_DEVICE_TAGS = frozenset(
     {
         DataTag.STARS_LOG.name,
         DataTag.FFTS_PMU.name,
+        DataTag.FREQ.name,
+        DataTag.AICPU_ADD_INFO.name,
         DataTag.UB.name,
         DataTag.CCU_MISSION.name,
         DataTag.CCU_CHANNEL.name,
         DataTag.SOC_PROFILER.name,
+        DataTag.NPU_MEM.name,
+        DataTag.NPU_MODULE_MEM.name,
     }
 )
 

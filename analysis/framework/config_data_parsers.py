@@ -169,6 +169,7 @@ class ConfigDataParsers:
             "StreamExpandSpecParser",
             "CaptureStreamInfoParser",
             "Mc2CommInfoParser",
+            "NpuOpMemParser",
         ]:
             return True
         return False
@@ -180,6 +181,14 @@ class ConfigDataParsers:
         :param section: parser name config in the config file
         """
         if ChipManager().chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1) and section in [
+            "AscendTaskCalculator",
+            "StarsLogCalCulator",
+            "FftsPmuCalculator",
+            "HcclCalculator",
+            "SubTaskCalculator",
+            "FreqParser",
+            "AicpuAddInfoParser",
+            "KfcCalculator",
             "CCUMissionParser",
             "CCUChannelParser",
             "ParsingUBData",
@@ -188,6 +197,8 @@ class ConfigDataParsers:
             "SioParser",
             "StarsChipTransParser",
             "StarsQosParser",
+            "NpuMemParser",
+            "NpuModuleMemParser",
         ]:
             return True
         if ChipManager().is_chip_v4() and section in [
@@ -207,6 +218,8 @@ class ConfigDataParsers:
             "InterSocParser",
             "SioParser",
             "StarsChipTransParser",
+            "NpuMemParser",
+            "NpuModuleMemParser",
             # "ParsingHBMData",  # 暂不启用 C++ 解析，保留 Python parser。
             # "NetDevStatsParser",  # 暂不启用 C++ 解析，保留 Python parser。
         ]:

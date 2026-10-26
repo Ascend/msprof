@@ -51,6 +51,7 @@ int InterSocParserItem(uint8_t* binaryData, uint32_t binaryDataSize, uint8_t* ha
 }
 
 REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, PARSER_ITEM_INTER_SOC, InterSocParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, PARSER_ITEM_INTER_SOC, InterSocParserItem);
 
 }  // namespace Domain
 }  // namespace Analysis

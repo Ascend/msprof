@@ -48,7 +48,8 @@ class TestConfigDataParsers(unittest.TestCase):
                     ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V6_1_0.value), task))
                 for name in ("CCUMissionParser", "CCUChannelParser"):
                     self.assertEqual(name in names, not (enabled and all_export and version and task))
-                self.assertIn("AicpuAddInfoParser", names)
+                self.assertEqual("AicpuAddInfoParser" in names,
+                                 not (enabled and all_export and version and task))
 
     def test_device_scene_whitelist_enables_supported_chips(self):
         self.assertIn(ChipModel.CHIP_V6_1_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
@@ -57,12 +58,25 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertNotIn(ChipModel.CHIP_V6_1_1, DeviceParseScene.SCENE_CHIP_WHITELIST)
 
     def test_ccu_native_ownership_is_limited_to_v61(self):
-        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_2_0):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0,
+                     ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
                 for parser in ("CCUMissionParser", "CCUChannelParser"):
                     self.assertEqual(
                         ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
-                        chip == ChipModel.CHIP_V6_1_0)
+                        chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1))
+
+    def test_v61_chips_should_handle_device_parser_whitelist(self):
+        parsers = ("CCUMissionParser", "CCUChannelParser", "ParsingUBData", "LowPowerParser",
+                   "SocProfilerParser", "SioParser", "StarsChipTransParser", "StarsQosParser",
+                   "NpuMemParser", "NpuModuleMemParser")
+        for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
+            for parser in parsers:
+                with self.subTest(chip=chip, parser=parser), \
+                        mock.patch.object(ChipManager(), "chip_id", chip):
+                    self.assertEqual(
+                        ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
+                        chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1))
 
     @staticmethod
     def _parser_names(parsers):
@@ -163,10 +177,20 @@ class TestConfigDataParsers(unittest.TestCase):
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
                 self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"))
 
-    def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_not_in_whitelist(self):
-        ChipManager().chip_id = ChipModel.CHIP_V4_1_0
-        ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NpuMemParser")
-        self.assertFalse(ret)
+    def test_device_cpp_should_handle_npu_memory_parsers_only_on_supported_chips(self):
+        for chip, expected in ((ChipModel.CHIP_V4_1_0, True),
+                               (ChipModel.CHIP_V6_1_0, True),
+                               (ChipModel.CHIP_V6_1_1, True),
+                               (ChipModel.CHIP_V6_2_0, False)):
+            for parser in ("NpuMemParser", "NpuModuleMemParser"):
+                with self.subTest(chip=chip, parser=parser), \
+                        mock.patch.object(ChipManager(), "chip_id", chip):
+                    self.assertEqual(
+                        ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser), expected)
+
+    def test_device_cpp_should_reject_parser_not_in_whitelist(self):
+        with mock.patch.object(ChipManager(), "chip_id", ChipModel.CHIP_V4_1_0):
+            self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("UnknownParser"))
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_keep_chip_gate(self):
         ChipManager().chip_id = ChipModel.CHIP_V3_3_0
@@ -207,9 +231,24 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertIn("NonMiniLLCParser", parser_names)
         self.assertIn("ParsingPcieData", parser_names)
 
-    def test_load_can_cpp_parse_or_calculate_device_data_should_return_false_for_v6_1(self):
+    def test_load_can_cpp_parse_or_calculate_device_data_should_handle_ascend_tasks_for_v6_1(self):
         with mock.patch('framework.config_data_parsers.ChipManager') as chip_manager:
             chip_manager.return_value.chip_id = ChipModel.CHIP_V6_1_0
             chip_manager.return_value.is_chip_v4.return_value = False
             ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("AscendTaskCalculator")
-        self.assertFalse(ret)
+        self.assertTrue(ret)
+
+    def test_v61_should_keep_python_parsers_without_cpp_persistence(self):
+        for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
+            for parser in ("AccPmuParser", "InterSocParser"):
+                with self.subTest(chip=chip, parser=parser), \
+                        mock.patch.object(ChipManager(), "chip_id", chip):
+                    self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser))
+
+    def test_v61_should_handle_native_task_calculators_and_aicpu(self):
+        for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
+            for parser in ("AscendTaskCalculator", "StarsLogCalCulator", "FftsPmuCalculator",
+                           "HcclCalculator", "SubTaskCalculator", "FreqParser", "AicpuAddInfoParser", "KfcCalculator"):
+                with self.subTest(chip=chip, parser=parser), \
+                        mock.patch.object(ChipManager(), "chip_id", chip):
+                    self.assertTrue(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser))

@@ -126,7 +126,7 @@ protected:
     DeviceContext context_;
 };
 
-TEST_F(StarsSocProfileParserUTest, ShouldReadOnlyProfileFileAndKeepOnlyLowPowerRecords)
+TEST_F(StarsSocProfileParserUTest, ShouldReadOnlyProfileFileAndKeepRegisteredRecords)
 {
     ASSERT_TRUE(WriteRecords("stars_soc.data.0.slice_0", {CreateRecord(PARSER_ITEM_LOW_POWER, 50)}));
     ASSERT_TRUE(WriteRecords("stars_soc_profile.data.0.slice_0",
@@ -137,12 +137,14 @@ TEST_F(StarsSocProfileParserUTest, ShouldReadOnlyProfileFileAndKeepOnlyLowPowerR
     ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context_));
     auto result = dataInventory_.GetPtr<HalSocProfileData>();
     ASSERT_NE(nullptr, result);
-    ASSERT_EQ(1UL, result->items.size());
-    ASSERT_EQ(SOC_PROFILE_LOW_POWER, result->items.at(0).type);
-    ASSERT_EQ(100UL, result->items.at(0).lowPower.sysCnt);
-    ASSERT_EQ(2, result->items.at(0).lowPower.dieId);
-    ASSERT_EQ(1, result->items.at(0).lowPower.sampleData[0]);
-    ASSERT_EQ(0, result->items.at(0).lowPower.sampleData[1]);
+    ASSERT_EQ(2UL, result->items.size());
+    ASSERT_EQ(ACC_PMU, result->items.at(0).type);
+    ASSERT_EQ(80UL, result->items.at(0).accPmu.timestamp);
+    ASSERT_EQ(SOC_PROFILE_LOW_POWER, result->items.at(1).type);
+    ASSERT_EQ(100UL, result->items.at(1).lowPower.sysCnt);
+    ASSERT_EQ(2, result->items.at(1).lowPower.dieId);
+    ASSERT_EQ(1, result->items.at(1).lowPower.sampleData[0]);
+    ASSERT_EQ(0, result->items.at(1).lowPower.sampleData[1]);
 }
 
 TEST_F(StarsSocProfileParserUTest, ShouldAcceptSingleRecordAndPreserveSliceOrder)

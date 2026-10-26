@@ -20,30 +20,34 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_op_mem_data.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using GeHashMap = std::unordered_map<std::string, std::string>;
-class NpuOpMemProcessor : public DataProcessor {
+class NpuOpMemProcessor : public DataProcessor
+{
     // operator, addr, size, timestamp, thread_id, total_allocate_memory, total_reserve_memory, device_type
-    using OriDataFormat = std::vector<std::tuple<std::string, std::string, int64_t, double, uint32_t, uint64_t,
-                                                 uint64_t, std::string>>;
-public:
-    NpuOpMemProcessor() = default;
-    explicit NpuOpMemProcessor(const std::string &profPath);
+    using OriDataFormat =
+        std::vector<std::tuple<std::string, std::string, int64_t, double, uint32_t, uint64_t, uint64_t, std::string>>;
 
-private:
+   public:
+    NpuOpMemProcessor() = default;
+    explicit NpuOpMemProcessor(const std::string& profPath);
+
+   private:
     bool Process(DataInventory& dataInventory) override;
-    static OriDataFormat LoadData(const DBInfo &npuOpMemDB);
-    std::vector<NpuOpMemData> FormatData(const OriDataFormat &oriData, const Utils::ProfTimeRecord &timeRecord,
-                                         Utils::SyscntConversionParams &params, GeHashMap &hashMap) const;
+    static OriDataFormat LoadData(const DBInfo& npuOpMemDB);
+    std::vector<NpuOpMemData> FormatData(const OriDataFormat& oriData, const Utils::ProfTimeRecord& timeRecord,
+                                         Utils::SyscntConversionParams& params, GeHashMap& hashMap) const;
     static uint16_t GetDeviceId(const std::string& deviceType);
 
-private:
+   private:
     uint64_t stringReleaseId_ = 0;
     uint64_t stringAllocateId_ = 0;
 };
 
-} // Domain
-} // Analysis
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_NPU_OP_MEM_PROCESSOR_H
+#endif  // ANALYSIS_DOMAIN_NPU_OP_MEM_PROCESSOR_H

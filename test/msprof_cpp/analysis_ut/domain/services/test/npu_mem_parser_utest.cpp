@@ -15,6 +15,7 @@
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/parser/npu_mem/include/npu_mem_parser.h"
 #include "analysis/csrc/domain/services/parser/parser_item/npu_mem_parser_item.h"
+#include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/persistence/device/npu_mem_persistence.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -182,7 +183,7 @@ TEST_F(NpuMemParserUTest, ShouldApplyHostCntVctCorrectionToTimestamp)
     EXPECT_EQ(10055U, parsedData->at(0).timestamp);
 }
 
-TEST_F(NpuMemParserUTest, ShouldSkipRecordWhenTimeContextIsIncomplete)
+TEST_F(NpuMemParserUTest, ShouldFailWhenAllRecordsHaveIncompleteTimeContext)
 {
     std::vector<uint8_t> record = CreateNpuMemRecord(7, 1, 8, 100, 200);
     ASSERT_TRUE(WriteBin(record, DATA_DIR, "npu_mem.data.0.slice_0"));
@@ -191,13 +192,12 @@ TEST_F(NpuMemParserUTest, ShouldSkipRecordWhenTimeContextIsIncomplete)
     DeviceContext context = CreateContext("2.0");
     context.deviceContextInfo.startInfo.clockMonotonicRaw = 0;
 
-    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(PARSER_PARSE_DATA_ERROR, parser.Run(inventory, context));
     const auto parsedData = inventory.GetPtr<std::vector<HalNpuMemData>>();
-    ASSERT_NE(nullptr, parsedData);
-    EXPECT_TRUE(parsedData->empty());
+    EXPECT_EQ(nullptr, parsedData);
 }
 
-TEST_F(NpuMemParserUTest, ShouldSkipRecordWhenTimestampConversionOverflows)
+TEST_F(NpuMemParserUTest, ShouldFailWhenAllTimestampConversionsOverflow)
 {
     const uint64_t overflowingTimestamp = std::numeric_limits<uint64_t>::max() / 1000U + 1U;
     std::vector<uint8_t> record = CreateNpuMemRecord(0, 1, overflowingTimestamp, 100, 200);
@@ -205,11 +205,38 @@ TEST_F(NpuMemParserUTest, ShouldSkipRecordWhenTimestampConversionOverflows)
     NpuMemParser parser;
     Infra::DataInventory inventory;
 
+    ASSERT_EQ(PARSER_PARSE_DATA_ERROR, parser.Run(inventory, CreateContext("2.0")));
+    const auto parsedData = inventory.GetPtr<std::vector<HalNpuMemData>>();
+    EXPECT_EQ(nullptr, parsedData);
+}
+TEST_F(NpuMemParserUTest, ShouldKeepValidRecordsWhenSomeTimestampConversionsFail)
+{
+    auto records = CreateNpuMemRecord(7, 1, 8, 100, 200);
+    const auto invalid = CreateNpuMemRecord(0, 1, std::numeric_limits<uint64_t>::max() / 1000U + 1U, 100, 200);
+    records.insert(records.end(), invalid.begin(), invalid.end());
+    ASSERT_TRUE(WriteBin(records, DATA_DIR, "npu_mem.data.0.slice_0"));
+    NpuMemParser parser;
+    Infra::DataInventory inventory;
+    auto context = CreateContext("2.0");
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    const auto parsedData = inventory.GetPtr<std::vector<HalNpuMemData>>();
+    ASSERT_NE(nullptr, parsedData);
+    ASSERT_EQ(1UL, parsedData->size());
+    EXPECT_EQ(10050U, parsedData->at(0).timestamp);
+}
+
+TEST_F(NpuMemParserUTest, ShouldSucceedWhenInputIsAbsent)
+{
+    NpuMemParser parser;
+    Infra::DataInventory inventory;
     ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, CreateContext("2.0")));
     const auto parsedData = inventory.GetPtr<std::vector<HalNpuMemData>>();
     ASSERT_NE(nullptr, parsedData);
     EXPECT_TRUE(parsedData->empty());
 }
+
 }  // namespace
 }  // namespace Domain
 }  // namespace Analysis

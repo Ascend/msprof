@@ -138,6 +138,6 @@ uint32_t FreqParser::ParseData(DataInventory &dataInventory, const Infra::Contex
 }
 
 REGISTER_PROCESS_SEQUENCE(FreqParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(FreqParser, CHIP_V1_1_1);
+REGISTER_PROCESS_SUPPORT_CHIP(FreqParser, CHIP_V1_1_1, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace Domain
 }  // namespace Analysis

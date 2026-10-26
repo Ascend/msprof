@@ -106,7 +106,7 @@ uint32_t InterSocPersistence::ProcessEntry(DataInventory& dataInventory, const C
 
 REGISTER_PROCESS_SEQUENCE(InterSocPersistence, false, StarsSocProfileParser);
 REGISTER_PROCESS_DEPENDENT_DATA(InterSocPersistence, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(InterSocPersistence, CHIP_V4_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(InterSocPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

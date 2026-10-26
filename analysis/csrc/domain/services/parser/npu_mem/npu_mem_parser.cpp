@@ -1,7 +1,20 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
- * -------------------------------------------------------------------------*/
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+ *
+ * MindStudio is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ * -------------------------------------------------------------------------
+ */
 
 #include "analysis/csrc/domain/services/parser/npu_mem/include/npu_mem_parser.h"
 
@@ -120,13 +133,27 @@ uint32_t NpuMemParser::ParseData(Infra::DataInventory &dataInventory, const Infr
         }
         parsedData.emplace_back(std::move(data));
     }
+    const size_t successCount = parsedData.size();
+    const size_t failedCount = recordCount - successCount;
+    if (failedCount != 0)
+    {
+        if (successCount == 0)
+        {
+            ERROR("All NPU_MEM records failed to parse: total: %, success: %, failed: %.", recordCount, successCount,
+                  failedCount);
+            return ANALYSIS_ERROR;
+        }
+        const double failurePercent = static_cast<double>(failedCount) * 100.0 / recordCount;
+        WARN("NPU_MEM records partially failed to parse: total: %, success: %, failed: %, failure percent: %.",
+             recordCount, successCount, failedCount, failurePercent);
+    }
     std::shared_ptr<std::vector<HalNpuMemData>> data;
     MAKE_SHARED_RETURN_VALUE(data, std::vector<HalNpuMemData>, ANALYSIS_ERROR, std::move(parsedData));
     dataInventory.Inject(data);
     return ANALYSIS_OK;
 }
 
-// REGISTER_PROCESS_SEQUENCE(NpuMemParser, true);
-// REGISTER_PROCESS_SUPPORT_CHIP(NpuMemParser, CHIP_V4_1_0);
+REGISTER_PROCESS_SEQUENCE(NpuMemParser, true);
+REGISTER_PROCESS_SUPPORT_CHIP(NpuMemParser, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

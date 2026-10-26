@@ -19,6 +19,10 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <limits>
+#include <tuple>
+#include "analysis/csrc/domain/services/persistence/device/freq_persistence.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
@@ -453,3 +457,49 @@ TEST_F(FreqParserUtest, ShouldParseErrorWhenResizeException)
     MOCKER_CPP(&Resize<HalFreqData>).reset();
 }
 }
+
+namespace Analysis {
+TEST_F(FreqParserUtest, ShouldParseAndPersistV6FrequencyWithStartTimeFiltering)
+{
+    ASSERT_TRUE(File::CreateDir(File::PathJoin({FREQ_LPM_PATH, "sqlite"})));
+    for (const auto chip : {CHIP_V6_1_0, CHIP_V6_1_1}) {
+        DeviceContext context;
+        context.isInitialized_ = true;
+        context.deviceContextInfo.deviceFilePath = FREQ_LPM_PATH;
+        context.deviceContextInfo.deviceInfo.chipID = chip;
+        context.deviceContextInfo.deviceInfo.aicFrequency = 1800;
+        context.deviceContextInfo.deviceStart.cntVct = 100;
+        auto record = CreateFreqData(3);
+        record.lpmDataS[0] = {90, 1700, 0};
+        record.lpmDataS[1] = {100, 1600, 0};
+        record.lpmDataS[2] = {110, 1500, 0};
+        std::vector<FreqData> records{record};
+        ASSERT_TRUE(WriteBin(records, File::PathJoin({FREQ_LPM_PATH, "data"}),
+                             "lpmFreqConv.data.0.slice_0"));
+        DataInventory inventory;
+        FreqParser parser;
+        ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+        const auto data = inventory.GetPtr<std::vector<HalFreqLpmData>>();
+        ASSERT_NE(nullptr, data);
+        ASSERT_EQ(3UL, data->size());
+        EXPECT_EQ(100ULL, data->at(0).sysCnt);
+        EXPECT_EQ(1700U, data->at(0).freq);
+        EXPECT_EQ(100ULL, data->at(1).sysCnt);
+        EXPECT_EQ(1600U, data->at(1).freq);
+        EXPECT_EQ(110ULL, data->at(2).sysCnt);
+        EXPECT_EQ(1500U, data->at(2).freq);
+        const auto dbPath = File::PathJoin({FREQ_LPM_PATH, "sqlite", "freq.db"});
+        {
+            FreqPersistence persistence;
+            ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+            DBRunner runner(dbPath);
+            std::vector<std::tuple<uint64_t, uint32_t>> rows;
+            ASSERT_TRUE(runner.QueryData("SELECT * FROM FreqParse", rows));
+            const std::vector<std::tuple<uint64_t, uint32_t>> expected{{100, 1700}, {100, 1600}, {110, 1500}};
+            EXPECT_EQ(expected, rows);
+        }
+        ASSERT_TRUE(File::DeleteFile(dbPath));
+        ASSERT_TRUE(File::DeleteFile(File::PathJoin({FREQ_LPM_PATH, "data", "lpmFreqConv.data.0.slice_0"})));
+    }
+}
+}  // namespace Analysis

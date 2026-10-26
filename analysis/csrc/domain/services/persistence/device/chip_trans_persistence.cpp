@@ -101,17 +101,12 @@ template <typename RowType>
 bool SaveChipTransTable(const std::vector<RowType>& data, DBInfo& dbInfo, std::string& dbPath,
                         const std::string& tableName)
 {
+    if (data.empty())
+    {
+        return true;
+    }
     dbInfo.tableName = tableName;
-    if (!data.empty())
-    {
-        return SaveData(data, dbInfo, dbPath);
-    }
-    if (!dbInfo.dbRunner->CreateTable(tableName, dbInfo.database->GetTableCols(tableName)))
-    {
-        ERROR("Create ChipTrans table failed: %, table: %", dbPath, tableName);
-        return false;
-    }
-    return true;
+    return SaveData(data, dbInfo, dbPath);
 }
 
 }  // namespace
@@ -142,12 +137,18 @@ uint32_t ChipTransPersistence::ProcessEntry(DataInventory& dataInventory, const 
              invalidTransTypeCount, invalidBandwidthCount + invalidTransTypeCount);
     }
 
+    if (deviceContext.isChipV6() ? v6Data.empty() : (paData.empty() && pcieData.empty()))
+    {
+        INFO("No ChipTrans data to persist");
+        return ANALYSIS_OK;
+    }
+
     DBInfo chipTransDB("chip_trans.db", "");
     MAKE_SHARED0_RETURN_VALUE(chipTransDB.database, ChipTransDB, ANALYSIS_ERROR);
     std::string dbPath = File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, chipTransDB.dbName});
     MAKE_SHARED_RETURN_VALUE(chipTransDB.dbRunner, DBRunner, ANALYSIS_ERROR, dbPath);
 
-    // V4 芯片落 PaLinkInfo/PcieInfo，V6 芯片落 PcieInfoV6，二者不共存，避免下游严格校验因缺表误报失败。
+    // 非 V6 保存 PA/PCIe 数据，V6 保存 PCIe V6 数据，仅为非空数据建表。
     if (deviceContext.isChipV6())
     {
         if (!SaveChipTransTable(v6Data, chipTransDB, dbPath, "PcieInfoV6"))

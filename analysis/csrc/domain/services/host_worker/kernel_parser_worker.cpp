@@ -65,7 +65,7 @@ int KernelParserWorker::Run()
     DumpHashData();
     INFO("Start parse type info data");
     DumpTypeInfoData();
-    // ProcessNpuOpMemData(); 先注释掉C++入口，代码不生效，依旧使用python业务代码，后续统一调整上库
+    DumpNpuOpMemData();
     LaunchTraceParser();
     if (!result_)
     {
@@ -117,7 +117,7 @@ void KernelParserWorker::DumpTypeInfoData()
     }
 }
 
-void KernelParserWorker::ProcessNpuOpMemData()
+void KernelParserWorker::DumpNpuOpMemData()
 {
     const auto dataPath = Utils::File::PathJoin({hostFilePath_, "data"});
     Host::Cann::TaskMemoryParser parser(dataPath);

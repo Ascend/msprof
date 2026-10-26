@@ -60,5 +60,6 @@ int AccPmuParserItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halU
 // AccPmu 载荷布局（timestamp/accId/bandwidth/ost）完全相同，故可安全复用。
 REGISTER_PARSER_ITEM(LOG_PARSER, PARSER_ITEM_ACC_PMU, AccPmuParserItem);
 REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER, PARSER_ITEM_ACC_PMU, AccPmuParserItem);
+REGISTER_PARSER_ITEM(SOC_PROFILE_PARSER_V6, PARSER_ITEM_ACC_PMU, AccPmuParserItem);
 }  // namespace Domain
 }  // namespace Analysis

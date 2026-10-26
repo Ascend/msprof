@@ -134,7 +134,7 @@ TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnTrueWhenNoDb)
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CHIP_TRAINS));
 }
 
-TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExist)
+TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnTrueWhenSourceTableNotExist)
 {
     auto dbPath = File::PathJoin({PROF_PATH, DEVICE_SUFFIX, SQLITE, DB_SUFFIX});
     std::shared_ptr<DBRunner> dbRunner;
@@ -143,7 +143,7 @@ TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenSourceTableNotExist
     dbRunner->DropTable(PCIE_TABLE_NAME);
     auto processor = ChipTransProcessor(PROF_PATH);
     auto dataInventory = DataInventory();
-    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_CHIP_TRAINS));
+    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_CHIP_TRAINS));
 }
 
 TEST_F(ChipTrainsProcessorUTest, TestRunShouldReturnFalseWhenCheckPathFailed)
