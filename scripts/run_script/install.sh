@@ -104,6 +104,7 @@ function implement_install() {
       print "ERROR" "Install msprof analysis whl failed."
       return 1
   fi
+  copy_file ${BUILD_INFO} ${install_path}/${ANALYSIS_PATH}/${BUILD_INFO}
   # 6. install plat_form.run
   if [[ -s "${PLATFORM_PROFILER_RUN}" ]]; then
     local lib64_dir="${install_path}/${arch_name}/lib64"

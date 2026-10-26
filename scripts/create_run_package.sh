@@ -32,15 +32,21 @@ MSPROF_RUN_NAME="mindstudio-profiler"
 VERSION="none"
 WHL_VERSION="0.0.1"
 BUILD_MODE="analysis"
+BUILD_TYPE="Release"
 
 PKG_LIMIT_SIZE=524288000 # 500M
 
 arch_name="$(uname -m)-linux"
 
 function parse_script_args() {
-    if [ $# -gt 3 ]; then
-        echo "[ERROR] Too many arguments. Maximum 3 arguments allowed: VERSION, WHL_VERSION, BUILD_MODE"
+    if [ $# -gt 4 ]; then
+        echo "[ERROR] Too many arguments. Maximum 4 arguments allowed: VERSION, WHL_VERSION, BUILD_MODE, BUILD_TYPE"
         exit 1
+    elif [ $# -eq 4 ]; then
+        VERSION="$1"
+        WHL_VERSION="$2"
+        BUILD_MODE="$3"
+        BUILD_TYPE="$4"
     elif [ $# -eq 3 ]; then
         VERSION="$1"
         WHL_VERSION="$2"
@@ -52,6 +58,13 @@ function parse_script_args() {
         VERSION="$1"
     else
         echo "[ERROR] At least one argument (VERSION) is required"
+        exit 1
+    fi
+}
+
+function validate_build_type() {
+    if [[ "${BUILD_TYPE}" != "Release" && "${BUILD_TYPE}" != "Debug" ]]; then
+        echo "[ERROR] Invalid BUILD_TYPE: ${BUILD_TYPE}. Valid values are: Release, Debug"
         exit 1
     fi
 }
@@ -188,6 +201,14 @@ function get_package_name() {
     echo "${name}_${version}_${os_arch}.run"
 }
 
+function generate_build_info() {
+    python3 "${TOP_DIR}/scripts/generate_build_info.py" \
+        --output "${MSPROF_TEMP_DIR}/build_info.json" \
+        --package-name "${MSPROF_RUN_NAME}" \
+        --package-version "$(get_version)" \
+        --build-type "${BUILD_TYPE}"
+}
+
 function create_run_package() {
     local run_name=${1}
     local temp_dir=${2}
@@ -262,6 +283,7 @@ function check_file_exist() {
             ;;
     esac
 
+    check_package ${temp_dir}/build_info.json ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${MAIN_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${INSTALL_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${UN_INSTALL_SCRIPT} ${PKG_LIMIT_SIZE}
@@ -309,5 +331,7 @@ function main() {
 }
 
 parse_script_args $*
+validate_build_type
+generate_build_info
 update_version_info
 main ${MAIN_SCRIPT} ${FILTER_PARAM_SCRIPT}

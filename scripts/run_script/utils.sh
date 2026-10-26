@@ -36,6 +36,7 @@ UNINSTALL_SCRIPT="uninstall.sh"
 UTILS_SCRIPT="utils.sh"
 CANN_UNINSTALL_SCRIPT="cann_uninstall.sh"
 VERSION_INFO="version.info"
+BUILD_INFO="build_info.json"
 PLATFORM_PROFILER_RUN="platform-profiler.run"
 
 function print() {

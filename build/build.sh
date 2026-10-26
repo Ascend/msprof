@@ -126,4 +126,4 @@ case "$BUILD_MODE" in
 esac
 
 # 2. package
-bash ${TOP_DIR}/scripts/create_run_package.sh ${VERSION} ${WHL_VERSION} ${BUILD_MODE}
+bash ${TOP_DIR}/scripts/create_run_package.sh ${VERSION} ${WHL_VERSION} ${BUILD_MODE} ${BUILD_TYPE}
