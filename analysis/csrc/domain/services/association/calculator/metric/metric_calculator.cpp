@@ -104,26 +104,6 @@ double Calculator::CalculatorMetricByAdditionsWithFreq(CalculationElements& allP
     return res;
 }
 
-double Calculator::CalculatorMetricByAdditionsWithFreqScales(CalculationElements& allParams, size_t index)
-{
-    double res = 0.0;
-    if (allParams.taskCyc != 0 && allParams.bwFreq != 0)
-    {
-        double freq = static_cast<double>(allParams.bwFreq);
-        for (size_t i = 0; i < allParams.pmuList.size(); ++i)
-        {
-            double scale = 1.0;
-            if (allParams.registerScales != nullptr && i < allParams.registerScales->size())
-            {
-                scale = (*allParams.registerScales)[i];
-            }
-            res += ((*allParams.floatBit)[index] * allParams.pmuList[i] * scale * (*allParams.pipSize)[index] *
-                    (*allParams.scalar)[index] / (allParams.taskCyc / freq) / OFFSET);
-        }
-    }
-    return res;
-}
-
 double Calculator::CalculatorTimeByMultiplication(CalculationElements& allParams, size_t index)
 {
     return allParams.totalTime * CalculatorMetricByAdditions(allParams, index);
@@ -216,7 +196,9 @@ void SetBlockNum(DeviceTask& task, CalculationElements& allParams, HalPmuData& p
 {
     if (pmu.type == PMU)
     {
-        allParams.blockNum = task.blockNum;
+        // AIV从核记录的totalCycle是mixBlockNum个分块的累加，公式须用mixBlockNum
+        allParams.blockNum =
+            (pmu.pmu.mix && pmu.pmu.mst == 0 && pmu.pmu.coreType == 1) ? task.mixBlockNum : task.blockNum;
     }
     else
     {

@@ -104,7 +104,7 @@ namespace Analysis {
         ASSERT_EQ(halData.type, BLOCK_PMU);
     }
 
-    TEST_F(Chip6PmuParserItemUtest, ShouldDetermineAcceleratorTypeByMixAndCoreType)
+    TEST_F(Chip6PmuParserItemUtest, ShouldDetermineAcceleratorTypeByCoreTypeAndStoreMixFlag)
     {
         auto ParseWith = [](uint8_t flags, uint8_t coreType) {
             Chip6Pmu pmu;
@@ -113,13 +113,17 @@ namespace Analysis {
             HalPmuData halData;
             Chip6PmuParseItem(reinterpret_cast<uint8_t *>(&pmu), sizeof(pmu),
                 reinterpret_cast<uint8_t *>(&halData), 0);
-            return halData.pmu.acceleratorType;
+            return halData.pmu;
         };
 
-        EXPECT_EQ(ParseWith(0b000, 0), AIC);
-        EXPECT_EQ(ParseWith(0b000, 1), AIV);
-        EXPECT_EQ(ParseWith(0b010, 0), MIX_AIC);
-        EXPECT_EQ(ParseWith(0b010, 1), MIX_AIV);
+        EXPECT_EQ(ParseWith(0b000, 0).acceleratorType, AIC);
+        EXPECT_EQ(ParseWith(0b000, 0).mix, 0);
+        EXPECT_EQ(ParseWith(0b000, 1).acceleratorType, AIV);
+        EXPECT_EQ(ParseWith(0b000, 1).mix, 0);
+        EXPECT_EQ(ParseWith(0b010, 0).acceleratorType, AIC);
+        EXPECT_EQ(ParseWith(0b010, 0).mix, 1);
+        EXPECT_EQ(ParseWith(0b010, 1).acceleratorType, AIV);
+        EXPECT_EQ(ParseWith(0b010, 1).mix, 1);
     }
 
     TEST_F(Chip6PmuParserItemUtest, ShouldSetOvFlagWhenOverflowBitSet)

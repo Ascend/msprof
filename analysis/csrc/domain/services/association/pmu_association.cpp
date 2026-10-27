@@ -200,12 +200,18 @@ void PmuAssociation::CalculateContextPmu(HalPmuData& pmuData, DeviceTask& task, 
 void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task, DataInventory& dataInventory,
                                            const DeviceContext& context)
 {
-    task.acceleratorType = pmuData.pmu.acceleratorType;
     CalculationElements params;
     // 始终取 context 侧 PMU 时间（hd.timestamp），换算成 wall-clock ns 后随 pmuInfo 供下游落盘
     uint64_t contextTimeNs = GetTimeFromSyscnt(pmuData.hd.timestamp, syscntParams_).Uint64();
-    if (task.acceleratorType == MIX_AIC || task.acceleratorType == MIX_AIV)
+    if (pmuData.pmu.mix)
     {
+        const bool isMst = pmuData.pmu.mst == 1;
+        const bool isAicReport = pmuData.pmu.coreType == 0;
+        // mix任务类型以主核为准，从核记录不赋值
+        if (isMst)
+        {
+            task.acceleratorType = isAicReport ? MIX_AIC : MIX_AIV;
+        }
         // mix场景：同一task有两个PMU（AIC+AIV），需要合并而非覆盖
         auto* existingMix = dynamic_cast<PmuInfoMixAccelerator*>(task.pmuInfo.get());
         PmuInfoMixAccelerator pmuInfoMix;
@@ -213,39 +219,24 @@ void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task
         {
             pmuInfoMix = *existingMix;  // 保留已有数据（另一个核的PMU结果）
         }
-        // 对齐Python chip6_pmu_calculator：主核(mst)用syscnt时间差，从核用totalCycle公式（从核AIC归零）
-        const bool isMst = pmuData.pmu.mst == 1;
+        // 主核用syscnt时间差；从核AIC上报归零，从核AIV上报用周期公式算aivTime
         if (isMst)
         {
             SetOverrideTotalTime(pmuData, context, params);
         }
-        if (pmuData.pmu.acceleratorType == MIX_AIC)
+        if (isAicReport)
         {
             pmuInfoMix.aicTotalCycles = pmuData.pmu.totalCycle;
             auto res = aicCalculator_->CalculatePmuMetric(dataInventory, context, params, pmuData, task);
             pmuInfoMix.aicPmuResult.swap(res);
-            if (isMst)
-            {
-                pmuInfoMix.aiCoreTime = params.totalTime;
-            }
-            else
-            {
-                pmuInfoMix.aivTime = params.totalTime;
-            }
+            pmuInfoMix.aiCoreTime = isMst ? params.totalTime : 0;
         }
         else
         {
             pmuInfoMix.aivTotalCycles = pmuData.pmu.totalCycle;
             auto res = aivCalculator_->CalculatePmuMetric(dataInventory, context, params, pmuData, task);
             pmuInfoMix.aivPmuResult.swap(res);
-            if (isMst)
-            {
-                pmuInfoMix.aivTime = params.totalTime;
-            }
-            else
-            {
-                pmuInfoMix.aiCoreTime = 0;
-            }
+            pmuInfoMix.aivTime = params.totalTime;
         }
         pmuInfoMix.mainTimestamp = pmuData.pmu.timeList[1];
         pmuInfoMix.timestamp = contextTimeNs;
@@ -253,6 +244,7 @@ void PmuAssociation::CalculateContextPmuV6(HalPmuData& pmuData, DeviceTask& task
     }
     else
     {
+        task.acceleratorType = pmuData.pmu.acceleratorType;
         // 非mix场景：使用syscnt时间差计算总时间
         PmuInfoSingleAccelerator pmuInfoNormal;
         pmuInfoNormal.totalCycles = pmuData.pmu.totalCycle;

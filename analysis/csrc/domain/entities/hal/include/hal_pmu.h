@@ -46,6 +46,7 @@ struct HalPmu
     uint8_t coreType = 0;  // mix时判断是aic还是aiv上报
     uint8_t coreId = 0;
     uint8_t mst = 0;  // mix时判断context pmu是否为主核
+    uint8_t mix = 0;  // 上报flags bit1：该task是否为mix算子
 
     explicit HalPmu() : pmuList(DEFAULT_LENGTH) {}
 };

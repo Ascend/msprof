@@ -596,6 +596,17 @@ TEST_F(PmuAssociationUTest, ShouldUseChipConfigInsideL2CacheCalculator)
     ASSERT_FALSE(defaultCalculator.CheckMetricEventValid(v6Events));
 }
 
+TEST_F(PmuAssociationUTest, ShouldSelectMemoryConfigByEvents)
+{
+    MemoryCalculator v6Calculator(CHIP_V6_1_0);
+
+    // 新版本数据使用main_mem新地址0x422/0x423，老版本数据沿用原地址0x400/0x401，均校验通过
+    std::vector<uint32_t> newEvents{0x56f, 0x570, 0x707, 0x709, 0x422, 0x423};
+    std::vector<uint32_t> legacyEvents{0x56f, 0x570, 0x707, 0x709, 0x400, 0x401};
+    ASSERT_TRUE(v6Calculator.CheckMetricEventValid(newEvents));
+    ASSERT_TRUE(v6Calculator.CheckMetricEventValid(legacyEvents));
+}
+
 /*
  * V6芯片相关用例公共数据构造：
  *   V6 PMU不携带streamId（解析时填UINT16_MAX），pmuList固定长度为V6_PMU_LENGTH(10)，
@@ -750,7 +761,7 @@ TEST_F(PmuAssociationUTest, ShouldFallBackToCycleFormulaWhenV6TimeListWarp)
 }
 
 /*
- * V6芯片mix场景：task仅收到AIC单侧context PMU（AIV侧丢失）时，
+ * V6芯片mix场景：task仅收到AIC主核单侧context PMU（AIV侧丢失）时，
  *   关联仍成功，结果仅含AIC侧数据并打印WARN日志
  */
 TEST_F(PmuAssociationUTest, ShouldOnlyFillAicResultWhenV6MixTaskReceiveSinglePmu)
@@ -759,7 +770,10 @@ TEST_F(PmuAssociationUTest, ShouldOnlyFillAicResultWhenV6MixTaskReceiveSinglePmu
     DeviceContext context;
     SetV6DeviceContext(context);
     auto pmuData = GenerateV6HalPmuData(100, 200);
-    pmuData[0].pmu.acceleratorType = MIX_AIC;  // 仅收到MIX_AIC一侧的PMU
+    pmuData[0].pmu.acceleratorType = AIC;      // 仅收到MIX_AIC算子AIC核一侧的PMU
+    pmuData[0].pmu.mix = 1;
+    pmuData[0].pmu.coreType = 0;               // AIC核上报
+    pmuData[0].pmu.mst = 1;                    // AIC为主核
     auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     pmuDataS->swap(pmuData);
     auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
@@ -768,6 +782,7 @@ TEST_F(PmuAssociationUTest, ShouldOnlyFillAicResultWhenV6MixTaskReceiveSinglePmu
     ASSERT_EQ(ANALYSIS_OK, pmuAssociation.Run(dataInventory_, context));
     auto result = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
     const auto& task = result->begin()->second.at(0);
+    // mix分支内合成任务类型：AIC主核上报 → MIX_AIC
     EXPECT_EQ(MIX_AIC, task.acceleratorType);
     auto res = dynamic_cast<PmuInfoMixAccelerator *>(task.pmuInfo.get());
     ASSERT_NE(nullptr, res);
@@ -776,10 +791,11 @@ TEST_F(PmuAssociationUTest, ShouldOnlyFillAicResultWhenV6MixTaskReceiveSinglePmu
 }
 
 /*
- * V6芯片mix场景：同一task先后收到AIC、AIV两条context PMU（静态图下AIC/AIV各上报一条）。验证：
+ * V6芯片mix场景：同一task先后收到AIC主核(mst=1)、AIV从核(mst=0)两条context PMU（MIX_AIC算子）。验证：
  *   1) MergeContextPmuToDeviceTask 的taskIndex推进：第二条PMU仍落在当前task窗口内，taskIndex不推进，
  *      两条PMU都归属同一task；
- *   2) CalculateContextPmu 的existingMix合并：第二条PMU不覆盖第一条，aic/aiv结果同时存在。
+ *   2) CalculateContextPmu 的existingMix合并：主核aiCoreTime(syscnt时间差)不被从核清零，
+ *      从核aivTime用totalCycle公式(mixBlockNum=3)：100 * 1e6 / (100 * 1e6) / 3 * ((3 + 8 - 1) / 8) = 1.0 / 3
  */
 TEST_F(PmuAssociationUTest, ShouldMergeAicAndAivPmuToSameTaskWhenV6Mix)
 {
@@ -787,11 +803,16 @@ TEST_F(PmuAssociationUTest, ShouldMergeAicAndAivPmuToSameTaskWhenV6Mix)
     DeviceContext context;
     SetV6DeviceContext(context);
     auto pmuData = GenerateV6HalPmuData(100, 200);
-    pmuData[0].pmu.acceleratorType = MIX_AIC;
+    pmuData[0].pmu.acceleratorType = AIC;  // MIX_AIC算子AIC核一侧
+    pmuData[0].pmu.mix = 1;
+    pmuData[0].pmu.coreType = 0;           // AIC核上报
+    pmuData[0].pmu.mst = 1;                // AIC为主核
     pmuData[0].hd.timestamp = 100;
     HalPmuData aivPmu = pmuData[0];
-    aivPmu.pmu.acceleratorType = MIX_AIV;
-    aivPmu.hd.timestamp = 120;  // AIV侧PMU略晚，但与AIC同处task[50,150]窗口
+    aivPmu.pmu.acceleratorType = AIV;  // MIX_AIC算子AIV核一侧
+    aivPmu.pmu.coreType = 1;           // AIV核上报
+    aivPmu.pmu.mst = 0;                // AIV为从核
+    aivPmu.hd.timestamp = 120;         // AIV侧PMU略晚，但与AIC同处task[50,150]窗口
     pmuData.push_back(aivPmu);
     auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     pmuDataS->swap(pmuData);
@@ -805,14 +826,16 @@ TEST_F(PmuAssociationUTest, ShouldMergeAicAndAivPmuToSameTaskWhenV6Mix)
     ASSERT_EQ(1ul, tasks.size());
     auto res = dynamic_cast<PmuInfoMixAccelerator *>(tasks.at(0).pmuInfo.get());
     ASSERT_NE(nullptr, res);
+    // mix分支内合成任务类型以主核为准：从核记录不覆盖，保持MIX_AIC
+    EXPECT_EQ(MIX_AIC, tasks.at(0).acceleratorType);
     // existingMix合并成功：AIC与AIV结果同时存在，互不覆盖
     EXPECT_FALSE(res->aicPmuResult.empty());
     EXPECT_FALSE(res->aivPmuResult.empty());
     EXPECT_EQ(100ul, res->aicTotalCycles);
     EXPECT_EQ(100ul, res->aivTotalCycles);
-    // 本用例两条PMU均为从核(mst=0)：MIX_AIC从核写aivTime(周期公式0.125)，MIX_AIV从核将aiCoreTime归零
-    EXPECT_DOUBLE_EQ(0.0, res->aiCoreTime);
-    EXPECT_DOUBLE_EQ(0.125, res->aivTime);
+    // 主核aiCoreTime用syscnt时间差，不被从核记录清零；从核aivTime用周期公式
+    EXPECT_DOUBLE_EQ(1.0, res->aiCoreTime);
+    EXPECT_DOUBLE_EQ(1.0 / 3, res->aivTime);
 }
 
 /*
@@ -825,8 +848,10 @@ TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeForAicMainCoreWhenV6Mix)
     DeviceContext context;
     SetV6DeviceContext(context);
     auto pmuData = GenerateV6HalPmuData(100, 200);
-    pmuData[0].pmu.acceleratorType = MIX_AIC;
-    pmuData[0].pmu.mst = 1;  // AIC为主核
+    pmuData[0].pmu.acceleratorType = AIC;  // MIX_AIC算子AIC核一侧
+    pmuData[0].pmu.mix = 1;
+    pmuData[0].pmu.coreType = 0;           // AIC核上报
+    pmuData[0].pmu.mst = 1;                // AIC为主核
     auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     pmuDataS->swap(pmuData);
     auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
@@ -850,8 +875,10 @@ TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeForAivMainCoreWhenV6Mix)
     DeviceContext context;
     SetV6DeviceContext(context);
     auto pmuData = GenerateV6HalPmuData(100, 200);
-    pmuData[0].pmu.acceleratorType = MIX_AIV;
-    pmuData[0].pmu.mst = 1;  // AIV为主核
+    pmuData[0].pmu.acceleratorType = AIV;  // MIX_AIV算子AIV核一侧
+    pmuData[0].pmu.mix = 1;
+    pmuData[0].pmu.coreType = 1;           // AIV核上报
+    pmuData[0].pmu.mst = 1;                // AIV为主核
     auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     pmuDataS->swap(pmuData);
     auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
@@ -867,8 +894,8 @@ TEST_F(PmuAssociationUTest, ShouldUseSyscntTimeForAivMainCoreWhenV6Mix)
 
 /*
  * V6芯片mix场景：从核(mst=0)不使用syscnt时间差，回退为周期公式。
- * MIX_AIC从核写aivTime = totalCycle * FREQ_TO_Hz / freq / blockNum * ((blockNum + coreNum - 1) / coreNum)
- *   = 100 * 1e6 / (100 * 1e6) / 8 * ((8 + 8 - 1) / 8) = 0.125
+ * MIX_AIV从核写aivTime = totalCycle * FREQ_TO_Hz / freq / mixBlockNum * ((mixBlockNum + coreNum - 1) / coreNum)
+ *   = 100 * 1e6 / (100 * 1e6) / 3 * ((3 + 8 - 1) / 8) = 1.0 / 3
  */
 TEST_F(PmuAssociationUTest, ShouldUseCycleFormulaForSlaveCoreWhenV6Mix)
 {
@@ -876,8 +903,10 @@ TEST_F(PmuAssociationUTest, ShouldUseCycleFormulaForSlaveCoreWhenV6Mix)
     DeviceContext context;
     SetV6DeviceContext(context);
     auto pmuData = GenerateV6HalPmuData(100, 200);
-    pmuData[0].pmu.acceleratorType = MIX_AIC;
-    pmuData[0].pmu.mst = 0;  // AIC为从核
+    pmuData[0].pmu.acceleratorType = AIV;  // MIX_AIC算子AIV核一侧
+    pmuData[0].pmu.mix = 1;
+    pmuData[0].pmu.coreType = 1;           // AIV核上报
+    pmuData[0].pmu.mst = 0;                // AIV为从核
     auto pmuDataS = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     pmuDataS->swap(pmuData);
     auto deviceTask = GenerateV6DeviceTask(UINT16_MAX);
@@ -888,7 +917,7 @@ TEST_F(PmuAssociationUTest, ShouldUseCycleFormulaForSlaveCoreWhenV6Mix)
     auto res = dynamic_cast<PmuInfoMixAccelerator *>(result->begin()->second.at(0).pmuInfo.get());
     ASSERT_NE(nullptr, res);
     EXPECT_DOUBLE_EQ(0.0, res->aiCoreTime);
-    EXPECT_DOUBLE_EQ(0.125, res->aivTime);
+    EXPECT_DOUBLE_EQ(1.0 / 3, res->aivTime);
 }
 }
 }

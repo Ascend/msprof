@@ -125,7 +125,7 @@ protected:
         chip6Pmu.taskId = 1000; // 1000 taskId
         chip6Pmu.totalCycle = 10000; // 10000 totalCycle
         chip6Pmu.ctxType = 0;
-        chip6Pmu.flags = 0b010; // mix=1 与coreType组合标识MIX_AIC
+        chip6Pmu.flags = 0b010; // mix=1 标识mix算子
         chip6Pmu.coreType = 0; // 0 标识AIC上报
         chip6Pmu.coreId = 0;
         chip6Pmu.subBlockId = 1; // 1 subBlockId
@@ -269,7 +269,8 @@ TEST_F(FftsProfileParserUTest, ShouldParseV6ContextPmuWhenParserRun)
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(1ul, pmuData->size());
     ASSERT_EQ(HalPmuType::PMU, pmuData->data()[0].type);
-    ASSERT_EQ(AcceleratorType::MIX_AIC, pmuData->data()[0].pmu.acceleratorType);
+    ASSERT_EQ(AcceleratorType::AIC, pmuData->data()[0].pmu.acceleratorType);
+    ASSERT_EQ(1, pmuData->data()[0].pmu.mix);
     for (int i = 0; i < V6_PMU_LENGTH; ++i) {
         ASSERT_EQ(static_cast<uint64_t>(i + 1), pmuData->data()[0].pmu.pmuList[i]);
     }
@@ -287,7 +288,8 @@ TEST_F(FftsProfileParserUTest, ShouldParseV6BlockPmuWhenParserRun)
     auto pmuData = dataInventory_.GetPtr<std::vector<HalPmuData>>();
     ASSERT_EQ(1ul, pmuData->size());
     ASSERT_EQ(HalPmuType::BLOCK_PMU, pmuData->data()[0].type);
-    ASSERT_EQ(AcceleratorType::MIX_AIC, pmuData->data()[0].pmu.acceleratorType);
+    ASSERT_EQ(AcceleratorType::AIC, pmuData->data()[0].pmu.acceleratorType);
+    ASSERT_EQ(1, pmuData->data()[0].pmu.mix);
     for (int i = 0; i < V6_PMU_LENGTH; ++i) {
         ASSERT_EQ(static_cast<uint64_t>(i + 1), pmuData->data()[0].pmu.pmuList[i]);
     }

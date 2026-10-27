@@ -51,18 +51,12 @@ int ParseChip6Pmu(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniD
 
     pmuData->type = type;
 
-    // V6 chip: determine acceleratorType by coreType and mix flag
+    // acceleratorType只表达上报核类型（coreType推导），mix标志单独存储，任务级类型由关联层合成
     uint8_t mst = chip6Pmu->flags & 0x1;         // bit0: 主核标志
     uint8_t mix = (chip6Pmu->flags >> 1) & 0x1;  // bit1: mix标志
     uint8_t ovFlag = (chip6Pmu->flags >> 2) & 0x1;
-    if (mix)
-    {
-        pmuData->pmu.acceleratorType = (chip6Pmu->coreType == 0) ? MIX_AIC : MIX_AIV;
-    }
-    else
-    {
-        pmuData->pmu.acceleratorType = (chip6Pmu->coreType == 0) ? AIC : AIV;
-    }
+    pmuData->pmu.acceleratorType = (chip6Pmu->coreType == 0) ? AIC : AIV;
+    pmuData->pmu.mix = mix;
 
     pmuData->pmu.ovFlag = ovFlag;
     pmuData->pmu.mst = mst;

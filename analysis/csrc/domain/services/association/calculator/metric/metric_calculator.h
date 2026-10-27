@@ -56,9 +56,6 @@ struct CalculationElements
     std::shared_ptr<std::vector<double>> scalar;
     std::shared_ptr<std::vector<uint64_t>> cubeParams;
     std::shared_ptr<std::vector<uint64_t>> vectorParams;
-    // 同一指标内各寄存器(pmuList按位置)的独立缩放系数，未设置或越界时按1.0处理，
-    // 用于不同寄存器换算系数不同的场景，配合CalculatorMetricByAdditionsWithFreqScales使用
-    std::shared_ptr<std::vector<double>> registerScales;
 };
 
 using DoublePtrType = std::vector<double>;
@@ -75,7 +72,6 @@ class Calculator
     static double CalculatorMetricByAdditions(CalculationElements &allParams, size_t index);
     static double CalculatorMetricByDivision(CalculationElements &allParams, size_t index);
     static double CalculatorMetricByAdditionsWithFreq(CalculationElements &allParams, size_t index);
-    static double CalculatorMetricByAdditionsWithFreqScales(CalculationElements &allParams, size_t index);
     static double CalculatorTimeByMultiplication(CalculationElements &allParams, size_t index);
     static double CalculatorCubeFops(CalculationElements &allParams, size_t index);
     static double CalculatorVectorFops(CalculationElements &allParams, size_t index);
