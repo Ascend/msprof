@@ -11,6 +11,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/constant DEVICE_AS
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/cann DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host/cann DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host DEVICE_ASSOCIATION_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser DEVICE_ASSOCIATION_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/aicpu DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/adapter DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment DEVICE_ASSOCIATION_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/association/calculator/metric DEVICE_ASSOCIATION_SOURCE)

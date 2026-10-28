@@ -33,7 +33,7 @@ namespace Analysis {
 
     TEST_F(AcsqLogParserItemUtest, TestAcsqLogParseItemV6ShouldReturnErrorWhenSizeNotMatch)
     {
-        AcsqLogV6 acsqLogV6;
+        AcsqLogV6 acsqLogV6{};
         HalLogData halLogData;
         ASSERT_EQ(AcsqLogParseItem_V6(reinterpret_cast<uint8_t*>(&acsqLogV6),
             99, reinterpret_cast<uint8_t*>(&halLogData), false), Analysis::PARSER_ERROR_SIZE_MISMATCH);
@@ -41,10 +41,11 @@ namespace Analysis {
 
     TEST_F(AcsqLogParserItemUtest, TestAcsqLogParseItemV6Success)
     {
-        AcsqLogV6 acsqLogV6;
+        AcsqLogV6 acsqLogV6{};
         acsqLogV6.cnt = 9;
         HalLogData halLogData;
         ASSERT_EQ(AcsqLogParseItem_V6(reinterpret_cast<uint8_t*>(&acsqLogV6),
             32, reinterpret_cast<uint8_t*>(&halLogData), false), 9);
+        EXPECT_EQ(UINT16_MAX, halLogData.hd.taskId.streamId);
     }
 }

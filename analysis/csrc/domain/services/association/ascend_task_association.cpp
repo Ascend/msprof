@@ -27,6 +27,7 @@
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
+#include "analysis/csrc/domain/services/parser/aicpu/include/aicpu_parser.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
@@ -41,6 +42,7 @@ using namespace Utils;
 using namespace Analysis::Common;
 namespace
 {
+constexpr uint16_t DEFAULT_STREAM_ID = UINT16_MAX;
 const uint64_t DEFAULT_MODEL_ID = UINT32_MAX;
 const int32_t DEFAULT_INDEX_ID = -1;
 const int64_t DEFAULT_CONNECTION_ID = -1;
@@ -124,13 +126,23 @@ void MergeByOnlyHostTask(std::vector<TopDownTask>& res, std::vector<HostTask>& h
 }
 
 void MergeByOnlyDeviceTask(std::vector<TopDownTask>& res, std::vector<DeviceTask>& deviceTask, const TaskId& key,
-                           SyscntConversionParams& params, bool isChipV6)
+                           SyscntConversionParams& params, bool isChipV6, const DeviceStreamInfo* deviceStreamInfo)
 {
+    uint32_t streamId = key.streamId;
+    // Preserve stream IDs already supplied by the host or the device log.
+    if (streamId == DEFAULT_STREAM_ID && deviceStreamInfo != nullptr)
+    {
+        const auto it = deviceStreamInfo->streamIdMap.find(key.taskId);
+        if (it != deviceStreamInfo->streamIdMap.end())
+        {
+            streamId = it->second;
+        }
+    }
     for (auto& task : deviceTask)
     {
         auto start = GetTimeFromSyscnt(task.taskStart, params);
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
-        res.emplace_back(false, key.taskId, key.batchId, key.streamId, key.contextId, DEFAULT_INDEX_ID,
+        res.emplace_back(false, key.taskId, key.batchId, streamId, key.contextId, DEFAULT_INDEX_ID,
                          GetDeviceTaskTypeStr(task, isChipV6), UNKNOWN, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID,
                          start.Double(), end.Double());
     }
@@ -138,7 +150,8 @@ void MergeByOnlyDeviceTask(std::vector<TopDownTask>& res, std::vector<DeviceTask
 
 std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTask>>& hostTasks,
                                              std::map<TaskId, std::vector<DeviceTask>>& deviceTasks,
-                                             SyscntConversionParams& params, bool isChipV6)
+                                             SyscntConversionParams& params, bool isChipV6,
+                                             const DeviceStreamInfo* deviceStreamInfo)
 {
     std::set<TaskId> totalTaskId;
     std::transform(hostTasks.begin(), hostTasks.end(), std::inserter(totalTaskId, totalTaskId.begin()),
@@ -177,7 +190,7 @@ std::vector<TopDownTask> GenerateTopDownTask(std::map<TaskId, std::vector<HostTa
         }
         else if (hostIt == hostTasks.end())
         {
-            MergeByOnlyDeviceTask(res, deviceIt->second, key, params, isChipV6);
+            MergeByOnlyDeviceTask(res, deviceIt->second, key, params, isChipV6, deviceStreamInfo);
         }
         else
         {  // 因为所有的key都是从hostTasks与deviceTasks中取的，所以一定不会有两者都找不到key的情况，该分支为device为空
@@ -232,15 +245,16 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
         WARN("There is no HostTask or DeviceTask, can't generate AscendTask!");
         return ANALYSIS_ERROR;
     }
-    res = GenerateTopDownTask(*hostTasks, *deviceTasks, params, deviceContext.isChipV6());
+    const auto deviceStreamInfo = dataInventory.GetPtr<DeviceStreamInfo>();
+    res = GenerateTopDownTask(*hostTasks, *deviceTasks, params, deviceContext.isChipV6(), deviceStreamInfo.get());
     MAKE_SHARED_RETURN_VALUE(data, std::vector<TopDownTask>, ANALYSIS_ERROR, std::move(res));
     dataInventory.Inject(data);
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(AscendTaskAssociation, true, LoadHostData);
+REGISTER_PROCESS_SEQUENCE(AscendTaskAssociation, true, LoadHostData, AicpuParser);
 REGISTER_PROCESS_DEPENDENT_DATA(AscendTaskAssociation, std::map<TaskId, std::vector<DeviceTask>>,
-                                std::map<TaskId, std::vector<HostTask>>, HostStreamInfo);
+                                std::map<TaskId, std::vector<HostTask>>, HostStreamInfo, DeviceStreamInfo);
 REGISTER_PROCESS_SUPPORT_CHIP(AscendTaskAssociation, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

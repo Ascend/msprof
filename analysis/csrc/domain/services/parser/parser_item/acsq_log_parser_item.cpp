@@ -29,6 +29,11 @@ namespace Analysis
 namespace Domain
 {
 using namespace Analysis::Utils;
+namespace
+{
+// Stream ID used when the V6 record has no stream information.
+constexpr uint16_t DEFAULT_STREAM_ID = UINT16_MAX;
+}  // namespace
 
 int AcsqLogParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus)
 {
@@ -65,7 +70,7 @@ int AcsqLogParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *h
     auto *unionData = ReinterpretConvert<HalLogData *>(halUniData);
 
     unionData->hd.taskId.batchId = 0;
-    unionData->hd.taskId.streamId = 0;
+    unionData->hd.taskId.streamId = DEFAULT_STREAM_ID;
     unionData->hd.taskId.taskId = log->taskId;
     unionData->hd.taskId.contextId = INVALID_CONTEXT_ID;
     unionData->type = ACSQ_LOG;

@@ -26,6 +26,7 @@
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 
 using namespace testing;
@@ -199,5 +200,65 @@ TEST_F(AscendTaskAssociationUTest, TestProcessEntrySetStreamIdSuccessWhenStreamI
     auto result = dataInventory_.GetPtr<std::vector<TopDownTask>>();
     ASSERT_EQ(deviceDataS->begin()->first.streamId, 100);
 }
+TEST_F(AscendTaskAssociationUTest, ShouldUseKfcStreamIdForDeviceOnlyOutputAcrossChips)
+{
+    for (const auto chip : {CHIP_V4_1_0, CHIP_V6_1_0}) {
+        for (const uint32_t originalStreamId : {0U, 42U, static_cast<uint32_t>(UINT16_MAX)}) {
+            // Missing/empty/unmatched KFC, valid stream 0/7, and host priority over KFC.
+            for (const int kfcCase : {0, 1, 2, 3, 4, 5}) {
+                // AicpuParser fills DeviceStreamInfo only on V6; V4 retains its original stream ID.
+                if (chip == CHIP_V4_1_0 && kfcCase >= 2) {
+                    continue;
+                }
+                SCOPED_TRACE(std::to_string(chip) + ":" + std::to_string(originalStreamId) + ":" +
+                             std::to_string(kfcCase));
+                DataInventory inventory;
+                auto deviceTasks = std::make_shared<std::map<TaskId, std::vector<DeviceTask>>>();
+                (*deviceTasks)[TaskId{originalStreamId, 0, 123, INVALID_CONTEXT_ID}].emplace_back();
+                ASSERT_TRUE(inventory.Inject(deviceTasks));
+                ASSERT_TRUE(inventory.Inject(
+                    std::make_shared<std::map<TaskId, std::vector<HostTask>>>(GeneratorHostTask())));
+                ASSERT_TRUE(inventory.Inject(std::make_shared<HostStreamInfo>()));
+                uint32_t expectedStreamId = originalStreamId;
+                if (kfcCase != 0) {
+                    auto kfcStreams = std::make_shared<DeviceStreamInfo>();
+                    if (kfcCase == 2) {
+                        kfcStreams->streamIdMap.emplace(456, 9);
+                    } else if (kfcCase >= 3) {
+                        const uint32_t kfcStreamId = kfcCase == 3 ? 0U : 7U;
+                        if (originalStreamId == UINT16_MAX) {
+                            expectedStreamId = kfcStreamId;
+                        }
+                        kfcStreams->streamIdMap.emplace(123, kfcStreamId);
+                    }
+                    ASSERT_TRUE(inventory.Inject(kfcStreams));
+                }
+                if (kfcCase == 5) {
+                    inventory.GetPtr<HostStreamInfo>()->streamIdMap.emplace(123, 11);
+                    if (chip == CHIP_V6_1_0) {
+                        expectedStreamId = 11;
+                    }
+                }
+                DeviceContext context;
+                context.deviceContextInfo.deviceInfo.chipID = chip;
+                AscendTaskAssociation association;
+                ASSERT_EQ(ANALYSIS_OK, association.Run(inventory, context));
+                EXPECT_EQ(chip == CHIP_V6_1_0 && kfcCase == 5 ? 11U : originalStreamId,
+                          deviceTasks->begin()->first.streamId);
+                const auto result = inventory.GetPtr<std::vector<TopDownTask>>();
+                ASSERT_NE(nullptr, result);
+                size_t found = 0;
+                for (const auto& task : *result) {
+                    if (task.taskId == 123) {
+                        EXPECT_EQ(expectedStreamId, task.streamId);
+                        ++found;
+                    }
+                }
+                EXPECT_EQ(1UL, found);
+            }
+        }
+    }
+}
+
 }
 }
