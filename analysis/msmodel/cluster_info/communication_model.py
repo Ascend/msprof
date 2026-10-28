@@ -98,6 +98,41 @@ class CommunicationModel(ViewModel):
             op_task.tasks.append(task)
         return op_task_map
 
+    def get_all_ops_from_db(self, conditions: dict) -> dict:
+        """
+        level0 未采集 task 明细，仅从 op 表读取算子级信息(op_name/group_name/start/end)
+        :return: {(connection_id, iter_id): OpTaskData}
+        """
+        iter_start = conditions.get('iter_start', 0)
+        iter_end = conditions.get('iter_end', float('inf'))
+        op_task_map = {}
+        duplicate_count = 0
+        first_duplicate = None
+        for op_table in (DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE, DBNameConstant.TABLE_KFC_OP):
+            if not DBManager.judge_table_exist(self.cur, op_table):
+                continue
+            rows = DBManager.fetch_all_data(
+                self.cur,
+                "select connection_id, iter_id, op_name, group_name, start, end "
+                "from {} where start < ? and end > ?".format(op_table),
+                (iter_end, iter_start),
+            )
+            for connection_id, iter_id, op_name, group_name, start, end in rows:
+                key = (connection_id, iter_id)
+                if key in op_task_map:
+                    duplicate_count += 1
+                    if first_duplicate is None:
+                        first_duplicate = (op_table, key, op_name, group_name)
+                op_task_map[key] = OpTaskData(op_name=op_name, group_name=group_name, start=start, end=end)
+        if duplicate_count:
+            logging.warning(
+                "Duplicate hccl op key detected %s time(s) in level0 op tables, keep the latest row; "
+                "first sample: table=%s, key=%s, op_name=%s, group_name=%s.",
+                duplicate_count,
+                *first_duplicate,
+            )
+        return op_task_map
+
     def get_all_communication_data(self: any) -> list:
         data = []
         if DBManager.judge_table_exist(self.cur, DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE):

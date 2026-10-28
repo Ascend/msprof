@@ -30,6 +30,8 @@ class AnalyzeCommand:
     """
 
     FILE_NAME = os.path.basename(__file__)
+    # level0 仅采集通信大算子级数据，只有 communication 规则支持分析
+    LEVEL0_SUPPORTED_RULES = {'communication'}
 
     def __init__(self: any, args: any) -> None:
         self.collection_path = os.path.realpath(args.collection_path)
@@ -38,13 +40,13 @@ class AnalyzeCommand:
         self.clear_mode = getattr(args, "clear_mode", False)
 
     def process(self: any) -> None:
-        if DataCheckManager.check_prof_level0(self.collection_path):
-            warn(self.FILE_NAME, "Analyze will do nothing in prof level 0.")
-            self._clear_dir(self.collection_path)
-            return
+        is_level0 = DataCheckManager.check_prof_level0(self.collection_path)
         analyze_handler = {'communication': CommunicationAnalyzer, 'communication_matrix': CommunicationMatrixAnalyzer}
         rules = set(self.rule.split(','))
         for rule in rules:
+            if is_level0 and rule not in self.LEVEL0_SUPPORTED_RULES:
+                warn(self.FILE_NAME, f'Analyze rule "{rule}" will do nothing in prof level 0.')
+                continue
             analyze_command = analyze_handler.get(rule)(self.collection_path, self.export_type)
             analyze_command.process()
         self._clear_dir(self.collection_path)

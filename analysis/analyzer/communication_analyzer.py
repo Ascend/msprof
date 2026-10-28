@@ -76,27 +76,6 @@ class CommunicationAnalyzer:
         if not self.valid_data_count:
             warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
 
-    def _get_hccl_data_from_db(self: any, rank_path: str):
-        """
-        get op events of all rank by iteration start and end time
-        """
-        with CommunicationModel(rank_path) as _model:
-            start_ts, _ = InfoConfReader().get_collect_time()
-            start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
-            conditions = {'iter_start': start_time_raw_timestamp, 'iter_end': NumberConstant.DEFAULT_END_TIME}
-            op_task_map = _model.get_all_events_from_db(conditions)
-            if not op_task_map:
-                print_msg(
-                    f"Fail to get hccl events, please check hccl.db from {PathManager.get_host_result_dir(rank_path)}"
-                )
-                raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
-            op_name_dict = {}
-            for op_task in op_task_map.values():
-                # get group_name from hccl.db
-                op_name = op_task.op_name + "@" + op_task.group_name
-                merge_op_task(op_name_dict, op_name, op_task)
-            self._update_data(op_name_dict, Constant.DEFAULT_INVALID_VALUE)
-
     def _update_data(self: any, op_name_dict: dict, rank_id: int) -> None:
         """
         update self data
@@ -107,19 +86,43 @@ class CommunicationAnalyzer:
             self.rank_hccl_data_dict[hccl_name][rank_id] = op_name_dict.get(hccl_name, [])
 
     def _generate_parser(self: any, rank_path) -> CommunicationParser:
-        self._get_hccl_data_from_db(rank_path)
+        """
+        get hccl data of all rank by iteration start and end time
+        """
+        is_level0 = InfoConfReader().is_level0()
+        with CommunicationModel(rank_path) as _model:
+            start_ts, _ = InfoConfReader().get_collect_time()
+            start_time_raw_timestamp = InfoConfReader().trans_from_local_time_into_dev_raw_time(start_ts)
+            conditions = {'iter_start': start_time_raw_timestamp, 'iter_end': NumberConstant.DEFAULT_END_TIME}
+            if is_level0:
+                # level0 未采集 task 明细，只能从 op 表读取算子级信息
+                op_task_map = _model.get_all_ops_from_db(conditions)
+            else:
+                op_task_map = _model.get_all_events_from_db(conditions)
+            if not op_task_map:
+                data_name = 'hccl ops' if is_level0 else 'hccl events'
+                print_msg(
+                    f"Fail to get {data_name}, please check hccl.db from {PathManager.get_host_result_dir(rank_path)}"
+                )
+                raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+            op_name_dict = {}
+            for op_task in op_task_map.values():
+                # get group_name from hccl.db
+                op_name = op_task.op_name + "@" + op_task.group_name
+                merge_op_task(op_name_dict, op_name, op_task)
+            self._update_data(op_name_dict, Constant.DEFAULT_INVALID_VALUE)
 
         if not self.rank_hccl_data_dict:
             message = "fail to get hccl data"
             logging.error("Can't get hccl events!")
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR, message)
 
-        return CommunicationParser(self.rank_hccl_data_dict)
+        return CommunicationParser(self.rank_hccl_data_dict, is_level0)
 
     def _generate_output(self, rank_path):
-        communication_parser = self._generate_parser(rank_path)
-        process_data = self._process_dict(communication_parser.run())
+        raw_data = self._generate_parser(rank_path).run()
 
+        process_data = self._process_dict(raw_data)
         if self.export_type == 'text':
             self._dump_dict_to_json(process_data)
         self._dump_dict_to_db(process_data)

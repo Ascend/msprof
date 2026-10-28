@@ -17,6 +17,7 @@
 import logging
 from collections import defaultdict
 
+from common_func.constant import Constant
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import OpAnalysisType
 from common_func.ms_constant.str_constant import OpBandWidthType
@@ -37,9 +38,10 @@ class CommunicationParser(MetaParser):
     cluster communication data parser
     """
 
-    def __init__(self: any, events_data) -> None:
+    def __init__(self: any, events_data, is_level0: bool = False) -> None:
         self.op_events_dict = events_data
         self.op_info = {}
+        self.is_level0 = is_level0
 
     @staticmethod
     def combine_size_distribution(part_dist_dict: dict, total_dist_dict: dict):
@@ -55,9 +57,19 @@ class CommunicationParser(MetaParser):
             OpAnalysisType.START_TIME,
         ]
         # first level combine
+        invalid = Constant.DEFAULT_INVALID_VALUE
         for key, value in part_dict.items():
-            if key not in no_accumulative_list:
-                total_dict[key] += value
+            if key in no_accumulative_list:
+                continue
+            total_value = total_dict.get(key)
+            if total_value is None or total_value == invalid:
+                # 汇总值已不可用，后续有效值不再累加
+                continue
+            if value is None or value == invalid:
+                # level0 未采集该指标，汇总值同样填默认无效值
+                total_dict[key] = invalid
+                continue
+            total_dict[key] += value
         # second level combine
         HcclAnalysisTool.update_time_ratio(total_dict, StrConstant.TOTAL)
 
@@ -112,8 +124,15 @@ class CommunicationParser(MetaParser):
         for rank_id, bundle in op_events.items():
             self.op_info.get(hccl_name).setdefault(rank_id, {})
             if not bundle.tasks:
-                logging.error("Fail to get no.%s rank events info, communication parser is interrupted", str(rank_id))
-                raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+                if not self.is_level0:
+                    logging.error(
+                        "Fail to get no.%s rank events info, communication parser is interrupted", str(rank_id)
+                    )
+                    raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
+                # level0 未采集 task 明细，只输出算子级时间信息
+                self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_TIME_INFO] = self._op_level_time_info(bundle)
+                self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_BANDWIDTH_INFO] = {}
+                continue
             logging.info("Start to get no.%s rank events info", str(rank_id))
             self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_TIME_INFO] = self.op_time_parser(
                 bundle.tasks, bundle.op_name, bundle.end - bundle.start, bundle.start
@@ -125,6 +144,15 @@ class CommunicationParser(MetaParser):
             self.op_info[hccl_name][rank_id][StrConstant.COMMUNICATION_BANDWIDTH_INFO] = self.op_bandwidth_parser(
                 bundle.tasks, bundle.op_name
             )
+
+    @staticmethod
+    def _op_level_time_info(bundle) -> dict:
+        """level0 只有算子级数据，细分耗时和 ratio 无采集来源，填默认无效值 -1"""
+        values = [value for key, value in OpAnalysisType.__dict__.items() if '__' not in key]
+        time_info = {key: Constant.DEFAULT_INVALID_VALUE for key in values}
+        time_info[OpAnalysisType.START_TIME] = float(InfoConfReader().trans_into_local_time(bundle.start))
+        time_info[OpAnalysisType.ELAPSE_TIME] = (bundle.end - bundle.start) / NumberConstant.NS_TO_MS
+        return time_info
 
     def combine(self):
         """
@@ -148,7 +176,11 @@ class CommunicationParser(MetaParser):
                     total_ops_dict[com_info] = HcclAnalysisTool.init_dict(values)
                 self.combine_ops_time_info(com_info_dict, total_ops_dict[com_info])
             if com_info == StrConstant.COMMUNICATION_BANDWIDTH_INFO:
-                if com_info not in total_ops_dict:
+                if not com_info_dict:
+                    # level0 无带宽数据，保持空字典
+                    total_ops_dict.setdefault(com_info, {})
+                    continue
+                if not total_ops_dict.get(com_info):
                     total_ops_dict[com_info] = HcclAnalysisTool.init_bandwidth_dict()
                 self.combine_ops_bandwidth_info(com_info_dict, total_ops_dict[com_info])
 

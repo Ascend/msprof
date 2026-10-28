@@ -181,25 +181,31 @@ class HcclAnalysisTool:
 
     @classmethod
     def update_time_ratio(cls: any, op_time_dict: dict, op_name: str) -> None:
-        try:
-            op_time_dict[OpAnalysisType.WAIT_TIME_RATIO] = round(
-                op_time_dict.get(OpAnalysisType.WAIT_TIME)
-                / (op_time_dict.get(OpAnalysisType.WAIT_TIME) + op_time_dict.get(OpAnalysisType.TRANSIT_TIME)),
-                4,
-            )
-        except ZeroDivisionError as err:
-            logging.warning('%s Transit Time and Wait Time is 0 %s', op_name, err)
-        try:
-            op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME_RATIO] = round(
-                op_time_dict.get(OpAnalysisType.SYNCHRONIZATION_TIME)
-                / (
-                    op_time_dict.get(OpAnalysisType.SYNCHRONIZATION_TIME)
-                    + op_time_dict.get(OpAnalysisType.TRANSIT_TIME)
-                ),
-                4,
-            )
-        except ZeroDivisionError as err:
-            logging.warning('%s Transit Time and Synchronization Time Time is 0 %s', op_name, err)
+        invalid = Constant.DEFAULT_INVALID_VALUE
+        wait_time = op_time_dict.get(OpAnalysisType.WAIT_TIME)
+        transit_time = op_time_dict.get(OpAnalysisType.TRANSIT_TIME)
+        if wait_time in (None, invalid) or transit_time in (None, invalid):
+            # level0 未采集细分耗时，ratio 同样填默认无效值
+            op_time_dict[OpAnalysisType.WAIT_TIME_RATIO] = invalid
+        else:
+            try:
+                op_time_dict[OpAnalysisType.WAIT_TIME_RATIO] = round(
+                    wait_time / (wait_time + transit_time),
+                    4,
+                )
+            except ZeroDivisionError as err:
+                logging.warning('%s Transit Time and Wait Time is 0 %s', op_name, err)
+        sync_time = op_time_dict.get(OpAnalysisType.SYNCHRONIZATION_TIME)
+        if sync_time in (None, invalid) or transit_time in (None, invalid):
+            op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME_RATIO] = invalid
+        else:
+            try:
+                op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME_RATIO] = round(
+                    sync_time / (sync_time + transit_time),
+                    4,
+                )
+            except ZeroDivisionError as err:
+                logging.warning('%s Transit Time and Synchronization Time Time is 0 %s', op_name, err)
 
     @classmethod
     def update_bandwidth_record(

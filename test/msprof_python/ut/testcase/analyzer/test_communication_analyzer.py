@@ -26,7 +26,6 @@ from msparser.cluster.meta_parser import OpTaskBundle
 from msmodel.cluster_info.communication_model import OpTaskData
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
-from common_func.path_manager import PathManager
 NAMESPACE = 'analyzer.communication_analyzer'
 
 
@@ -46,6 +45,10 @@ class Event:
 
 
 class TestCommunicationAnalyzer(unittest.TestCase):
+    def setUp(self):
+        # 默认非 level0，避免 InfoConfReader 未加载 sample.json 时 is_level0 取值异常
+        InfoConfReader()._sample_json = {}
+
     def test_process_should_warn_when_all_children_are_invalid(self):
         analyzer = CommunicationAnalyzer(self.collection_path, 'text')
         with mock.patch.object(analyzer, '_process_sub_dirs'), \
@@ -179,7 +182,7 @@ class TestCommunicationAnalyzer(unittest.TestCase):
         }
     }
 
-    def test_get_hccl_data_from_db_should_return_hccl_data_when_get_hccl_data_correct(self):
+    def test_generate_parser_should_return_hccl_data_when_get_hccl_data_correct(self):
         events = [
             Event(StrConstant.RDMA_SEND, 0), Event(StrConstant.RDMA_SEND, 11), Event(StrConstant.NOTIFY_WAIT, 21),
             Event(StrConstant.RDMA_SEND, 31), Event(StrConstant.NOTIFY_WAIT, 41)
@@ -196,7 +199,7 @@ class TestCommunicationAnalyzer(unittest.TestCase):
                            return_value={(1, 0): OpTaskData(
                                op_name='hcom_allReduce__1', group_name='group_name', tasks=events)}):
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
-            analyzer._get_hccl_data_from_db(os.path.join(self.collection_path, "device_1"))
+            analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
 
             self.assertEqual(analyzer.rank_hccl_data_dict, expected_result)
         InfoConfReader()._start_info.clear()
@@ -207,30 +210,35 @@ class TestCommunicationAnalyzer(unittest.TestCase):
         self.assertEqual(processed_data, self.expected_data)
 
     def test_generate_parser_should_raise_exception_when_no_rank_hccl_data_dict(self):
-        with mock.patch(NAMESPACE + ".CommunicationAnalyzer._get_hccl_data_from_db"),  \
+        InfoConfReader()._start_info = {'collectionTimeBegin': 0}
+        InfoConfReader()._end_info = {}
+        op_task_map = {(1, 0): OpTaskData(op_name='hcom_allReduce__1', group_name='group_name')}
+        with mock.patch(NAMESPACE + ".CommunicationModel.get_all_events_from_db", return_value=op_task_map), \
+                mock.patch.object(CommunicationAnalyzer, '_update_data'), \
                 pytest.raises(ProfException) as err:
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
             analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
+        InfoConfReader()._start_info.clear()
 
-    def test_get_hccl_data_from_db_should_raise_exception_when_no_hccl_data(self):
+    def test_generate_parser_should_raise_exception_when_no_hccl_data(self):
         InfoConfReader()._start_info = {'collectionTimeBegin': 0}
         InfoConfReader()._end_info = {}
         with mock.patch(NAMESPACE + ".CommunicationModel.check_db", return_value=True), \
                 mock.patch(NAMESPACE + ".CommunicationModel.get_all_events_from_db", return_value=[]), \
                 pytest.raises(ProfException) as err:
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
-            analyzer._get_hccl_data_from_db(os.path.join(self.collection_path, "device_1"))
+            analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
         InfoConfReader()._start_info.clear()
 
-    def test_get_hccl_data_from_db_should_raise_exception_when_no_hccl_allReduce_table(self):
+    def test_generate_parser_should_raise_exception_when_no_hccl_allReduce_table(self):
         InfoConfReader()._start_info = {'collectionTimeBegin': 0}
         InfoConfReader()._end_info = {}
         with mock.patch(NAMESPACE + ".CommunicationModel.check_table", return_value=False), \
                 pytest.raises(ProfException) as err:
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
-            analyzer._get_hccl_data_from_db(os.path.join(self.collection_path, "device_1"))
+            analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
             self.assertEqual(ProfException.PROF_INVALID_CONNECT_ERROR, err.value.code)
         InfoConfReader()._start_info.clear()
 
@@ -255,3 +263,43 @@ class TestCommunicationAnalyzer(unittest.TestCase):
                 mock.patch(NAMESPACE + ".CommunicationAnalyzer._generate_parser", return_value=communication_parser):
             analyzer = CommunicationAnalyzer(self.collection_path, 'text')
             analyzer._generate_output(os.path.join(self.collection_path, "device_1"))
+
+    def test_generate_parser_should_use_ops_data_when_prof_level0(self):
+        InfoConfReader()._sample_json = {'profLevel': 'l0'}
+        InfoConfReader()._start_info = {'collectionTimeBegin': 0}
+        InfoConfReader()._end_info = {}
+        model = mock.MagicMock()
+        model.__enter__.return_value = model
+        model.get_all_ops_from_db.return_value = {
+            (1, 1): OpTaskData(op_name='hcom_allReduce__1', group_name='group_name', start=0, end=2000000),
+        }
+        try:
+            with mock.patch(NAMESPACE + '.CommunicationModel', return_value=model), \
+                    mock.patch(NAMESPACE + '.CommunicationParser') as parser_cls:
+                analyzer = CommunicationAnalyzer(self.collection_path, 'db')
+                analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
+        finally:
+            InfoConfReader()._sample_json = {}
+            InfoConfReader()._start_info.clear()
+
+        model.get_all_ops_from_db.assert_called_once()
+        model.get_all_events_from_db.assert_not_called()
+        parser_cls.assert_called_once_with(analyzer.rank_hccl_data_dict, True)
+
+    def test_generate_parser_should_raise_exception_when_no_ops_in_level0(self):
+        InfoConfReader()._sample_json = {'profLevel': 'l0'}
+        InfoConfReader()._start_info = {'collectionTimeBegin': 0}
+        InfoConfReader()._end_info = {}
+        model = mock.MagicMock()
+        model.__enter__.return_value = model
+        model.get_all_ops_from_db.return_value = {}
+        try:
+            with mock.patch(NAMESPACE + '.CommunicationModel', return_value=model):
+                analyzer = CommunicationAnalyzer(self.collection_path, 'db')
+                with pytest.raises(ProfException) as err:
+                    analyzer._generate_parser(os.path.join(self.collection_path, "device_1"))
+        finally:
+            InfoConfReader()._sample_json = {}
+            InfoConfReader()._start_info.clear()
+
+        self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)

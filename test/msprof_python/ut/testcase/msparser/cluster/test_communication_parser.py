@@ -21,9 +21,11 @@ from unittest import mock
 
 import pytest
 
+from common_func.constant import Constant
+from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.str_constant import OpAnalysisType
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
-from common_func.platform.chip_manager import ChipManager
 from mscalculate.hccl.hccl_task import HcclTask
 from msparser.cluster.communication_parser import CommunicationParser
 from msparser.cluster.meta_parser import HcclAnalysisTool
@@ -125,6 +127,76 @@ class TestCommunicationParser(unittest.TestCase):
             CommunicationParser({}).parse_ops({1: OpTaskBundle()}, 'name')
             self.assertEqual(ProfException.PROF_INVALID_DATA_ERROR, err.value.code)
 
+    def test_parse_ops_should_fill_invalid_detail_for_level0_without_tasks(self):
+        bundle = OpTaskBundle(tasks=[], op_name='hcom_allReduce__1', start=1000000, end=3000000)
+        parser = CommunicationParser({}, is_level0=True)
+        with mock.patch.object(InfoConfReader(), 'trans_into_local_time', return_value=1000.0):
+            parser.parse_ops({-1: bundle}, 'hcom_allReduce__1@group')
+
+        rank_info = parser.op_info['hcom_allReduce__1@group'][-1]
+        time_info = rank_info[StrConstant.COMMUNICATION_TIME_INFO]
+        self.assertEqual(time_info[OpAnalysisType.START_TIME], 1000.0)
+        self.assertAlmostEqual(time_info[OpAnalysisType.ELAPSE_TIME], 2.0)
+        for key in (
+            OpAnalysisType.TRANSIT_TIME,
+            OpAnalysisType.WAIT_TIME,
+            OpAnalysisType.SYNCHRONIZATION_TIME,
+            OpAnalysisType.IDLE_TIME,
+            OpAnalysisType.WAIT_TIME_RATIO,
+            OpAnalysisType.SYNCHRONIZATION_TIME_RATIO,
+        ):
+            self.assertEqual(time_info[key], Constant.DEFAULT_INVALID_VALUE)
+        self.assertEqual(rank_info[StrConstant.COMMUNICATION_BANDWIDTH_INFO], {})
+
+    def test_run_should_keep_invalid_detail_and_empty_bandwidth_for_level0(self):
+        bundle = OpTaskBundle(tasks=[], op_name='hcom_allReduce__1', start=0, end=2000000)
+        parser = CommunicationParser({'hcom_allReduce__1@group': {-1: bundle}}, is_level0=True)
+        with mock.patch.object(InfoConfReader(), 'trans_into_local_time', return_value=0.0):
+            result = parser.run()
+
+        total_info = result[StrConstant.TOTAL][-1]
+        total_time = total_info[StrConstant.COMMUNICATION_TIME_INFO]
+        self.assertAlmostEqual(total_time[OpAnalysisType.ELAPSE_TIME], 2.0)
+        for key in (
+            OpAnalysisType.TRANSIT_TIME,
+            OpAnalysisType.WAIT_TIME,
+            OpAnalysisType.SYNCHRONIZATION_TIME,
+            OpAnalysisType.IDLE_TIME,
+            OpAnalysisType.WAIT_TIME_RATIO,
+            OpAnalysisType.SYNCHRONIZATION_TIME_RATIO,
+        ):
+            self.assertEqual(total_time[key], Constant.DEFAULT_INVALID_VALUE)
+        self.assertEqual(total_info[StrConstant.COMMUNICATION_BANDWIDTH_INFO], {})
+
+    def test_combine_ops_time_info_should_keep_invalid_detail_in_total(self):
+        values = [
+            OpAnalysisType.START_TIME,
+            OpAnalysisType.ELAPSE_TIME,
+            OpAnalysisType.TRANSIT_TIME,
+            OpAnalysisType.WAIT_TIME,
+            OpAnalysisType.SYNCHRONIZATION_TIME,
+            OpAnalysisType.IDLE_TIME,
+            OpAnalysisType.WAIT_TIME_RATIO,
+            OpAnalysisType.SYNCHRONIZATION_TIME_RATIO,
+        ]
+        total = {key: 0 for key in values}
+        valid_part = {key: 0 for key in values}
+        valid_part[OpAnalysisType.ELAPSE_TIME] = 2.0
+        valid_part[OpAnalysisType.TRANSIT_TIME] = 1.0
+        invalid_part = {key: 0 for key in values}
+        invalid_part[OpAnalysisType.ELAPSE_TIME] = 3.0
+        invalid_part[OpAnalysisType.TRANSIT_TIME] = Constant.DEFAULT_INVALID_VALUE
+
+        CommunicationParser.combine_ops_time_info(valid_part, total)
+        CommunicationParser.combine_ops_time_info(invalid_part, total)
+        # 无效值出现后，后续有效值不再把汇总值改回有效
+        CommunicationParser.combine_ops_time_info(valid_part, total)
+
+        self.assertEqual(total[OpAnalysisType.ELAPSE_TIME], 7.0)
+        self.assertEqual(total[OpAnalysisType.TRANSIT_TIME], Constant.DEFAULT_INVALID_VALUE)
+        self.assertEqual(total[OpAnalysisType.WAIT_TIME_RATIO], Constant.DEFAULT_INVALID_VALUE)
+        self.assertEqual(total[OpAnalysisType.SYNCHRONIZATION_TIME_RATIO], Constant.DEFAULT_INVALID_VALUE)
+
     def test_op_time_parser(self):
         LOCAL = 'LOCAL'
         ROCE = 'ROCE'
@@ -206,7 +278,6 @@ class TestCommunicationParser(unittest.TestCase):
         Notify_Wait = 'Notify_Wait'
         RDMASEND = 'RDMASend'
         OP_NAME = 'hcom_allReduce__721_0_1'
-        RDMA_SEND_NOTIFY = 'RDMA_SEND_NOTIFY'
         RDMA_SEND_PAYLOAD = 'RDMA_SEND_PAYLOAD'
         Bandwidth_GB_S = 'Bandwidth(GB/s)'
         Bandwidth_Utilization = 'Bandwidth(Utilization)'

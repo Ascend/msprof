@@ -19,6 +19,7 @@ import unittest
 from unittest import mock
 
 from common_func.db_manager import DBManager
+from common_func.db_name_constant import DBNameConstant
 from mscalculate.hccl.hccl_task import HcclTask
 from msmodel.cluster_info.communication_model import CommunicationModel
 
@@ -91,6 +92,93 @@ class TestCommunicationModel(unittest.TestCase):
 
         self.assertEqual(list(result.keys()), [(1, 0)])
         self.assertEqual(result[(1, 0)].op_name, 'op_a')
+
+    def test_get_all_ops_from_db_returns_op_level_data(self):
+        hccl_op_rows = [
+            (1, 0, 'op_a', 'g1', 100, 200),
+            (2, 0, 'op_b', 'g2', 300, 400),
+        ]
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[hccl_op_rows, []]):
+            result = model.get_all_ops_from_db({'iter_start': 0, 'iter_end': 9223372036854775807})
+
+        self.assertEqual(set(result.keys()), {(1, 0), (2, 0)})
+        self.assertEqual(result[(1, 0)].op_name, 'op_a')
+        self.assertEqual(result[(1, 0)].group_name, 'g1')
+        self.assertEqual(result[(1, 0)].start, 100)
+        self.assertEqual(result[(1, 0)].end, 200)
+        self.assertEqual(result[(1, 0)].tasks, [])
+
+    def test_get_all_ops_from_db_pushes_time_window_to_sql(self):
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[[(2, 0, 'op_b', 'g2', 100, 200)], []]) as fetch:
+            result = model.get_all_ops_from_db({'iter_start': 100, 'iter_end': 1000})
+
+        self.assertEqual(set(result.keys()), {(2, 0)})
+        first_call = fetch.call_args_list[0]
+        sql = first_call[0][1]
+        params = first_call[0][2]
+        self.assertIn('where start < ? and end > ?', sql)
+        self.assertEqual(params, (1000, 100))
+
+    def test_get_all_ops_from_db_keeps_latest_row_when_key_duplicated(self):
+        hccl_op_rows = [
+            (1, 0, 'op_a', 'g1', 100, 200),
+            (1, 0, 'op_b', 'g2', 300, 400),
+        ]
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[hccl_op_rows, []]), \
+                self.assertLogs(level='WARNING') as log:
+            result = model.get_all_ops_from_db({'iter_start': 0, 'iter_end': 1000})
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[(1, 0)].op_name, 'op_b')
+        self.assertEqual(result[(1, 0)].start, 300)
+        self.assertEqual(result[(1, 0)].end, 400)
+        self.assertEqual(1, len(log.output))
+        self.assertIn('Duplicate hccl op key', log.output[0])
+        self.assertIn(DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE, log.output[0])
+
+    def test_get_all_ops_from_db_logs_one_summary_for_multiple_duplicates(self):
+        hccl_op_rows = [
+            (1, 0, 'op_a', 'g1', 100, 200),
+            (1, 0, 'op_b', 'g2', 300, 400),
+            (1, 0, 'op_c', 'g3', 500, 600),
+        ]
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[hccl_op_rows, []]), \
+                self.assertLogs(level='WARNING') as log:
+            result = model.get_all_ops_from_db({'iter_start': 0, 'iter_end': 1000})
+
+        self.assertEqual(result[(1, 0)].op_name, 'op_c')
+        self.assertEqual(1, len(log.output))
+        self.assertIn('2 time(s)', log.output[0])
+        self.assertIn('op_b', log.output[0])
+
+    def test_get_all_ops_from_db_logs_source_table_for_cross_table_duplicate(self):
+        hccl_op_rows = [(1, 0, 'op_a', 'g1', 100, 200)]
+        kfc_op_rows = [(1, 0, 'op_b', 'g2', 300, 400)]
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[hccl_op_rows, kfc_op_rows]), \
+                self.assertLogs(level='WARNING') as log:
+            result = model.get_all_ops_from_db({'iter_start': 0, 'iter_end': 1000})
+
+        self.assertEqual(result[(1, 0)].op_name, 'op_b')
+        self.assertEqual(1, len(log.output))
+        self.assertIn(DBNameConstant.TABLE_KFC_OP, log.output[0])
+
+    def test_get_all_ops_from_db_returns_empty_when_no_ops(self):
+        model = self._make_model()
+        with mock.patch.object(DBManager, 'judge_table_exist', return_value=True), \
+                mock.patch.object(DBManager, 'fetch_all_data', side_effect=[[], []]):
+            result = model.get_all_ops_from_db({'iter_start': 0, 'iter_end': 1000})
+
+        self.assertEqual(result, {})
 
 
 if __name__ == '__main__':

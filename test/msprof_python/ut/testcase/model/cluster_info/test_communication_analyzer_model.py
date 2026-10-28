@@ -19,7 +19,9 @@ import os
 import unittest
 from unittest import mock
 
+from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
+from msconfig.config_manager import ConfigManager
 from msmodel.cluster_info.communication_analyzer_model import CommunicationAnalyzerModel
 
 NAMESPACE = 'msmodel.cluster_info.communication_analyzer_model'
@@ -86,6 +88,21 @@ class TestCommunicationAnalyzerModel(unittest.TestCase):
             }
         }
     }
+    level0_communication_data = {
+        "hcom_allReduce__1@group_name": {
+            "Communication Time Info": {
+                "Start Timestamp(us)": 1000.0,
+                "Elapse Time(ms)": 2.0,
+                "Transit Time(ms)": Constant.DEFAULT_INVALID_VALUE,
+                "Wait Time(ms)": Constant.DEFAULT_INVALID_VALUE,
+                "Synchronization Time(ms)": Constant.DEFAULT_INVALID_VALUE,
+                "Idle Time(ms)": Constant.DEFAULT_INVALID_VALUE,
+                "Wait Time Ratio": Constant.DEFAULT_INVALID_VALUE,
+                "Synchronization Time Ratio": Constant.DEFAULT_INVALID_VALUE
+            },
+            "Communication Bandwidth Info": {}
+        }
+    }
 
     def test_flush_communication_data_to_db_when_analyzer_type_is_communication(self):
         with mock.patch("msmodel.interface.base_model.BaseModel.insert_data_to_db"), \
@@ -122,6 +139,31 @@ class TestCommunicationAnalyzerModel(unittest.TestCase):
                                             DBNameConstant.TABLE_COMM_ANALYZER_BAND])
         time_result, band_result = model.get_op_data(None)
         self.assertEqual([], time_result)
+        self.assertEqual([], band_result)
+
+    def test_get_op_data_should_keep_invalid_value_and_column_order_for_level0(self):
+        expected_time_info = {
+            "hccl_op_name": "hcom_allReduce__1",
+            "group_name": "group_name",
+            "start_timestamp": 1000.0,
+            "elapse_time": 2.0,
+            "transit_time": Constant.DEFAULT_INVALID_VALUE,
+            "wait_time": Constant.DEFAULT_INVALID_VALUE,
+            "synchronization_time": Constant.DEFAULT_INVALID_VALUE,
+            "idle_time": Constant.DEFAULT_INVALID_VALUE,
+        }
+        model = CommunicationAnalyzerModel(self.DIR_PATH,
+                                           [DBNameConstant.TABLE_COMM_ANALYZER_TIME,
+                                            DBNameConstant.TABLE_COMM_ANALYZER_BAND])
+        time_result, band_result = model.get_op_data(self.level0_communication_data)
+
+        self.assertEqual(1, len(time_result))
+        time_map = ConfigManager.get(ConfigManager.TABLES).items("CommAnalyzerTimeMap")
+        # 校验 get_time_info 平铺出的行长度与表列数一致，避免 OpAnalysisType 新增字段后静默错列
+        self.assertEqual(len(time_map), len(time_result[0]))
+        for (column, _), value in zip(time_map, time_result[0]):
+            self.assertEqual(expected_time_info[column], value)
+        # level0 带宽信息为空字典，不应构造带宽行
         self.assertEqual([], band_result)
 
     def test_get_matrix_data_should_return_correct_result(self):
