@@ -1,4 +1,20 @@
 #!/bin/bash
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 # get real path of parents' dir of this file
 CUR_DIR=$(dirname $(readlink -f $0))
 TOP_DIR=${CUR_DIR}/..
@@ -15,7 +31,7 @@ MAKESELF_DIR=${TOP_DIR}/opensource/makeself
 # footnote for creating run package
 CREATE_RUN_SCRIPT=${MAKESELF_DIR}/makeself.sh
 
-# footnote for controling params
+# footnote for controlling params
 CONTROL_PARAM_SCRIPT=${MAKESELF_DIR}/makeself-header.sh
 
 # store run package
@@ -41,8 +57,8 @@ COMMON_ROLLBACK=rollback.sh
 COMMON_UNINSTALL=uninstall.sh
 
 MSPROF_RUN_NAME="mindstudio-msprof"
-version="unknwon"
-package_type="unknwon"
+version="unknown"
+package_type="unknown"
 
 PKG_LIMIT_SIZE=524288000 # 500M
 

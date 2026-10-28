@@ -1,7 +1,22 @@
 #!/bin/bash
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 # This script is used to replace msprofbin&&libmsprofiler.so&&stub/libmsprofiler.so&&analysis in CANN with those in Ascend_mindstudio_toolkit,
 # and repack CANN components to .run package
-# Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
 set -e
 
@@ -58,7 +73,7 @@ CANN_RUNTIME_NAME=CANN-runtime-*linux*.run
 # makeself is tool for compiling run package
 # footnote for creating run package
 CREATE_RUN_SCRIPT=${TOP_DIR}/opensource/makeself/makeself.sh
-# footnote for controling params
+# footnote for controlling params
 CONTROL_PARAM_SCRIPT=${TOP_DIR}/opensource/makeself/makeself-header.sh
 COMMENTS=comments
 
@@ -79,11 +94,11 @@ for DIR in ${OUT_DIR}/platform/Tuscany/*$(lsb_release -i | awk '{print $3}' | tr
     package_name_runtime_suffix=$(ls ${CUR_DIR}/tmp/cann_runtime)
     PACKAGE_NAME_TOOLKIT=$(basename $package_name_toolkit_suffix .run)
     PACKAGE_NAME_RUNTIME=$(basename $package_name_runtime_suffix .run)
-    
+
     ${CUR_DIR}/tmp/$MINDSTUDIO_TOOLKIT_NAME --noexec --extract=${CUR_DIR}/tmp/mindstudio
     ${CUR_DIR}/tmp/cann_toolkit/$CANN_TOOLKIT_NAME --noexec --extract=${CUR_DIR}/tmp/cann_toolkit/${PACKAGE_NAME_TOOLKIT}
     ${CUR_DIR}/tmp/cann_runtime/$CANN_RUNTIME_NAME --noexec --extract=${CUR_DIR}/tmp/cann_runtime/${PACKAGE_NAME_RUNTIME}
-    
+
     cp -f ${CUR_DIR}/tmp/mindstudio/mindstudio-toolkit/tools/msprof/stub/libmsprofiler.so ${CUR_DIR}/tmp/cann_runtime/${PACKAGE_NAME_RUNTIME}/runtime/lib64/stub/libmsprofiler.so
     cp -f ${CUR_DIR}/tmp/mindstudio/mindstudio-toolkit/tools/msprof/libmsprofiler.so ${CUR_DIR}/tmp/cann_runtime/${PACKAGE_NAME_RUNTIME}/runtime/lib64/libmsprofiler.so
     cp -f ${CUR_DIR}/tmp/mindstudio/mindstudio-toolkit/tools/mspti/lib64/libmspti.so ${CUR_DIR}/tmp/cann_runtime/${PACKAGE_NAME_RUNTIME}/runtime/lib64/libmspti.so
