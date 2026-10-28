@@ -38,7 +38,6 @@ const uint16_t INVALID_DEVICE_ID = UINT16_MAX;
 const uint16_t DEFAULT_DEVICE_ID = HOST_ID + 1;
 enum class Chip : uint16_t
 {
-    CHIP_V1_1_0 = 0,
     CHIP_V2_1_0 = 1,
     CHIP_V3_1_0 = 2,
     CHIP_V3_2_0 = 3,
@@ -104,12 +103,10 @@ class Context : public Utils::Singleton<Context>
     uint16_t GetPlatformVersion(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");
     // 判断芯片类型
     static bool IsStarsChip(uint16_t platformVersion);
-    // 校验是否为CHIP_V1_1_x系列(不包含CHIP_V1_1_0)
+    // 校验是否为 CHIP_V1_1_1、CHIP_V1_1_2、CHIP_V1_1_3
     static bool IsChipV1(uint16_t platformVersion);
     static bool IsChipV4(uint16_t platformVersion);
     static bool IsChipV6(uint16_t platformVersion);
-    // 校验是否为CHIP_V1_1_0
-    static bool IsFirstChipV1(uint16_t platformVersion);
 
    private:
     nlohmann::json GetInfoByDeviceId(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");

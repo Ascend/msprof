@@ -50,7 +50,6 @@ class UnifiedPmuProcessor : public DataProcessor
     bool SampleBasedProcess(DataInventory &data_inventory);
     static std::vector<std::string> GetAndCheckTableColumns(
         const std::unordered_map<std::string, uint16_t> &dbPathAndDeviceID, Analysis::Infra::DBInfo &metricDB);
-    bool TaskBasedProcess(const std::string &fileDir);
     bool ProcessTaskBasedData(const std::unordered_map<std::string, uint16_t> &dbPathAndDeviceId,
                               Analysis::Infra::DBInfo &metricDB, std::vector<std::string> &headers,
                               DataInventory &dataInventory);
@@ -62,7 +61,6 @@ class UnifiedPmuProcessor : public DataProcessor
     static uint64_t UpdateColumnName(std::string &columnName);
     bool FormatTaskBasedData(const OTFormat &oriData, std::vector<UnifiedTaskPmu> &processedData,
                              std::string columnName, const uint16_t &deviceId, const Utils::ProfTimeRecord &record);
-    bool SampleBasedProcess(const std::string &fileDir);
     bool SampleBasedTimelineProcess(const std::unordered_map<std::string, std::tuple<uint16_t, uint64_t>> &dbPathTable,
                                     DataInventory &dataInventory);
     UnifiedPmuProcessor::OSTFormat GetSampleBasedTimelineData(const std::string &dbPath);

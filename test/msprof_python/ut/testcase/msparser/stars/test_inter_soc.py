@@ -20,7 +20,6 @@ from common_func.info_conf_reader import InfoConfReader
 from msparser.stars.inter_soc_parser import InterSocParser
 from profiling_bean.stars.inter_soc import InterSoc
 
-NAMESPACE = 'msparser.stars.inter_soc_parser'
 sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
                  "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 

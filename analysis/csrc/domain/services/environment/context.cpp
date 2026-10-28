@@ -278,8 +278,7 @@ bool Context::IsAllExport()
         ERROR("str to uint16_t failed.");
         return false;
     }
-    if (chip == static_cast<uint16_t>(Chip::CHIP_V1_1_0) || chip == static_cast<uint16_t>(Chip::CHIP_V3_1_0) ||
-        chip == static_cast<uint16_t>(Chip::CHIP_V1_1_3))
+    if (chip == static_cast<uint16_t>(Chip::CHIP_V3_1_0) || chip == static_cast<uint16_t>(Chip::CHIP_V1_1_3))
     {
         WARN("Platform_version not support all export.");
         return false;
@@ -656,8 +655,6 @@ bool Context::IsChipV6(uint16_t platformVersion)
     std::unordered_set<uint16_t> checkList{chipV6_1_0, chipV6_1_1, chipV6_2_0};
     return static_cast<bool>(checkList.count(platformVersion));
 }
-
-bool Context::IsFirstChipV1(uint16_t platformVersion) { return platformVersion == static_cast<int>(Chip::CHIP_V1_1_0); }
 
 uint16_t Context::GetAiCoreNum(uint16_t deviceId, const std::string &profPath)
 {

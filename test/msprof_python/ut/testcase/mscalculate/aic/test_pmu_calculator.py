@@ -23,7 +23,6 @@ from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from mscalculate.aic.pmu_calculator import PmuCalculator
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'mscalculate.aic.pmu_calculator'
 
 

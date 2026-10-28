@@ -17,8 +17,6 @@ import unittest
 
 from profiling_bean.basic_info.cpu_info import CpuInfo
 
-NAMESPACE = 'profiling_bean.basic_info.cpu_info'
-
 
 class TestCpuInfo(unittest.TestCase):
     def test_init(self):

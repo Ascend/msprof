@@ -29,7 +29,6 @@ using LowPowerDataFormat =
     std::vector<std::tuple<uint64_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t,
                            uint16_t, uint16_t, uint16_t, double, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t,
                            uint16_t, uint16_t, uint16_t, uint16_t>>;
-using ProcessedDataVecFormat = std::vector<LowPowerData>;
 
 const std::string DATA_DIR = "./lowpower";
 const std::string MSPROF = "msprof.db";

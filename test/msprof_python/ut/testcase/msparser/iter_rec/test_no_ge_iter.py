@@ -49,9 +49,6 @@ def get_step_trace_data():
 class TestNoGeIterRecParser(unittest.TestCase):
     file_list = {DataTag.HWTS: ['hwts.data.0.slice_0'], DataTag.AI_CORE: ['aicore.data.0.slice_0'], DataTag.GE_TASK: []}
 
-    def test_get_iter_end_dict(self):
-        pass
-
     def test_set_current_iter_id(self):
         step_trace_dto = StepTraceDto()
         step_trace_dto.step_start = 1

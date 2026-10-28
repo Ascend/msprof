@@ -47,9 +47,6 @@ class TestBaseViewer(unittest.TestCase):
         check.model_list = {'ffts_thread_log': FftsLogModel}
         check.get_model_instance()
 
-    def test_get_trace_timeline(self):
-        pass
-
 
 if __name__ == '__main__':
     unittest.main()

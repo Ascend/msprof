@@ -25,8 +25,6 @@ from msparser.hardware.ub_parser import ParsingUBData
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.prof_enum.data_tag import DataTag
 
-NAMESPACE = 'msparser.hardware.ub_parser'
-
 
 class TestParsingUBData(unittest.TestCase):
     file_list = {DataTag.UB: ['ub.data.0.slice_0']}

@@ -44,7 +44,6 @@ using namespace Analysis::Application;
 
 namespace
 {
-using DeviceTaskSummary = std::map<TaskId, std::vector<DeviceTask>>;
 using runTimeData = std::vector<std::tuple<uint32_t, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, std::string,
                                            std::string, uint32_t, uint32_t, uint32_t, uint32_t>>;
 using OriDataFormat = std::vector<

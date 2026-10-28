@@ -23,13 +23,9 @@ import unittest
 from common_func.platform.chip_manager import ChipManager
 from mscalculate.aic.aic_utils import AicPmuUtils
 from profiling_bean.prof_enum.chip_model import ChipModel
-from profiling_bean.prof_enum.data_tag import DataTag
-
-NAMESPACE = 'mscalculate.aic.aic_utils'
 
 
 class TestAicPmuUtils(unittest.TestCase):
-    file_list = {DataTag.AI_CORE: ['aicore.data.0.slice_0']}
 
     def test_remove_redundant(self):
         ai_core_profiling_events = {'icache_req_ratio': [1], 'vec_fp16_128lane_ratio': [2],

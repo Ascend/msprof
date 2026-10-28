@@ -18,8 +18,6 @@ import unittest
 
 from profiling_bean.ge.ge_tensor_bean import GeTensorBean
 
-NAMESPACE = 'profiling_bean.struct_info.ge.ge_fusion_op_info_bean'
-
 
 class TestGeTensorBean(unittest.TestCase):
 

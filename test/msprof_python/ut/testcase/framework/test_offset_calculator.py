@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
@@ -23,8 +22,6 @@ import shutil
 import unittest
 
 from framework.offset_calculator import FileCalculator
-
-NAMESPACE = 'framework.file_dispatch'
 
 
 class TestFileCalculator(unittest.TestCase):

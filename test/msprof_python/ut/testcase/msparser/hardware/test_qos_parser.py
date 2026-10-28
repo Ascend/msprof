@@ -24,8 +24,6 @@ from msparser.hardware.qos_parser import ParsingQosData
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.prof_enum.data_tag import DataTag
 
-NAMESPACE = 'msparser.hardware.qos_parser'
-
 
 class TestParsingQosData(unittest.TestCase):
     file_list = {DataTag.QOS: ['qos.data.0.slice_0']}

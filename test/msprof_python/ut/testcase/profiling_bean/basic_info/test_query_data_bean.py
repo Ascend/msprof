@@ -17,7 +17,6 @@ import unittest
 
 from profiling_bean.basic_info.query_data_bean import QueryDataBean
 
-NAMESPACE = 'profiling_bean.basic_info.query_data_bean'
 args = {"job_info": 0, "device_id": 0,
         "job_name": "0", "collection_time": 0, "model_id": 0, "iteration_id": 0}
 

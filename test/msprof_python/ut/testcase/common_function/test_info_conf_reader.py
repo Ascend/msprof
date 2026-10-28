@@ -20,8 +20,6 @@ import pytest
 from common_func.info_conf_reader import InfoConfReader
 from common_func.msprof_exception import ProfException
 
-NAMESPACE = 'common_func.info_conf_reader'
-
 
 class TestInfoConfReader(unittest.TestCase):
     def tearDown(self) -> None:

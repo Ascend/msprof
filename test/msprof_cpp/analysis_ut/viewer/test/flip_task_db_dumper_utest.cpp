@@ -26,8 +26,6 @@ using namespace Analysis::Domain;
 using FlipTask = Analysis::Domain::Adapter::FlipTask;
 using FlipTasks = std::vector<std::shared_ptr<FlipTask>>;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
-const uint32_t ACL_LEVEL_NUMBER = 20000;
-const uint32_t PYTORCH_LEVEL_NUMBER = 30000;
 class FlipTaskDBDumperUtest : public testing::Test
 {
    protected:

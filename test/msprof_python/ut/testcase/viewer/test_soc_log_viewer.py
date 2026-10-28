@@ -13,9 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import json
 import unittest
-from collections import OrderedDict
 from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
@@ -140,13 +138,6 @@ class TestTaskTimeViewer(unittest.TestCase):
         check = TaskTimeViewer(configs, params)
         ChipManager().chip_id = ChipModel.CHIP_V3_1_0
         result = check.get_device_task_type("25")
-        self.assertEqual(result, "Other")
-
-    def test_get_device_task_type_should_return_other_when_v2_1_0_and_device_is_number(self):
-        configs, params = {}, {'data_type': 'ffts_sub_task_time'}
-        check = TaskTimeViewer(configs, params)
-        ChipManager().chip_id = ChipModel.CHIP_V2_1_0
-        result = check.get_device_task_type("0")
         self.assertEqual(result, "Other")
 
     def test_get_device_task_type_should_return_other_when_v2_1_0_and_device_is_number(self):
@@ -351,35 +342,6 @@ class TestTaskTimeViewer(unittest.TestCase):
             ChipManager().chip_id = ChipModel.CHIP_V2_1_0
             check.add_node_name_and_type(data)
             self.assertEqual(data.get('subtask_data_list', [])[0].op_name, 'AIV')
-            self.assertEqual(data.get('task_data_list', [])[0].op_name, 'AI_CPU')
-
-    def test_add_node_name_should_return_device_when_chip_v1_1_0_and_host_is_unknown_and_device_is_not_number(self):
-        configs, params = {}, {}
-        node_dict = {
-            '3-36-47-0': {
-                'op_name': 'MatMul_1_lxslice1',
-                'task_type': 'AI_CORE'
-            },
-            '3-27-4294967295-0': {
-                'op_name': 'Add',
-                'task_type': 'AI_CORE'
-            },
-        }
-        data = {
-            "task_data_list": [
-                TopDownTask(0, 1, 27, 2, 4294967295, 0, 38140478706523, 1510560, "FFTS_PLUS", "AI_CPU", 0),
-            ],
-            "subtask_data_list": [
-                TopDownTask(0, 1, 36, 2, 47, 0, 38140480645103, 12400, "UNKNOWN", "SDMA", 1),
-            ],
-        }
-        with mock.patch('msmodel.stars.op_summary_model.OpSummaryModel.init', return_value=True), \
-                mock.patch('msmodel.stars.op_summary_model.OpSummaryModel.get_op_name_from_ge_by_id',
-                           return_value=node_dict):
-            check = TaskTimeViewer(configs, params)
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
-            check.add_node_name_and_type(data)
-            self.assertEqual(data.get('subtask_data_list', [])[0].op_name, 'SDMA')
             self.assertEqual(data.get('task_data_list', [])[0].op_name, 'AI_CPU')
 
     def test_add_node_name_should_return_device_when_chip_v1_1_0_and_host_is_unknown_and_device_is_not_number(self):

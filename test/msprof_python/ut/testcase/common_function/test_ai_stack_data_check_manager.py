@@ -20,8 +20,6 @@ from common_func.ai_stack_data_check_manager import AiStackDataCheckManager
 from common_func.system_data_check_manager import SystemDataCheckManager
 from common_func.ms_constant.number_constant import NumberConstant
 
-NAMESPACE = 'common_func.ai_stack_data_check_manager'
-
 
 class TestAiStackDataCheckManager(unittest.TestCase):
 

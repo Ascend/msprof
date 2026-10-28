@@ -347,7 +347,7 @@ uint32_t HbmPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
 // 暂不启用 HBM C++ 持久化，避免覆盖 Python 解析结果。
 // REGISTER_PROCESS_SEQUENCE(HbmPersistence, false, HbmParser);
 // REGISTER_PROCESS_DEPENDENT_DATA(HbmPersistence, std::vector<HalHbmData>);
-// REGISTER_PROCESS_SUPPORT_CHIP(HbmPersistence, CHIP_V1_1_0, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
+// REGISTER_PROCESS_SUPPORT_CHIP(HbmPersistence, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
 //                               CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V1_1_2, CHIP_V1_1_3, CHIP_V6_1_0, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

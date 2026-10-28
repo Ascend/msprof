@@ -111,7 +111,7 @@ uint32_t NetDevStatsParser::ProcessEntry(Infra::DataInventory &dataInventory, co
 
 // 暂不启用 NetDev C++ 解析；启用时同步恢复持久化注册及 Python parser 跳过名单。
 // REGISTER_PROCESS_SEQUENCE(NetDevStatsParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(NetDevStatsParser, CHIP_V1_1_0, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
+// REGISTER_PROCESS_SUPPORT_CHIP(NetDevStatsParser, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
 //                               CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V1_1_2, CHIP_V1_1_3);
 }  // namespace Domain
 }  // namespace Analysis

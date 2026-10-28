@@ -17,8 +17,6 @@ import unittest
 
 from host_prof.host_cpu_usage.model.cpu_time_info import CpuTimeInfo
 
-NAMESPACE = 'host_prof.host_cpu_usage.model.cpu_time_info'
-
 
 class TestCpuTimeInfo(unittest.TestCase):
 

@@ -30,7 +30,6 @@ class ChipManager:
     """
 
     CHIP_RELATION_MAP = {
-        Constant.CHIP_V1_1_0: ChipModel.CHIP_V1_1_0,
         Constant.CHIP_V2_1_0: ChipModel.CHIP_V2_1_0,
         Constant.CHIP_V3_1_0: ChipModel.CHIP_V3_1_0,
         Constant.CHIP_V3_2_0: ChipModel.CHIP_V3_2_0,
@@ -55,7 +54,6 @@ class ChipManager:
     }
 
     ALL_DATA_EXPORT_CHIP_BLACKLIST = [
-        ChipModel.CHIP_V1_1_0,
         ChipModel.CHIP_V3_1_0,
         ChipModel.CHIP_V1_1_3,
     ]
@@ -63,7 +61,8 @@ class ChipManager:
     FILE_NAME = os.path.basename(__file__)
 
     def __init__(self: any) -> None:
-        self.chip_id = ChipModel.CHIP_V1_1_0
+        # 尚未加载芯片信息时的哨兵值，避免把未初始化状态误判为某个具体芯片
+        self.chip_id = None
 
     @staticmethod
     def is_ffts_type() -> bool:
@@ -94,19 +93,18 @@ class ChipManager:
         load chip info
         :return:
         """
-        if InfoConfReader().get_root_data(Constant.PLATFORM_VERSION) not in self.CHIP_RELATION_MAP:
+        platform_version = InfoConfReader().get_root_data(Constant.PLATFORM_VERSION)
+        if not platform_version:
             message = (
                 "Can't get platform version or platform version isn't identified from info.json, please check the file."
             )
             raise ProfException(ProfException.PROF_SYSTEM_EXIT, message)
-        self.chip_id = self.CHIP_RELATION_MAP.get(InfoConfReader().get_root_data(Constant.PLATFORM_VERSION))
-
-    def is_chip_v1(self: any) -> bool:
-        """
-        check the scene of mini
-        :return: True or False
-        """
-        return self.chip_id == ChipModel.CHIP_V1_1_0
+        if platform_version not in self.CHIP_RELATION_MAP:
+            message = "Chip platform version {} is no longer supported, please use a supported chip.".format(
+                platform_version
+            )
+            raise ProfException(ProfException.PROF_SYSTEM_EXIT, message)
+        self.chip_id = self.CHIP_RELATION_MAP.get(platform_version)
 
     def is_chip_v2(self: any) -> bool:
         """

@@ -66,9 +66,6 @@ class TestClusterTuningFacade(unittest.TestCase):
     def tearDown(self) -> None:
         clear_dt_project(self.params['collection_path'])
 
-    def test_cluster_communication(self):
-        ClusterTuningFacade(self.params).cluster_communication()
-
     def test_run(self):
         with mock.patch(NAMESPACE + '.ClusterTuningFacade._check_data_type_valid'), \
                 mock.patch(NAMESPACE + '.ClusterTuningFacade._check_collection_dir_valid'), \

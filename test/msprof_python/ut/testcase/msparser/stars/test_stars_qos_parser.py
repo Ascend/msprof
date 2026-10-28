@@ -21,8 +21,6 @@ from constant.constant import CONFIG
 from msparser.data_struct_size_constant import StructFmt
 from msparser.stars.stars_qos_parser import StarsQosParser
 
-NAMESPACE = 'msparser.stars.stars_qos_parser'
-
 
 class TestStarsQosParser(unittest.TestCase):
 

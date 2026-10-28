@@ -40,7 +40,6 @@ const size_t TASK_NAME_NUM = 4;
 const size_t OP_NUM = 3;
 const size_t CONNECTION_ID_NUM = 3;
 const std::string COMMUNICATION_TASK_PATH = "./task_path";
-const std::string DB_PATH = File::PathJoin({COMMUNICATION_TASK_PATH, "msprof.db"});
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "hccl_single_device.db";
 const std::string PROF_PATH_A = File::PathJoin({COMMUNICATION_TASK_PATH,

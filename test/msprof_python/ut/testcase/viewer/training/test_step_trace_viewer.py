@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 import json
-import os
 import unittest
 from unittest import mock
 
@@ -24,15 +23,12 @@ from common_func.empty_class import EmptyClass
 from common_func.info_conf_reader import InfoConfReader
 from common_func.profiling_scene import ProfilingScene
 from constant.constant import ITER_RANGE
-from sqlite.db_manager import DBManager, DBOpen
+from sqlite.db_manager import DBOpen
 from viewer.training.step_trace_viewer import StepTraceViewer
 from constant.info_json_construct import InfoJson
 from constant.info_json_construct import DeviceInfo
 
 NAMESPACE = 'viewer.training.step_trace_viewer'
-message = {"project_path": '',
-           "device_id": "4",
-           "sql_path": ''}
 
 DB_TRACE = DBNameConstant.DB_TRACE
 TABLE_TRAINING_TRACE = DBNameConstant.TABLE_TRAINING_TRACE

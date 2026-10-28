@@ -22,18 +22,14 @@ from collections import OrderedDict
 
 from common_func.common import CommonConstant
 from common_func.config_mgr import ConfigMgr
-from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.platform.chip_manager import ChipManager
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.trace_view_manager import TraceViewManager
 from common_func.utils import Utils
-from msmodel.hardware.mini_llc_model import MiniLlcModel
-from msmodel.hardware.mini_llc_model import cal_core2cpu
 from viewer.get_trace_timeline import TraceViewer
 
 
@@ -122,224 +118,6 @@ def pre_check_llc(conn: any, curs: any, sample_config: dict, table_name: str) ->
     return []
 
 
-def get_llc_mini_data(param: dict, sample_config: dict, curs: any) -> list:
-    """
-    get llc time series data
-    """
-    if sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_BAND_ITEM:
-        return get_llc_bandwidth(curs)
-    if sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_CAPACITY_ITEM:
-        return get_llc_capacity(param, curs)
-    logging.error("Failed to get data of llc.")
-    return []
-
-
-def _format_llc_trace_data(bandwidth_data: list, delta_dev: float) -> list:
-    trace_data = []
-    interval_time = [0] * len(bandwidth_data)
-    for index, _bandwidth_data in enumerate(bandwidth_data):
-        if (index + 1) < len(bandwidth_data):
-            interval_time[index] = round(
-                (float(bandwidth_data[index + 1][0]) - float(bandwidth_data[index][0])), CommonConstant.ROUND_SIX
-            )
-        else:
-            interval_time[index] = interval_time[0]
-        bandwidth_data_value = get_bandwidth_value(_bandwidth_data, interval_time[index])
-        if not bandwidth_data_value:
-            return []
-
-        trace_data.extend(
-            [
-                [
-                    "LLC/Read",
-                    InfoConfReader().trans_into_local_time(
-                        raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND, use_us=True
-                    ),
-                    InfoConfReader().get_json_pid_data(),
-                    InfoConfReader().get_json_tid_data(),
-                    OrderedDict(
-                        [
-                            ("BandWidth(MB/s)", bandwidth_data_value[0]),
-                            ("Hit Rate(%)", bandwidth_data_value[1]),
-                            ("Hit BandWidth(MB/s)", bandwidth_data_value[2]),
-                        ]
-                    ),
-                ],
-                [
-                    "LLC/Write",
-                    InfoConfReader().trans_into_local_time(
-                        raw_timestamp=(delta_dev + _bandwidth_data[0]) * NumberConstant.MICRO_SECOND, use_us=True
-                    ),
-                    InfoConfReader().get_json_pid_data(),
-                    InfoConfReader().get_json_tid_data(),
-                    OrderedDict(
-                        [
-                            ("BandWidth(MB/s)", bandwidth_data_value[3]),
-                            ("Hit Rate(%)", bandwidth_data_value[4]),
-                            ("Hit BandWidth(MB/s)", bandwidth_data_value[5]),
-                        ]
-                    ),
-                ],
-            ]
-        )
-    return trace_data
-
-
-def get_llc_bandwidth(curs: any) -> list:
-    """
-    get trace view data of llc bandwith
-    """
-    delta_dev = InfoConfReader().get_delta_time()
-    meta_data = [
-        ["process_name", InfoConfReader().get_json_pid_data(), InfoConfReader().get_json_tid_data(), "LLC Bandwidth"]
-    ]
-    result_data = TraceViewManager.metadata_event(meta_data)
-    cols = (
-        "timestamp, sum(read_allocate), sum(read_noallocate), sum(read_hit), "
-        "sum(write_allocate), sum(write_noallocate), sum(write_hit)"
-    )
-    sql = "SELECT {cols} FROM {table_name} group by timestamp".format(  # nosec B608
-        cols=cols, table_name=DBNameConstant.TABLE_LLC_METRIC_DATA
-    )
-    bandwidth_data = DBManager.fetch_all_data(curs, sql)
-    bandwidth_data = Utils.generator_to_list(list(i) for i in bandwidth_data)
-    if not bandwidth_data:
-        logging.error("Failed to get read and write of llc_bandwidth.")
-        return []
-
-    trace_data = _format_llc_trace_data(bandwidth_data, delta_dev)
-    if not trace_data:
-        logging.error("Failed to get read and write of llc_bandwidth.")
-        return []
-    result_data.extend(TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data))
-    return result_data
-
-
-def _format_llc_capacity(dsid_sql_data: list) -> list:
-    trace_data = []
-    delta_dev = InfoConfReader().get_delta_time()
-    for disid_data in dsid_sql_data:
-        trace_data.extend(
-            Utils.generator_to_list(
-                [
-                    "Core {}".format(i),
-                    InfoConfReader().trans_into_local_time(
-                        raw_timestamp=(delta_dev + disid_data[4]) * NumberConstant.MICRO_SECOND, use_us=True
-                    ),
-                    InfoConfReader().get_json_pid_data(),
-                    InfoConfReader().get_json_tid_data(),
-                    OrderedDict([("Capacity(MB)", round(disid_data[i], CommonConstant.ROUND_SIX))]),
-                ]
-                for i in range(0, 4)
-            )
-        )
-    return trace_data
-
-
-def _get_dsid_sql_data(params: dict, types: str, curs: any) -> list:
-    project_path = params.get(StrConstant.PARAM_RESULT_DIR)
-
-    core2cpu = cal_core2cpu(project_path, params.get(StrConstant.PARAM_DEVICE_ID))
-    dsid_name = core2cpu[types]
-    dsid_name = Utils.generator_to_list(
-        "sum({dsid})*{LLC_CAPACITY}/({KILOBYTE}*{KILOBYTE})".format(
-            LLC_CAPACITY=MiniLlcModel.LLC_CAPACITY, KILOBYTE=Constant.KILOBYTE, dsid=i
-        )
-        for i in dsid_name
-    )
-    sql = "select {column}, timestamp from {table_name} where device_id = ? group by timestamp".format(  # nosec B608
-        column=",".join(dsid_name), table_name=DBNameConstant.TABLE_LLC_DSID
-    )
-    dsid_sql_data = curs.execute(sql, (params.get(StrConstant.PARAM_DEVICE_ID),)).fetchall()
-    return dsid_sql_data
-
-
-def get_llc_capacity(params: dict, curs: any) -> list:
-    """
-    get trace view data of llc capacity
-    """
-    types = StrConstant.AICPU if params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_AICPU else StrConstant.CTRL_CPU
-    types_map = {StrConstant.AICPU: "AI CPU", StrConstant.CTRL_CPU: "Ctrl CPU"}
-    try:
-        dsid_sql_data = _get_dsid_sql_data(params, types, curs)
-    except sqlite3.Error:
-        logging.error("Failed to get data of llc_capacity.")
-        return []
-    else:
-        if not dsid_sql_data:
-            logging.error("Failed to get read and write of llc_capacity.")
-            return []
-        dsid_sql_data = Utils.generator_to_list(list(i) for i in dsid_sql_data)
-        trace_data = _format_llc_capacity(dsid_sql_data)
-        meta_data = [
-            [
-                "process_name",
-                InfoConfReader().get_json_pid_data(),
-                InfoConfReader().get_json_tid_data(),
-                "LLC of {}".format(types_map.get(types, "")),
-            ]
-        ]
-        result_data = TraceViewManager.metadata_event(meta_data)
-        result_data.extend(
-            TraceViewManager.column_graph_trace(TraceViewHeaderConstant.COLUMN_GRAPH_HEAD_LEAST, trace_data)
-        )
-        return result_data
-    finally:
-        pass
-
-
-def get_bandwidth_value(bandwidth_data: list, interval_time: float) -> list:
-    """
-    get bandwidth value, hit rate hit bandwidth of llc bandwidth
-    """
-
-    # *_bandwidth equal sum of *_allocate and *_noallocate
-    # read_hit_rate equal read_hit divided by read_bandwidth
-    # hit_bandwidth equal read_hit or write_hit
-    sum_re_allocate = bandwidth_data[1] + bandwidth_data[2]
-    sum_wr_allocate = bandwidth_data[4] + bandwidth_data[5]
-
-    read_bandwidth_value = 0.0
-    read_hit_bandwidth_value = 0.0
-    write_hit_bandwidth_value = 0.0
-    write_bandwidth_value = 0.0
-    if not NumberConstant.is_zero(interval_time):
-        read_bandwidth_value = round(
-            sum_re_allocate / interval_time * NumberConstant.LLC_CAPACITY_CONVERT_MB, CommonConstant.ROUND_SIX
-        )
-        read_hit_bandwidth_value = round(
-            bandwidth_data[3] * NumberConstant.LLC_CAPACITY_CONVERT_MB / interval_time, CommonConstant.ROUND_SIX
-        )
-        write_bandwidth_value = round(
-            sum_wr_allocate / interval_time * NumberConstant.LLC_CAPACITY_CONVERT_MB, CommonConstant.ROUND_SIX
-        )
-        write_hit_bandwidth_value = round(
-            bandwidth_data[6] * NumberConstant.LLC_CAPACITY_CONVERT_MB / interval_time, CommonConstant.ROUND_SIX
-        )
-
-    read_hit_rate_value = 0.0
-    if not NumberConstant.is_zero(sum_re_allocate):
-        read_hit_rate_value = round(
-            bandwidth_data[3] / sum_re_allocate * NumberConstant.PERCENTAGE, CommonConstant.ROUND_SIX
-        )
-
-    write_hit_rate_value = 0.0
-    if not NumberConstant.is_zero(sum_wr_allocate):
-        write_hit_rate_value = round(
-            bandwidth_data[6] / sum_wr_allocate * NumberConstant.PERCENTAGE, CommonConstant.ROUND_SIX
-        )
-
-    bandwidth_value = [
-        read_bandwidth_value,
-        read_hit_rate_value,
-        read_hit_bandwidth_value,
-        write_bandwidth_value,
-        write_hit_rate_value,
-        write_hit_bandwidth_value,
-    ]
-    return bandwidth_value if bandwidth_value else []
-
-
 def get_llc_db_table(sample_config: dict) -> str:
     """
     get db, table and cols for llc data
@@ -367,8 +145,6 @@ def get_llc_timeline(param: dict) -> list:
         return llc_check_result
 
     try:
-        if ChipManager().is_chip_v1():
-            return get_llc_mini_data(param, sample_config, curs)
         return get_llc_nomini_data(param, sample_config, curs)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError):
         logging.error("Failed to get data of llc.")

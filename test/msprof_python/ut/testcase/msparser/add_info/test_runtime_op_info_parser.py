@@ -31,8 +31,6 @@ from profiling_bean.prof_enum.data_tag import DataTag
 
 NAMESPACE = 'msparser.add_info.runtime_op_info_parser'
 
-RUNTIME_OP_INFO_PATTERN = r"^(unaging|aging)\.additional\.capture_op_info\.slice_\d+"
-RUNTIME_OP_INFO_VAR_PATTERN = r"^unaging.\variable\.capture_op_info\.slice_\d+"
 class TestRuntimeOpInfoParser(unittest.TestCase):
     file_list = {
         DataTag.RUNTIME_OP_INFO: ['aging.additional.capture_op_info.slice_0',

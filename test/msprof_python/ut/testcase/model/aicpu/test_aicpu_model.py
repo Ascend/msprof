@@ -20,7 +20,6 @@ from common_func.db_name_constant import DBNameConstant
 from model.test_dir_cr_base_model import TestDirCRBaseModel
 from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msmodel.ai_cpu.ai_cpu_model'
 
 

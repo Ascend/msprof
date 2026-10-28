@@ -49,8 +49,6 @@ const MemoryAccessConfig MEMORY_ACCESS_CONFIG = {
 class MemoryAccessCalculator : public MetricCalculator
 {
    public:
-    explicit MemoryAccessCalculator(ChipId chipId) : chipId_(chipId) {}
-
     std::vector<std::string> GetPmuHeader() override { return GetPmuHeaderBySubType(MEMORY_ACCESS_CONFIG.table); }
 
     bool CheckMetricEventValid(std::vector<uint32_t>& event) override
@@ -67,9 +65,6 @@ class MemoryAccessCalculator : public MetricCalculator
         res = CalculatePmu(pmuData, MEMORY_ACCESS_CONFIG.table, allParams);
         return res;
     }
-
-   private:
-    ChipId chipId_{CHIP_ID_ALL};
 };
 }  // namespace Domain
 }  // namespace Analysis

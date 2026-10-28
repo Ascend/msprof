@@ -59,33 +59,6 @@ class MemcpyModel(BaseModel):
         """
         self.insert_data_to_db(table_name, data_list)
 
-    def return_chip0_summary(self: any, table_name: str) -> list:
-        """
-        export chip 0 summary data from TsMemcpyCalculation
-        :param table_name: TsMemcpyCalculation
-        :return: list
-        """
-        columns_name = [
-            "sum(%s)" % self.DURATION,
-            self.TYPE,
-            self.TASK_ID,
-            self.STREAM_ID,
-            "sum(%s)" % self.START_TIME + " - " + self.RECEIVE_TIME,
-            "avg(%s)" % self.DURATION,
-            "min(%s)" % self.DURATION,
-            "max(%s)" % self.DURATION,
-            "count(*)",
-        ]
-        group_column = [self.STREAM_ID, self.TASK_ID]
-
-        if DBManager.judge_table_exist(self.cur, table_name):
-            sql = "select {0} from {1} group by {2}".format(",".join(columns_name), table_name, ",".join(group_column))
-            export_data = DBManager.fetch_all_data(self.cur, sql)
-        else:
-            export_data = []
-
-        return export_data
-
     def return_not_chip0_summary(self: any, table_name: str) -> list:
         """
         export non chip 0 summary data from TsMemcpyCalculation

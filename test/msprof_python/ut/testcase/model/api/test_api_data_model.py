@@ -21,7 +21,6 @@ from common_func.hash_dict_constant import HashDictData
 from msmodel.api.api_data_model import ApiDataModel
 from profiling_bean.struct_info.api_data_bean import ApiDataBean
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msmodel.api.api_data_model'
 
 

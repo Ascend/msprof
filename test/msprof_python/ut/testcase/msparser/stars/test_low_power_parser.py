@@ -16,14 +16,11 @@
 import struct
 import unittest
 
-from common_func.info_conf_reader import InfoConfReader
 from common_func.platform.chip_manager import ChipManager
 from constant.info_json_construct import DeviceInfo
 from constant.info_json_construct import InfoJson
 from msparser.stars.low_power_parser import LowPowerParser
 from profiling_bean.prof_enum.chip_model import ChipModel
-
-NAMESPACE = 'msparser.stars.low_power_parser'
 
 
 class TestInterSocParser(unittest.TestCase):

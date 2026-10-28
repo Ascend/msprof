@@ -122,10 +122,6 @@ namespace nlohmann
 template <>
 struct adl_serializer<SampleInfo>
 {
-    static void to_json(json& jsonData, const SampleInfo& infoData)
-    {
-        jsonData = json{{"ai_core_profiling", infoData.aiCoreProfiling}, {"ai_core_metrics", infoData.aiCoreMetrics}};
-    }
     static void from_json(const json& jsonData, SampleInfo& infoData)
     {
         std::string aiCoreProfilingStr = jsonData.at("ai_core_profiling").get<std::string>();

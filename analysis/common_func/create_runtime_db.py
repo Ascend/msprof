@@ -26,19 +26,14 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.file_manager import FileManager
 from common_func.file_manager import FileOpen
 from common_func.file_name_manager import FileNameManagerConstant
-from common_func.file_name_manager import get_ai_core_compiles
 from common_func.file_name_manager import get_file_name_pattern_match
 from common_func.file_name_manager import get_ts_track_aiv_compiles
-from common_func.file_name_manager import get_ts_track_compiles
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.msvp_common import is_valid_original_data
 from common_func.path_manager import PathManager
-from common_func.platform.chip_manager import ChipManager
 from common_func.utils import Utils
-from mscalculate.step_trace.create_step_table import StepTableBuilder
 from msconfig.config_manager import ConfigManager
 from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.struct_info.event_counter import AiCoreTaskInfo
@@ -156,8 +151,6 @@ class ParsingRuntimeData(MsMultiProcess):
             create_ai_event_tables(self.sample_config, self.curs, self.parse_info.get("device_id"))
             insert_event_value(self.curs, self.conn, self.parse_info.get("device_id"))
 
-        if ChipManager().is_chip_v1():
-            StepTableBuilder.run(self.sample_config)
         logging.info("Create Runtime DB finished!")
         DBManager.destroy_db_connect(self.conn, self.curs)
 
@@ -423,33 +416,13 @@ class ParsingRuntimeData(MsMultiProcess):
                     legacy_bytes = bytes()
         return legacy_bytes
 
-    def _check_file_with_task_based(self: any, core_patterns: tuple, core_profiling_mode: str, file_name: str) -> any:
-        """
-        check file with task based
-        :return: match result
-        """
-        if self.sample_config.get(core_profiling_mode) == StrConstant.AIC_TASK_BASED_MODE:
-            return True, get_file_name_pattern_match(file_name, *core_patterns)
-        return False, {}
-
     def _check_file_match(self: any, file_name: str, project_path: str) -> bool:
-        ts_track_compiles = get_ts_track_compiles()
         ts_track_aiv_compiles = get_ts_track_aiv_compiles()
-        ts_result = get_file_name_pattern_match(file_name, *ts_track_compiles)
         ts_aiv_result = get_file_name_pattern_match(file_name, *ts_track_aiv_compiles)
-        _, aicore_result = self._check_file_with_task_based(
-            get_ai_core_compiles(), StrConstant.AICORE_PROFILING_MODE, file_name
-        )
-
-        if aicore_result and is_valid_original_data(file_name, project_path) and ChipManager().is_chip_v1():
-            self.parse_info["device_id"] = aicore_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
-        elif ts_result and is_valid_original_data(file_name, project_path) and ChipManager().is_chip_v1():
-            self.parse_info["device_id"] = ts_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
-        elif ts_aiv_result and is_valid_original_data(file_name, project_path):
+        if ts_aiv_result and is_valid_original_data(file_name, project_path):
             self.parse_info["device_id"] = ts_aiv_result.groups()[FileNameManagerConstant.MATCHED_DEV_ID_INX]
-        else:
-            return False
-        return True
+            return True
+        return False
 
     def _do_parse_data_file(self: any) -> int:
         project_path = self.sample_config.get("result_dir")

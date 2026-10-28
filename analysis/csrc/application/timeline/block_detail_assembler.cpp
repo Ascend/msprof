@@ -66,11 +66,6 @@ uint8_t BlockDetailAssembler::AssembleData(DataInventory& dataInventory, JsonWri
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint32_t, std::vector<BlockDetailData>> blockDetailDataMap;
-    if (!Reserve(*blockDetailData, blockDetailData->size()))
-    {
-        ERROR("Reserve for block detail data failed.");
-        return ASSEMBLE_FAILED;
-    }
     for (const auto& data : *blockDetailData)
     {
         blockDetailDataMap[data.taskId].emplace_back(std::move(data));
@@ -123,7 +118,7 @@ std::unordered_map<uint16_t, uint32_t> BlockDetailAssembler::GenerateBlockDetail
         auto taskDataIt = formatedTaskInfo_.find(taskId);
         if (taskDataIt != formatedTaskInfo_.end())
         {
-            opName = taskDataIt->second.first;
+            opName = taskDataIt->second;
         }
         else
         {
@@ -172,7 +167,7 @@ void BlockDetailAssembler::FormatTaskInfoData(const std::vector<TaskInfoData>& t
     {
         TaskId taskId{taskInfoDatum.streamId, taskInfoDatum.batchId, taskInfoDatum.taskId, taskInfoDatum.contextId,
                       taskInfoDatum.deviceId};
-        formatedTaskInfo_.insert({taskId, {taskInfoDatum.opName, taskInfoDatum.taskType}});
+        formatedTaskInfo_.insert({taskId, taskInfoDatum.opName});
     }
 }
 

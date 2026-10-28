@@ -18,7 +18,6 @@ from unittest import mock
 
 from common_func.info_conf_reader import InfoConfReader
 from common_func.memcpy_constant import MemoryCopyConstant
-from common_func.ms_constant.str_constant import StrConstant
 from viewer.memory_copy.memory_copy_viewer import MemoryCopyViewer
 
 NAMESPACE = 'msmodel.memory_copy.memcpy_model.MemcpyModel'
@@ -29,28 +28,6 @@ class TestMemoryCopyViewer(unittest.TestCase):
         self.current_path = ""
         InfoConfReader()._info_json = {"pid": 0}
         self.memcopy_viewer = MemoryCopyViewer(self.current_path)
-
-    def test_get_memory_copy_chip0_summary_1(self):
-        expect_res = [(0, 20000, 1, 20000, 20000, 20000, 100, 20000, MemoryCopyConstant.DEFAULT_VIEWER_VALUE,
-                       MemoryCopyConstant.TYPE, StrConstant.AYNC_MEMCPY, 1,
-                       MemoryCopyConstant.DEFAULT_VIEWER_VALUE, 1)]
-
-        export_data = [(20000, MemoryCopyConstant.TYPE, 1, 1, 100, 20000, 20000, 20000, 1)]
-        with mock.patch(NAMESPACE + '.check_db', return_value=True), \
-                mock.patch(NAMESPACE + '.return_chip0_summary', return_value=export_data):
-            res = self.memcopy_viewer.get_memory_copy_chip0_summary()
-
-        self.assertEqual(expect_res, res)
-
-    def test_get_memory_copy_chip0_summary_2(self):
-        expect_res = []
-
-        export_data = []
-        with mock.patch(NAMESPACE + '.check_db', return_value=False), \
-                mock.patch(NAMESPACE + '.return_chip0_summary', return_value=export_data):
-            res = self.memcopy_viewer.get_memory_copy_chip0_summary()
-
-        self.assertEqual(expect_res, res)
 
     def test_get_memory_copy_non_chip0_summary_1(self):
         expect_res = [("MemcopyAsync", "other", 11, 12, 100, '12.200\t', '12.300\t')]

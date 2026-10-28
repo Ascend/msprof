@@ -18,7 +18,6 @@ from unittest import mock
 
 from msmodel.add_info.ctx_id_model import CtxIdModel
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msmodel.add_info.ctx_id_model'
 
 

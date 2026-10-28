@@ -36,8 +36,7 @@ using namespace Analysis::Infra;
 class TimelineManager
 {
    public:
-    explicit TimelineManager(const std::string &profPath, const std::string &outputPath)
-        : profPath_(profPath), outputPath_(outputPath) {};
+    explicit TimelineManager(const std::string &, const std::string &outputPath) : outputPath_(outputPath) {};
     static bool GetTopologyRoots(const std::vector<JsonProcess> &jsonProcesses, std::vector<TopoNodeId> &roots);
     static TopoNodeCreatorFactory CreateTimelineAssembler(const std::string &name);
     static TopoNodeCreatorFactory CreateTimelinePreDump();
@@ -54,7 +53,6 @@ class TimelineManager
     static std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess> &jsonProcess);
 
    private:
-    std::string profPath_;
     std::string outputPath_;
     std::unordered_map<FileCategory, std::string> fileType_;
 };

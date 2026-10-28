@@ -30,15 +30,12 @@ namespace
 {
 const int DEPTH = 0;
 const std::string NPU_MODULE_MEM_PATH = "./npu_module_mem_path";
-const std::string DB_PATH = File::PathJoin({NPU_MODULE_MEM_PATH, "msprof.db"});
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "npu_module_mem.db";
 const std::string PROF_PATH = File::PathJoin({NPU_MODULE_MEM_PATH, "./PROF_000001_20231125090304037_02333394MBJNQLKJ"});
 const std::string TABLE_NAME = "NpuModuleMem";
 
 using OriDataFormat = std::vector<std::tuple<uint32_t, double, uint64_t, std::string>>;
-
-using ProcessedDataFormat = std::vector<std::tuple<uint32_t, uint64_t, uint64_t, uint16_t>>;
 
 const OriDataFormat DATA{{0, 48673240, 0, "NPU:1"}, {7, 48673240, 20025344, "NPU:1"}};
 

@@ -22,8 +22,6 @@ from msparser.compact_info.task_track_bean import TaskTrackBean
 from common_func.msprof_object import CustomizedNamedtupleFactory
 from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 
-NAMESPACE = 'mscalculate.flip.flip_calculator'
-
 
 class TestFlipCalculator(unittest.TestCase):
 

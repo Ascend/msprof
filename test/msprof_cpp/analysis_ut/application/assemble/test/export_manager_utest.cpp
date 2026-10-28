@@ -137,8 +137,6 @@ protected:
         FileWriter reportsWriter(File::PathJoin({BASE_PATH, REPORTS_JSON}));
         reportsWriter.WriteText(reports.dump());
     }
-protected:
-    DataInventory dataInventory_;
 };
 
 TEST_F(ExportManagerUTest, ShouldReturnFalseWhenPathIsInvalid)

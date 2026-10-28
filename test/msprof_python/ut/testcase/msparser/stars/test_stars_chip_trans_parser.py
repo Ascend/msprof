@@ -23,7 +23,6 @@ from common_func.platform.chip_manager import ChipManager
 from profiling_bean.prof_enum.chip_model import ChipModel
 from common_func.info_conf_reader import InfoConfReader
 
-NAMESPACE = 'msparser.stars.stars_chip_trans_bean'
 sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
                  "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 

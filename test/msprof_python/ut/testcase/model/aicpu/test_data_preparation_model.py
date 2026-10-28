@@ -18,7 +18,6 @@ from unittest import mock
 
 from msmodel.ai_cpu.data_preparation_model import DataPreparationModel
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msmodel.ai_cpu.data_preparation_model'
 
 

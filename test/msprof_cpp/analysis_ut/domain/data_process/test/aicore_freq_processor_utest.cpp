@@ -32,7 +32,6 @@ using FreqDataFormat = std::vector<std::tuple<uint64_t, double>>;
 // deviceId, timestampNs, freq
 using ProcessedDataVecFormat = std::vector<LowPowerData>;
 // deviceId, timestampNs, freq
-using QueryDataFormat = std::vector<std::tuple<uint32_t, uint64_t, double, uint16_t>>;
 
 const std::string DATA_DIR = "./freq";
 const std::string MSPROF = "msprof.db";

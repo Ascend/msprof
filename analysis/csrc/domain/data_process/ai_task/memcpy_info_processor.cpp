@@ -26,7 +26,6 @@ namespace Domain
 {
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
-const uint32_t DEFAULT_CONTEXT_ID = UINT32_MAX;
 
 MemcpyInfoProcessor::MemcpyInfoProcessor(const std::string &profPath) : DataProcessor(profPath) {}
 

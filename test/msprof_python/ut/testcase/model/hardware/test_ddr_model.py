@@ -23,7 +23,6 @@ from sqlite.db_manager import DBManager
 from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'msmodel.hardware.ddr_model'
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 
 
 class TestDdrModel(unittest.TestCase):

@@ -43,7 +43,6 @@ class StateUtest : public testing::Test
     void TearDown() override {}
     State state;
     PreEndState preEndState;
-    StartState startState;
     EndState endState;
 };
 TEST_F(StateUtest, TestInnerProcessEventWhenTagIdInvalid)

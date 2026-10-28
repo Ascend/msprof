@@ -90,12 +90,16 @@ class TestMsProfExportDataUtils(unittest.TestCase):
         configs = {"db": 'runtime.db', "table": '123'}
         params = {"export_type": "summary", "job_id": '1', "device_id": '1',
                   "iter_id": '1', "project": '1'}
-        with mock.patch(NAMESPACE + '.PathManager.get_db_path', return_value='123'):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
+        with mock.patch(NAMESPACE + '.TaskOpViewer.get_task_op_summary', return_value=(None, [], 0)) as get_summary:
             InfoConfReader()._info_json = {"devices": 123}
             key = MsProfExportDataUtils()
             result = key._get_task_time_data(configs, params)
         self.assertEqual(result, (None, [], 0))
+        get_summary.assert_called_once_with({
+            'host_id': MsProfCommonConstant.DEFAULT_IP,
+            'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
+            'result_dir': params.get(StrConstant.PARAM_RESULT_DIR),
+        })
 
     def test_get_ddr_data_1(self):
         configs = {"db": 'runtime'}
@@ -341,29 +345,6 @@ class TestMsProfExportDataUtils(unittest.TestCase):
             result = key._get_hccs_data(config, params)
         self.assertEqual(result, 132)
 
-    def test_get_mini_llc_data_1(self):
-        sample_config = {"llc_profiling": "bandwidth"}
-        params = {"data_type": "cpddd", "project": '987', "device_id": "654"}
-        with mock.patch(NAMESPACE + '.get_llc_bandwidth', return_value=456):
-            key = MsProfExportDataUtils()
-            result = key._MsProfExportDataUtils__get_mini_llc_data(sample_config, params)
-        self.assertEqual(result, 456)
-
-    def test_get_mini_llc_data_2(self):
-        sample_config = {"llc_profiling": "capacity"}
-        params = {"data_type": "llc_aicpu", "project": '987', "device_id": "654"}
-        with mock.patch(NAMESPACE + '.llc_capacity_data', return_value=789):
-            key = MsProfExportDataUtils()
-            result = key._MsProfExportDataUtils__get_mini_llc_data(sample_config, params)
-        self.assertEqual(result, 789)
-
-    def test_get_mini_llc_data_3(self):
-        sample_config = {"llc_profiling": "blank"}
-        params = {"data_type": "space", "project": '987', "device_id": "654"}
-        key = MsProfExportDataUtils()
-        result = key._MsProfExportDataUtils__get_mini_llc_data(sample_config, params)
-        self.assertEqual(result, ([], [], 0))
-
     def test_get_non_mini_llc_data_1(self):
         sample_config = 123
         params = {"project": '987', "device_id": "654", "data_type": "space"}
@@ -404,17 +385,6 @@ class TestMsProfExportDataUtils(unittest.TestCase):
             key = MsProfExportDataUtils()
             result = key._get_llc_data(sample_config, params)
         self.assertEqual(result, 123)
-
-    def test_get_llc_data_2(self):
-        sample_config = 456
-        params = {"export_type": "summary", "project": "456", "data_type": "space"}
-        with mock.patch(NAMESPACE + '.ConfigMgr.read_sample_config', return_value=111), \
-             mock.patch(NAMESPACE + '.MsProfExportDataUtils._MsProfExportDataUtils__get_mini_llc_data',
-                        return_value=333):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
-            key = MsProfExportDataUtils()
-            result = key._get_llc_data(sample_config, params)
-        self.assertEqual(result, 333)
 
     def test_get_llc_data_3(self):
         sample_config = 789

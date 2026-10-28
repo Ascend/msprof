@@ -446,7 +446,6 @@ class Constant:
     DEFAULT_START = 1
 
     PLATFORM_VERSION = "platform_version"
-    CHIP_V1_1_0 = "0"
     CHIP_V2_1_0 = "1"
     CHIP_V3_1_0 = "2"
     CHIP_V3_2_0 = "3"

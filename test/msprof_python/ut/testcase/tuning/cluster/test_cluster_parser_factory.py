@@ -46,7 +46,6 @@ class GeOp:
 
 
 class TestClusterCommunicationParserFactory(unittest.TestCase):
-    DIR = os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade')
     params = {"collection_path": os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade'),
               "npu_id": -1,
               "model_id": 0,
@@ -204,7 +203,6 @@ class TestClusterCommunicationParserFactory(unittest.TestCase):
 
 
 class TestCommunicationMatrixParserFactory(unittest.TestCase):
-    DIR = os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade')
     params = {"collection_path": os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade'),
               "npu_id": -1,
               "model_id": 0,
@@ -220,7 +218,6 @@ class TestCommunicationMatrixParserFactory(unittest.TestCase):
 
 
 class TestCriticalPathAnalysisParserFactory(unittest.TestCase):
-    DIR = os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade')
     params = {
         "collection_path": os.path.join(os.path.dirname(__file__), 'DT_ClusterTuningFacade'),
         "npu_id": -1,

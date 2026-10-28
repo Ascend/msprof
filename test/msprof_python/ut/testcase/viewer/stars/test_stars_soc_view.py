@@ -13,7 +13,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import json
 import unittest
 from unittest import mock
 
@@ -22,8 +21,6 @@ from constant.constant import CONFIG
 from viewer.stars.stars_soc_view import StarsSocView
 
 NAMESPACE = 'viewer.stars.stars_soc_view'
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
-                 "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 
 
 class TestStarsSocView(unittest.TestCase):

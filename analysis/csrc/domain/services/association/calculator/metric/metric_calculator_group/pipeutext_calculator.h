@@ -53,8 +53,6 @@ const PipeUtExtConfig PIPE_UT_EXT_CONFIG = {
 class PipeUtExtCalculator : public MetricCalculator
 {
    public:
-    explicit PipeUtExtCalculator(ChipId chipId) : chipId_(chipId) {}
-
     std::vector<std::string> GetPmuHeader() override { return GetPmuHeaderBySubType(PIPE_UT_EXT_CONFIG.table); }
 
     bool CheckMetricEventValid(std::vector<uint32_t>& event) override
@@ -71,9 +69,6 @@ class PipeUtExtCalculator : public MetricCalculator
         res = CalculatePmu(pmuData, PIPE_UT_EXT_CONFIG.table, allParams);
         return res;
     }
-
-   private:
-    ChipId chipId_{CHIP_ID_ALL};
 };
 }  // namespace Domain
 }  // namespace Analysis

@@ -21,8 +21,6 @@ from common_func.trace_view_manager import TraceViewManager
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.info_conf_reader import InfoConfReader
 
-NAMESPACE = 'common_func.trace_view_manager'
-
 
 class TestTraceViewManager(unittest.TestCase):
 

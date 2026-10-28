@@ -36,7 +36,6 @@ const std::string DB_SUFFIX = "npu_mem.db";
 const std::string PROF0 = File::PathJoin({NPU_MEM_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "NpuMem";
 using OriDataFormat = std::vector<std::tuple<std::string, uint64_t, uint64_t, double, uint64_t>>;
-using ProcessedDataFormat = std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint16_t>>;
 const OriDataFormat DATA_0{{"0", 0, 47243669504, 4, 47243669504}, {"1", 0, 47414005760, 212, 47414005760}};
 }  // namespace
 

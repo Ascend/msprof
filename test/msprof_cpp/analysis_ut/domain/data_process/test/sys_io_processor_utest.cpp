@@ -41,18 +41,7 @@ using SysIOReceiveSendFormat =
 namespace
 {
 const std::string SYS_IO_DIR = "./sys_io";
-const std::string DEVICE_SUFFIX = "device_0";
-const std::string NIC_DB = "nic.db";
-const std::string ROCE_DB = "roce.db";
-const std::string NIC_RECEIVE_SEND_DB = "nicreceivesend_table.db";
-const std::string ROCE_RECEIVE_SEND_DB = "rocereceivesend_table.db";
 const std::string PROF_DIR = File::PathJoin({SYS_IO_DIR, "PROF_0"});
-const std::string NIC_ORI_DATA_TABLE_NAME = "NicOriginalData";
-const std::string ROCE_ORI_DATA_TABLE_NAME = "RoceOriginalData";
-const std::string NIC_REPORT_DATA_TABLE_NAME = "NicReportData";
-const std::string ROCE_REPORT_DATA_TABLE_NAME = "RoceReportData";
-const std::string NIC_RECEIVE_SEND_TABLE_NAME = "NicReceiveSend";
-const std::string ROCE_RECEIVE_SEND_TABLE_NAME = "RoceReceiveSend";
 
 const SysIODataFormat SYS_IO_DATA = {{0, 0, 236328380142660, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                      {0, 0, 236328388200700, 200000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},

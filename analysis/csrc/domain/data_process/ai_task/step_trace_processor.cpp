@@ -165,17 +165,14 @@ bool StepTraceProcessor::Process(DataInventory &dataInventory)
             flag = false;
             continue;
         }
-        OriTrace traceData;
         DBInfo traceDb("trace.db", "training_trace");
         flag = ProcessData<TrainTraceData>(traceDb, allParams, resTrace, GenerateTraceData, devPath) && flag;
         FilterDataByStartTime(resTrace, allParams.timeRecord.startTimeNs, PROCESSOR_NAME_STEP_TRACE);
 
-        OriGetNext nextData;
         DBInfo nextDb("trace.db", "get_next");
         flag = ProcessData<GetNextData>(nextDb, allParams, resNext, GenerateNextData, devPath) && flag;
         FilterDataByStartTime(resNext, allParams.timeRecord.startTimeNs, PROCESSOR_NAME_STEP_TRACE);
 
-        OriAllReduce reduceData;
         DBInfo reduceDb("trace.db", "all_reduce");
         flag = ProcessData<AllReduceData>(reduceDb, allParams, resAllReduce, GenerateAllReduceData, devPath) && flag;
         FilterDataByStartTime(resAllReduce, allParams.timeRecord.startTimeNs, PROCESSOR_NAME_STEP_TRACE);

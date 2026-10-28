@@ -511,12 +511,6 @@ bool SaveHostInfoData(DataInventory& dataInventory, DBInfo& msprofDB, const std:
     std::string hostUid = Environment::Context::GetInstance().GetHostUid(HOST_ID, profPath);
     std::string hostName = Environment::Context::GetInstance().GetHostName(HOST_ID, profPath);
     hostInfoData.emplace_back(hostUid, hostName);
-    if (hostInfoData.empty())
-    {
-        // 无host目录 无数据时，避免saveData因数据为空 导致error
-        INFO("Host dir not exist.");
-        return true;
-    }
     return SaveData(hostInfoData, TABLE_NAME_HOST_INFO, msprofDB);
 }
 
@@ -1707,10 +1701,9 @@ TopoNodeCreatorFactory DBAssembler::CreateStringIdsSaver()
     };
 }
 
-DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputPath)
-    : profPath_(profPath), outputPath_(outputPath)
+DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputPath) : profPath_(profPath)
 {
-    // 当前outputPath_路径依然传递PROF路径，即db落盘路径依然是PROF目录下
+    // 当前 outputPath 依然传递 PROF 路径，即 db 落盘路径依然是 PROF 目录下
     MAKE_SHARED0_NO_OPERATION(msprofDB_.database, MsprofDB);
     auto msprofDBPath = GetDBPath(outputPath);
     msprofDB_.ConstructDBRunner(msprofDBPath);

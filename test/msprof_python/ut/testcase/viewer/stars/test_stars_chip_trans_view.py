@@ -13,7 +13,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import json
 import unittest
 from unittest import mock
 
@@ -21,12 +20,9 @@ from constant.constant import CONFIG
 from viewer.stars.stars_chip_trans_view import StarsChipTransView
 from common_func.platform.chip_manager import ChipManager
 from profiling_bean.prof_enum.chip_model import ChipModel
-from common_func.info_conf_reader import InfoConfReader
 from constant.info_json_construct import InfoJson
 
 NAMESPACE = 'viewer.stars.stars_chip_trans_view'
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
-                 "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 
 
 class TestStarsChipTransView(unittest.TestCase):

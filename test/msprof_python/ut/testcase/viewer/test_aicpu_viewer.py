@@ -19,18 +19,15 @@ from unittest import mock
 
 from common_func.constant import Constant
 from common_func.info_conf_reader import InfoConfReader
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from constant.constant import ITER_RANGE
 from profiling_bean.db_dto.ge_task_dto import GeTaskDto
 from profiling_bean.db_dto.task_time_dto import TaskTimeDto
-from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBOpen
 from viewer.aicpu_viewer import AiCpuData
 from viewer.aicpu_viewer import ParseAiCpuData
 from common_func.msprof_object import CustomizedNamedtupleFactory
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'viewer.aicpu_viewer'
 
 AiCpuDataTuple = CustomizedNamedtupleFactory.generate_named_tuple_from_dto(AiCpuData, [])

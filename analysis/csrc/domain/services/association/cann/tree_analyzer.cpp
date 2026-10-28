@@ -49,7 +49,6 @@ inline uint16_t GetBatchId(uint32_t taskId) { return IsChipV6() ? 0 : static_cas
 inline uint32_t GetTaskIdBit() { return IsChipV6() ? 0xFFFFFFFF : 0x0000FFFF; }
 const uint32_t VALID_CTXID_NUM = 2;
 const int64_t INVALID_VALUE = -1;
-const uint16_t AICORE_TASK_TYPE = 0;
 const uint64_t INVALID_MODEL_ID = 4294967295;
 const uint64_t PLACEHOLDER_OP_NAME = UINT64_MAX;
 const std::string KERNEL_TASK_PREFIX = "KERNEL";

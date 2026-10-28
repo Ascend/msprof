@@ -27,8 +27,6 @@ from sqlite.db_manager import DBOpen
 from tuning.data_manager import DataManager, OpSummaryTuningDataHandle, OpParallelTuningDataHandle
 from tuning.data_manager import ModelSummaryTuningDataHandle
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
-                 "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 NAMESPACE = 'tuning.data_manager'
 
 

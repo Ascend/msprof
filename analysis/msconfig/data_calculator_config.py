@@ -59,7 +59,6 @@ class DataCalculatorConfig(MetaConfig):
             ('level', '3'),
             ('position', 'D'),
         ],
-        'MiniAicCalculator': [('path', 'mscalculate.aic.mini_aic_calculator'), ('chip_model', '0'), ('position', 'D')],
         'AivCalculator': [
             ('path', 'mscalculate.aic.aiv_calculator'),
             ('chip_model', '2,3,4'),
@@ -68,7 +67,7 @@ class DataCalculatorConfig(MetaConfig):
         ],
         'MemcpyCalculator': [
             ('path', 'mscalculate.memory_copy.memcpy_calculator'),
-            ('chip_model', '0,1,2,3,4,5'),
+            ('chip_model', '1,2,3,4,5'),
             ('position', 'D'),
         ],
         'StarsLogCalCulator': [
@@ -99,57 +98,45 @@ class DataCalculatorConfig(MetaConfig):
             ('chip_model', '1'),
             ('position', 'D'),
         ],
-        'TaskSchedulerCalculator': [
-            ('path', 'mscalculate.data_analysis.task_scheduler_calculator'),
-            ('chip_model', '0'),
-            ('level', '5'),
-            ('position', 'D'),
-        ],
-        'OpTaskSchedulerCalculator': [
-            ('path', 'mscalculate.data_analysis.op_task_scheduler_calculator'),
-            ('chip_model', '0'),
-            ('level', '5'),
-            ('position', 'D'),
-        ],
         'ParseAiCoreOpSummaryCalculator': [
             ('path', 'mscalculate.data_analysis.parse_aicore_op_summary_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,9,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,9,11,15,16,19'),
             ('level', '14'),
             ('position', 'D'),
         ],
         'OpSummaryOpSceneCalculator': [
             ('path', 'mscalculate.data_analysis.op_summary_op_scene_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,9,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,9,11,15,16,19'),
             ('level', '14'),
             ('position', 'D'),
         ],
         'MergeOpCounterCalculator': [
             ('path', 'mscalculate.data_analysis.merge_op_counter_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,9,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,9,11,15,16,19'),
             ('level', '14'),
             ('position', 'D'),
         ],
         'OpCounterOpSceneCalculator': [
             ('path', 'mscalculate.data_analysis.op_counter_op_scene_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,9,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,9,11,15,16,19'),
             ('level', '14'),
             ('position', 'D'),
         ],
         'AscendTaskCalculator': [
             ('path', 'mscalculate.ascend_task.ascend_task_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,9,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,9,11,15,16,19'),
             ('level', '6'),
             ('position', 'D'),
         ],
         'HcclCalculator': [
             ('path', 'mscalculate.hccl.hccl_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,11,15,16,19'),
             ('level', '7'),
             ('position', 'D'),
         ],
         'NpuOpMemCalculator': [
             ('path', 'mscalculate.npu_mem.npu_op_mem_calculator'),
-            ('chip_model', '0,1,2,3,4,5,7,8,11,15,16,19'),
+            ('chip_model', '1,2,3,4,5,7,8,11,15,16,19'),
             ('position', 'H'),
         ],
         'StarsIterRecCalculator': [

@@ -178,30 +178,6 @@ class TestMsprofQuerySummaryManager(unittest.TestCase):
                     "model_id": 1,
                     "iteration_id": 1}
         args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + ".MsprofQuerySummaryManager._check_collection_dir_valid", return_value=True),\
-                mock.patch(NAMESPACE + '.ClusterTuningFacade.process'):
-            check = MsprofQuerySummaryManager(args)
-            check.process()
-
-    def test_check_cluster_scene_should_return_empty_when_data_type_is_7(self):
-        args_dic = {"collection_path": self.DIR_PATH,
-                    "id": 1,
-                    "data_type": 7,
-                    "model_id": 1,
-                    "iteration_id": 1}
-        args = Namespace(**args_dic)
-        with mock.patch(NAMESPACE + ".MsprofQuerySummaryManager._check_collection_dir_valid", return_value=True),\
-                mock.patch(NAMESPACE + '.ClusterTuningFacade.process'):
-            check = MsprofQuerySummaryManager(args)
-            check.process()
-
-    def test_check_cluster_scene_should_return_empty_when_data_type_is_6(self):
-        args_dic = {"collection_path": self.DIR_PATH,
-                    "id": 1,
-                    "data_type": 6,
-                    "model_id": 1,
-                    "iteration_id": 1}
-        args = Namespace(**args_dic)
         with mock.patch(NAMESPACE + ".MsprofQuerySummaryManager._check_collection_dir_valid", return_value=True), \
                 mock.patch(NAMESPACE + '.ClusterTuningFacade.process'):
             check = MsprofQuerySummaryManager(args)

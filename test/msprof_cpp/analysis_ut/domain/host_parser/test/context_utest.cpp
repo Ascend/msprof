@@ -38,7 +38,6 @@ const std::string START_INFO = "start_info";
 const std::string END_INFO = "end_info";
 const std::string HOST_START_LOG = "host_start.log";
 const std::string DEVICE_START_LOG = "dev_start.log";
-const int MSVP_MMPROCESS = -1;
 
 class ContextUTest : public testing::Test
 {

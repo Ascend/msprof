@@ -26,7 +26,6 @@ using namespace Analysis::Application;
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
 using TypeInfoData = std::unordered_map<uint16_t, std::unordered_map<uint64_t, std::string>>;
-using HashData = std::unordered_map<uint64_t, std::string>;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
 const std::string TYPE_VALUE = "123";
 

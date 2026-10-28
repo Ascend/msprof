@@ -20,8 +20,6 @@ import pytest
 from viewer.calculate_rts_data import check_aicore_events
 from viewer.calculate_rts_data_training import get_task_type
 
-NAMESPACE = 'viewer.calculate_rts_data_training'
-
 
 class TestCalculateRtsTrain(unittest.TestCase):
     def test_check_aicore_events(self):

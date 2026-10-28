@@ -20,19 +20,14 @@ from unittest import mock
 
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
-from common_func.memcpy_constant import MemoryCopyConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msvp_constant import MsvpConstant
 from sqlite.db_manager import DBManager, DBOpen
 from viewer.runtime_report import _get_output_event_counter
-from viewer.runtime_report import add_memcpy_data
 from viewer.runtime_report import add_op_total
-from viewer.runtime_report import add_ts_opname
 from viewer.runtime_report import cal_metrics
 from viewer.runtime_report import get_opname
-from viewer.runtime_report import get_output_tasktype
 from viewer.runtime_report import get_task_based_core_data
-from viewer.runtime_report import get_task_scheduler_data
 
 NAMESPACE = 'viewer.runtime_report'
 configs = {"headers": "Dvpp Id,Engine Type,Engine ID,All Time(us),All Frame,All Utilization(%)",
@@ -46,64 +41,6 @@ params = {'data_type': '',
 
 
 class TestRuntimeReport(unittest.TestCase):
-
-    def test_get_task_scheduler_data_1(self):
-        db_manager = DBManager()
-        test_sql = db_manager.create_table("runtime.db")
-        tmp_config = {"headers": "Time(%),Time(us),Count,Avg(us),Min(us),Max(us),"
-                                 "Waiting(us),Running(us),Pending(us),Type,API,Task ID,Op Name,Stream ID"}
-        with mock.patch(NAMESPACE + '.DBManager.check_connect_db_path', return_value=(None, None)), \
-                mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=False):
-            res = get_task_scheduler_data('', "ReportTask", tmp_config, params)
-        self.assertEqual(res, ("Time(%),Time(us),Count,Avg(us),Min(us),Max(us),"
-                               "Waiting(us),Running(us),Pending(us),Type,API,Task ID,Op Name,Stream ID", [], 0))
-        db_manager.destroy(test_sql)
-
-    def test_get_task_scheduler_data_2(self):
-        create_sql = "CREATE TABLE IF NOT EXISTS ReportTask" \
-                     " (timeratio REAL,time REAL,count INTEGER,avg REAL,min REAL,max REAL,waiting REAL,running REAL," \
-                     "pending REAL,type TEXT,api TEXT,task_id INTEGER,stream_id INTEGER,device_id)"
-        data = ((0.1, 1, 2, 1, 1, 5, 3, 1, 0.5, "aicore", "a", 0, 0, 0),)
-        tmp_config = {"headers": "Time(%),Time(us),Count,Avg(us),Min(us),Max(us),"
-                                 "Waiting(us),Running(us),Pending(us),Type,API,Task ID,Op Name,Stream ID"}
-        db_name = "test_get_task_scheduler_data_2_runtime.db"
-        with DBOpen(db_name) as db_open, \
-                mock.patch(NAMESPACE + '.add_memcpy_data', return_value=data):
-            db_open.create_table(create_sql)
-            db_open.insert_data("ReportTask", data)
-            res = get_task_scheduler_data(db_open.db_path, "ReportTask", tmp_config, params)
-            self.assertEqual(res[2], 1)
-
-    def test_add_memcpy_data(self):
-        data = [(50, 10000, 1, 10000, 10000,
-                 10000, 116.770796875, 47177.968796875, 0.0, 'model execute task', '', 2, 2),
-                (50, 10000, 1, 10000, 10000,
-                 10000, 0.0, 1596.19790625, 0.0, 'kernel AI core task', '', 3, 5)]
-        memcpy_summary = [(0, 20000, 1, 20000, 20000, 20000, 100, 200, MemoryCopyConstant.DEFAULT_VIEWER_VALUE,
-                           MemoryCopyConstant.TYPE, StrConstant.AYNC_MEMCPY, 1,
-                           MemoryCopyConstant.DEFAULT_VIEWER_VALUE, 1)]
-        expect_res = [(25.0, 10000, 1, 10000, 10000,
-                       10000, 116.770796875, 47177.968796875, 0.0, 'model execute task', '', 2, 2),
-                      (25.0, 10000, 1, 10000, 10000,
-                       10000, 0.0, 1596.19790625, 0.0, 'kernel AI core task', '', 3, 5),
-                      (50.0, 20000, 1, 20000, 20000, 20000, 100, 200, MemoryCopyConstant.DEFAULT_VIEWER_VALUE,
-                       MemoryCopyConstant.TYPE, StrConstant.AYNC_MEMCPY, 1,
-                       MemoryCopyConstant.DEFAULT_VIEWER_VALUE, 1)
-                      ]
-
-        with mock.patch('viewer.memory_copy.memory_copy_viewer.'
-                        'MemoryCopyViewer.get_memory_copy_chip0_summary', return_value=memcpy_summary):
-            res = add_memcpy_data("./", data)
-        self.assertEqual(expect_res, res)
-
-    def test_add_ts_opname(self):
-        db_manager = DBManager()
-        test_sql = db_manager.create_table(DBNameConstant.DB_GE_INFO)
-        task_data = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
-        with mock.patch(NAMESPACE + '.DBManager.check_connect_db', return_value=test_sql), \
-                mock.patch(NAMESPACE + '.get_opname', return_value="test"):
-            res = add_ts_opname(task_data, "")
-        self.assertEqual(len(res), 1)
 
     def test_get_task_based_core_data_1(self):
         with mock.patch(NAMESPACE + '.DBManager.check_connect_db', return_value=(None, None)):
@@ -152,20 +89,6 @@ class TestRuntimeReport(unittest.TestCase):
             project_path = os.path.dirname(os.path.dirname(db_open.db_path))
             res = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME, params)
             self.assertEqual(res[0], 1)
-
-    def test_get_output_task_type(self):
-        db_manager = DBManager()
-        test_sql = db_manager.create_table(DBNameConstant.DB_RUNTIME)
-
-        with mock.patch(NAMESPACE + '.DBManager.judge_table_exist', return_value=None):
-            res = get_output_tasktype(test_sql[1], params)
-        self.assertEqual(res, [])
-        db_manager.destroy(test_sql)
-
-    def test_get_output_event_counter(self):
-        with mock.patch(NAMESPACE + '._get_output_event_counter', return_value=[]):
-            res = get_output_tasktype("", params)
-        self.assertEqual(res, [])
 
     def test_get_output_event_counter_1(self):
         with mock.patch("common_func.config_mgr.ConfigMgr.pre_check_sample", return_value=None):

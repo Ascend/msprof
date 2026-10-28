@@ -29,7 +29,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.ms_multi_process import MsMultiProcess
 from common_func.path_manager import PathManager
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from msconfig.config_manager import ConfigManager
@@ -221,11 +220,6 @@ class OpCounterOpSceneCalculator(MsMultiProcess):
         ge_db_path = PathManager.get_db_path(self.project_path, DBNameConstant.DB_GE_INFO)
         if DBManager.check_tables_in_db(ge_db_path, DBNameConstant.TABLE_GE_TASK):
             return True
-        if ChipManager().is_chip_v1():
-            return DBManager.check_tables_in_db(
-                PathManager.get_db_path(self.project_path, DBNameConstant.DB_RUNTIME),
-                DBNameConstant.TABLE_RUNTIME_TASK_TIME,
-            )
         return DBManager.check_tables_in_db(
             PathManager.get_db_path(self.project_path, DBNameConstant.DB_HWTS), DBNameConstant.TABLE_HWTS_TASK_TIME
         )

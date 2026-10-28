@@ -21,7 +21,6 @@ from unittest.mock import Mock
 from common_func.info_conf_reader import InfoConfReader
 from msparser.aicpu.parse_dp_data import ParseDpData
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msparser.aicpu.parse_dp_data'
 
 

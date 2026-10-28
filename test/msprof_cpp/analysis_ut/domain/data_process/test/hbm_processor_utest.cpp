@@ -30,7 +30,6 @@ using namespace Analysis::Test;
 
 namespace
 {
-const int DEPTH = 0;
 const std::string HBM_DIR = "./hbm";
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "hbm.db";

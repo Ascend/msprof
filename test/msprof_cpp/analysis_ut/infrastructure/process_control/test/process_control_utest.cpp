@@ -104,14 +104,14 @@ protected:
                                          ┌───────────────┐
                                          │     PdfE      │
                                          │               │
-                                         │  CHIP_V1_1_0  │
+                                         │  CHIP_V3_2_0  │
                                 ┌────────┤  CHIP_V2_1_0  │
                                 │        └───────┬───────┘
                                 ▼                │
                         ┌───────────────┐        │
                         │     PgF       │        │
                         │               │        │
-            ┌───────────┤  CHIP_V1_1_0  │        │
+            ┌───────────┤  CHIP_V3_2_0  │        │
             │           │  CHIP_V2_1_0  │        │
             │           └───────┬───────┘        │
             │                   │                │
@@ -119,7 +119,7 @@ protected:
    ┌───────────────┐    ┌───────────────┐        │
    │     PabC      │    │     PabG      │        │
    │               │    │               │        │
-   │  CHIP_V1_1_0  │    │  CHIP_V1_1_0  │        │
+   │  CHIP_V3_2_0  │    │  CHIP_V3_2_0  │        │
    │               │    │  CHIP_V2_1_0  │        │
    └──┬────────┬───┘    └┬──────┬───────┘        │
       │        │         │      │                │
@@ -127,7 +127,7 @@ protected:
       │    ┌───────────────┐    │         ┌───────────────┐
       │    │     PdB       │    │         │     PahD      │
       │    │               ├────┼────────►│               │
-      │    │  CHIP_V1_1_0  │    │         │  CHIP_V1_1_0  │
+      │    │  CHIP_V3_2_0  │    │         │  CHIP_V3_2_0  │
       │    │  CHIP_V2_1_0  │    │ ┌───────┤  CHIP_V2_1_0  │
       │    └───────────────┘    │ │       └──────┬────────┘
       │                         │ │              │
@@ -136,14 +136,14 @@ protected:
       │             ┌───────────────┐      ┌───────────────┐
       │             │    PStartA    │      │    PstartH    │
       └────────────►│               │      │               │
-                    │  CHIP_V1_1_0  │      │  CHIP_V1_1_0  │
+                    │  CHIP_V3_2_0  │      │  CHIP_V3_2_0  │
                     │  CHIP_V2_1_0  │      │               │
                     └───────────────┘      └───────────────┘
 */
 
 TEST_F(ProcessControlUTest, ShouldGetAllRegisterInfoRight)
 {
-    std::vector<uint32_t> expChipsPA{CHIP_V1_1_0, CHIP_V2_1_0};
+    std::vector<uint32_t> expChipsPA{CHIP_V3_2_0, CHIP_V2_1_0};
     std::vector<std::type_index> expProcPreProc{typeid(Ps::PstartA), typeid(Ps::PstartH)};
     std::vector<std::type_index> exparamTypes{typeid(Ps::StartA), typeid(Ps::StartH)};
     auto regInfo = ProcessRegister::CopyProcessInfo();
@@ -157,7 +157,7 @@ TEST_F(ProcessControlUTest, ShouldFilterRelatedProcessWhenBuildProcessTopo)
 {
     auto regInfo = ProcessRegister::CopyProcessInfo();
     ProcessTopo processTopoBuilder(regInfo);
-    auto chipRelatedProcess = processTopoBuilder.BuildProcessControlTopoByChip(CHIP_V1_1_0);
+    auto chipRelatedProcess = processTopoBuilder.BuildProcessControlTopoByChip(CHIP_V3_2_0);
     ASSERT_EQ(chipRelatedProcess.size(), 8ul);  // 应该有8个相关Process
 
     ProcessTopo processTopoBuilderChip2(regInfo);
@@ -194,7 +194,7 @@ static void VerifyLastTwoFakeLevel(const ExecuteProcessStat& stat)
 static void VerifyWholeChipV1FakeProcess(const ExecuteProcessStat stat)
 {
     const auto& allStat = stat.allLevelStat;
-    EXPECT_EQ(stat.chipId, CHIP_V1_1_0);
+    EXPECT_EQ(stat.chipId, CHIP_V3_2_0);
     ASSERT_EQ(allStat.size(), 6ul);  // 一共有6个统计结果
     EXPECT_TRUE(allStat[0].generalResult);
     ASSERT_EQ(allStat[0].processStatistics.size(), 2ul);  // 第0个Leve有两个Process
@@ -245,7 +245,7 @@ static void VerifyWholeChipV1FakeProcess(const ExecuteProcessStat stat)
 TEST_F(ProcessControlUTest, ShouldRunAllChipV1ProcessWhenExecute)
 {
     Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     auto regInfo = ProcessRegister::CopyProcessInfo();
     ProcessControl processControl(regInfo);
 
@@ -261,7 +261,7 @@ TEST_F(ProcessControlUTest, ShouldKeepDataWhenReleaseUnusedDataDisabled)
 {
     Ps::ResetBaseGcCount();
     Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     auto regInfo = ProcessRegister::CopyProcessInfo();
     ProcessControlOptions options;
     options.releaseUnusedData = false;
@@ -277,7 +277,7 @@ TEST_F(ProcessControlUTest, ShouldReleaseDataByDefault)
 {
     Ps::ResetBaseGcCount();
     Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     auto regInfo = ProcessRegister::CopyProcessInfo();
     ProcessControl processControl(regInfo);
 
@@ -334,7 +334,7 @@ TEST_F(ProcessControlUTest, ShouldKeepDataUntilLastConsumerFinishes)
           true}},
     };
     Infra::DeviceContext context;
-    context.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     ProcessControl processControl(processes);
 
     EXPECT_TRUE(processControl.ExecuteProcess(dataInventory, context));
@@ -379,7 +379,7 @@ TEST_F(ProcessControlUTest, ShouldScheduleReadyDependentWithoutWaitingForUnrelat
          {fastChild, {}, {typeid(FastRootProcessTag)}, {CHIP_ID_ALL}, "fast_child", true}},
     };
     Infra::DeviceContext context;
-    context.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     ProcessControlOptions options;
     options.maxWorkerThreads = 2;
     ProcessControl processControl(processes, options);
@@ -454,7 +454,7 @@ TEST_F(ProcessControlUTest, ShouldFilterTheLastProcess)
 TEST_F(ProcessControlUTest, ShouldStopWhenOneMandatoryFailed)
 {
     Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     ProcessSpy::SetResult("PabG", 1);
 
     auto regInfo = ProcessRegister::CopyProcessInfo();
@@ -465,7 +465,7 @@ TEST_F(ProcessControlUTest, ShouldStopWhenOneMandatoryFailed)
 
     ASSERT_FALSE(ret);
     auto stat = processControl.GetExecuteStat();
-    EXPECT_EQ(stat.chipId, CHIP_V1_1_0);
+    EXPECT_EQ(stat.chipId, CHIP_V3_2_0);
     ASSERT_EQ(stat.allLevelStat.size(), 4ul);  // 应该有4个Level
     EXPECT_FALSE(stat.allLevelStat[3].generalResult);  // 第3个Level应该为失败
     ASSERT_EQ(stat.allLevelStat[3].processStatistics.size(), 2ul);  // 第3个Level包含2个Process
@@ -476,7 +476,7 @@ TEST_F(ProcessControlUTest, ShouldStopWhenOneMandatoryFailed)
 TEST_F(ProcessControlUTest, ShouldStopAtAssignedProcessWhenUserAssigned)
 {
     Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_0;
+    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     deviceInstance.deviceContextInfo.dfxInfo.stopAt = "Ps::PahD";
     auto regInfo = ProcessRegister::CopyProcessInfo();
     ProcessControl processControl(regInfo);

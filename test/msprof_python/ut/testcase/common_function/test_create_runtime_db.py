@@ -16,12 +16,9 @@
 import struct
 import unittest
 from unittest import mock
-from unittest.mock import Mock
 
 from common_func.create_runtime_db import ParsingRuntimeData
-from common_func.platform.chip_manager import ChipManager
 from constant.constant import CONFIG
-from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBManager
 
 NAMESPACE = 'common_func.create_runtime_db'
@@ -98,9 +95,7 @@ class TestParsingRuntimeData(unittest.TestCase):
                            return_value=True), \
                 mock.patch(NAMESPACE + '.create_ai_event_tables'), \
                 mock.patch(NAMESPACE + '.insert_event_value'), \
-                mock.patch(NAMESPACE + '.StepTableBuilder.run'), \
                 mock.patch(NAMESPACE + '.logging.info'):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
             check = ParsingRuntimeData(self.sample_config, CONFIG)
             check.conn = res[0]
             check.create_runtime_db()
@@ -258,19 +253,17 @@ class TestParsingRuntimeData(unittest.TestCase):
         CONFIG['ai_core_profiling_mode'] = "task-based"
         with mock.patch(NAMESPACE + '.is_valid_original_data',
                         return_value=True):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
             check = ParsingRuntimeData(self.sample_config, CONFIG)
             result = check._check_file_match('ts_track.data.0.slice_0', 'test')
-            self.assertTrue(result)
+            self.assertFalse(result)
             result = check._check_file_match('ts_track.aiv_data.0.slice_0', 'test')
             self.assertTrue(result)
             result = check._check_file_match('aicore.data.0.slice_0', 'test')
-            self.assertTrue(result)
+            self.assertFalse(result)
             result = check._check_file_match('test', 'test')
             self.assertFalse(result)
         with mock.patch(NAMESPACE + '.is_valid_original_data',
                         return_value=True):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
             check = ParsingRuntimeData(self.sample_config, CONFIG)
             result = check._check_file_match('aiVectorCore.data.0.slice_0', 'test')
             self.assertFalse(result)

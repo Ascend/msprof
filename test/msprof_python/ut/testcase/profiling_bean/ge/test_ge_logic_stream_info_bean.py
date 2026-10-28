@@ -17,8 +17,6 @@ import unittest
 
 from msparser.ge.ge_logic_stream_info_bean import GeLogicStreamInfoBean
 
-NAMESPACE = 'msmodel.ge.ge_logic_stream_model'
-
 
 class TestGeLogicStreamInfoBean(unittest.TestCase):
     def test_construct_should_return_success_when_db_check_ok(self):

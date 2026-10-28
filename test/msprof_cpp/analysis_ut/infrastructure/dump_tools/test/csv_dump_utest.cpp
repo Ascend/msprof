@@ -25,37 +25,6 @@ using namespace testing;
 using namespace Analysis;
 using namespace Infra;
 
-TEST(CsvDumpUTest, ShouldGetRightCsvWhenGivenSpecificData)
-{
-    // given
-    float fl = -1.5f; // float类型
-    uint64_t u64 = 10823372036854775807ULL;  // u64类型
-    std::string str = "string sample!";  // string类型
-    std::stringstream csvStream;
-
-    // when
-    // 先写标题，下面流代码可以写成一句话，这里分开写，更清晰
-    csvStream << "fl_column" << ',';
-    csvStream << "u64_col" << ',';
-    csvStream << "str_col" << ',';
-    csvStream << "temp" << ',';
-    csvStream << "temp" << "\r\n";  // 写完标题，可以换行
-    // 再写内容，下面流代码可以写成一句话，这里分开写，更清晰
-    for (uint32_t i = 0; i < 2; ++i) { // 这里以写2行为例
-        csvStream << fl << ',';
-        csvStream << u64 << ',';
-        csvStream << str << ',';
-        csvStream << 'a' << ',';   // char 类型
-        csvStream << "some thing!" << "\r\n"; // 字符串
-    }
-
-    // then
-    std::string expectCsvStr = "fl_column,u64_col,str_col,temp,temp\r\n"
-                               "-1.5,10823372036854775807,string sample!,a,some thing!\r\n"
-                               "-1.5,10823372036854775807,string sample!,a,some thing!\r\n";
-    EXPECT_EQ(expectCsvStr, csvStream.str());
-}
-
 namespace {
 
 std::stringstream& operator<<(std::stringstream& ss, const DumpToolSampleCsvStruct& sample)

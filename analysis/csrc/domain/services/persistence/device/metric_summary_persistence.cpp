@@ -32,9 +32,6 @@ using namespace Analysis::Common;
 namespace
 {
 const int CHIP4_DEFAULT_COLUMN_NUM = 4;
-const int OTHER_CHIP_DEFAULT_COLUMN_NUM = 5;
-const int CHIP4_PMU_TIME_NUM = 2;
-const int OTHER_CHIP_PMU_TIME_NUM = 1;
 const std::string AIC_PREFIX = "aic_";
 const std::string AIV_PREFIX = "aiv_";
 const std::string V6_BLOCK_PMU_TABLE = "V6BlockPmu";

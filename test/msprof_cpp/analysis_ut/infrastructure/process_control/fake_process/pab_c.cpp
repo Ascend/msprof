@@ -50,6 +50,6 @@ uint32_t PabC::ProcessEntry(DataInventory& dataInventory, const Infra::Context& 
 
 REGISTER_PROCESS_SEQUENCE(Ps::PabC, true, Ps::PstartA, Ps::PdB);
 REGISTER_PROCESS_DEPENDENT_DATA(Ps::PabC, Ps::StartA, Ps::StructB4c);
-REGISTER_PROCESS_SUPPORT_CHIP(Ps::PabC, CHIP_V1_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(Ps::PabC, CHIP_V3_2_0);
 
 }

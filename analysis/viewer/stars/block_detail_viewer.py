@@ -15,9 +15,7 @@
 # -------------------------------------------------------------------------
 from collections import defaultdict
 
-from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
-from common_func.ge_logic_stream_singleton import GeLogicStreamSingleton
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
@@ -59,31 +57,6 @@ class BlockDetailViewer(BaseViewer):
             [thread_sort_index, pid, BlockDetailViewer.AIV_LATEST_INDEX, 4],
         ]
         return TraceViewManager.metadata_event(header)
-
-    @staticmethod
-    def set_log_result_list(data, pid, name, tid):
-        result_list = []
-        start_time = InfoConfReader().time_from_syscnt(data.start_time)
-        logic_stream_id = GeLogicStreamSingleton().get_logic_stream_id(data.stream_id)
-        result_list.append(
-            [
-                f"Stream {logic_stream_id} {name}",
-                pid,
-                tid,
-                InfoConfReader().trans_into_local_time(start_time),
-                data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
-                {
-                    "Task Type": data.device_task_type,
-                    "Physic Stream Id": data.stream_id,
-                    "Task Id": data.task_id,
-                    "Subtask Id": data.context_id,
-                    "Block Id": data.block_id,
-                    "Core Type": "AIC" if data.core_type == 0 else "AIV",
-                    "Core Id": data.core_id,
-                },
-            ]
-        )
-        return result_list
 
     @staticmethod
     def set_pmu_result_list(datas, pid, block_pmu_timeline_data, name):

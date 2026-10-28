@@ -24,7 +24,6 @@ from constant.constant import clear_dt_project
 from msmodel.parallel.cluster_parallel_model import ClusterParallelViewModel
 from msparser.parallel.cluster_parallel_collector import ClusterParallelCollector
 from profiling_bean.db_dto.cluster_rank_dto import ClusterRankDto
-from common_func.info_conf_reader import InfoConfReader
 from constant.info_json_construct import InfoJson
 from constant.info_json_construct import DeviceInfo
 

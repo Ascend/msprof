@@ -17,8 +17,6 @@
 import unittest
 from unittest import mock
 
-import pytest
-
 from common_func.utils import Utils
 
 

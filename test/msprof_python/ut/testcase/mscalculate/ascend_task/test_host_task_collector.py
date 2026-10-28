@@ -22,7 +22,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from mscalculate.ascend_task.ascend_task import HostTask
 from mscalculate.ascend_task.host_task_collector import HostTaskCollector
 
-file_list = {}
 NAMESPACE = 'mscalculate.ascend_task.host_task_collector'
 
 

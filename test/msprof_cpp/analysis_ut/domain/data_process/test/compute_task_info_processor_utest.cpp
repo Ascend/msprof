@@ -33,8 +33,6 @@ using HashMap = std::unordered_map<std::string, std::string>;
 namespace
 {
 const int DEPTH = 0;
-const uint16_t OP_NUM = 4;
-const uint16_t STRING_NUM = 18;
 const std::string COMPUTE_TASK_PATH = "./compute_task_path";
 const std::string HOST_SUFFIX = "host";
 const std::string DB_SUFFIX = "ge_info.db";

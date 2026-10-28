@@ -31,7 +31,6 @@ NAMESPACE = "msparser.parallel.parallel_parser"
 
 
 class TestClusterParallelParser(unittest.TestCase):
-    FILE_LIST_1 = {1: ["test"]}
     FILE_LIST_2 = {DataTag.PARALLEL_STRATEGY: ["test"]}
     DIR_PATH = os.path.join(os.path.dirname(__file__), 'DT_ClusterParallelParser')
     SAMPLE_CONFIG = {"result_dir": DIR_PATH}

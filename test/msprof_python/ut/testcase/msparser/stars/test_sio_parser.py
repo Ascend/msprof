@@ -20,7 +20,6 @@ from common_func.platform.chip_manager import ChipManager
 from msparser.stars.sio_parser import SioParser
 from profiling_bean.prof_enum.chip_model import ChipModel
 
-NAMESPACE = 'msparser.stars.sio_parser'
 sample_config = {
     "model_id": 1,
     'iter_id': 'dasfsd',

@@ -291,7 +291,7 @@ TEST_F(KernelParserWorkerUtest, ShouldDumpCaptureAndMc2OnAnyPlatform)
     std::vector<MsprofAdditionalInfo> mc2Input{mc2};
     ASSERT_TRUE(WriteBin(mc2Input, File::PathJoin({TEST_HOST_FILE_PATH, "data"}),
                          "unaging.additional.mc2_comm_info.slice_0"));
-    StubPlatformVersion(Analysis::Domain::Environment::Chip::CHIP_V1_1_0);
+    StubPlatformVersion(Analysis::Domain::Environment::Chip::CHIP_V4_1_0);
 
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     ASSERT_EQ(ANALYSIS_OK, worker.Run());

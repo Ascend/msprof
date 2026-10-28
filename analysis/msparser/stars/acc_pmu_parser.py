@@ -26,20 +26,10 @@ class AccPmuParser(IStarsParser):
     class used to parse acc_pmu type data"
     """
 
-    SAMPLE_BASED = 'sample_based'
-
     def __init__(self: any, result_dir: str, db: str, table_list: list) -> None:
         super().__init__()
         self._model = AccPmuModel(result_dir, db, table_list)
         self._decoder = AccPmuDecoder
-
-    @property
-    def decoder(self: any) -> any:
-        """
-        get decoder
-        :return: class decoder
-        """
-        return self._decoder
 
     @abstractmethod
     def preprocess_data(self: any) -> None:

@@ -20,7 +20,6 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.memcpy_constant import MemoryCopyConstant
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.ms_constant.str_constant import StrConstant
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.trace_view_manager import TraceViewManager
 from common_func.ge_logic_stream_singleton import GeLogicStreamSingleton
@@ -63,50 +62,6 @@ class MemoryCopyViewer:
                 args.setdefault("task id", sql_data[7])
 
         return args
-
-    def get_memory_copy_chip0_summary(self: any) -> list:
-        """
-        get memory copy summary data when chip type is 0.
-        datum index: 0 sum duration of start to end; 1 task type; 2 task id;
-        3 stream id; 4 duration of receive to start; 5 avg duration of start to end;
-        6 min duration of start to end; 7 max duration of start to end; 8 count
-        return: None
-        """
-        summary_data = []
-        if self._model.check_db():
-            export_data = self._model.return_chip0_summary(DBNameConstant.TABLE_TS_MEMCPY_CALCULATION)
-
-            for datum in export_data:
-                default_time_ratio = 0
-                sum_val = datum[0]
-                running = datum[0]
-                waiting = datum[4]
-                avg_val = datum[5]
-                min_val = datum[6]
-                max_val = datum[7]
-                task_count = datum[8]
-                pending = MemoryCopyConstant.DEFAULT_VIEWER_VALUE
-                op_name = MemoryCopyConstant.DEFAULT_VIEWER_VALUE
-
-                summary_data.append(
-                    (
-                        default_time_ratio,
-                        sum_val,
-                        task_count,
-                        avg_val,
-                        min_val,
-                        max_val,
-                        waiting,
-                        running,
-                        pending,
-                        datum[1],
-                        StrConstant.AYNC_MEMCPY,
-                        datum[2],
-                        op_name,
-                        datum[3],
-                    )
-                )
-        return summary_data
 
     def get_memory_copy_non_chip0_summary(self: any) -> list:
         """

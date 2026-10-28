@@ -92,10 +92,9 @@ std::vector<std::shared_ptr<TraceEvent>> OverlapAnalysisAssembler::GenerateOverl
     {
         std::shared_ptr<OverlapEvent> event;
         auto formatPid = pidMap_[data.deviceId];
-        MAKE_SHARED_RETURN_VALUE(event, OverlapEvent, overlapEvents, formatPid, static_cast<int>(data.type),
+        MAKE_SHARED_RETURN_VALUE(event, OverlapEvent, overlapEvents, formatPid, static_cast<uint32_t>(data.type),
                                  static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
-                                 DivideByPowersOfTenWithPrecision(data.timestamp), GetOverlapName(data.type),
-                                 data.type);
+                                 DivideByPowersOfTenWithPrecision(data.timestamp), GetOverlapName(data.type));
         overlapEvents.emplace_back(event);
     }
     return overlapEvents;

@@ -21,8 +21,6 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.memcpy_constant import MemoryCopyConstant
 from msmodel.memory_copy.memcpy_model import MemcpyModel
 
-NAMESPACE = 'msmodel.memcopy_copy.'
-
 
 class TestMemcpyModel(unittest.TestCase):
     def setup_class(self):
@@ -57,12 +55,6 @@ class TestMemcpyModel(unittest.TestCase):
         self.memcpy_model.flush(DBNameConstant.TABLE_TS_MEMCPY_CALCULATION, data_list)
         res = self.memcpy_model.get_all_data(DBNameConstant.TABLE_TS_MEMCPY_CALCULATION)
         self.assertEqual(data_list, res)
-
-    def test_export_chip0_summary(self):
-        expect_res = [(1000, MemoryCopyConstant.TYPE,
-                       12, 11, 1000, 1000, 1000, 1000, 1)]
-        res = self.memcpy_model.return_chip0_summary(DBNameConstant.TABLE_TS_MEMCPY_CALCULATION)
-        self.assertEqual(expect_res, res)
 
     def test_export_non_chip0_summary(self):
         expect_res = [(MemoryCopyConstant.ASYNC_MEMCPY_NAME, MemoryCopyConstant.TYPE, 11,

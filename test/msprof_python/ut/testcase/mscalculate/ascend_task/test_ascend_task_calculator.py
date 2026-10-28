@@ -14,27 +14,22 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import os
 import unittest
 from unittest import mock
 
 from common_func.constant import Constant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from mscalculate.ascend_task.ascend_task_calculator import AscendTaskCalculator
 from profiling_bean.db_dto.step_trace_dto import IterationRange
-from profiling_bean.prof_enum.chip_model import ChipModel
 
 NAMESPACE = 'mscalculate.ascend_task.ascend_task_calculator'
 
 
 class TestAscendTaskCalculator(unittest.TestCase):
-    DIR_PATH = os.path.join(os.path.dirname(__file__), "DT_DeviceTaskCollector")
-    PROF_DIR = os.path.join(DIR_PATH, 'PROF1')
     calculator = AscendTaskCalculator({}, {StrConstant.PARAM_ITER_ID: IterationRange(1, 1, 1)})
     info_reader = InfoConfReader()
     info_reader._info_json = {'platform_version': "5"}

@@ -34,8 +34,6 @@ from profiling_bean.prof_enum.chip_model import ChipModel
 from viewer.lpm.ai_core_freq_viewer import AiCoreFreqViewer
 from constant.constant import clear_dt_project
 
-NAMESPACE = 'msmodel.freq.freq_data_viewer_model'
-
 
 class TestAiCoreFreqViewer(TestDirCRBaseModel):
 

@@ -21,8 +21,6 @@ from common_func.platform.chip_manager import ChipManager
 from mscalculate.calculate_ai_core_data import CalculateAiCoreData
 from profiling_bean.prof_enum.chip_model import ChipModel
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
-                 "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 NAMESPACE = 'mscalculate.calculate_ai_core_data'
 
 
@@ -87,7 +85,7 @@ class TestCalculateAiCoreData(unittest.TestCase):
         ChipManager().chip_id = ChipModel.CHIP_V1_1_0
         key = CalculateAiCoreData('123')
         result = key.update_fops_data(field, algo)
-        self.assertEqual(result, "32.0, 64.0, 32.0")
+        self.assertEqual(result, "64.0, 64.0, 32.0")
         ChipManager().chip_id = ChipModel.CHIP_V3_1_0
         key = CalculateAiCoreData('123')
         result = key.update_fops_data(field, algo)

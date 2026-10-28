@@ -24,19 +24,13 @@ from common_func.info_conf_reader import InfoConfReader
 from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from model.test_dir_cr_base_model import TestDirCRBaseModel
-from msmodel.hccl.hccl_model import HCCLModel
 from msmodel.hccl.hccl_model import HcclViewModel
-from profiling_bean.prof_enum.data_tag import DataTag
+from msmodel.hccl.hccl_model import HCCLModel
 
 NAMESPACE = 'msmodel.hccl.hccl_model'
 
 
 class TestHCCLModel(TestDirCRBaseModel):
-    sample_config = {'result_dir': '/tmp/result',
-                     'tag_id': 'JOBEJGBAHABDEEIJEDFHHFAAAAAAAAAA',
-                     'device_id': '127.0.0.1'
-    }
-    file_list = {DataTag.HCCL: ['HCCL.hcom_allReduce_1_1_1.1.slice_0']}
 
     DIR_PATH = os.path.join(os.path.dirname(__file__), "DT_HCCL_MODEL")
     PROF_DIR = os.path.join(DIR_PATH, 'PROF1')
@@ -46,29 +40,6 @@ class TestHCCLModel(TestDirCRBaseModel):
     def test_flush(self):
         with mock.patch(NAMESPACE + '.HCCLModel.insert_data_to_db'):
             HCCLModel("", [" "]).flush([])
-
-    # def test_get_hccl_data(self):
-    #     data = [1, 2, 3, 4,
-    #             "{'notify id': 4294967840, 'duration estimated': 0.8800048828125, 'stage': 4294967295, "
-    #             "'step': 4294967385, 'bandwidth': 'NULL', 'stream id': 8, 'task id': 34, 'task type': 'Notify Record',"
-    #             " 'src rank': 2, 'dst rank': 1, 'transport type': 'SDMA', 'size': None, 'tag': 'all2allvc_1_5'}"]
-    #     col = ["hccl_name", "plane_id", "timestamp", "duration", "args"]
-    #     create_sql = "create table IF NOT EXISTS {0} " \
-    #                  "(name TEXT, " \
-    #                  "plane_id INTEGER, " \
-    #                  "timestamp REAL, " \
-    #                  "duration REAL, " \
-    #                  "args TEXT)".format(DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE)
-    #     test = HcclTask()
-    #     for index, i in enumerate(data):
-    #         if hasattr(test, col[index]):
-    #             setattr(test, col[index], i)
-    #     with DBOpen(DBNameConstant.DB_HCCL) as db_open:
-    #         db_open.create_table(create_sql)
-    #         with mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[test]):
-    #             check = HCCLModel("", [DBNameConstant.TABLE_HCCL_TASK_SINGLE_DEVICE])
-    #             check.cur = db_open.db_curs
-    #             check.get_hccl_data()
 
     def test_get_hccl_task_data_should_return_empty_when_attach_db_failed(self):
         with mock.patch(NAMESPACE + '.HcclViewModel.attach_to_db', return_value=False):

@@ -18,8 +18,6 @@ import unittest
 from model.test_dir_cr_base_model import TestDirCRBaseModel
 from msmodel.v5.v5_stars_model import V5StarsModel, V5StarsViewModel
 
-NAMESPACE = 'msmodel.v5.v5_stars_model'
-
 FORMAT_DATA_LIST = [
     [2, 0, 0, 'AI_CORE', 900324512280.0, 900329393820.0, 4881540.0, 1220001, 1, 530412, 0,
      382664, 244160, 414903, 333062, 0, 0, 222, 47],

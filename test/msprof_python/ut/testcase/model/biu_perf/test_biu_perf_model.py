@@ -19,7 +19,6 @@ from unittest import mock
 from msmodel.biu_perf.biu_perf_model import BiuPerfModel
 from sqlite.db_manager import DBManager
 
-sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs'}
 NAMESPACE = 'msmodel.biu_perf.biu_perf_model'
 
 

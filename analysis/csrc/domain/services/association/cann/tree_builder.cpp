@@ -432,10 +432,6 @@ void TreeBuilder::RecordTreeNode(const std::shared_ptr<TreeNode> &treeNode, cons
     {
         hcclLevelNodes_.emplace_back(treeNode);
     }
-    else if (eventLevel == MSPROF_REPORT_RUNTIME_LEVEL)
-    {
-        runtimeLevelNodes_.emplace_back(treeNode);
-    }
 }
 
 std::shared_ptr<TreeNode> TreeBuilder::BuildTree(std::shared_ptr<TreeNode> parent, int depth)

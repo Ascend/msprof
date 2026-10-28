@@ -39,14 +39,10 @@ class OverlapAnalysisAssembler : public JsonAssembler
 class OverlapEvent : public DurationEvent
 {
    public:
-    OverlapEvent(int pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
-                 OverlapAnalysisType type)
-        : DurationEvent(pid, tid, dur, ts, name), type_(type)
+    OverlapEvent(int pid, uint32_t tid, double dur, const std::string &ts, const std::string &name)
+        : DurationEvent(pid, tid, dur, ts, name)
     {
     }
-
-   private:
-    OverlapAnalysisType type_;
 };
 }  // namespace Application
 }  // namespace Analysis

@@ -31,11 +31,6 @@ namespace Analysis
 namespace Domain
 {
 using namespace Analysis::Application;
-namespace
-{
-const uint16_t STEP_START_TAG = 60000;
-const uint16_t STEP_END_TAG = 60001;
-}  // namespace
 
 StepTraceDataVectorFormat GenerateStepTraceData(std::map<uint32_t, std::vector<StepTraceTasks>>& stepTraceTask)
 {

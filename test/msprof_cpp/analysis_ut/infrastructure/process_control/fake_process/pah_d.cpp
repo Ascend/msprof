@@ -48,6 +48,6 @@ uint32_t PahD::ProcessEntry(DataInventory& dataInventory, const Infra::Context&)
 
 REGISTER_PROCESS_SEQUENCE(Ps::PahD, true, Ps::PstartA, Ps::PstartH);
 REGISTER_PROCESS_DEPENDENT_DATA(Ps::PahD, Ps::StartA, Ps::StartH);
-REGISTER_PROCESS_SUPPORT_CHIP(Ps::PahD, CHIP_V1_1_0, CHIP_V2_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(Ps::PahD, CHIP_V3_2_0, CHIP_V2_1_0);
 
 }

@@ -38,7 +38,6 @@ const std::string CREATE_INDEX = "create index";
 const std::string DROP_TABLE = "drop table";
 const std::string DELETE = "delete";
 const std::string UPDATE = "update";
-const std::string CHECK = "check";
 }  // namespace
 
 Connection::Connection(const std::string &path)

@@ -38,7 +38,6 @@ const std::string PREFIX_CONTEXT = "[";
 const std::string SUFFIX_CONTEXT = "]";
 const int JSON_FILE_OFFSET = -1;
 const std::string TIMELINE_PREFIX = "TIMELINE:";
-const std::string TIMELINE_PRE_DUMP = TIMELINE_PREFIX + "PRE_DUMP";
 const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
 
 const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{

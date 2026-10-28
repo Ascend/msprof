@@ -34,15 +34,11 @@ class AiCoreReport:
         """
         delete unnecessary headers
         """
-        if not ChipManager().is_chip_v1() and "ub_read_bw_mte(GB/s)" in headers and "ub_write_bw_mte(GB/s)" in headers:
+        if "ub_read_bw_mte(GB/s)" in headers and "ub_write_bw_mte(GB/s)" in headers:
             headers.pop("ub_read_bw_mte(GB/s)")
             headers.pop("ub_write_bw_mte(GB/s)")
 
-        if (
-            not (ChipManager().is_chip_v1() or ChipManager().is_chip_v4())
-            and "l2_read_bw(GB/s)" in headers
-            and "l2_write_bw(GB/s)" in headers
-        ):
+        if not ChipManager().is_chip_v4() and "l2_read_bw(GB/s)" in headers and "l2_write_bw(GB/s)" in headers:
             headers.pop("l2_read_bw(GB/s)")
             headers.pop("l2_write_bw(GB/s)")
 

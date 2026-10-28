@@ -31,7 +31,6 @@ namespace nlohmann
 template <>
 struct adl_serializer<CpuInfo>
 {
-    static void to_json(json& jsonData, const CpuInfo& infoData) { jsonData = json{{"Frequency", infoData.frequency}}; }
     static void from_json(const json& jsonData, CpuInfo& infoData)
     {
         std::string frequencyStr = jsonData.at("CPU").at(0).at("Frequency").get<std::string>();

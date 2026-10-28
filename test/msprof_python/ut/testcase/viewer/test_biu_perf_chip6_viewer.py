@@ -22,8 +22,6 @@ from common_func.trace_view_manager import TraceViewManager
 from profiling_bean.db_dto.biu_perf_insrt_dto import BiuPerfInstrDto
 from viewer.biu_perf.biu_perf_chip6_viewer import BiuPerfChip6Viewer
 
-NAMESPACE = "msviewer.biu_perf.biu_perf_chip6_viewer"
-
 
 class TestBiuPerfChip6Viewer(unittest.TestCase):
 

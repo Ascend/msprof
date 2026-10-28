@@ -27,7 +27,6 @@ using namespace Analysis::Domain;
 using ApiData = std::vector<std::shared_ptr<Event>>;
 const std::string TEST_DB_FILE_PATH = "./sqlite";
 const uint32_t ACL_LEVEL_NUMBER = 20000;
-const uint32_t PYTORCH_LEVEL_NUMBER = 30000;
 const uint32_t TWO_BYTES = 16;
 class ApiEventDBDumperUtest : public testing::Test
 {

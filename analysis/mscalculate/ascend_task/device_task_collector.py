@@ -32,7 +32,6 @@ from msmodel.stars.acsq_task_model import AcsqTaskModel
 from msmodel.stars.ffts_log_model import FftsLogModel
 from msmodel.task_time.hwts_aiv_model import HwtsAivModel
 from msmodel.task_time.hwts_log_model import HwtsLogModel
-from msmodel.task_time.runtime_task_time_model import RuntimeTaskTimeModel
 from msmodel.v5.v5_stars_model import V5StarsViewModel
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.prof_enum.chip_model import ChipModel
@@ -43,7 +42,6 @@ class DeviceTaskCollector:
         self.result_dir = result_dir
         self.chip = ChipManager().get_chip_id()
         self.collectors = {
-            ChipModel.CHIP_V1_1_0: self._gather_chip_v1_1_0_device_tasks,
             ChipModel.CHIP_V2_1_0: self._gather_chip_v2_1_0_device_tasks,
             ChipModel.CHIP_V3_1_0: self._gather_chip_v3_device_tasks,
             ChipModel.CHIP_V3_2_0: self._gather_chip_v3_device_tasks,
@@ -59,7 +57,6 @@ class DeviceTaskCollector:
         }
 
         self.check_dbs = {
-            ChipModel.CHIP_V1_1_0: [DBNameConstant.DB_RUNTIME],
             ChipModel.CHIP_V2_1_0: [DBNameConstant.DB_HWTS, DBNameConstant.DB_AI_CPU],
             ChipModel.CHIP_V3_1_0: [DBNameConstant.DB_HWTS, DBNameConstant.DB_HWTS_AIV],
             ChipModel.CHIP_V3_2_0: [DBNameConstant.DB_HWTS],
@@ -163,22 +160,6 @@ class DeviceTaskCollector:
 
         with V5StarsViewModel(self.result_dir) as model:
             return model.get_v5_data_within_time_range(start_time, end_time)
-
-    def _gather_device_tasks_from_runtime(self: any, start_time: float, end_time: float) -> List[DeviceTask]:
-        db_path = PathManager.get_db_path(self.result_dir, DBNameConstant.DB_RUNTIME)
-        if not os.path.exists(db_path):
-            logging.warning("no db %s found", DBNameConstant.DB_RUNTIME)
-            return []
-
-        with RuntimeTaskTimeModel(self.result_dir) as model:
-            return model.get_runtime_task_data_within_time_range(start_time, end_time)
-
-    def _gather_chip_v1_1_0_device_tasks(self: any, start_time: float, end_time: float) -> List[DeviceTask]:
-        device_tasks = self._gather_device_tasks_from_runtime(start_time, end_time)
-        if not device_tasks:
-            logging.error("no device task found.")
-            return []
-        return device_tasks
 
     def _gather_chip_v2_1_0_device_tasks(self: any, start_time: float, end_time: float) -> List[DeviceTask]:
         # in this chip  only aicore task will be uploaded in hwts.

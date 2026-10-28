@@ -34,17 +34,12 @@ using namespace Analysis::Infra;
 class SummaryManager
 {
    public:
-    explicit SummaryManager(const std::string& profPath, const std::string& outputPath)
-        : profPath_(profPath), outputPath_(outputPath) {};
+    explicit SummaryManager(const std::string&, const std::string&) {};
     static bool IsDeliverableSupported(const std::string& deliverableName);
     static TopoNodeCreatorFactory CreateSummaryAssembler(const std::string& name);
     static bool GetAssemblerList(const std::vector<std::string>& deliverableNames,
                                  std::vector<std::string>& assemblerNames);
     static bool GetTopologyRoots(const std::vector<std::string>& deliverableNames, std::vector<TopoNodeId>& roots);
-
-   private:
-    std::string profPath_;
-    std::string outputPath_;
 };
 }  // namespace Application
 }  // namespace Analysis

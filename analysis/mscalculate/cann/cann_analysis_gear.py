@@ -111,10 +111,6 @@ class ACLGear(CANNGear):
 
 
 class ModelGear(CANNGear):
-    INVALID_MODEL_NAME = "NA"
-    INVALID_REQUEST_ID = "NA"
-    MODEL_TIME_STAGE = 3
-
     def __init__(self, project_path):
         super().__init__(project_path)
         self.cann_level = Constant.MODEL_LEVEL
@@ -169,7 +165,6 @@ class NodeGear(CANNGear):
         self.cann_level = Constant.NODE_LEVEL
         self.node_name_type_table = {}
         self.ge_host_info = []
-        self.hccl_op_info = []
         self.fusion_op_info = []
 
     @staticmethod
@@ -287,31 +282,6 @@ class TaskGear(CANNGear):
         GeTaskType.INVALID.name,
     )
 
-    class RuntimeApi:
-        def __init__(self, start, end, struct_type, thread_id):
-            self.start = start
-            self.end = end
-            self.api = struct_type
-            self.thread = thread_id
-            self.stream_id = TaskGear.INVALID_STREAM
-            self.task_id = TaskGear.INVALID_ID
-            self.batch_id = TaskGear.INVALID_ID
-            self.data_size = 0
-            self.memcpy_direction = TaskGear.INVALID_DIRECT
-
-        def to_list(self):
-            return [
-                self.start,
-                self.end,
-                self.api,
-                self.thread,
-                self.stream_id,
-                self.task_id,
-                self.batch_id,
-                self.data_size,
-                self.memcpy_direction,
-            ]
-
     class NodeDesc:
         def __init__(
             self,
@@ -324,13 +294,6 @@ class TaskGear(CANNGear):
             self.tensor_info = tensor_info
             self.ctx_info = ctx_info
             self.node_attr_info = node_attr_info
-
-        @staticmethod
-        def get_hash(dto: Union[NodeBasicInfoDto, TensorInfoDto, CtxIdDto, NodeAttrInfoDto, HCCLOpInfoDto]):
-            return dto.op_name + "-" + str(int(dto.timestamp))
-
-        def is_invalid(self):
-            return self.node_basic_info is not None and self.tensor_info is not None
 
     class HcclDesc:
         def __init__(self, hccl_info=HCCLInfoDto(), ctx_info=CtxIdDto()):
@@ -348,10 +311,8 @@ class TaskGear(CANNGear):
         self.tensor_info = []
         self.hccl_task_info = []
         self.host_tasks = []
-        self.mismatch_hccl = 0
         self.hccl_op_info = []
         self.hccl_node_keys = set()
-        self.hccl_node_mismatch = 0
 
     @staticmethod
     def get_task_level_additional_dto(event: Event) -> tuple:
@@ -556,7 +517,6 @@ class TaskGear(CANNGear):
         node_dto: ApiDataDto = self.db.get_api(node_event)
 
         if node_event.is_invalid():
-            self.hccl_node_mismatch += 1
             return
 
         hccl_node_key = node_dto.item_id + str(node_dto.thread_id) + str(node_dto.end)
@@ -974,8 +934,6 @@ class TaskGear(CANNGear):
     def save_hccl_task_info(self):
         if not self.hccl_task_info:
             return
-        if self.mismatch_hccl > 0:
-            logging.warning("There is %d hccl info lost", self.mismatch_hccl)
         model = HCCLHostModel(self._project_path)
         model.init()
         model.drop_table(DBNameConstant.TABLE_HCCL_TASK)

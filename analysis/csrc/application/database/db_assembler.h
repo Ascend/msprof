@@ -49,7 +49,6 @@ class DBAssembler
 
    private:
     std::string profPath_;
-    std::string outputPath_;
     DBInfo msprofDB_;
 };
 

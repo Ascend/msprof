@@ -25,8 +25,6 @@ NAMESPACE = 'host_prof.host_prof_base.host_prof_presenter_base'
 
 
 class TestHostProfPresenterBase(unittest.TestCase):
-    result_dir = 'test\\test'
-    file_name = 'host_cpu.data.slice_0'
 
     def test_create_tables(self):
         with mock.patch('host_prof.host_network_usage.model.host_network_usage.'

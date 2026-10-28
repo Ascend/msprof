@@ -207,7 +207,6 @@ class DpuTaskTrackParser final : public CompactInfoParser
         "aging.compact.dpu_track.slice",
         "unaging.compact.dpu_track.slice",
     };
-    std::vector<std::shared_ptr<ParserCompactInfo>> dpuTrackData_;
 };  // class DpuTaskTrackParser
 
 // 该类的作用是解析Stream扩容规格数据

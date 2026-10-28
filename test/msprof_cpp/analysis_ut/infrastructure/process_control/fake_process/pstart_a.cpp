@@ -38,6 +38,6 @@ uint32_t PstartA::ProcessEntry(DataInventory& dataInventory, const Infra::Contex
 }
 
 REGISTER_PROCESS_SEQUENCE(Ps::PstartA, true);
-REGISTER_PROCESS_SUPPORT_CHIP(Ps::PstartA, CHIP_V1_1_0, CHIP_V2_1_0);
+REGISTER_PROCESS_SUPPORT_CHIP(Ps::PstartA, CHIP_V3_2_0, CHIP_V2_1_0);
 
 }

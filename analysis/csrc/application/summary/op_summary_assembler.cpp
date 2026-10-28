@@ -79,19 +79,6 @@ int GetIndexForVec(const std::vector<std::string> &vec, const std::string &key)
     }
     return Analysis::Common::INVALID_VALUE;
 }
-
-int GetColumnIndex(const std::vector<std::string> &headers, std::vector<std::string> &&possibleNames)
-{
-    for (auto &name : possibleNames)
-    {
-        auto idx = GetIndexForVec(headers, name);
-        if (idx != Analysis::Common::INVALID_VALUE)
-        {
-            return idx;
-        }
-    }
-    return Analysis::Common::INVALID_VALUE;
-}
 }  // namespace
 
 OpSummaryAssembler::OpSummaryAssembler(const std::string &name, const std::string &profPath)

@@ -33,7 +33,6 @@ using namespace Environment;
 namespace
 {
 const int PERCENTAGE_FACTOR = 100;
-const uint64_t INVALID_DB_SIZE = 0;
 const std::unordered_set<std::string> INVALID_COLUMN_NAMES = {
     "job_id",    "host_id",    "device_id",         "task_id",   "stream_id", "index_id",
     "model_id",  "overflow",   "overflowed_cycles", "device_id", "batch_id",  "task_type",
@@ -586,7 +585,6 @@ std::tuple<double, uint16_t> MetricProcessor::GetCubeUsageByDeviceId(uint16_t de
             return cubeUsageInfo_[deviceId];
         }
 
-        std::tuple<double, uint16_t> info;
         double freq = 0.0;
         uint16_t coreNum = Context::GetInstance().GetAiCoreNum(deviceId, profPath_);
         if (!Context::GetInstance().GetPmuFreq(freq, deviceId, profPath_))

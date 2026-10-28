@@ -29,7 +29,6 @@ using namespace Analysis::Utils;
 
 namespace
 {
-const int DEPTH = 0;
 const std::string LLC_DIR = "./llc";
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "llc.db";
@@ -112,16 +111,6 @@ TEST_F(LLcProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<LLcData>).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
     MOCKER_CPP(&DataProcessor::SaveToDataInventory<LLcData>).reset();
-}
-
-TEST_F(LLcProcessorUTest, TestRunShouldReturnTrueWhenIsFirstChipV1)
-{
-    auto processor = LLcProcessor(PROF_DIR);
-    DataInventory dataInventory;
-
-    MOCKER_CPP(&Context::IsFirstChipV1).stubs().will(returnValue(true));
-    EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_LLC));
-    MOCKER_CPP(&Context::IsFirstChipV1).reset();
 }
 
 TEST_F(LLcProcessorUTest, TestRunShouldReturnFalseWhenProcessSingleDeviceFailed)

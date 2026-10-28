@@ -18,7 +18,6 @@ import unittest
 
 from msparser.stars.ffts_log_parser import FftsLogParser, FftsLogDecoder
 
-NAMESPACE = 'msparser.stars.ffts_log_parser'
 sample_config = {"model_id": 1, 'iter_id': 'dasfsd', 'result_dir': 'jasdfjfjs',
                  "ai_core_profiling_mode": "task-based", "aiv_profiling_mode": "sample-based"}
 

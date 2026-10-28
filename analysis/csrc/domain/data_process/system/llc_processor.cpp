@@ -39,12 +39,6 @@ LLcProcessor::LLcProcessor(const std::string &profPath) : DataProcessor(profPath
 
 bool LLcProcessor::Process(DataInventory &dataInventory)
 {
-    auto platformVersion = Context::GetInstance().GetPlatformVersion(DEFAULT_DEVICE_ID, profPath_);
-    if (Context::IsFirstChipV1(platformVersion))
-    {
-        WARN("Skip llc processing in path: %.", profPath_);
-        return true;
-    }
     bool flag = true;
     std::vector<LLcData> allProcessedData;
     std::vector<LLcSummaryData> allSummaryData;

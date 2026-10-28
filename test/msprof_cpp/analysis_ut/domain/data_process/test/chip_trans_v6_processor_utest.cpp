@@ -29,7 +29,6 @@ namespace
 {
 const int DEPTH = 0;
 const std::string CHIP_TRAINS_PATH = "./chip_trains";
-const std::string DB_PATH = File::PathJoin({CHIP_TRAINS_PATH, "msprof.db"});
 const std::string DEVICE_SUFFIX = "device_0";
 const std::string DB_SUFFIX = "chip_trans.db";
 const std::string PROF_PATH = File::PathJoin({CHIP_TRAINS_PATH, "./PROF_000001"});

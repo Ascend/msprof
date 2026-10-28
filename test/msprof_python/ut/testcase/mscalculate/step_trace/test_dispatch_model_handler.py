@@ -22,8 +22,6 @@ import unittest
 
 from mscalculate.step_trace.tag_handler.tag_dispatch_handler import DispatchModelHandler
 
-NAMESPACE = 'mscalculate.step_trace.tag_handler'
-
 
 class TestDispatchModelHandler(unittest.TestCase):
     def test_receive_1(self):

@@ -38,15 +38,6 @@ namespace Domain
 {
 namespace
 {
-struct OpTypeInfo
-{
-    OpTypeInfo() = default;
-    OpTypeInfo(double max, double min, std::string opType) : max(max), min(min), opType(std::move(opType)) {}
-    double max = 0;
-    double min = std::numeric_limits<double>::infinity();
-    std::string opType;
-};
-
 const uint16_t RDMA_NO_BARRIER_TASK_NUM = 3;
 const uint16_t RDMA_WITH_BARRIER_TASK_NUM = 5;
 const std::string RDMA_SEND_PAYLOAD = "RDMA_SEND_PAYLOAD";

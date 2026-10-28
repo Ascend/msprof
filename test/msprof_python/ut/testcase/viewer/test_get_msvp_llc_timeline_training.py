@@ -13,21 +13,17 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import json
 import sqlite3
 import unittest
 from unittest import mock
-import decimal
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
-from common_func.platform.chip_manager import ChipManager
-from profiling_bean.prof_enum.chip_model import ChipModel
 from sqlite.db_manager import DBManager
 from sqlite.db_manager import DBOpen
 from constant.info_json_construct import InfoJson
 from viewer.get_msvp_llc_timeline_training import get_llc_nomini_data, get_llc_timeline, pre_check_llc, \
-    get_llc_mini_data, get_llc_bandwidth, get_llc_capacity, get_llc_db_table, get_ddr_timeline, get_hbm_timeline
+    get_llc_db_table, get_ddr_timeline, get_hbm_timeline
 
 NAMESPACE = 'viewer.get_msvp_llc_timeline_training'
 param = {'project': "", "project_path": '', "device_id": 0,
@@ -90,82 +86,6 @@ class TestLLCTimelineTrain(unittest.TestCase):
         self.assertEqual(res_3, [])
         db_manager.destroy(test_sql)
 
-    def test_get_llc_mini_data_1(self):
-        with DBOpen(DBNameConstant.DB_LLC) as db_open:
-            with mock.patch(NAMESPACE + '.get_llc_bandwidth', return_value=[]):
-                res = get_llc_mini_data(param, sample_config, db_open.db_curs)
-            self.assertEqual(res, [])
-
-            sample_config[StrConstant.LLC_PROF] = "capacity"
-            with mock.patch(NAMESPACE + '.get_llc_capacity', return_value=[]):
-                res = get_llc_mini_data(param, sample_config, db_open.db_curs)
-            self.assertEqual(res, [])
-
-            sample_config[StrConstant.LLC_PROF] = "read"
-            with mock.patch(NAMESPACE + '.get_llc_capacity', return_value=[]):
-                res = get_llc_mini_data(param, sample_config, db_open.db_curs)
-            self.assertEqual(len(res), 0)
-            sample_config[StrConstant.LLC_PROF] = "bandwidth"
-
-    def test_get_llc_bandwidth_1(self):
-        create_sql = "CREATE TABLE IF NOT EXISTS " + DBNameConstant.TABLE_LLC_METRIC_DATA + \
-                     "(device_id, replayid, timestamp, read_allocate, read_noallocate," \
-                     " read_hit, write_allocate, write_noallocate, write_hit)"
-        data = ((0, 0, 1466.706340169, 166393, 21, 151150, 81601, 0, 1),
-                (0, 0, 1466.726545742, 15753, 21, 12840, 0, 0, 0))
-        with DBOpen(DBNameConstant.DB_LLC) as db_open:
-            db_open.create_table(create_sql)
-            db_open.insert_data(DBNameConstant.TABLE_LLC_METRIC_DATA, data)
-            InfoConfReader()._info_json = {'pid': "0"}
-            res = get_llc_bandwidth(db_open.db_curs)
-            with mock.patch(NAMESPACE + '.get_bandwidth_value', return_value=[]):
-                res_1 = get_llc_bandwidth(db_open.db_curs)
-            self.assertEqual(len(res), 5)
-            self.assertEqual(len(res_1), 0)
-
-            with mock.patch(NAMESPACE + '.get_bandwidth_value', return_value=[]), \
-                 mock.patch(NAMESPACE + '.DBManager.fetch_all_data', return_value=[]):
-                res_1 = get_llc_bandwidth(db_open.db_curs)
-            self.assertEqual(len(res), 5)
-            self.assertEqual(len(res_1), 0)
-
-            with mock.patch(NAMESPACE + '.get_bandwidth_value', return_value=[]), \
-                 mock.patch(NAMESPACE + '._format_llc_trace_data', return_value=[]):
-                res_1 = get_llc_bandwidth(db_open.db_curs)
-            self.assertEqual(len(res), 5)
-            self.assertEqual(len(res_1), 0)
-
-    def test_get_llc_capacity_1(self):
-        db_manager = DBManager()
-        test_sql = db_manager.create_table(DBNameConstant.DB_LLC)
-        with mock.patch(NAMESPACE + '.TraceViewManager.metadata_event', side_effect=OSError):
-            InfoConfReader()._info_json = {'pid': "0"}
-            res = get_llc_capacity(param, test_sql[1])
-        self.assertEqual(len(res), 0)
-        db_manager.destroy(test_sql)
-
-    def test_get_llc_capacity_2(self):
-        create_sql = "CREATE TABLE IF NOT EXISTS " + DBNameConstant.TABLE_LLC_DSID + \
-                     "(device_id, replayid, timestamp, dsid0, dsid1, dsid2, dsid3, dsid4, dsid5, dsid6, dsid7)"
-        data = ((0, 0, 631006637428508, 85, 26, 0, 0, 0, 0, 0, 1),
-                (0, 0, 631006637428508, 162, 50, 0, 0, 0, 0, 0, 1))
-        insert_sql = "insert into {0} values ({value})".format(
-            DBNameConstant.TABLE_LLC_DSID, value="?," * (len(data[0]) - 1) + "?")
-        db_manager = DBManager()
-        test_sql = db_manager.create_table(DBNameConstant.DB_LLC, create_sql, insert_sql, data)
-        InfoConfReader()._info_json = {'pid': "0"}
-        InfoConfReader()._local_time_offset = 0
-        decimal.getcontext().prec = 40
-        res = get_llc_capacity(param, test_sql[1])
-        self.assertEqual(len(res), 5)
-        (test_sql[1]).execute("drop Table {}".format(DBNameConstant.TABLE_LLC_DSID))
-        db_manager.destroy(test_sql)
-
-        with mock.patch(NAMESPACE + '._get_dsid_sql_data', return_value=[]):
-            InfoConfReader()._info_json = {'pid': "0"}
-            res = get_llc_capacity(param, test_sql[1])
-        self.assertEqual(len(res), 0)
-
     def test_get_llc_db_table(self):
         sample_config[StrConstant.LLC_PROF] = ""
         res = get_llc_db_table(sample_config)
@@ -186,8 +106,7 @@ class TestLLCTimelineTrain(unittest.TestCase):
                 mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value=sample_config), \
                 mock.patch(NAMESPACE + '.get_llc_db_table', return_value=''), \
                 mock.patch(NAMESPACE + '.pre_check_llc', return_value=[]), \
-                mock.patch(NAMESPACE + '.get_llc_mini_data', side_effect=OSError):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
+                mock.patch(NAMESPACE + '.get_llc_nomini_data', side_effect=OSError):
             res = get_llc_timeline(param)
         self.assertEqual(len(res), 0)
 
@@ -206,8 +125,7 @@ class TestLLCTimelineTrain(unittest.TestCase):
              mock.patch("common_func.config_mgr.ConfigMgr.read_sample_config", return_value=sample_config), \
              mock.patch(NAMESPACE + '.get_llc_db_table', return_value=''), \
              mock.patch(NAMESPACE + '.pre_check_llc', return_value=[]), \
-             mock.patch(NAMESPACE + '.get_llc_mini_data', return_value=[]):
-            ChipManager().chip_id = ChipModel.CHIP_V1_1_0
+             mock.patch(NAMESPACE + '.get_llc_nomini_data', return_value=[]):
             res = get_llc_timeline(param)
         self.assertEqual(res, [])
 
@@ -216,7 +134,6 @@ class TestLLCTimelineTrain(unittest.TestCase):
              mock.patch(NAMESPACE + '.get_llc_db_table', return_value=''), \
              mock.patch(NAMESPACE + '.pre_check_llc', return_value=[]), \
              mock.patch(NAMESPACE + '.get_llc_nomini_data', return_value=[]):
-            ChipManager().chip_id = ChipModel.CHIP_V2_1_0
             res = get_llc_timeline(param)
         self.assertEqual(res, [])
         db_manager.destroy(test_sql)

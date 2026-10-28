@@ -29,87 +29,6 @@ from common_func.msvp_common import is_number
 from common_func.msvp_constant import MsvpConstant
 from common_func.path_manager import PathManager
 from common_func.utils import Utils
-from viewer.memory_copy.memory_copy_viewer import MemoryCopyViewer
-
-
-def get_task_scheduler_data(db_path: str, table_name: str, configs: dict, params: dict) -> tuple:
-    """
-    get task scheduler data
-    """
-    conn, curs = DBManager.check_connect_db_path(db_path)
-    if not (conn and curs and DBManager.judge_table_exist(curs, table_name)):
-        report_task_data = []
-    else:
-        res = get_output_tasktype(curs, params)
-        report_task_data = add_ts_opname(res, params.get(StrConstant.PARAM_RESULT_DIR))
-
-    report_task_data = add_memcpy_data(params.get('project'), report_task_data)
-    DBManager.destroy_db_connect(conn, curs)
-    return configs.get(StrConstant.CONFIG_HEADERS), report_task_data, len(report_task_data)
-
-
-def add_memcpy_data(result_dir: str, data: list) -> list:
-    """
-    add ts memcpy data to task scheduler
-    :param result_dir: result dir
-    :param data: task scheduler data
-    :return: data
-    """
-    memcpy_viewer = MemoryCopyViewer(result_dir)
-    memcpy_data = memcpy_viewer.get_memory_copy_chip0_summary()
-
-    if memcpy_data:
-        data.extend(memcpy_data)
-        data = _update_time_ratio(data)
-
-    return data
-
-
-def _update_time_ratio(data: list) -> list:
-    """
-    datum index: 0 total time ratio; 1 total time
-    """
-    update_data = []
-    sum_time = sum(datum[1] for datum in data)
-    for datum in data:
-        avg = 0
-        if not NumberConstant.is_zero(sum_time):
-            avg = datum[1] / sum_time * 100
-        update_datum = [avg]
-        update_datum.extend(datum[1:])
-        update_data.append(tuple(update_datum))
-
-    return update_data
-
-
-def _get_new_task(report_task_data: list, result_dir: str, curs_ge: any) -> list:
-    res = []
-    for task in report_task_data:
-        if len(task) > 13:  # search data length should be longer than 13
-            # task[11]:task id, task[12]:stream id, task[13]: batch id occupy position
-            op_name = get_opname(task, result_dir, curs_ge)
-            op_name = op_name if op_name else Constant.NA
-            task = list(task)
-            task.insert(12, op_name)
-            # Len of task is original 14, but 15 after insert opname. Index 14 is batch id.
-            task.pop(14)
-            res.append(tuple(task))
-    return res
-
-
-def add_ts_opname(report_task_data: list, result_dir: str) -> list:
-    """
-    add op name for task scheduler
-    """
-    conn_ge, curs_ge = DBManager.check_connect_db(result_dir, DBNameConstant.DB_GE_INFO)
-    if not conn_ge or not curs_ge or not DBManager.judge_table_exist(curs_ge, DBNameConstant.TABLE_GE_TASK):
-        DBManager.destroy_db_connect(conn_ge, curs_ge)
-        conn_ge, curs_ge = DBManager.check_connect_db(result_dir, DBNameConstant.DB_RTS_TRACK)
-    if not conn_ge or not curs_ge:
-        logging.warning('Can not get op_name, maybe framework data or task_track data not collected.')
-    new_task_list = _get_new_task(report_task_data, result_dir, curs_ge)
-    DBManager.destroy_db_connect(conn_ge, curs_ge)
-    return new_task_list
 
 
 def _get_task_based_core_data(params: dict, curs: any, result_dir: str) -> tuple:
@@ -139,22 +58,6 @@ def get_task_based_core_data(result_dir: str, db_name: str, params: dict) -> tup
     return data[0], data[1:], count
 
 
-def get_output_tasktype(cursor: any, param: dict) -> list:
-    """
-    get task scheduler data
-    """
-    exist = DBManager.judge_table_exist(cursor, "ReportTask")
-    if not exist:
-        return []
-    sql = (
-        "select ROUND(TimeRatio, {0}),ROUND(Time, {0}),Count,ROUND(Avg, {0}),ROUND(Min, {0}),ROUND(Max, {0}),"
-        "ROUND(Waiting, {0}),ROUND(Running, {0}),ROUND(Pending, {0}), Type,API,task_id,stream_id,"
-        "batch_id from ReportTask where device_id=?".format(NumberConstant.ROUND_THREE_DECIMAL)
-    )
-    report_task_data = DBManager.fetch_all_data(cursor, sql, (param.get(StrConstant.PARAM_DEVICE_ID),))
-    return report_task_data
-
-
 def get_metric_header(cursor: any, table_name: str) -> list:
     """
     calculate metric name
@@ -170,13 +73,6 @@ def get_metric_header(cursor: any, table_name: str) -> list:
         headers = headers + metrics[:-3]  # task id pos 0， stream id pos 1
 
     return headers
-
-
-def get_output_event_counter(cursor: any, result_dir: str) -> list:
-    """
-    get ai core event count data
-    """
-    return _get_output_event_counter(cursor, result_dir, DBNameConstant.TABLE_METRIC_SUMMARY)
 
 
 def _get_event_counter_metric_res(cursor: any, result_dir: str, table_name: str) -> list:

@@ -23,7 +23,6 @@
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
-using ApiData = std::vector<std::shared_ptr<Event>>;
 using HostTaskData = std::vector<
         std::tuple<
             uint32_t,

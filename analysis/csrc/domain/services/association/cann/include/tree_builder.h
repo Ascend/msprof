@@ -90,11 +90,10 @@ class TreeBuilder
     // 此对象处理的threadId
     uint32_t threadId_ = 0;
 
-    // 建树时Model, Node, Hccl, Runtime 层节点记录
+    // 建树时 Model、Node、Hccl 层节点记录
     std::vector<std::shared_ptr<TreeNode>> modelLevelNodes_;
     std::vector<std::shared_ptr<TreeNode>> nodeLevelNodes_;
     std::vector<std::shared_ptr<TreeNode>> hcclLevelNodes_;
-    std::vector<std::shared_ptr<TreeNode>> runtimeLevelNodes_;
 
     bool hasRecordEventType_ = false;
     uint16_t recordEventLevel_ = 0;

@@ -24,9 +24,6 @@ namespace Domain
 {
 using namespace Analysis::Domain::Environment;
 
-// 创建 KfcTurnData 的函数类型
-using CreateKfcTurnDataFunc = std::function<KfcTurnData(const KfcCommTurn&, const SyscntConversionParams&)>;
-
 KfcTaskProcessor::KfcTaskProcessor(const std::string& profPath) : DataProcessor(profPath) {}
 
 bool KfcTaskProcessor::Process(DataInventory& dataInventory)

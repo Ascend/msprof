@@ -64,17 +64,6 @@ class SysIOAssemblerUTest : public testing::Test
     DataInventory dataInventory_;
 };
 
-static std::string ReadTraceContent()
-{
-    auto files = File::GetOriginData(RESULT_PATH, {MSPROF_JSON_FILE}, {});
-    EXPECT_EQ(1ul, files.size());
-    FileReader reader(files.back());
-    std::vector<std::string> res;
-    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    EXPECT_FALSE(res.empty());
-    return res.empty() ? "" : res.back();
-}
-
 static void InjectNicData(DataInventory &dataInventory, const std::vector<SysIOReceiveSendData> &traceData)
 {
     NicReceiveSendData nicData;
@@ -82,16 +71,6 @@ static void InjectNicData(DataInventory &dataInventory, const std::vector<SysIOR
     std::vector<NicReceiveSendData> nicDataVec{nicData};
     std::shared_ptr<std::vector<NicReceiveSendData>> dataS;
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<NicReceiveSendData>, nicDataVec);
-    dataInventory.Inject(dataS);
-}
-
-static void InjectRoceData(DataInventory &dataInventory, const std::vector<SysIOReceiveSendData> &traceData)
-{
-    RoceReceiveSendData roceData;
-    roceData.sysIOReceiveSendData = traceData;
-    std::vector<RoceReceiveSendData> roceDataVec{roceData};
-    std::shared_ptr<std::vector<RoceReceiveSendData>> dataS;
-    MAKE_SHARED_NO_OPERATION(dataS, std::vector<RoceReceiveSendData>, roceDataVec);
     dataInventory.Inject(dataS);
 }
 

@@ -93,11 +93,7 @@ class CalculateAiCoreData:
         """
         if field != "vector_fops":
             return algo
-        if ChipManager().is_chip_v1():
-            algo = algo.replace("r4b_num", "32.0")
-            algo = algo.replace("r4e_num", "64.0")
-            algo = algo.replace("r4f_num", "32.0")
-        elif ChipManager().is_chip_v3():
+        if ChipManager().is_chip_v3():
             algo = algo.replace("r4b_num", "64.0")
             algo = algo.replace("r4e_num", "16.0")
             algo = algo.replace("r4f_num", "16.0")

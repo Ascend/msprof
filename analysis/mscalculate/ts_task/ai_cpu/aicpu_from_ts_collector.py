@@ -20,7 +20,6 @@ from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.iter_recorder import IterRecorder
 from common_func.ms_constant.number_constant import NumberConstant
-from common_func.platform.chip_manager import ChipManager
 from msmodel.ai_cpu.ai_cpu_model import AiCpuModel
 
 
@@ -46,12 +45,8 @@ class AICpuFromTsCollector:
         """
         stream_id, task_id, start, end, task_type = aicpu_feature
         if task_type == self.AI_CPU_TYPE:
-            start_ms = InfoConfReader().time_from_syscnt(start)
-            end_ms = InfoConfReader().time_from_syscnt(end)
-            if not ChipManager().is_chip_v1():
-                start_ms = InfoConfReader().time_from_syscnt(start) / NumberConstant.MS_TO_NS
-                end_ms = InfoConfReader().time_from_syscnt(end) / NumberConstant.MS_TO_NS
-
+            start_ms = InfoConfReader().time_from_syscnt(start) / NumberConstant.MS_TO_NS
+            end_ms = InfoConfReader().time_from_syscnt(end) / NumberConstant.MS_TO_NS
             self.aicpu_list.append([int(stream_id), int(task_id), start_ms, end_ms])
 
     def save_aicpu(self: any) -> None:

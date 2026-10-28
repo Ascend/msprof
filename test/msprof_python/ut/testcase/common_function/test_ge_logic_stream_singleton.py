@@ -26,7 +26,6 @@ from common_func.ge_logic_stream_singleton import GeLogicStreamSingleton
 
 NAMESPACE = 'common_func.ge_logic_stream_singleton'
 PROJECT_PATH = "/PROF_TEST"
-GE_LOGIC_STREAM_DB_PATH = "PROF_TEST/host/GeLogicStreamInfo.db"
 
 
 class TestGeLogicStreamSingleton(unittest.TestCase):

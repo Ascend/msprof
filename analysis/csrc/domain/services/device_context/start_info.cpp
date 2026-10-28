@@ -31,10 +31,6 @@ namespace nlohmann
 template <>
 struct adl_serializer<DeviceStartInfo>
 {
-    static void to_json(json& jsonData, const DeviceStartInfo& infoData)
-    {
-        jsonData = json{{"clockMonotonicRaw", infoData.clockMonotonicRaw}};
-    }
     static void from_json(const json& jsonData, DeviceStartInfo& infoData)
     {
         uint32_t fromJsonResult = static_cast<uint32_t>(ANALYSIS_OK);

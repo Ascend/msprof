@@ -25,7 +25,6 @@ namespace Domain
 {
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
-constexpr double TMP_UINT = NANO_SECOND / (BYTE_SIZE * BYTE_SIZE);
 
 QosProcessor::QosProcessor(const std::string &profPath) : DataProcessor(profPath) {}
 

@@ -29,7 +29,6 @@ NAMESPACE = "msparser.parallel.hccl_operator_parser"
 
 
 class TestHCCLOperatorParser(unittest.TestCase):
-    FILE_LIST_1 = {1: ["test"]}
     FILE_LIST_2 = {DataTag.PARALLEL_STRATEGY: ["test"]}
     DIR_PATH = os.path.join(os.path.dirname(__file__), 'DT_HCCLOperatorParser')
     SAMPLE_CONFIG = {"result_dir": DIR_PATH}

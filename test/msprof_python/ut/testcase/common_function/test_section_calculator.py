@@ -14,7 +14,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-import types
 import unittest
 
 from common_func.section_calculator import SectionCalculator

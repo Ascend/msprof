@@ -19,8 +19,6 @@ from common_func.db_name_constant import DBNameConstant
 from model.test_dir_cr_base_model import TestDirCRBaseModel
 from msmodel.task_time.runtime_task_time_model import RuntimeTaskTimeModel
 
-NAMESPACE = 'msmodel.stars.acsq_task_model'
-
 
 class TestRuntimeTaskTimeModel(TestDirCRBaseModel):
     def test_get_runtime_task_data_within_time_range_by_different_time_staggered_situation(self):

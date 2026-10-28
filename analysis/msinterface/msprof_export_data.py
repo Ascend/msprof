@@ -69,8 +69,6 @@ from viewer.get_trace_timeline import get_hccs_timeline
 from viewer.get_trace_timeline import get_network_timeline
 from viewer.get_trace_timeline import get_pcie_timeline
 from viewer.hardware_info_report import get_ddr_data
-from viewer.hardware_info_report import get_llc_bandwidth
-from viewer.hardware_info_report import llc_capacity_data
 from viewer.hardware_info_view import get_llc_train_summary
 from viewer.hccl_op_report import ReportHcclStatisticData
 from viewer.interconnection_view import InterConnectionView
@@ -83,7 +81,6 @@ from viewer.peripheral_report import get_peripheral_dvpp_data
 from viewer.peripheral_report import get_peripheral_nic_data
 from viewer.pipeline_overlap_viewer import PipelineOverlapViewer
 from viewer.qos_viewer import StarsQosViewer
-from viewer.runtime_report import get_task_scheduler_data
 from viewer.soc_pmu_viewer import SocPmuViewer
 from viewer.stars.acc_pmu_viewer import AccPmuViewer
 from viewer.stars.block_detail_viewer import BlockDetailViewer
@@ -122,11 +119,6 @@ class MsProfExportDataUtils:
         """
         if params.get(StrConstant.PARAM_EXPORT_TYPE) == MsProfCommonConstant.TIMELINE:
             return MsProfExportDataUtils._get_task_timeline(configs, params)
-        if ChipManager().is_chip_v1():
-            db_path = PathManager.get_db_path(
-                params.get(StrConstant.PARAM_RESULT_DIR), configs.get(StrConstant.CONFIG_DB)
-            )
-            return get_task_scheduler_data(db_path, configs.get(StrConstant.CONFIG_TABLE), configs, params)
         message = {
             'host_id': MsProfCommonConstant.DEFAULT_IP,
             'device_id': params.get(StrConstant.PARAM_DEVICE_ID),
@@ -372,27 +364,6 @@ class MsProfExportDataUtils:
         return hccs_view.get_hccs_data(params.get(StrConstant.PARAM_DEVICE_ID))
 
     @staticmethod
-    def __get_mini_llc_data(sample_config: dict, params: dict) -> any:
-        """
-        get mini llc data, contains bandwidth and capacity
-        """
-        if sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_BAND_ITEM:
-            return get_llc_bandwidth(params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_DEVICE_ID))
-        if not sample_config.get(StrConstant.LLC_PROF) == StrConstant.LLC_CAPACITY_ITEM:
-            return MsvpConstant.MSVP_EMPTY_DATA
-        if not (
-            params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_AICPU
-            or params.get(StrConstant.DATA_TYPE) == StrConstant.LLC_CTRLCPU
-        ):
-            return MsvpConstant.MSVP_EMPTY_DATA
-        types = StrConstant.AICPU
-        if params.get(StrConstant.DATA_TYPE) != StrConstant.LLC_AICPU:
-            types = StrConstant.CTRL_CPU
-        return llc_capacity_data(
-            params.get(StrConstant.PARAM_RESULT_DIR), params.get(StrConstant.PARAM_DEVICE_ID), types
-        )
-
-    @staticmethod
     def __get_non_mini_llc_data(sample_config: dict, params: dict) -> any:
         """
         get non mini llc data, contains read and write
@@ -424,8 +395,6 @@ class MsProfExportDataUtils:
             return get_llc_timeline(params)
         sample_config = ConfigMgr.read_sample_config(params.get(StrConstant.PARAM_RESULT_DIR))
         if sample_config:
-            if ChipManager().is_chip_v1():
-                return MsProfExportDataUtils.__get_mini_llc_data(sample_config, params)
             return MsProfExportDataUtils.__get_non_mini_llc_data(sample_config, params)
         return (
             [],

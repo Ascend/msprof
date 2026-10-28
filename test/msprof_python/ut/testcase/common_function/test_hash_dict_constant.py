@@ -18,8 +18,6 @@ from unittest import mock
 
 from common_func.hash_dict_constant import HashDictData
 
-NAMESPACE = 'common_func.file_manager'
-
 
 class TestFileManager(unittest.TestCase):
 

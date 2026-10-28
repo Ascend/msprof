@@ -19,16 +19,12 @@
 
 #include <map>
 
-#include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
-#include "analysis/csrc/domain/services/parser/host/cann/type_data.h"
 #include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
 
 namespace Analysis
 {
 namespace Domain
 {
-using HashData = Analysis::Domain::Host::Cann::HashData;
-using TypeData = Analysis::Domain::Host::Cann::TypeData;
 using namespace Analysis::Utils;
 using HostTaskFormat = std::vector<std::tuple<uint32_t, uint64_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
 const std::string HOST_TASK_TABLE = "HostTask";
@@ -146,7 +142,6 @@ MemcpyInfoData MemcpyInfoDumper::GenerateData(const MemcpyInfos &memcpyInfos)
     MEMCPY_ASYNC_FORMAT memcpyRecordMap;  // 存储时间戳与memcpy_info数据的映射
     GenerateMemcpyRecordMap(memcpyInfos, memcpyRecordMap);
     std::vector<MemcpyAsyncTask> MemcpyAsyncTasks = GetMemcpyAsyncTasks();
-    std::string connectionId;
     for (auto &task : MemcpyAsyncTasks)
     {
         auto tmpKey = std::make_pair(task.threadId, task.timestamp);

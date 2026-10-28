@@ -44,10 +44,6 @@ using TaskMemcpyDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint64_t>;
 using BlockNumDataFormat = std::tuple<uint64_t, uint32_t, uint32_t, uint32_t>;
 // stream_id timestamp task_id flip_num
 using TaskFlipDataFormat = std::tuple<uint32_t, double, uint32_t, uint16_t>;
-const std::vector<TaskTypeDataFormat> TASK_TYPE_DATA{};
-const std::vector<StepTraceDataFormat> STEP_TRACE_DATA{};
-const std::vector<TaskMemcpyDataFormat> TS_MEMCPY_DATA{};
-const std::vector<BlockNumDataFormat> BLOCK_NUM_DATA{};
 const std::string DEVICE_PATH = "./device";
 const std::string STEP_TRACE_DB_PATH = File::PathJoin({DEVICE_PATH, "sqlite", "step_trace.db"});
 const int BLOCK_NUM_SIZE = 15;

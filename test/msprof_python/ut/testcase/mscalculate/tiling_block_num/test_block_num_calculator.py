@@ -26,10 +26,7 @@ from mscalculate.tiling_block_num.block_num_calculator import BlockNumCalculator
 from msconfig.config_manager import ConfigManager
 from msmodel.ge.ge_info_model import GeInfoViewModel
 from sqlite.db_manager import DBOpen
-from common_func.info_conf_reader import InfoConfReader
 from constant.info_json_construct import InfoJson
-
-NAMESPACE = 'mscalculate.tiling_block_num.block_num_calculator'
 
 
 class TestKfcCalculator(unittest.TestCase):

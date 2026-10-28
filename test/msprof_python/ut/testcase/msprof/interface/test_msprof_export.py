@@ -21,11 +21,10 @@ import tempfile
 import unittest
 from argparse import Namespace
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 
-from common_func.common import print_info, warn, error
+from common_func.common import error
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_slice_helper import FileSliceHelper
@@ -37,7 +36,6 @@ from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
 from msinterface.msprof_export import ExportCommand
 from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
-from profiling_bean.db_dto.step_trace_dto import StepTraceDto
 from profiling_bean.prof_enum.export_data_type import ExportDataType
 from sqlite.db_manager import DBManager
 

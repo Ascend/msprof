@@ -40,16 +40,14 @@ std::unordered_map<AicMetricsEventsType, Creator> MetricCalculatorFactory::aicEv
      [](ChipId chipId) { return MAKE_UNIQUE_PTR<ArithMetricCalculator>(chipId); }},
     {AicMetricsEventsType::AIC_PIPE_UTILIZATION,
      [](ChipId chipId) { return MAKE_UNIQUE_PTR<PipeUtCalculator>(chipId); }},
-    {AicMetricsEventsType::AIC_PIPE_UTILIZATION_EXCT,
-     [](ChipId chipId) { return MAKE_UNIQUE_PTR<PipeUtExtCalculator>(chipId); }},
+    {AicMetricsEventsType::AIC_PIPE_UTILIZATION_EXCT, [](ChipId) { return MAKE_UNIQUE_PTR<PipeUtExtCalculator>(); }},
     {AicMetricsEventsType::AIC_MEMORY, [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryCalculator>(chipId); }},
     {AicMetricsEventsType::AIC_MEMORY_L0, [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryL0Calculator>(chipId); }},
     {AicMetricsEventsType::AIC_RESOURCE_CONFLICT_RATIO,
      [](ChipId chipId) { return MAKE_UNIQUE_PTR<ResourceConflictCalculator>(chipId); }},
     {AicMetricsEventsType::AIC_MEMORY_UB, [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryUBCalculator>(chipId); }},
     {AicMetricsEventsType::AIC_L2_CACHE, [](ChipId chipId) { return MAKE_UNIQUE_PTR<L2CacheCalculator>(chipId); }},
-    {AicMetricsEventsType::AIC_MEMORY_ACCESS,
-     [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryAccessCalculator>(chipId); }},
+    {AicMetricsEventsType::AIC_MEMORY_ACCESS, [](ChipId) { return MAKE_UNIQUE_PTR<MemoryAccessCalculator>(); }},
 };
 
 std::unordered_map<AivMetricsEventsType, Creator> MetricCalculatorFactory::aivEvent{
@@ -63,8 +61,7 @@ std::unordered_map<AivMetricsEventsType, Creator> MetricCalculatorFactory::aivEv
      [](ChipId chipId) { return MAKE_UNIQUE_PTR<ResourceConflictCalculator>(chipId); }},
     {AivMetricsEventsType::AIV_MEMORY_UB, [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryUBCalculator>(chipId); }},
     {AivMetricsEventsType::AIV_L2_CACHE, [](ChipId chipId) { return MAKE_UNIQUE_PTR<L2CacheCalculator>(chipId); }},
-    {AivMetricsEventsType::AIV_MEMORY_ACCESS,
-     [](ChipId chipId) { return MAKE_UNIQUE_PTR<MemoryAccessCalculator>(chipId); }},
+    {AivMetricsEventsType::AIV_MEMORY_ACCESS, [](ChipId) { return MAKE_UNIQUE_PTR<MemoryAccessCalculator>(); }},
 };
 }  // namespace Domain
 }  // namespace Analysis

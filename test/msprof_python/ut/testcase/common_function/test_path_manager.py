@@ -20,7 +20,6 @@ from unittest import mock
 
 from common_func.path_manager import PathManager
 
-NAMESPACE = 'common_func.path_manager'
 PROF_DIR = "PROF_1_TEST"
 DEVICE_DIR = "device_0"
 HOST_DIR = "host"
