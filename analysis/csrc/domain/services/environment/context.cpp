@@ -286,27 +286,30 @@ bool Context::IsAllExport()
     return true;
 }
 
-nlohmann::json Context::GetInfoByDeviceId(uint16_t deviceId, const std::string &profPath)
+const nlohmann::json &Context::GetInfoByDeviceId(uint16_t deviceId, const std::string &profPath)
 {
-    nlohmann::json emptyJson;
+    // 静态空对象作为未命中时的兜底，保证返回的引用始终有效。
+    static const nlohmann::json emptyJson;
     auto profInfo = profPath.empty() ? context_.begin() : context_.find(profPath);
     if (profInfo == context_.end())
     {
         ERROR("Can't find PROF file. input path %.", profPath);
         return emptyJson;
     }
-    auto deviceInfo = profInfo->second;
+    const auto &deviceInfo = profInfo->second;
     if (deviceInfo.begin() == deviceInfo.end())
     {
         ERROR("Can't find host or device file. input path %.", profPath);
         return emptyJson;
     }
     // 若不设置deviceId(使用默认id),则直接返回第一条info
-    if (deviceId == DEFAULT_DEVICE_ID || deviceInfo.find(deviceId) == deviceInfo.end())
+    if (deviceId == DEFAULT_DEVICE_ID)
     {
         return deviceInfo.begin()->second;
     }
-    return deviceInfo[deviceId];
+    // 用 find 而不是 operator[]，避免查询时向 context_ 插入空节点污染数据
+    auto deviceIt = deviceInfo.find(deviceId);
+    return deviceIt == deviceInfo.end() ? deviceInfo.begin()->second : deviceIt->second;
 }
 
 uint16_t Context::GetPlatformVersion(uint16_t deviceId, const std::string &profPath)
@@ -327,31 +330,33 @@ uint16_t Context::GetPlatformVersion(uint16_t deviceId, const std::string &profP
 
 bool Context::GetProfTimeRecordInfo(Utils::ProfTimeRecord &record, const std::string &profPath, uint16_t deviceId)
 {
-    auto info = GetInfoByDeviceId(deviceId, profPath);
-    if (info.empty())
+    // 用指针表达 fallback 的重选择：GetInfoByDeviceId 返回引用后无法重新绑定
+    const nlohmann::json *info = &GetInfoByDeviceId(deviceId, profPath);
+    if (info->empty())
     {
         WARN("There is no host time log in %, it will use device time log!", profPath);
-        info = GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
-        if (info.empty())
+        info = &GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
+        if (info->empty())
         {
             ERROR("No device time log in %, device id is %.", profPath, deviceId);
             return false;
         }
     }
+    const nlohmann::json &deviceInfo = *info;
     uint64_t startTimeUs = UINT64_MAX;
-    if (StrToU64(startTimeUs, info.at("startCollectionTimeBegin")) != ANALYSIS_OK)
+    if (StrToU64(startTimeUs, deviceInfo.at("startCollectionTimeBegin")) != ANALYSIS_OK)
     {
         ERROR("StartTime to uint64_t failed. Prof path is %, device id is %.", profPath, deviceId);
         return false;
     }
     uint64_t endTimeUs = DEFAULT_DURATION_TIME_US + startTimeUs;
-    if (StrToU64(endTimeUs, info.value("endCollectionTimeEnd", std::to_string(endTimeUs))) != ANALYSIS_OK)
+    if (StrToU64(endTimeUs, deviceInfo.value("endCollectionTimeEnd", std::to_string(endTimeUs))) != ANALYSIS_OK)
     {
         ERROR("EndTime to uint64_t failed. Prof path is %, device id is %.", profPath, deviceId);
         return false;
     }
     uint64_t baseTimeNs = UINT64_MAX;
-    if (StrToU64(baseTimeNs, info.at("startClockMonotonicRaw")) != ANALYSIS_OK)
+    if (StrToU64(baseTimeNs, deviceInfo.at("startClockMonotonicRaw")) != ANALYSIS_OK)
     {
         ERROR("BaseTime to uint64_t failed. Prof path is %, device id is %.", profPath, deviceId);
         return false;
@@ -428,7 +433,7 @@ std::string Context::GetLLCProfiling(uint16_t deviceId, const std::string &profP
 bool Context::GetSyscntConversionParams(Utils::SyscntConversionParams &params, uint16_t deviceId,
                                         const std::string &profPath)
 {
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     // host freq可用作host cnt计算，也可用于host diff计算
     if (info.empty())
     {
@@ -503,7 +508,7 @@ bool Context::GetPmuFreq(double &freq, uint16_t deviceId, const std::string &pro
         ERROR("Host do not have aic or aiv frequency!");
         return false;
     }
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     if (info.empty())
     {
         ERROR("GetPmuFreq device info is empty, input path %, deviceId %", profPath, deviceId);
@@ -520,7 +525,7 @@ bool Context::GetPmuFreq(double &freq, uint16_t deviceId, const std::string &pro
 
 bool Context::GetMetricMode(std::string &metricMode, const std::string &profPath)
 {
-    auto info = GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
+    const auto &info = GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
     if (info.empty())
     {
         ERROR("GetMetricMode device info is empty.");
@@ -537,7 +542,7 @@ bool Context::GetClockMonotonicRaw(uint64_t &monotonicRaw, bool isHost, uint16_t
         ERROR("GetClockMonotonicRaw host do not have device monotonic!");
         return false;
     }
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     if (info.empty())
     {
         ERROR("GetClockMonotonicRaw device info is empty.");
@@ -611,7 +616,7 @@ std::vector<std::string> Context::GetQosEvents(uint16_t deviceId, const std::str
         ERROR("Host do not have qosEvents!");
         return {};
     }
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     if (info.empty())
     {
         ERROR("GetQosEvents device info is empty.");
@@ -647,6 +652,12 @@ bool Context::IsChipV1(uint16_t platformVersion)
 
 bool Context::IsChipV4(uint16_t platformVersion) { return platformVersion == static_cast<int>(Chip::CHIP_V4_1_0); }
 
+bool Context::IsMixContextIdZeroChip(uint16_t platformVersion)
+{
+    // 只有这几类芯片的 mix 算子需要把 context_id 记为 0，其余芯片（含 V6）统一填 UINT32_MAX。
+    return IsChipV1(platformVersion) || IsChipV4(platformVersion);
+}
+
 bool Context::IsChipV6(uint16_t platformVersion)
 {
     auto chipV6_1_0 = static_cast<uint16_t>(Chip::CHIP_V6_1_0);
@@ -663,7 +674,7 @@ uint16_t Context::GetAiCoreNum(uint16_t deviceId, const std::string &profPath)
         ERROR("Host do not have ai core num!");
         return 0;
     }
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     if (info.empty())
     {
         ERROR("GetAiCoreNum device info is empty, input path %, deviceId %", profPath, deviceId);
@@ -674,7 +685,7 @@ uint16_t Context::GetAiCoreNum(uint16_t deviceId, const std::string &profPath)
 
 uint64_t Context::GetTotalMem(uint16_t deviceId, const std::string &profPath)
 {
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     // 这里如果没有host目录 会去取到device的数据 本质上依赖外层路径校验
     if (info.empty())
     {
@@ -686,7 +697,7 @@ uint64_t Context::GetTotalMem(uint16_t deviceId, const std::string &profPath)
 
 uint64_t Context::GetNetCardTotalSpeed(uint16_t deviceId, const std::string &profPath)
 {
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     // 这里如果没有host目录 会去取到device的数据 本质上依赖外层路径校验
     if (info.empty())
     {
@@ -694,8 +705,8 @@ uint64_t Context::GetNetCardTotalSpeed(uint16_t deviceId, const std::string &pro
         return 0;
     }
     uint64_t totalSpeed = 0;
-    // 负数不计数
-    for (const auto netCard : info.at("netCard"))
+    // 负数不计数；用引用遍历，避免每个网卡都拷贝一份 json
+    for (const auto &netCard : info.at("netCard"))
     {
         auto speed = netCard.value("speed", 0);
         totalSpeed += (speed < 0) ? 0 : static_cast<uint64_t>(speed);
@@ -705,7 +716,7 @@ uint64_t Context::GetNetCardTotalSpeed(uint16_t deviceId, const std::string &pro
 
 bool Context::IsLevel0(const std::string &profPath)
 {
-    auto info = GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
+    const auto &info = GetInfoByDeviceId(DEFAULT_DEVICE_ID, profPath);
     // 这里如果没有host目录 会去取到device的数据 本质上依赖外层路径校验
     if (info.empty())
     {
@@ -723,7 +734,7 @@ std::vector<uint16_t> Context::GetCannVersion(uint16_t deviceId, const std::stri
     std::vector<uint16_t> emptyVersion;
     std::vector<uint16_t> retVersion;
     constexpr size_t CANN_VERSION_CNT = 2;  // 2: major version and minor version
-    auto info = GetInfoByDeviceId(deviceId, profPath);
+    const auto &info = GetInfoByDeviceId(deviceId, profPath);
     if (info.empty())
     {
         ERROR("GetCannVersion device info is empty, input path %, deviceId %", profPath, deviceId);

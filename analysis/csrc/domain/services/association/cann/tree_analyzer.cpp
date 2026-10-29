@@ -45,6 +45,13 @@ bool IsChipV6()
         Environment::Context::GetInstance().IsChipV6(Environment::Context::GetInstance().GetPlatformVersion());
     return isV6;
 }
+// mix 算子是否需要把 context_id 记为 0（仅 V4_1_0 与 V1_1_x），其余芯片一律填 DEFAULT_CONTEXT_ID。
+// 不缓存结果：GetPlatformVersion 已是引用查询（约 56ns），缓存会随平台版本固定而无法被单测覆盖。
+bool IsMixContextIdZeroChip()
+{
+    return Environment::Context::GetInstance().IsMixContextIdZeroChip(
+        Environment::Context::GetInstance().GetPlatformVersion());
+}
 inline uint16_t GetBatchId(uint32_t taskId) { return IsChipV6() ? 0 : static_cast<uint16_t>(taskId >> 16); }
 inline uint32_t GetTaskIdBit() { return IsChipV6() ? 0xFFFFFFFF : 0x0000FFFF; }
 const uint32_t VALID_CTXID_NUM = 2;
@@ -511,9 +518,10 @@ HostTasks TreeAnalyzer::GetComputeTaskDescs(const std::shared_ptr<TreeNode> &nod
     auto track = tracks.back()->compactPtr;
     auto taskTypeVal = track->data.runtimeTrack.taskType;
     std::string type = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
-    // 计算类算子不再依赖 context_id 附加信息：mix 类使用 0，其余使用默认上下文
-    uint32_t ctxId =
-        (type == KERNEL_MIX_AIC_TASK_TYPE || type == KERNEL_MIX_AIV_TASK_TYPE) && !IsChipV6() ? 0 : DEFAULT_CONTEXT_ID;
+    // 计算类算子不再依赖 context_id 附加信息：仅 V4_1_0/V1_1_x 的 mix 类使用 0，其余使用默认上下文
+    uint32_t ctxId = (type == KERNEL_MIX_AIC_TASK_TYPE || type == KERNEL_MIX_AIV_TASK_TYPE) && IsMixContextIdZeroChip()
+                         ? 0
+                         : DEFAULT_CONTEXT_ID;
     ComputeOpDescs ops = GetComputeOpDescs(nodeNode);
     // 特殊场景，刷新算子描述
     UpdateComputeDescForFftsSituation(ops, tracks.back());
@@ -589,9 +597,10 @@ std::shared_ptr<HostTask> TreeAnalyzer::GetOtherTaskDesc(const std::shared_ptr<T
     auto track = tracks.back()->compactPtr;
     auto taskTypeVal = track->data.runtimeTrack.taskType;
     auto taskType = TypeData::GetInstance().Get(MSPROF_REPORT_RUNTIME_LEVEL, taskTypeVal);
-    uint32_t contextId = (taskType == KERNEL_MIX_AIC_TASK_TYPE || taskType == KERNEL_MIX_AIV_TASK_TYPE) && !IsChipV6()
-                             ? 0
-                             : DEFAULT_CONTEXT_ID;
+    uint32_t contextId =
+        (taskType == KERNEL_MIX_AIC_TASK_TYPE || taskType == KERNEL_MIX_AIV_TASK_TYPE) && IsMixContextIdZeroChip()
+            ? 0
+            : DEFAULT_CONTEXT_ID;
     // 使用父节点的id作为connection_id，主要是为了将record_event的api与task_track关联起来
     std::shared_ptr<Operator> op;
     std::shared_ptr<OpDesc> desc;

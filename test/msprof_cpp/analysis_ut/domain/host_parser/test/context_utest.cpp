@@ -1274,3 +1274,17 @@ TEST_F(ContextUTest, TestGetCannVersionShouldReturnEmptyWhenCannVersionInfoIsInv
     EXPECT_EQ(cannVersion.size(), 0);
     MOCKER_CPP(&Context::CheckInfoValueIsValid).reset();
 }
+
+// mix 算子只有 chip 5/7/8/11（V4_1_0、V1_1_1、V1_1_2、V1_1_3）才把 context_id 记为 0，
+// 其余芯片（含 V6 15/16/19 与 V5 9）都填 UINT32_MAX。
+TEST_F(ContextUTest, TestIsMixContextIdZeroChipShouldOnlyAcceptChip5And7And8And11)
+{
+    for (uint16_t version = 0; version <= 20; ++version)
+    {
+        // 期望值按 chipId 字面量给出，避免和被测算子共用同一套谓词
+        const bool expectZero = (version == 5 || version == 7 || version == 8 || version == 11);
+        EXPECT_EQ(Context::IsMixContextIdZeroChip(version), expectZero)
+            << "unexpected result for platformVersion " << version;
+    }
+    EXPECT_FALSE(Context::IsMixContextIdZeroChip(UINT16_MAX));
+}

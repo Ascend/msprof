@@ -107,9 +107,13 @@ class Context : public Utils::Singleton<Context>
     static bool IsChipV1(uint16_t platformVersion);
     static bool IsChipV4(uint16_t platformVersion);
     static bool IsChipV6(uint16_t platformVersion);
+    // 校验 mix 算子的 context_id 是否记为 0 的芯片（V4_1_0 / V1_1_1 / V1_1_2 / V1_1_3，即 chipId 5/7/8/11）
+    static bool IsMixContextIdZeroChip(uint16_t platformVersion);
 
    private:
-    nlohmann::json GetInfoByDeviceId(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");
+    // 返回引用，避免每次查询都深拷贝整份 device json（实测单次约 38us）。
+    // 返回值为 const 引用：调用方不得修改，未命中时返回进程内静态空对象。
+    const nlohmann::json &GetInfoByDeviceId(uint16_t deviceId = DEFAULT_DEVICE_ID, const std::string &profPath = "");
     bool LoadJsonData(const std::string &profPath, const std::string &deviceDir, uint16_t deviceId);
     bool LoadLogData(const std::string &profPath, const std::string &deviceDir, uint16_t deviceId);
     bool CheckInfoValueIsValid(const std::string &profPath, uint16_t deviceId);

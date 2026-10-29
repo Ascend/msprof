@@ -20,6 +20,7 @@
 #include <vector>
 #include <queue>
 #include <iostream>
+#include <algorithm>
 #include "gtest/gtest.h"
 #include "analysis/csrc/domain/entities/tree/include/event.h"
 #include "analysis/csrc/domain/entities/tree/include/tree.h"
@@ -27,8 +28,10 @@
 #include "analysis/csrc/domain/services/parser/host/cann/cann_warehouse.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
 #include "analysis/csrc/domain/services/association/cann/include/tree_analyzer.h"
+#include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 #include "analysis/csrc/domain/services/parser/host/cann/hash_data.h"
+#include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Domain::Host::Cann;
 using namespace Analysis::Domain::Cann;
@@ -363,6 +366,34 @@ std::shared_ptr<TreeAnalyzer> GetAnalyzerForNoKernelEventsScenario()
     return ana;
 }
 
+// 构造 node 层直接挂 mix 算子的最小场景：Node 窗口覆盖 mix 的 taskTrack，
+// 使 IsComputeTask 命中 GetComputeTaskDescs，从而覆盖该函数内的 mix context_id 分支。
+std::shared_ptr<TreeAnalyzer> GetAnalyzerForNodeLevelMixScenario()
+{
+    // Model :  [1, 200]
+    // Node  :  [2, 99]
+    // Runtime:  tk(50) KERNEL_MIX_AIC
+    //           tk(60) KERNEL_MIX_AIV
+    std::unordered_map<std::string, std::vector<std::pair<uint64_t, uint64_t>>> apiEvents{
+        {"Model", {{1, 200}}},
+        {"Node", {{2, 99}}},
+    };
+    // 建树行为依赖 TypeData，先加载字典，避免用例执行顺序影响结果
+    TypeData::GetInstance().Load("./");
+    HashData::GetInstance().Load("./");
+
+    auto kernelEvents = GenKernelEventQueue(apiEvents, {{"Node", 22222}});
+    auto taskTrackEvents = GenTaskTrackEventQueue({{50, 108}, {60, 109}});
+
+    auto cannWarehouse = std::make_shared<CANNWarehouse>();
+    cannWarehouse->kernelEvents = kernelEvents;
+    cannWarehouse->taskTrackEvents = taskTrackEvents;
+
+    auto treeBuilder = std::make_shared<TreeBuilder>(cannWarehouse, 1);
+    auto treeNode = treeBuilder->Build();
+    return std::make_shared<TreeAnalyzer>(treeNode, 1);
+}
+
 // 特殊测试场景1：只有tk数据
 TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerForNoKernelEventsScenario)
 {
@@ -378,10 +409,10 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerForNoKernelEventsScenario)
     std::vector<uint64_t> expectHcclTaskTimes;
     // 110中多一条是ffts+大任务的标记
     std::vector<uint64_t> expectTaskTimes{50, 110, 220, 240, 300, 310, 330, 340, 350};
-    // DEFAULT_CONTEXT_ID分别代表一个tk,
-    std::vector<uint64_t> expectTaskCtxIds{0, 0, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+    // DEFAULT_CONTEXT_ID分别代表一个tk；测试环境未落到 mix 置 0 的芯片，mix 也使用默认上下文
+    std::vector<uint64_t> expectTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
-                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
+                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     // 先检查个数正确
     ASSERT_EQ(computeTasks.size(), expectComputeTaskTimes.size());
     ASSERT_EQ(hcclTasks.size(), expectHcclTaskTimes.size());
@@ -719,15 +750,18 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario2L0)
     auto geFusionOpInfos = ana->GetGeFusionOpInfos();
 
     std::vector<uint64_t> expectComputeTaskTimes{110, 120, 168, 1300, 1320};
-    std::vector<uint64_t> expectComputeTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, 0, 0};
+    // 测试环境未落到 mix 需要置 0 的芯片（chip 5/7/8/11），mix 与非 mix 都使用默认上下文
+    std::vector<uint64_t> expectComputeTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+                                                  DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     std::vector<uint64_t> expectHcclTaskTimes{220, 220, 220, 330, 330, 330};
     // 多出的一个220，一个330分别标识ffts+大任务
     std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 220, 220, 220, 220,
                                           330, 330, 330, 330, 1300, 1320};
-    // DEFAULT_CONTEXT_ID分别代表一个tk
-    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 1, 1, 2, 2, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+    // DEFAULT_CONTEXT_ID分别代表一个tk；测试环境未落到 mix 置 0 的芯片，mix 也使用默认上下文
+    std::vector<uint64_t> expectTaskCtxIds{0, 0, 1, 1, 2, 2, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
-                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
+                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     const uint64_t expectbigOPsNum = 2;
     std::vector<uint64_t> expectbigOPsCount{410, 610};
     std::vector<std::string> expectbigOPsAlgType{"PAIRWISE-NB-HD-RING", "STAR-NHR-PIPELINE-NB"};
@@ -764,6 +798,73 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario2L0)
 
     for (uint16_t i = 0; i < bigOPs.size(); i++) {
         EXPECT_EQ(bigOPs[i]->hcclBigOpDesc->opInfoDesc->data.hcclopInfo.count, expectbigOPsCount[i]);
+    }
+}
+
+// mix 算子只有 chip 5/7/8/11 才把 context_id 记为 0，其余芯片（含 V6）统一为 DEFAULT_CONTEXT_ID。
+// 两条分支各用一个场景覆盖：
+//   GetComputeTaskDescs —— node 层 taskTrack 为 mix（NodeLevelMix 场景，tk 50/60）
+//   GetOtherTaskDesc    —— 纯 rts_track 的 mix（Scenario2L0 场景，裸 tk 1300/1320）
+TEST_F(TreeAnalyzerUTest, TestMixComputeTaskContextIdShouldFollowChipFamily)
+{
+    struct MixCase
+    {
+        const char *branch;
+        std::shared_ptr<TreeAnalyzer> (*makeAnalyzer)();
+        std::vector<uint64_t> timestamps;
+    };
+    const std::vector<MixCase> cases{
+        {"GetComputeTaskDescs", &GetAnalyzerForNodeLevelMixScenario, {50, 60}},
+        {"GetOtherTaskDesc", &GetAnalyzerForScenario2L0, {1300, 1320}},
+    };
+
+    auto mixTaskContextIds = [](const MixCase &testCase, uint16_t platformVersion) -> std::vector<uint64_t>
+    {
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion)
+            .stubs()
+            .will(returnValue(platformVersion));
+        auto ana = testCase.makeAnalyzer();
+        ana->Analyze();
+        std::vector<uint64_t> found;
+        for (const auto &task : ana->GetComputeTasks())
+        {
+            if (task == nullptr)
+            {
+                continue;
+            }
+            if (std::find(testCase.timestamps.begin(), testCase.timestamps.end(), task->timeStamp) !=
+                testCase.timestamps.end())
+            {
+                found.emplace_back(task->contextId);
+            }
+        }
+        MOCKER_CPP(&Analysis::Domain::Environment::Context::GetPlatformVersion).reset();
+        return found;
+    };
+
+    for (const auto &testCase : cases)
+    {
+        // chip 5/7/8/11（V4_1_0 与 V1_1_x）：mix 任务 context_id 记为 0
+        for (uint16_t version : {5, 7, 8, 11})
+        {
+            const auto ids = mixTaskContextIds(testCase, version);
+            ASSERT_EQ(ids.size(), testCase.timestamps.size()) << testCase.branch << " chip " << version;
+            for (uint64_t id : ids)
+            {
+                EXPECT_EQ(id, 0UL) << testCase.branch << " chip " << version << " should use context id 0";
+            }
+        }
+        // 其余芯片（V5_1_0 与 V6 系列）：保持默认上下文
+        for (uint16_t version : {9, 15, 16, 19})
+        {
+            const auto ids = mixTaskContextIds(testCase, version);
+            ASSERT_EQ(ids.size(), testCase.timestamps.size()) << testCase.branch << " chip " << version;
+            for (uint64_t id : ids)
+            {
+                EXPECT_EQ(id, static_cast<uint64_t>(DEFAULT_CONTEXT_ID))
+                    << testCase.branch << " chip " << version << " should keep DEFAULT_CONTEXT_ID";
+            }
+        }
     }
 }
 
@@ -849,17 +950,20 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerWhenScenario2L2)
     auto geFusionOpInfos = ana->GetGeFusionOpInfos();
 
     std::vector<uint64_t> expectComputeTaskTimes{110, 120, 168, 1300, 1320};
-    std::vector<uint64_t> expectComputeTaskCtxIds{0, 0, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
+    // 测试环境未落到 mix 需要置 0 的芯片（chip 5/7/8/11），mix 与非 mix 都使用默认上下文
+    std::vector<uint64_t> expectComputeTaskCtxIds{DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+                                                  DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     std::vector<uint64_t> expectHcclTaskTimes{220, 220, 220, 330, 330, 330};
     std::vector<uint64_t> expectHcclTaskCtxIds{0, 0, 1, 1, 2, 2};
     // 多出的一个220，一个330分别标识ffts+大任务
     std::vector<uint64_t> expectTaskTimes{50, 105, 110, 120, 165, 168, 220, 220, 220, 220, 330, 330, 330, 330,
                                           850, 1300, 1320};
-    // DEFAULT_CONTEXT_ID分别代表一个tk
-    std::vector<uint64_t> expectTaskCtxIds{0, 0, 0, 0, 1, 1, 2, 2,
+    // DEFAULT_CONTEXT_ID分别代表一个tk；测试环境未落到 mix 置 0 的芯片，mix 也使用默认上下文
+    std::vector<uint64_t> expectTaskCtxIds{0, 0, 1, 1, 2, 2,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
                                            DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
-                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
+                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID,
+                                           DEFAULT_CONTEXT_ID, DEFAULT_CONTEXT_ID};
     const uint64_t expectbigOPsNum = 2;
     std::vector<uint64_t> expectbigOPsCount{410, 610};
     std::vector<std::string> expectbigOPsAlgType{"PAIRWISE-NB-HD-RING", "STAR-NHR-PIPELINE-NB"};

@@ -345,11 +345,14 @@ class TaskGear(CANNGear):
     @classmethod
     def get_compute_context_id(cls: any, task_type: str) -> int:
         """
-        计算类算子的 context id：mix 类固定为 0，其余使用默认值；
-        不再依赖 context_id_info 附加信息（该数据仅 HCCL 层使用）。
+        计算类算子的 context id：仅 chip 5/7/8/11（V4_1_0 与 V1_1_x）的 mix 类固定为 0，
+        其余芯片（含 V6）使用默认值；不再依赖 context_id_info 附加信息（该数据仅 HCCL 层使用）。
         """
         mapped_type = cls.RTS_TASK_TYPE_MAP.get(task_type, task_type)
-        if mapped_type in [GeTaskType.MIX_AIC.name, GeTaskType.MIX_AIV.name] and not ChipManager().is_chip_v6():
+        if (
+            mapped_type in [GeTaskType.MIX_AIC.name, GeTaskType.MIX_AIV.name]
+            and ChipManager().is_mix_context_id_zero_chip()
+        ):
             return 0
         return cls.INVALID_CONTEXT_ID
 

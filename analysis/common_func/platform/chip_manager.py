@@ -155,6 +155,14 @@ class ChipManager:
         """
         return self.chip_id in (ChipModel.CHIP_V1_1_1, ChipModel.CHIP_V1_1_2, ChipModel.CHIP_V1_1_3)
 
+    def is_mix_context_id_zero_chip(self: any) -> bool:
+        """
+        check whether mix op records context_id as 0: chip 5/7/8/11 (V4_1_0 and V1_1_x only).
+        Other chips, V6 included, keep UINT32_MAX.
+        :return: True or False
+        """
+        return self.is_chip_v4() or self.is_chip_v1_1()
+
     def is_chip_v1_1_1(self: any) -> bool:
         """
         check the scene of chip.v1.1.1

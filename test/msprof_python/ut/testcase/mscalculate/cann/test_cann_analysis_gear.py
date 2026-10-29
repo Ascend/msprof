@@ -927,6 +927,17 @@ class TestTaskGear(TestCANNAnalysisGear):
         gear.add_kernel_task_l0([node_dto, TaskGear.NodeDesc()], add_dto, hccl_info, [4, -1], False)
         self.assertEqual(gear.task_info[0][7], "AI_VECTOR_CORE")
 
+    def test_compute_context_id_should_be_zero_only_for_mix_on_chip_5_7_8_11(self):
+        # mix 算子只有 chip 5/7/8/11 才用 0，其余芯片（含 V6）保持 INVALID_CONTEXT_ID
+        for use_zero, expected in ((True, 0), (False, TaskGear.INVALID_CONTEXT_ID)):
+            with mock.patch(NAMESPACE + '.ChipManager') as chip_manager:
+                chip_manager.return_value.is_mix_context_id_zero_chip.return_value = use_zero
+                for mix_type in ("KERNEL_MIX_AIC", "KERNEL_MIX_AIV"):
+                    self.assertEqual(TaskGear.get_compute_context_id(mix_type), expected)
+                # 非 mix 算子与芯片无关，始终使用默认上下文
+                self.assertEqual(TaskGear.get_compute_context_id("KERNEL_AICORE"),
+                                 TaskGear.INVALID_CONTEXT_ID)
+
 
 if __name__ == '__main__':
     unittest.main()
