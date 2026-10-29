@@ -189,6 +189,7 @@ class ConfigDataParsers:
             "FreqParser",
             "AicpuAddInfoParser",
             "KfcCalculator",
+            "TstrackParser",
             "CCUMissionParser",
             "CCUChannelParser",
             "ParsingUBData",

@@ -79,6 +79,6 @@ int StepTraceParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t 
 }
 
 REGISTER_PARSER_ITEM(TRACK_PARSER, PARSER_ITEM_STEP_TRACE, StepTraceParseItem);
-// REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_STEP_TRACE, StepTraceParseItem_V6);
+REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_STEP_TRACE, StepTraceParseItem_V6);
 }  // namespace Domain
 }  // namespace Analysis

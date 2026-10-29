@@ -150,6 +150,70 @@ TEST_F(TsTrackParserUtest, ShouldKeepFullTaskFlipStreamId)
     EXPECT_EQ(expectedStreamId, data->front().hd.taskId.streamId);
 }
 
+TEST_F(TsTrackParserUtest, ShouldDecodeShared16BitTrackLayoutsOnV6)
+{
+    // Build wire bytes independently of the C++ structs. Nonzero neighboring
+    // fields expose accidental taskId widening or incorrect field offsets.
+    std::vector<uint8_t> records(3 * 40, 0);
+    records[1] = PARSER_ITEM_TASK_FLIP;
+    records[8] = 100;
+    records[16] = 0x23;
+    records[17] = 0x81;
+    records[18] = 5;
+    records[20] = 0xA5;
+    records[21] = 0xA5;
+    records[22] = 0xFF;
+    records[23] = 0xFF;
+    records[24] = 0x34;
+    records[25] = 0x12;
+
+    records[41] = PARSER_ITEM_TS_MEMCPY;
+    records[48] = 101;
+    records[56] = 0x23;
+    records[57] = 0x81;
+    records[58] = 0xFF;
+    records[59] = 0xFF;
+    records[60] = 1;
+
+    records[81] = PARSER_ITEM_TS_TASK_TYPE;
+    records[88] = 102;
+    records[96] = 0x23;
+    records[97] = 0x81;
+    records[98] = 0xFF;
+    records[99] = 0xFF;
+    records[100] = 0x34;
+    records[101] = 0x12;
+    records[102] = 1;
+    ASSERT_TRUE(WriteBin(records, File::PathJoin({TS_TRACK_PATH, "data"}), "ts_track.data.0.slice_0"));
+
+    for (const auto chip : {CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0}) {
+        SCOPED_TRACE(chip);
+        dataInventory_.RemoveRestData({});
+        DeviceContext context;
+        context.deviceContextInfo.deviceFilePath = TS_TRACK_PATH;
+        context.deviceContextInfo.deviceInfo.chipID = chip;
+        TsTrackParser parser;
+        ASSERT_EQ(ANALYSIS_OK, parser.Run(dataInventory_, context));
+        auto data = dataInventory_.GetPtr<std::vector<HalTrackData>>();
+        ASSERT_NE(nullptr, data);
+        ASSERT_EQ(3ul, data->size());
+        for (size_t i = 0; i < data->size(); ++i) {
+            EXPECT_EQ(0xFFFFu, data->at(i).hd.taskId.taskId);
+            EXPECT_EQ(100u + i, data->at(i).hd.timestamp);
+        }
+        EXPECT_EQ(TS_TASK_FLIP, data->at(0).type);
+        EXPECT_EQ(0x8123u, data->at(0).hd.taskId.streamId);
+        EXPECT_EQ(5u, data->at(0).flip.flipNum);
+        EXPECT_EQ(TS_MEMCPY, data->at(1).type);
+        EXPECT_EQ(0x123u, data->at(1).hd.taskId.streamId);
+        EXPECT_EQ(1u, data->at(1).taskMemcpy.taskStatus);
+        EXPECT_EQ(TS_TASK_TYPE, data->at(2).type);
+        EXPECT_EQ(0x123u, data->at(2).hd.taskId.streamId);
+        EXPECT_EQ(0x1234u, data->at(2).taskType.taskType);
+        EXPECT_EQ(1u, data->at(2).taskType.taskStatus);
+    }
+}
+
 TEST_F(TsTrackParserUtest, ShouldReturnTaskFlipDataWhenMultiData)
 {
     std::vector<int> expectTimestamp{10, 20, 100, INVALID_TIMESTAMP};
@@ -189,16 +253,23 @@ TEST_F(TsTrackParserUtest, ShouldReturnStepTraceDataWhenParser)
     EXPECT_EQ(0x123u, data->front().hd.taskId.streamId);
 }
 
-TEST_F(TsTrackParserUtest, ShouldUseLegacyStepTraceParserForChipV6)
+TEST_F(TsTrackParserUtest, ShouldDecodeNativeStepTraceForChipV6)
 {
     TsTrackParser tsTrackParser;
     DeviceContext context;
     context.deviceContextInfo.deviceFilePath = TS_TRACK_PATH;
     context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
-    const uint16_t expectedTaskId = 0x5678;
-    const uint16_t expectedStreamId = 0x123;
-    std::vector<StepTrace> stepTrace{
-        CreateStepTrace(0x0A, expectedTaskId, 0x8123, 100, 100)};
+    const uint32_t expectedTaskId = 0x12345678;
+    const uint16_t expectedStreamId = 0x8123;
+    StepTraceV6 record{};
+    record.funcType = PARSER_ITEM_STEP_TRACE;
+    record.taskId = expectedTaskId;
+    record.streamId = expectedStreamId;
+    record.timestamp = 100;
+    record.indexId = 7;
+    record.modelId = 8;
+    record.tagId = 100;
+    std::vector<StepTraceV6> stepTrace{record};
     WriteBin(stepTrace, File::PathJoin({TS_TRACK_PATH, "data"}), "ts_track.data.0.slice_0");
 
     ASSERT_EQ(ANALYSIS_OK, tsTrackParser.Run(dataInventory_, context));
@@ -208,6 +279,9 @@ TEST_F(TsTrackParserUtest, ShouldUseLegacyStepTraceParserForChipV6)
     EXPECT_EQ(expectedTaskId, data->front().hd.taskId.taskId);
     EXPECT_EQ(expectedStreamId, data->front().hd.taskId.streamId);
     EXPECT_EQ(100, data->front().stepTrace.tagId);
+    EXPECT_EQ(100u, data->front().hd.timestamp);
+    EXPECT_EQ(7u, data->front().stepTrace.indexId);
+    EXPECT_EQ(8u, data->front().stepTrace.modelId);
 }
 
 TEST_F(TsTrackParserUtest, ShouldReturnParseErrorForUnsupportedTrackTag)
@@ -328,7 +402,7 @@ TEST_F(TsTrackParserUtest, ShouldReturnBlockNumDataWhenParser)
     }
 }
 
-TEST_F(TsTrackParserUtest, ShouldUseLegacyBlockNumParserForChipV6)
+TEST_F(TsTrackParserUtest, ShouldDecodeNativeBlockNumForChipV6)
 {
     TsTrackParser tsTrackParser;
     DeviceContext context;
@@ -343,8 +417,8 @@ TEST_F(TsTrackParserUtest, ShouldUseLegacyBlockNumParserForChipV6)
     auto data = dataInventory_.GetPtr<std::vector<HalTrackData>>();
     ASSERT_NE(nullptr, data);
     ASSERT_EQ(1ul, data->size());
-    EXPECT_EQ(0x123u, data->front().hd.taskId.streamId);
-    EXPECT_EQ(taskId, data->front().hd.taskId.taskId);
+    EXPECT_EQ(streamId, data->front().hd.taskId.streamId);
+    EXPECT_EQ(0x45678123u, data->front().hd.taskId.taskId);
 }
 
 TEST_F(TsTrackParserUtest, ShouldApplyStreamExpansionToBlockNum)

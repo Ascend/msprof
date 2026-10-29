@@ -169,6 +169,7 @@ V6_DEVICE_TAGS = frozenset(
         DataTag.SOC_PROFILER.name,
         DataTag.NPU_MEM.name,
         DataTag.NPU_MODULE_MEM.name,
+        DataTag.TS_TRACK.name,
     }
 )
 

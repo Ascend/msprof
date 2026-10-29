@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 
 #include "analysis/csrc/domain/entities/hal/include/stream_expand_spec.h"
+#include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_stream_expand_spec_data.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item/step_trace_parser_item.h"
@@ -83,10 +84,8 @@ uint32_t TsTrackParser::ParseData(DataInventory &dataInventory, const Infra::Con
     auto streamExpandSpec = dataInventory.GetPtr<StreamExpandSpec>();
     uint16_t expandStatus =
         streamExpandSpec != nullptr && streamExpandSpec->expandStatus ? streamExpandSpec->expandStatus : 0;
-    // ParserType parserType =
-    //     context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 ||
-    //     context.GetChipID() == CHIP_V6_2_0 ? TRACK_PARSER_V6 : TRACK_PARSER;
-    ParserType parserType = TRACK_PARSER;  // 后续放开上面注释，删除本行即可恢复对CHIP_V6的支持
+    const auto &deviceContext = static_cast<const DeviceContext &>(context);
+    const ParserType parserType = deviceContext.isChipV6() ? TRACK_PARSER_V6 : TRACK_PARSER;
     INFO("TsTrack structCount: %", structCount);
 
     halUniData_.clear();

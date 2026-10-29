@@ -149,6 +149,38 @@ protected:
     DataInventory dataInventory_;
 };
 
+TEST_F(TsTrackPersistenceUtest, ShouldPreserveV6StepTraceTaskIdInDatabase)
+{
+    auto data = dataInventory_.GetPtr<std::vector<HalTrackData>>();
+    ASSERT_NE(nullptr, data);
+    HalTrackData record{};
+    record.type = HalTrackType::STEP_TRACE;
+    record.hd.timestamp = 100;
+    record.hd.taskId.streamId = 0x8123;
+    record.hd.taskId.taskId = 0xFEDC5678u;
+    record.stepTrace.indexId = 7;
+    record.stepTrace.modelId = 8;
+    record.stepTrace.tagId = 100;
+    data->push_back(record);
+
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    context.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    TsTrackPersistence persistence;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(dataInventory_, context));
+
+    DBRunner runner(STEP_TRACE_DB_PATH);
+    std::vector<StepTraceDataFormat> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT * FROM StepTrace", rows));
+    ASSERT_EQ(1ul, rows.size());
+    EXPECT_EQ(7u, std::get<0>(rows.front()));
+    EXPECT_EQ(8u, std::get<1>(rows.front()));
+    EXPECT_EQ(100u, std::get<2>(rows.front()));
+    EXPECT_EQ(0x8123u, std::get<3>(rows.front()));
+    EXPECT_EQ(0xFEDC5678u, std::get<4>(rows.front()));
+    EXPECT_EQ(100u, std::get<5>(rows.front()));
+}
+
 TEST_F(TsTrackPersistenceUtest, ReturnSuccessWhenOnlyTaskType)
 {
     auto halTaskType = CreateHalTaskType();

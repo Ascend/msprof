@@ -52,6 +52,6 @@ int TaskMemcpyParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *h
 }
 
 REGISTER_PARSER_ITEM(TRACK_PARSER, PARSER_ITEM_TS_MEMCPY, TaskMemcpyParseItem);
-// REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_TS_MEMCPY, TaskMemcpyParseItem);
+REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_TS_MEMCPY, TaskMemcpyParseItem);
 }  // namespace Domain
 }  // namespace Analysis

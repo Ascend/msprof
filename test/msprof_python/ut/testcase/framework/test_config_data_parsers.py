@@ -31,7 +31,7 @@ from profiling_bean.prof_enum.chip_model import ChipModel
 
 
 class TestConfigDataParsers(unittest.TestCase):
-    def test_ccu_uses_existing_device_scene_gates(self):
+    def test_ccu_and_tstrack_use_existing_device_scene_gates(self):
         for enabled, all_export, version, task in (
                 (True, True, True, True), (False, True, True, True),
                 (True, False, True, True), (True, True, False, True),
@@ -46,7 +46,7 @@ class TestConfigDataParsers(unittest.TestCase):
                     mock.patch.object(ChipManager(), "is_chip_v4", return_value=False):
                 names = self._parser_names(ConfigDataParsers.get_parsers(
                     ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V6_1_0.value), task))
-                for name in ("CCUMissionParser", "CCUChannelParser"):
+                for name in ("CCUMissionParser", "CCUChannelParser", "TstrackParser"):
                     self.assertEqual(name in names, not (enabled and all_export and version and task))
                 self.assertEqual("AicpuAddInfoParser" in names,
                                  not (enabled and all_export and version and task))
@@ -170,12 +170,10 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser")
         self.assertTrue(ret)
 
-    def test_load_can_cpp_parse_or_calculate_device_data_should_return_false_for_tstrack_on_v6(self):
-        # V6 TS_TRACK 尚未完成 C++ 原生适配，落盘回退至 Python TstrackParser，
-        # 故 V6 上不应将 TstrackParser 划入 C++ 跳过列表，与 C++ 侧仅 V4 落盘对齐，避免两侧重复写库。
+    def test_load_can_cpp_parse_or_calculate_device_data_should_handle_tstrack_on_v61(self):
         for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
-                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"))
+                self.assertTrue(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"))
 
     def test_device_cpp_should_handle_npu_memory_parsers_only_on_supported_chips(self):
         for chip, expected in ((ChipModel.CHIP_V4_1_0, True),

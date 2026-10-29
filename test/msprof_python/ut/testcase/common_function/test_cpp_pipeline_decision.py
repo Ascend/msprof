@@ -168,6 +168,15 @@ class TestCppPipelineDecider(unittest.TestCase):
         self.assertTrue(result.can_run_in_cpp, result.issues)
         self.assertNotIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
 
+    def test_v610_device_tstrack_tag_is_supported(self):
+        path_facts = replace(
+            self.path_facts,
+            chip_model=ChipModel.CHIP_V6_1_0,
+            raw_tags=frozenset({DataTag.TS_TRACK.name}),
+        )
+        result = self.decide(facts=replace(self.facts, result_paths=(path_facts,)))
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+
     def test_collection_facts_are_accumulated(self):
         facts = replace(
             self.facts,

@@ -266,8 +266,6 @@ uint32_t StepTraceProcess::ProcessEntry(Infra::DataInventory& dataInventory, con
 
 REGISTER_PROCESS_SEQUENCE(StepTraceProcess, false, TsTrackParser);
 REGISTER_PROCESS_DEPENDENT_DATA(StepTraceProcess, std::vector<HalTrackData>);
-// V6 TS_TRACK 落盘回退至 Python 侧（C++ 未完成 V6 原生适配），此处仅 V4 落盘，避免与 Python 重复写库。
-REGISTER_PROCESS_SUPPORT_CHIP(StepTraceProcess, CHIP_V4_1_0);
-// REGISTER_PROCESS_SUPPORT_CHIP(StepTraceProcess, CHIP_ID_ALL);
+REGISTER_PROCESS_SUPPORT_CHIP(StepTraceProcess, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

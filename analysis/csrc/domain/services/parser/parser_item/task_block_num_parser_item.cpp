@@ -88,6 +88,6 @@ int BlockNumParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *
 }
 
 REGISTER_PARSER_ITEM(TRACK_PARSER, PARSER_ITEM_BLOCK_NUM, BlockNumParseItem);
-// REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_BLOCK_NUM, BlockNumParseItem_V6);
+REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_BLOCK_NUM, BlockNumParseItem_V6);
 }  // namespace Domain
 }  // namespace Analysis

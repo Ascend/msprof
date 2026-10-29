@@ -56,6 +56,6 @@ int TaskFlipParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *hal
 }
 
 REGISTER_PARSER_ITEM(TRACK_PARSER, PARSER_ITEM_TASK_FLIP, TaskFlipParseItem);
-// REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_TASK_FLIP, TaskFlipParseItem);
+REGISTER_PARSER_ITEM(TRACK_PARSER_V6, PARSER_ITEM_TASK_FLIP, TaskFlipParseItem);
 }  // namespace Domain
 }  // namespace Analysis
