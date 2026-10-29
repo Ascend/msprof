@@ -30,12 +30,11 @@ class DPUAssembler : public JsonAssembler
     DPUAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void GenerateMetaData(const std::vector<DPUData> &dpuData, uint32_t pid);
     void GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_t pid);
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
 };
 
 class DPUTrackTraceEvent : public DurationEvent

@@ -168,7 +168,7 @@ TEST_F(SioAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"pid\":2383960960,\"tid\":0,\"ts\":\"1724405892226699.529\",\"ph\":\"C\",\"args\":"
         "{\"\":24.3}},{\"name\":\"rsp_rx\",\"pid\":2383960960,\"tid\":0,\"ts\":"
         "\"1724405892226699.529\",\"ph\":\"C\",\"args\":{\"\":12.6}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(SioAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -179,6 +179,6 @@ TEST_F(SioAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<SioData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

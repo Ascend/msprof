@@ -100,8 +100,7 @@ std::vector<std::shared_ptr<TraceEvent>> OverlapAnalysisAssembler::GenerateOverl
     return overlapEvents;
 }
 
-uint8_t OverlapAnalysisAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream,
-                                               const std::string &profPath)
+uint8_t OverlapAnalysisAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto overlapData = dataInventory.GetPtr<std::vector<OverlapAnalysisData>>();
     if (!overlapData || overlapData->empty())
@@ -123,27 +122,20 @@ uint8_t OverlapAnalysisAssembler::AssembleData(DataInventory &dataInventory, Jso
         pidMap_[deviceId] = formatPid;
     }
 
-    std::vector<std::shared_ptr<TraceEvent>> metaEvents;
-    GenerateHWMetaData(pidMap_, layerInfo, metaEvents);
+    GenerateHWMetaData(pidMap_, layerInfo, events_);
     for (auto &deviceId : deviceIds)
     {
         auto oneDeviceMetaEvents = GenerateMetaData(deviceId);
-        metaEvents.insert(metaEvents.end(), oneDeviceMetaEvents.begin(), oneDeviceMetaEvents.end());
+        for (auto &event : oneDeviceMetaEvents)
+        {
+            events_.push_back(std::move(event));
+        }
     }
     auto overlapEvents = GenerateOverlapEvents(*overlapData);
-
+    for (auto &event : overlapEvents)
     {
-        TimeLogger logger("Dump overlap analysis events");
-        for (const auto &node : metaEvents)
-        {
-            node->DumpJson(ostream);
-        }
-        for (const auto &node : overlapEvents)
-        {
-            node->DumpJson(ostream);
-        }
+        events_.push_back(std::move(event));
     }
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

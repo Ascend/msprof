@@ -16,25 +16,29 @@
 #ifndef ANALYSIS_APPLICATION_LOW_POWER_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_LOW_POWER_ASSEMBLER_H
 
+#include <set>
 #include <unordered_map>
 #include <vector>
-#include <set>
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
 
-namespace Analysis {
-namespace Application {
-class LowPowerAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class LowPowerAssembler : public JsonAssembler
+{
+   public:
     LowPowerAssembler();
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
-    std::unordered_map<uint16_t, uint32_t> GenerateFreqTrace(std::vector<LowPowerData> &freqData,
-                                                             uint32_t sortIndex, const std::string &profPath);
-private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
+
+   private:
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
+    std::unordered_map<uint16_t, uint32_t> GenerateFreqTrace(std::vector<LowPowerData> &freqData, uint32_t sortIndex,
+                                                             const std::string &profPath);
+
+   private:
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_LOW_POWER_ASSEMBLER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_LOW_POWER_ASSEMBLER_H

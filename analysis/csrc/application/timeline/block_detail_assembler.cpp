@@ -49,8 +49,7 @@ BlockDetailAssembler::BlockDetailAssembler()
 {
 }
 
-uint8_t BlockDetailAssembler::AssembleData(DataInventory& dataInventory, JsonWriter& ostream,
-                                           const std::string& profPath)
+uint8_t BlockDetailAssembler::AssembleData(DataInventory& dataInventory, const std::string& profPath)
 {
     auto blockDetailData = dataInventory.GetPtr<std::vector<BlockDetailData>>();
     auto taskInfoData = dataInventory.GetPtr<std::vector<TaskInfoData>>();
@@ -79,25 +78,20 @@ uint8_t BlockDetailAssembler::AssembleData(DataInventory& dataInventory, JsonWri
         FormatTaskInfoData(*taskInfoData);
     }
     auto layerInfo = GetLayerInfo(PROCESS_BLOCK_DETAIL);
-    auto pidMap = GenerateBlockDetailTrace(*ascendTaskData, blockDetailDataMap, layerInfo.sortIndex, profPath, res_);
-    if (res_.empty())
+    auto pidMap = GenerateBlockDetailTrace(*ascendTaskData, blockDetailDataMap, layerInfo.sortIndex, profPath, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any block detail process data.");
         return ASSEMBLE_FAILED;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    for (const auto& node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    ostream << ",";
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     return ASSEMBLE_SUCCESS;
 }
 
 std::unordered_map<uint16_t, uint32_t> BlockDetailAssembler::GenerateBlockDetailTrace(
     std::vector<AscendTaskData>& ascendTaskData,
     std::unordered_map<uint32_t, std::vector<BlockDetailData>>& blockDetailDataMap, uint32_t sortIndex,
-    const std::string& profPath, std::vector<std::shared_ptr<TraceEvent>>& res)
+    const std::string& profPath, JsonEventSink& res)
 {
     std::unordered_map<uint16_t, uint32_t> pidMap;
     for (const auto& taskData : ascendTaskData)
@@ -173,7 +167,7 @@ void BlockDetailAssembler::FormatTaskInfoData(const std::vector<TaskInfoData>& t
 
 void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailData*>& datas, uint32_t pid,
                                             std::vector<PmuTimelineRow>& block_pmu_timeline_data,
-                                            const std::string& opName, std::vector<std::shared_ptr<TraceEvent>>& res)
+                                            const std::string& opName, JsonEventSink& res)
 {
     // 分离并排序 aic (core_type == 0) 和 aiv (core_type == 1)
     std::vector<const BlockDetailData*> aic_datas;
@@ -226,7 +220,7 @@ void BlockDetailAssembler::SetPmuResultList(const std::vector<const BlockDetailD
 }
 
 void BlockDetailAssembler::GenerateBlockPmuTimelineData(const std::vector<PmuTimelineRow>& block_pmu_timeline_data,
-                                                        std::vector<std::shared_ptr<TraceEvent>>& res)
+                                                        JsonEventSink& res)
 {
     for (const auto& data : block_pmu_timeline_data)
     {

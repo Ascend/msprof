@@ -129,7 +129,7 @@ class HcclAssembler : public JsonAssembler
     HcclAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void GenerateMetaDataEvent(std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layerInfo,
                                const std::string &profPath);
     void GenerateTMetaDataEvent(std::vector<HcclGroup> &group, int32_t &index, uint32_t formatPid);
@@ -175,7 +175,7 @@ class HcclAssembler : public JsonAssembler
                                     data.dstRank, data.streamId, data.taskId, data.contextId, data.modelId, data.size,
                                     data.durationEstimated, data.bandwidth, data.notifyId, transport, data.taskType,
                                     dataType, linkType);
-            res_.push_back(event);
+            events_.push_back(event);
         }
     }
 
@@ -187,7 +187,7 @@ class HcclAssembler : public JsonAssembler
         std::shared_ptr<FlowEvent> flow;
         MAKE_SHARED_RETURN_VOID(flow, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
                                 HOST_TO_DEVICE, connId, traceName, FLOW_END, FLOW_BP);
-        res_.push_back(flow);
+        events_.push_back(flow);
     }
 
     template <typename T>
@@ -216,13 +216,12 @@ class HcclAssembler : public JsonAssembler
                                     static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US,
                                     DivideByPowersOfTenWithPrecision(data.timestamp), data.opName, data.modelId,
                                     data.count, data.connectionId, dataType, data.algType, relay, retry, data.rankSize);
-            res_.push_back(event);
+            events_.push_back(event);
             GenerateConnectionTrace(data, formatPid, tid);
         }
     }
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
     std::unordered_map<uint16_t, std::unordered_map<std::string, std::vector<HcclGroup>>> groupIndex_;
 };
 }  // namespace Application

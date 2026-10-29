@@ -37,7 +37,7 @@ const std::vector<std::string> COUNTERS{"req_rx", "rsp_rx", "snp_rx", "dat_rx", 
 SioAssembler::SioAssembler() : JsonAssembler(PROCESS_SIO, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateSioTrace(std::vector<SioData> &sioData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                      std::vector<std::shared_ptr<TraceEvent>> &res, const std::string &profPath)
+                      JsonEventSink &res, const std::string &profPath)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -74,7 +74,7 @@ void GenerateSioTrace(std::vector<SioData> &sioData, const std::unordered_map<ui
     }
 }
 
-uint8_t SioAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t SioAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto sioData = dataInventory.GetPtr<std::vector<SioData>>();
     if (sioData == nullptr)
@@ -93,19 +93,13 @@ uint8_t SioAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         pidMap[deviceId] = formatPid;
     }
 
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateSioTrace(*sioData, pidMap, res_, profPath);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateSioTrace(*sioData, pidMap, events_, profPath);
+    if (events_.empty())
     {
         ERROR("Can't Generate any SIO process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

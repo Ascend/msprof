@@ -19,16 +19,20 @@
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 
-namespace Analysis {
-namespace Application {
-class HBMAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class HBMAssembler : public JsonAssembler
+{
+   public:
     HBMAssembler();
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
-private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
+
+   private:
+    uint8_t AssembleData(DataInventory& dataInventory, const std::string& profPath) override;
+
+   private:
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_HBM_ASSEMBLER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_HBM_ASSEMBLER_H

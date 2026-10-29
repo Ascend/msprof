@@ -84,17 +84,17 @@ void DPUAssembler::GenerateMetaData(const std::vector<DPUData> &dpuData, uint32_
         std::shared_ptr<MetaDataNameEvent> processName;
         MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_NAME,
                                 layer.component);
-        res_.push_back(processName);
+        events_.push_back(processName);
 
         std::shared_ptr<MetaDataLabelEvent> processLabel;
         MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_LABEL,
                                 layer.label + " " + std::to_string(devicePair.first));
-        res_.push_back(processLabel);
+        events_.push_back(processLabel);
 
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_INDEX,
                                 layer.sortIndex);
-        res_.push_back(processIndex);
+        events_.push_back(processIndex);
 
         for (const auto &streamId : devicePair.second)
         {
@@ -102,12 +102,12 @@ void DPUAssembler::GenerateMetaData(const std::vector<DPUData> &dpuData, uint32_
             std::shared_ptr<MetaDataNameEvent> threadName;
             MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, formatPid, streamId, META_DATA_THREAD_NAME,
                                     streamName);
-            res_.push_back(threadName);
+            events_.push_back(threadName);
 
             std::shared_ptr<MetaDataIndexEvent> threadIndex;
             MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, formatPid, streamId, META_DATA_THREAD_INDEX,
                                     streamId);
-            res_.push_back(threadIndex);
+            events_.push_back(threadIndex);
         }
     }
 }
@@ -127,7 +127,7 @@ void DPUAssembler::GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_
             std::shared_ptr<DPUTrackTraceEvent> event;
             MAKE_SHARED_RETURN_VOID(event, DPUTrackTraceEvent, formatPid, tid, dur, ts, data.opName, data.threadId,
                                     data.streamId, data.taskId, data.taskType);
-            res_.push_back(event);
+            events_.push_back(event);
         }
         else
         {
@@ -143,12 +143,12 @@ void DPUAssembler::GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_
                                     data.groupName, data.groupNameId, data.planeId, data.notifyId, data.rankSize,
                                     data.durationEstimated, data.localRank, data.remoteRank, data.transportType,
                                     data.dataSize, bandwidth, data.dataType, data.linkType, data.rdmaType);
-            res_.push_back(event);
+            events_.push_back(event);
         }
     }
 }
 
-uint8_t DPUAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t DPUAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     INFO("Start DPU Assembler");
     auto dpuData = dataInventory.GetPtr<std::vector<DPUData>>();
@@ -162,17 +162,12 @@ uint8_t DPUAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
     GenerateMetaData(*dpuData, pid);
     GenerateDPUTrace(*dpuData, pid);
 
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any DPU process data");
         return ASSEMBLE_FAILED;
     }
 
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    ostream << ",";
     INFO("End DPU Assembler");
     return ASSEMBLE_SUCCESS;
 }

@@ -209,7 +209,7 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
                 event, SimtTaskEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
                 data.batchId, data.contextId, data.connectionId, taskTypeName, gridDim, blockDim);
-            res_.push_back(event);
+            events_.push_back(event);
         }
         else
         {
@@ -218,7 +218,7 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
                 event, TaskTraceEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
                 data.batchId, data.contextId, data.connectionId, taskTypeName);
-            res_.push_back(event);
+            events_.push_back(event);
         }
         GenerateTaskConnectionTrace(data, formatPid, id);
     }
@@ -240,7 +240,7 @@ void AscendHardwareAssembler::GenerateKfcTrace(const std::vector<KfcTurnData> &k
                                 static_cast<double>(datum.duration) / Analysis::Common::NS_TO_US,
                                 DivideByPowersOfTenWithPrecision(datum.timestamp), traceName, datum.streamId,
                                 datum.taskId);
-        res_.push_back(event);
+        events_.push_back(event);
     }
 }
 
@@ -298,7 +298,7 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncTrace(DataInventory &dataInvent
                                 DivideByPowersOfTenWithPrecision(data.timestamp), data.hostType, data.modelId,
                                 data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
                                 data.deviceType, dataSize, bandwidth, memcpyDirection, showFlag);
-        res_.push_back(event);
+        events_.push_back(event);
         GenerateMemcpyAsyncConnectionTrace(data, formatPid);
     }
 }
@@ -316,7 +316,7 @@ void AscendHardwareAssembler::GenerateTaskConnectionTrace(const AscendTaskData &
         std::shared_ptr<FlowEvent> end;
         MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
                                 HOST_TO_DEVICE, connId, name, FLOW_END, FLOW_BP);
-        res_.push_back(end);
+        events_.push_back(end);
     }
 }
 
@@ -328,11 +328,10 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncConnectionTrace(const AscendTas
     std::shared_ptr<FlowEvent> end;
     MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
                             HOST_TO_DEVICE, connId, name, FLOW_END, FLOW_BP);
-    res_.push_back(end);
+    events_.push_back(end);
 }
 
-uint8_t AscendHardwareAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream,
-                                              const std::string &profPath)
+uint8_t AscendHardwareAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto taskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
     auto kfcTurnData = dataInventory.GetPtr<std::vector<KfcTurnData>>();
@@ -356,18 +355,12 @@ uint8_t AscendHardwareAssembler::AssembleData(DataInventory &dataInventory, Json
     {
         GenerateKfcTrace(*kfcTurnData, profPath, layer, devicePid);
     }
-    GenerateTaskMetaData(devicePid, layer, res_, pidTidSet_);
-    if (res_.empty())
+    GenerateTaskMetaData(devicePid, layer, events_, pidTidSet_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any Ascend process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

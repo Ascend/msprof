@@ -194,3 +194,54 @@ TEST_F(TaskTimeAssemblerUTest, ShouldReturnTrueWhenExistTaskInfoAndAscendTask)
     std::string expectOneRow{"0,MatMulV3,,1,10,151.000,1717575960208020.758\t,1717575960208171.758\t"};
     EXPECT_EQ(expectOneRow, res[1]);
 }
+
+// 999.000us and 1000.000us cross a digit boundary, so a lexicographic sort of the
+// formatted start column puts the later task first. Device 2 is also numerically
+// smaller than device 10. task_time orders by the raw timestamp only.
+TEST_F(TaskTimeAssemblerUTest, ShouldSortByNumericTimestampNotDeviceId)
+{
+    std::vector<AscendTaskData> tasks;
+    std::vector<TaskInfoData> infos;
+    auto add = [&](uint16_t deviceId, uint32_t taskId, uint64_t timestamp, uint64_t end, double duration,
+                   const std::string &opName)
+    {
+        AscendTaskData task;
+        task.deviceId = deviceId;
+        task.streamId = 1;
+        task.taskId = taskId;
+        task.contextId = 1;
+        task.batchId = 1;
+        task.timestamp = timestamp;
+        task.end = end;
+        task.duration = duration;
+        tasks.push_back(task);
+        TaskInfoData info;
+        info.deviceId = deviceId;
+        info.streamId = 1;
+        info.taskId = taskId;
+        info.contextId = 1;
+        info.batchId = 1;
+        info.opName = opName;
+        infos.push_back(info);
+    };
+    add(2, 20, 1000000, 1001000, 1000.0, "WideUs");
+    add(10, 10, 999000, 999500, 500.0, "NarrowUs");
+
+    DataInventory dataInventory;
+    std::shared_ptr<std::vector<AscendTaskData>> taskS;
+    std::shared_ptr<std::vector<TaskInfoData>> infoS;
+    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, tasks);
+    MAKE_SHARED_NO_OPERATION(infoS, std::vector<TaskInfoData>, infos);
+    dataInventory.Inject(taskS);
+    dataInventory.Inject(infoS);
+    TaskTimeAssembler assembler(PROCESSOR_TASK_TIME_SUMMARY, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+    auto files = File::GetOriginData(RESULT_PATH, {"task_time"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    ASSERT_EQ(3ul, res.size());
+    EXPECT_EQ("10,NarrowUs,,1,10,0.500,999.000\t,999.500\t", res[1]);
+    EXPECT_EQ("2,WideUs,,1,20,1.000,1000.000\t,1001.000\t", res[2]);
+}

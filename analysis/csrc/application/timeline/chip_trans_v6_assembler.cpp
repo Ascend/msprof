@@ -42,8 +42,7 @@ ChipTransV6Assembler::ChipTransV6Assembler()
 }
 
 void GeneratePcieInfoV6Trace(std::vector<PcieInfoV6Data> &pcieInfoV6Data,
-                             const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                             std::vector<std::shared_ptr<TraceEvent>> &res)
+                             const std::unordered_map<uint16_t, uint32_t> &pidMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -67,8 +66,13 @@ void GeneratePcieInfoV6Trace(std::vector<PcieInfoV6Data> &pcieInfoV6Data,
     }
 }
 
-uint8_t ChipTransV6Assembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream,
-                                           const std::string &profPath)
+uint8_t ChipTransV6Assembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
+{
+    return AssembleInto(dataInventory, profPath, events_);
+}
+
+uint8_t ChipTransV6Assembler::AssembleInto(DataInventory &dataInventory, const std::string &profPath,
+                                           JsonEventSink &sink)
 {
     auto pcieInfoV6Data = dataInventory.GetPtr<std::vector<PcieInfoV6Data>>();
     if (pcieInfoV6Data == nullptr)
@@ -86,19 +90,13 @@ uint8_t ChipTransV6Assembler::AssembleData(DataInventory &dataInventory, JsonWri
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap.insert({deviceId, formatPid});
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GeneratePcieInfoV6Trace(*pcieInfoV6Data, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, sink);
+    GeneratePcieInfoV6Trace(*pcieInfoV6Data, pidMap, sink);
+    if (sink.empty())
     {
         ERROR("Can't Generate any Stars Chip Trans data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

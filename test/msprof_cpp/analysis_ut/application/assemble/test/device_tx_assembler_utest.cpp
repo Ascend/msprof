@@ -148,7 +148,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\""
         "}},{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\""
         "sort_index\":1}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DeviceTxAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -158,7 +158,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     auto tx = GenerateDeviceTxData();
     MAKE_SHARED_NO_OPERATION(txS, std::vector<MsprofTxDeviceData>, tx);
     dataInventory_.Inject(txS);
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -193,7 +193,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldUseHostMessageWhenConnectionIdMatchesHostTx
         "{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":448,\"tid\":1,\"ph\":\"M\","
         "\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,"
         "\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DeviceTxAssemblerUTest, ShouldGenerateThreadMetadataForEachStream)
@@ -227,7 +227,7 @@ TEST_F(DeviceTxAssemblerUTest, ShouldGenerateThreadMetadataForEachStream)
         ",{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}}"
         ",{\"name\":\"thread_name\",\"pid\":448,\"tid\":2,\"ph\":\"M\",\"args\":{\"name\":\"Stream 2\"}}"
         ",{\"name\":\"thread_sort_index\",\"pid\":448,\"tid\":2,\"ph\":\"M\",\"args\":{\"sort_index\":2}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DeviceTxAssemblerUTest, ShouldReturnFalseWhenDeviceTxVectorIsEmpty)

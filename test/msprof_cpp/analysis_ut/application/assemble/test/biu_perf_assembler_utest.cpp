@@ -118,7 +118,7 @@ TEST_F(BiuPerfAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"Group0-VECTOR\"}},{\"name\":\"instruction_b\",\"pid\":2383961088,\"tid\":1,\"ts\":"
         "\"1717575960208020.758\",\"dur\":250.0,\"ph\":\"X\",\"args\":{\"Core Type\":\"VECTOR\","
         "\"Block Id\":2}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(BiuPerfAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -129,7 +129,7 @@ TEST_F(BiuPerfAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(biuPerfS, std::vector<BiuPerfData>, biuPerfData);
     dataInventory_.Inject(biuPerfS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 

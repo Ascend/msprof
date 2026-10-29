@@ -49,10 +49,9 @@ class CCUAssembler : public JsonAssembler
 
    private:
     void GenerateMetaData(std::unordered_map<uint16_t, uint32_t> &pidMap, const LayerInfo &layer);
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
 };
 }  // namespace Application
 }  // namespace Analysis

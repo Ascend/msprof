@@ -30,7 +30,7 @@ class DeviceTxAssembler : public JsonAssembler
     DeviceTxAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceData> &txData, const std::string &profPath,
                                const LayerInfo &layer, std::unordered_map<uint16_t, uint32_t> &pidMap);
     void GenerateTxConnectionTrace(const MsprofTxDeviceData &data, uint32_t formatPid);
@@ -38,7 +38,6 @@ class DeviceTxAssembler : public JsonAssembler
    private:
     std::set<std::pair<uint32_t, uint32_t>> dPidTidSet_;
     std::unordered_map<uint64_t, std::string> h2dMessage_;
-    std::vector<std::shared_ptr<TraceEvent>> res_;
 };
 
 class DeviceTxTraceEvent : public DurationEvent

@@ -62,7 +62,7 @@ void DeviceTxAssembler::GenerateDeviceTxTrace(const std::vector<MsprofTxDeviceDa
         MAKE_SHARED_RETURN_VOID(
             event, DeviceTxTraceEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
             DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.streamId, data.taskId);
-        res_.push_back(event);
+        events_.push_back(event);
         GenerateTxConnectionTrace(data, formatPid);
     }
 }
@@ -76,10 +76,10 @@ void DeviceTxAssembler::GenerateTxConnectionTrace(const MsprofTxDeviceData &data
     std::shared_ptr<FlowEvent> end;
     MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp), MS_TX,
                             connId, name, FLOW_END, FLOW_BP);
-    res_.push_back(end);
+    events_.push_back(end);
 }
 
-uint8_t DeviceTxAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t DeviceTxAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto deviceTxData = dataInventory.GetPtr<std::vector<MsprofTxDeviceData>>();
     if (deviceTxData == nullptr)
@@ -101,18 +101,12 @@ uint8_t DeviceTxAssembler::AssembleData(DataInventory &dataInventory, JsonWriter
     std::unordered_map<uint16_t, uint32_t> devicePid;
     auto deviceLayer = GetLayerInfo(PROCESS_TASK);
     GenerateDeviceTxTrace(*deviceTxData, profPath, deviceLayer, devicePid);
-    GenerateTaskMetaData(devicePid, deviceLayer, res_, dPidTidSet_);
-    if (res_.empty())
+    GenerateTaskMetaData(devicePid, deviceLayer, events_, dPidTidSet_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any device tx process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

@@ -48,6 +48,7 @@ const std::string HBM_SUMMARY_NAME = "hbm";
 const std::string SUMMARY_SUFFIX = ".csv";
 const std::string SLICE = "slice";
 constexpr uint32_t CSV_LIMIT = 1000000;  // csv文件每100w条记录切片一次
+constexpr std::size_t CSV_ROW_BATCH = 8192;
 }  // namespace Application
 }  // namespace Analysis
 #endif  // ANALYSIS_APPLICATION_SUMMARY_CONSTANT_H

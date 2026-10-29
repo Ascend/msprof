@@ -49,7 +49,7 @@ const std::unordered_map<uint16_t, std::string> LEVEL_MAP{{MSPROF_REPORT_ACL_LEV
 
 CannAssembler::CannAssembler() : JsonAssembler(PROCESS_API, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
-void GenerateMetaData(std::vector<ApiData> &apiData, uint32_t pid, std::vector<std::shared_ptr<TraceEvent>> &res)
+void GenerateMetaData(std::vector<ApiData> &apiData, uint32_t pid, JsonEventSink &res)
 {
     std::set<uint32_t> tidSet;
     std::transform(apiData.begin(), apiData.end(), std::inserter(tidSet, tidSet.end()),
@@ -118,7 +118,7 @@ std::unordered_set<uint64_t> GetMemcpyAsyncConnectionIds(DataInventory &dataInve
     return connectionIds;
 }
 
-void GenerateApiTrace(std::vector<ApiData> &apiData, std::vector<std::shared_ptr<TraceEvent>> &res, uint32_t pid)
+void GenerateApiTrace(std::vector<ApiData> &apiData, JsonEventSink &res, uint32_t pid)
 {
     std::string levelStr;
     std::string traceName;
@@ -136,7 +136,7 @@ void GenerateApiTrace(std::vector<ApiData> &apiData, std::vector<std::shared_ptr
     }
 }
 
-void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, std::vector<std::shared_ptr<TraceEvent>> &res,
+void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, JsonEventSink &res,
                              std::unordered_set<uint64_t> memcpyAsyncConnectionIds)
 {
     std::string connId;
@@ -157,7 +157,7 @@ void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, std::v
     }
 }
 
-uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto apiData = dataInventory.GetPtr<std::vector<ApiData>>();
     if (apiData == nullptr)
@@ -167,21 +167,15 @@ uint8_t CannAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
     }
     auto pid = Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     auto formatPid = JsonAssembler::GetFormatPid(pid, LAYER_CANN_SORT);
-    GenerateMetaData(*apiData, formatPid, res_);
-    GenerateApiTrace(*apiData, res_, formatPid);
+    GenerateMetaData(*apiData, formatPid, events_);
+    GenerateApiTrace(*apiData, events_, formatPid);
     auto memcpyAsyncConnectionIds = GetMemcpyAsyncConnectionIds(dataInventory);
-    GenerateConnectionTrace(*apiData, formatPid, res_, memcpyAsyncConnectionIds);
-    if (res_.empty())
+    GenerateConnectionTrace(*apiData, formatPid, events_, memcpyAsyncConnectionIds);
+    if (events_.empty())
     {
         ERROR("Can't Generate any CANN process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

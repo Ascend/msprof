@@ -18,6 +18,7 @@
 
 #include "analysis/csrc/application/database/db_assembler.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -158,7 +159,7 @@ bool CreateTableIndex(const std::string& tableName, const std::string& indexName
         ERROR("Report db runner is nullptr.");
         return false;
     }
-    if (!msprofDB.dbRunner->CreateIndex(tableName, indexName, colNames))
+    if (!DeliverableConsumer::Instance().CreateIndex(msprofDB.dbRunner->GetPath(), tableName, indexName, colNames))
     {
         ERROR("Create table index failed, table is % , indexName is %.", tableName, indexName);
         return false;
@@ -804,7 +805,7 @@ bool SaveComputeTaskInfo(DataInventory& dataInventory, DBInfo& msprofDB, const s
     }
     ComputeTaskInfoFormat res;
     CommScheduleDataFormat scheduleData;
-    if (!Reserve(res, computeTaskInfo->size()))
+    if (!Reserve(res, std::min(computeTaskInfo->size(), DB_INSERT_BATCH)))
     {
         ERROR("Reserved for ComputeTaskInfo data failed.");
         return false;
@@ -824,6 +825,14 @@ bool SaveComputeTaskInfo(DataInventory& dataInventory, DBInfo& msprofDB, const s
         {
             scheduleData.emplace_back(taskInfoData.opName, taskInfoData.globalTaskId, taskInfoData.taskType,
                                       taskInfoData.opType);
+            if (scheduleData.size() >= DB_INSERT_BATCH)
+            {
+                if (!SaveData(scheduleData, TABLE_NAME_COMMUNICATION_SCHEDULE_TASK_INFO, msprofDB))
+                {
+                    return false;
+                }
+                scheduleData.clear();
+            }
             continue;
         }
         ProcessShapeInfo(taskInfoData, item);
@@ -837,6 +846,14 @@ bool SaveComputeTaskInfo(DataInventory& dataInventory, DBInfo& msprofDB, const s
                          taskInfoData.inputDataTypes, taskInfoData.inputShapes, taskInfoData.outputFormats,
                          taskInfoData.outputDataTypes, taskInfoData.outputShapes, taskInfoData.hashId,
                          taskInfoData.opState, taskInfoData.hf32Eligible, taskInfoData.gridDim, taskInfoData.blockDim);
+        if (res.size() >= DB_INSERT_BATCH)
+        {
+            if (!SaveData(res, TABLE_NAME_COMPUTE_TASK_INFO, msprofDB))
+            {
+                return false;
+            }
+            res.clear();
+        }
     }
     bool flag = true;
     if (!res.empty())
@@ -864,8 +881,9 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
         return true;
     }
     ascendTaskDataFormat res;
-    auto dataSize = (ascendTaskData ? ascendTaskData->size() : 0) + (deviceTxData ? deviceTxData->size() : 0);
-    if (!Reserve(res, dataSize))
+    const size_t dataSize =
+        (ascendTaskData != nullptr ? ascendTaskData->size() : 0) + (deviceTxData != nullptr ? deviceTxData->size() : 0);
+    if (!Reserve(res, std::min(dataSize, DB_INSERT_BATCH)))
     {
         ERROR("Reserved for AscendTaskData data failed.");
         return false;
@@ -873,6 +891,21 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
     uint64_t globalTaskId;
     uint32_t globalPid = Environment::Context::GetInstance().GetPidFromInfoJson(HOST_ID, profPath);
     uint64_t taskType;
+    bool inserted = false;
+    auto flush = [&res, &msprofDB, &inserted]() -> bool
+    {
+        if (res.empty())
+        {
+            return true;
+        }
+        if (!SaveData(res, TABLE_NAME_TASK, msprofDB))
+        {
+            return false;
+        }
+        res.clear();
+        inserted = true;
+        return true;
+    };
     if (ascendTaskData != nullptr)
     {
         for (const auto& item : *ascendTaskData)
@@ -883,6 +916,10 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
             taskType = IdPool::GetInstance().GetUint64Id(item.taskType);
             res.emplace_back(item.timestamp, item.end, item.deviceId, item.connectionId, globalTaskId, globalPid,
                              taskType, item.contextId, item.streamId, item.taskId, item.modelId);
+            if (res.size() >= DB_INSERT_BATCH && !flush())
+            {
+                return false;
+            }
         }
     }
     if (deviceTxData != nullptr)
@@ -896,10 +933,24 @@ bool SaveAscendTaskData(DataInventory& dataInventory, DBInfo& msprofDB, const st
             res.emplace_back(txData.timestamp, txData.timestamp + static_cast<uint64_t>(txData.duration),
                              txData.deviceId, txData.connectionId, globalTaskId, globalPid, taskType, UINT32_MAX,
                              txData.streamId, txData.taskId, txData.modelId);
+            if (res.size() >= DB_INSERT_BATCH && !flush())
+            {
+                return false;
+            }
         }
     }
-    return SaveData(res, TABLE_NAME_TASK, msprofDB) &&
-           CreateTableIndex(TABLE_NAME_TASK, TASK_INDEX_NAME, msprofDB, TASK_INDEX_COL_NAMES);
+    if (!flush())
+    {
+        return false;
+    }
+    if (!inserted)
+    {
+        // No rows at all: the table was never created, so there is nothing to index and nothing to
+        // report. An empty table is not an export failure.
+        WARN("No ascend task data, skip table % and its index.", TABLE_NAME_TASK);
+        return true;
+    }
+    return CreateTableIndex(TABLE_NAME_TASK, TASK_INDEX_NAME, msprofDB, TASK_INDEX_COL_NAMES);
 }
 
 bool SaveStringIdsData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
@@ -1700,6 +1751,8 @@ TopoNodeCreatorFactory DBAssembler::CreateStringIdsSaver()
         };
     };
 }
+
+DBAssembler::~DBAssembler() {}
 
 DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputPath) : profPath_(profPath)
 {

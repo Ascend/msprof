@@ -17,39 +17,42 @@
 #ifndef ANALYSIS_APPLICATION_SUMMARY_TASK_TIME_ASSEMBLER_H
 #define ANALYSIS_APPLICATION_SUMMARY_TASK_TIME_ASSEMBLER_H
 
-#include <utility>
 #include <string>
-#include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
-#include "analysis/csrc/application/summary/summary_assembler.h"
-#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
-#include "analysis/csrc/domain/valueobject/include/task_id.h"
+#include <utility>
 
-namespace Analysis {
-namespace Application {
+#include "analysis/csrc/application/summary/summary_assembler.h"
+#include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
+#include "analysis/csrc/domain/valueobject/include/task_id.h"
+#include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+
+namespace Analysis
+{
+namespace Application
+{
 using namespace Analysis::Infra;
 using namespace Analysis::Domain;
 
-class TaskTimeAssembler : public SummaryAssembler {
-public:
+class TaskTimeAssembler : public SummaryAssembler
+{
+   public:
     TaskTimeAssembler() = default;
     TaskTimeAssembler(const std::string &name, const std::string &profPath);
 
-private:
+   private:
     uint8_t AssembleData(DataInventory &dataInventory);
     void FormatTaskInfoData(const std::vector<TaskInfoData> &taskInfoData);
     void FormatHostTaskData(const std::vector<HostTask> &hostTaskData);
-    void AssembleTaskTime(const std::vector<AscendTaskData> &ascendTaskData);
-    void sortRes();
+    uint8_t AssembleTaskTime(const std::vector<AscendTaskData> &ascendTaskData);
 
-private:
+   private:
     // pair.first is op_name, pair.second is task_type
     std::map<TaskId, std::pair<std::string, std::string>> formatedTaskInfo_;
     std::map<TaskId, std::string> opNameMap;
 };
 
-}
-}
+}  // namespace Application
+}  // namespace Analysis
 
-#endif // ANALYSIS_APPLICATION_SUMMARY_TASK_TIME_ASSEMBLER_H
+#endif  // ANALYSIS_APPLICATION_SUMMARY_TASK_TIME_ASSEMBLER_H

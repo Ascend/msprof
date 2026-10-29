@@ -106,7 +106,7 @@ TEST_F(HCCSAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"ts\":\"1724405892226599.429\",\"ph\":\"C\",\"args\":{\"Rx(MB/s)\":240125.966}},"
         "{\"name\":\"Tx\",\"pid\":2383960704,\"tid\":0,\"ts\":\"1724405892226599.429\",\"ph\":"
         "\"C\",\"args\":{\"Tx(MB/s)\":3.197}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HCCSAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -117,6 +117,6 @@ TEST_F(HCCSAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<HccsData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

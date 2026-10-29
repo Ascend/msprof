@@ -77,28 +77,28 @@ void CCUAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t> &pidM
         std::shared_ptr<MetaDataNameEvent> processName;
         MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_NAME,
                                 layer.component);
-        res_.emplace_back(std::move(processName));
+        events_.emplace_back(std::move(processName));
         std::shared_ptr<MetaDataLabelEvent> processLabel;
         MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_LABEL,
                                 GetLayerInfoLabelWithDeviceId(layer.label, it.second));
-        res_.emplace_back(std::move(processLabel));
+        events_.emplace_back(std::move(processLabel));
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_INDEX,
                                 layer.sortIndex);
-        res_.emplace_back(std::move(processIndex));
+        events_.emplace_back(std::move(processIndex));
 
         std::shared_ptr<MetaDataNameEvent> threadName;
         MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, it.second, DEFAULT_TID, META_DATA_THREAD_NAME,
                                 PROCESS_HCCL);
-        res_.emplace_back(std::move(threadName));
+        events_.emplace_back(std::move(threadName));
         std::shared_ptr<MetaDataIndexEvent> threadIndex;
         MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, it.second, DEFAULT_TID, META_DATA_THREAD_INDEX,
                                 DEFAULT_TID);
-        res_.emplace_back(std::move(threadIndex));
+        events_.emplace_back(std::move(threadIndex));
     }
 }
 
-uint8_t CCUAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t CCUAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
     if (ccuData == nullptr)
@@ -115,19 +115,14 @@ uint8_t CCUAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         MAKE_SHARED_RETURN_VALUE(event, CCUMissionTraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), data);
-        res_.emplace_back(std::move(event));
+        events_.emplace_back(std::move(event));
     }
-    if (res_.empty())
+    if (events_.empty())
     {
         WARN("No ccu timeline events are generated.");
         return DATA_NOT_EXIST;
     }
     GenerateMetaData(devicePid, layer);
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

@@ -38,8 +38,7 @@ const std::string MATA_BW_LEVEL = "Mata Bw Level";
 StarsSocAssembler::StarsSocAssembler() : JsonAssembler(PROCESS_STARS_SOC, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateStarsSocTrace(std::vector<SocBandwidthData> &socBandwidthData,
-                           const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                           std::vector<std::shared_ptr<TraceEvent>> &res)
+                           const std::unordered_map<uint16_t, uint32_t> &pidMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -57,7 +56,7 @@ void GenerateStarsSocTrace(std::vector<SocBandwidthData> &socBandwidthData,
     }
 }
 
-uint8_t StarsSocAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t StarsSocAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto socBandwidthData = dataInventory.GetPtr<std::vector<SocBandwidthData>>();
     if (socBandwidthData == nullptr)
@@ -75,19 +74,13 @@ uint8_t StarsSocAssembler::AssembleData(DataInventory &dataInventory, JsonWriter
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateStarsSocTrace(*socBandwidthData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateStarsSocTrace(*socBandwidthData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any Stars Soc process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

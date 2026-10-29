@@ -191,7 +191,7 @@ TEST_F(DPUAssemblerUTest, ShouldReturnTrueWhenDPUTrackDataAssembleSuccess)
         "\"dpu_conv2d\",\"pid\":1024256,\"tid\":1,\"ts\":\"1717575960208020.750\",\"dur\":"
         "990.0,\"ph\":\"X\",\"args\":{\"Thread Id\":12345,\"Physic Stream Id\":1,"
         "\"Task Id\":100,\"Task Type\":\"AI_CPU\"}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DPUAssemblerUTest, ShouldReturnTrueWhenDPUHcclTrackDataAssembleSuccess)
@@ -223,7 +223,7 @@ TEST_F(DPUAssemblerUTest, ShouldReturnTrueWhenDPUHcclTrackDataAssembleSuccess)
         "\"Src Rank\":0,\"Dst Rank\":1,\"Transport Type\":\"RDMA\",\"Size(Byte)\":1048576,"
         "\"Bandwidth(GB/s)\":0.9864267676767677,\"Data Type\":\"FP32\",\"Link Type\":\"RoCE\","
         "\"Rdma Type\":\"RDMA\"}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DPUAssemblerUTest, ShouldReturnTrueWhenMixedDPUDataAssembleSuccess)
@@ -256,7 +256,7 @@ TEST_F(DPUAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<DPUData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 

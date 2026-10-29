@@ -47,8 +47,7 @@ ChipTransAssembler::ChipTransAssembler()
 }
 
 void GeneratePaLinkInfoTrace(std::vector<PaLinkInfoData> &paLinkInfoData,
-                             const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                             std::vector<std::shared_ptr<TraceEvent>> &res)
+                             const std::unordered_map<uint16_t, uint32_t> &pidMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -75,8 +74,7 @@ void GeneratePaLinkInfoTrace(std::vector<PaLinkInfoData> &paLinkInfoData,
 }
 
 void GeneratePcieInfoTrace(std::vector<PcieInfoData> &pcieInfoData,
-                           const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                           std::vector<std::shared_ptr<TraceEvent>> &res)
+                           const std::unordered_map<uint16_t, uint32_t> &pidMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -96,13 +94,13 @@ void GeneratePcieInfoTrace(std::vector<PcieInfoData> &pcieInfoData,
     }
 }
 
-uint8_t ChipTransAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t ChipTransAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto version = Context::GetInstance().GetPlatformVersion(DEFAULT_DEVICE_ID, profPath);
     if (Context::GetInstance().IsChipV6(version))
     {
         ChipTransV6Assembler chipTransV6Assembler;
-        return chipTransV6Assembler.AssembleData(dataInventory, ostream, profPath);
+        return chipTransV6Assembler.AssembleInto(dataInventory, profPath, events_);
     }
     auto paLinkInfoData = dataInventory.GetPtr<std::vector<PaLinkInfoData>>();
     if (paLinkInfoData == nullptr)
@@ -120,7 +118,7 @@ uint8_t ChipTransAssembler::AssembleData(DataInventory &dataInventory, JsonWrite
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     auto pcieInfoData = dataInventory.GetPtr<std::vector<PcieInfoData>>();
     if (pcieInfoData == nullptr)
     {
@@ -128,20 +126,14 @@ uint8_t ChipTransAssembler::AssembleData(DataInventory &dataInventory, JsonWrite
     }
     else
     {
-        GeneratePcieInfoTrace(*pcieInfoData, pidMap, res_);
+        GeneratePcieInfoTrace(*pcieInfoData, pidMap, events_);
     }
-    GeneratePaLinkInfoTrace(*paLinkInfoData, pidMap, res_);
-    if (res_.empty())
+    GeneratePaLinkInfoTrace(*paLinkInfoData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any Stars Chip Trans data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

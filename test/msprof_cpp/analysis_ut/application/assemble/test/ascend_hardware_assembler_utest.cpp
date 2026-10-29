@@ -305,7 +305,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         ":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":10328512,"
         "\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\","
         "\"pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(AscendHardwareAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -324,7 +324,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     dataInventory_.Inject(infoS);
     dataInventory_.Inject(kfcDatas);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10087));  // pid 10087
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -390,7 +390,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutApi)
         "tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":"
         "10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\""
         "thread_sort_index\",\"pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithLogicStreamSuccess)
@@ -475,7 +475,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithLogicSt
         ",\"pid\":10328512,\"tid\":1337,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1337\"}},{\"name\""
         ":\"thread_sort_index\",\"pid\":10328512,\"tid\":1337,\"ph\":\"M\",\"args\""
         ":{\"sort_index\":1337}},";
-    EXPECT_EQ(expStr, res.back());
+    EXPECT_EQ(std::string("[") + expStr.substr(0, expStr.size() - 1), res.back());
 }
 
 TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithSimtTaskType)
@@ -509,5 +509,5 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithSimtTas
         ":0,\"ph\":\"M\",\"args\":{\"sort_index\":15}},{\"name\":\"thread_name\",\"pid\":10328512,\""
         "tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"Stream 1\"}},{\"name\":\"thread_sort_index\",\""
         "pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

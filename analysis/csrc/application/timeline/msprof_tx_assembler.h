@@ -30,13 +30,12 @@ class MsprofTxAssembler : public JsonAssembler
     MsprofTxAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void GenerateTxTrace(const std::vector<MsprofTxHostData> &txData, uint32_t pid);
     void GenerateTxExConnectionTrace(const MsprofTxHostData &data, uint32_t pid);
     void GenerateHMetaDataEvent(const LayerInfo &layer, uint32_t pid);
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
     std::set<std::pair<uint32_t, int>> hPidTidSet_;
 };
 

@@ -21,9 +21,9 @@
 #include <map>
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
-#include "analysis/csrc/infrastructure/dump_tools/csv_tool/include/csv_writer.h"
 
 namespace Analysis
 {
@@ -40,9 +40,24 @@ class SummaryAssembler
     bool Run(DataInventory &dataInventory)
     {
         INFO("Begin to Assemble % data", processorName_);
+        // The consumer status is process wide. Only a failure that appears while this assembler runs
+        // belongs to this deliverable; an earlier one was already reported by its own assembler.
+        const bool okBeforeWrite = DeliverableConsumer::Instance().Ok();
         auto res = AssembleData(dataInventory);
         if (res == ASSEMBLE_SUCCESS)
         {
+            if (!DeliverableConsumer::Instance().Ok())
+            {
+                if (okBeforeWrite)
+                {
+                    ERROR("Export % data failed", processorName_);
+                }
+                else
+                {
+                    WARN("Export % data skipped, the consumer failed on an earlier deliverable", processorName_);
+                }
+                return false;
+            }
             INFO("Assemble and export % data success", processorName_);
             return true;
         }
@@ -63,14 +78,10 @@ class SummaryAssembler
     std::string profPath_;
     std::vector<std::vector<std::string>> res_;
     std::vector<std::string> headers_;
-    /**
-     * write to csv file
-     * @param name file name
-     */
+    // Hand the assembled rows to the consumer. It decides when and how much to write.
     virtual void WriteToFile(const std::string &filePath, const std::set<int> &maskCols)
     {
-        CsvWriter csvWriter = CsvWriter();
-        csvWriter.WriteCsv(filePath, headers_, res_, maskCols);
+        DeliverableConsumer::Instance().WriteCsv(filePath, headers_, res_, maskCols, "");
     }
 
    private:

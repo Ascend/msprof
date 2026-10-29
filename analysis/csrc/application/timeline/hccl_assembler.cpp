@@ -68,15 +68,15 @@ void HcclAssembler::GenerateMetaDataEvent(std::unordered_map<uint16_t, uint32_t>
         std::shared_ptr<MetaDataNameEvent> processName;
         MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_NAME,
                                 layerInfo.component);
-        res_.push_back(processName);
+        events_.push_back(processName);
         std::shared_ptr<MetaDataLabelEvent> processLabel;
         MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_LABEL,
                                 GetLayerInfoLabelWithDeviceId(layerInfo.label, formatPid));
-        res_.push_back(processLabel);
+        events_.push_back(processLabel);
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, formatPid, DEFAULT_TID, META_DATA_PROCESS_INDEX,
                                 GetDisplaySortIndex(layerInfo));
-        res_.push_back(processIndex);
+        events_.push_back(processIndex);
         for (auto &groupIt : it.second)
         {
             GenerateTMetaDataEvent(groupIt.second, index, formatPid);
@@ -95,20 +95,20 @@ void HcclAssembler::GenerateTMetaDataEvent(std::vector<HcclGroup> &groupInfo, in
         group.startIndex = index;
         std::shared_ptr<MetaDataNameEvent> threadName;
         MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, formatPid, index, META_DATA_THREAD_NAME, traceName);
-        res_.push_back(threadName);
+        events_.push_back(threadName);
         std::shared_ptr<MetaDataIndexEvent> threadIndex;
         MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, formatPid, index, META_DATA_THREAD_INDEX, index);
-        res_.push_back(threadIndex);
+        events_.push_back(threadIndex);
         for (const auto &plane : group.planes)
         {
             traceName = {"Plane " + std::to_string(plane)};
             index = startIndex + plane + 1;
             std::shared_ptr<MetaDataNameEvent> pThreadName;
             MAKE_SHARED_RETURN_VOID(pThreadName, MetaDataNameEvent, formatPid, index, META_DATA_THREAD_NAME, traceName);
-            res_.push_back(pThreadName);
+            events_.push_back(pThreadName);
             std::shared_ptr<MetaDataIndexEvent> pThreadIndex;
             MAKE_SHARED_RETURN_VOID(pThreadIndex, MetaDataIndexEvent, formatPid, index, META_DATA_THREAD_INDEX, index);
-            res_.push_back(pThreadIndex);
+            events_.push_back(pThreadIndex);
         }
         index++;
     }
@@ -163,7 +163,7 @@ std::unordered_map<uint16_t, std::unordered_map<std::string, std::vector<HcclGro
     return groupTable;
 }
 
-uint8_t HcclAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t HcclAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto taskData = dataInventory.GetPtr<std::vector<CommunicationTaskData>>();
     auto opData = dataInventory.GetPtr<std::vector<CommunicationOpData>>();
@@ -184,17 +184,11 @@ uint8_t HcclAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
     {
         GenerateCommOpTrace<CommunicationOpData>(*opData, profPath, devicePid, layerInfo);
     }
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any Ascend process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

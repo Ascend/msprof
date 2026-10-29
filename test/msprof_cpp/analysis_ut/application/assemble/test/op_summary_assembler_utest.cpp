@@ -314,3 +314,73 @@ TEST_F(OpSummaryAssemblerUTest, ShouldReturnTrueWhenTaskAndHcclAndPmuExistWithSt
         "0.593,17.645,0.126,0.006,0.0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0";
     EXPECT_EQ(expectRowOne, res[5]);  // 5 第五条数据MatMulV3_2 task_dur 为0
 }
+
+// Device 10 is entered first and its timestamp is the smallest. Within device 2 the
+// 1000.000us row is entered before 999.000us. Sort is numeric device id, then timestamp.
+TEST_F(OpSummaryAssemblerUTest, ShouldSortByDeviceIdThenNumericTimestamp)
+{
+    std::shared_ptr<std::vector<TaskInfoData>> taskInfoData;
+    std::shared_ptr<std::vector<AscendTaskData>> ascendTaskData;
+    MAKE_SHARED_NO_OPERATION(taskInfoData, std::vector<TaskInfoData>);
+    MAKE_SHARED_NO_OPERATION(ascendTaskData, std::vector<AscendTaskData>);
+    auto add = [&](uint16_t deviceId, uint32_t taskId, uint64_t timestamp, const std::string &opName)
+    {
+        TaskInfoData info;
+        info.deviceId = deviceId;
+        info.streamId = 1;
+        info.taskId = taskId;
+        info.contextId = 1;
+        info.batchId = 1;
+        info.opName = opName;
+        taskInfoData->push_back(info);
+        AscendTaskData task;
+        task.deviceId = deviceId;
+        task.streamId = 1;
+        task.taskId = taskId;
+        task.contextId = 1;
+        task.batchId = 1;
+        task.timestamp = timestamp;
+        task.end = timestamp + 1000;
+        task.duration = 1000.0;
+        ascendTaskData->push_back(task);
+    };
+    add(10, 10, 500000, "Dev10");
+    add(2, 20, 1000000, "Dev2Wide");
+    add(2, 21, 999000, "Dev2Narrow");
+
+    AssociatedTaskCollection associatedTasks;
+    associatedTasks.taskInfoData = taskInfoData;
+    associatedTasks.ascendTaskData = ascendTaskData;
+    for (size_t i = 0; i < ascendTaskData->size(); ++i)
+    {
+        associatedTasks.records.push_back(AssociatedTaskData(&(*taskInfoData)[i], &(*ascendTaskData)[i], true));
+    }
+    std::shared_ptr<AssociatedTaskCollection> associatedTasksPtr;
+    MAKE_SHARED_NO_OPERATION(associatedTasksPtr, AssociatedTaskCollection, associatedTasks);
+    DataInventory dataInventory;
+    dataInventory.Inject(associatedTasksPtr);
+    OpSummaryAssembler assembler(PROCESSOR_OP_SUMMARY, PROF_PATH);
+    EXPECT_TRUE(assembler.Run(dataInventory));
+    auto files = File::GetOriginData(RESULT_PATH, {"op_summary"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    ASSERT_EQ(4ul, res.size());
+    const std::string expectHeader{
+        "Device_id,Model ID,Task ID,Stream ID,Op Name,OP Type,OP State,Task Type,"
+        "Task Start Time(us),Task Duration(us),Task Wait Time(us),Block Num,HF32 Eligible,"
+        "Input Shapes,Input Data Types,Input Formats,Output Shapes,Output Data Types,"
+        "Output Formats"};
+    EXPECT_EQ(expectHeader, res[0]);
+    const auto deviceId = [](const std::string &line) { return line.substr(0, line.find(',')); };
+    EXPECT_EQ("2", deviceId(res[1]));
+    EXPECT_NE(res[1].find("Dev2Narrow"), std::string::npos);
+    EXPECT_NE(res[1].find("999.000\t"), std::string::npos);
+    EXPECT_EQ("2", deviceId(res[2]));
+    EXPECT_NE(res[2].find("Dev2Wide"), std::string::npos);
+    EXPECT_NE(res[2].find("1000.000\t"), std::string::npos);
+    EXPECT_EQ("10", deviceId(res[3]));
+    EXPECT_NE(res[3].find("Dev10"), std::string::npos);
+    EXPECT_NE(res[3].find("500.000\t"), std::string::npos);
+}

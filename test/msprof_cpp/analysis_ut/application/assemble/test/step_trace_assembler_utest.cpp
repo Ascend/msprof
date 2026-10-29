@@ -180,7 +180,7 @@ TEST_F(StepTraceAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     FileReader reader(files.back());
     std::vector<std::string> res;
     EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(StepTraceAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -199,6 +199,6 @@ TEST_F(StepTraceAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     dataInventory_.Inject(nextS);
     dataInventory_.Inject(reduceS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10008));  // pid 10008
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

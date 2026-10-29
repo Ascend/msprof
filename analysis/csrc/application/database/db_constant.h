@@ -29,6 +29,7 @@ namespace Analysis
 {
 namespace Application
 {
+constexpr std::size_t DB_INSERT_BATCH = 200000;
 
 // mstx数据 host侧无device连线的默认connection_id值
 constexpr uint32_t DEFAULT_CONNECTION_ID_MSTX = 4000000000;

@@ -51,30 +51,30 @@ std::unordered_map<uint16_t, uint32_t> PCIeAssembler::GeneratePCIeTrace(std::vec
                                  DivideByPowersOfTenWithPrecision(data.timestamp), CPL);
         event->SetSeriesDValue(TX, static_cast<double>(data.txCpl.avg) / BYTE_SIZE / BYTE_SIZE);
         event->SetSeriesDValue(RX, static_cast<double>(data.rxCpl.avg) / BYTE_SIZE / BYTE_SIZE);
-        res_.push_back(event);
+        events_.push_back(event);
 
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, pidMap, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), NONPOST);
         event->SetSeriesDValue(TX, static_cast<double>(data.txNonpost.avg) / BYTE_SIZE / BYTE_SIZE);
         event->SetSeriesDValue(RX, static_cast<double>(data.rxNonpost.avg) / BYTE_SIZE / BYTE_SIZE);
-        res_.push_back(event);
+        events_.push_back(event);
 
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, pidMap, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), NONPOST_LATENCY);
         event->SetSeriesDValue(TX, static_cast<double>(data.txNonpostLatency.avg) / MILLI_SECOND);
         event->SetSeriesDValue(RX, 0);
-        res_.push_back(event);
+        events_.push_back(event);
 
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, pidMap, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), POST);
         event->SetSeriesDValue(TX, static_cast<double>(data.txPost.avg) / BYTE_SIZE / BYTE_SIZE);
         event->SetSeriesDValue(RX, static_cast<double>(data.rxPost.avg) / BYTE_SIZE / BYTE_SIZE);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return pidMap;
 }
 
-uint8_t PCIeAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t PCIeAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     INFO("Begin to assemble % data.", PROCESS_PCIE);
     auto pcieData = dataInventory.GetPtr<std::vector<PCIeData>>();
@@ -85,18 +85,12 @@ uint8_t PCIeAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
     }
     auto layerInfo = GetLayerInfo(PROCESS_PCIE);
     auto pidMap = GeneratePCIeTrace(*pcieData, layerInfo.sortIndex, profPath);
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any PCIe process data");
         return ASSEMBLE_FAILED;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     INFO("Assemble % data success.", PROCESS_PCIE);
     return ASSEMBLE_SUCCESS;
 }

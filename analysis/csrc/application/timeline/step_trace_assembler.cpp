@@ -122,7 +122,7 @@ void StepTraceAssembler::GenerateTrainTrace(const std::vector<TrainTraceData>& t
                                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, ITER_CAT, data.indexId,
                                 static_cast<double>(data.iterTime) / Analysis::Common::NS_TO_US, fpStart, bpEnd,
                                 DivideByPowersOfTenWithPrecision(data.iterEnd));
-        res_.push_back(event);
+        events_.push_back(event);
         if (data.fpStart != 0 && data.bpEnd != 0)
         {
             GenerateFpBpTrace(data, formatPid, tid);
@@ -141,7 +141,7 @@ void StepTraceAssembler::GenerateFpBpTrace(const Analysis::Domain::TrainTraceDat
         DivideByPowersOfTenWithPrecision(data.fpStart), name, FP_BP_CAT, data.indexId,
         static_cast<double>(data.fpBpTime) / Analysis::Common::NS_TO_US, DivideByPowersOfTenWithPrecision(data.fpStart),
         DivideByPowersOfTenWithPrecision(data.bpEnd));
-    res_.push_back(fpEvent);
+    events_.push_back(fpEvent);
 }
 
 void StepTraceAssembler::GenerateRefreshTrace(const Analysis::Domain::TrainTraceData& data, uint32_t pid, int tid)
@@ -154,7 +154,7 @@ void StepTraceAssembler::GenerateRefreshTrace(const Analysis::Domain::TrainTrace
                             static_cast<double>(data.gradRefreshBound) / Analysis::Common::NS_TO_US,
                             DivideByPowersOfTenWithPrecision(data.bpEnd),
                             DivideByPowersOfTenWithPrecision(data.iterEnd));
-    res_.push_back(refreshEvent);
+    events_.push_back(refreshEvent);
 }
 
 void StepTraceAssembler::GenerateDataAugTrace(const Analysis::Domain::TrainTraceData& data, uint32_t pid, int tid)
@@ -165,13 +165,13 @@ void StepTraceAssembler::GenerateDataAugTrace(const Analysis::Domain::TrainTrace
     std::shared_ptr<DataAug0TraceEvent> aug0Event;
     MAKE_SHARED_RETURN_VOID(aug0Event, DataAug0TraceEvent, pid, tid, DivideByPowersOfTenWithPrecision(data.fpStart),
                             name, DATA_AUG, id, data.indexId);
-    res_.push_back(aug0Event);
+    events_.push_back(aug0Event);
     uint64_t ts = data.bpEnd + data.dataAugBound / 2;
     std::shared_ptr<DataAug1TraceEvent> aug1Event;
     name = "Data_aug Bound " + std::to_string(data.indexId);
     MAKE_SHARED_RETURN_VOID(aug1Event, DataAug1TraceEvent, pid, tid, DivideByPowersOfTenWithPrecision(ts), name,
                             DATA_AUG, id, static_cast<double>(data.dataAugBound) / Analysis::Common::NS_TO_US);
-    res_.push_back(aug1Event);
+    events_.push_back(aug1Event);
 }
 
 void StepTraceAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t>& pidMap, const LayerInfo& layer)
@@ -181,15 +181,15 @@ void StepTraceAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t>
         std::shared_ptr<MetaDataNameEvent> processName;
         MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_NAME,
                                 layer.component);
-        res_.push_back(processName);
+        events_.push_back(processName);
         std::shared_ptr<MetaDataLabelEvent> processLabel;
         MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_LABEL,
                                 GetLayerInfoLabelWithDeviceId(layer.label, it.second));
-        res_.push_back(processLabel);
+        events_.push_back(processLabel);
         std::shared_ptr<MetaDataIndexEvent> processIndex;
         MAKE_SHARED_RETURN_VOID(processIndex, MetaDataIndexEvent, it.second, DEFAULT_TID, META_DATA_PROCESS_INDEX,
                                 GetDisplaySortIndex(layer));
-        res_.push_back(processIndex);
+        events_.push_back(processIndex);
     }
     for (const auto& it : pidTidSet_)
     {
@@ -198,11 +198,11 @@ void StepTraceAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t>
                                   .append(")");
         std::shared_ptr<MetaDataNameEvent> threadName;
         MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, it.first, it.second, META_DATA_THREAD_NAME, argName);
-        res_.push_back(threadName);
+        events_.push_back(threadName);
         std::shared_ptr<MetaDataIndexEvent> threadIndex;
         MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, it.first, it.second, META_DATA_THREAD_INDEX,
                                 it.second);
-        res_.push_back(threadIndex);
+        events_.push_back(threadIndex);
     }
 }
 
@@ -231,7 +231,7 @@ void StepTraceAssembler::GenerateReduceTrace(const std::vector<AllReduceData>& r
                                 static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US,
                                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, REDUCE_CAT, data.indexId,
                                 args);
-        res_.push_back(reduceEvent);
+        events_.push_back(reduceEvent);
         ++count;
     }
 }
@@ -257,11 +257,11 @@ void StepTraceAssembler::GenerateNextTrace(const std::vector<GetNextData>& nextD
                                 DivideByPowersOfTenWithPrecision(data.timestamp),
                                 DivideByPowersOfTenWithPrecision(data.end),
                                 static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US);
-        res_.push_back(event);
+        events_.push_back(event);
     }
 }
 
-uint8_t StepTraceAssembler::AssembleData(DataInventory& dataInventory, JsonWriter& ostream, const std::string& profPath)
+uint8_t StepTraceAssembler::AssembleData(DataInventory& dataInventory, const std::string& profPath)
 {
     auto trainData = dataInventory.GetPtr<std::vector<TrainTraceData>>();
     auto reduceData = dataInventory.GetPtr<std::vector<AllReduceData>>();
@@ -286,17 +286,11 @@ uint8_t StepTraceAssembler::AssembleData(DataInventory& dataInventory, JsonWrite
     {
         GenerateNextTrace(*nextData, profPath, devicePid, layer);
     }
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any Ascend process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto& node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

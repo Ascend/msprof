@@ -44,17 +44,13 @@ const std::string FLOW_START = "s";
 const std::string FLOW_END = "f";
 const std::string FLOW_BP = "e";
 const std::string JSON_SUFFIX = ".json";
+constexpr std::size_t JSON_EVENT_BATCH = 4096;
 const std::string MSPROF_JSON_FILE = "msprof";
 const int CONN_OFFSET = 32;
 const std::string STEP_TRACE_FILE = "step_trace";
 const std::string MSPROF_TX_FILE = "msprof_tx";
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string MEMCPY_ASYNC = "MEMCPY_ASYNC";
-/*
- * json格式要求多个对象使用[]包装，再每一层json后添加了","分割，最终会形成[{},true]的结果，因此需要写入内容的时候过滤掉
- * [ true],共6位长度
- */
-const std::size_t FILE_CONTENT_SUFFIX = 6;
 }  // namespace Application
 }  // namespace Analysis
 #endif  // ANALYSIS_APPLICATION_DELIVERABLES_CONSTANT_H

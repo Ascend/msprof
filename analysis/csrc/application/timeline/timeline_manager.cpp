@@ -24,8 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/application/timeline/timeline_factory.h"
-#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
 #include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 
 namespace Analysis
@@ -34,9 +34,6 @@ namespace Application
 {
 namespace
 {
-const std::string PREFIX_CONTEXT = "[";
-const std::string SUFFIX_CONTEXT = "]";
-const int JSON_FILE_OFFSET = -1;
 const std::string TIMELINE_PREFIX = "TIMELINE:";
 const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
 
@@ -79,46 +76,14 @@ const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{
 
 }  // namespace
 
-void TimelineManager::WriteFile(const std::string& filePrefix, FileCategory category)
+bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>&, DataInventory&)
 {
-    auto tempFile = filePrefix;
-    tempFile.append("_").append(GetTimeStampStr()).append(JSON_SUFFIX);
-    auto filePath = File::PathJoin({outputPath_, tempFile});
-    DumpTool::WriteToFile(filePath, PREFIX_CONTEXT.c_str(), PREFIX_CONTEXT.size(), category);
-    fileType_.emplace(category, filePath);
-}
-
-bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>& jsonProcess, DataInventory& dataInventory)
-{
-    WriteFile(MSPROF_JSON_FILE, FileCategory::MSPROF);
-    if (std::find(jsonProcess.begin(), jsonProcess.end(), JsonProcess::STEP_TRACE) != jsonProcess.end())
-    {
-        WriteFile(STEP_TRACE_FILE, FileCategory::STEP);
-    }
-    if (std::find(jsonProcess.begin(), jsonProcess.end(), JsonProcess::MSPROFTX) != jsonProcess.end() &&
-        dataInventory.GetPtr<std::vector<MsprofTxHostData>>() != nullptr)
-    {
-        WriteFile(MSPROF_TX_FILE, FileCategory::MSPROF_TX);
-    }
+    // File names and the opening bracket are decided when the first event arrives.
+    DeliverableConsumer::Instance().BeginTimeline();
     return true;
 }
 
-void TimelineManager::PostDumpJson()
-{
-    for (const auto& it : fileType_)
-    {
-        // 此处需要覆盖文件末尾的","，实测必须使用in、out、ate三种模式打开文件，才可以实现覆盖写入
-        FileWriter writer(it.second, std::ios::in | std::ios::out | std::ios::ate);
-        if (File::Size(it.second) == PREFIX_CONTEXT.size())
-        {
-            writer.WriteText(SUFFIX_CONTEXT);
-        }
-        else
-        {
-            writer.WriteTextBack(SUFFIX_CONTEXT, JSON_FILE_OFFSET);
-        }
-    }
-}
+void TimelineManager::PostDumpJson() { DeliverableConsumer::Instance().FinishTimeline(); }
 
 std::vector<std::string> TimelineManager::GetAssemblerList(const std::vector<JsonProcess>& jsonProcess)
 {
@@ -220,6 +185,11 @@ TopoNodeCreatorFactory TimelineManager::CreateTimelinePostDump()
                 [session](DataInventory&) -> bool
                 {
                     session->PostDumpJson();
+                    if (!DeliverableConsumer::Instance().Ok())
+                    {
+                        ERROR("Export timeline deliverable failed.");
+                        return false;
+                    }
                     PRINT_INFO("End exporting timeline output_file. The file is stored in the PROF file.");
                     return true;
                 }));

@@ -162,7 +162,7 @@ TEST(TimelineManagerUTest, ShouldDeduplicateSelectedReports)
     EXPECT_EQ(roots[1], (TopoNodeId{TopoNodeStage::TIMELINE_EXPORT, PROCESS_API}));
 }
 
-TEST(TimelineManagerUTest, ShouldWriteValidEmptyJsonWhenNoAssemblerWritesEvents)
+TEST(TimelineManagerUTest, ShouldNotCreateJsonWhenNoAssemblerWritesEvents)
 {
     const std::string basePath = "./timeline_empty_json_test";
     const std::string profPath = File::PathJoin({basePath, "PROF_0"});
@@ -181,10 +181,6 @@ TEST(TimelineManagerUTest, ShouldWriteValidEmptyJsonWhenNoAssemblerWritesEvents)
     manager.PostDumpJson();
 
     const std::vector<std::string> files = File::GetOriginData(outputPath, {MSPROF_JSON_FILE}, {});
-    ASSERT_EQ(files.size(), 1UL);
-    FileReader reader(files.front());
-    nlohmann::json content;
-    ASSERT_EQ(reader.ReadJson(content), Analysis::ANALYSIS_OK);
-    EXPECT_TRUE(content.empty());
+    EXPECT_TRUE(files.empty());
     EXPECT_TRUE(File::RemoveDir(basePath, 0));
 }

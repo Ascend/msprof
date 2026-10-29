@@ -172,6 +172,7 @@ protected:
 
     virtual void TearDown()
     {
+        DeliverableConsumer::Instance().CloseAllDb();
         IdPool::GetInstance().Clear();
         if (File::Exist(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}))) {
             EXPECT_TRUE(File::RemoveDir(File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}), DEPTH));
@@ -2555,4 +2556,41 @@ TEST_F(DBAssemblerUTest, ShouldRejectExecutionListNodeWithoutRegistration)
     EXPECT_FALSE(DBAssembler::GetTopologyRoots(roots));
     EXPECT_TRUE(roots.empty());
     TopoNodeRegistry::MutableDefinitions() = definitions;
+}
+
+// CloseAllDb drops every writer. Destroying one DBAssembler must leave the writer
+// registered, and a second insert on the same path must still land in that file.
+TEST_F(DBAssemblerUTest, ShouldKeepDbWriterWhenAssemblerIsDestroyed)
+{
+    std::string output = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
+    std::string dbPath = File::PathJoin(std::vector<std::string>{output, "msprof_lifetime.db"});
+    DBInfo info;
+    MAKE_SHARED0_NO_OPERATION(info.database, MsprofDB);
+    ASSERT_NE(info.database, nullptr);
+    ASSERT_TRUE(info.ConstructDBRunner(dbPath));
+    using Row = std::tuple<uint64_t, uint64_t, uint16_t, uint64_t, uint64_t, uint64_t>;
+    std::vector<Row> first;
+    first.push_back(std::make_tuple(1ULL, 2ULL, static_cast<uint16_t>(3), 4ULL, 5ULL, 6ULL));
+    ASSERT_TRUE(SaveData(first, TABLE_NAME_CANN_API, info));
+    auto &consumer = DeliverableConsumer::Instance();
+    ASSERT_TRUE(consumer.HasDbWriterForTest(dbPath));
+    {
+        DBAssembler assembler(PROF, output);
+    }
+    ASSERT_TRUE(consumer.HasDbWriterForTest(dbPath));
+    std::vector<Row> second;
+    second.push_back(std::make_tuple(7ULL, 8ULL, static_cast<uint16_t>(9), 10ULL, 11ULL, 12ULL));
+    EXPECT_TRUE(SaveData(second, TABLE_NAME_CANN_API, info));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED_NO_OPERATION(dbRunner, DBRunner, dbPath);
+    ASSERT_NE(dbRunner, nullptr);
+    std::vector<std::tuple<uint64_t, uint64_t>> rows;
+    const std::string sql = "SELECT startNs, endNs FROM " + TABLE_NAME_CANN_API + " ORDER BY startNs";
+    ASSERT_TRUE(dbRunner->QueryData(sql, rows));
+    ASSERT_EQ(2UL, rows.size());
+    EXPECT_EQ(1ULL, std::get<0>(rows[0]));
+    EXPECT_EQ(2ULL, std::get<1>(rows[0]));
+    EXPECT_EQ(7ULL, std::get<0>(rows[1]));
+    EXPECT_EQ(8ULL, std::get<1>(rows[1]));
 }

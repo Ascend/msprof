@@ -116,7 +116,7 @@ TEST_F(LLcAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"Hit Rate(%)\":0.35600000000000004}},"
         "{\"name\":\"LLC 0 Read/Throughput\",\"pid\":2383960928,\"tid\":0,\"ts\":"
         "\"1724405892226699.429\",\"ph\":\"C\",\"args\":{\"Throughput(MB/s)\":77.8}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(LLcAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -127,6 +127,6 @@ TEST_F(LLcAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<LLcData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

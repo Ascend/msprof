@@ -172,7 +172,7 @@ TEST_F(QosAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         ":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\""
         "process_sort_index\",\"pid\":2383960992,\"tid\":0,\"ph\":\"M\",\""
         "args\":{\"sort_index\":30}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(QosAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -181,7 +181,7 @@ TEST_F(QosAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     auto data = GenerateQosData();
     InjectQosData(dataInventory_, data);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -216,7 +216,7 @@ TEST_F(QosAssemblerUTest, ShouldGenerateMergedDieSeriesForV6Platform)
     std::string expectDvpp2 =
         "{\"name\":\"QoS DVPP\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892226599.429\","
         "\"ph\":\"C\",\"args\":{\"die 1\":22,\"die 0\":12}}";
-    EXPECT_EQ(0ul, content.find(expectMeta));
+    EXPECT_EQ(1ul, content.find(expectMeta));
     EXPECT_TRUE(content.find(expectOthers1) != std::string::npos || content.find(expectOthers2) != std::string::npos);
     EXPECT_TRUE(content.find(expectDvpp1) != std::string::npos || content.find(expectDvpp2) != std::string::npos);
 }
@@ -250,5 +250,5 @@ TEST_F(QosAssemblerUTest, ShouldGenerateCounterSeriesForV4Platform)
         "{\"name\":\"QoS OTHERS\",\"pid\":2383960992,\"tid\":0,\"ts\":\"1724405892228599.429\","
         "\"ph\":\"C\",\"args\":{\"value\":30}},{\"name\":\"QoS DVPP\",\"pid\":2383960992,"
         "\"tid\":0,\"ts\":\"1724405892228599.429\",\"ph\":\"C\",\"args\":{\"value\":30}},";
-    EXPECT_EQ(expectStr, content);
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), content);
 }

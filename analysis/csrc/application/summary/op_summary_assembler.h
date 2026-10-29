@@ -18,7 +18,6 @@
 #define ANALYSIS_APPLICATION_OP_SUMMARY_ASSEMBLE_H
 
 #include <cstdint>
-#include <unordered_map>
 
 #include "analysis/csrc/application/summary/summary_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/associated_task_data.h"
@@ -40,18 +39,25 @@ class OpSummaryAssembler : public SummaryAssembler
     OpSummaryAssembler() = default;
     OpSummaryAssembler(const std::string &name, const std::string &profPath);
 
-   protected:
-    void WriteToFile(const std::string &fileName, const std::set<int> &maskCols);
-
    private:
+    struct SortedOpRow
+    {
+        uint32_t deviceId = 0;
+        uint64_t timestamp = 0;
+        uint64_t duration = 0;
+        std::vector<std::string> extra;
+        size_t index = 0;
+        bool hccl = false;
+        bool pad = false;
+    };
+
     uint8_t AssembleData(DataInventory &dataInventory);
-    void GenerateOpBody(const AssociatedTaskCollection &associatedTasks, std::shared_ptr<MetricSummary> &pmu);
-    void GenerateHcclBody(std::vector<CommunicationOpData> &opData);
+    void GenerateOpBody(const AssociatedTaskCollection &associatedTasks, std::shared_ptr<MetricSummary> &pmu,
+                        std::vector<SortedOpRow> &rows);
+    void GenerateHcclBody(const std::vector<CommunicationOpData> &opData, std::vector<SortedOpRow> &rows);
     std::vector<std::string> GenerateOneTaskRow(const TaskInfoData &computeTask, const AscendTaskData &task);
-    void MergeTaskAndPmu(std::shared_ptr<MetricSummary> &pmu, std::vector<std::string> &row, const TaskId &id,
-                         std::unordered_map<std::string, int> &indexTable);
-    void AddCubeUsage(std::vector<std::string> &data, std::unordered_map<std::string, int> &indexTable);
-    void CalculateWaitTime();
+    void EmitOpSummary(std::vector<SortedOpRow> &rows, const AssociatedTaskCollection *associatedTasks,
+                       const std::vector<CommunicationOpData> *hcclData, const std::set<int> &maskCols);
     std::set<int> GetMaskCols();
 };
 }  // namespace Application

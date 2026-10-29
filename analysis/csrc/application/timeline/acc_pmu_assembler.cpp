@@ -37,8 +37,7 @@ const std::string VALUE = "value";
 
 AccPmuAssembler::AccPmuAssembler() : JsonAssembler(PROCESS_ACC_PMU, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
-void InjectAccPmuTraceToRes(std::vector<uint32_t> &dataList, std::string &time,
-                            std::vector<std::shared_ptr<TraceEvent>> &res)
+void InjectAccPmuTraceToRes(std::vector<uint32_t> &dataList, std::string &time, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     const int pidIndex = 4;
@@ -54,7 +53,7 @@ void InjectAccPmuTraceToRes(std::vector<uint32_t> &dataList, std::string &time,
 }
 
 void GenerateAccPmuTrace(std::vector<AccPmuData> &accPmuData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                         std::vector<std::shared_ptr<TraceEvent>> &res)
+                         JsonEventSink &res)
 {
     std::string time;
     std::string prevTime;
@@ -94,7 +93,7 @@ void GenerateAccPmuTrace(std::vector<AccPmuData> &accPmuData, const std::unorder
     InjectAccPmuTraceToRes(resultDataList, prevTime, res);
 }
 
-uint8_t AccPmuAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t AccPmuAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto accPmuData = dataInventory.GetPtr<std::vector<AccPmuData>>();
     if (accPmuData == nullptr)
@@ -112,19 +111,13 @@ uint8_t AccPmuAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateAccPmuTrace(*accPmuData, pidMap, res_);
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    if (res_.empty())
+    GenerateAccPmuTrace(*accPmuData, pidMap, events_);
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any Acc PMU process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

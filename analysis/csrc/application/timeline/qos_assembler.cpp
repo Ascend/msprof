@@ -39,8 +39,7 @@ const std::unordered_map<int32_t, std::string> SERIES_MAP{{0, "die 0"}, {1, "die
 QosAssembler::QosAssembler() : JsonAssembler(PROCESS_QOS, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateQosTrace(std::vector<QosData> &qosData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                      const std::unordered_map<uint16_t, std::vector<std::string>> &qosEventsMap,
-                      std::vector<std::shared_ptr<TraceEvent>> &res)
+                      const std::unordered_map<uint16_t, std::vector<std::string>> &qosEventsMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -73,8 +72,7 @@ void GenerateQosTrace(std::vector<QosData> &qosData, const std::unordered_map<ui
 }
 
 void GenerateQosV6Trace(std::vector<QosData> &qosData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                        const std::unordered_map<uint16_t, std::vector<std::string>> &qosEventsMap,
-                        std::vector<std::shared_ptr<TraceEvent>> &res)
+                        const std::unordered_map<uint16_t, std::vector<std::string>> &qosEventsMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -118,7 +116,7 @@ void GenerateQosV6Trace(std::vector<QosData> &qosData, const std::unordered_map<
     }
 }
 
-uint8_t QosAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t QosAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto qosData = dataInventory.GetPtr<std::vector<QosData>>();
     if (qosData == nullptr)
@@ -139,26 +137,20 @@ uint8_t QosAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         qosEventsMap[deviceId] = Context::GetInstance().GetQosEvents(deviceId, profPath);
     }
     auto version = Context::GetInstance().GetPlatformVersion(DEFAULT_DEVICE_ID, profPath);
-    GenerateHWMetaData(pidMap, layerInfo, res_);
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     if (Context::GetInstance().IsChipV6(version))
     {
-        GenerateQosV6Trace(*qosData, pidMap, qosEventsMap, res_);
+        GenerateQosV6Trace(*qosData, pidMap, qosEventsMap, events_);
     }
     else if (Context::GetInstance().IsChipV4(version) || version == static_cast<int>(Chip::CHIP_V1_1_1))
     {
-        GenerateQosTrace(*qosData, pidMap, qosEventsMap, res_);
+        GenerateQosTrace(*qosData, pidMap, qosEventsMap, events_);
     }
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any QoS process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

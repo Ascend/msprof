@@ -15,22 +15,19 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  */
-#include <algorithm>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/dump_tools/csv_tool/include/csv_writer.h"
+#include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
-#include "analysis/csrc/infrastructure/utils/utils.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
 using namespace Analysis::Utils;
 using namespace Analysis::Infra;
-using namespace Analysis::Application;
 
 namespace
 {
@@ -61,42 +58,31 @@ class CsvWriterUTest : public testing::Test
 
 TEST_F(CsvWriterUTest, ShouldWriteCsvFileSuccess)
 {
-    std::set<int> maskCols = {2, 3};  // 设置第2 3个位置是非法的表头 不需要写入
-    std::string fileName = "testFile";
-    CsvWriter csvWriter = CsvWriter();
-    std::vector<std::string> headers = {"pos0", "pos1", "pos2", "pos3", "pos4"};
-    std::string expectedHeader = "pos0,pos1,pos4";
-    std::vector<std::vector<std::string>> res;
-    size_t resSize = 2000000;  // 极限边界场景 只生成2个csv
-    EXPECT_TRUE(Reserve(res, resSize));
-    std::vector<std::string> record = {"data0", "data1:timestamp 123456789123456789\t", "data2", "data3"};
-    std::string expectedRecord = "data0,data1:timestamp 123456789123456789\t,";
-    for (auto i = 0; i < resSize; i++)
-    {
-        std::vector<std::string> lineRecord = record;
-        lineRecord.emplace_back(std::to_string(i));
-        res.emplace_back(lineRecord);
-    }
-    csvWriter.WriteCsv(File::PathJoin({OUTPUT_DIR, fileName}), headers, res, maskCols);
-    auto filesList = File::GetOriginData(OUTPUT_DIR, {fileName}, {});
-    // 升序排序保证后面读文件有序
-    std::sort(filesList.begin(), filesList.end());
-    EXPECT_EQ(filesList.size(), (res.size() + CSV_LIMIT - 1) / CSV_LIMIT);
-    size_t lineSize = 0;  // 只对数据条数计数
-    for (auto file : filesList)
-    {
-        FileReader fd(file);
-        std::vector<std::string> text;
-        EXPECT_EQ(fd.ReadText(text), Analysis::ANALYSIS_OK);
-        ASSERT_FALSE(text.empty());
-        ASSERT_EQ(expectedHeader, text[0]);
-        for (auto i = 1; i < text.size(); i++)
-        {
-            auto expectedLineRecord = expectedRecord;
-            expectedLineRecord.append(std::to_string(lineSize));
-            ASSERT_EQ(expectedLineRecord, text[i]);
-            lineSize++;
-        }
-    }
-    EXPECT_EQ(lineSize, resSize);  // 总数据量
+    const std::set<int> maskCols = {2, 3};
+    const std::vector<std::string> headers = {"pos0", "pos1", "pos2", "pos3", "pos4"};
+    std::string text = CsvWriter::FormatHeader(headers, maskCols);
+    EXPECT_EQ(text, "pos0,pos1,pos4\n");
+    // A masked column 0 must not leave a leading comma behind.
+    EXPECT_EQ(CsvWriter::FormatHeader({"c0", "c1", "c2", "c3"}, {0, 2}), "c1,c3\n");
+    std::string masked;
+    CsvWriter::AppendRow(masked, {"v0", "v1", "v2", "v3"}, {0, 2});
+    EXPECT_EQ(masked, "v1,v3\n");
+    CsvWriter::AppendRow(text, {"data0", "data1:timestamp 123456789123456789\t", "data2", "data3", "7"}, maskCols);
+    const std::string path = File::PathJoin({OUTPUT_DIR, "testFile.csv"});
+    FileWriter writer;
+    writer.Open(path, std::ios::out | std::ios::app);
+    ASSERT_TRUE(writer.IsOpen());
+    writer.WriteText(text);
+    std::string more;
+    CsvWriter::AppendRow(more, {"a", "b", "c", "d", "e"}, maskCols);
+    writer.WriteText(more);
+    writer.Close();
+
+    FileReader fd(path);
+    std::vector<std::string> lines;
+    EXPECT_EQ(fd.ReadText(lines), Analysis::ANALYSIS_OK);
+    ASSERT_EQ(lines.size(), 3u);
+    EXPECT_EQ(lines[0], "pos0,pos1,pos4");
+    EXPECT_EQ(lines[1], "data0,data1:timestamp 123456789123456789\t,7");
+    EXPECT_EQ(lines[2], "a,b,e");
 }

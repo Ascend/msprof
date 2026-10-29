@@ -29,10 +29,9 @@ class CannAssembler : public JsonAssembler
     CannAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
 };
 
 class ApiTraceEvent : public DurationEvent

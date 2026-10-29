@@ -217,7 +217,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenCpuSuccess)
         "\"pid\":2383960383,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"CPU\"}},{\"name\":"
         "\"process_sort_index\",\"pid\":2383960383,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index"
         "\":9}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenMemSuccess)
@@ -238,7 +238,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenMemSuccess)
         "{\"name\":\"process_labels\",\"pid\":2383960415,\"tid\":0,\"ph\":\"M\",\"args\":"
         "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960415,\"tid\":0,"
         "\"ph\":\"M\",\"args\":{\"sort_index\":11}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenDiskSuccess)
@@ -259,7 +259,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenDiskSuccess)
         "{\"name\":\"process_labels\",\"pid\":2383960479,\"tid\":0,\"ph\":\"M\",\"args\":"
         "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960479,"
         "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":13}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenNetworkSuccess)
@@ -280,7 +280,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenNetworkSuccess)
         "{\"name\":\"process_labels\",\"pid\":2383960447,\"tid\":0,\"ph\":\"M\",\"args\":"
         "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960447,\"tid"
         "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":12}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenRuntimeApiSuccess)
@@ -303,7 +303,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnTrueWhenRuntimeApiSuccess)
         "\"pid\":2383960511,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"CPU\"}},{\"name\":"
         "\"process_sort_index\",\"pid\":2383960511,\"tid\":0,\"ph\":\"M\","
         "\"args\":{\"sort_index\":14}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -311,7 +311,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     CpuUsageAssembler assembler;
     GenerateHostUsageData(dataInventory_);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -345,7 +345,7 @@ TEST_F(HostUsageAssemblerUTest, ShouldGenerateAllCpuCountersWhenMultipleCpuRecor
         "{\"name\":\"CPU Usage\"}},{\"name\":\"process_labels\",\"pid\":2383960383,\"tid\":0,"
         "\"ph\":\"M\",\"args\":{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\","
         "\"pid\":2383960383,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":9}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HostUsageAssemblerUTest, ShouldGenerateThreadMetadataOnlyForUniqueRuntimeApiTid)
@@ -374,5 +374,5 @@ TEST_F(HostUsageAssemblerUTest, ShouldGenerateThreadMetadataOnlyForUniqueRuntime
         "{\"name\":\"process_labels\",\"pid\":2383960511,\"tid\":0,\"ph\":\"M\",\"args\":"
         "{\"labels\":\"CPU\"}},{\"name\":\"process_sort_index\",\"pid\":2383960511,\"tid\":0,"
         "\"ph\":\"M\",\"args\":{\"sort_index\":14}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

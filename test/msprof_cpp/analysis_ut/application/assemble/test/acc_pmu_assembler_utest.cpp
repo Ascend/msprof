@@ -140,7 +140,7 @@ TEST_F(AccPmuAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"pid\":2383960672,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
         "{\"name\":\"process_sort_index\",\"pid\":2383960672,\"tid\":0,\"ph\":\"M\","
         "\"args\":{\"sort_index\":20}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(AccPmuAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -151,6 +151,6 @@ TEST_F(AccPmuAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<AccPmuData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

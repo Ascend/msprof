@@ -23,19 +23,23 @@
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/pcie_data.h"
 
-namespace Analysis {
-namespace Application {
-class PCIeAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class PCIeAssembler : public JsonAssembler
+{
+   public:
     PCIeAssembler();
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+
+   private:
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     // 仅txNopostLatency单位转为us,其余为带宽 单位转为MB/s
-    std::unordered_map<uint16_t, uint32_t> GeneratePCIeTrace(std::vector<PCIeData> &pcieData,
-                                                             uint32_t sortIndex, const std::string &profPath);
-private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
+    std::unordered_map<uint16_t, uint32_t> GeneratePCIeTrace(std::vector<PCIeData> &pcieData, uint32_t sortIndex,
+                                                             const std::string &profPath);
+
+   private:
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_PCIE_ASSEMBLER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_PCIE_ASSEMBLER_H

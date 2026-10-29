@@ -17,30 +17,22 @@
 #ifndef ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H
 #define ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H
 
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
-#include <stdint.h>
 
-namespace Analysis {
-namespace Infra {
-class CsvWriter final {
-public:
-    CsvWriter();
-    ~CsvWriter() = default;
-    void WriteCsv(const std::string& filePath, const std::vector<std::string>& headers,
-                  const std::vector<std::vector<std::string>>& res, const std::set<int>& maskCols);
-private:
-    template <typename Iterator>
-    void DumpCsvFile(const std::string& filePath, const std::vector<std::string> &headers,
-                     Iterator begin, Iterator end, std::set<int> maskCols);
-
-    std::string GetSliceFileName(uint16_t sliceIndex, size_t resSize, const std::string& filePath);
-
-private:
-    std::string timestamp_;
+namespace Analysis
+{
+namespace Infra
+{
+// Formats one CSV chunk. The caller writes the bytes.
+class CsvWriter final
+{
+   public:
+    static std::string FormatHeader(const std::vector<std::string>& headers, const std::set<int>& mask);
+    static void AppendRow(std::string& text, const std::vector<std::string>& row, const std::set<int>& mask);
 };
-}
-}
+}  // namespace Infra
+}  // namespace Analysis
 
-#endif // ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H
+#endif  // ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H

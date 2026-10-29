@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This file is part of the MindStudio project.
  *
  * MindStudio is licensed under Mulan PSL v2.
@@ -18,17 +18,21 @@
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 
-namespace Analysis {
-namespace Application {
-class UbAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class UbAssembler : public JsonAssembler
+{
+   public:
     UbAssembler();
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
-private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
-};
-}
-}
 
-#endif //MSPROF_ANALYSIS_UB_ASSEMBLER_H
+   private:
+    uint8_t AssembleData(DataInventory& dataInventory, const std::string& profPath) override;
+
+   private:
+};
+}  // namespace Application
+}  // namespace Analysis
+
+#endif  // MSPROF_ANALYSIS_UB_ASSEMBLER_H

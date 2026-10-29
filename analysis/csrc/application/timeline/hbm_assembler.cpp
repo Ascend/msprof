@@ -37,7 +37,7 @@ const std::unordered_map<std::string, std::string> CounterNameMap{{"read", "Read
 HBMAssembler::HBMAssembler() : JsonAssembler(PROCESS_HBM, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateHbmTrace(std::vector<HbmData> &hbmData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                      std::vector<std::shared_ptr<TraceEvent>> &res)
+                      JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string counterName;
@@ -58,7 +58,7 @@ void GenerateHbmTrace(std::vector<HbmData> &hbmData, const std::unordered_map<ui
     }
 }
 
-uint8_t HBMAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t HBMAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto hbmData = dataInventory.GetPtr<std::vector<HbmData>>();
     if (hbmData == nullptr)
@@ -76,19 +76,13 @@ uint8_t HBMAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateHbmTrace(*hbmData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateHbmTrace(*hbmData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any HBM process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "analysis/csrc/application/database/msprof_db.h"
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/db/include/db_info.h"
 #include "analysis/csrc/infrastructure/process/include/topo_graph.h"
@@ -40,7 +41,7 @@ class DBAssembler
    public:
     DBAssembler() = default;
     DBAssembler(const std::string &profPath, const std::string &outputPath);
-    virtual ~DBAssembler() = default;
+    virtual ~DBAssembler();
     static bool GetTopologyRoots(std::vector<TopoNodeId> &roots);
     static std::vector<TopoNodeId> ResolveSelectedDBSavers(const TopoBuildContext &context,
                                                            const std::vector<TopoNodeId> &roots);
@@ -71,12 +72,8 @@ bool SaveData(const std::vector<std::tuple<Args...>> &data, const std::string &t
         ERROR("Msprof db runner is nullptr.");
         return false;
     }
-    if (!msprofDB.dbRunner->CreateTable(tableName, msprofDB.database->GetTableCols(tableName)))
-    {
-        ERROR("Create table: % failed", tableName);
-        return false;
-    }
-    if (!msprofDB.dbRunner->InsertData(tableName, data))
+    if (!DeliverableConsumer::Instance().InsertRows(msprofDB.dbRunner->GetPath(), tableName,
+                                                    msprofDB.database->GetTableCols(tableName), data))
     {
         ERROR("Insert data into % failed", tableName);
         return false;

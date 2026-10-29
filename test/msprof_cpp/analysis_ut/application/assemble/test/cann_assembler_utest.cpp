@@ -201,7 +201,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
                             "{\"name\":"
                             "\"HostToDevice11862699671552\",\"pid\":1024255,\"tid\":87144,\"ph\":\"s\",\"cat\":"
                             "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960208020.750\"},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(CannAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -212,7 +212,7 @@ TEST_F(CannAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1000));  // pid 1000
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -247,5 +247,5 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccessCaseMemcpyAsyn
                             "\"pid\":1024255,"
                             "\"tid\":2816340,\"ph\":\"s\",\"cat\":\"HostToDevice\",\"id\":\"94489280512\",\"ts\":"
                             "\"1717575960208020.750\"},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

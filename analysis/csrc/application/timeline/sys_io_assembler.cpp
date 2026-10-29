@@ -50,8 +50,7 @@ NicAssembler::NicAssembler() : SysIOAssembler(PROCESS_NIC) {}
 RoCEAssembler::RoCEAssembler() : SysIOAssembler(PROCESS_ROCE) {}
 
 void GenerateSysIOTrace(const std::vector<SysIOReceiveSendData> &sysIOReceiveSendData,
-                        const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                        std::vector<std::shared_ptr<TraceEvent>> &res)
+                        const std::unordered_map<uint16_t, uint32_t> &pidMap, JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -82,7 +81,7 @@ void GenerateSysIOTrace(const std::vector<SysIOReceiveSendData> &sysIOReceiveSen
     }
 }
 
-uint8_t SysIOAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t SysIOAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     std::vector<SysIOReceiveSendData> sysIOReceiveSendData;
     if (processorName_ == PROCESSOR_NAME_NIC)
@@ -122,19 +121,13 @@ uint8_t SysIOAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &o
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateSysIOTrace(sysIOReceiveSendData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateSysIOTrace(sysIOReceiveSendData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any % process data", processorName_);
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

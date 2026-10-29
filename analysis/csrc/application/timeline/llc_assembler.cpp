@@ -46,7 +46,7 @@ const std::unordered_map<std::string, CounterName> CounterNameMap{{"read", {"Rea
 LLcAssembler::LLcAssembler() : JsonAssembler(PROCESS_LLC, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateLLcTrace(const std::vector<LLcData> &llcData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                      std::vector<std::shared_ptr<TraceEvent>> &res)
+                      JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -73,7 +73,7 @@ void GenerateLLcTrace(const std::vector<LLcData> &llcData, const std::unordered_
     }
 }
 
-uint8_t LLcAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t LLcAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto LlcData = dataInventory.GetPtr<std::vector<LLcData>>();
     if (LlcData == nullptr)
@@ -91,19 +91,13 @@ uint8_t LLcAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateLLcTrace(*LlcData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateLLcTrace(*LlcData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any LLc process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

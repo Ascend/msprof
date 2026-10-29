@@ -18,6 +18,7 @@
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 
 namespace Analysis
@@ -33,28 +34,28 @@ JsonAssembler::JsonAssembler(const std::string &name, std::unordered_map<std::st
 bool JsonAssembler::Run(DataInventory &dataInventory, const std::string &profPath)
 {
     INFO("Begin to Assemble % data", processorName_);
-    JsonWriter ostream;
-    // 写多个json对象，需要使用数组包起来作为一个完整有效json
-    ostream.StartArray();
-    auto res = AssembleData(dataInventory, ostream, profPath);
-    // 数组的结束中括号需要在业务处理完后再加上
-    ostream.EndArray();
+    events_.Open(fileMap_, profPath);
+    auto res = AssembleData(dataInventory, profPath);
     if (ASSEMBLE_SUCCESS == res)
     {
+        events_.Flush();
+        events_.Sync();
+        if (!DeliverableConsumer::Instance().Ok())
+        {
+            ERROR("Assemble % data failed, can't export deliverable!", processorName_);
+            return false;
+        }
         INFO("Assemble % data success, begin to export", processorName_);
-        // 处理成功，将写入数据落盘
-        return FlushToFile(ostream, profPath);
+        return true;
     }
-    else if (DATA_NOT_EXIST == res)
+    events_.Discard();
+    if (DATA_NOT_EXIST == res)
     {
         WARN("No % data, don't export deliverable!", processorName_);
         return true;
     }
-    else
-    {
-        ERROR("Assemble % data failed, can't export deliverable!", processorName_);
-        return false;
-    }
+    ERROR("Assemble % data failed, can't export deliverable!", processorName_);
+    return false;
 }
 
 uint32_t JsonAssembler::GetFormatPid(uint32_t pid, uint32_t index, uint32_t deviceId)
@@ -97,25 +98,8 @@ uint32_t JsonAssembler::GetDevicePid(std::unordered_map<uint16_t, uint32_t> &pid
     return it->second;
 }
 
-bool JsonAssembler::FlushToFile(JsonWriter &ostream, const std::string &profPath)
-{
-    // 写msprof.json的时候是并行的，每一层JSON都有一个[],需要在写入的时候去掉
-    std::string filePath;
-    bool flag = true;
-    for (auto &it : fileMap_)
-    {
-        auto fileName = it.first;
-        fileName.append("_").append(GetTimeStampStr()).append(JSON_SUFFIX);
-        filePath = File::PathJoin({profPath, Analysis::Common::OUTPUT_PATH, fileName});
-        flag = DumpTool::WriteToFile(filePath, ostream.GetString() + 1, ostream.GetSize() - FILE_CONTENT_SUFFIX,
-                                     it.second) &&
-               flag;
-    }
-    return flag;
-}
-
 void JsonAssembler::GenerateHWMetaData(const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                                       const struct LayerInfo &layerInfo, std::vector<std::shared_ptr<TraceEvent>> &res)
+                                       const struct LayerInfo &layerInfo, JsonEventSink &res)
 {
     std::shared_ptr<MetaDataNameEvent> processName;
     std::shared_ptr<MetaDataLabelEvent> processLabel;
@@ -137,7 +121,7 @@ void JsonAssembler::GenerateHWMetaData(const std::unordered_map<uint16_t, uint32
 }
 
 void JsonAssembler::GenerateTaskMetaData(const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                                         const struct LayerInfo &layer, std::vector<std::shared_ptr<TraceEvent>> &res,
+                                         const struct LayerInfo &layer, JsonEventSink &res,
                                          std::set<std::pair<uint32_t, uint32_t>> &pidTidSet)
 {
     GenerateHWMetaData(pidMap, layer, res);

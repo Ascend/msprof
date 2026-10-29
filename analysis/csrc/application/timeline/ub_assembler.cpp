@@ -20,15 +20,18 @@
 
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ub_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
 {
 namespace Application
 {
+using namespace Analysis::Utils;
 UbAssembler::UbAssembler() : JsonAssembler(PROCESS_UB, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateUbTrace(std::vector<UbData> &ubData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                     std::vector<std::shared_ptr<TraceEvent>> &res)
+                     JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -53,7 +56,7 @@ void GenerateUbTrace(std::vector<UbData> &ubData, const std::unordered_map<uint1
     }
 }
 
-uint8_t UbAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t UbAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto ubData = dataInventory.GetPtr<std::vector<UbData>>();
     if (ubData == nullptr)
@@ -71,19 +74,13 @@ uint8_t UbAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostr
         uint32_t formatPid = GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateUbTrace(*ubData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateUbTrace(*ubData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any ub process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

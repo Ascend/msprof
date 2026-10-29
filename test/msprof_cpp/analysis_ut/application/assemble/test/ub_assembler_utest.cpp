@@ -115,7 +115,7 @@ TEST_F(UbAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"bandwidth_rx(MB/s)\":100.0}},{\"name\":\"UB Port001\",\"pid\":2383961120,\"tid\":0,\"ts\":"
         "\"1717575960208020.758\",\"ph\":\"C\",\"args\":{\"bandwidth_tx(MB/s)\":250.0,"
         "\"bandwidth_rx(MB/s)\":150.0}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(UbAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -126,6 +126,6 @@ TEST_F(UbAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(ubDataS, std::vector<UbData>, ubData);
     dataInventory_.Inject(ubDataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

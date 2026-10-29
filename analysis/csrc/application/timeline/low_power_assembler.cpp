@@ -47,12 +47,12 @@ std::unordered_map<uint16_t, uint32_t> LowPowerAssembler::GenerateFreqTrace(std:
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, pidMap, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), processName);
         event->SetSeriesIValue("MHz", static_cast<uint64_t>(data.freq));
-        res_.emplace_back(event);
+        events_.emplace_back(event);
     }
     return pidMap;
 }
 
-uint8_t LowPowerAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t LowPowerAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     INFO("Begin to assemble % data.", PROCESS_LOW_POWER);
     auto freqData = dataInventory.GetPtr<std::vector<LowPowerData>>();
@@ -63,18 +63,12 @@ uint8_t LowPowerAssembler::AssembleData(DataInventory &dataInventory, JsonWriter
     }
     auto layerInfo = GetLayerInfo(PROCESS_AI_CORE_FREQ);
     auto pidMap = GenerateFreqTrace(*freqData, layerInfo.sortIndex, profPath);
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any low power process data");
         return ASSEMBLE_FAILED;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     INFO("Assemble % data success.", PROCESS_LOW_POWER);
     return ASSEMBLE_SUCCESS;
 }

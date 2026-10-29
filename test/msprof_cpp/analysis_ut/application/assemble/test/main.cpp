@@ -18,9 +18,11 @@
 
 #include "gtest/gtest.h"
 
+#include "test/msprof_cpp/analysis_ut/application/common/deliverable_test_state.h"
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
-    // Runs all tests using Google Test.
+    Analysis::Test::RegisterDeliverableStateReset();
     return RUN_ALL_TESTS();
 }

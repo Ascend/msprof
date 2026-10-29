@@ -18,11 +18,10 @@
 #define ANALYSIS_APPLICATION_JSON_ASSEMBLER_H
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/json_event_sink.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/domain/entities/json_trace/include/meta_data_event.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
-#include "analysis/csrc/infrastructure/dump_tools/include/dump_tool.h"
-#include "analysis/csrc/infrastructure/dump_tools/json_tool/include/json_writer.h"
 
 namespace Analysis
 {
@@ -43,10 +42,9 @@ class JsonAssembler
     uint32_t GetDevicePid(std::unordered_map<uint16_t, uint32_t> &pidMap, uint16_t deviceId,
                           const std::string &profPath, uint32_t index);
     void GenerateHWMetaData(const std::unordered_map<uint16_t, uint32_t> &pidMap, const struct LayerInfo &layerInfo,
-                            std::vector<std::shared_ptr<TraceEvent>> &res);
+                            JsonEventSink &res);
     void GenerateTaskMetaData(const std::unordered_map<uint16_t, uint32_t> &pidMap, const struct LayerInfo &layer,
-                              std::vector<std::shared_ptr<TraceEvent>> &res,
-                              std::set<std::pair<uint32_t, uint32_t>> &pidTidSet);
+                              JsonEventSink &res, std::set<std::pair<uint32_t, uint32_t>> &pidTidSet);
     static uint32_t GetFormatPid(uint32_t pid, uint32_t index, uint32_t deviceId = HOST_PID);
     static uint32_t GetDeviceIdFromPid(uint32_t pid);
     static uint32_t GetDisplaySortIndex(const struct LayerInfo &layerInfo);
@@ -55,10 +53,10 @@ class JsonAssembler
    protected:
     std::string processorName_;
     std::unordered_map<std::string, FileCategory> fileMap_;
+    JsonEventSink events_;
 
    private:
-    bool FlushToFile(JsonWriter &ostream, const std::string &profPath);
-    virtual uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) = 0;
+    virtual uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) = 0;
 };
 }  // namespace Application
 }  // namespace Analysis

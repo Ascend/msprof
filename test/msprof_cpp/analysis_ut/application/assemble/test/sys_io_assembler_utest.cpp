@@ -171,7 +171,7 @@ TEST_F(SysIOAssemblerUTest, NicAssemblerShouldReturnTrueWhenDataAssembleSuccess)
         "0/Tx\",\"pid\":2383960736,\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\":\"C\",\""
         "args\":{\"Tx Bandwidth Efficiency\":2.2,\"Tx Packets\":60.0,\"Tx Error Rate\":2.3,\"Tx "
         "Dropped Rate\":3.8}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(SysIOAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -182,7 +182,7 @@ TEST_F(SysIOAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<NicReceiveSendData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -215,7 +215,7 @@ TEST_F(SysIOAssemblerUTest, RoCEAssemblerShouldReturnTrueWhenDataAssembleSuccess
         "0/Tx\",\"pid\":2383960768,\"tid\":0,\"ts\":\"1724405892226699.429\",\"ph\":\"C\",\""
         "args\":{\"Tx Bandwidth Efficiency\":2.2,\"Tx Packets\":60.0,\"Tx Error Rate\":2.3,\"Tx "
         "Dropped Rate\":3.8}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(SysIOAssemblerUTest, RoCEAssemblerShouldReturnTrueWhenDataNotExists)
@@ -243,5 +243,5 @@ TEST_F(SysIOAssemblerUTest, NicAssemblerShouldGenerateMetadataOnlyWhenInnerTrace
         "\"NIC\"}},{\"name\":\"process_labels\",\"pid\":2383960736,\"tid\":0,\"ph\":\"M\",\"args\""
         ":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383960736,\"tid\":0,"
         "\"ph\":\"M\",\"args\":{\"sort_index\":22}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

@@ -72,22 +72,20 @@ class BlockDetailAssembler : public JsonAssembler
     BlockDetailAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void FormatTaskInfoData(const std::vector<TaskInfoData> &taskInfoData);
     std::unordered_map<uint16_t, uint32_t> GenerateBlockDetailTrace(
         std::vector<AscendTaskData> &ascendTaskData,
         std::unordered_map<uint32_t, std::vector<BlockDetailData>> &blockDetailDataMap, uint32_t sortIndex,
-        const std::string &profPath, std::vector<std::shared_ptr<TraceEvent>> &res);
+        const std::string &profPath, JsonEventSink &res);
     std::vector<const BlockDetailData *> GetBlockPmuGroup(const std::vector<BlockDetailData> &pmuDataList,
                                                           const AscendTaskData &taskData);
     void SetPmuResultList(const std::vector<const BlockDetailData *> &datas, uint32_t pid,
                           std::vector<PmuTimelineRow> &block_pmu_timeline_data, const std::string &op_name,
-                          std::vector<std::shared_ptr<TraceEvent>> &res);
-    void GenerateBlockPmuTimelineData(const std::vector<PmuTimelineRow> &block_pmu_timeline_data,
-                                      std::vector<std::shared_ptr<TraceEvent>> &res);
+                          JsonEventSink &res);
+    void GenerateBlockPmuTimelineData(const std::vector<PmuTimelineRow> &block_pmu_timeline_data, JsonEventSink &res);
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
     std::map<TaskId, std::string> formatedTaskInfo_;
 };
 }  // namespace Application

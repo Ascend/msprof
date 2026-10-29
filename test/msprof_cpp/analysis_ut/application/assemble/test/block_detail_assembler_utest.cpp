@@ -180,7 +180,7 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\","
         "\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961152,\"tid"
         "\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(BlockDetailAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -195,12 +195,18 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     dataInventory_.Inject(infoS);
     dataInventory_.Inject(blockDataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10087));  // pid 10087
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
 TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutTaskInfo)
 {
+    // Earlier cases leave TaskInfo in the static inventory and append into the same json.
+    dataInventory_.RemoveRestData({});
+    for (const auto &path : File::GetOriginData(RESULT_PATH, {"msprof"}, {}))
+    {
+        File::DeleteFile(path);
+    }
     BlockDetailAssembler assembler;
     std::shared_ptr<std::vector<AscendTaskData>> taskS;
     std::shared_ptr<std::vector<BlockDetailData>> blockDataS;
@@ -220,42 +226,23 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutTaskInf
     std::string expectStr =
         "{\"name\":\"thread_name\",\"pid\":2383961152,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":"
         "\"AIC Earliest\"}},{\"name\":\"thread_name\",\"pid\":2383961152,\"tid\":2,\"ph\":\"M\","
-        "\"args\":{\"name\":\"AIC Latest\"}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,"
+        "\"args\":{\"name\":\"AIC Latest\"}},{\"name\":\"Stream 1 \",\"pid\":2383961152,"
         "\"tid\":1,\"ts\":\"1717575960208020.759\",\"dur\":450.0,\"ph\":\"X\",\"args\":{"
         "\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,\"Core Id"
-        "\":31}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":2,\"ts\":"
+        "\":31}},{\"name\":\"Stream 1 \",\"pid\":2383961152,\"tid\":2,\"ts\":"
         "\"1717575960208020.759\",\"dur\":250.0,\"ph\":\"X\",\"args\":{\"Physic Stream Id\":1,"
         "\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,\"Core Id\":32}},{\"name\":"
         "\"thread_name\",\"pid\":2383961152,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":"
         "\"AIC Earliest\"}},{\"name\":\"thread_name\",\"pid\":2383961152,\"tid\":2,\"ph\":\"M\","
-        "\"args\":{\"name\":\"AIC Latest\"}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,"
+        "\"args\":{\"name\":\"AIC Latest\"}},{\"name\":\"Stream 1 \",\"pid\":2383961152,"
         "\"tid\":1,\"ts\":\"1717575960208020.759\",\"dur\":450.0,\"ph\":\"X\",\"args\":{"
         "\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,\"Core Id"
-        "\":31}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":2,\"ts\":"
+        "\":31}},{\"name\":\"Stream 1 \",\"pid\":2383961152,\"tid\":2,\"ts\":"
         "\"1717575960208020.759\",\"dur\":250.0,\"ph\":\"X\",\"args\":{\"Physic Stream Id\":1,"
         "\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,\"Core Id\":32}},{\"name\":"
         "\"process_name\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":"
         "\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M"
         "\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\",\"pid\":2383961152,"
-        "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},{\"name\":\"thread_name\",\"pid"
-        "\":2383961152,\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"AIC Earliest\"}},{\"name\":"
-        "\"thread_name\",\"pid\":2383961152,\"tid\":2,\"ph\":\"M\",\"args\":{\"name\":\"AIC Latest"
-        "\"}},{\"name\":\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":1,\"ts\":"
-        "\"1717575960208020.759\",\"dur\":450.0,\"ph\":\"X\",\"args\":{\"Physic Stream Id\":1,"
-        "\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,\"Core Id\":31}},{\"name\":"
-        "\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":2,\"ts\":\"1717575960208020.759\",\"dur"
-        "\":250.0,\"ph\":\"X\",\"args\":{\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":0,"
-        "\"Subtask Id\":4294967295,\"Core Id\":32}},{\"name\":\"thread_name\",\"pid\":2383961152,"
-        "\"tid\":1,\"ph\":\"M\",\"args\":{\"name\":\"AIC Earliest\"}},{\"name\":\"thread_name\","
-        "\"pid\":2383961152,\"tid\":2,\"ph\":\"M\",\"args\":{\"name\":\"AIC Latest\"}},{\"name\":"
-        "\"Stream 1 MatMulV3\",\"pid\":2383961152,\"tid\":1,\"ts\":\"1717575960208020.759\",\"dur"
-        "\":450.0,\"ph\":\"X\",\"args\":{\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":0,"
-        "\"Subtask Id\":4294967295,\"Core Id\":31}},{\"name\":\"Stream 1 MatMulV3\",\"pid"
-        "\":2383961152,\"tid\":2,\"ts\":\"1717575960208020.759\",\"dur\":250.0,\"ph\":\"X\","
-        "\"args\":{\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":0,\"Subtask Id\":4294967295,"
-        "\"Core Id\":32}},{\"name\":\"process_name\",\"pid\":2383961152,\"tid\":0,\"ph\":\"M\","
-        "\"args\":{\"name\":\"Block Detail\"}},{\"name\":\"process_labels\",\"pid\":2383961152,"
-        "\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
-        "\"pid\":2383961152,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
-    EXPECT_EQ(expectStr, res.back());
+        "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

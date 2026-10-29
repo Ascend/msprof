@@ -51,7 +51,7 @@ uint8_t OSRuntimeApiAssembler::GenerateDataTrace(DataInventory &dataInventory, u
         dur = static_cast<double>(data.endTime - data.timestamp) / Analysis::Common::NS_TO_US;
         MAKE_SHARED_RETURN_VALUE(event, DurationEvent, ASSEMBLE_FAILED, pid, static_cast<int>(data.tid), dur,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), data.name);
-        res_.push_back(event);
+        events_.push_back(event);
         tidMap.insert(static_cast<int>(data.tid));
     }
 
@@ -60,7 +60,7 @@ uint8_t OSRuntimeApiAssembler::GenerateDataTrace(DataInventory &dataInventory, u
     {
         MAKE_SHARED_RETURN_VALUE(threadNameEvent, MetaDataNameEvent, ASSEMBLE_FAILED, pid, tid, META_DATA_THREAD_NAME,
                                  "Thread " + std::to_string(tid));
-        res_.push_back(threadNameEvent);
+        events_.push_back(threadNameEvent);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -80,7 +80,7 @@ uint8_t NetworkUsageAssembler::GenerateDataTrace(DataInventory &dataInventory, u
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), "Network Usage");
         event->SetSeriesDValue(USAGE, data.usage);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -100,7 +100,7 @@ uint8_t DiskUsageAssembler::GenerateDataTrace(DataInventory &dataInventory, uint
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), "Disk Usage");
         event->SetSeriesDValue(USAGE, data.usage);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -120,7 +120,7 @@ uint8_t MemUsageAssembler::GenerateDataTrace(DataInventory &dataInventory, uint3
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), "Memory Usage");
         event->SetSeriesDValue(USAGE, data.usage);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -140,7 +140,7 @@ uint8_t CpuUsageAssembler::GenerateDataTrace(DataInventory &dataInventory, uint3
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), "CPU " + data.cpuNo);
         event->SetSeriesDValue(USAGE, data.usage);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -160,7 +160,7 @@ uint8_t CpuFreqAssembler::GenerateDataTrace(DataInventory &dataInventory, uint32
         MAKE_SHARED_RETURN_VALUE(event, CounterEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
                                  DivideByPowersOfTenWithPrecision(data.timestamp), "CPU " + data.cpuNo);
         event->SetSeriesDValue("MHz", data.freq);
-        res_.push_back(event);
+        events_.push_back(event);
     }
     return ASSEMBLE_SUCCESS;
 }
@@ -170,7 +170,7 @@ HostUsageAssembler::HostUsageAssembler(const std::string &assembleName)
 {
 }
 
-uint8_t HostUsageAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t HostUsageAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     INFO("Begin to assemble % data.", processorName_);
     auto layerInfo = GetLayerInfo(processorName_);
@@ -181,19 +181,13 @@ uint8_t HostUsageAssembler::AssembleData(DataInventory &dataInventory, JsonWrite
     {
         return generateFlag;
     }
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any % data.", processorName_);
         return ASSEMBLE_FAILED;
     }
     std::unordered_map<uint16_t, uint32_t> pidMap = {{HOST_ID, formatPid}};
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
+    GenerateHWMetaData(pidMap, layerInfo, events_);
     INFO("Assemble % data success.", processorName_);
     return ASSEMBLE_SUCCESS;
 }

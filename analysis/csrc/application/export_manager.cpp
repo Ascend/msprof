@@ -28,6 +28,7 @@
 
 #include "analysis/csrc/application/database/db_assembler.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
@@ -128,8 +129,28 @@ bool ExportManager::Init()
     return true;
 }
 
+namespace
+{
+// Closes the shared consumer on every return path of ExportManager::Run. The JSON closing bracket
+// and the DB writer threads both have to be released before the caller looks at the deliverables.
+class DeliverableScope final
+{
+   public:
+    DeliverableScope() = default;
+    ~DeliverableScope()
+    {
+        DeliverableConsumer::Instance().FinishTimeline();
+        DeliverableConsumer::Instance().CloseAllDb();
+    }
+    DeliverableScope(const DeliverableScope&) = delete;
+    DeliverableScope& operator=(const DeliverableScope&) = delete;
+};
+}  // namespace
+
 bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
 {
+    DeliverableScope deliverableScope;
+    DeliverableConsumer::Instance().ResetOk();
     INFO("Start to load data!");
     PRINT_INFO("Start to load data!");
     if (!Init())

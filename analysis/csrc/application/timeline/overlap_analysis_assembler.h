@@ -29,7 +29,7 @@ class OverlapAnalysisAssembler : public JsonAssembler
     OverlapAnalysisAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     std::vector<std::shared_ptr<TraceEvent>> GenerateOverlapEvents(const std::vector<OverlapAnalysisData> &events);
     std::vector<std::shared_ptr<TraceEvent>> GenerateMetaData(uint16_t deviceId);
 

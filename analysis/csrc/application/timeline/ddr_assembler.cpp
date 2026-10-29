@@ -40,7 +40,7 @@ const std::string WRITE_SERIES = "Write(MB/s)";
 DDRAssembler::DDRAssembler() : JsonAssembler(PROCESS_DDR, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateDDRTrace(std::vector<DDRData> &ddrData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                      std::vector<std::shared_ptr<TraceEvent>> &res)
+                      JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -58,7 +58,7 @@ void GenerateDDRTrace(std::vector<DDRData> &ddrData, const std::unordered_map<ui
     }
 }
 
-uint8_t DDRAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t DDRAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto ddrData = dataInventory.GetPtr<std::vector<DDRData>>();
     if (ddrData == nullptr)
@@ -76,19 +76,13 @@ uint8_t DDRAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ost
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateDDRTrace(*ddrData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateDDRTrace(*ddrData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any DDR process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

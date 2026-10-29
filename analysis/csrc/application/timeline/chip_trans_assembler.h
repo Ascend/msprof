@@ -18,16 +18,20 @@
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 
-namespace Analysis {
-namespace Application {
-class ChipTransAssembler : public JsonAssembler {
-public:
+namespace Analysis
+{
+namespace Application
+{
+class ChipTransAssembler : public JsonAssembler
+{
+   public:
     ChipTransAssembler();
-private:
-    uint8_t AssembleData(DataInventory& dataInventory, JsonWriter &ostream, const std::string &profPath) override;
-private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
+
+   private:
+    uint8_t AssembleData(DataInventory& dataInventory, const std::string& profPath) override;
+
+   private:
 };
-}
-}
-#endif // ANALYSIS_APPLICATION_CHIP_TRANS_ASSEMBLER_H
+}  // namespace Application
+}  // namespace Analysis
+#endif  // ANALYSIS_APPLICATION_CHIP_TRANS_ASSEMBLER_H

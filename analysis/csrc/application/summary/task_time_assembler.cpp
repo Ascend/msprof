@@ -18,6 +18,9 @@
 
 #include "analysis/csrc/application/summary/task_time_assembler.h"
 
+#include <algorithm>
+#include <unordered_map>
+
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -67,19 +70,7 @@ uint8_t TaskTimeAssembler::AssembleData(DataInventory& dataInventory)
         FormatHostTaskData(*hostTaskData);
     }
 
-    AssembleTaskTime(*ascendTaskData);
-
-    if (res_.empty())
-    {
-        ERROR("Can't match any task time data, failed to generate task_time_*.csv");
-        return ASSEMBLE_FAILED;
-    }
-    // keep res in the order of device && start time
-    sortRes();
-
-    WriteToFile(File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, TASK_TIME_SUMMARY_NAME}), {});
-
-    return ASSEMBLE_SUCCESS;
+    return AssembleTaskTime(*ascendTaskData);
 }
 
 void TaskTimeAssembler::FormatTaskInfoData(const std::vector<TaskInfoData>& taskInfoData)
@@ -112,7 +103,7 @@ void TaskTimeAssembler::FormatHostTaskData(const std::vector<HostTask>& hostTask
     }
 }
 
-std::vector<AscendTaskData> FilterAscendTaskData(const std::vector<AscendTaskData>& ascendTaskDatas)
+std::vector<size_t> FilterAscendTaskData(const std::vector<AscendTaskData>& ascendTaskDatas)
 {
     struct TupleHash
     {
@@ -134,13 +125,14 @@ std::vector<AscendTaskData> FilterAscendTaskData(const std::vector<AscendTaskDat
         }
     };
     typedef std::tuple<uint32_t, uint32_t, uint32_t> KeyType;
-    std::unordered_map<KeyType, std::vector<AscendTaskData>, TupleHash, TupleEqual> groups_dict;
+    std::unordered_map<KeyType, std::vector<size_t>, TupleHash, TupleEqual> groups_dict;
     groups_dict.reserve(ascendTaskDatas.size() / 2);
-    for (const auto& item : ascendTaskDatas)
+    for (size_t i = 0; i < ascendTaskDatas.size(); ++i)
     {
-        groups_dict[KeyType(item.streamId, item.taskId, item.batchId)].push_back(item);
+        const auto& item = ascendTaskDatas[i];
+        groups_dict[KeyType(item.streamId, item.taskId, item.batchId)].push_back(i);
     }
-    std::vector<AscendTaskData> result;
+    std::vector<size_t> result;
     size_t estimated_size = 0;
     for (const auto& pair : groups_dict)
     {
@@ -157,8 +149,9 @@ std::vector<AscendTaskData> FilterAscendTaskData(const std::vector<AscendTaskDat
         }
         bool mix = false;
         bool staticGraph = true;
-        for (const auto& task : tasks)
+        for (size_t idx : tasks)
         {
+            const auto& task = ascendTaskDatas[idx];
             if (task.contextId > 0 && task.contextId != INVALID_CONTEXT_ID)
             {
                 break;
@@ -171,15 +164,16 @@ std::vector<AscendTaskData> FilterAscendTaskData(const std::vector<AscendTaskDat
         }
         if (mix || staticGraph)
         {
-            for (const auto& task : tasks)
+            for (size_t idx : tasks)
             {
+                const auto& task = ascendTaskDatas[idx];
                 if (mix && task.contextId == 0)
                 {
-                    result.push_back(task);
+                    result.push_back(idx);
                 }
                 if (staticGraph)
                 {
-                    result.push_back(task);
+                    result.push_back(idx);
                 }
             }
         }
@@ -187,16 +181,55 @@ std::vector<AscendTaskData> FilterAscendTaskData(const std::vector<AscendTaskDat
     return result;
 }
 
-void TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& ascendTaskData)
+struct TaskTimeKey
+{
+    size_t index = 0;
+    uint64_t timestamp = 0;
+};
+
+uint8_t TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& ascendTaskData)
 {
     if (ascendTaskData.empty())
     {
         WARN("ascend task data is empty, no ascend task data for task time, check ascend task please.");
-        return;
+        ERROR("Can't match any task time data, failed to generate task_time_*.csv");
+        return ASSEMBLE_FAILED;
     }
-
-    for (auto& ascendTaskDatum : FilterAscendTaskData(ascendTaskData))
+    const std::vector<size_t> indices = FilterAscendTaskData(ascendTaskData);
+    std::vector<TaskTimeKey> keys;
+    keys.reserve(indices.size());
+    for (size_t idx : indices)
     {
+        const auto& item = ascendTaskData[idx];
+        TaskTimeKey key;
+        key.index = idx;
+        key.timestamp = item.timestamp;
+        keys.emplace_back(std::move(key));
+    }
+    if (keys.empty())
+    {
+        ERROR("Can't match any task time data, failed to generate task_time_*.csv");
+        return ASSEMBLE_FAILED;
+    }
+    std::sort(keys.begin(), keys.end(),
+              [](const TaskTimeKey& lv, const TaskTimeKey& rv) { return lv.timestamp < rv.timestamp; });
+    const std::string fileName = File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, TASK_TIME_SUMMARY_NAME});
+    auto& consumer = DeliverableConsumer::Instance();
+    consumer.StartCsv(fileName, headers_, {}, "", keys.size());
+    std::vector<std::vector<std::string>> batch;
+    batch.reserve(std::min(CSV_ROW_BATCH, keys.size()));
+    auto flush = [&consumer, &fileName, &batch]()
+    {
+        if (batch.empty())
+        {
+            return;
+        }
+        consumer.AppendCsv(fileName, batch);
+        batch.clear();
+    };
+    for (const auto& key : keys)
+    {
+        const auto& ascendTaskDatum = ascendTaskData[key.index];
         TaskId taskId{ascendTaskDatum.streamId, ascendTaskDatum.batchId, ascendTaskDatum.taskId,
                       ascendTaskDatum.contextId, ascendTaskDatum.deviceId};
         auto taskInfoIt = formatedTaskInfo_.find(taskId);
@@ -216,34 +249,25 @@ void TaskTimeAssembler::AssembleTaskTime(const std::vector<AscendTaskData>& asce
         const std::string taskType = (taskInfoIt != formatedTaskInfo_.end() && taskInfoIt->second.second != NA)
                                          ? taskInfoIt->second.second
                                          : ascendTaskDatum.taskType;
-
-        auto row = {std::to_string(ascendTaskDatum.deviceId),
-                    opName,
-                    taskType,
-                    std::to_string(taskId.streamId),
-                    std::to_string(taskId.taskId),
-                    DivideByPowersOfTenWithPrecision(static_cast<uint64_t>(ascendTaskDatum.duration)),
-                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.timestamp, true),
-                    DivideByPowersOfTenWithPrecision(ascendTaskDatum.end, true)};
-        res_.emplace_back(row);
+        std::vector<std::string> row;
+        row.reserve(headers_.size());
+        row.emplace_back(std::to_string(ascendTaskDatum.deviceId));
+        row.emplace_back(opName);
+        row.emplace_back(taskType);
+        row.emplace_back(std::to_string(taskId.streamId));
+        row.emplace_back(std::to_string(taskId.taskId));
+        row.emplace_back(DivideByPowersOfTenWithPrecision(static_cast<uint64_t>(ascendTaskDatum.duration)));
+        row.emplace_back(DivideByPowersOfTenWithPrecision(ascendTaskDatum.timestamp, true));
+        row.emplace_back(DivideByPowersOfTenWithPrecision(ascendTaskDatum.end, true));
+        batch.emplace_back(std::move(row));
+        if (batch.size() >= CSV_ROW_BATCH)
+        {
+            flush();
+        }
     }
-}
-
-void TaskTimeAssembler::sortRes()
-{
-    // 业务可以保证headers_有值的情况下，device_id与start_time的下标是有效的
-    const auto DEVICE_INDEX = 0;
-    const auto START_TIME_INDEX = 6;
-    using rowType = std::vector<std::string>;
-    std::sort(res_.begin(), res_.end(),
-              [DEVICE_INDEX, START_TIME_INDEX](const rowType& lv, const rowType& rv)
-              {
-                  if (lv.at(DEVICE_INDEX) == rv.at(DEVICE_INDEX))
-                  {
-                      return lv.at(START_TIME_INDEX) < rv.at(START_TIME_INDEX);
-                  }
-                  return lv.at(START_TIME_INDEX) < rv.at(START_TIME_INDEX);
-              });
+    flush();
+    consumer.FinishCsv(fileName);
+    return ASSEMBLE_SUCCESS;
 }
 
 }  // namespace Application

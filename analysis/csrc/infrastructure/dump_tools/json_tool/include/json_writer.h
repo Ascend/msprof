@@ -17,26 +17,31 @@
 #ifndef ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_JSON_TOOL_INCLUDE_JSON_WRITER_H
 #define ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_JSON_TOOL_INCLUDE_JSON_WRITER_H
 
-#include <cstddef>
-#include <string>
-#include <memory>
 #include <stdint.h>
-#include "rapidjson/stringbuffer.h"
+
+#include <cstddef>
+#include <memory>
+#include <string>
+
 #include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Infra {
+namespace Infra
+{
 
-class JsonWriter final {
-public:
+class JsonWriter final
+{
+   public:
     JsonWriter();
 
     ~JsonWriter();
 
     /// Obtains the serialized JSON string.
     const char *GetString() const;
-    size_t GetSize() const {return stream_->GetSize(); }
+    size_t GetSize() const { return stream_->GetSize(); }
 
     JsonWriter &StartObject();
 
@@ -70,18 +75,18 @@ public:
 
     JsonWriter &SetNull();
 
-private:
+   private:
     JsonWriter(const JsonWriter &);
 
     JsonWriter &operator=(const JsonWriter &);
 
     // PIMPL idiom
-    std::unique_ptr<rapidjson::StringBuffer> stream_;      // Stream buffer.
-    std::unique_ptr<rapidjson::Writer<rapidjson::StringBuffer>> writer_;      // JSON writer.
+    std::unique_ptr<rapidjson::StringBuffer> stream_;                     // Stream buffer.
+    std::unique_ptr<rapidjson::Writer<rapidjson::StringBuffer>> writer_;  // JSON writer.
 };
 
-}
+}  // namespace Infra
 
-}
+}  // namespace Analysis
 
 #endif

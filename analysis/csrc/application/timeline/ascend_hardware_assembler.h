@@ -131,7 +131,7 @@ class AscendHardwareAssembler : public JsonAssembler
     AscendHardwareAssembler();
 
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     void GenerateTaskTrace(const std::vector<AscendTaskData> &taskData, const std::string &profPath,
                            const LayerInfo &layer, std::unordered_map<uint16_t, uint32_t> &pidMap);
     void InitData(DataInventory &dataInventory, std::vector<AscendTaskData> &taskData);
@@ -146,7 +146,6 @@ class AscendHardwareAssembler : public JsonAssembler
     void GenerateMemcpyAsyncConnectionTrace(const AscendTaskData &data, uint32_t formatPid);
 
    private:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
     std::shared_ptr<std::unordered_map<uint32_t, uint32_t>> logicStream_;
     std::map<TaskId, std::string> opName_;
     std::map<TaskId, std::string> taskType_;

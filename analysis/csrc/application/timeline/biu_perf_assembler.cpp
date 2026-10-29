@@ -20,12 +20,15 @@
 
 #include "analysis/csrc/domain/entities/viewer_data/system/include/biu_perf_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
+#include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 using namespace Analysis::Domain;
 
 namespace Analysis
 {
 namespace Application
 {
+using namespace Analysis::Utils;
 BiuPerfAssembler::BiuPerfAssembler() : JsonAssembler(PROCESS_BIU_PERF, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 std::map<std::pair<uint16_t, std::string>, std::vector<BiuPerfData>> groupBiuPerfData(
@@ -50,7 +53,7 @@ std::map<std::pair<uint16_t, std::string>, std::vector<BiuPerfData>> groupBiuPer
 }
 
 void GenerateBiuPerfTrace(std::vector<BiuPerfData> &biuPerfData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                          std::vector<std::shared_ptr<TraceEvent>> &res)
+                          JsonEventSink &res)
 {
     // group by (group_id, core_type)
     std::map<std::pair<uint16_t, std::string>, std::vector<BiuPerfData>> groupedData = groupBiuPerfData(biuPerfData);
@@ -77,7 +80,7 @@ void GenerateBiuPerfTrace(std::vector<BiuPerfData> &biuPerfData, const std::unor
     }
 }
 
-uint8_t BiuPerfAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t BiuPerfAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto biuPerf = dataInventory.GetPtr<std::vector<BiuPerfData>>();
     if (biuPerf == nullptr)
@@ -100,19 +103,13 @@ uint8_t BiuPerfAssembler::AssembleData(DataInventory &dataInventory, JsonWriter 
         WARN("Can't found any device info.");
         return DATA_NOT_EXIST;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateBiuPerfTrace(*biuPerf, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateBiuPerfTrace(*biuPerf, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any biu perf process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

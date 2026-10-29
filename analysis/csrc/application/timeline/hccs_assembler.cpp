@@ -40,7 +40,7 @@ const std::string TX_SERIES = "Tx(MB/s)";
 HCCSAssembler::HCCSAssembler() : JsonAssembler(PROCESS_HCCS, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateHccsTrace(std::vector<HccsData> &hccsData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                       std::vector<std::shared_ptr<TraceEvent>> &res)
+                       JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -58,7 +58,7 @@ void GenerateHccsTrace(std::vector<HccsData> &hccsData, const std::unordered_map
     }
 }
 
-uint8_t HCCSAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t HCCSAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto hccsData = dataInventory.GetPtr<std::vector<HccsData>>();
     if (hccsData == nullptr)
@@ -76,19 +76,13 @@ uint8_t HCCSAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &os
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateHccsTrace(*hccsData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateHccsTrace(*hccsData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any HCCS process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

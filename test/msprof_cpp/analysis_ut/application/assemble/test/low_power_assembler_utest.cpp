@@ -194,7 +194,7 @@ TEST_F(LowPowerAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "name\":\"process_name\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\":\"AI Core Freq\"}},"
         "{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},"
         "{\"name\":\"process_sort_index\",\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(LowPowerAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -205,7 +205,7 @@ TEST_F(LowPowerAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<LowPowerData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -248,7 +248,9 @@ TEST_F(LowPowerAssemblerUTest, ShouldIgnoreUnsupportedDieAndKeepSupportedDies)
         "{\"name\":\"process_sort_index\",\"pid\":2383960545,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
     // json_assembler.cpp 里的 pidMap 是 std::unordered_map<uint16_t, uint32_t>，遍历它生成 metadata 时，device 0 和
     // device 1 的先后次序没有保证
-    EXPECT_TRUE(res.back() == expectStr1 || res.back() == expectStr2);
+    const std::string wrapped1 = std::string("[") + expectStr1.substr(0, expectStr1.size() - 1);
+    const std::string wrapped2 = std::string("[") + expectStr2.substr(0, expectStr2.size() - 1);
+    EXPECT_TRUE(res.back() == wrapped1 || res.back() == wrapped2);
 }
 
 TEST_F(LowPowerAssemblerUTest, ShouldReturnFalseWhenAllDiesAreUnsupported)
@@ -288,5 +290,5 @@ TEST_F(LowPowerAssemblerUTest, ShouldReuseSameProcessMetadataWhenSupportedDiesBe
         "{\"name\":\"AI Core Freq\"}},{\"name\":\"process_labels\",\"pid\":2383960544,\"tid\":0,"
         "\"ph\":\"M\",\"args\":{\"labels\":\"NPU 0\"}},{\"name\":\"process_sort_index\","
         "\"pid\":2383960544,\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":16}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }

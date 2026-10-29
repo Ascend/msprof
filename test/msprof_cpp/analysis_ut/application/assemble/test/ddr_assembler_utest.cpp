@@ -121,7 +121,7 @@ TEST_F(DDRAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"ph\":\"C\",\"args\":{\"Read(MB/s)\":56.78}},{\"name\":\"DDR/Write\",\"pid\":2383960640,"
         "\"tid\":0,\"ts\":\"1724405892226799.429\",\"ph\":\"C\",\"args\":{\"Write(MB/s)\":"
         "17.56}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(DDRAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -132,6 +132,6 @@ TEST_F(DDRAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     MAKE_SHARED_NO_OPERATION(dataS, std::vector<DDRData>, data);
     dataInventory_.Inject(dataS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));  // pid 2328086
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

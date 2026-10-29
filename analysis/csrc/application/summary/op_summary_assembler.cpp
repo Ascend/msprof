@@ -19,6 +19,7 @@
 #include "analysis/csrc/application/summary/op_summary_assembler.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <iomanip>
 #include <sstream>
 
@@ -60,15 +61,29 @@ const std::string CUBE_UTILIZATION = "cube_utilization(%)";
 const std::string AIV_TIME = "aiv_time(us)";
 const std::string AIV_TOTAL_TIME = "aiv_total_time(us)";
 
-// headers index
-const std::string DUR_IDX = "durIdx";
-const std::string USAGE_IDX = "usageIdx";
-
 const std::vector<std::string> BASE_HEADER{DEVICE_ID, MODEL_ID,  TASK_ID,         STREAM_ID,     OP_NAME,       OP_TYPE,
                                            OP_STATE,  TASK_TYPE, TASK_START_TIME, TASK_DURATION, TASK_WAIT_TIME};
 const std::vector<std::string> ADDITIONAL_TENSOR_HEADER{
     BLOCK_NUM,     MIX_BLOCK_NUM, HF32_ELIGIBLE,     INPUT_SHAPES,   INPUT_DATA_TYPES,
     INPUT_FORMATS, OUTPUT_SHAPES, OUTPUT_DATA_TYPES, OUTPUT_FORMATS, CONTEXT_ID};
+
+// Cube utilization is the only pmu value derived from another column, so the formula lives here and
+// both the assembler and the emitter call it.
+void ComputeCubeUsage(std::string &usageCell, const std::string &durationCell)
+{
+    auto duration = 0.0;
+    double usage = 0.0;
+    if (StrToDouble(duration, durationCell) == ANALYSIS_OK && !Utils::IsDoubleEqual(duration, 0.0) &&
+        StrToDouble(usage, usageCell) == ANALYSIS_OK)
+    {
+        usage = usage / duration;
+        std::ostringstream ss;
+        ss << std::fixed << std::setprecision(ACCURACY_THREE) << usage;
+        usageCell = ss.str();
+        return;
+    }
+    usageCell = "0";
+}
 
 int GetIndexForVec(const std::vector<std::string> &vec, const std::string &key)
 {
@@ -86,26 +101,21 @@ OpSummaryAssembler::OpSummaryAssembler(const std::string &name, const std::strin
 {
 }
 
-void OpSummaryAssembler::GenerateHcclBody(std::vector<CommunicationOpData> &opData)
+void OpSummaryAssembler::GenerateHcclBody(const std::vector<CommunicationOpData> &opData,
+                                          std::vector<SortedOpRow> &rows)
 {
-    auto len = headers_.size();
-    for (const auto &data : opData)
+    rows.reserve(rows.size() + opData.size());
+    for (size_t i = 0; i < opData.size(); ++i)
     {
-        std::vector<std::string> row = {std::to_string(data.deviceId),
-                                        std::to_string(data.modelId),
-                                        NA,
-                                        NA,
-                                        data.opName,
-                                        data.opType,
-                                        NA,
-                                        "COMMUNICATION",
-                                        DivideByPowersOfTenWithPrecision(data.timestamp),
-                                        DivideByPowersOfTenWithPrecision(data.end - data.timestamp),
-                                        "0",
-                                        "0"};
-        // 业务可以保证headers的长度会超过hcclOp数据的长度
-        row.insert(row.end(), len - row.size(), NA);
-        res_.emplace_back(row);
+        const auto &data = opData[i];
+        SortedOpRow row;
+        row.deviceId = data.deviceId;
+        row.timestamp = data.timestamp;
+        row.duration = data.end - data.timestamp;
+        row.index = i;
+        row.hccl = true;
+        row.pad = true;
+        rows.emplace_back(std::move(row));
     }
 }
 
@@ -140,58 +150,59 @@ std::vector<std::string> OpSummaryAssembler::GenerateOneTaskRow(const TaskInfoDa
             ctxId};
 }
 
-void OpSummaryAssembler::MergeTaskAndPmu(std::shared_ptr<MetricSummary> &pmu, std::vector<std::string> &row,
-                                         const TaskId &id, std::unordered_map<std::string, int> &indexTable)
-{
-    if (pmu == nullptr)
-    {
-        return;
-    }
-    // pmu的结构为map<TaskId, vector<vector<string>>>
-    auto it = (*pmu).data.find(id);
-    if (it != (*pmu).data.end() && !it->second.empty())
-    {
-        // 队列匹配，取出第一个元素
-        auto data = it->second.front();
-        for (const auto &pair : data)
-        {
-            row.emplace_back(pair);
-        }
-        AddCubeUsage(row, indexTable);
-        // 删除第一个元素
-        it->second.erase(it->second.begin());
-        // 判断vector中是否还有元素，如果没有就直接删除整个键值对<TaskId, vector<vector<string>>>
-        if (it->second.empty())
-        {
-            pmu->data.erase(it);
-        }
-    }
-    else
-    {
-        row.insert(row.end(), headers_.size() - row.size(), NA);
-    }
-}
-
 void OpSummaryAssembler::GenerateOpBody(const AssociatedTaskCollection &associatedTasks,
-                                        std::shared_ptr<MetricSummary> &pmu)
+                                        std::shared_ptr<MetricSummary> &pmu, std::vector<SortedOpRow> &rows)
 {
+    // Length of the row GenerateOneTaskRow builds, taken before the pmu labels are appended so the
+    // two can never drift apart.
+    const size_t baseCols = headers_.size();
     if (pmu != nullptr)
     {
         headers_.insert(headers_.end(), pmu->labels.begin(), pmu->labels.end());
     }
-    std::unordered_map<std::string, int> indexTable{{DUR_IDX, GetIndexForVec(headers_, TASK_DURATION)},
-                                                    {USAGE_IDX, GetIndexForVec(headers_, CUBE_UTILIZATION)}};
-    for (const auto &item : associatedTasks.records)
+    // Cube utilization is the only pmu value derived from another column. Resolve its position once
+    // instead of rebuilding the whole base row for every task.
+    const int usageIdx = GetIndexForVec(headers_, CUBE_UTILIZATION);
+    const bool usageInPmu = usageIdx >= 0 && static_cast<size_t>(usageIdx) >= baseCols;
+    rows.reserve(rows.size() + associatedTasks.records.size());
+    for (size_t recordIndex = 0; recordIndex < associatedTasks.records.size(); ++recordIndex)
     {
+        const auto &item = associatedTasks.records[recordIndex];
         if (!item.opSummaryRequired)
         {
             continue;
         }
-        auto row = GenerateOneTaskRow(*item.taskInfo, *item.ascendTask);
         TaskId taskId{item.ascendTask->streamId, item.ascendTask->batchId, item.ascendTask->taskId,
                       item.ascendTask->contextId, item.ascendTask->deviceId};
-        MergeTaskAndPmu(pmu, row, taskId, indexTable);
-        res_.emplace_back(row);
+        SortedOpRow key;
+        key.deviceId = item.ascendTask->deviceId;
+        key.timestamp = item.ascendTask->timestamp;
+        key.duration = item.ascendTask->end - item.ascendTask->timestamp;
+        key.index = recordIndex;
+        if (pmu != nullptr)
+        {
+            auto it = pmu->data.find(taskId);
+            if (it != pmu->data.end() && !it->second.empty())
+            {
+                // Consume the first pmu row for this task, exactly like the emitter used to.
+                key.extra = it->second.front();
+                it->second.erase(it->second.begin());
+                if (it->second.empty())
+                {
+                    pmu->data.erase(it);
+                }
+                const size_t offset = static_cast<size_t>(usageIdx) - baseCols;
+                if (usageInPmu && offset < key.extra.size() && key.extra[offset] != NA)
+                {
+                    ComputeCubeUsage(key.extra[offset], DivideByPowersOfTenWithPrecision(key.duration));
+                }
+            }
+            else
+            {
+                key.pad = true;
+            }
+        }
+        rows.emplace_back(std::move(key));
     }
 }
 
@@ -214,80 +225,96 @@ std::set<int> OpSummaryAssembler::GetMaskCols()
     return maskCols;
 }
 
-void OpSummaryAssembler::AddCubeUsage(std::vector<std::string> &data, std::unordered_map<std::string, int> &indexTable)
+void OpSummaryAssembler::EmitOpSummary(std::vector<SortedOpRow> &rows, const AssociatedTaskCollection *associatedTasks,
+                                       const std::vector<CommunicationOpData> *hcclData, const std::set<int> &maskCols)
 {
-    const auto usageIdx = indexTable.at(USAGE_IDX);
-    const auto durIdx = indexTable.at(DUR_IDX);
-    if (usageIdx == Analysis::Common::INVALID_VALUE || durIdx == Analysis::Common::INVALID_VALUE ||
-        data[usageIdx] == NA)
-    {
-        return;
-    }
-
-    auto dur = 0.0;
-    uint64_t cycle;
-    double usage = 0.0;
-    if (StrToDouble(dur, data[durIdx]) == ANALYSIS_OK && !Utils::IsDoubleEqual(dur, 0.0) &&
-        StrToDouble(usage, data[usageIdx]) == ANALYSIS_OK)
-    {
-        usage = usage / dur;
-        std::ostringstream ss;
-        ss << std::fixed << std::setprecision(ACCURACY_THREE) << usage;
-        data[usageIdx] = ss.str();
-    }
-    else
-    {
-        data[usageIdx] = "0";
-    }
-}
-
-void OpSummaryAssembler::CalculateWaitTime()
-{
-    // 业务可以保证headers_有值的情况下，device_id与start_time的下标是有效的
-    const auto deviceIndex = GetIndexForVec(headers_, DEVICE_ID);
-    const auto timeIndex = GetIndexForVec(headers_, TASK_START_TIME);
-    using rowType = std::vector<std::string>;
-    std::sort(res_.begin(), res_.end(),
-              [deviceIndex, timeIndex](const rowType &lv, const rowType &rv)
+    std::sort(rows.begin(), rows.end(),
+              [](const SortedOpRow &lv, const SortedOpRow &rv)
               {
-                  if (lv.at(deviceIndex) == rv.at(deviceIndex))
+                  if (lv.deviceId == rv.deviceId)
                   {
-                      return lv.at(timeIndex) < rv.at(timeIndex);
+                      return lv.timestamp < rv.timestamp;
                   }
-                  return lv.at(deviceIndex) < rv.at(deviceIndex);
+                  return lv.deviceId < rv.deviceId;
               });
-    const auto durIndex = GetIndexForVec(headers_, TASK_DURATION);
-    const auto waitIndex = GetIndexForVec(headers_, TASK_WAIT_TIME);
-    double currStart = 0.0;
-    double preStart = 0.0;
-    double preDur = 0.0;
-    for (std::size_t i = 1; i < res_.size(); ++i)
+    const int timeIndex = GetIndexForVec(headers_, TASK_START_TIME);
+    const int waitIndex = GetIndexForVec(headers_, TASK_WAIT_TIME);
+    const std::string fileName = File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, OP_SUMMARY_NAME});
+    auto &consumer = DeliverableConsumer::Instance();
+    consumer.StartCsv(fileName, headers_, maskCols, "", rows.size());
+    std::vector<std::vector<std::string>> batch;
+    batch.reserve(std::min(CSV_ROW_BATCH, rows.size()));
+    auto flush = [&consumer, &fileName, &batch]()
     {
-        if (StrToDouble(currStart, res_.at(i).at(timeIndex)) == ANALYSIS_OK &&
-            StrToDouble(preStart, res_.at(i - 1).at(timeIndex)) == ANALYSIS_OK &&
-            StrToDouble(preDur, res_.at(i - 1).at(durIndex)) == ANALYSIS_OK)
+        if (batch.empty())
         {
-            const auto waitTime = std::max(0.0, currStart - preStart - preDur);
-            res_.at(i).at(waitIndex) = std::to_string(waitTime);
+            return;
+        }
+        consumer.AppendCsv(fileName, batch);
+        batch.clear();
+    };
+    for (size_t i = 0; i < rows.size(); ++i)
+    {
+        const SortedOpRow &key = rows[i];
+        std::vector<std::string> record;
+        if (key.hccl)
+        {
+            const auto &data = hcclData->at(key.index);
+            record = {std::to_string(data.deviceId),
+                      std::to_string(data.modelId),
+                      NA,
+                      NA,
+                      data.opName,
+                      data.opType,
+                      NA,
+                      "COMMUNICATION",
+                      DivideByPowersOfTenWithPrecision(data.timestamp),
+                      DivideByPowersOfTenWithPrecision(data.end - data.timestamp),
+                      "0",
+                      "0"};
+            if (headers_.size() > record.size())
+            {
+                record.insert(record.end(), headers_.size() - record.size(), NA);
+            }
+        }
+        else
+        {
+            const auto &item = associatedTasks->records[key.index];
+            record = GenerateOneTaskRow(*item.taskInfo, *item.ascendTask);
+            if (!key.extra.empty())
+            {
+                record.insert(record.end(), key.extra.begin(), key.extra.end());
+            }
+            else if (key.pad && headers_.size() > record.size())
+            {
+                record.insert(record.end(), headers_.size() - record.size(), NA);
+            }
+        }
+        if (i > 0 && waitIndex >= 0 && static_cast<size_t>(waitIndex) < record.size())
+        {
+            double currStart = 0.0;
+            double preStart = 0.0;
+            double preDur = 0.0;
+            if (StrToDouble(currStart, DivideByPowersOfTenWithPrecision(rows[i].timestamp)) == ANALYSIS_OK &&
+                StrToDouble(preStart, DivideByPowersOfTenWithPrecision(rows[i - 1].timestamp)) == ANALYSIS_OK &&
+                StrToDouble(preDur, DivideByPowersOfTenWithPrecision(rows[i - 1].duration)) == ANALYSIS_OK)
+            {
+                const auto waitTime = std::max(0.0, currStart - preStart - preDur);
+                record[static_cast<size_t>(waitIndex)] = std::to_string(waitTime);
+            }
+        }
+        if (timeIndex >= 0 && timeIndex < static_cast<int>(record.size()))
+        {
+            record[static_cast<size_t>(timeIndex)] = FormatHighPrecisionForCsv(record[static_cast<size_t>(timeIndex)]);
+        }
+        batch.emplace_back(std::move(record));
+        if (batch.size() >= CSV_ROW_BATCH)
+        {
+            flush();
         }
     }
-}
-
-void OpSummaryAssembler::WriteToFile(const std::string &fileName, const std::set<int> &maskCols)
-{
-    auto timeIndex = GetIndexForVec(headers_, TASK_START_TIME);
-    // TASK_START_TIME 是绝对时刻(us)，追加\t强制Excel按文本处理避免精度丢失；
-    // 必须在CalculateWaitTime完成数字解析/排序后再打标，否则尾部\t会导致StrToDouble失败
-    for (auto &row : res_)
-    {
-        if (timeIndex < static_cast<int>(row.size()))
-        {
-            row[timeIndex] = FormatHighPrecisionForCsv(row[timeIndex]);
-        }
-    }
-
-    CsvWriter csvWriter = CsvWriter();
-    csvWriter.WriteCsv(fileName, headers_, res_, maskCols);
+    flush();
+    consumer.FinishCsv(fileName);
 }
 
 uint8_t OpSummaryAssembler::AssembleData(DataInventory &dataInventory)
@@ -301,10 +328,11 @@ uint8_t OpSummaryAssembler::AssembleData(DataInventory &dataInventory)
         return DATA_NOT_EXIST;
     }
     headers_ = BASE_HEADER;
+    std::vector<SortedOpRow> rows;
     if (associatedTasks != nullptr)
     {
         headers_.insert(headers_.end(), ADDITIONAL_TENSOR_HEADER.begin(), ADDITIONAL_TENSOR_HEADER.end());
-        GenerateOpBody(*associatedTasks, metricData);
+        GenerateOpBody(*associatedTasks, metricData, rows);
     }
     else
     {
@@ -312,15 +340,14 @@ uint8_t OpSummaryAssembler::AssembleData(DataInventory &dataInventory)
     }
     if (hcclOpData != nullptr)
     {
-        GenerateHcclBody(*hcclOpData);
+        GenerateHcclBody(*hcclOpData, rows);
     }
-    CalculateWaitTime();
-    if (res_.empty())
+    if (rows.empty())
     {
         ERROR("Can't match any task data, failed to generate op_summary.csv");
         return ASSEMBLE_FAILED;
     }
-    WriteToFile(File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH, OP_SUMMARY_NAME}), GetMaskCols());
+    EmitOpSummary(rows, associatedTasks.get(), hcclOpData.get(), GetMaskCols());
     return ASSEMBLE_SUCCESS;
 }
 

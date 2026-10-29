@@ -71,7 +71,7 @@ void MsprofTxAssembler::GenerateTxExConnectionTrace(const MsprofTxHostData& data
     std::shared_ptr<FlowEvent> start;
     MAKE_SHARED_RETURN_VOID(start, FlowEvent, pid, data.tid, DivideByPowersOfTenWithPrecision(data.timestamp), MS_TX,
                             connId, name, FLOW_START);
-    res_.push_back(start);
+    events_.push_back(start);
 }
 
 void MsprofTxAssembler::GenerateTxTrace(const std::vector<MsprofTxHostData>& txData, uint32_t pid)
@@ -88,7 +88,7 @@ void MsprofTxAssembler::GenerateTxTrace(const std::vector<MsprofTxHostData>& txD
                                     static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US,
                                     DivideByPowersOfTenWithPrecision(data.timestamp), data.message, data.category,
                                     data.payloadType, data.messageType, data.payloadValue, eventTypeStr);
-            res_.push_back(tx);
+            events_.push_back(tx);
         }
         else
         {  // tx ex数据有markId字段可以作为connectionId
@@ -97,7 +97,7 @@ void MsprofTxAssembler::GenerateTxTrace(const std::vector<MsprofTxHostData>& txD
                                     static_cast<double>(data.end - data.timestamp) / Analysis::Common::NS_TO_US,
                                     DivideByPowersOfTenWithPrecision(data.timestamp), data.message, eventTypeStr,
                                     data.domain);
-            res_.push_back(txEx);
+            events_.push_back(txEx);
             GenerateTxExConnectionTrace(data, pid);
         }
     }
@@ -107,29 +107,29 @@ void MsprofTxAssembler::GenerateHMetaDataEvent(const LayerInfo& layer, uint32_t 
 {
     std::shared_ptr<MetaDataNameEvent> processName;
     MAKE_SHARED_RETURN_VOID(processName, MetaDataNameEvent, pid, DEFAULT_TID, META_DATA_PROCESS_NAME, layer.component);
-    res_.push_back(processName);
+    events_.push_back(processName);
     std::shared_ptr<MetaDataLabelEvent> processLabel;
     MAKE_SHARED_RETURN_VOID(processLabel, MetaDataLabelEvent, pid, DEFAULT_TID, META_DATA_PROCESS_LABEL,
                             GetLayerInfoLabelWithDeviceId(layer.label, pid));
-    res_.push_back(processLabel);
+    events_.push_back(processLabel);
     std::shared_ptr<MetaDataIndexEvent> proIndex;
     MAKE_SHARED_RETURN_VOID(proIndex, MetaDataIndexEvent, pid, DEFAULT_TID, META_DATA_PROCESS_INDEX, layer.sortIndex);
-    res_.push_back(proIndex);
+    events_.push_back(proIndex);
     std::string thName;
     for (const auto& it : hPidTidSet_)
     {
         thName = "Thread " + std::to_string(it.second);
         std::shared_ptr<MetaDataNameEvent> threadName;
         MAKE_SHARED_RETURN_VOID(threadName, MetaDataNameEvent, it.first, it.second, META_DATA_THREAD_NAME, thName);
-        res_.push_back(threadName);
+        events_.push_back(threadName);
         std::shared_ptr<MetaDataIndexEvent> threadIndex;
         MAKE_SHARED_RETURN_VOID(threadIndex, MetaDataIndexEvent, it.first, it.second, META_DATA_THREAD_INDEX,
                                 it.second);
-        res_.push_back(threadIndex);
+        events_.push_back(threadIndex);
     }
 }
 
-uint8_t MsprofTxAssembler::AssembleData(DataInventory& dataInventory, JsonWriter& ostream, const std::string& profPath)
+uint8_t MsprofTxAssembler::AssembleData(DataInventory& dataInventory, const std::string& profPath)
 {
     auto txData = dataInventory.GetPtr<std::vector<MsprofTxHostData>>();
     if (txData == nullptr)
@@ -144,17 +144,11 @@ uint8_t MsprofTxAssembler::AssembleData(DataInventory& dataInventory, JsonWriter
     auto formatPid = JsonAssembler::GetFormatPid(pid, hostLayer.sortIndex);
     GenerateTxTrace(*txData, formatPid);
     GenerateHMetaDataEvent(hostLayer, formatPid);
-    if (res_.empty())
+    if (events_.empty())
     {
         ERROR("Can't Generate any msprof tx process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto& node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

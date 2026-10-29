@@ -44,7 +44,7 @@ const std::unordered_map<std::string, CounterName> CounterNameMap{{"0", {"APP/HB
 NpuMemAssembler::NpuMemAssembler() : JsonAssembler(PROCESS_NPU_MEM, {{MSPROF_JSON_FILE, FileCategory::MSPROF}}) {}
 
 void GenerateNpuMemTrace(std::vector<NpuMemData> &npuMemData, const std::unordered_map<uint16_t, uint32_t> &pidMap,
-                         std::vector<std::shared_ptr<TraceEvent>> &res)
+                         JsonEventSink &res)
 {
     std::shared_ptr<CounterEvent> event;
     std::string time;
@@ -68,7 +68,7 @@ void GenerateNpuMemTrace(std::vector<NpuMemData> &npuMemData, const std::unorder
     }
 }
 
-uint8_t NpuMemAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath)
+uint8_t NpuMemAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto npuMemData = dataInventory.GetPtr<std::vector<NpuMemData>>();
     if (npuMemData == nullptr)
@@ -86,19 +86,13 @@ uint8_t NpuMemAssembler::AssembleData(DataInventory &dataInventory, JsonWriter &
         uint32_t formatPid = JsonAssembler::GetFormatPid(pid, layerInfo.sortIndex, deviceId);
         pidMap[deviceId] = formatPid;
     }
-    GenerateHWMetaData(pidMap, layerInfo, res_);
-    GenerateNpuMemTrace(*npuMemData, pidMap, res_);
-    if (res_.empty())
+    GenerateHWMetaData(pidMap, layerInfo, events_);
+    GenerateNpuMemTrace(*npuMemData, pidMap, events_);
+    if (events_.empty())
     {
         ERROR("Can't Generate any NpuMem process data");
         return ASSEMBLE_FAILED;
     }
-    for (const auto &node : res_)
-    {
-        node->DumpJson(ostream);
-    }
-    // 为了让下一个写入的内容形成正确的JSON格式，需要补一个","
-    ostream << ",";
     return ASSEMBLE_SUCCESS;
 }
 }  // namespace Application

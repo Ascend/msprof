@@ -32,10 +32,8 @@ class HostUsageAssembler : public JsonAssembler
     HostUsageAssembler(const std::string &assembleName);
 
    protected:
-    std::vector<std::shared_ptr<TraceEvent>> res_;
-
    private:
-    uint8_t AssembleData(DataInventory &dataInventory, JsonWriter &ostream, const std::string &profPath) override;
+    uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
     virtual uint8_t GenerateDataTrace(DataInventory &dataInventory, uint32_t pidMap) = 0;
 };
 

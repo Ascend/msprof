@@ -174,7 +174,7 @@ TEST_F(MsprofTxAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "{\"sort_index\":6}},{\"name\":\"thread_name\",\"pid\":223,\"tid\":1024,\"ph\":\"M\","
         "\"args\":{\"name\":\"Thread 1024\"}},{\"name\":\"thread_sort_index\",\"pid\":223,"
         "\"tid\":1024,\"ph\":\"M\",\"args\":{\"sort_index\":1024}},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(MsprofTxAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -184,7 +184,7 @@ TEST_F(MsprofTxAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     InjectTxData(dataInventory_, txData);
     std::string name = "main";
     MOCKER_CPP(&Context::GetPidNameFromInfoJson).stubs().will(returnValue(name));
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }
 
@@ -218,7 +218,7 @@ TEST_F(MsprofTxAssemblerUTest, ShouldGenerateFlowStartWhenConnectionIdIsNotDefau
         "\"tid\":2048,\"ph\":\"M\",\"args\":{\"name\":\"Thread 2048\"}},{\"name\":"
         "\"thread_sort_index\",\"pid\":223,\"tid\":2048,\"ph\":\"M\",\"args\":"
         "{\"sort_index\":2048}},";
-    EXPECT_EQ(expectStr, content);
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), content);
 }
 
 TEST_F(MsprofTxAssemblerUTest, ShouldUseContextPidNameAsProcessName)
@@ -243,7 +243,7 @@ TEST_F(MsprofTxAssemblerUTest, ShouldUseContextPidNameAsProcessName)
         "\"tid\":1024,\"ph\":\"M\",\"args\":{\"name\":\"Thread 1024\"}},{\"name\":"
         "\"thread_sort_index\",\"pid\":223,\"tid\":1024,\"ph\":\"M\",\"args\":"
         "{\"sort_index\":1024}},";
-    EXPECT_EQ(expectStr, content);
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), content);
 }
 
 TEST_F(MsprofTxAssemblerUTest, ShouldGenerateThreadMetadataForDistinctTids)
@@ -273,7 +273,7 @@ TEST_F(MsprofTxAssemblerUTest, ShouldGenerateThreadMetadataForDistinctTids)
         "{\"sort_index\":1024}},{\"name\":\"thread_name\",\"pid\":223,\"tid\":2048,\"ph\":\"M\","
         "\"args\":{\"name\":\"Thread 2048\"}},{\"name\":\"thread_sort_index\",\"pid\":223,"
         "\"tid\":2048,\"ph\":\"M\",\"args\":{\"sort_index\":2048}},";
-    EXPECT_EQ(expectStr, content);
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), content);
 }
 
 TEST_F(MsprofTxAssemblerUTest, ShouldKeepUnknownEventTypeEmpty)
@@ -298,5 +298,5 @@ TEST_F(MsprofTxAssemblerUTest, ShouldKeepUnknownEventTypeEmpty)
         "\"tid\":1024,\"ph\":\"M\",\"args\":{\"name\":\"Thread 1024\"}},{\"name\":"
         "\"thread_sort_index\",\"pid\":223,\"tid\":1024,\"ph\":\"M\",\"args\":"
         "{\"sort_index\":1024}},";
-    EXPECT_EQ(expectStr, content);
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), content);
 }

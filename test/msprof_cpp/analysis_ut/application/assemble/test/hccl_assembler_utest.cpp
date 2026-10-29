@@ -176,7 +176,7 @@ TEST_F(HcclAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "\"name\":\"HostToDevice11862699671552\",\"pid\":10327552,\"tid\":0,\"ph\":\"f\",\"cat\":"
         "\"HostToDevice\",\"id\":\"11862699671552\",\"ts\":\"1717575960213957.957\",\"bp\":"
         "\"e\"},";
-    EXPECT_EQ(expectStr, res.back());
+    EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
 
 TEST_F(HcclAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
@@ -191,6 +191,6 @@ TEST_F(HcclAssemblerUTest, ShouldReturnFalseWhenDataAssembleFail)
     dataInventory_.Inject(opDataS);
     dataInventory_.Inject(taskS);
     MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10087));  // pid 10087
-    MOCKER_CPP(&std::vector<std::shared_ptr<TraceEvent>>::empty).stubs().will(returnValue(true));
+    MOCKER_CPP(&JsonEventSink::empty).stubs().will(returnValue(true));
     EXPECT_FALSE(assembler.Run(dataInventory_, PROF_PATH));
 }

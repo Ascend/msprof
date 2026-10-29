@@ -49,12 +49,10 @@ class TimelineManager
     void PostDumpJson();
 
    private:
-    void WriteFile(const std::string &filePrefix, FileCategory category);
     static std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess> &jsonProcess);
 
    private:
     std::string outputPath_;
-    std::unordered_map<FileCategory, std::string> fileType_;
 };
 }  // namespace Application
 }  // namespace Analysis
