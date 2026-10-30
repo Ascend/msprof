@@ -105,6 +105,8 @@ uint32_t ReadHostGEInfo(DataInventory& dataInventory, const DeviceContext& devic
         return ANALYSIS_ERROR;
     }
     bool isChipV6 = deviceContext.isChipV6();
+    // map 按设备隔离；当前 parser 的 key.deviceId 默认为 0，此处取 map 内的值而非实际设备号
+    const uint16_t mapDeviceId = deviceTaskMap->empty() ? 0 : deviceTaskMap->begin()->first.deviceId;
     for (auto row : result)
     {
         uint32_t stream_id, batch_id, task_id, context_id, blockNum, mixBlockNum;
@@ -112,17 +114,19 @@ uint32_t ReadHostGEInfo(DataInventory& dataInventory, const DeviceContext& devic
         bool found = false;
         if (isChipV6)
         {
-            for (auto& deviceEntry : *deviceTaskMap)
+            // chipV6 只按 taskId 匹配。TaskId 的比较键为
+            // (deviceId, taskId, streamId, contextId, batchId)，相同 taskId 的节点在 map 中连续，
+            // 因此用下界定位首个节点后顺序遍历即可，复杂度 O(logN + 命中数)。
+            // 原实现对每行 TaskInfo 完整遍历 deviceTaskMap，为 O(行数 * map大小)，大数据量下是耗时热点。
+            auto it = deviceTaskMap->lower_bound(TaskId{0, 0, task_id, 0, mapDeviceId});
+            for (; it != deviceTaskMap->end() && it->first.taskId == task_id; ++it)
             {
-                if (deviceEntry.first.taskId == task_id)
+                for (auto& deviceTask : it->second)
                 {
-                    for (auto& deviceTask : deviceEntry.second)
-                    {
-                        deviceTask.blockNum = (uint16_t)blockNum;
-                        deviceTask.mixBlockNum = (uint16_t)mixBlockNum;
-                    }
-                    found = true;
+                    deviceTask.blockNum = (uint16_t)blockNum;
+                    deviceTask.mixBlockNum = (uint16_t)mixBlockNum;
                 }
+                found = true;
             }
         }
         else

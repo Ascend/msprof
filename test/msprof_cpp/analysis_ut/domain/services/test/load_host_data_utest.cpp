@@ -31,6 +31,7 @@
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 
 namespace Analysis
@@ -225,6 +226,60 @@ TEST_F(LoadHostDataUtest, InjectDataReturnSuccess)
     ASSERT_EQ(ANALYSIS_OK, loadHostData.Run(dataInventory_, deviceContext));
     ASSERT_EQ(deviceTaskS->at({1, 1, 1, 1})[0].blockNum, expectBlockNum[0]);
     ASSERT_EQ(deviceTaskS->at({1, 1, 2, 1})[0].blockNum, expectBlockNum[1]);
+}
+
+TEST_F(LoadHostDataUtest, InjectDataReturnSuccessForChipV6)
+{
+    auto ptr = std::make_shared<std::map<TaskId, std::vector<DeviceTask>>>();
+    dataInventory_.Inject(ptr);
+    CreateHostData();
+    ASSERT_TRUE(DBRunner(GEDB_PATH).UpdateData("UPDATE TaskInfo SET device_id = 1, mix_block_num = 16"));
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    // chipV6 只按 taskId 匹配：同一 taskId 在不同 streamId 下的节点、同一节点的多个 task 都要被写入
+    (*deviceTaskS)[{1, 1, 1, 1, 1}].emplace_back();
+    auto& sameTaskIdVec = (*deviceTaskS)[{2, 1, 2, 1, 1}];
+    sameTaskIdVec.emplace_back();
+    sameTaskIdVec.emplace_back();
+    (*deviceTaskS)[{1, 1, 2, 1, 1}].emplace_back();
+
+    DeviceContext deviceContext;
+    deviceContext.deviceContextInfo.deviceInfo.deviceId = 1;
+    deviceContext.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    deviceContext.deviceContextInfo.deviceFilePath = HOST_PATH;
+    LoadHostData loadHostData;
+    ASSERT_EQ(ANALYSIS_OK, loadHostData.Run(dataInventory_, deviceContext));
+
+    ASSERT_EQ(1u, deviceTaskS->at({1, 1, 1, 1, 1}).size());
+    ASSERT_EQ(2u, deviceTaskS->at({2, 1, 2, 1, 1}).size());
+    ASSERT_EQ(1u, deviceTaskS->at({1, 1, 2, 1, 1}).size());
+    for (const auto& entry : *deviceTaskS)
+    {
+        for (const auto& task : entry.second)
+        {
+            EXPECT_EQ(32u, task.blockNum);
+            EXPECT_EQ(16u, task.mixBlockNum);
+        }
+    }
+}
+
+TEST_F(LoadHostDataUtest, ReturnOKWhenTaskInfoNotMatchDeviceTaskForChipV6)
+{
+    auto ptr = std::make_shared<std::map<TaskId, std::vector<DeviceTask>>>();
+    dataInventory_.Inject(ptr);
+    CreateHostData();
+    auto deviceTaskS = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+    // map 中的 taskId 与 TaskInfo 无交集，应正常返回且不改写 blockNum
+    (*deviceTaskS)[{1, 1, 999, 1}].emplace_back();
+
+    DeviceContext deviceContext;
+    deviceContext.deviceContextInfo.deviceInfo.chipID = CHIP_V6_1_0;
+    deviceContext.deviceContextInfo.deviceFilePath = HOST_PATH;
+    LoadHostData loadHostData;
+    ASSERT_EQ(ANALYSIS_OK, loadHostData.Run(dataInventory_, deviceContext));
+
+    ASSERT_EQ(1u, deviceTaskS->at({1, 1, 999, 1}).size());
+    EXPECT_EQ(0u, deviceTaskS->at({1, 1, 999, 1})[0].blockNum);
+    EXPECT_EQ(0u, deviceTaskS->at({1, 1, 999, 1})[0].mixBlockNum);
 }
 
 TEST_F(LoadHostDataUtest, ReturnOKWhenWithOutDeviceTask)

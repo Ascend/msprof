@@ -81,7 +81,8 @@ class MsMultiProcess(multiprocessing.Process):
 
 def run_in_subprocess(func, *args: any):
     """
-    拉起多进程，确保每个python调c进程均为独立进程
+    拉起多进程，确保每个python调c进程均为独立进程。
+    子进程非零退出时告警，保留原有继续执行语义；中断回收后仍向调用方抛出。
     """
     proc = multiprocessing.Process(target=func, args=args)
     proc.start()
@@ -91,3 +92,9 @@ def run_in_subprocess(func, *args: any):
         proc.terminate()
         proc.join()
         raise
+    if proc.exitcode:
+        warn(
+            MsMultiProcess.FILE_NAME,
+            'Subprocess %s (PID %s) exited abnormally with code %s. Please check its output and profiling logs.'
+            % (getattr(func, '__name__', type(func).__name__), proc.pid, proc.exitcode),
+        )
