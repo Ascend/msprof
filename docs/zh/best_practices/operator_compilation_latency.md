@@ -36,7 +36,7 @@
 
 ## 5. 定位过程
 
-通过msInsight打开msprof.json或者trace_view.json。通过连线能力，找到compile API和实际执行算子的关系，找到对应算子。
+通过MindStudio Insight打开msprof.json或者trace_view.json。通过连线能力，找到compile API和实际执行算子的关系，找到对应算子。
 
 ![](../figures/算子编译高耗时-insight连线.png)
 

@@ -23,7 +23,7 @@ To customize the export of profile data, you are advised to read [Parsing and Ex
 
 **Environment Setup**
 
-1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/en/cann/download).
+1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/cann/download).
 
     In Ascend EP scenarios, the msProf tool is located in `${INSTALL_DIR}/tools/profiler/bin`. Replace `${INSTALL_DIR}` with the actual CANN installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.
 
@@ -39,7 +39,7 @@ To customize the export of profile data, you are advised to read [Parsing and Ex
     export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib:$LD_LIBRARY_PATH
     ```
 
->[!NOTE]
+> [!NOTE]
 >The preceding environment variables take effect only in the current window. You can write the preceding commands to the `~/.bashrc` file to make them take effect permanently. The operations are as follows:
 >
 >1. Run the `vi ~/.bashrc` command in any directory as the installation user and append the preceding commands to the file.
@@ -61,9 +61,9 @@ Before using this tool, understand the following constraints:
 
     During profile data parsing, if the configured drive or user directory space is full, the parsing fails or the file cannot be flushed to the drive. In this case, clear the drive or user directory space.
 
-- Data directory naming constraints
+- Profile data directory naming constraint
 
-    We recommend keeping the original names of the `PROF_*` data directories generated during collection, as renaming them may affect some data parsing or result export functions.
+    Preserve the original name of the `PROF_*` directory generated during collection. Renaming it may affect the parsing of some data or the output of results.
 
 - Compatibility and scenario constraints
 
@@ -83,14 +83,24 @@ Before using this tool, understand the following constraints:
 
 **Supported Products**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|√|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: supported
+<!-- end id6 -->
 
 **Function**
 
@@ -110,26 +120,26 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 
 **Command-line Options**
 
-|Option|**Mandatory (Yes/No)**| Description                                                                                                                                                                                                                                                                                                                                                                                                                     |
-|--|--|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|--export|Yes| Parses and exports profile data. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.<br>To export data of a specific model (model ID) or iteration (iteration ID), run the `msprof --export` command again to configure the `--model-id` and `--iteration-id` options after msProf profile data collection.<br>For unparsed `PROF_XXX` files, this option performs automatic parsing before exporting.<br>Example: `msprof --export=on --output=/home/profiler_data/PROF_XXX`                                                                                                                  |
-|--output|Yes| Specifies the profile data directory. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`.                                                                                                                                                                                                                                                                                                                                     |
-|--type|No| Specifies the file format of exported profile data result files. Valid values:<br>&#8226; `text`: exports timeline and summary files in JSON/CSV format, as well as a DB file (`msprof_timestamp.db`). For details, see [Profile Data File References](profile_data_file_references.md). It supports profile data parsing with CANN 7.0.0 and later. This option is recommended.<br>&#8226; `db`: exports only the DB file (`msprof_timestamp.db`) that aggregates all profile data. This option is suitable for scenarios requiring only MindStudio Insight visualization or lightweight drive flushing. When `--type` is set to `db`, only the `--output` option of the `msprof --export` command is supported. Other options of the command are invalid.<br>To obtain a complete set of timeline and summary files, set `--type` to `text`. Default value: `text`.|
-|--reports|No| Specifies a custom `reports_sample_config.json` configuration file to export the corresponding profile data based on the scope specified in the file. For details, see [Example (`--reports` Option)](#en-us_topic_0000001265229686_section1128153151819).                                                                                                                                                                                                                                       |
-|--model-id|No| Specifies the model ID. The value must be a positive integer. This option must be specified in combination with `--iteration-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the step mode. That is, the value of `--iteration-id` specifies parsing by step. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.|
-|--iteration-id|No| Specifies the iteration ID. The value must be a positive integer. This option must be specified in combination with `--model-id` to export the profile data of a specified compute iteration in the model. If neither `--model-id` nor `--iteration-id` is specified, all profile data is exported by default.<br>&#8226; For Atlas A2 training products/Atlas A2 inference products, as well as Atlas A3 training products/Atlas A3 inference products, `--model-id` can be set to `4294967295`, which specifies the iteration ID for step-based statistics collection. The iteration ID is incremented by 1 each time a step is executed. Only profile data of the MindSpore framework (version 2.3 or later) can be parsed.<br>&#8226; If `--model-id` is set to other values, this option specifies the iteration ID for graph-based statistics collection. The iteration ID is incremented by 1 each time a graph is executed. When a script is compiled into multiple graphs, the iteration ID is different from the step ID at the script layer.              |
-|--summary-format|No| Specifies the summary data file export format. Valid values:<br>&#8226; `json`: exports the summary data file is in JSON format.<br>&#8226; `csv` (default): exports the summary data file in CSV format.<br>This option is supported only when `--type` is set to `text`.                                                                                                                                                                                                                                                                                              |
-|--python-path|No| Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later.                                                                                                                                                                                                                                                                                                                                                                                |
-|--clear|No| Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default).                                                                                                                                                                                                                                                                                                                                          |
+| Option | **Mandatory (Yes/No)** | Description |
+|--------|------------------------|-------------|
+| --export | Yes | Parses and exports profile data. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.<br>To export data of a specific model (model ID) or iteration (iteration ID), run the `msprof --export` command again to configure the `--model-id` and `--iteration-id` options after msProf profile data collection.<br>For unparsed `PROF_XXX` files, this option performs automatic parsing before exporting.<br>Example: `msprof --export=on --output=/home/profiler_data/PROF_XXX` |
+| --output | Yes | Specifies the profile data directory. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`. |
+| --type | No | Specifies the file format of exported profile data result files. Valid values:<br>&#8226; `text`: exports timeline and summary files in JSON/CSV format, as well as a DB file (`msprof_timestamp.db`). For details, see [Profile Data File References](profile_data_file_references.md). It supports profile data parsing with CANN 7.0.0 and later. This option is recommended.<br>&#8226; `db`: exports only the DB file (`msprof_timestamp.db`) that aggregates all profile data. This option is suitable for scenarios requiring only MindStudio Insight visualization or lightweight drive flushing. When `--type` is set to `db`, only the `--output` option of the `msprof --export` command is supported. Other options of the command are invalid.<br>To obtain a complete set of timeline and summary files, set `--type` to `text`. Default value: `text`. |
+| --reports | No | Specifies a custom `reports_sample_config.json` configuration file to export the corresponding profile data based on the scope specified in the file. For details, see [Example (`--reports` Option)](#en-us_topic_0000001265229686_section1128153151819). |
+| --model-id | Optional | Model ID. It must be configured as a positive integer. It must be configured together with `--iteration-id` to export the performance data of the specified computation iteration under this Model. When neither `--model-id` nor `--iteration-id` is configured, all performance data is exported by default.<br/>&#8226; For Atlas A2 products and Atlas A3 products, `--model-id=4294967295` is supported, which is the Step mode, that is, the value configured for `--iteration-id` is parsed with Step as the granularity. Only performance data of the MindSpore framework (version 2.3 or later) is supported for parsing.<br/>&#8226; When `--model-id` is configured with other values, it specifies the iteration ID counted with Graph as the granularity (each Graph execution increments the Iteration ID by 1; when a script is compiled into multiple Graphs, this ID is inconsistent with the Step ID at the script level). |
+| --iteration-id | Optional | Iteration ID. It must be configured as a positive integer. It must be configured together with `--model-id` to export the performance data of the specified computation iteration under this Model. When neither `--model-id` nor `--iteration-id` is configured, all performance data is exported by default.<br/>&#8226; For Atlas A2 products and Atlas A3 products, `--model-id=4294967295` is supported, indicating the iteration ID counted with Step as the granularity (each completed Step execution increments the Iteration ID by 1). Only performance data of the MindSpore framework (version 2.3 or later) is supported for parsing.<br/>&#8226; When `--model-id` is configured with other values, it specifies the iteration ID counted with Graph as the granularity (each Graph execution increments the Iteration ID by 1; when a script is compiled into multiple Graphs, this ID is inconsistent with the Step ID at the script level). |
+| --summary-format | No | Specifies the summary data file export format. Valid values:<br>&#8226; `json`: exports the summary data file is in JSON format.<br>&#8226; `csv` (default): exports the summary data file in CSV format.<br>This option is supported only when `--type` is set to `text`. |
+| --python-path | No | Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later. |
+| --clear | No | Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default). |
 
->[!NOTE]
+> [!NOTE]
 >
 >- By default, all profile data is exported.
 >- In single-operator scenarios or scenarios where only Ascend AI Processor system data is collected (that is, the `--application` option is not specified in the `msprof` data collection command), the `--iteration-id` and `--model-id` options are not supported.
 
 **Example**
 
-Specify the `/home/profiler_data/PROF_XXX` directory as the profile data directory and run the `msprof --export` command:
+Specify the performance data file directory as the `/home/profiler_data/PROF_XXX` directory and run the export command.
 
 ```bash
 msprof --export=on --output=/home/profiler_data/PROF_XXX
@@ -145,12 +155,12 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR
 
 Replace `${INSTALL_DIR}` with the CANN software installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.
 
->[!NOTE]
+> [!NOTE]
 >
->- --The `--reports` option specifies the `reports_sample_config.json` file. This option must be used in combination with `--export` and supports only `--type=text`. It controls only the timeline data in JSON files. Summary data in CSV files is always fully exported.
->- Soft links are not supported. The maximum file size is 64 MB, and the maximum length of the file path plus the file name is 1024 characters.
+>- The `--reports` option specifies the `reports_sample_config.json` file. This option must be used in combination with `--export` and supports only `--type=text`. It controls only the timeline data in JSON files. Summary data in CSV files is always fully exported.
+>- Soft links are not supported. The maximum file size threshold is 64 MB, and the maximum length threshold of the file path plus the file name is 1024 characters.
 
-By default, the `reports_sample_config.json` file is stored in the ${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/ directory. The file content is as follows:
+By default, the `reports_sample_config.json` file is stored in the `${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/` directory. The file content is as follows:
 
 (You can create a `reports_sample_config.json` file in any directory with read and write permissions.)
 
@@ -191,16 +201,16 @@ By default, the `reports_sample_config.json` file is stored in the ${INSTALL_DIR
 }
 ```
 
-The preceding configuration items are switches for controlling specific profile data. You can set them to `true` (to enable the fields) or `false` (to disable or delete the fields). The controlled profile data includes the timeline tracks (including **CANN**, **Ascend Hardware**, **AI Core Freq**, on-chip memory, **Communication**, **Overlap Analysis**, and **NPU_MEM** tracks) in `msprof_*.json`.
+The above are the switches for controlling the corresponding performance data, which can be configured as enabled (`true`) or disabled (`false` or by deleting the field). The controlled performance data includes the timeline data levels of the `msprof_*.json` file (including CANN, Ascend Hardware, AI Core Freq, on-chip memory, Communication, Overlap Analysis, `NPU_MEM` levels, etc.).
 
->[!NOTE]
+> [!NOTE]
 >
 >1. Exporting the preceding data requires that the corresponding data already exists in the raw profile data (that is, the data has been collected).
 >2. Ensure the `reports_sample_config.json` file is correctly formatted. Otherwise, incorrect content (such as misspellings) may cause the `--reports` option to become invalid and export all profile data. Furthermore, file read failures caused by missing files or permission issues will terminate the export process and return an error.
 
 **Output Description**
 
-Executing the `msprof --export` command generates the `mindstudio_profiler_output` directory within the `PROF_XXX` directory.
+Executing the `msprof` `--export` command generates the `mindstudio_profiler_output` directory within the `PROF_XXX` directory.
 
 The structure of the generated profile data directory is as follows:
 
@@ -252,7 +262,7 @@ The structure of the generated profile data directory is as follows:
                 └── README.txt
     ```
 
->[!NOTE]
+> [!NOTE]
 >
 >- `msprof_*.db` is a database file that aggregates all profile data. The JSON files in the `mindstudio_profiler_output` directory are timeline information files. These files collect the duration of operators and tasks for display as color blocks. The CSV files are summary information files that summarize durations in table format. For details about profile data, see [Profile Data File References](profile_data_file_references.md).
 >- In multi-device scenarios, if a single collection process is started, only one `PROF_XXX` directory is generated. If multiple processes are started, multiple `PROF_XXX` directories are generated. The device directories are created within these `PROF_XXX` directories. The specific number of device directories per `PROF_XXX` depends on the actual user operations and does not affect profile data analysis.
@@ -263,9 +273,26 @@ The structure of the generated profile data directory is as follows:
 
 ## 4. Querying Profile Data File Information
 
-**Supported Products<a name="en-us_topic_0000001265069802_section026513436147"></a>**
+**Product Support**
 
-Same as that in [Parsing and Exporting Profile Data](#parsing-and-exporting-profile-data).
+<!-- npu="950" id1 -->
+- 950PR&950DT products: Supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: Supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: Supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: Supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: Supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001265069802_section145530158016"></a>**
 
@@ -287,10 +314,10 @@ msprof --query=on --output=<dir>
 
 **Command-line Options<a name="en-us_topic_0000001265069802_section560313153920"></a>**
 
-|Option|**Mandatory (Yes/No)**|Description|
-|--|--|--|
-|--query|Yes|Queries profile data file information. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.<br>After data parsing, you can use this option to query the basic information about profile data files.|
-|--output|Yes|Specifies the directory for storing parsed profile data files. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`.|
+| Option | **Mandatory (Yes/No)** | Description |
+|--------|------------------------|-------------|
+| --query | Yes | Queries profile data file information. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.<br>After data parsing, you can use this option to query the basic information about profile data files. |
+| --output | Yes | Specifies the directory for storing parsed profile data files. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`. |
 
 **Example<a name="en-us_topic_0000001265069802_section1418112291310"></a>**
 
@@ -306,16 +333,16 @@ The following table describes information obtained by the query feature (`msprof
 
 **Table 2** Profile data file fields
 
-|Field|Description|
-|--|--|
-|Job Info|Job name|
-|Device ID|Device ID|
-|Dir Name|Directory name|
-|Collection Time|Data collection time|
-|Model ID|Model ID|
-|Iteration Number|Total number of iterations|
-|Top Time Iteration|Top five iterations with the longest durations|
-|Rank ID|Node ID in the cluster scenario|
+| Field | Description |
+|-------|-------------|
+| Job Info | Job name |
+| Device ID | Device ID |
+| Dir Name | Directory name |
+| Collection Time | Data collection time |
+| Model ID | Model ID |
+| Iteration Number | Total number of iterations |
+| Top Time Iteration | Top five iterations with the longest durations |
+| Rank ID | Node ID in the cluster scenario |
 
 The model ID and iteration number in the query result can be directly filled in the `--export` command. For example, query the data first, and then export the specified iteration based on the query results:
 
@@ -328,9 +355,27 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --model-id=3 --iteratio
 
 ## 5. Parsing Profile Data
 
-**Supported Products<a name="en-us_topic_0000001265229730_en-us_topic_0000002111094444_section5889102116569"></a>**
+**Product Support**
 
-Same as that in [Parsing and Exporting Profile Data](#parsing-and-exporting-profile-data).
+<!-- npu="950" id1 -->
+
+- 950PR&950DT products: Supported
+  <!-- end id1 -->
+  <!-- npu="A3" id2 -->
+- Atlas A3 products: Supported
+  <!-- end id2 -->
+  <!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+  <!-- end id3 -->
+  <!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: Supported
+  <!-- end id4 -->
+  <!-- npu="310p" id5 -->
+- Atlas inference products: Supported
+  <!-- end id5 -->
+  <!-- npu="910" id6 -->
+- Atlas training products: Supported
+  <!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001265229730_section180511375811"></a>**
 
@@ -355,11 +400,11 @@ msprof --parse=on --output=<dir> [--python-path=<python_path>]
 
 **Command-line Options<a name="en-us_topic_0000001265229730_section2451143111512"></a>**
 
-|Option|**Mandatory (Yes/No)**|Description|
-|--|--|--|
-|--parse|Yes|Parses the raw profile data files. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.|
-|--output|Yes|Specifies the raw profile data file directory. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`.|
-|--python-path|No|Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later.|
+| Option | **Mandatory (Yes/No)** | Description |
+|--------|------------------------|-------------|
+| --parse | Yes | Parses the raw profile data files. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option. |
+| --output | Yes | Specifies the raw profile data file directory. The value must be a `PROF_XXX` directory or its parent directory, such as `/home/profiler_data/PROF_XXX`. |
+| --python-path | No | Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later. |
 
 **Example<a name="en-us_topic_0000001265229730_section16676746151716"></a>**
 
@@ -379,14 +424,24 @@ Running the preceding command generates a `sqlite` directory containing `.db` fi
 
 **Supported Products<a name="en-us_topic_0000001631250206_en-us_topic_0000002111094444_section5889102116569"></a>**
 
-|Product|Supported|
-|--|:-:|
-|Ascend 950 products|√|
-|Atlas A3 training products/Atlas A3 inference products|√|
-|Atlas A2 training products/Atlas A2 inference products|√|
-|Atlas 200I/500 A2 inference products|x|
-|Atlas inference products|√|
-|Atlas training products|√|
+<!-- npu="950" id1 -->
+- 950PR&950DT products: Supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: Supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: Supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: Not supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: Supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: Supported
+<!-- end id6 -->
 
 **Function<a name="en-us_topic_0000001631250206_section38498221045"></a>**
 
@@ -404,9 +459,11 @@ Parses communication profile data into statistics on segment duration, copy oper
 
 - The constraints in Ascend RC scenarios are the same as those described in [Preparations](#preparations).
 
+<!-- npu="950" id7 -->
 > [!NOTE]
 >
-> Because communication matrix data collection is not supported in CCU scenarios on Ascend 950 series products, the deliverables related to this feature are not useful for reference.
+> Because communication matrix data collection is not supported in CCU scenarios on 950PR&950DT products, the deliverables related to this feature are not useful for reference.
+<!-- end id7 -->
 
 **Syntax<a name="en-us_topic_0000001631250206_section916018568431"></a>**
 
@@ -428,23 +485,23 @@ python3 msprof.py analyze [--type <type>] --rule communication -dir <dir> [--cle
 
 **Table 1** Command-line options (msprof command-line mode)
 
-|Option|**Mandatory (Yes/No)**| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-|--|--|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|--analyze|Yes| Analyzes profile data files. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-|--type|No| Sets the format of profile data parsing result files. This option determines the format of automatic parsing result files generated after the execution of the `msprof` command. Valid values:<br>`text`: parses the profile data into JSON and `communication_analyzer.db` files.<br>`db`: parses the profile data into a `communication_analyzer.db` file.<br>Default value: `text`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--rule|No| Specifies the analysis rule. Valid values:<br>&#8226; `communication`: analyzes communication data.<br>&#8227; If `--type` is set to `text`, the `communication.json` file is generated in the `PROF_XXX/analyze` directory to display details such as the communication duration and bandwidth of all communication operators on a single rank, as shown in [Figure 4](#en-us_topic_0000001631250206_fig176088819116). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in the `PROF_XXX/analyze` directory to store the `CommAnalyzerTime` (communication duration) and `CommAnalyzerBandwidth` (communication bandwidth) tables.<br>&#8226; `communication_matrix`: analyzes communication matrix data.<br>&#8227; If `--type` is set to `text`, the `communication_matrix.json` file is generated in the `PROF_XXX/analyze` directory to display basic information about small communication operators, including the communication size, bandwidth, and rank information used to analyze communication details, as shown in [Figure 5](#en-us_topic_0000001631250206_fig182611711341). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in `PROF_XXX/analyze` to store the `CommAnalyzerMatrix` (communication matrix) table.<br>You can specify either or both of these parameter values, separating multiple values with a comma, such as `--rule=communication,communication_matrix`.<br>By default, they are both set.|
-|--output|Yes| Specifies the profile data directory. The directory must be a `PROF_XXX` directory, such as `/home/HwHiAiUser/profiler_data/PROF_XXX`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-|--clear|No| Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Option | **Mandatory (Yes/No)** | Description |
+|--------|------------------------|-------------|
+| --analyze | Yes | Analyzes profile data files. Valid values: `on` or `off` (default).<br>&#8226; `on`: enables this option.<br>&#8226; `off`: disables this option. |
+| --type | No | Sets the format of profile data parsing result files. This option determines the format of automatic parsing result files generated after the execution of the `msprof` command. Valid values:<br>`text`: parses the profile data into JSON and `communication_analyzer.db` files.<br>`db`: parses the profile data into a `communication_analyzer.db` file.<br>Default value: `text`. |
+| --rule | No | Specifies the analysis rule. Valid values:<br>&#8226; `communication`: analyzes communication data.<br>&#8227; If `--type` is set to `text`, the `communication.json` file is generated in the `PROF_XXX/analyze` directory to display details such as the communication duration and bandwidth of all communication operators on a single rank, as shown in [Figure 4](#en-us_topic_0000001631250206_fig176088819116). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in the `PROF_XXX/analyze` directory to store the `CommAnalyzerTime` (communication duration) and `CommAnalyzerBandwidth` (communication bandwidth) tables.<br>&#8226; `communication_matrix`: analyzes communication matrix data.<br>&#8227; If `--type` is set to `text`, the `communication_matrix.json` file is generated in the `PROF_XXX/analyze` directory to display basic information about small communication operators, including the communication size, bandwidth, and rank information used to analyze communication details, as shown in [Figure 5](#en-us_topic_0000001631250206_fig182611711341). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in `PROF_XXX/analyze` to store the `CommAnalyzerMatrix` (communication matrix) table.<br>You can specify either or both of these parameter values, separating multiple values with a comma, such as `--rule=communication,communication_matrix`.<br>By default, they are both set. |
+| --output | Yes | Specifies the profile data directory. The directory must be a `PROF_XXX` directory, such as `/home/HwHiAiUser/profiler_data/PROF_XXX`. |
+| --clear | No | Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default). |
 
 **Table 2** Command-line options and parameters (msprof.py script mode)
 
-|Option/Parameter|**Mandatory (Yes/No)**|Description|
-|--|--|--|
-|analyze|Yes|Analyzes the profile data files.|
-|--type|No|Sets the format of profile data parsing result files. This option determines the format of automatic parsing result files generated after the execution of `msprof.py`. Valid values:<br>&#8226; `text`: parses the profile data into JSON and `communication_analyzer.db` files.<br>&#8226; `db`: parses the profile data into the `communication_analyzer.db` file. Default value: `text`.|
-|-r or --rule|Yes|Specifies the analysis rule. Valid values:<br>&#8226; `communication`: analyzes communication data.<br>&#8227; If `--type` is set to `text`, the `communication.json` file is generated in the `PROF_XXX/analyze` directory to display details such as the communication duration and bandwidth of all communication operators on a single rank, as shown in [Figure 4](#en-us_topic_0000001631250206_fig176088819116). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in the `PROF_XXX/analyze` directory to store the `CommAnalyzerTime` (communication duration) and `CommAnalyzerBandwidth` (communication bandwidth) tables.<br>&#8226; `communication_matrix`: analyzes communication matrix data.<br>&#8227; If `--type` is set to `text`, the `communication_matrix.json` file is generated in the `PROF_XXX/analyze` directory to display basic information about small communication operators, including the communication size, bandwidth, and rank information used to analyze communication details, as shown in [Figure 5](#en-us_topic_0000001631250206_fig182611711341). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in `PROF_XXX/analyze` to store the `CommAnalyzerMatrix` (communication matrix) table.<br>You can set either or both of these two values. If you set both of them, use a comma (,) to separate them, such as `--rule communication,communication_matrix`.|
-|-dir or --collection-dir|Yes|Specifies the profile data directory. The directory must be a `PROF_XXX` directory, such as `/home/profiler_data/PROF_XXX`.|
-|--clear|No|Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX` is deleted (after profile data is exported) to save storage space. Specifying this option enables the data clearance mode, which is disabled if not specified.|
+| Option/Parameter | **Mandatory (Yes/No)** | Description |
+|------------------|------------------------|-------------|
+| analyze | Yes | Analyzes the profile data files. |
+| --type | No | Sets the format of profile data parsing result files. This option determines the format of automatic parsing result files generated after the execution of `msprof.py`. Valid values:<br>&#8226; `text`: parses the profile data into JSON and `communication_analyzer.db` files.<br>&#8226; `db`: parses the profile data into the `communication_analyzer.db` file. Default value: `text`. |
+| -r or --rule | Yes | Specifies the analysis rule. Valid values:<br>&#8226; `communication`: analyzes communication data.<br>&#8227; If `--type` is set to `text`, the `communication.json` file is generated in the `PROF_XXX/analyze` directory to display details such as the communication duration and bandwidth of all communication operators on a single rank, as shown in [Figure 4](#en-us_topic_0000001631250206_fig176088819116). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in the `PROF_XXX/analyze` directory to store the `CommAnalyzerTime` (communication duration) and `CommAnalyzerBandwidth` (communication bandwidth) tables.<br>&#8226; `communication_matrix`: analyzes communication matrix data.<br>&#8227; If `--type` is set to `text`, the `communication_matrix.json` file is generated in the `PROF_XXX/analyze` directory to display basic information about small communication operators, including the communication size, bandwidth, and rank information used to analyze communication details, as shown in [Figure 5](#en-us_topic_0000001631250206_fig182611711341). The `communication_analyzer.db` file is also generated.<br>&#8227; If `--type` is set to `db`, only the `communication_analyzer.db` file is generated in `PROF_XXX/analyze` to store the `CommAnalyzerMatrix` (communication matrix) table.<br>You can set either or both of these two values. If you set both of them, use a comma (,) to separate them, such as `--rule communication,communication_matrix`. |
+| -dir or --collection-dir | Yes | Specifies the profile data directory. The directory must be a `PROF_XXX` directory, such as `/home/profiler_data/PROF_XXX`. |
+| --clear | No | Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX` is deleted (after profile data is exported) to save storage space. Specifying this option enables the data clearance mode, which is disabled if not specified. |
 
 **Example (`msprof` Command-line Mode)<a name="en-us_topic_0000001631250206_section627382494419"></a>**
 
@@ -476,34 +533,34 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
 
 **Table 3** CommAnalyzerTime
 
-|Field|Description|
-|--|--|
-|hccl_op_name|Communication operator name.|
-|group_name|Name of the communication operator group.|
-|start_timestamp|Communication start timestamp.|
-|elapse_time|Total operator communication duration (ms).|
-|transit_time|Communication duration (ms). If the communication duration is too long, a link may be faulty.|
-|wait_time|Wait duration (ms). Nodes must fully synchronize before communication.|
-|synchronization_time|Synchronization duration (ms). It is the duration required for synchronization between nodes.|
-|idle_time|Idle duration (ms). Idle duration (`idle_time`) = Total communication duration of the operator (`elapse_time`) – Communication duration (`transit_time`) – Wait duration (`wait_time`)|
+| Field | Description |
+|-------|-------------|
+| hccl_op_name | Communication operator name. |
+| group_name | Name of the communication operator group. |
+| start_timestamp | Communication start timestamp. |
+| elapse_time | Total operator communication duration (ms). |
+| transit_time | Communication duration (ms). If the communication duration is too long, a link may be faulty. |
+| wait_time | Wait duration (ms). Nodes must fully synchronize before communication. |
+| synchronization_time | Synchronization duration (ms). It is the duration required for synchronization between nodes. |
+| idle_time | Idle duration (ms). Idle duration (`idle_time`) = Total communication duration of the operator (`elapse_time`) – Communication duration (`transit_time`) – Wait duration (`wait_time`) |
 
 **Figure 2** CommAnalyzerBandwidth<a name="en-us_topic_0000001631250206_fig1670544917497"></a>
 ![](../figures/CommAnalyzerBandwidth.png "CommAnalyzerBandwidth")
 
 **Table 4** CommAnalyzerBandwidth
 
-|Field|Description|
-|--|--|
-|hccl_op_name|Communication operator name.|
-|group_name|Name of the communication operator group.|
-|transport_type|Communication transmission type, including `LOCAL`, `SDMA`, `RDMA`, `PCIE`, `HCCS`, and `SIO`.|
-|transit_size|Communication data volume (MB).|
-|transit_time|Communication duration (ms). If the communication duration is too long, a link may be faulty.|
-|bandwidth|Communication bandwidth (GB/s).|
-|large_packet_ratio|Percentage of large packets in communication data.|
-|package_size|Size of a communication data packet transmitted at a time (MB).|
-|count|Number of communication transmissions.|
-|total_duration|Total data transmission duration (ms).|
+| Field | Description |
+|-------|-------------|
+| hccl_op_name | Communication operator name. |
+| group_name | Name of the communication operator group. |
+| transport_type | Communication transmission type, including `LOCAL`, `SDMA`, `RDMA`, `PCIE`, `HCCS`, and `SIO`. |
+| transit_size | Communication data volume (MB). |
+| transit_time | Communication duration (ms). If the communication duration is too long, a link may be faulty. |
+| bandwidth | Communication bandwidth (GB/s). |
+| large_packet_ratio | Percentage of large packets in communication data. |
+| package_size | Size of a communication data packet transmitted at a time (MB). |
+| count | Number of communication transmissions. |
+| total_duration | Total data transmission duration (ms). |
 
 - --Scenario: `--type=text` or `--type=db` and `--rule=communication_matrix`
 
@@ -512,16 +569,16 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
 
     **Table 5** CommAnalyzerMatrix
 
-|Field|Description|
-|--|--|
-|hccl_op_name|Communication operator name.|
-|group_name|Name of the communication operator group.|
-|src_rank|Communication source rank.|
-|dst_rank|Communication destination rank.|
-|transport_type|Communication transmission type, including `LOCAL`, `SDMA`, `RDMA`, `PCIE`, `HCCS`, and `SIO`.|
-|transit_size|Communication data volume (MB).|
-|transit_time|Communication duration (ms). If the communication duration is too long, a link may be faulty.|
-|bandwidth|Communication bandwidth (GB/s).|
+| Field | Description |
+|-------|-------------|
+| hccl_op_name | Communication operator name. |
+| group_name | Name of the communication operator group. |
+| src_rank | Communication source rank. |
+| dst_rank | Communication destination rank. |
+| transport_type | Communication transmission type, including `LOCAL`, `SDMA`, `RDMA`, `PCIE`, `HCCS`, and `SIO`. |
+| transit_size | Communication data volume (MB). |
+| transit_time | Communication duration (ms). If the communication duration is too long, a link may be faulty. |
+| bandwidth | Communication bandwidth (GB/s). |
 
 - --Scenario: `--type=text` and `--rule=communication`
 
@@ -530,5 +587,5 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
 
 - --Scenario: `--type=text` and `--rule=communication_matrix`
 
-    **Figure 5** communication\_matrix.json<a name="en-us_topic_0000001631250206_fig182611711341"></a>
+    **Figure 5** communication_matrix.json<a name="en-us_topic_0000001631250206_fig182611711341"></a>
     ![](../figures/communication_matrix-json.png "communication_matrix-json")

@@ -1,14 +1,12 @@
-# Memory Leak Analysis
+# Memory Leak
 
-## Background
+## 1. Background
 
-**Source**  
-CANN package version upgrade (from Version A to Version B), inference scenario.
+Source: CANN package version upgrade (from Version A to Version B), inference scenario.
 
-**Symptoms**  
-The issue can be reproduced consistently. After Version B has been running for approximately 12 hours, an OOM occurs at the 471st step. The issue does not occur on Version A or on the GPU. It is occurs only on the NPU with Version B. It has been confirmed that virtual memory is enabled.
+Symptoms: Reproducible consistently. After Version B has been running for approximately 12 hours, an OOM occurs at the 471st step. The issue does not occur on Version A, nor on GPU; it is reproduced only on the NPU with Version B. Virtual memory has been confirmed to be enabled.
 
-## Troubleshooting Process
+## 2. Troubleshooting Process
 
 ### Step 1: Comparing Memory Profile Data for a Single Step Across the Two Versions
 
@@ -83,13 +81,13 @@ After filtering `operator_memory.csv`, the following was found:
 
 Further code review revealed that the KV-cache implementation of `custom_attention_forward` in Version B has a reference counting issue: after the intermediate tensor is referenced internally by the cache, its reference count on the Python side is not decremented correctly. As a result, the tensor is not released by Python after the step ends and accumulates in the memory pool.
 
-## Root Cause
+## 3. Root Cause
 
 The KV-cache implementation of the `custom_attention_forward` operator in Version B has a reference counting error, causing the intermediate tensor generated in each step (approximately 47 MB) to remain unreleased and continuously accumulate in device memory. After 471 steps, the accumulated memory leak reaches approximately 22 GB, triggering an OOM.
 
 This issue is an operator bug: the KV-cache improperly manages references to intermediate tensors. This failure mode should be added to the failure mode library.
 
-## Summary of the Troubleshooting Methodology
+## 4. Summary of the Troubleshooting Methodology
 
 <div align="center"><img src="../figures/profiler_case_leak_methodology.png" /></div>
 <div align="center"><b>Figure 3</b> Methodology for locating memory leaks</div>
@@ -98,8 +96,8 @@ This issue is an operator bug: the KV-cache improperly manages references to int
 2. After confirming a leak in a single step, expand the profiling range to verify the accumulation trend across steps and rule out a one-time anomaly.
 3. Filter operators with mismatched allocation and release records in `operator_memory.csv`. Then, use call stacks recorded with `with_stack=True` to locate the specific code path.
 
-## Suggestions for Improving the Tools
+## 5. Suggestions for Tool Improvement
 
-- `operator_memory.csv` currently requires manual comparison of allocation and release records to identify operators with memory leaks. Add automatic identification and annotation of "unreleased operators."
-- Enhance the profiler to automatically generate an `allocated` trend chart across steps to make cumulative memory leaks easier to identify.
-- Add operator-level memory lifecycle tracking to the profiler, automatically associate allocations with releases, and directly flag abnormal memory behavior.
+- `operator_memory.csv` currently requires manually comparing allocation and release records to identify leaking operators. It is recommended to add automatic annotation capability for "unreleased operators".
+- The profiling tool can add automatic generation of cross-step allocated trend charts to lower the identification threshold for leak accumulation.
+- It is recommended to add operator-level memory lifecycle tracking in the profiler, automatically associate allocation and release, and directly mark anomalies.

@@ -24,7 +24,7 @@ This tutorial **supports only** execution in a standardized CANN container. Dire
 
 #### 2.1.1 Prerequisites
 
-Before starting, make sure that the server meets the following requirements.
+Before starting, ensure that the server meets the following requirements.
 
 | Item | Requirement | Verification Method |
 | :--- | :--- | :--- |
@@ -47,12 +47,12 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 > [!NOTE]
 >
 > **How the Command Works**
-> The command obtains the NPU PCI ID using `lspci`, automatically matches the official CANN image, and assigns the image address to the `MY_STUDY_VAR_CANN_IMAGE` environment variable for subsequent use.
-> All images are official CANN images published on Huawei Cloud AscendHub. For details about the images, see the [CANN Official Image Repository](https://www.hiascend.com/en/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884).
+> The command obtains the NPU PCI ID using lspci, automatically matches the official CANN image, and assigns the image address to the `MY_STUDY_VAR_CANN_IMAGE` environment variable for subsequent use.
+> All images are official CANN images published on Huawei Cloud AscendHub. For details about the images, see the [CANN Official Image Repository](https://www.hiascend.com/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884).
 
 If the command outputs `[PASS]`, the operation is successful. If it outputs `[FAIL]`, the possible causes are as follows:
 
-1. The hardware is outside the supported scope of this tutorial: this learning environment supports only Ascend 310P, A2, A3, and 950 series products. Switch to a compatible hardware environment and try again.
+1. The hardware is outside the supported scope of this tutorial: this learning environment supports only Atlas inference products, Atlas A2 products, Atlas A3 products, and 950PR&950DT products. Switch to a compatible hardware environment and try again.
 2. The underlying environment is abnormal: `lspci` is not installed, or the current user cannot query the NPU PCI ID using `lspci -n -D`. Contact the environment administrator to verify the underlying environment.
 
 #### 2.1.3 Host: Pulling the Image
@@ -241,7 +241,7 @@ Records detailed execution information for each operator task. The fields may va
 
 You can sort the data by `Task Duration(us)` in descending order to locate long-running tasks, and then check `Task Type` to view the distribution of tasks on AICore and AICPU.
 
-![op\_summary CSV file](../figures/en-us_image_0000002502718556.png)
+![op_summary CSV file](../figures/en-us_image_0000002502718556.png)
 <div style="text-align: center;">
 <strong>Figure 2</strong> op_summary_*.csv file example
 </div>
@@ -256,7 +256,7 @@ You can sort the data by `Task Duration(us)` in descending order to locate long-
 
 Perform operations in this section in a local environment with MindStudio Insight installed. Windows or macOS with a graphical user interface is recommended.
 
-1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/en/developer/software/mindstudio/download) page.
+1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/developer/software/mindstudio/download) page.
 2. **Getting familiar with the tool**: For basic usage, see [MindStudio Insight System Tuning Quick Start](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/quick_start/system_tuning_quick_start.md).
 
 #### 2.3.2 Loading msProf Collected Data
@@ -362,7 +362,7 @@ After confirming that `ctr_in.py` exists and has execute permission, return to [
 
 ### 3.3 Offline Installation of Python Dependencies
 
-Prioritize using an intranet `pip` repository to install the dependencies. If no intranet software repository is available, download the required installation packages in an intermediate environment that has public network access, the same CPU architecture as the NPU server in the intranet, and the same Python version.
+Prioritize using an intranet `pip` repository to install the dependencies. If no intranet software repository is available, download the required installation packages in an intermediate environment that has public network access, uses the same CPU architecture as the intranet NPU server, and uses the same Python version.
 
 ```bash
 mkdir -p offline_wheels
@@ -377,7 +377,7 @@ pip3 install --no-index --find-links="${HOME}/offline_wheels" xxx
 
 After installation is complete, return to [Section 2.1.7](#217-container-verifying-the-installation) and run the verification command. There is no need to rerun the network-based installation commands.
 
-## 4. Frequently Asked Questions (FAQ)
+## 4. Frequently Asked Questions (FAQs)
 
 ### 4.1 How Do I Re-enter the Container After Exiting?
 

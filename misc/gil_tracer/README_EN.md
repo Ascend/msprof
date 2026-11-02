@@ -10,7 +10,7 @@ To address this issue, the GIL Tracer tool is developed by integrating openEuler
 
   1. Collect Python GIL data using either the command line or APIs.
   2. Process the collected GIL data and convert it into Chrome Trace JSON format.
-  3. Import the converted data into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/overview.md) together with Profiler data for visualization and analysis. For Profiler data collection, see section [msProf Profile Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/devaids/Profiling/atlasprofiling_16_0010.html).
+  3. Import the data together with Profiler data into [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/overview.md) for visualization. For Profiler data collection, see [msProf Performance Data Collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/devaids/Profiling/atlasprofiling_16_0010.html).
 
 ## Preparations
 
@@ -168,7 +168,7 @@ Each colored block represents a GIL event, which belongs to one of three types:
 
 When you use APIs to collect GIL and Profiler data simultaneously, MindStudio Insight can display both datasets together. This facilitates the analysis and optimization of Python multithreading performance issues.
 
-![GIL Trace with Profiler](./figures/profiler_gil_tracer_en.PNG "GIL Trace with Profiler")
+![GIL Trace with Profiler](./figures/profiler_gil_tracer.PNG "GIL Trace with Profiler")
 
 ## Security Statement
 

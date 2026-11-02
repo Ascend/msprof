@@ -39,7 +39,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX
     export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib:$LD_LIBRARY_PATH
     ```
 
->[!NOTE]
+> [!NOTE]
 >上述环境变量只在当前窗口生效，用户可以将上述命令写入~/.bashrc文件，使其永久生效，操作如下：
 >
 >1. 以安装用户在任意目录下执行`vi ~/.bashrc`，在该文件最后添加上述内容。
@@ -132,7 +132,7 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 |--python-path|可选| 指定解析使用的Python解释器路径，支持 Python 3.7.5 及以上版本。                                                                                                                                                                                                                                                                                                                                                                                 |
 |--clear|可选| 数据精简模式，开启后将在导出性能数据后删除PROF_XXX/device_{id}下的sqlite目录，以节省存储空间。可选on或off，默认值为off。                                                                                                                                                                                                                                                                                                                                           |
 
->[!NOTE]
+> [!NOTE]
 >
 >- 默认情况下，导出所有性能数据。
 >- 单算子场景和仅执行采集昇腾AI处理器系统数据的场景（即`msprof`采集命令未配置用户应用程序参数`--application`的情况），不支持--iteration-id和--model-id参数。
@@ -155,7 +155,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR
 
 `${INSTALL_DIR}` 请替换为 CANN 软件安装后文件存储路径。若安装的 Toolkit 软件包，以 root 安装举例，则安装后文件存储路径为：`/usr/local/Ascend/cann`。
 
->[!NOTE]
+> [!NOTE]
 >
 >- --reports参数指定的是reports\_sample\_config.json文件。需要与--export同时配置，仅支持--type=text，且仅支持对json文件的timeline数据进行控制，csv文件的summary数据依然为全量导出。
 >- 不支持软链接，文件大小最大阈值为64MB，文件路径加上文件名长度最大阈值为1024字符。
@@ -203,7 +203,7 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
 
 以上为控制相应性能数据的开关，可配置开启（true）或关闭（false或删除字段）。控制的性能数据包括msprof\_\*.json文件的timeline数据层级（包括CANN、Ascend Hardware、AI Core Freq、片上内存、Communication、Overlap Analysis、NPU\_MEM层级等）。
 
->[!NOTE]
+> [!NOTE]
 >
 >1. 导出以上数据的前提是原始性能数据中已存在相应数据，即相应数据已采集。
 >2. 需确保reports_sample_config.json文件格式正确，否则可能导致文件内容错误（如拼写错误，--reports参数不生效，导出全量性能数据）或文件读取失败（如权限问题、文件不存在等，导致--reports无法读取配置文件，中断导出进程并报错）。
@@ -262,7 +262,7 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
                 └── README.txt
     ```
 
->[!NOTE]
+> [!NOTE]
 >
 >- msprof\_\*.db为汇总所有性能数据的db格式文件。mindstudio\_profiler\_output目录下的json文件为timeline信息文件，主要收集算子、任务等运行耗时，以色块形式展示；csv文件为summary信息文件，主要以表格形式汇总运行耗时。性能数据详细介绍请参见[性能数据文件参考](profile_data_file_references.md)。
 >- 多Device场景下，若启动单采集进程，则仅生成一个PROF\_XXX目录，若启动多采集进程则生成多个PROF\_XXX目录，其中device目录在PROF\_XXX目录下生成，每个PROF\_XXX目录下生成多少个device目录与用户实际操作有关，不影响性能数据分析。
@@ -525,6 +525,10 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
     ```
 
 **输出结果文件说明<a name="zh-cn_topic_0000001631250206_section023216238448"></a>**
+
+> [!NOTE]
+>
+> 配置--task-time=l0采集性能数据时，transit_time、wait_time、synchronization_time、idle_time等细分耗时未采集，显示为-1。
 
 - --type=text或--type=db以及--rule=communication
 

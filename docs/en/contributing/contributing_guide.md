@@ -10,7 +10,7 @@ You can support this project in the following ways:
 - Review pull requests and help other contributors.
 - Promote the project by sharing msProf in blog posts and on social media, or by starring the repository.
 
-## Finding Issues to Contribute To
+## Finding Issues to Work On
 
 Want to start contributing? You can look for the following types of issues:
 
@@ -23,14 +23,14 @@ You can also view the [Issues](https://gitcode.com/Ascend/msprof/issues) to lear
 
 ### Environment Requirements
 
-- For hardware requirements, see [Ascend Product Overview](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+- For hardware requirements, see [Ascend Product Overview](https://www.hiascend.com/document/detail/en/Glossary/productform/hardwaredesc_0001.html).
 - Install the open-source version of CANN in advance.
 - Python 3.7.5 or later.
 - CMake 3.14 or later.
 
 ### Development and Testing
 
-1. Fork the source code repository to your personal repository and develop the code there.
+1. Fork the repository, then clone your fork and develop your changes there.
 
    ```bash
    git clone https://gitcode.com/<your-username>/msprof.git
@@ -51,7 +51,7 @@ You can also view the [Issues](https://gitcode.com/Ascend/msprof/issues) to lear
 
 5. Develop the documentation.
 
-   If your changes involve adding, modifying, or removing features, provide the relevant documentation. For detailed requirements, see [Documentation Development](#documentation-development).
+   If your changes add, modify, or remove features, update the relevant documentation. For detailed requirements, see [Documentation Development](#documentation-development).
 
 6. Submit a pull request.
 
@@ -77,38 +77,132 @@ You can also view the [Issues](https://gitcode.com/Ascend/msprof/issues) to lear
 
 ### Code Testing
 
-#### Running Tests
+Before submitting code, ensure that all tests pass. Run the tests as follows.
 
-Before submitting code, ensure that all tests pass:
+> [!NOTE]
+>
+> C++ and Python coverage checks are independent and should be run separately.
+
+#### C++ Unit Tests (UT)
+
+Run the following test command from the repository root:
 
 ```bash
-# Python unit tests
-cd test/msprof_python/ut
-python -m pytest
-
-# C++ unit tests
-cd test/msprof_cpp/analysis_ut
-# Run tests using the applicable test framework.
+# Full C++ unit tests
+bash scripts/execute_cpp_test_case.sh
+# Or specify all
+bash scripts/execute_cpp_test_case.sh all
 ```
 
-#### Adding Tests
+```bash
+# analysis module unit tests
+bash scripts/execute_cpp_test_case.sh analysis
+```
 
-- Add corresponding unit tests for new features.
-- Ensure that the tests cover the main logic branches.
-- Ensure that test cases are readable and maintainable.
-- Place test data in the appropriate locations under the `test/` directory.
+- `all`: Builds and runs the full C++ test suite. This is the default.
+- `analysis`: Builds and runs unit tests for the analysis module.
 
-#### Code Coverage
+#### C++ Code Coverage
 
-You can use the following scripts to generate code coverage reports:
+Prerequisites: lcov >= 2.0 and genhtml. Measuring incremental diff coverage also requires lcov_cobertura and diff-cover.
+
+Environment variables:
+
+- `DIFF_BASE`: Baseline for incremental comparison. The default is `origin/${targetBranch:-master}`.
+- `FAIL_UNDER`: Minimum incremental line coverage percentage. The default is 80.
+- `targetBranch`: Used when `DIFF_BASE` is not set. The default is `master`.
+
+Run the following commands from the repository root to generate C++ unit test coverage reports:
 
 ```bash
-# Python coverage
-bash scripts/generate_coverage_py.sh
-
-# C++ coverage
+# Full code coverage
 bash scripts/generate_coverage_cpp.sh
+# Or specify all
+bash scripts/generate_coverage_cpp.sh all
 ```
+
+```bash
+# Full + incremental
+bash scripts/generate_coverage_cpp.sh diff
+```
+
+```bash
+# Full + analysis module
+bash scripts/generate_coverage_cpp.sh analysis
+```
+
+```bash
+# Full + incremental + analysis (calculates code differences and analysis coverage on top of all)
+bash scripts/generate_coverage_cpp.sh analysis diff
+```
+
+- `all`: Builds all C++ code and generates a full C++ code coverage report. This is the default.
+  - Full coverage measures `analysis/csrc` under each `*_utest.dir` directory, excluding UT source code.
+  - The full coverage report is saved as HTML files under `test/build_llt/output/cpp_coverage/result`.
+- `diff`: Adds code-difference coverage to `all` and generates an incremental report.
+  - Incremental coverage measures the entire `analysis/csrc` directory.
+  - The incremental report is saved as `test/build_llt/output/cpp_coverage/result/ut_incremental_coverage_report.html`.
+- `analysis`: Adds analysis-module coverage to `all` and generates a coverage report.
+
+> [!NOTE]
+>
+> Each run removes the previous `cpp_coverage` directory and `*.gcda` files, then rebuilds, runs the C++ unit tests (UTs), and collects coverage again.
+
+#### Python Unit Tests (UT)
+
+Run the following test command from the repository root:
+
+```bash
+bash scripts/execute_py_test_case.sh
+```
+
+#### Python Code Coverage
+
+Prerequisites: coverage and pytest. Measuring incremental diff coverage also requires diff-cover.
+
+Environment variables:
+
+- `DIFF_BASE`: Baseline for incremental comparison. The default is `origin/${targetBranch:-master}`.
+- `FAIL_UNDER`: Minimum incremental line coverage percentage. The default is 80.
+- `targetBranch`: Used when `DIFF_BASE` is not set. The default is `master`.
+
+Run the following commands from the repository root to generate Python unit test coverage reports:
+
+```bash
+# Full code coverage
+bash scripts/generate_coverage_py.sh
+```
+
+```bash
+# Full + incremental
+bash scripts/generate_coverage_py.sh diff
+```
+
+- Running the script without parameters builds all Python code and generates a full Python code coverage report.
+
+  - Full coverage measures `.py` files under the `analysis` directory (`coverage --source`).
+
+  - The full coverage reports are saved to:
+
+    test/build_llt/output/python_coverage/html
+
+    test/build_llt/output/python_coverage/coverage.xml
+
+    test/build_llt/output/python_coverage/python_coverage_report.log
+
+- `diff`: Adds code-difference coverage to full coverage and generates an incremental report.
+
+  - Incremental coverage measures all `.py` files under the `analysis` directory and its subdirectories, excluding the `test` directory.
+
+  - The incremental coverage reports are saved to:
+
+    test/build_llt/output/python_coverage/inc_coverage_result.html
+
+    test/build_llt/output/python_coverage/incremental.json
+
+> [!NOTE]
+>
+> Each run removes the previous `python_coverage` directory, then runs the Python unit tests and collects coverage again.
 
 ### Documentation Development
 
@@ -142,26 +236,26 @@ Before submitting a pull request, ensure that:
 
 #### Submission Process
 
-1. **Create a branch**
+1. **Creating a branch**
 
    ```bash
    git checkout -b feature/<your-feature-name>
    ```
 
-2. **Commit the changes**
+2. **Committing the changes**
 
    ```bash
    git add .
    git commit -m "feat: <your feature description>"
    ```
 
-3. **Push to the remote repository**
+3. **Pushing to the remote repository**
 
    ```bash
    git push origin feature/<your-feature-name>
    ```
 
-4. **Create a pull request**
+4. **Creating a pull request**
 
    Create a pull request on GitCode and provide the following information:
 
@@ -175,14 +269,14 @@ Before submitting a pull request, ensure that:
 
    3. Associate the pull request with the relevant issue.
 
-5. **Code review**
+5. **Reviewing the code**
 
    1. After submitting a pull request, notify the relevant "owners" (Reviewers and Committers) to review the changes.
    2. Modify the code based on the review comments and resubmit the changes. Multiple iterations may be required during this process, so please respond promptly and maintain communication.
 
    The relevant "owners" will be identified during the pull request process. You can specify the relevant "owners" during the pull request process or contact the MindStudio team through the information provided in [README](../../../README_EN.md).
 
-6. **Code merge**
+6. **Merging the pull request**
 
    A pull request requires the following four labels to complete the merge:
 
@@ -249,7 +343,7 @@ We are committed to providing a friendly, safe, and inclusive environment for al
 
 - **Issues**: Report bugs, propose feature enhancements, and discuss technical issues.
 - **Pull requests**: Review code and discuss specific implementations.
-- **WeChat group**: Communicate and ask questions on a daily basis (see the MindStudio Team section in [README](../../../README.md)).
+- **WeChat group**: Communicate and ask questions on a daily basis (see the MindStudio Team section in [README](../../../README_EN.md)).
 
 ## License
 

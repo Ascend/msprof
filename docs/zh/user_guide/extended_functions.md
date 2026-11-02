@@ -191,7 +191,7 @@ msprof.py脚本需要执行如下步骤才能完成性能数据的最终导出�
 
 3. [导出性能数据](#导出性能数据)。
 
->[!NOTE]
+> [!NOTE]
 >
 <!-- npu="310b" id7 -->
 >- Atlas 200I/500 A2推理产品的Ascend RC场景不支持在设备上直接解析、查询和导出，需要将采集到的PROF\_XXX目录拷贝到安装了Toolkit包的环境下进行操作。
@@ -441,7 +441,7 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
         python3 msprof.py export db -dir /home/HwHiAiUser/profiler_data/PROF_XXX
         ```
 
-    >[!NOTE]
+    > [!NOTE]
     >
     >- 默认情况下，导出所有性能数据。
     >- 单算子场景和仅执行采集昇腾AI处理器系统数据的场景（即`msprof`采集命令未配置用户应用程序参数`--application`的情况），不支持--iteration-id和--model-id参数。
@@ -500,7 +500,7 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
                 └── README.txt
     ```
 
->[!NOTE]
+> [!NOTE]
 >
 >- 多Device场景下，若启动单采集进程，则仅生成一个PROF\_XXX目录，若启动多采集进程则生成多个PROF\_XXX目录，其中device目录在PROF\_XXX目录下生成，每个PROF\_XXX目录下生成多少个device目录与用户实际操作有关，不影响性能数据分析。
 >- 性能数据详细介绍请参见[性能数据文件参考](profile_data_file_references.md)。
@@ -516,7 +516,7 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 
 **产品支持情况<a name="zh-cn_topic_0000002441319698_section5889102116569"></a>**
 
->[!NOTE]
+> [!NOTE]
 >
 >昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)》。
 
@@ -555,7 +555,7 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
         1. 如果大于，则存在慢卡（等待时长比例最小的卡），需查看慢卡的前向反向计算时间；若该慢卡的前向反向计算时间远大于其他卡，则需要检查负载是否均衡和处理器是否故障；若该卡的前向反向计算时间基本和其他卡相同，则需检查数据预处理时间；
         2. 否则，存在链路异常的情况，需查看是否有链路故障或者通信量过小的情况。
 
-    >[!NOTE]
+    > [!NOTE]
     >- 等待时长比例（Wait Time Ratio） = 等待时长（Wait Time）/ \(等待时长（Wait Time） + 通信时长（Transit Time）\)，等待时长比例越大代表卡的等待时长占总通信耗时越长，通信效率越低。
     >- 传输前同步时长比例（Synchronization Time Ratio Before Transit） = 传输开始前同步时长（Synchronization Time） / \(传输开始前同步时长（Synchronization Time） + 通信时长（Transit Time）\)，同步时长（Synchronization Time）指第一次传输数据前的同步时长，传输前同步时长比例越大说明通信效率越低，可能存在慢卡的情况。
 

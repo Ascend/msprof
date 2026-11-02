@@ -16,6 +16,8 @@ Enable **address space layout randomization** (ASLR) (level 2) in the system. Ru
 
  4. If a tool depends on CANN, use the CANN package installed by the same non-privileged user. After running the `source` command, do not modify environment variables in `set_env.sh`.
 
+ 5. This repository provides reference VS Code and devcontainer configurations for development and debugging. They are intended only for development and debugging in a secure environment. Check the configuration security and adjust it as needed.
+
 ## File Permission Control
 
  1. Ensure that the directory permission is `750`.
@@ -146,21 +148,21 @@ MindStudio Profiler (msProf) supports building from source. During the build pro
 
 If an exception occurs during operation, the tool will exit the process and print error messages. This is expected behavior. You are advised to locate the specific cause of the error based on the error prompts, such as by viewing log files or result files generated during the collection and parsing process.
 
-## `strace` Usage
+## strace Usage
 
-In some msProf debugging scenarios, you are advised to use `strace` to trace system calls. While using `strace` itself does not present a security risk, you should note the following points:
+In some msProf debugging scenarios, you are advised to use strace to trace system calls. While using strace itself does not present a security risk, you should note the following points:
 
-1. **Security notice**: At runtime, `strace` records the system call details of processes (including sensitive information such as memory addresses and parameters), which poses an information leakage risk. You are advised to use `strace` only for debugging and diagnostics and to restrict permissions on its output logs to prevent sensitive information leakage.
+1. **Security notice**: At runtime, strace records the system call details of processes (including sensitive information such as memory addresses and parameters), which poses an information leakage risk. You are advised to use strace only for debugging and diagnostics and to restrict permissions on its output logs to prevent sensitive information leakage.
 
-2. **Optional dependency**: msProf does not depend on `strace`. `strace` is only an optional auxiliary debugging tool. Disabling `strace` does not affect the core data collection and profiling functions of msProf.
+2. **Optional dependency**: msProf does not depend on strace. strace is only an optional auxiliary debugging tool. Disabling strace does not affect the core data collection and profiling functions of msProf.
 
-## `gil_tracer` Usage
+## gil_tracer Usage
 
-In some debugging scenarios, you are advised to use `gil_tracer` to trace Python Global Interpreter Lock (GIL) behavior, such as `take_gil`, `hold_gil`, and `drop_gil` events. While using `gil_tracer` itself does not present a security risk, you should note the following points:
+In some debugging scenarios, you are advised to use gil_tracer to trace Python Global Interpreter Lock (GIL) behavior, such as `take_gil`, `hold_gil`, and `drop_gil` events. While using gil_tracer itself does not present a security risk, you should note the following points:
 
-1. **Security notice**: At runtime, `gil_tracer` records the GIL behavior and scheduling details of process threads. This includes sensitive data such as process IDs (PIDs), thread IDs, and the timing of GIL preemption, acquisition, and release, which poses an information leakage risk. You are advised to use `gil_tracer` only for debugging and diagnostics and to restrict permissions on its output logs to prevent sensitive information leakage.
+1. **Security notice**: At runtime, gil_tracer records the GIL behavior and scheduling details of process threads. This includes sensitive data such as process IDs (PIDs), thread IDs, and the timing of GIL preemption, acquisition, and release, which poses an information leakage risk. You are advised to use gil_tracer only for debugging and diagnostics and to restrict permissions on its output logs to prevent sensitive information leakage.
 
-2. **Optional dependency**: msProf does not depend on `gil_tracer`. `gil_tracer` is only an optional auxiliary tool for analyzing GIL behavior in Python multithreaded applications. Disabling `gil_tracer` does not affect the core data collection and profiling functions of msProf.
+2. **Optional dependency**: msProf does not depend on gil_tracer. gil_tracer is only an optional auxiliary tool for analyzing GIL behavior in Python multithreaded applications. Disabling gil_tracer does not affect the core data collection and profiling functions of msProf.
 
 ## Public API Statement
 
