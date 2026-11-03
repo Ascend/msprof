@@ -39,7 +39,7 @@ To customize the export of profile data, you are advised to read [Parsing and Ex
     export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib:$LD_LIBRARY_PATH
     ```
 
->[!NOTE]
+> [!NOTE]
 >The preceding environment variables take effect only in the current window. You can write the preceding commands to the `~/.bashrc` file to make them take effect permanently. The operations are as follows:
 >
 >1. Run the `vi ~/.bashrc` command in any directory as the installation user and append the preceding commands to the file.
@@ -128,7 +128,7 @@ msprof --export=on --output=<dir> [--type=<type>] [--reports=<reports_sample_con
 | --python-path | No | Specifies the path to the Python interpreter used for parsing. The Python version must be 3.7.5 or later. |
 | --clear | No | Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. Valid values: `on` or `off` (default). |
 
->[!NOTE]
+> [!NOTE]
 >
 >- By default, all profile data is exported.
 >- In single-operator scenarios or scenarios where only Ascend AI Processor system data is collected (that is, the `--application` option is not specified in the `msprof` data collection command), the `--iteration-id` and `--model-id` options are not supported.
@@ -151,7 +151,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR
 
 Replace `${INSTALL_DIR}` with the CANN software installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.
 
->[!NOTE]
+> [!NOTE]
 >
 >- The `--reports` option specifies the `reports_sample_config.json` file. This option must be used in combination with `--export` and supports only `--type=text`. It controls only the timeline data in JSON files. Summary data in CSV files is always fully exported.
 >- Soft links are not supported. The maximum file size threshold is 64 MB, and the maximum length threshold of the file path plus the file name is 1024 characters.
@@ -199,7 +199,7 @@ By default, the `reports_sample_config.json` file is stored in the `${INSTALL_DI
 
 The above are the switches for controlling the corresponding performance data, which can be configured as enabled (`true`) or disabled (`false` or by deleting the field). The controlled performance data includes the timeline data levels of the `msprof_*.json` file (including CANN, Ascend Hardware, AI Core Freq, on-chip memory, Communication, Overlap Analysis, `NPU_MEM` levels, etc.).
 
->[!NOTE]
+> [!NOTE]
 >
 >1. Exporting the preceding data requires that the corresponding data already exists in the raw profile data (that is, the data has been collected).
 >2. Ensure the `reports_sample_config.json` file is correctly formatted. Otherwise, incorrect content (such as misspellings) may cause the `--reports` option to become invalid and export all profile data. Furthermore, file read failures caused by missing files or permission issues will terminate the export process and return an error.
@@ -258,7 +258,7 @@ The structure of the generated profile data directory is as follows:
                 └── README.txt
     ```
 
->[!NOTE]
+> [!NOTE]
 >
 >- `msprof_*.db` is a database file that aggregates all profile data. The JSON files in the `mindstudio_profiler_output` directory are timeline information files. These files collect the duration of operators and tasks for display as color blocks. The CSV files are summary information files that summarize durations in table format. For details about profile data, see [Profile Data File References](profile_data_file_references.md).
 >- In multi-device scenarios, if a single collection process is started, only one `PROF_XXX` directory is generated. If multiple processes are started, multiple `PROF_XXX` directories are generated. The device directories are created within these `PROF_XXX` directories. The specific number of device directories per `PROF_XXX` depends on the actual user operations and does not affect profile data analysis.

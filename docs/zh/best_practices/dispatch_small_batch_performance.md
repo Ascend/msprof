@@ -10,7 +10,7 @@
 
 ## 3. 问题现象
 
-通过msInsight打开msprof.json或者trace_view.json，可观察到业务整体的free时间占比偏高，硬件资源利用率较低。
+通过MindStudio Insight打开msprof.json或者trace_view.json，可观察到业务整体的free时间占比偏高，硬件资源利用率较低。
 
 ![](../figures/小batch-overlap.png)
 

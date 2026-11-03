@@ -10,7 +10,7 @@
 
 ## 3. 问题现象
 
-通过msInsight打开msprof.json或者trace_view.json，可观察到某些算子的执行时间较长。
+通过MindStudio Insight打开msprof.json或者trace_view.json，可观察到某些算子的执行时间较长。
 
 打开op_statistic.csv，检查对应算子，确认算子性能不符合预期，执行时间较长，存在优化收益。
 

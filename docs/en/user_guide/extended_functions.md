@@ -191,7 +191,7 @@ To export profile data using `msprof.py`, perform the following steps:
 
 3. Export profile data by referring to [Exporting Profile Data](#exporting-profile-data).
 
->[!NOTE]
+> [!NOTE]
 >
 <!-- npu="310b" id7 -->
 >- In the Ascend RC scenario of the Atlas 200I/500 A2 inference products, direct parsing, querying, and exporting on the device are not supported. The collected `PROF_XXX` directory must be copied to an environment where the Toolkit package is installed for the operations.
@@ -441,7 +441,7 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
         python3 msprof.py export db -dir /home/HwHiAiUser/profiler_data/PROF_XXX
         ```
 
-    >[!NOTE]
+    > [!NOTE]
     >
     >- By default, all profile data is exported.
     >- In single-operator scenarios or scenarios where only Ascend AI Processor system data is collected (that is, the `--application` option is not specified in the `msprof` data collection command), the `--iteration-id` and `--model-id` options are not supported.
@@ -500,7 +500,7 @@ The following examples show the directory structure of the generated profile dat
                 └── README.txt
     ```
 
->[!NOTE]
+> [!NOTE]
 >
 >- In multi-device scenarios, if a single collection process is started, only one `PROF_XXX` directory is generated. If multiple processes are started, multiple `PROF_XXX` directories are generated. The device directories are created within these `PROF_XXX` directories. The specific number of device directories per `PROF_XXX` depends on the actual user operations and does not affect profile data analysis.
 >- For details about profile data, see [Profile Data File References](profile_data_file_references.md).
@@ -516,7 +516,7 @@ The following examples show the directory structure of the generated profile dat
 
 **Supported Products<a name="en-us_topic_0000002441319698_section5889102116569"></a>**
 
->[!NOTE]
+> [!NOTE]
 >
 > For the specific models of Ascend products, see [Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
@@ -555,7 +555,7 @@ In cluster or multi-rank communication scenarios, performance tuning suggestions
         1. If yes, a slow rank exists (the rank with the smallest `Wait Time Ratio`). Check its forward and backward calculation time. If this time is significantly longer than that of other cards, check for load imbalances or processor faults. If the calculation time is consistent with other ranks, check the data preprocessing time.
         2. If no, the links are abnormal. In this case, check for link failures or cases where the communication volume is too low.
 
-    >[!NOTE]
+    > [!NOTE]
     >- **Wait Time Ratio = Wait Time/(Wait Time + Transit Time)**. A higher `Wait Time Ratio` indicates that the wait duration of the rank accounts for a larger portion of the total communication duration, resulting in lower communication efficiency.
     >- **Synchronization Time Ratio Before Transit = Synchronization Time/(Synchronization Time + Transit Time)**. `Synchronization Time` refers to the synchronization duration before the first data transmission. A higher `Synchronization Time Ratio Before Transit` indicates lower communication efficiency and the possible existence of slow ranks.
 

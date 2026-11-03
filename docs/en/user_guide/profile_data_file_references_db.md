@@ -2,7 +2,7 @@
 
 Once the `msprof` command execution is complete, a `msprof_{Timestamp}.db` database file is generated to summarize all profile data. You are advised to use MindStudio Insight or a database development tool such as Navicat Premium to open the file. The profile data summarized by the .db file is as follows:
 
->[!NOTE]
+> [!NOTE]
 >Profile data is displayed in tables in a .db file, and all data is mapped in numbers (for example, the operator name in the `opName` field is displayed as `194`). The mapping table between numbers and names is [STRING_IDS](#string_ids).
 
 **Units**

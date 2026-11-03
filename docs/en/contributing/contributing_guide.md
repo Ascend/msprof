@@ -249,7 +249,7 @@ We are committed to providing a friendly, safe, and inclusive environment for al
 
 - **Issues**: Report bugs, propose feature enhancements, and discuss technical issues.
 - **Pull requests**: Review code and discuss specific implementations.
-- **WeChat group**: Communicate and ask questions on a daily basis (see the MindStudio Team section in [README](../../../README.md)).
+- **WeChat group**: Communicate and ask questions on a daily basis (see the MindStudio Team section in [README](../../../README_EN.md)).
 
 ## License
 

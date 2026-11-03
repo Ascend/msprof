@@ -3040,7 +3040,7 @@ Host-side CPU frequency data is displayed at the CPU Freq level of the `msprof_*
 - Atlas training products: Supported
   <!-- end id6 -->
 
-**CPU Freq Level Data Description of the **`msprof_*.json` File**
+**CPU Freq Level Data Description of the `msprof_*.json` File**
 
 `msprof_*.json` The CPU Freq hierarchy data in the file is shown in the following figure.
 

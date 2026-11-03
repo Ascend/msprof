@@ -211,7 +211,7 @@ DFX设计：
 
 - 调用参考代码：
 
-  msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/reports_sample_config.json
+  `msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/reports_sample_config.json`
 
 # 测试设计（Test Plan）
 

@@ -18,7 +18,7 @@
 
 ## 4. 定位过程
 
-通过msInsight打开msprof.json或者trace_view.json，可观察到有大量的类似名为“Synchronize”等同步API。
+通过MindStudio Insight打开msprof.json或者trace_view.json，可观察到有大量的类似名为“Synchronize”等同步API。
 
 亦可通过api_statistic.csv交付件看到大量的API调用。
 
