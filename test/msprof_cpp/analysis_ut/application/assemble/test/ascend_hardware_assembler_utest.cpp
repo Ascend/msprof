@@ -511,3 +511,70 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithSimtTas
         "pid\":10328512,\"tid\":1,\"ph\":\"M\",\"args\":{\"sort_index\":1}},";
     EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
+
+static std::vector<AscendTaskData> GenerateModelExecuteTaskData()
+{
+    std::vector<AscendTaskData> res;
+    AscendTaskData data;
+    data.deviceId = 0;                     // deviceId 0
+    data.indexId = -1;                     // index_id -1
+    data.streamId = 46;                    // streamId 46
+    data.taskId = 33024;                   // taskId 33024
+    data.contextId = UINT32_MAX;           // contextId invalid
+    data.batchId = 0;                      // batchId 0
+    data.connectionId = 251178;            // connectionId 251178
+    data.timestamp = 1717575960208020758;  // start 1717575960208020758
+    data.duration = 3.28;                  // dur 3.28
+    data.hostType = "MODEL_EXECUTE";
+    data.deviceType = "MODEL_EXECUTE";
+    data.taskType = "MODEL_EXECUTE";
+    res.push_back(data);
+    return res;
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldGenerateModelExecuteFlowWhenTaskTypeIsModelExecute)
+{
+    AscendHardwareAssembler assembler;
+    std::shared_ptr<std::vector<AscendTaskData>> taskS;
+    auto task = GenerateModelExecuteTaskData();
+    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, task);
+    dataInventory_.Inject(taskS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));  // pid 10086
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    std::string taskStr =
+        "{\"name\":\"MODEL_EXECUTE\",\"pid\":10328512,\"tid\":46,\"ts\":\"1717575960208020.758\",\"dur\""
+        ":0.00328,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\"MODEL_EXECUTE\",\"Physic "
+        "Stream Id\":46,\"Task Id\":33024,\"Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":251178}}";
+    std::string flowStr =
+        "{\"name\":\"HostToDevice(Graph)1078801295474688\",\"pid\":10328512,\"tid\":46,\"ph\":\"f\",\"cat\":"
+        "\"HostToDevice(Graph)\",\"id\":\"1078801295474688\",\"ts\":\"1717575960208020.758\",\"bp\":\"e\"}";
+    const std::string &content = res.back();
+    EXPECT_NE(std::string::npos, content.find(taskStr));
+    EXPECT_NE(std::string::npos, content.find(flowStr));
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldNotGenerateModelExecuteFlowWhenConnectionIdIsInvalid)
+{
+    AscendHardwareAssembler assembler;
+    std::shared_ptr<std::vector<AscendTaskData>> taskS;
+    auto task = GenerateModelExecuteTaskData();
+    task.front().connectionId = UINT64_MAX;  // 结构体默认值，表示无 connection id
+    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, task);
+    dataInventory_.Inject(taskS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    const std::string &content = res.back();
+    // task 事件本身仍输出，但不允许出现 ModelExecute 的 flow 终点
+    EXPECT_NE(std::string::npos, content.find("\"Task Type\":\"MODEL_EXECUTE\""));
+    EXPECT_EQ(std::string::npos, content.find("\"cat\":\"HostToDevice(Graph)\""));
+}

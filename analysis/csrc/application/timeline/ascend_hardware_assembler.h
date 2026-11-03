@@ -138,7 +138,8 @@ class AscendHardwareAssembler : public JsonAssembler
     std::string GetOpName(const AscendTaskData &data);
     std::string GetTaskType(const AscendTaskData &data);
     uint32_t GetPhysicStreamId(const uint32_t streamId);
-    void GenerateTaskConnectionTrace(const AscendTaskData &data, uint32_t formatPid, TaskId &id);
+    void GenerateTaskConnectionTrace(const AscendTaskData &data, uint32_t formatPid, TaskId &id,
+                                     FlowCategory category = FlowCategory::DEFAULT);
     void GenerateKfcTrace(const std::vector<KfcTurnData> &kfcData, const std::string &profPath, const LayerInfo &layer,
                           std::unordered_map<uint16_t, uint32_t> &pidMap);
     void GenerateMemcpyAsyncTrace(DataInventory &dataInventory, const std::string &profPath, const LayerInfo &layer,

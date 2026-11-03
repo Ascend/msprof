@@ -191,6 +191,8 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
         }
         traceName = GetOpName(data);
         taskTypeName = GetTaskType(data);
+        // MODEL_EXECUTE 的 host api 是 aclmdlRIExecuteAsync，单独归为 GRAPH 类连线
+        FlowCategory category = taskTypeName == MODEL_EXECUTE_TASK_TYPE ? FlowCategory::GRAPH : FlowCategory::DEFAULT;
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
         uint32_t tid = GetPhysicStreamId(data.streamId);
         pidTidSet_.insert({formatPid, tid});
@@ -220,7 +222,7 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
                 data.batchId, data.contextId, data.connectionId, taskTypeName);
             events_.push_back(event);
         }
-        GenerateTaskConnectionTrace(data, formatPid, id);
+        GenerateTaskConnectionTrace(data, formatPid, id, category);
     }
 }
 
@@ -303,31 +305,37 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncTrace(DataInventory &dataInvent
     }
 }
 
-void AscendHardwareAssembler::GenerateTaskConnectionTrace(const AscendTaskData &data, uint32_t formatPid, TaskId &id)
+void AscendHardwareAssembler::GenerateTaskConnectionTrace(const AscendTaskData &data, uint32_t formatPid, TaskId &id,
+                                                          FlowCategory category)
 {
+    // 连线类别决定 flow 的 cat 与 name 前缀；是否连线仍由下方条件判定
+    const std::string &flowName = GetFlowCategoryName(category);
+    // device侧独立任务可能没有 connection id，此时不能连线，否则会与其他无 id 数据串线
+    bool isGraphTask = category == FlowCategory::GRAPH && data.connectionId != UINT64_MAX;
     std::string connId;
     std::string name;
     uint32_t tid;
-    if (opName_.find(id) != opName_.end() || aclEvent_.find(data.connectionId) != aclEvent_.end())
+    if (isGraphTask || opName_.find(id) != opName_.end() || aclEvent_.find(data.connectionId) != aclEvent_.end())
     {
         connId = ConnectionIdPool::GetConnectionId(data.connectionId, ConnectionCategory::GENERAL);
-        name = HOST_TO_DEVICE + connId;
+        name = flowName + connId;
         tid = GetPhysicStreamId(data.streamId);
         std::shared_ptr<FlowEvent> end;
         MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
-                                HOST_TO_DEVICE, connId, name, FLOW_END, FLOW_BP);
+                                flowName, connId, name, FLOW_END, FLOW_BP);
         events_.push_back(end);
     }
 }
 
 void AscendHardwareAssembler::GenerateMemcpyAsyncConnectionTrace(const AscendTaskData &data, uint32_t formatPid)
 {
+    const std::string &flowName = GetFlowCategoryName(FlowCategory::DEFAULT);
     std::string connId = ConnectionIdPool::GetConnectionId(data.connectionId, ConnectionCategory::GENERAL);
-    std::string name = HOST_TO_DEVICE + connId;
+    std::string name = flowName + connId;
     uint32_t tid = GetPhysicStreamId(data.streamId);
     std::shared_ptr<FlowEvent> end;
-    MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp),
-                            HOST_TO_DEVICE, connId, name, FLOW_END, FLOW_BP);
+    MAKE_SHARED_RETURN_VOID(end, FlowEvent, formatPid, tid, DivideByPowersOfTenWithPrecision(data.timestamp), flowName,
+                            connId, name, FLOW_END, FLOW_BP);
     events_.push_back(end);
 }
 

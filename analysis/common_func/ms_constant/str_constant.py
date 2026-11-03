@@ -124,6 +124,8 @@ class StrConstant:
     HOST_TO_DEVICE = "HostToDevice"
     ACL_RECORD_EVENT = "AscendCL@aclrtRecordEvent"
     ACL_WAIT_EVENT = "AscendCL@aclrtStreamWaitEvent"
+    ACL_MODEL_EXECUTE = "AscendCL@aclmdlRIExecuteAsync"
+    MODEL_EXECUTE_TASK_TYPE = "MODEL_EXECUTE"
 
     MSTX = "MsTx"
 

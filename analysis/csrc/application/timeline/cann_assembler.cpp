@@ -143,14 +143,19 @@ void GenerateConnectionTrace(std::vector<ApiData> &apiData, uint32_t pid, JsonEv
     std::string name;
     for (auto &data : apiData)
     {
-        if (MSPROF_REPORT_NODE_LEVEL == data.level || RECORD_EVENT == data.id || WAIT_EVENT == data.id ||
+        // acl层整图下发接口单独归为 GRAPH 类连线，其余仍用默认类别
+        FlowCategory category = data.id == ACLMDL_RI_EXECUTE_ASYNC ? FlowCategory::GRAPH : FlowCategory::DEFAULT;
+        // 无有效 connection id 时不连线，避免与其他无 id 数据串线（与 device 侧判定保持一致）
+        bool isGraphApi = category == FlowCategory::GRAPH && data.connectionId != UINT64_MAX;
+        if (isGraphApi || MSPROF_REPORT_NODE_LEVEL == data.level || RECORD_EVENT == data.id || WAIT_EVENT == data.id ||
             memcpyAsyncConnectionIds.find(data.connectionId) != memcpyAsyncConnectionIds.end())
         {
+            const std::string &flowName = GetFlowCategoryName(category);
             connId = ConnectionIdPool::GetConnectionId(data.connectionId, ConnectionCategory::GENERAL);
-            name = HOST_TO_DEVICE + connId;
+            name = flowName + connId;
             std::shared_ptr<FlowEvent> start;
             MAKE_SHARED_RETURN_VOID(start, FlowEvent, pid, data.threadId,
-                                    DivideByPowersOfTenWithPrecision(data.timestamp), HOST_TO_DEVICE, connId, name,
+                                    DivideByPowersOfTenWithPrecision(data.timestamp), flowName, connId, name,
                                     FLOW_START);
             res.push_back(start);
         }

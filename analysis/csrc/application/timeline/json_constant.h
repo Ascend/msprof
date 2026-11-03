@@ -38,6 +38,8 @@ const std::string META_DATA_PROCESS_LABEL = "process_labels";
 const std::string META_DATA_THREAD_NAME = "thread_name";
 const std::string META_DATA_THREAD_INDEX = "thread_sort_index";
 const std::string HOST_TO_DEVICE = "HostToDevice";
+const std::string MODEL_EXECUTE_TASK_TYPE = "MODEL_EXECUTE";
+const std::string ACLMDL_RI_EXECUTE_ASYNC = "aclmdlRIExecuteAsync";
 const std::string WAIT_EVENT = "aclrtStreamWaitEvent";
 const std::string MS_TX = "MsTx";
 const std::string FLOW_START = "s";
@@ -51,6 +53,37 @@ const std::string STEP_TRACE_FILE = "step_trace";
 const std::string MSPROF_TX_FILE = "msprof_tx";
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string MEMCPY_ASYNC = "MEMCPY_ASYNC";
+
+/*
+ * host侧api与device侧task之间连线的类别。连线名统一为 HostToDevice，非默认类别追加
+ * 首字母大写的括号后缀（如 HostToDevice(Graph)）。新增类别时在这里补枚举值与常量即可。
+ */
+enum class FlowCategory : uint8_t
+{
+    DEFAULT = 0,  // 不带后缀，直接输出 HostToDevice
+    KERNEL = 1,   // HostToDevice(Kernel)
+    GRAPH = 2     // HostToDevice(Graph)
+};
+
+const std::string KERNEL_TO_DEVICE = "HostToDevice(Kernel)";
+const std::string GRAPH_TO_DEVICE = "HostToDevice(Graph)";
+
+// 类别名映射：DEFAULT 直接返回 HostToDevice；其余类别返回对应的完整常量名。
+// 新增类别必须在此补充分支，未配映射的取值退化为 DEFAULT，避免输出非法连线名。
+inline const std::string &GetFlowCategoryName(FlowCategory category)
+{
+    switch (category)
+    {
+        case FlowCategory::KERNEL:
+            return KERNEL_TO_DEVICE;
+        case FlowCategory::GRAPH:
+            return GRAPH_TO_DEVICE;
+        case FlowCategory::DEFAULT:
+        default:
+            break;
+    }
+    return HOST_TO_DEVICE;
+}
 }  // namespace Application
 }  // namespace Analysis
 #endif  // ANALYSIS_APPLICATION_DELIVERABLES_CONSTANT_H

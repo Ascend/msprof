@@ -249,3 +249,59 @@ TEST_F(CannAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccessCaseMemcpyAsyn
                             "\"1717575960208020.750\"},";
     EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
+
+static std::vector<ApiData> GenerateModelExecuteApiData()
+{
+    std::vector<ApiData> res;
+    ApiData data;
+    data.apiName = "aclmdlRIExecuteAsync";
+    data.connectionId = 251178;  // connectionId 251178
+    data.id = "aclmdlRIExecuteAsync";
+    data.timestamp = 1717575960208020750;  // start 1717575960208020750
+    data.itemId = "0";
+    data.level = MSPROF_REPORT_ACL_LEVEL;
+    data.threadId = 3878834;         // threadId 3878834
+    data.end = 1717575960209010750;  // end 1717575960209010750
+    data.structType = "ACL_RTS";
+    res.push_back(data);
+    return res;
+}
+
+TEST_F(CannAssemblerUTest, ShouldGenerateModelExecuteStartWhenApiIsAclmdlRiExecuteAsync)
+{
+    CannAssembler assembler;
+    std::shared_ptr<std::vector<ApiData>> dataS;
+    auto data = GenerateModelExecuteApiData();
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
+    dataInventory_.Inject(dataS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1024255));  // pid 1024255
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    EXPECT_NE(std::string::npos, res.back().find("\"cat\":\"HostToDevice(Graph)\""));
+    EXPECT_NE(std::string::npos, res.back().find("\"ph\":\"s\""));
+    EXPECT_NE(std::string::npos, res.back().find("\"id\":\"1078801295474688\""));
+}
+
+TEST_F(CannAssemblerUTest, ShouldNotGenerateModelExecuteStartWhenConnectionIdIsInvalid)
+{
+    CannAssembler assembler;
+    std::shared_ptr<std::vector<ApiData>> dataS;
+    auto data = GenerateModelExecuteApiData();
+    data.front().connectionId = UINT64_MAX;  // 无有效 connection id
+    MAKE_SHARED_NO_OPERATION(dataS, std::vector<ApiData>, data);
+    dataInventory_.Inject(dataS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(1024255));
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+    FileReader reader(files.back());
+    std::vector<std::string> res;
+    EXPECT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(res));
+    // api 事件本身仍输出，但不允许出现 ModelExecute 的 flow 起点
+    EXPECT_NE(std::string::npos, res.back().find("aclmdlRIExecuteAsync"));
+    EXPECT_EQ(std::string::npos, res.back().find("\"cat\":\"HostToDevice(Graph)\""));
+}

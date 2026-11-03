@@ -18,7 +18,10 @@
 import unittest
 from unittest import mock
 
+from common_func.constant import Constant
 from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.str_constant import StrConstant
+from viewer.association.host_connect_device import FlowCategory
 from viewer.association.host_connect_device import HostToDevice
 from common_func.trace_view_header_constant import TraceViewHeaderConstant
 
@@ -371,3 +374,211 @@ class TestHostToDevice(unittest.TestCase):
             connection = HostToDevice("")
             ret = connection.get_hccl_op_connection_ids()
             self.assertEqual(ret, set())
+
+    def test_add_model_execute_connection_data_should_generate_start_and_end(self):
+        InfoConfReader()._info_json = {"devices": 0}
+        task_time_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 3971926464,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 46,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 1784973685564085.895,
+                TraceViewHeaderConstant.TRACE_HEADER_DURATION: 3.28,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "MODEL_EXECUTE", "Physic Stream Id": 46, "Task Id": 33024,
+                    "Batch Id": 0, "Subtask Id": 4294967295, "connection_id": 251178,
+                },
+            }
+        ]
+        model_execute_apis = {
+            251178: {
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 3971926271,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 3878834,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 1784973685563984.540,
+            }
+        }
+        added_ids = set()
+        HostToDevice.add_model_execute_connection_data(task_time_data, 999, model_execute_apis, added_ids)
+        flow_id = 251178 << 32
+        expected = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: f'{FlowCategory.GRAPH.get_flow_name()}{flow_id}',
+                TraceViewHeaderConstant.TRACE_HEADER_PH: 's',
+                TraceViewHeaderConstant.TRACE_HEADER_CAT: FlowCategory.GRAPH.get_flow_name(),
+                TraceViewHeaderConstant.TRACE_HEADER_ID: str(flow_id),
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 999,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 3878834,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 1784973685563984.540,
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: f'{FlowCategory.GRAPH.get_flow_name()}{flow_id}',
+                TraceViewHeaderConstant.TRACE_HEADER_PH: 'f',
+                TraceViewHeaderConstant.TRACE_HEADER_CAT: FlowCategory.GRAPH.get_flow_name(),
+                TraceViewHeaderConstant.TRACE_HEADER_ID: str(flow_id),
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 1784973685564085.895,
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 3971926464,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 46,
+                TraceViewHeaderConstant.TRACE_HEADER_BP: 'e',
+            },
+        ]
+        self.assertEqual(task_time_data[1:], expected)
+        self.assertEqual(added_ids, {flow_id})
+
+    def test_add_model_execute_connection_data_should_skip_duplicated_flow(self):
+        InfoConfReader()._info_json = {"devices": 0}
+        task_time_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 1,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 2,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 100.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "MODEL_EXECUTE", "Physic Stream Id": 2, "Task Id": 3,
+                    "Batch Id": 0, "Subtask Id": 4294967295, "connection_id": 100,
+                },
+            }
+        ]
+        model_execute_apis = {100: {TraceViewHeaderConstant.TRACE_HEADER_TID: 5,
+                                    TraceViewHeaderConstant.TRACE_HEADER_TS: 50.0}}
+        added_ids = {100 << 32}
+        HostToDevice.add_model_execute_connection_data(task_time_data, 0, model_execute_apis, added_ids)
+        self.assertEqual(len(task_time_data), 1)
+
+    def test_add_model_execute_connection_data_should_skip_unknown_connection_id(self):
+        task_time_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 1,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 2,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 100.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "MODEL_EXECUTE", "connection_id": 999,
+                },
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 1,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 2,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 100.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {},
+            },
+        ]
+        HostToDevice.add_model_execute_connection_data(task_time_data, 0, {}, set())
+        self.assertEqual(len(task_time_data), 2)
+
+    def test_add_task_connection_data_should_skip_model_execute_task(self):
+        task_time_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 1,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 2,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 100.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "MODEL_EXECUTE", "Physic Stream Id": 2, "Task Id": 3,
+                    "Batch Id": 0, "Subtask Id": 4294967295, "connection_id": 100,
+                },
+            }
+        ]
+        HostToDevice.add_task_connection_data(task_time_data, 0, {}, 0, {})
+        self.assertEqual(len(task_time_data), 1)
+
+    def test_get_acl_event_trace_should_collect_model_execute_api(self):
+        api_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclmdlRIExecuteAsync",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {"connection_id": 251178},
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclrtRecordEvent",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {"connection_id": 1234},
+            },
+        ]
+        connection = HostToDevice("")
+        connection.get_acl_event_trace(api_data)
+        self.assertIn(251178, connection._model_execute_apis)
+        self.assertIn(1234, connection._acl_event_apis)
+
+    def test_get_connection_id_to_context_ids_mapping_should_skip_model_execute(self):
+        ascend_tasks = [
+            (1, 2, 0, 0, 100, "MODEL_EXECUTE"),
+            (1, 3, 0, 4294967295, 200, "KERNEL_AICORE"),
+        ]
+        with mock.patch(NAMESPACE + ".path_check", return_value=True), \
+                mock.patch(NAMESPACE + ".ViewModel") as view_model:
+            view_model.return_value.get_sql_data.return_value = ascend_tasks
+            connection = HostToDevice("")
+            result = connection.get_connection_id_to_context_ids_mapping({(0, 1, 3, 0): (1, 2)}, 0)
+            self.assertNotIn(100, result)
+            self.assertIn(200, result)
+
+    def test_add_model_execute_connection_data_should_return_when_traces_is_not_list(self):
+        HostToDevice.add_model_execute_connection_data(None, 0, {}, set())
+        HostToDevice.add_model_execute_connection_data("invalid", 0, {}, set())
+
+    def test_add_model_execute_connection_data_should_skip_kernel_trace_with_same_connection_id(self):
+        """同一 connection_id 上 kernel trace 先到，不应抢占 flow id，只有 MODEL_EXECUTE 才连线"""
+        InfoConfReader()._info_json = {"devices": 0}
+        task_time_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "aclnnMul_MulAiCore_Mul",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 100,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 11,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 200.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "AI_CORE", "Physic Stream Id": 11, "Task Id": 1,
+                    "Batch Id": 0, "Subtask Id": 4294967295, "connection_id": 300,
+                },
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "MODEL_EXECUTE",
+                TraceViewHeaderConstant.TRACE_HEADER_PID: 100,
+                TraceViewHeaderConstant.TRACE_HEADER_TID: 46,
+                TraceViewHeaderConstant.TRACE_HEADER_TS: 210.0,
+                TraceViewHeaderConstant.TRACE_HEADER_PH: "X",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {
+                    "Task Type": "MODEL_EXECUTE", "Physic Stream Id": 46, "Task Id": 2,
+                    "Batch Id": 0, "Subtask Id": 4294967295, "connection_id": 300,
+                },
+            },
+        ]
+        model_execute_apis = {300: {TraceViewHeaderConstant.TRACE_HEADER_TID: 7,
+                                    TraceViewHeaderConstant.TRACE_HEADER_TS: 100.0}}
+        added_ids = set()
+        HostToDevice.add_model_execute_connection_data(task_time_data, 999, model_execute_apis, added_ids)
+        flows = [t for t in task_time_data if t.get("ph") in ("s", "f")]
+        self.assertEqual(2, len(flows))
+        end = [f for f in flows if f["ph"] == "f"][0]
+        # 终点必须落在 MODEL_EXECUTE task 上（tid 46 / ts 210.0），不能是 kernel 的 tid 11 / ts 200.0
+        self.assertEqual(46, end[TraceViewHeaderConstant.TRACE_HEADER_TID])
+        self.assertEqual(210.0, end[TraceViewHeaderConstant.TRACE_HEADER_TS])
+
+    def test_get_acl_event_trace_should_skip_invalid_connection_id(self):
+        """connection_id 缺失或非法时不应写入 _model_execute_apis"""
+        api_data = [
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclmdlRIExecuteAsync",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {},
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclmdlRIExecuteAsync",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {"connection_id": None},
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclmdlRIExecuteAsync",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {"connection_id": Constant.DEFAULT_INVALID_VALUE},
+            },
+            {
+                TraceViewHeaderConstant.TRACE_HEADER_NAME: "AscendCL@aclmdlRIExecuteAsync",
+                TraceViewHeaderConstant.TRACE_HEADER_ARGS: {"connection_id": 251178},
+            },
+        ]
+        connection = HostToDevice("")
+        connection.get_acl_event_trace(api_data)
+        # 只有合法的 connection_id 入表，且不包含 None / -1 键
+        self.assertEqual([251178], list(connection._model_execute_apis.keys()))
