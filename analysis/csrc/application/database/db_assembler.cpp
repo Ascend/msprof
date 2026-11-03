@@ -281,7 +281,7 @@ void ConvertTaskData(CommunicationTaskDataFormat& processedTaskData, const std::
         processedTaskData.emplace_back(item.timestamp, opName, globalTaskId, taskType, item.planeId, groupName,
                                        notifyId, rdmaType, item.srcRank, item.dstRank, transportType, item.size,
                                        dataType, linkType, assocId, item.isMaster,
-                                       item.bandwidth * Common::BYTES_PER_GB);  // GB/s -> B/s，字节按1024换算
+                                       item.bandwidth * Common::COMM_BYTES_PER_GB);  // GB/s -> B/s，通信类按1000
     }
 }
 
@@ -460,8 +460,10 @@ bool SaveHccsData(DataInventory& dataInventory, DBInfo& msprofDB, const std::str
     }
     for (const auto& item : *hccsData)
     {
-        uint64_t txThroughput = static_cast<uint64_t>(item.txThroughput * BYTE_SIZE * BYTE_SIZE);  // MB/s -> B/s
-        uint64_t rxThroughput = static_cast<uint64_t>(item.rxThroughput * BYTE_SIZE * BYTE_SIZE);  // MB/s -> B/s
+        uint64_t txThroughput =
+            static_cast<uint64_t>(item.txThroughput * Common::COMM_BYTES_PER_MB);  // 通信类 MB/s -> B/s
+        uint64_t rxThroughput =
+            static_cast<uint64_t>(item.rxThroughput * Common::COMM_BYTES_PER_MB);  // 通信类 MB/s -> B/s
         res.emplace_back(item.deviceId, item.timestamp, txThroughput, rxThroughput);
     }
     return SaveData(res, TABLE_NAME_HCCS, msprofDB);
@@ -1006,7 +1008,7 @@ bool SaveSysIOData(DataInventory& dataInventory, DBInfo& msprofDB, const std::st
     for (const auto& item : sysIOOriginalData)
     {
         res.emplace_back(item.deviceId, item.timestamp,
-                         item.bandwidth,  // MB/s -> B/s
+                         item.bandwidth,  // 已在 SysIOProcessor 中转为 B/s，此处原样落盘
                          item.rxPacketRate, item.rxByteRate, item.rxPackets, item.rxBytes, item.rxErrors,
                          item.rxDropped, item.txPacketRate, item.txByteRate, item.txPackets, item.txBytes,
                          item.txErrors, item.txDropped, item.funcId);
@@ -1328,7 +1330,7 @@ bool SaveQosData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
                                         data.bw6, data.bw7, data.bw8, data.bw9, data.bw10};
         for (size_t i = 0; i < it->second.size(); i++)
         {
-            res.emplace_back(data.deviceId, it->second[i], bandwidth[i] * BYTE_SIZE * BYTE_SIZE, data.timestamp,
+            res.emplace_back(data.deviceId, it->second[i], bandwidth[i] * Common::COMM_BYTES_PER_MB, data.timestamp,
                              data.dieId);
         }
     }
@@ -1379,6 +1381,7 @@ bool SaveDPUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
             if (dur > 0 && data.dataSize <= INT64_MAX)
             {
                 constexpr double MICRO_SECOND = 1000000.0;
+                // 字段名为 Bandwidth(B/s)：字节/秒，不涉及 GB 进制换算
                 bandwidth = data.dataSize / (dur / MICRO_SECOND);
             }
 
@@ -1432,11 +1435,12 @@ bool SaveSIOData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
     for (const auto& data : *sioData)
     {
         uint64_t nameId = IdPool::GetInstance().GetUint64Id(data.name);
-        res.emplace_back(data.deviceId, nameId, data.timestamp, data.reqRxBandwidth * BYTE_SIZE * BYTE_SIZE,
-                         data.rspRxBandwidth * BYTE_SIZE * BYTE_SIZE, data.snpRxBandwidth * BYTE_SIZE * BYTE_SIZE,
-                         data.datRxBandwidth * BYTE_SIZE * BYTE_SIZE, data.reqTxBandwidth * BYTE_SIZE * BYTE_SIZE,
-                         data.rspTxBandwidth * BYTE_SIZE * BYTE_SIZE, data.snpTxBandwidth * BYTE_SIZE * BYTE_SIZE,
-                         data.datTxBandwidth * BYTE_SIZE * BYTE_SIZE);
+        res.emplace_back(
+            data.deviceId, nameId, data.timestamp, data.reqRxBandwidth * Common::COMM_BYTES_PER_MB,
+            data.rspRxBandwidth * Common::COMM_BYTES_PER_MB, data.snpRxBandwidth * Common::COMM_BYTES_PER_MB,
+            data.datRxBandwidth * Common::COMM_BYTES_PER_MB, data.reqTxBandwidth * Common::COMM_BYTES_PER_MB,
+            data.rspTxBandwidth * Common::COMM_BYTES_PER_MB, data.snpTxBandwidth * Common::COMM_BYTES_PER_MB,
+            data.datTxBandwidth * Common::COMM_BYTES_PER_MB);
     }
 
     return SaveData(res, TABLE_NAME_SIO, msprofDB);
@@ -1462,7 +1466,9 @@ bool SaveUBData(DataInventory& dataInventory, DBInfo& msprofDB, const std::strin
 
     for (const auto& data : *ubData)
     {
-        res.emplace_back(data.deviceId, data.portId, data.timestamp, data.udmaRxBind, data.udmaTxBind);
+        // 通信类：udmaRxBind/udmaTxBind 单位为 MB/s，需转 B/s
+        res.emplace_back(data.deviceId, data.portId, data.timestamp, data.udmaRxBind * Common::COMM_BYTES_PER_MB,
+                         data.udmaTxBind * Common::COMM_BYTES_PER_MB);
     }
 
     return SaveData(res, TABLE_NAME_UB, msprofDB);
@@ -1521,7 +1527,7 @@ bool SaveCCUData(DataInventory& dataInventory, DBInfo& msprofDB, const std::stri
 
         if (data.hasBandwidth)
         {
-            jsonWriter["Bandwidth (B/s)"] << data.bandwidth * BYTE_SIZE * BYTE_SIZE;  // MB/s -> B/s
+            jsonWriter["Bandwidth (B/s)"] << data.bandwidth * Common::COMM_BYTES_PER_MB;  // 通信类 MB/s -> B/s
         }
 
         if (data.hasReduceInfo)

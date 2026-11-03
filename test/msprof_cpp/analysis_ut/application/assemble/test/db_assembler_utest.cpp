@@ -2094,8 +2094,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveQosDataShouldNotOverflowWhenBandwidthExceeds
                       " ORDER BY bandwidth";
     EXPECT_TRUE(msprofDBRunner->QueryData(sql, checkData));
     ASSERT_EQ(2, checkData.size()); // sample.json 中 qosEvents 为 2 个事件
-    EXPECT_EQ(5368709120, std::get<2>(checkData[0]));
-    EXPECT_EQ(8589934592, std::get<2>(checkData[1]));
+    // 通信类按 1000 换算：5 GB = 5e9 B，8 GB = 8e9 B
+    EXPECT_EQ(5120000000, std::get<2>(checkData[0]));
+    EXPECT_EQ(8192000000, std::get<2>(checkData[1]));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveDPUDataShouldReturnTrueWhenRunSuccess)
@@ -2215,9 +2216,10 @@ TEST_F(DBAssemblerUTest, TestRunSaveSIODataShouldReturnTrueWhenRunSuccess)
     ASSERT_EQ(1, sioResult.size());
     EXPECT_EQ(0, std::get<0>(sioResult[0]));
     EXPECT_EQ(1746706291651036160, std::get<2>(sioResult[0]));
-    EXPECT_DOUBLE_EQ(1.0 * BYTE_SIZE * BYTE_SIZE, std::get<3>(sioResult[0]));
-    EXPECT_DOUBLE_EQ(2.0 * BYTE_SIZE * BYTE_SIZE, std::get<4>(sioResult[0]));
-    EXPECT_DOUBLE_EQ(8.0 * BYTE_SIZE * BYTE_SIZE, std::get<10>(sioResult[0]));
+    // 通信类按 1000 换算
+    EXPECT_DOUBLE_EQ(1.0 * 1000000, std::get<3>(sioResult[0]));
+    EXPECT_DOUBLE_EQ(2.0 * 1000000, std::get<4>(sioResult[0]));
+    EXPECT_DOUBLE_EQ(8.0 * 1000000, std::get<10>(sioResult[0]));
 
     using StringIdFormat = std::vector<std::tuple<uint64_t, std::string>>;
     StringIdFormat stringIds;
@@ -2267,8 +2269,9 @@ TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnTrueWhenRunSuccess)
     EXPECT_EQ(0, std::get<0>(ubResult[0]));
     EXPECT_EQ(3, std::get<1>(ubResult[0]));
     EXPECT_EQ(1746706291651036160, std::get<2>(ubResult[0]));
-    EXPECT_EQ(100, std::get<3>(ubResult[0]));
-    EXPECT_EQ(200, std::get<4>(ubResult[0]));
+    // 通信类按 1000 换算：100 MB/s -> 100e6 B/s，200 MB/s -> 200e6 B/s
+    EXPECT_EQ(100000000, std::get<3>(ubResult[0]));
+    EXPECT_EQ(200000000, std::get<4>(ubResult[0]));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveUBDataShouldReturnFalseWhenReserveFailed)

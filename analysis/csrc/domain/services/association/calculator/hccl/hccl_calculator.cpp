@@ -488,12 +488,13 @@ uint16_t HcclCalculator::GetJumpNum(const DeviceHcclTask& task)
 
 double HcclCalculator::CalculateBandwidth(double size, double duration)
 {
-    // 字节按 1024 换算：GB/s = (B / 1024^3) / (ns / 10^9)
+    // size 单位 Byte，duration 单位 ns
     if (Utils::IsDoubleEqual(duration, 0.0) || (duration <= 0))
     {
         return 0;
     }
-    return size / duration / Common::BYTES_PER_GB * NANO_SECOND;
+    // 通信类：字节按 1000 换算（HCCL 链路带宽）
+    return size / duration / Common::COMM_BYTES_PER_GB * NANO_SECOND;
 }
 
 uint16_t HcclCalculator::FindConsecutivePayloadTask(std::vector<DeviceHcclTask*> tasks, size_t idx)

@@ -46,8 +46,18 @@ const uint16_t PERCENTAGE = 100;
 const uint64_t MICRO_SECOND = 1000000;
 const uint64_t MILLI_SECOND = 1000;
 const uint16_t BYTE_SIZE = 1024;
-// 字节按 1024 换算：1GB = 1024^3 B。B -> GB 时除以该值
+// ===== 字节换算常量：按数据性质区分两种进制，修改前务必确认所属类别 =====
+//   【内存类】HBM / LLC / memcpy / DDR / ACC PMU / NPU Mem / Module Mem
+//            → BYTE_SIZE(1024) / BYTES_PER_GB(1024^3)
+//   【通信类】HCCL 算子 / DPU / CCU / PCIe / UB / HCCS / SIO / NIC / RoCE / QoS
+//            → COMM_BYTES_PER_MB(10^6) / COMM_BYTES_PER_GB(10^9)
+// 两者不可混用：混用会导致通信带宽利用率出现 ~7.4% 的系统性偏差（1024^3 / 10^9）
+//
+// 内存：字节按 1024 换算，1GB = 1024^3 B。B -> GB 时除以该值
 constexpr double BYTES_PER_GB = 1024.0 * 1024.0 * 1024.0;
+// 通信：字节按 1000 换算，1MB = 10^6 B，1GB = 10^9 B
+constexpr uint64_t COMM_BYTES_PER_MB = 1000ULL * 1000ULL;
+constexpr double COMM_BYTES_PER_GB = 1000.0 * 1000.0 * 1000.0;
 const uint16_t STARS_MAGIC_NUM = 0x6bd3;
 
 const std::string HOST = "host";

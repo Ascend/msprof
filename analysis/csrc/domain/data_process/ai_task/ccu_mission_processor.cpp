@@ -293,9 +293,11 @@ void FormatLoopTimelineData(const std::vector<CCUMissionInfo> &loopData, const s
             {
                 traceData.hasBandwidth = true;
                 double durationUs = static_cast<double>(traceData.duration) / NS_TO_US;
-                traceData.bandwidth = durationUs > 0 ? static_cast<double>(hostData.dataSize) / durationUs *
-                                                           (static_cast<double>(MICRO_SECOND) / BYTE_SIZE / BYTE_SIZE)
-                                                     : 0.0;
+                // 通信类：dataSize 为字节，按 1000 换算得 MB/s
+                traceData.bandwidth = durationUs > 0
+                                          ? static_cast<double>(hostData.dataSize) / (durationUs / MICRO_SECOND) /
+                                                static_cast<double>(Common::COMM_BYTES_PER_MB)
+                                          : 0.0;
             }
             if (hostData.reduceOpType != "RESERVED")
             {

@@ -134,6 +134,12 @@ TEST_F(SysIOProcessorUTest, TestNicRunShouldReturnTrueWhenProcessorRunSuccess)
     auto processor = NicProcessor(PROF_DIR);
     DataInventory dataInventory;
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_NIC));
+    // 通信类带宽按 1000 换算：原始 200000 MB/s -> 200000 * 10^6 = 2e11 B/s
+    auto nicData = dataInventory.GetPtr<std::vector<NicOriginalData>>();
+    ASSERT_NE(nicData, nullptr);
+    ASSERT_FALSE(nicData->empty());
+    ASSERT_FALSE(nicData->front().sysIOOriginalData.empty());
+    EXPECT_EQ(200000ULL * 1000000ULL, nicData->front().sysIOOriginalData.front().bandwidth);
 }
 
 TEST_F(SysIOProcessorUTest, TestRoceRunShouldReturnTrueWhenProcessorRunSuccess)

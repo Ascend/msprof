@@ -693,7 +693,7 @@ TEST_F(KfcCalculatorUTest, TestCalculateWithHcclAndMc2)
     EXPECT_EQ(1, taskData[0].planeId);
     EXPECT_EQ(1u, taskData[0].isMaster);
     EXPECT_EQ(1u, taskData[0].iterId);
-    EXPECT_DOUBLE_EQ(95.367431640625, taskData[0].bandwidth);
+    EXPECT_DOUBLE_EQ(102.4, taskData[0].bandwidth);
     // taskB → MC2
     EXPECT_EQ(HcclType::MC2, taskData[1].source);
     EXPECT_EQ(900, taskData[1].opId);
@@ -701,7 +701,7 @@ TEST_F(KfcCalculatorUTest, TestCalculateWithHcclAndMc2)
     EXPECT_EQ(1, taskData[1].planeId);
     EXPECT_EQ(1u, taskData[1].isMaster);
     EXPECT_EQ(1u, taskData[1].iterId);
-    EXPECT_DOUBLE_EQ(190.73486328125, taskData[1].bandwidth);
+    EXPECT_DOUBLE_EQ(204.8, taskData[1].bandwidth);
 
     const auto& opData = calculator_->GetKfcOpData();
     ASSERT_EQ(1u, opData.size());
@@ -876,14 +876,14 @@ TEST_F(KfcCalculatorUTest, TestProcessEntryWhenSuccessThenInjectData)
     EXPECT_EQ(1, (*taskData)[0].planeId);
     EXPECT_EQ(1u, (*taskData)[0].isMaster);
     EXPECT_EQ("KfcHcclOp", (*taskData)[0].hcclName);
-    EXPECT_DOUBLE_EQ(4.76837158203125, (*taskData)[0].bandwidth);
+    EXPECT_DOUBLE_EQ(5.12, (*taskData)[0].bandwidth);
     EXPECT_EQ(HcclType::MC2, (*taskData)[1].source);
     EXPECT_EQ(900, (*taskData)[1].opId);
     EXPECT_EQ("g2", (*taskData)[1].groupName);
     EXPECT_EQ(1, (*taskData)[1].planeId);
     EXPECT_EQ(1u, (*taskData)[1].isMaster);
     EXPECT_EQ("KfcMc2Op", (*taskData)[1].hcclName);
-    EXPECT_DOUBLE_EQ(9.5367431640625, (*taskData)[1].bandwidth);
+    EXPECT_DOUBLE_EQ(10.24, (*taskData)[1].bandwidth);
 
     auto opData = dataInventory.GetPtr<std::vector<KfcOpRecord>>();
     ASSERT_NE(opData, nullptr);

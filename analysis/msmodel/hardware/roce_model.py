@@ -188,18 +188,17 @@ class RoceModel(BaseModel, ABC):
         for i, _ in enumerate(time_stamp):
             if int(bandwidth):
                 time_stamp[i] = time_stamp[i][0]
+                # 通信类：bandwidth 底层按 10^6 处理（待与底层对接确认），原为 KILOBYTE^2
                 eff_dic.get('rx_eff').append(
                     round(
-                        float(int(rx_byte[i][0]) * self.BYTE)
-                        / (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                        float(int(rx_byte[i][0]) * self.BYTE) / (int(bandwidth) * Constant.COMM_BYTES_PER_MB),
                         self.ROUND_NUMBER,
                     )
                 )
                 RoceModel._init_roce_rx_data_with_index(i, rx_data)
                 eff_dic.get('tx_eff').append(
                     round(
-                        float(int(tx_byte[i][0]) * self.BYTE)
-                        / (int(bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                        float(int(tx_byte[i][0]) * self.BYTE) / (int(bandwidth) * Constant.COMM_BYTES_PER_MB),
                         self.ROUND_NUMBER,
                     )
                 )
@@ -434,7 +433,9 @@ class RoceModel(BaseModel, ABC):
         duration = float(roce_info.get("duration"))
         bandwidth = int(roce_info.get("bandwidth"))
         roce_info["rx_bytes"] = round(
-            total_byes / (duration * bandwidth * Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER
+            # 通信类：bandwidth 底层按 10^6 处理（待与底层对接确认），原为 KILOBYTE^2
+            total_byes / (duration * bandwidth * Constant.COMM_BYTES_PER_MB),
+            self.ROUND_NUMBER,
         )
 
     def _init_tx_byte_in_roce_info(self: any, roce_info: dict, device_id: str, func_id: str) -> None:
@@ -446,7 +447,9 @@ class RoceModel(BaseModel, ABC):
         duration = float(roce_info.get("duration"))
         bandwidth = int(roce_info.get("bandwidth"))
         roce_info["tx_bytes"] = round(
-            total_byes / (duration * bandwidth * Constant.KILOBYTE * Constant.KILOBYTE), self.ROUND_NUMBER
+            # 通信类：bandwidth 底层按 10^6 处理（待与底层对接确认），原为 KILOBYTE^2
+            total_byes / (duration * bandwidth * Constant.COMM_BYTES_PER_MB),
+            self.ROUND_NUMBER,
         )
 
     def _init_rx_packet_in_roce_info(self: any, roce_info: dict, device_id: str, func_id: str) -> None:

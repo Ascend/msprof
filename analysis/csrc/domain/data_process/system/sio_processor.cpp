@@ -27,7 +27,8 @@ using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
 namespace
 {
-constexpr double TMP_UINT = static_cast<double>(NANO_SECOND) / (BYTE_SIZE * BYTE_SIZE);
+// 通信类：字节按 1000 换算。dataSize(Byte) × (1e9 / 10^6) / duration(ns) = MB/s
+constexpr double TMP_UINT = static_cast<double>(NANO_SECOND) / static_cast<double>(COMM_BYTES_PER_MB);
 const std::unordered_map<uint16_t, std::string> SERIES_MAP{{0, "die 0"}, {1, "die 1"}};
 const std::unordered_map<uint16_t, std::string> SERIES_V6_MAP{{0, "D-DIE0"}, {2, "U-DIE0"}, {3, "U-DIE1"}};
 }  // namespace

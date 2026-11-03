@@ -159,7 +159,8 @@ class HcclCalculator(ICalculator, MsMultiProcess):
         if abs(duration) < 1e-15:
             bandwidth = 0
         else:
-            bandwidth = (size / NumberConstant.BYTES_TO_GB) / (duration * NumberConstant.NS_TO_S)
+            # 通信类：字节按 1000 换算（HCCL 链路带宽）
+            bandwidth = (size / NumberConstant.COMM_BYTES_TO_GB) / (duration * NumberConstant.NS_TO_S)
         return bandwidth
 
     @staticmethod

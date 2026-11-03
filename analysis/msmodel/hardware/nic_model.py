@@ -182,14 +182,14 @@ class NicModel(BaseModel, ABC):
         target_data = []
         for nic_obj in nic_obj_list:
             if int(nic_obj.bandwidth):
+                # 通信类：bandwidth 底层按 10^6 处理（该假设待与底层对接确认），
+                # 与 C++ SysIOProcessor 的 10^6 口径保持一致（原为 KILOBYTE^2）
                 rx_eff = round(
-                    float(int(nic_obj.rxbyte) * self.BYTE)
-                    / (int(nic_obj.bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                    float(int(nic_obj.rxbyte) * self.BYTE) / (int(nic_obj.bandwidth) * Constant.COMM_BYTES_PER_MB),
                     self.ROUND_NUMBER,
                 )
                 tx_eff = round(
-                    float(int(nic_obj.txbyte) * self.BYTE)
-                    / (int(nic_obj.bandwidth) * Constant.KILOBYTE * Constant.KILOBYTE),
+                    float(int(nic_obj.txbyte) * self.BYTE) / (int(nic_obj.bandwidth) * Constant.COMM_BYTES_PER_MB),
                     self.ROUND_NUMBER,
                 )
 
@@ -412,9 +412,8 @@ class NicModel(BaseModel, ABC):
             (device[0], func_id),
         ).fetchone()
         rx_bytes_be_div = float((int(nic_info.get("rx_byte")[0]) - int(nic_info.get("rx_byte")[1])) * self.BYTE)
-        rx_bytes_div = (
-            float(nic_info.get("duration")) * int(nic_info.get("bandwidth")) * Constant.KILOBYTE * Constant.KILOBYTE
-        )
+        # 通信类：bandwidth 底层按 10^6 处理（待与底层对接确认），原为 KILOBYTE^2
+        rx_bytes_div = float(nic_info.get("duration")) * int(nic_info.get("bandwidth")) * Constant.COMM_BYTES_PER_MB
         nic_info["rx_bytes"] = round(rx_bytes_be_div / rx_bytes_div, self.ROUND_NUMBER)
 
         _sql = "select max(txbytes), min(txbytes) from {} where replayId = 0 AND device_id = ? AND funcId = ?;".format(
@@ -422,9 +421,8 @@ class NicModel(BaseModel, ABC):
         )
         nic_info["tx_byte"] = self.cur.execute(_sql, (device[0], func_id)).fetchone()
         tx_bytes_be_div = float((int(nic_info.get("tx_byte")[0]) - int(nic_info.get("tx_byte")[1])) * self.BYTE)
-        tx_bytes_div = (
-            float(nic_info.get("duration")) * int(nic_info.get("bandwidth")) * Constant.KILOBYTE * Constant.KILOBYTE
-        )
+        # 通信类：bandwidth 底层按 10^6 处理（待与底层对接确认），原为 KILOBYTE^2
+        tx_bytes_div = float(nic_info.get("duration")) * int(nic_info.get("bandwidth")) * Constant.COMM_BYTES_PER_MB
         nic_info["tx_bytes"] = round(tx_bytes_be_div / tx_bytes_div, self.ROUND_NUMBER)
 
     def _cal_rx_packet_sql_exec(self: any, nic_info: dict, device: list, func_id: int) -> None:

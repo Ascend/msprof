@@ -475,8 +475,13 @@ class Constant:
     KILOBYTE = 1024.0
     TIME_RATE = 1000000000.0
     THOUSAND = 1000
-    BYTE_NS_TO_MB_S = TIME_RATE / KILOBYTE / KILOBYTE
-    BYTE_US_TO_MB_S = TIME_RATE / THOUSAND / KILOBYTE / KILOBYTE
+    # 带宽转换系数存在两类：通信类按 1000 换算，内存类按 1024 换算（NumberConstant.BYTES_TO_*）。
+    # 以下两个系数供通信类使用：PCIe、CCU、HCCS。
+    BYTE_NS_TO_MB_S = TIME_RATE / THOUSAND / THOUSAND  # B/ns -> MB/s
+    BYTE_US_TO_MB_S = THOUSAND / THOUSAND  # B/us -> MB/s
+    # 通信类：MB <-> Byte 换算系数（1MB = 10^6 B），与 NumberConstant.COMM_BYTES_TO_MB 同口径。
+    # 注意：NIC/RoCE 底层硬件上报的 bandwidth 字段按 10^6 处理，此假设待与底层对接确认。
+    COMM_BYTES_PER_MB = 1000000
     MILLION = 1000000
     BIT_TO_BYTE = 8
     MBPS_TO_BYTES = MILLION // BIT_TO_BYTE

@@ -116,7 +116,8 @@ class HcclAnalysisTool:
 
     @classmethod
     def get_rdma_time_info(cls: any, events: list, idx: int, rdma_transit_op_num: int) -> list:
-        transit_size = HcclAnalysisTool.get_value(events[idx].size, 'size') / NumberConstant.BYTES_TO_MB
+        # 通信类：字节按 1000 换算
+        transit_size = HcclAnalysisTool.get_value(events[idx].size, 'size') / NumberConstant.COMM_BYTES_TO_MB
         transit_time = (
             HcclAnalysisTool.get_value(
                 events[idx + rdma_transit_op_num - 1].duration
@@ -149,7 +150,7 @@ class HcclAnalysisTool:
         first_payload_time = events[idx].timestamp
         for i in range(idx, idx + payload_cnt):
             saved_size += events[i].size
-        transit_size = saved_size / NumberConstant.BYTES_TO_MB
+        transit_size = saved_size / NumberConstant.COMM_BYTES_TO_MB
         transit_time = (
             HcclAnalysisTool.get_value(
                 events[idx + payload_cnt + idx_jump - 2].duration
@@ -230,7 +231,7 @@ class HcclAnalysisTool:
         )
         if bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] != 0:
             bandwidth_dict[StrConstant.SDMA][OpBandWidthType.BANDWIDTH_GB_S] = round(
-                (bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)
+                (bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.COMM_MB_TO_GB)
                 / (bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] / NumberConstant.CONVERSION_TIME),
                 4,
             )
@@ -239,7 +240,7 @@ class HcclAnalysisTool:
     def analyze_bandwidth_info(cls: any, bandwidth_dict: dict, transport_type: str) -> None:
         if bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_TIME_MS] != 0:
             bandwidth_dict[transport_type][OpBandWidthType.BANDWIDTH_GB_S] = round(
-                (bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)
+                (bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.COMM_MB_TO_GB)
                 / (bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_TIME_MS] / NumberConstant.CONVERSION_TIME),
                 4,
             )

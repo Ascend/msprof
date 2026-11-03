@@ -218,8 +218,9 @@ bool SysIOProcessor::ProcessTimelineData(const DBInfo &sysIODB, LocaltimeContext
         HPFloat timestamp =
             GetTimeBySamplingTimestamp(oriTimestamp, localtimeContext.hostMonotonic, localtimeContext.deviceMonotonic);
         tempData.timestamp = GetLocalTime(timestamp, localtimeContext.timeRecord).Uint64();
-        tempData.bandwidth = tempData.bandwidth * BYTE_SIZE * BYTE_SIZE,  // MB/s -> B/s
-            processedData.push_back(tempData);
+        // 通信类（NIC/RoCE）：按 1000 换算，MB/s -> B/s
+        tempData.bandwidth = tempData.bandwidth * Common::COMM_BYTES_PER_MB;
+        processedData.push_back(tempData);
     }
     FilterDataByStartTime(processedData, localtimeContext.timeRecord.startTimeNs, processorName_);
     timelineData.insert(timelineData.end(), processedData.begin(), processedData.end());

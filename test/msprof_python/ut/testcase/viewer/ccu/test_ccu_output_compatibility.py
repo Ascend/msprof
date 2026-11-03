@@ -68,7 +68,7 @@ class TestCcuOutputCompatibility(unittest.TestCase):
             '{"name":"thread_name","pid":101,"tid":202,"args":{"name":"Communication"},"ph":"M"},'
             '{"name":"LoopGroup","pid":101,"tid":202,"ts":1000,"dur":1000,'
             '"args":{"Physic Stream Id":1,"Task Id":10,"Instruction ID":100,"Die Id":0,'
-            '"Data Size":1048576,"Bandwidth (MB/s)":1000.0,"Reduce Op Type":"SUM",'
+            '"Data Size":1048576,"Bandwidth (MB/s)":1048.576,"Reduce Op Type":"SUM",'
             '"Input Data Type":"FP16","Output Data Type":"FP16"},"ph":"X"},'
             '{"name":"Wait","pid":101,"tid":202,"ts":3000,"dur":1000,'
             '"args":{"Physic Stream Id":1,"Task Id":11,"Notify Instruction ID":200,"Notify Rank ID":9,'

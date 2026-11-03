@@ -134,7 +134,8 @@ void DPUAssembler::GenerateDPUTrace(const std::vector<DPUData> &dpuData, uint32_
             double bandwidth = 0;
             if (!Utils::IsDoubleEqual(dur, 0.0) && data.dataSize <= INT64_MAX)
             {
-                bandwidth = data.dataSize / Common::BYTES_PER_GB / (dur / MICRO_SECOND);
+                // 通信类：字节按 1000 换算
+                bandwidth = data.dataSize / Common::COMM_BYTES_PER_GB / (dur / MICRO_SECOND);
             }
 
             std::shared_ptr<DPUHcclTraceEvent> event;

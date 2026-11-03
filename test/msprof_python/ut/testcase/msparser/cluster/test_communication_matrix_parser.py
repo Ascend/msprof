@@ -105,7 +105,7 @@ class TestCommunicationMatrixParser(unittest.TestCase):
         events = [Event(StrConstant.SDMA, 'Memcpy')]
         parser = CommunicationMatrixParser({})
         parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
-        self.assertEqual(parser.op_info[0][StrConstant.LINK_INFO]['0-1'][1], 1000 ** 2 / 1024 ** 2)
+        self.assertEqual(parser.op_info[0][StrConstant.LINK_INFO]['0-1'][1], 1000 ** 2 / 1000 ** 2)
 
     def test_parse_rdma(self):
         standard_bandwidth = {
@@ -149,8 +149,8 @@ class TestCommunicationMatrixParser(unittest.TestCase):
             ret2 = parser.op_info[1].get(StrConstant.LINK_INFO)
             self.assertEqual(ret1[0][CommunicationMatrixInfo.SRC_RANK], '0')
             self.assertEqual(ret1[0][CommunicationMatrixInfo.DST_RANK], '1')
-            self.assertEqual(ret1[1][CommunicationMatrixInfo.BANDWIDTH_UTILIZATION], 0.0781)
-            self.assertEqual(ret2[2][CommunicationMatrixInfo.BANDWIDTH_GB_S], 0.9766)
+            self.assertEqual(ret1[1][CommunicationMatrixInfo.BANDWIDTH_UTILIZATION], 0.08)
+            self.assertEqual(ret2[2][CommunicationMatrixInfo.BANDWIDTH_GB_S], 1.0)
             self.assertEqual(ret2[1][CommunicationMatrixInfo.LARGE_PACKET_RATIO], round(100 / 105, 4))
 
     def test_parse_ub(self):
@@ -160,7 +160,7 @@ class TestCommunicationMatrixParser(unittest.TestCase):
         parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
         link_value = parser.op_info[0][StrConstant.LINK_INFO]['0-1']
         self.assertEqual(link_value[MatrixDataType.TRANSPORT_TYPE], StrConstant.UB)
-        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1024 ** 2)
+        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1000 ** 2)
         self.assertEqual(link_value[MatrixDataType.TRANS_TIME], 1)
 
     def test_parse_uboe_as_ub(self):
@@ -170,4 +170,4 @@ class TestCommunicationMatrixParser(unittest.TestCase):
         parser.parse_ops(OpTaskBundle(tasks=events, op_name='hcom_allReduce_1'), 'op_name')
         link_value = parser.op_info[0][StrConstant.LINK_INFO]['0-1']
         self.assertEqual(link_value[MatrixDataType.TRANSPORT_TYPE], StrConstant.UB)
-        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1024 ** 2)
+        self.assertEqual(link_value[MatrixDataType.TRANS_SIZE], 1000 ** 2 / 1000 ** 2)

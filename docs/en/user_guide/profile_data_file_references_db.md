@@ -800,8 +800,8 @@ Control options:
 | deviceId    | NUMERIC | Device ID.              |
 | portId      | NUMERIC | Port ID              |
 | timestampNs | NUMERIC | Local time (ns)    |
-| rxUdmaBind  | NUMERIC | Receive bandwidth of the request stream channel|
-| txUdmaBind  | NUMERIC | Transmit bandwidth of the request stream channel|
+| rxUdmaBind  | NUMERIC | Receive bandwidth of the request stream channel (Byte/s)|
+| txUdmaBind  | NUMERIC | Transmit bandwidth of the request stream channel (Byte/s)|
 
 ## SIO
 

@@ -87,11 +87,23 @@ class NumberConstant:
     INT64_MAX = 2**63 - 1
     UINT64_MAX = 18446744073709551615
 
-    # memory units transfer
+    # ===== 字节换算常量：按数据性质区分两种进制，修改前务必确认所属类别 =====
+    #   【内存类】HBM / LLC / memcpy / DDR / ACC PMU / NPU Mem / Module Mem
+    #            → BYTES_TO_* / MB_TO_GB（1024 进制）
+    #   【通信类】HCCL 算子 / DPU / CCU / PCIe / UB / HCCS / SIO / NIC / RoCE / QoS
+    #            → COMM_BYTES_TO_* / COMM_MB_TO_GB（1000 进制）
+    # 两者不可混用：混用会导致通信带宽利用率出现 ~7.4% 的系统性偏差（1024^3 / 10^9）
+
+    # memory units transfer（内存类，1024 进制）
     BYTES_TO_KB = 1024.0
     BYTES_TO_MB = KILOBYTE**2
     BYTES_TO_GB = KILOBYTE**3
     MB_TO_GB = KILOBYTE
+
+    # communication units transfer（通信类，1000 进制）
+    COMM_BYTES_TO_MB = 1000.0**2
+    COMM_BYTES_TO_GB = 1000.0**3
+    COMM_MB_TO_GB = 1000.0
 
     # time conversion ns to us / ms to s
     CONVERSION_TIME = 1000.0

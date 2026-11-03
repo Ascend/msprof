@@ -800,8 +800,8 @@ HCCS集合通信带宽数据。
 | deviceId    | NUMERIC | 设备ID               |
 | portId      | NUMERIC | 端口ID               |
 | timestampNs | NUMERIC | 本地时间，单位ns     |
-| rxUdmaBind  | NUMERIC | 请求流通道的接收带宽 |
-| txUdmaBind  | NUMERIC | 请求流通道的发送带宽 |
+| rxUdmaBind  | NUMERIC | 请求流通道的接收带宽，单位Byte/s |
+| txUdmaBind  | NUMERIC | 请求流通道的发送带宽，单位Byte/s |
 
 ## SIO
 

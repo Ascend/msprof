@@ -79,7 +79,8 @@ class SioViewer(BaseViewer, ABC):
             data_size_list = data[self.REQ_RX : self.TIME_STAMP]
             bandwidth_data = [
                 data_size
-                / (NumberConstant.BYTES_TO_KB**2)
+                # 通信类：与 C++ sio_processor 保持一致，字节按 1000 换算（MB/s）
+                / NumberConstant.COMM_BYTES_TO_MB
                 / ((timestamp - timestamp_dict[acc_id]) / NumberConstant.NANO_SECOND)
                 for data_size in data_size_list
             ]

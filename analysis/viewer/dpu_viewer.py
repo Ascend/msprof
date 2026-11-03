@@ -57,7 +57,8 @@ class DPUViewer(BaseViewer, ABC):
         if is_hccl:
             bandwidth = 0
             if duration > 0:
-                bandwidth = track.data_size / NumberConstant.BYTES_TO_GB / (duration * NumberConstant.US_TO_S)
+                # 通信类：与 C++ dpu_assembler 保持一致，字节按 1000 换算
+                bandwidth = track.data_size / NumberConstant.COMM_BYTES_TO_GB / (duration * NumberConstant.US_TO_S)
             args.setdefault("OP Type", track.op_type)
             args.setdefault("AI CPU Device Id", track.npu_device_id)
             args.setdefault("AI CPU Task Id", track.aicpu_task_id)

@@ -80,3 +80,21 @@ class TestHccsModel(unittest.TestCase):
         check._calculate_metrics(5)
         res[1].execute("drop table HCCSOriginalData")
         db_manager.destroy(res)
+
+    def test_insert_metrics_data_should_use_1000_bandwidth_scale(self):
+        # 通信类带宽按 1000 换算：rate = (DeltaByte / DeltaTimestamp) * BYTE_NS_TO_MB_S
+        # DeltaByte = 1000, DeltaTimestamp = 1 -> rate = 1000 / 1 * 1000 = 1000000
+        original_sql = "CREATE TABLE IF NOT EXISTS HCCSOriginalData(device_id INT,timestamp REAL," \
+                       "txamount INT,rxamount INT)"
+        insert_sql = "insert into {} values (?,?,?,?)".format('HCCSOriginalData')
+        data = ((5, 1, 1000, 2000), (5, 2, 2000, 4000))
+        db_manager = DBManager()
+        res = db_manager.create_table('hccs.db', original_sql, insert_sql, data)
+        check = HccsModel('test', 'hccs.db', ['HCCSEventsData', 'HCCSOriginalData'])
+        check.conn, check.cur = res[0], res[1]
+        check._calculate_metrics(5)
+        self.assertEqual(1, len(check.metric_data))
+        self.assertEqual('1000000.000', check.metric_data[0][2])
+        self.assertEqual('2000000.000', check.metric_data[0][3])
+        res[1].execute("drop table HCCSOriginalData")
+        db_manager.destroy(res)
