@@ -76,6 +76,8 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 欢迎参与项目贡献，请参见《[贡献指南](docs/zh/contributing/contributing_guide.md)》。
 
+使用 AI 代理参与开发时，请先阅读《[AI Native 开发指南](docs/zh/development_guide/msprof_ai_native_development_guide.md)》。
+
 ## ⚖️ 相关说明
 
 🔹 《[版本说明](https://gitcode.com/Ascend/msprof/releases)》<br>

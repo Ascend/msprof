@@ -28,9 +28,13 @@ inc_coverage_result.html
 .codex
 .codex/
 .omx/
+.claude/skills
 
 # Logs
 *.log
+
+# Local AI review worktrees and reports
+.review/
 
 # Native build outputs
 *.o

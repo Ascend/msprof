@@ -113,3 +113,14 @@ repos:
           - --redact
           - --config=pre-commit/.gitleaks.toml
         stages: [ pre-commit ]
+
+  # -------------------------- AI 资产校验 --------------------------
+  - repo: local
+    hooks:
+      - id: ai-assets
+        name: AI assets validation
+        entry: python scripts/ai/validate_skills.py
+        language: python
+        pass_filenames: false
+        always_run: true
+        stages: [ pre-commit ]
