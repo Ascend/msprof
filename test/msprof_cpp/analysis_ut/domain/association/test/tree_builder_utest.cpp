@@ -19,6 +19,8 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <tuple>
+#include <utility>
 #include "gtest/gtest.h"
 
 #include "analysis/csrc/domain/services/association/cann/include/tree_builder.h"
@@ -398,38 +400,117 @@ TEST_F(TreeBuilderUTest, TestBuildTreeShouldBuildCorrectTreeWhenCANNWarehouseNot
     }
 }
 
+// 构造带parent链的node列表: nodes[0]为外层, 其余按parentIdx指定父节点
+std::vector<std::shared_ptr<TreeNode>> GenLevelNodesWithParent(
+    const std::vector<std::tuple<uint64_t, uint64_t, int>> &ranges)
+{
+    std::shared_ptr<ParserApi> apiEvent;
+    uint16_t level = 3;
+    std::vector<std::shared_ptr<TreeNode>> levelNodes;
+    for (const auto &item : ranges) {
+        EventInfo info(EventType::EVENT_TYPE_API, level, std::get<0>(item), std::get<1>(item));
+        levelNodes.emplace_back(std::make_shared<TreeNode>(std::make_shared<Event>(apiEvent, info)));
+    }
+    for (size_t i = 0; i < ranges.size(); ++i) {
+        int parentIdx = std::get<2>(ranges[i]);
+        if (parentIdx >= 0 && static_cast<size_t>(parentIdx) < levelNodes.size()) {
+            levelNodes[i]->parent = levelNodes[parentIdx];
+            levelNodes[parentIdx]->children.emplace_back(levelNodes[i]);
+        }
+    }
+    return levelNodes;
+}
+
+std::shared_ptr<Event> GenAdditionalEvent(EventType eventType, uint64_t timestamp)
+{
+    EventInfo info(eventType, 3, timestamp, timestamp);
+    if (eventType == EventType::EVENT_TYPE_TENSOR_INFO) {
+        std::shared_ptr<ParserConcatTensorInfo> tensorEvent;
+        return std::make_shared<Event>(tensorEvent, info);
+    }
+    std::shared_ptr<ParserCompactInfo> compactEvent;
+    return std::make_shared<Event>(compactEvent, info);
+}
+
 TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldReturnOffset2WhenNodeNested)
 {
     // hccl aicpu下发场景, 会出现2层node嵌套, 需要计算offset, 关联至准确的node api
     // [=======================Node(hcom_allReduce_)==============================]
     //   [===Node(hcomAicpuInit)==]     [===Node(allreduceAicpuKernel)==]
-    std::shared_ptr<ParserCompactInfo> compactEvent;
-    uint16_t level = 3;
-    uint64_t eventTime = 100;
-    EventInfo nodeBasicInfo(EventType::EVENT_TYPE_NODE_BASIC_INFO, level, eventTime, eventTime);
-    std::shared_ptr<Event> event = std::make_shared<Event>(compactEvent, nodeBasicInfo);
+    // 外层(10,200], 内层兄弟A(30,40]、B(80,120], 时间戳100落在B内
+    auto levelNodes = GenLevelNodesWithParent({{10, 200, -1}, {30, 40, 0}, {80, 120, 0}});
+    auto event = GenAdditionalEvent(EventType::EVENT_TYPE_NODE_BASIC_INFO, 100);
 
-    std::shared_ptr<ParserApi> apiEvent;
-    uint64_t startTime1 = 10;
-    uint64_t endTime1 = 200;
-    EventInfo apiEventInfo1(EventType::EVENT_TYPE_API, level, startTime1, endTime1);
-    std::shared_ptr<Event> event1 = std::make_shared<Event>(apiEvent, apiEventInfo1);
-    std::shared_ptr<TreeNode> levelNode1 = std::make_shared<TreeNode>(event1);
-    uint64_t startTime2 = 30;
-    uint64_t endTime2 = 40;
-    EventInfo apiEventInfo2(EventType::EVENT_TYPE_API, level, startTime2, endTime2);
-    std::shared_ptr<Event> event2 = std::make_shared<Event>(apiEvent, apiEventInfo2);
-    std::shared_ptr<TreeNode> levelNode2 = std::make_shared<TreeNode>(event2);
-    uint64_t startTime3 = 80;
-    uint64_t endTime3 = 120;
-    EventInfo apiEventInfo3(EventType::EVENT_TYPE_API, level, startTime3, endTime3);
-    std::shared_ptr<Event> event3 = std::make_shared<Event>(apiEvent, apiEventInfo3);
-    std::shared_ptr<TreeNode> levelNode3 = std::make_shared<TreeNode>(event3);
-    std::vector<std::shared_ptr<TreeNode>> levelNodes {levelNode1, levelNode2, levelNode3};
+    EXPECT_EQ(2U, TreeBuilder::GetEventOffset(0, event, levelNodes));
+}
 
-    auto offset = TreeBuilder::GetEventOffset(0, event, levelNodes, EventType::EVENT_TYPE_NODE_BASIC_INFO);
-    uint16_t expectResult = 2;
-    EXPECT_EQ(expectResult, offset);
+// 双层nodeLaunch下, tensor/attr 只有单个时间戳, 落在内层node时间片内时应归属内层node,
+// 否则内层node取不到自己的 tensor/attr 描述信息
+TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldDrillDownForTensorAndAttr)
+{
+    // Node(外层, 老nodeLaunch) : (10, 200]
+    //   Node(内层, Refer_to_kernelName) : (80, 120]
+    // 附加信息时间戳 100 落在内层区间内
+    auto levelNodes = GenLevelNodesWithParent({{10, 200, -1}, {80, 120, 0}});
+
+    // NodeBasicInfo/NodeAttrInfo/TensorInfo 语义一致, 均应归属内层node
+    for (auto eventType : {EventType::EVENT_TYPE_TENSOR_INFO, EventType::EVENT_TYPE_NODE_ATTR_INFO,
+                           EventType::EVENT_TYPE_NODE_BASIC_INFO}) {
+        auto event = GenAdditionalEvent(eventType, 100);
+        EXPECT_EQ(1U, TreeBuilder::GetEventOffset(0, event, levelNodes))
+            << "eventType=" << static_cast<int>(eventType);
+    }
+}
+
+// 多层嵌套时取最内层命中的node
+TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldReturnInnermostWhenMultiLevelNested)
+{
+    // Node (10, 500]
+    //   Node (20, 400]
+    //     Node (30, 300]
+    //       Node (40, 100]
+    // 附加信息时间戳 50 同时落在全部四层内, 应归属最内层 offset=3
+    auto levelNodes = GenLevelNodesWithParent({{10, 500, -1}, {20, 400, 0}, {30, 300, 1}, {40, 100, 2}});
+    auto event = GenAdditionalEvent(EventType::EVENT_TYPE_TENSOR_INFO, 50);
+
+    EXPECT_EQ(3U, TreeBuilder::GetEventOffset(0, event, levelNodes));
+}
+
+// 附加信息落在内层node之外(仍在外层内)时不下钻
+TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldStayOuterWhenEventOutsideInner)
+{
+    // Node(外层) (10, 200]; Node(内层) (80, 120]; 附加信息时间戳 150 只落在外层
+    auto levelNodes = GenLevelNodesWithParent({{10, 200, -1}, {80, 120, 0}});
+    auto event = GenAdditionalEvent(EventType::EVENT_TYPE_TENSOR_INFO, 150);
+
+    EXPECT_EQ(0U, TreeBuilder::GetEventOffset(0, event, levelNodes));
+}
+
+// 相邻内层兄弟节点共用时间边界时, 时间戳等于后一节点起点应归属前一节点(左开右闭),
+// 与AddLevelEvents/AddTaskTrackEvents的区间语义保持一致
+TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldUseLeftOpenIntervalForSharedBoundary)
+{
+    // Node(外层) (10, 200]
+    //   Node(A) (20, 80]
+    //   Node(B) (80, 120]
+    // 时间戳 80 恰好等于B的起点, 按左开右闭应归属A
+    auto levelNodes = GenLevelNodesWithParent({{10, 200, -1}, {20, 80, 0}, {80, 120, 0}});
+    auto event = GenAdditionalEvent(EventType::EVENT_TYPE_TENSOR_INFO, 80);
+
+    EXPECT_EQ(1U, TreeBuilder::GetEventOffset(0, event, levelNodes));
+}
+
+// 兄弟节点时间重叠且非后代时, 不应挂到非后代节点上
+TEST_F(TreeBuilderUTest, TestGetEventOffsetShouldNotDrillDownToNonDescendant)
+{
+    // Node(外层) (10, 200]
+    //   Node(X) (30, 150]  <- levelNodes[1], 是外层后代
+    //   Node(Y) (40, 120]  <- levelNodes[2], 与外层同级(非后代), 但时间覆盖时间戳60
+    // 时间戳 60 应归属X(后代), 不能归属Y
+    auto levelNodes = GenLevelNodesWithParent({{10, 200, -1}, {30, 150, 0}, {40, 120, -1}});
+    auto event = GenAdditionalEvent(EventType::EVENT_TYPE_TENSOR_INFO, 60);
+
+    EXPECT_EQ(1U, TreeBuilder::GetEventOffset(0, event, levelNodes));
 }
 
 TEST_F(TreeBuilderUTest, TestBuildShouldSetRecordEventKeyFromTaskTrackEventInfo)

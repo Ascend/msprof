@@ -1152,3 +1152,61 @@ TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldNotBindLaunchItemIdWhenHcclTask)
     ASSERT_EQ(computeTasks.size(), 1);
     EXPECT_EQ(computeTasks[0]->op->name, TENSOR_OP_NAME_HASH);
 }
+
+// 双层nodeLaunch：外层为老的nodeLaunch，内层itemId为Refer_to_kernelName，tensor/attr时间落在内层区间内。
+// 附加信息应下钻挂载到内层node，使内层node的OpDesc能取到tensorDesc/nodeAttr。
+// Model : (1, 200]
+// Node  : (2, 199]  外层nodeLaunch, itemId=MATMUL_HASH
+// Node  : (50, 99]  内层nodeLaunch, itemId=Refer_to_kernelName
+// tensor: ts=60, opName=内层node itemId
+// attr  : ts=70, opName=内层node itemId
+const uint64_t OUTER_NODE_ITEM_ID = 22222;   // Matmul
+
+std::shared_ptr<TreeAnalyzer> GetAnalyzerForNestedNodeLaunchScenario(uint64_t innerNodeItemId)
+{
+    TypeData::GetInstance().Load("./");
+    HashData::GetInstance().Load("./");
+
+    // 内外层使用不同itemId，外层保持普通算子名，内层为Refer_to_kernelName
+    auto kernelEvents = std::make_shared<EventQueue>(1, 100);
+    FakeEventGenerator::AddApiEvent(kernelEvents, MSPROF_REPORT_MODEL_LEVEL, 1, 200, 200, 0);
+    FakeEventGenerator::AddApiEvent(kernelEvents, MSPROF_REPORT_NODE_LEVEL, 2, 199, 0, OUTER_NODE_ITEM_ID);
+    FakeEventGenerator::AddApiEvent(kernelEvents, MSPROF_REPORT_NODE_LEVEL, 50, 99, 0, innerNodeItemId);
+    kernelEvents->Sort();
+
+    auto taskTrackEvents = GenTaskTrackEventQueue({{60, 0}});
+
+    auto cannWarehouse = std::make_shared<CANNWarehouse>();
+    cannWarehouse->kernelEvents = kernelEvents;
+    cannWarehouse->taskTrackEvents = taskTrackEvents;
+    // timestamp 与 opName 分离：timeStamp 落在内外层共同覆盖的区间，opName 指向内层node，
+    // 用于确认附加信息归属的是内层node而不会挂到外层
+    cannWarehouse->tensorInfoEvents = std::make_shared<EventQueue>(1, 10);
+    FakeEventGenerator::AddTensorInfoEventWithOpName(cannWarehouse->tensorInfoEvents, 60, innerNodeItemId);
+    cannWarehouse->tensorInfoEvents->Sort();
+    cannWarehouse->nodeAttrInfoEvents = std::make_shared<EventQueue>(1, 10);
+    FakeEventGenerator::AddNodeAttrEventWithOpName(cannWarehouse->nodeAttrInfoEvents, 70, innerNodeItemId);
+    cannWarehouse->nodeAttrInfoEvents->Sort();
+
+    auto treeBuilder = std::make_shared<TreeBuilder>(cannWarehouse, 1);
+    auto treeNode = treeBuilder->Build();
+    return std::make_shared<TreeAnalyzer>(treeNode, 1);
+}
+
+// tensor/attr时间落在内层node区间内，应下钻挂载到内层node，且算子名为内层node的itemId
+TEST_F(TreeAnalyzerUTest, TestTreeAnalyzerShouldAttachAdditionalInfoToInnerNodeWhenNestedLaunch)
+{
+    auto ana = GetAnalyzerForNestedNodeLaunchScenario(REFER_TO_KERNEL_NAME_HASH);
+    ana->Analyze();
+
+    auto computeTasks = ana->GetComputeTasks();
+    ASSERT_EQ(computeTasks.size(), 1);
+    auto &task = computeTasks.front();
+    ASSERT_NE(task->op, nullptr);
+    // 算子名取自内层node的launch itemId，说明task关联的是内层node
+    EXPECT_EQ(task->op->name, REFER_TO_KERNEL_NAME_HASH);
+    ASSERT_NE(task->op->opDesc, nullptr);
+    // 内层node应拿到tensor与attr描述
+    EXPECT_NE(task->op->opDesc->tensorDesc, nullptr);
+    EXPECT_NE(task->op->opDesc->nodeAttr, nullptr);
+}

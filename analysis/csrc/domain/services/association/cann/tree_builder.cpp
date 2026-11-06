@@ -235,26 +235,45 @@ std::shared_ptr<EventQueue> TreeBuilder::FilterHcclCtxIdEvents(std::shared_ptr<E
 }
 
 size_t TreeBuilder::GetEventOffset(size_t idx, std::shared_ptr<Event> &event,
-                                   std::vector<std::shared_ptr<TreeNode>> &levelNodes, EventType eventType)
+                                   std::vector<std::shared_ptr<TreeNode>> &levelNodes)
 {
     // hccl aicpu下发场景, 会出现2层node嵌套, 需要计算offset, 关联至准确的node api
     // [=======================Node(hcom_allReduce_)==============================]
     //   [===Node(hcomAicpuInit)==]     [===Node(allreduceAicpuKernel)==]
-    if (eventType != EventType::EVENT_TYPE_NODE_BASIC_INFO)
-    {
-        // hccl aicpu下发场景暂时只有node basic info上报
-        return 0;
-    }
+    // 附加信息(node basic/attr/tensor)都只有一个时间戳, 若落在内层node的时间片内, 应归属内层node,
+    // 否则会挂到外层launch上导致内层node取不到自己的描述信息。
+    // 区间语义保持与AddLevelEvents/AddTaskTrackEvents一致的左开右闭(start, end]: 恰好落在节点起始
+    // 时刻的事件归属前一个节点, 避免相邻兄弟节点的边界归属分歧。
+    // levelNodes按DFS顺序记录, 父节点在前、子节点在后; 取最内层命中项, 且只接受levelNodes[idx]的后代,
+    // 防止兄弟节点时间重叠时挂到非后代节点上。
+    size_t best = 0;
     size_t offset = 1;
-    while ((idx + offset) < levelNodes.size() && levelNodes[idx + offset]->event->info.start <= event->info.start)
+    while ((idx + offset) < levelNodes.size() && levelNodes[idx + offset]->event->info.start < event->info.start)
     {
-        if (event->info.start <= levelNodes[idx + offset]->event->info.end)
+        if (event->info.start <= levelNodes[idx + offset]->event->info.end &&
+            IsDescendantOf(levelNodes[idx + offset], levelNodes[idx]))
         {
-            return offset;
+            best = offset;
         }
         ++offset;
     }
-    return 0;
+    return best;
+}
+
+bool TreeBuilder::IsDescendantOf(const std::shared_ptr<TreeNode> &node, const std::shared_ptr<TreeNode> &ancestor)
+{
+    if (node == nullptr || ancestor == nullptr)
+    {
+        return false;
+    }
+    for (auto cur = node->parent; cur != nullptr; cur = cur->parent)
+    {
+        if (cur == ancestor)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // 双指针遍历向Model Node HCCL Level的TreeNode中添加events
@@ -284,7 +303,7 @@ bool TreeBuilder::AddLevelEvents(std::shared_ptr<EventQueue> &events,
         {
             // event在TreeNode时间片内：(start, end]，将event记录在TreeNode的附加信息中
             // hccl aicpu下发场景, 计算offset, 关联至准确的node api
-            auto offset = GetEventOffset(idx, event, levelNodes, eventType);
+            auto offset = GetEventOffset(idx, event, levelNodes);
             (*(it + offset))->records.emplace_back(event);
             events->Pop();
             matchCnt++;

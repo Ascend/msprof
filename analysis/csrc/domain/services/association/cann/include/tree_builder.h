@@ -80,7 +80,9 @@ class TreeBuilder
     void InitTaskTrackApiTypes();
     void SetApiEventKey(const std::shared_ptr<Event> &apiEvent, const std::shared_ptr<Event> &taskTrackEvent) const;
     static size_t GetEventOffset(size_t idx, std::shared_ptr<Event> &event,
-                                 std::vector<std::shared_ptr<TreeNode>> &levelNodes, EventType eventType);
+                                 std::vector<std::shared_ptr<TreeNode>> &levelNodes);
+    // 判断node是否为ancestor的后代, 用于附加信息下钻时排除时间重叠的非后代节点
+    static bool IsDescendantOf(const std::shared_ptr<TreeNode> &node, const std::shared_ptr<TreeNode> &ancestor);
 
    private:
     // 用于建树的Model、Node、HCCL Level的Api Type Events

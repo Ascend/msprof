@@ -111,6 +111,23 @@ class FakeEventGenerator
         eventQueue->Push(eventPtr);
     }
 
+    // timestamp 与 opName 分离, 用于验证内层node场景下 attr 的下钻
+    static void AddNodeAttrEventWithOpName(std::shared_ptr<EventQueue> &eventQueue, uint64_t timestamp, uint64_t opName,
+                                           uint64_t hashId = 1)
+    {
+        EventInfo testInfo{EventType::EVENT_TYPE_NODE_ATTR_INFO, MSPROF_REPORT_NODE_LEVEL, timestamp, timestamp};
+        auto nodeAttr = std::make_shared<ParserCompactInfo>();
+        nodeAttr->level = MSPROF_REPORT_NODE_LEVEL;
+        nodeAttr->timeStamp = timestamp;
+
+        ParserAttrInfo attr;
+        attr.opName = opName;
+        attr.hashId = hashId;
+        nodeAttr->data.nodeAttrInfo = attr;
+        auto eventPtr = std::make_shared<Event>(nodeAttr, testInfo);
+        eventQueue->Push(eventPtr);
+    }
+
     static void AddTensorInfoEvent(std::shared_ptr<EventQueue> &eventQueue, uint64_t dot)
     {
         EventInfo testInfo{EventType::EVENT_TYPE_TENSOR_INFO, MSPROF_REPORT_NODE_LEVEL, dot, dot};
@@ -118,6 +135,20 @@ class FakeEventGenerator
         tensor->level = MSPROF_REPORT_NODE_LEVEL;
         tensor->timeStamp = dot;
         tensor->opName = dot;
+
+        auto eventPtr = std::make_shared<Event>(tensor, testInfo);
+        eventQueue->Push(eventPtr);
+    }
+
+    // timestamp 与 opName 分离, 用于构造"tensor 时间落在内层node、opName 指向该内层node"的场景
+    static void AddTensorInfoEventWithOpName(std::shared_ptr<EventQueue> &eventQueue, uint64_t timestamp,
+                                             uint64_t opName)
+    {
+        EventInfo testInfo{EventType::EVENT_TYPE_TENSOR_INFO, MSPROF_REPORT_NODE_LEVEL, timestamp, timestamp};
+        auto tensor = std::make_shared<ParserConcatTensorInfo>();
+        tensor->level = MSPROF_REPORT_NODE_LEVEL;
+        tensor->timeStamp = timestamp;
+        tensor->opName = opName;
 
         auto eventPtr = std::make_shared<Event>(tensor, testInfo);
         eventQueue->Push(eventPtr);
