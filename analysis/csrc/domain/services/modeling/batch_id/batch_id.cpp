@@ -68,10 +68,11 @@ int ModelingComputeBatchIdBinaryAlgo(HalUniData **task, uint32_t num, uint64_t f
  * @param task : 任务信息数组
  * @param num : 任务信息数组个数
  * @param cursor : 下标，<=的是否有小于入参taskId，如果有，虽然时间在taskId后，但是也是翻转的任务
- * @param flipTaskId : 翻转任务标识
+ * @param flipTaskId : 翻转任务标识，取 flip 的 TaskId::taskId（u32）；V6 芯片下该值承载
+ *                     16bit taskId 与 streamId 的合并结果，不能按 u16 截断
  * @return 校准后的下标
  **/
-int ModelingCalibrateBatchId(HalUniData **task, uint32_t taskNum, int cursor, uint16_t flipTaskId)
+int ModelingCalibrateBatchId(HalUniData **task, uint32_t taskNum, int cursor, uint32_t flipTaskId)
 {
     if (static_cast<uint32_t>(cursor) >= taskNum)
     {

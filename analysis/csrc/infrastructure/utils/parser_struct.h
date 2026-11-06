@@ -315,12 +315,15 @@ struct ParserAicpuFlipTask
     uint32_t reserve[2];
 };
 
+// 解析侧自定义结构，不参与原始上报包布局；上报侧对应 MsprofAicpuHcclMainStreamTask（均为 u16）。
+// id 字段放宽到 u32：V6 芯片下 taskId 需要承载 16bit taskId 与 streamId 的合并结果，
+// 非 V6 的 u16 上报值存入 u32 无精度损失。AicpuData 的联合体尺寸由最大成员 ParserKfcInfos 决定，不受影响。
 struct ParserAicpuHcclMainStreamTask
 {
-    uint16_t aicpuStreamId;
-    uint16_t aicpuTaskId;
-    uint16_t streamId;
-    uint16_t taskId;
+    uint32_t aicpuStreamId;
+    uint32_t aicpuTaskId;
+    uint32_t streamId;
+    uint32_t taskId;
     uint16_t type;  // 0是头 1是尾
     uint16_t reserve[3];
 };

@@ -24,7 +24,6 @@
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
-#include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
 namespace Analysis
@@ -76,6 +75,11 @@ uint32_t AicpuParser::ParseDataItem(uint8_t *binaryData, uint32_t binaryDataSize
 
 uint32_t AicpuParser::ParseData(DataInventory &dataInventory, const Infra::Context &context)
 {
+    // V6 下 taskId 为 32bit（16bit taskId 左移 16 位拼 streamId），streamId 保持上报原值，
+    // 与 V5 及更早芯片的 16bit 展开规则不同，需切换到 AICPU_PARSER_V6 的解析项。
+    const DeviceContext &deviceContext = static_cast<const DeviceContext &>(context);
+    const bool isChipV6 = deviceContext.isChipV6();
+    parserType_ = isChipV6 ? AICPU_PARSER_V6 : AICPU_PARSER;
     auto streamExpandSpecData = dataInventory.GetPtr<StreamExpandSpec>();
     uint16_t expandStatus =
         streamExpandSpecData && streamExpandSpecData->expandStatus ? streamExpandSpecData->expandStatus : 0;
@@ -97,7 +101,7 @@ uint32_t AicpuParser::ParseData(DataInventory &dataInventory, const Infra::Conte
             stat = ANALYSIS_ERROR;
         }
     }
-    if (context.GetChipID() == CHIP_V6_1_0 || context.GetChipID() == CHIP_V6_1_1 || context.GetChipID() == CHIP_V6_2_0)
+    if (isChipV6)
     {
         SetDeviceAicpuStreamIdMap();
     }

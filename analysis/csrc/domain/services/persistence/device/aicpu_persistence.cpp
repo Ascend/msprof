@@ -62,10 +62,10 @@ using ComputeTurnFormat =
 using FlipTaskFormat = std::vector<std::tuple<uint16_t, double, uint32_t, uint32_t>>;
 
 using MainStreamTaskFormat =
-    std::vector<std::tuple<double, uint16_t, uint32_t, uint16_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
+    std::vector<std::tuple<double, uint32_t, uint32_t, uint16_t, uint32_t, uint32_t, uint32_t, uint16_t>>;
 
 using OpInfoFormat = std::vector<std::tuple<double, uint16_t, uint16_t, std::string, std::string, uint64_t, std::string,
-                                            uint16_t, uint32_t, uint32_t, uint16_t>>;
+                                            uint32_t, uint32_t, uint32_t, uint16_t>>;
 
 // 末尾一列 record_index 由位置派生，不是上报字段：为所属上报记录的序号，
 // 便于在 db 中配对同一条记录产生的多条 info。
@@ -333,16 +333,6 @@ uint32_t AicpuPersistence::GenerateAndSaveMainStreamTask(const std::string& devi
 
     for (auto& mainStreamTask : mainStreamTaskData_)
     {
-        const auto it = hostStreamInfo_.streamIdMap.find(mainStreamTask.taskId.taskId);
-        if (it != hostStreamInfo_.streamIdMap.end())
-        {
-            mainStreamTask.taskId.streamId = it->second;
-        }
-        const auto aicpuIt = deviceStreamInfo_.streamIdMap.find(mainStreamTask.aicpuTaskId.taskId);
-        if (aicpuIt != deviceStreamInfo_.streamIdMap.end())
-        {
-            mainStreamTask.aicpuTaskId.streamId = aicpuIt->second;
-        }
         auto timeStamp = GetTimeFromSyscnt(mainStreamTask.timeStamp, params_);
         data.emplace_back(timeStamp.Double(), mainStreamTask.mainStreamTask.aicpuStreamId,
                           mainStreamTask.mainStreamTask.aicpuTaskId, mainStreamTask.aicpuTaskId.batchId,
@@ -482,6 +472,37 @@ bool AicpuPersistence::ProcessAicpuDataByDataType(const std::vector<AicpuData>& 
         (this->*(typeMap.at(aicpu.type))).emplace_back(aicpu);
     }
     return true;
+}
+
+void AicpuPersistence::RefreshStreamIds()
+{
+    // 与 Python AicpuAddInfoParser 的落盘取值对齐：
+    //   DeviceHcclOpInfo.device stream_id  ← host_tasks_map[task_id]（hostStreamInfo_）
+    //   AicpuMasterStreamHcclTask.aicpu_stream_id ← host_tasks_map[aicpu_task_id]（hostStreamInfo_）
+    //   AicpuMasterStreamHcclTask.stream_id       ← unique_id_map[task_id]（deviceStreamInfo_）
+    // 查不到时保留上报原值（Python 侧 dict.get 的默认行为）。
+    // 必须在 ComputeAicpuBatchId 之后执行：批次计算依赖 flip 的原始 stream 空间。
+    for (auto& opInfo : opInfoData_)
+    {
+        const auto it = hostStreamInfo_.streamIdMap.find(opInfo.taskId.taskId);
+        if (it != hostStreamInfo_.streamIdMap.end())
+        {
+            opInfo.taskId.streamId = it->second;
+        }
+    }
+    for (auto& mainStreamTask : mainStreamTaskData_)
+    {
+        const auto aicpuIt = hostStreamInfo_.streamIdMap.find(mainStreamTask.aicpuTaskId.taskId);
+        if (aicpuIt != hostStreamInfo_.streamIdMap.end())
+        {
+            mainStreamTask.mainStreamTask.aicpuStreamId = aicpuIt->second;
+        }
+        const auto it = deviceStreamInfo_.streamIdMap.find(mainStreamTask.taskId.taskId);
+        if (it != deviceStreamInfo_.streamIdMap.end())
+        {
+            mainStreamTask.mainStreamTask.streamId = it->second;
+        }
+    }
 }
 
 uint32_t AicpuPersistence::GenerateAndSaveData(const std::string& deviceFilePath)
@@ -770,6 +791,10 @@ uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Cont
     // 未注入时为空指针，ComputeAicpuBatchId 内部跳过 aicpu 侧
     auto halTrackData = dataInventory.GetPtr<std::vector<HalTrackData>>();
     ComputeAicpuBatchId(halTrackData.get());
+
+    // batchId 计算依赖 flip 的原始 stream 空间，因此 host/device 侧的 streamId 刷新必须放在其后；
+    // 刷新后 BuildMasterStreamTaskData 注入的内存数据与落盘行同源同值。
+    RefreshStreamIds();
 
     // 注入 kfc 上游实体：KfcCalculator 与 AicpuPersistence 同进程，直接消费内存数据（越过 kfc_info.db 读取）。
     // 注入与落盘同源同值，落盘仍由 GenerateAndSaveData 完成，两者都不可丢失。

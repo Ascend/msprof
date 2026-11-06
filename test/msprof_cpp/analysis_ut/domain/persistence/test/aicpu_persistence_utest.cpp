@@ -794,6 +794,195 @@ TEST_F(AicpuPersistenceMultiDeviceSaveUtest, ShouldSaveEachDeviceDataToItsOwnDbP
     EXPECT_EQ(std::get<1>(rows1[0]), 20);
 }
 
+// =========================================================================
+// RefreshStreamIds — host/device 侧 streamId 刷新测试
+// 语义对齐 Python AicpuAddInfoParser：查不到时保留上报原值
+// =========================================================================
+
+class AicpuPersistenceRefreshStreamIdsUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        persistence_ = std::make_shared<AicpuPersistence>();
+    }
+
+    AicpuData MakeOpInfo(uint32_t taskId, uint16_t streamId)
+    {
+        AicpuData data;
+        data.type = AicpuType::HCCL_OP_INFO;
+        data.taskId.taskId = taskId;
+        data.taskId.streamId = streamId;
+        return data;
+    }
+
+    AicpuData MakeMainStreamTask(uint32_t aicpuTaskId, uint16_t aicpuStreamId, uint32_t taskId, uint16_t streamId)
+    {
+        AicpuData data;
+        data.type = AicpuType::AICPU_MASTER_STREAM_HCCL_TASK;
+        // 上报原值（落盘读的是 union 里的真实字段）
+        data.mainStreamTask.aicpuTaskId = aicpuTaskId;
+        data.mainStreamTask.aicpuStreamId = aicpuStreamId;
+        data.mainStreamTask.taskId = taskId;
+        data.mainStreamTask.streamId = streamId;
+        // 派生字段
+        data.aicpuTaskId.taskId = aicpuTaskId;
+        data.taskId.taskId = taskId;
+        return data;
+    }
+
+protected:
+    std::shared_ptr<AicpuPersistence> persistence_;
+};
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldReplaceOpInfoStreamIdFromHostMap)
+{
+    persistence_->opInfoData_ = {MakeOpInfo(100, 7)};
+    persistence_->hostStreamInfo_.streamIdMap[100] = 42;
+
+    persistence_->RefreshStreamIds();
+
+    // DeviceHcclOpInfo 用 hostStreamInfo_（host_tasks_map）
+    EXPECT_EQ(persistence_->opInfoData_[0].taskId.streamId, 42);
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldKeepRawOpInfoStreamIdWhenHostMapMisses)
+{
+    persistence_->opInfoData_ = {MakeOpInfo(100, 7)};
+    // host map 为空
+
+    persistence_->RefreshStreamIds();
+
+    // 与 Python dict.get 默认值一致：保留上报原值
+    EXPECT_EQ(persistence_->opInfoData_[0].taskId.streamId, 7);
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldReplaceBothStreamIdsOfMainStreamTask)
+{
+    persistence_->mainStreamTaskData_ = {MakeMainStreamTask(10, 5, 20, 6)};
+    // aicpu_stream_id 来自 host_tasks_map（key = aicpu_task_id）
+    persistence_->hostStreamInfo_.streamIdMap[10] = 555;
+    // stream_id 来自 unique_id_map（key = task_id）
+    persistence_->deviceStreamInfo_.streamIdMap[20] = 666;
+
+    persistence_->RefreshStreamIds();
+
+    const auto& row = persistence_->mainStreamTaskData_[0];
+    EXPECT_EQ(row.mainStreamTask.aicpuStreamId, 555);
+    EXPECT_EQ(row.mainStreamTask.streamId, 666);
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldKeepRawMainStreamIdsWhenBothMapsMiss)
+{
+    persistence_->mainStreamTaskData_ = {MakeMainStreamTask(10, 5, 20, 6)};
+
+    persistence_->RefreshStreamIds();
+
+    const auto& row = persistence_->mainStreamTaskData_[0];
+    EXPECT_EQ(row.mainStreamTask.aicpuStreamId, 5);
+    EXPECT_EQ(row.mainStreamTask.streamId, 6);
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldNotMixUpTheTwoMapsForMainStreamTask)
+{
+    // 回归点：host/device 两个 map 曾用反（aicpu_stream_id 查 device、stream_id 查 host）。
+    // 这里让两个 map 对同一 taskId 给出不同值，确认各自取到正确的来源。
+    persistence_->mainStreamTaskData_ = {MakeMainStreamTask(10, 5, 20, 6)};
+    persistence_->hostStreamInfo_.streamIdMap[10] = 111;
+    persistence_->hostStreamInfo_.streamIdMap[20] = 222;    // 若误用 host 查 stream_id 会得到 222
+    persistence_->deviceStreamInfo_.streamIdMap[20] = 333;
+    persistence_->deviceStreamInfo_.streamIdMap[10] = 444;  // 若误用 device 查 aicpu_stream_id 会得到 444
+
+    persistence_->RefreshStreamIds();
+
+    const auto& row = persistence_->mainStreamTaskData_[0];
+    EXPECT_EQ(row.mainStreamTask.aicpuStreamId, 111);  // 必须来自 host
+    EXPECT_EQ(row.mainStreamTask.streamId, 333);       // 必须来自 device
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldUpdateBuildMasterStreamTaskDataInSync)
+{
+    // 注入给 KfcCalculator 的内存数据必须与落盘行同源同值
+    persistence_->mainStreamTaskData_ = {MakeMainStreamTask(10, 5, 20, 6)};
+    persistence_->hostStreamInfo_.streamIdMap[10] = 555;
+    persistence_->deviceStreamInfo_.streamIdMap[20] = 666;
+
+    persistence_->RefreshStreamIds();
+    const auto built = persistence_->BuildMasterStreamTaskData();
+
+    ASSERT_EQ(built.size(), 1U);
+    EXPECT_EQ(built[0].aicpuStreamId, 555);
+    EXPECT_EQ(built[0].streamId, 666);
+}
+
+TEST_F(AicpuPersistenceRefreshStreamIdsUtest, ShouldBeNoOpWhenAllVectorsEmpty)
+{
+    // 空数据下不得崩溃
+    persistence_->RefreshStreamIds();
+
+    EXPECT_TRUE(persistence_->opInfoData_.empty());
+    EXPECT_TRUE(persistence_->mainStreamTaskData_.empty());
+}
+
+// 端到端回归：落盘行的 task_id / aicpu_task_id 必须是 union 字段里的 32bit 合并值。
+// 旧实现里 V6 的合并结果只写到外层 TaskId，落盘读的却是 union 的 u16 原值，
+// 导致合并结果被丢弃；本用例直接断言 db 中实际写入的列值。
+class AicpuPersistenceMainStreamTaskSaveUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        devicePath_ = "./aicpu_master_stream_save";
+        EXPECT_TRUE(File::CreateDir(devicePath_));
+        EXPECT_TRUE(File::CreateDir(File::PathJoin({devicePath_, "sqlite"})));
+        persistence_ = std::make_shared<AicpuPersistence>();
+        persistence_->params_ = SyscntConversionParams(1000.0, 1000, 1000);
+    }
+
+    void TearDown() override
+    {
+        EXPECT_TRUE(File::RemoveDir(devicePath_, 0));
+    }
+
+protected:
+    std::string devicePath_;
+    std::shared_ptr<AicpuPersistence> persistence_;
+};
+
+TEST_F(AicpuPersistenceMainStreamTaskSaveUtest, ShouldPersistMergedTaskIdsInsteadOfRawU16)
+{
+    // V6 合并后的值（模拟 parser 写入 union 字段后的结果）
+    const uint32_t mergedAicpuTaskId = (0x0032u << 16) | 0x6F68u;
+    const uint32_t mergedTaskId = (0x8083u << 16) | 0x7A00u;
+
+    AicpuData row;
+    row.type = AicpuType::AICPU_MASTER_STREAM_HCCL_TASK;
+    row.timeStamp = 1000;
+    row.mainStreamTask.aicpuStreamId = 0x6F68u;
+    row.mainStreamTask.aicpuTaskId = mergedAicpuTaskId;
+    row.mainStreamTask.streamId = 0x7A00u;
+    row.mainStreamTask.taskId = mergedTaskId;
+    row.mainStreamTask.type = 1;
+    row.aicpuTaskId.batchId = 3;
+    row.taskId.batchId = 4;
+    persistence_->mainStreamTaskData_ = {row};
+
+    ASSERT_EQ(ANALYSIS_OK, persistence_->GenerateAndSaveMainStreamTask(devicePath_));
+
+    // 列顺序: timestamp, aicpu_stream_id, aicpu_task_id, aicpu_batch_id,
+    //         stream_id, task_id, batch_id, type
+    using Row = std::tuple<double, uint32_t, uint32_t, uint16_t, uint32_t, uint32_t, uint32_t, uint16_t>;
+    DBRunner dbRunner(File::PathJoin({devicePath_, "sqlite", "kfc_info.db"}));
+    ASSERT_TRUE(dbRunner.CheckTableExists("AicpuMasterStreamHcclTask"));
+    std::vector<Row> rows;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT * FROM AicpuMasterStreamHcclTask", rows));
+    ASSERT_EQ(rows.size(), 1U);
+
+    EXPECT_EQ(std::get<1>(rows[0]), 0x6F68u);            // aicpu_stream_id 原值
+    EXPECT_EQ(std::get<2>(rows[0]), mergedAicpuTaskId);  // aicpu_task_id 合并值（关键回归点）
+    EXPECT_EQ(std::get<4>(rows[0]), 0x7A00u);            // stream_id 原值
+    EXPECT_EQ(std::get<5>(rows[0]), mergedTaskId);       // task_id 合并值（关键回归点）
+    EXPECT_EQ(std::get<6>(rows[0]), 4u);                 // batch_id
+    EXPECT_EQ(std::get<7>(rows[0]), 1u);                 // type
+}
 
 }  // namespace
 }  // namespace Domain

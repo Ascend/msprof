@@ -35,12 +35,16 @@ class AicpuParser : public Parser
     uint32_t GetTrunkSize() override;
     uint32_t ParseData(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
     void SetDeviceAicpuStreamIdMap();
-    virtual ParserType GetParserType() const { return AICPU_PARSER; }
+    // 解析项类型随芯片切换：V6（chip 15/16/19）下 taskId 为 32bit 且 streamId 保持原值，
+    // 与非 V6 的 16bit 展开规则不同，由 ParseData 依 DeviceContext::isChipV6() 判定后写入 parserType_。
+    // 统一经此接口取值，外部不直接访问成员。
+    virtual ParserType GetParserType() const { return parserType_; }
 
    private:
     std::vector<AicpuData> aicpuData_;
     DeviceStreamInfo streamIdMap_;
     std::vector<std::string> filePrefix_{"aicpu.data"};
+    ParserType parserType_{AICPU_PARSER};
 };
 }  // namespace Domain
 }  // namespace Analysis

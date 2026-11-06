@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include "analysis/csrc/domain/entities/hal/include/aicpu.h"
+#include "analysis/csrc/domain/services/parser/parser_item/stars_common.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
@@ -40,6 +41,15 @@ int AicpuFlipTaskParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t
 int AicpuMasterStreamHcclTaskParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData,
                                        uint16_t expandStatus);
 int KfcHcclInfoParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus);
+// V6（chip 15/16/19）专用实现
+int AicpuNodeParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus);
+int KfcCommTurnParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus);
+int KfcComputeTurnParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData,
+                               uint16_t expandStatus);
+int HcclOpInfoParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus);
+int AicpuFlipTaskParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData, uint16_t expandStatus);
+int AicpuMasterStreamHcclTaskParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *aicpuData,
+                                          uint16_t expandStatus);
 
 namespace {
 
@@ -587,6 +597,330 @@ TEST(AicpuParserItemRegistrationTest, ShouldRetrieveAllTenParserItemsViaFactory)
     EXPECT_NE(flipFunc, nullptr);
     EXPECT_NE(mainFunc, nullptr);
     EXPECT_NE(kfcFunc, nullptr);
+}
+
+// =========================================================================
+// V6（chip 15/16/19）parse item 测试
+// 语义对齐 Python StarsCommon：streamId 保持原值，taskId 按 need_merge 决定是否 32bit 合并
+// =========================================================================
+
+class AicpuV6ParseItemUtest : public Test {
+protected:
+    void SetUp() override
+    {
+        memset(&additionalInfo_, 0, sizeof(additionalInfo_));
+        memset(&aicpuData_, 0, sizeof(aicpuData_));
+    }
+
+    void TearDown() override {}
+
+    MsprofAdditionalInfo additionalInfo_{};
+    AicpuData aicpuData_{};
+};
+
+// streamId 的 bit12/bit13 置位时，V6 也必须保持原值（旧 16bit 规则会被触发并改写原值）
+const uint16_t V6_BIT12_STREAM_ID = 0x1000;
+const uint16_t V6_BIT13_STREAM_ID = 0x2000;
+const uint16_t V6_PLAIN_STREAM_ID = 0x0042;
+
+TEST_F(AicpuV6ParseItemUtest, ShouldKeepRawStreamIdAndTaskIdForNode)
+{
+    additionalInfo_.aicpuNode.streamId = V6_BIT12_STREAM_ID;
+    additionalInfo_.aicpuNode.taskId = 0x0033;
+    aicpuData_.type = AicpuType::AICPU_DP;  // 非目标类型，确认被覆盖
+
+    int ret = AicpuNodeParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                    reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    // need_merge=False：streamId / taskId 均透传上报原值
+    EXPECT_EQ(aicpuData_.taskId.streamId, V6_BIT12_STREAM_ID);
+    EXPECT_EQ(aicpuData_.taskId.taskId, 0x0033u);
+    EXPECT_EQ(aicpuData_.taskId.batchId, 0u);
+    EXPECT_EQ(aicpuData_.type, AicpuType::AICPU_NODE);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldMergeTaskIdForCommTurn)
+{
+    additionalInfo_.commTurn.streamId = V6_BIT13_STREAM_ID;
+    additionalInfo_.commTurn.taskId = 0x0012;
+
+    int ret = KfcCommTurnParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                      reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    EXPECT_EQ(aicpuData_.taskId.streamId, V6_BIT13_STREAM_ID);
+    // need_merge=True：高 16 位 taskId，低 16 位 streamId
+    EXPECT_EQ(aicpuData_.taskId.taskId, ((0x0012u << 16) | V6_BIT13_STREAM_ID));
+    EXPECT_EQ(aicpuData_.type, AicpuType::KFC_COMM_TURN);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldMergeTaskIdForComputeTurn)
+{
+    additionalInfo_.computeTurn.streamId = V6_PLAIN_STREAM_ID;
+    additionalInfo_.computeTurn.taskId = 0x0007;
+
+    int ret = KfcComputeTurnParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                         reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    EXPECT_EQ(aicpuData_.taskId.streamId, V6_PLAIN_STREAM_ID);
+    EXPECT_EQ(aicpuData_.taskId.taskId, ((0x0007u << 16) | V6_PLAIN_STREAM_ID));
+    EXPECT_EQ(aicpuData_.type, AicpuType::KFC_COMPUTE_TURN);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldMergeTaskIdForFlipTask)
+{
+    additionalInfo_.flipTask.streamId = V6_PLAIN_STREAM_ID;
+    additionalInfo_.flipTask.taskId = 0x0009;
+
+    int ret = AicpuFlipTaskParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                        reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    EXPECT_EQ(aicpuData_.taskId.streamId, V6_PLAIN_STREAM_ID);
+    EXPECT_EQ(aicpuData_.taskId.taskId, ((0x0009u << 16) | V6_PLAIN_STREAM_ID));
+    EXPECT_EQ(aicpuData_.type, AicpuType::AICPU_FLIP_TASK);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldKeepRawTaskIdForHcclOpInfo)
+{
+    additionalInfo_.opInfo.streamId = V6_BIT12_STREAM_ID;
+    additionalInfo_.opInfo.taskId = 0x9ABCDEF0u;  // 上报本身为 u32
+
+    int ret = HcclOpInfoParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                     reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    EXPECT_EQ(aicpuData_.taskId.streamId, V6_BIT12_STREAM_ID);
+    // need_merge=False：u32 taskId 不参与合并，也不截断
+    EXPECT_EQ(aicpuData_.taskId.taskId, 0x9ABCDEF0u);
+    EXPECT_EQ(aicpuData_.type, AicpuType::HCCL_OP_INFO);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldMergeBothTaskIdsForMasterStreamTask)
+{
+    additionalInfo_.mainStreamTask.aicpuStreamId = 0x7000;  // 28544, 接近样例中的 28520
+    additionalInfo_.mainStreamTask.aicpuTaskId = 0x0032;
+    additionalInfo_.mainStreamTask.streamId = 0x7A00;  // 31232, 接近样例中的 31139
+    additionalInfo_.mainStreamTask.taskId = 0x8083;
+
+    int ret = AicpuMasterStreamHcclTaskParseItem_V6(reinterpret_cast<uint8_t *>(&additionalInfo_),
+                                                    sizeof(additionalInfo_),
+                                                    reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    // 外层 TaskId 供批次计算等路径使用
+    EXPECT_EQ(aicpuData_.aicpuTaskId.streamId, 0x7000u);
+    EXPECT_EQ(aicpuData_.aicpuTaskId.taskId, ((0x0032u << 16) | 0x7000u));
+    EXPECT_EQ(aicpuData_.taskId.streamId, 0x7A00u);
+    EXPECT_EQ(aicpuData_.taskId.taskId, ((0x8083u << 16) | 0x7A00u));
+    // union 字段是落盘与注入数据的取值来源，必须同样写入合并结果（回归点）
+    EXPECT_EQ(aicpuData_.mainStreamTask.aicpuStreamId, 0x7000u);
+    EXPECT_EQ(aicpuData_.mainStreamTask.aicpuTaskId, ((0x0032u << 16) | 0x7000u));
+    EXPECT_EQ(aicpuData_.mainStreamTask.streamId, 0x7A00u);
+    EXPECT_EQ(aicpuData_.mainStreamTask.taskId, ((0x8083u << 16) | 0x7A00u));
+    // 外层与 union 必须一致，避免两套字段分叉
+    EXPECT_EQ(aicpuData_.taskId.taskId, aicpuData_.mainStreamTask.taskId);
+    EXPECT_EQ(aicpuData_.aicpuTaskId.taskId, aicpuData_.mainStreamTask.aicpuTaskId);
+    EXPECT_EQ(aicpuData_.type, AicpuType::AICPU_MASTER_STREAM_HCCL_TASK);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldKeepRawKfcHcclInfoReusingNonV6Item)
+{
+    additionalInfo_.kfcInfos.infos[0].streamId = V6_BIT13_STREAM_ID;
+    additionalInfo_.kfcInfos.infos[0].taskId = 0x0044u;
+
+    int ret = KfcHcclInfoParseItem(reinterpret_cast<uint8_t *>(&additionalInfo_), sizeof(additionalInfo_),
+                                   reinterpret_cast<uint8_t *>(&aicpuData_), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(ret, ANALYSIS_OK);
+    EXPECT_EQ(aicpuData_.KfcInfos.infos[0].streamId, V6_BIT13_STREAM_ID);
+    EXPECT_EQ(aicpuData_.KfcInfos.infos[0].taskId, 0x0044u);
+    EXPECT_EQ(aicpuData_.type, AicpuType::KFC_HCCL_INFO);
+}
+
+TEST_F(AicpuV6ParseItemUtest, ShouldRegisterAllV6Items)
+{
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_NODE)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_DP)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_MODEL)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_MI)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::KFC_COMM_TURN)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::KFC_COMPUTE_TURN)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::HCCL_OP_INFO)), nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_FLIP_TASK)), nullptr);
+    EXPECT_NE(
+        ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::AICPU_MASTER_STREAM_HCCL_TASK)),
+        nullptr);
+    EXPECT_NE(ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::KFC_HCCL_INFO)), nullptr);
+}
+
+// 回归点：need_merge=False 只影响 taskId，不影响 streamId。
+// 非 V6 实现会对 streamId 做 % 2048 掩码、对 taskId 做位拼接；
+// V6 必须保留 streamId 原值，同时 taskId 不做合并。
+TEST_F(AicpuV6ParseItemUtest, ShouldDifferFromNonV6OnStreamIdForNeedMergeFalseTypes)
+{
+    // streamId 的 bit12/bit13 同时置位，是旧规则必定改写原值的输入
+    const uint16_t streamId = 0x3123;  // 12579
+    const uint16_t taskId = 0x0045;
+
+    // --- AICPU_NODE ---
+    MsprofAdditionalInfo info{};
+    AicpuData nonV6{};
+    AicpuData v6{};
+    info.aicpuNode.streamId = streamId;
+    info.aicpuNode.taskId = taskId;
+
+    AicpuNodeParseItem(reinterpret_cast<uint8_t *>(&info), sizeof(info), reinterpret_cast<uint8_t *>(&nonV6),
+                       EXPAND_STATUS_OFF);
+    AicpuNodeParseItem_V6(reinterpret_cast<uint8_t *>(&info), sizeof(info), reinterpret_cast<uint8_t *>(&v6),
+                          EXPAND_STATUS_OFF);
+
+    // 非 V6：streamId 被掩码成 streamId % 2048，taskId 被位拼接
+    EXPECT_EQ(nonV6.taskId.streamId, static_cast<uint32_t>(streamId % 2048));
+    EXPECT_NE(nonV6.taskId.taskId, taskId);
+    // V6：streamId 与 taskId 均为原值
+    EXPECT_EQ(v6.taskId.streamId, streamId);
+    EXPECT_EQ(v6.taskId.taskId, taskId);
+    EXPECT_NE(nonV6.taskId.streamId, v6.taskId.streamId);
+
+    // --- HCCL_OP_INFO ---（taskId 上报本身是 u32）
+    MsprofAdditionalInfo opInfo{};
+    AicpuData opNonV6{};
+    AicpuData opV6{};
+    opInfo.opInfo.streamId = streamId;
+    opInfo.opInfo.taskId = 0x9ABCDEF0u;
+
+    HcclOpInfoParseItem(reinterpret_cast<uint8_t *>(&opInfo), sizeof(opInfo),
+                        reinterpret_cast<uint8_t *>(&opNonV6), EXPAND_STATUS_OFF);
+    HcclOpInfoParseItem_V6(reinterpret_cast<uint8_t *>(&opInfo), sizeof(opInfo), reinterpret_cast<uint8_t *>(&opV6),
+                           EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(opNonV6.taskId.streamId, static_cast<uint32_t>(streamId % 2048));
+    EXPECT_NE(opNonV6.taskId.taskId, 0x9ABCDEF0u);  // 非 V6 会截断 u32 taskId
+    EXPECT_EQ(opV6.taskId.streamId, streamId);
+    EXPECT_EQ(opV6.taskId.taskId, 0x9ABCDEF0u);     // V6 原样透传
+}
+
+// KFC_HCCL_INFO 在非 V6 下就是纯拷贝，V6 复用同一实现即可
+TEST_F(AicpuV6ParseItemUtest, ShouldProduceSameResultForKfcHcclInfoInBothPaths)
+{
+    MsprofAdditionalInfo info{};
+    AicpuData a{};
+    AicpuData b{};
+    info.kfcInfos.infos[0].streamId = 0x3123;
+    info.kfcInfos.infos[0].taskId = 0x9ABCDEF0u;
+
+    auto fn = ParserItemFactory::GetParseItem(AICPU_PARSER, static_cast<int>(AicpuType::KFC_HCCL_INFO));
+    auto fnV6 = ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(AicpuType::KFC_HCCL_INFO));
+    ASSERT_NE(fn, nullptr);
+    ASSERT_NE(fnV6, nullptr);
+
+    fn(reinterpret_cast<uint8_t *>(&info), sizeof(info), reinterpret_cast<uint8_t *>(&a), EXPAND_STATUS_OFF);
+    fnV6(reinterpret_cast<uint8_t *>(&info), sizeof(info), reinterpret_cast<uint8_t *>(&b), EXPAND_STATUS_OFF);
+
+    EXPECT_EQ(a.KfcInfos.infos[0].streamId, b.KfcInfos.infos[0].streamId);
+    EXPECT_EQ(a.KfcInfos.infos[0].taskId, b.KfcInfos.infos[0].taskId);
+    EXPECT_EQ(a.KfcInfos.infos[0].streamId, 0x3123);
+    EXPECT_EQ(a.KfcInfos.infos[0].taskId, 0x9ABCDEF0u);
+}
+
+// union 字段由 u16 放宽到 u32 后，非 V6 的上报原值存入不得产生任何变化，
+// 且必须与 adapter 拷入的 raw 值一致（非 V6 落盘读取的就是 raw）
+TEST_F(AicpuV6ParseItemUtest, ShouldKeepRawUnionFieldsForMasterStreamTaskOnNonV6)
+{
+    const uint16_t rawAicpuStreamId = 0x7000;
+    const uint16_t rawAicpuTaskId = 0x0032;
+    const uint16_t rawStreamId = 0x7A00;
+    const uint16_t rawTaskId = 0x8083;
+
+    MsprofAdditionalInfo info{};
+    info.mainStreamTask.aicpuStreamId = rawAicpuStreamId;
+    info.mainStreamTask.aicpuTaskId = rawAicpuTaskId;
+    info.mainStreamTask.streamId = rawStreamId;
+    info.mainStreamTask.taskId = rawTaskId;
+    info.mainStreamTask.type = 1;
+
+    AicpuData data{};
+    int ret = AicpuMasterStreamHcclTaskParseItem(reinterpret_cast<uint8_t *>(&info), sizeof(info),
+                                                reinterpret_cast<uint8_t *>(&data), EXPAND_STATUS_OFF);
+    EXPECT_EQ(ret, ANALYSIS_OK);
+
+    // 非 V6：union 保持 adapter 拷入的 raw 上报值，加宽不改变数值
+    EXPECT_EQ(data.mainStreamTask.aicpuStreamId, rawAicpuStreamId);
+    EXPECT_EQ(data.mainStreamTask.aicpuTaskId, rawAicpuTaskId);
+    EXPECT_EQ(data.mainStreamTask.streamId, rawStreamId);
+    EXPECT_EQ(data.mainStreamTask.taskId, rawTaskId);
+    EXPECT_EQ(data.mainStreamTask.type, 1);
+
+    // 非 V6 仍按 StarsCommon 计算外层 TaskId（供批次计算使用），与 union raw 各自独立
+    EXPECT_EQ(data.aicpuTaskId.taskId,
+              static_cast<uint32_t>(StarsCommon::GetTaskId(rawAicpuStreamId, rawAicpuTaskId, EXPAND_STATUS_OFF)));
+    EXPECT_EQ(data.taskId.taskId,
+              static_cast<uint32_t>(StarsCommon::GetTaskId(rawStreamId, rawTaskId, EXPAND_STATUS_OFF)));
+}
+
+// =========================================================================
+// V6 注册契约：确保 AICPU_PARSER_V6 下注册的是 *_V6 实现而非非 V6 函数
+// 仅断言“工厂返回非空”无法发现注册笔误（如把 KfcCommTurnParseItem_V6 写成
+// KfcCommTurnParseItem），此时工厂仍非空、所有按名字调用的用例仍通过，
+// 但 V6 实际退化为 16bit 语义。这里直接比对函数指针实现是否不同。
+// =========================================================================
+
+TEST(AicpuParserItemRegistrationTest, ShouldRegisterDedicatedV6ImplementationForV6OnlyTypes)
+{
+    // 这 6 类在 V6 下语义与非 V6 不同，注册的必须是各自独立的 *_V6 函数
+    using ItemFunc = std::function<int(uint8_t *, uint32_t, uint8_t *, uint16_t)>;
+    const std::pair<AicpuType, ItemFunc> dedicated[] = {
+        {AicpuType::AICPU_NODE, AicpuNodeParseItem_V6},
+        {AicpuType::KFC_COMM_TURN, KfcCommTurnParseItem_V6},
+        {AicpuType::KFC_COMPUTE_TURN, KfcComputeTurnParseItem_V6},
+        {AicpuType::HCCL_OP_INFO, HcclOpInfoParseItem_V6},
+        {AicpuType::AICPU_FLIP_TASK, AicpuFlipTaskParseItem_V6},
+        {AicpuType::AICPU_MASTER_STREAM_HCCL_TASK, AicpuMasterStreamHcclTaskParseItem_V6},
+    };
+    for (const auto &item : dedicated)
+    {
+        auto v6Func = ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(item.first));
+        auto baseFunc = ParserItemFactory::GetParseItem(AICPU_PARSER, static_cast<int>(item.first));
+        ASSERT_NE(v6Func, nullptr) << "type: " << static_cast<int>(item.first);
+        ASSERT_NE(baseFunc, nullptr) << "type: " << static_cast<int>(item.first);
+
+        // 注册的必须是预期的 *_V6 函数
+        auto expected = item.second.target<int (*)(uint8_t *, uint32_t, uint8_t *, uint16_t)>();
+        auto actual = v6Func.target<int (*)(uint8_t *, uint32_t, uint8_t *, uint16_t)>();
+        ASSERT_NE(expected, nullptr) << "type: " << static_cast<int>(item.first);
+        ASSERT_NE(actual, nullptr) << "type: " << static_cast<int>(item.first);
+        EXPECT_EQ(*actual, *expected) << "V6 registration mismatch, type: " << static_cast<int>(item.first)
+                                      << " (registered non-V6 implementation?)";
+
+        // 且必须与非 V6 实现不同，否则 V6 语义退化
+        auto base = baseFunc.target<int (*)(uint8_t *, uint32_t, uint8_t *, uint16_t)>();
+        ASSERT_NE(base, nullptr);
+        EXPECT_NE(*actual, *base) << "V6 type shares non-V6 implementation, type: "
+                                  << static_cast<int>(item.first);
+    }
+}
+
+TEST(AicpuParserItemRegistrationTest, ShouldReuseNonV6ImplementationForEquivalentTypes)
+{
+    // 这 4 类在 V6 下与非 V6 等价，允许（且预期）复用同一实现
+    const AicpuType equivalent[] = {AicpuType::AICPU_DP, AicpuType::AICPU_MODEL, AicpuType::AICPU_MI,
+                                    AicpuType::KFC_HCCL_INFO};
+    for (AicpuType type : equivalent)
+    {
+        auto v6Func = ParserItemFactory::GetParseItem(AICPU_PARSER_V6, static_cast<int>(type));
+        auto baseFunc = ParserItemFactory::GetParseItem(AICPU_PARSER, static_cast<int>(type));
+        ASSERT_NE(v6Func, nullptr) << "type: " << static_cast<int>(type);
+        ASSERT_NE(baseFunc, nullptr) << "type: " << static_cast<int>(type);
+
+        auto v6 = v6Func.target<int (*)(uint8_t *, uint32_t, uint8_t *, uint16_t)>();
+        auto base = baseFunc.target<int (*)(uint8_t *, uint32_t, uint8_t *, uint16_t)>();
+        ASSERT_NE(v6, nullptr);
+        ASSERT_NE(base, nullptr);
+        EXPECT_EQ(*v6, *base) << "type " << static_cast<int>(type) << " should reuse non-V6 implementation";
+    }
 }
 
 }  // namespace Domain

@@ -50,6 +50,9 @@ class AicpuPersistence : public Process
     // halTrackData：device flip（TS_TASK_FLIP，TsTrackParser 注入），用于计算 aicpuStreamId/aicpuTaskId 的
     // aicpuBatchId， 可能为空指针（TsTrackParser 未注入时），此时只计算主流侧 batchId
     void ComputeAicpuBatchId(std::vector<HalTrackData>* halTrackData);
+    // 按 host/device 侧的 taskId->streamId 映射刷新 opInfo 与 mainStreamTask 的落盘 streamId，
+    // 语义对齐 Python AicpuAddInfoParser；必须在 ComputeAicpuBatchId 之后调用
+    void RefreshStreamIds();
     // 构建注入 DataInventory 的 kfc 上游实体，与 kfc_info.db 落盘行同源同值，
     // 供同进程的 KfcCalculator 直接消费（越过 kfc_info.db 读取）
     std::vector<KfcInfoData> BuildKfcInfoData() const;
