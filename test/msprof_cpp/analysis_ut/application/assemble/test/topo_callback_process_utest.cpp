@@ -137,15 +137,17 @@ TEST(TopoGraphBuilderUTest, ShouldResolveControlDependenciesUsingAllocatedNodeKe
     definitions.emplace(timeline.id, std::move(timeline));
     definitions.emplace(post.id, std::move(post));
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::TIMELINE_EXPORT, "timeline"}, {TopoNodeStage::FLOW_CONTROL, "post"}},
                               processes));
     ASSERT_EQ(processes.size(), 4UL);
 
-    std::type_index timelineKey(typeid(void));
-    const RegProcessInfo* postInfo = nullptr;
+    RuntimeProcessKey timelineKey = 0;
+    const RuntimeProcessInfo* postInfo = nullptr;
     for (const auto& process : processes)
     {
         if (process.second.processName == "timeline")
@@ -157,7 +159,7 @@ TEST(TopoGraphBuilderUTest, ShouldResolveControlDependenciesUsingAllocatedNodeKe
             postInfo = &process.second;
         }
     }
-    ASSERT_NE(timelineKey, std::type_index(typeid(void)));
+    ASSERT_NE(timelineKey, 0U);
     ASSERT_NE(postInfo, nullptr);
     EXPECT_NE(std::find(postInfo->processDependence.begin(), postInfo->processDependence.end(), timelineKey),
               postInfo->processDependence.end());
@@ -170,9 +172,11 @@ TEST(TopoGraphBuilderUTest, ShouldClearProcessesWhenRootIsUnregistered)
     auto& definitions = TopoNodeRegistry::MutableDefinitions();
     definitions.clear();
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
 
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     TopoGraphBuilder builder;
     EXPECT_FALSE(builder.Build(context, {{TopoNodeStage::SUMMARY_GENERATION, "missing"}}, processes));
     EXPECT_TRUE(processes.empty());
@@ -200,13 +204,15 @@ TEST(TopoGraphBuilderUTest, ShouldCreateSharedDependencyOnlyOnce)
     definitions.emplace(summary.id, std::move(summary));
     definitions.emplace(timeline.id, std::move(timeline));
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::SUMMARY_GENERATION, "summary"}, {TopoNodeStage::TIMELINE_EXPORT, "timeline"}},
                               processes));
     EXPECT_EQ(processes.size(), 3UL);
-    EXPECT_EQ(processes.count(typeid(GraphProcessor)), 1UL);
+    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DATA_PROCESSING, "processor", "export"}), 1UL);
 }
 
 TEST(TopoGraphBuilderUTest, ShouldContinueWhenOptionalNodeFails)
@@ -242,15 +248,15 @@ TEST(TopoGraphBuilderUTest, ShouldContinueWhenOptionalNodeFails)
     definitions.emplace(optional.id, std::move(optional));
     definitions.emplace(required.id, std::move(required));
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext buildContext;
+    buildContext.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    buildContext.scopeInventories["export"] = std::make_shared<DataInventory>();
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(buildContext, {{TopoNodeStage::DATA_PROCESSING, "optional"}, {TopoNodeStage::SUMMARY_GENERATION, "required"}},
                               processes));
 
-    DataInventory dataInventory;
-    Context processContext;
     ProcessControl processControl(processes);
-    EXPECT_TRUE(processControl.ExecuteProcess(dataInventory, processContext));
+    EXPECT_TRUE(processControl.ExecuteProcess());
     EXPECT_TRUE(*requiredRan);
 }

@@ -24,7 +24,7 @@
 #include "analysis/csrc/domain/services/modeling/step_trace/model_step_trace.h"
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -264,8 +264,5 @@ uint32_t StepTraceProcess::ProcessEntry(Infra::DataInventory& dataInventory, con
     return Analysis::ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(StepTraceProcess, false, TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(StepTraceProcess, std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(StepTraceProcess, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

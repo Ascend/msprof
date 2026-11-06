@@ -44,8 +44,10 @@ class CppPipelineRunner:
             )
 
     def _run(self, request: CppPipelineDecisionRequest) -> None:
-        flags = msprof_c_interface.MSPROF_PIPELINE_CANN_TRACE if request.host_path else 0
-        if request.device_paths:
+        flags = 0
+        if request.host_path and not self._has_sqlite_data(request.host_path):
+            flags |= msprof_c_interface.MSPROF_PIPELINE_CANN_TRACE
+        if request.device_paths and not all(self._has_sqlite_data(path) for path in request.device_paths):
             flags |= msprof_c_interface.MSPROF_PIPELINE_DEVICE_DATA
         if request.command == PipelineCommand.EXPORT:
             flags |= {
@@ -53,6 +55,9 @@ class CppPipelineRunner:
                 "timeline": msprof_c_interface.MSPROF_PIPELINE_TIMELINE,
                 "summary": msprof_c_interface.MSPROF_PIPELINE_SUMMARY,
             }[request.command_type]
+        if flags == 0:
+            logging.info("Skip C pipeline: SQLite data already exists for %s.", request.collection_path)
+            return
         # DeviceContext consumes the parent PROF directory of this result path.
         device_path = request.device_paths[0] if request.device_paths else None
         status = msprof_c_interface.run_pipeline(
@@ -67,6 +72,15 @@ class CppPipelineRunner:
                 ProfException.PROF_INVALID_DATA_ERROR,
                 "Full C pipeline failed for %s (status %s)." % (request.collection_path, status),
             )
+
+    @staticmethod
+    def _has_sqlite_data(result_path: str) -> bool:
+        """Treat existing intermediate database files as parsed data."""
+        sqlite_path = os.path.join(result_path, "sqlite")
+        if not os.path.isdir(sqlite_path):
+            return False
+        with os.scandir(sqlite_path) as entries:
+            return any(entry.name.endswith(".db") and entry.is_file() for entry in entries)
 
 
 def try_full_cpp_pipeline(request: CppPipelineDecisionRequest) -> bool:

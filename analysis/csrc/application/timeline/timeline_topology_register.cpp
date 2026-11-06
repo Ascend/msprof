@@ -79,7 +79,7 @@ const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), true,
                             TimelineManager::CreateTimelinePreDump(), TOPO_DEPS(),
-                            TimelineManager::ResolveTimelinePreDumpDependencies);
+                            TimelineManager::ResolveTimelinePreDumpDependencies, true);
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), std::vector<MsprofTxHostData>);
 
 REGISTER_TIMELINE_NODE_WITH_DATA(
@@ -177,8 +177,9 @@ REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_BLOCK_DETAIL,
                                  std::vector<BlockDetailData>, std::vector<TaskInfoData>, std::vector<AscendTaskData>);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, TIMELINE_POST_DUMP), true,
-                            TimelineManager::CreateTimelinePostDump(), TOPO_DEPS(),
-                            TimelineManager::ResolveSelectedTimelineNodes);
+                            TimelineManager::CreateTimelinePostDump(),
+                            TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP)),
+                            TimelineManager::ResolveSelectedTimelineNodes, true);
 
 #undef REGISTER_TIMELINE_NODE_WITH_DATA
 #undef REGISTER_TIMELINE_NODE

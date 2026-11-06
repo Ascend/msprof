@@ -104,7 +104,5 @@ uint32_t LoadStreamExpandSpec::ProcessEntry(DataInventory& dataInventory, const 
     return ReadHostStreamExpandInfo(dataInventory, deviceContext);
 }
 
-REGISTER_PROCESS_SEQUENCE(LoadStreamExpandSpec, true);
-REGISTER_PROCESS_SUPPORT_CHIP(LoadStreamExpandSpec, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

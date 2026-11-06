@@ -31,7 +31,7 @@
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/binary_utils.h"
 #include "analysis/csrc/infrastructure/utils/common_constant.h"
@@ -492,18 +492,6 @@ uint32_t CcuChannelParser::ProcessEntry(DataInventory& dataInventory, const Infr
     INFO("Parsed % CCU channel rows from % files", result->records.size(), result->completedFiles.size());
     return ANALYSIS_OK;
 }
-
-namespace CCU_MISSION_REGISTER
-{
-REGISTER_PROCESS_SEQUENCE(CcuMissionParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuMissionParser, CHIP_V6_1_0, CHIP_V6_1_1);
-}  // namespace CCU_MISSION_REGISTER
-
-namespace CCU_CHANNEL_REGISTER
-{
-REGISTER_PROCESS_SEQUENCE(CcuChannelParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuChannelParser, CHIP_V6_1_0, CHIP_V6_1_1);
-}  // namespace CCU_CHANNEL_REGISTER
 
 }  // namespace Domain
 }  // namespace Analysis

@@ -22,7 +22,7 @@
 #include "analysis/csrc/domain/services/device_context/load_stream_expand_spec_data.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/utils/prof_struct.h"
 
@@ -117,8 +117,5 @@ uint32_t AicpuParser::ParseData(DataInventory &dataInventory, const Infra::Conte
     return stat;
 }
 
-REGISTER_PROCESS_SEQUENCE(AicpuParser, true, LoadStreamExpandSpec);
-REGISTER_PROCESS_DEPENDENT_DATA(AicpuParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(AicpuParser, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

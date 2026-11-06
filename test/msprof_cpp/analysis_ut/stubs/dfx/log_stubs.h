@@ -33,6 +33,8 @@ struct TestLogMessage
 
 void StartTestLogCapture();
 std::vector<TestLogMessage> StopTestLogCapture();
+void StartTestPrintCapture();
+std::vector<TestLogMessage> StopTestPrintCapture();
 }  // namespace Analysis
 
 #endif  // MSPROF_TEST_ANALYSIS_UT_STUBS_DFX_LOG_STUBS_H

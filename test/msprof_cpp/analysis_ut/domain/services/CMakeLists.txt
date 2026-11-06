@@ -26,6 +26,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host DEVICE
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host/cann DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/step_trace DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/init DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/db/include DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/tree DEVICE_PARSER_SOURCE)

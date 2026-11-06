@@ -15,18 +15,20 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  */
-#include "analysis/csrc/domain/services/device_context/device_context.h"
-
 #include <dirent.h>
-#include <unordered_map>
+
 #include <typeindex>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "analysis/csrc/domain/services/device_context/device_context.h"
+#include "analysis/csrc/infrastructure/process/include/process_control.h"
+#include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "nlohmann/json.hpp"
-#include "analysis/csrc/infrastructure/utils/utils.h"
-#include "analysis/csrc/infrastructure/process/process_topo.h"
-#include "analysis/csrc/infrastructure/process/include/process_control.h"
-
 
 namespace Analysis {
 namespace Domain {
@@ -43,6 +45,18 @@ class DeviceContextUTest : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
+        Application::TopoNodeDefinition definition;
+        definition.id = TOPO_NODE(DEVICE_PROCESSING, "DeviceContextTest.Process");
+        definition.scopeKind = Application::TopoScopeKind::DEVICE;
+        definition.processDependencies = TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Device.Init"));
+        definition.creatorFactory = [](const Application::TopoBuildContext &) -> ProcessCreator
+        {
+            return []() -> std::unique_ptr<Process> {
+                return std::unique_ptr<Process>(
+                    new Application::TopoCallbackProcess([](DataInventory &) { return true; }));
+            };
+        };
+        Application::TopoNodeRegistry::Register(std::move(definition));
         EXPECT_TRUE(File::CreateDir(PROF_DIR));
         const auto deviceDir = File::PathJoin({PROF_DIR, DEVICE_DIR});
         EXPECT_TRUE(File::CreateDir(deviceDir));
@@ -51,6 +65,8 @@ protected:
 
     static void TearDownTestCase()
     {
+        Application::TopoNodeRegistry::MutableDefinitions().erase(
+            TOPO_NODE(DEVICE_PROCESSING, "DeviceContextTest.Process"));
         EXPECT_TRUE(File::RemoveDir(PROF_DIR, 0));
     }
 
@@ -196,9 +212,6 @@ TEST_F(DeviceContextUTest, ShouldDefaultLlcModeWhenSampleJsonOmitsField)
 
 TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldReturn1DataInventoryWhenInfoJsonInvalid)
 {
-    std::unordered_map<std::type_index, RegProcessInfo> processCollection;
-    ProcessControl processControl(processCollection);
-    ProcessTopo processTopo(processCollection);
     EXPECT_EQ(1, DeviceContextEntry(PROF_DIR, "").size());
 }
 
@@ -236,10 +249,88 @@ TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldReturnEmptyVectorWhenNoPr
 TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldCreateSqliteDirWhenInitSucceeds)
 {
     MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
-    MOCKER_CPP(&ProcessControl::ExecuteProcess).stubs().will(returnValue(true));
+    MOCKER_CPP(static_cast<bool (ProcessControl::*)()>(&ProcessControl::ExecuteProcess)).stubs().will(returnValue(true));
     MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
     DeviceContextEntry(PROF_DIR, "");
     EXPECT_TRUE(File::Exist(File::PathJoin({PROF_DIR, DEVICE_DIR, "sqlite"})));
+    GlobalMockObject::verify();
+}
+
+TEST_F(DeviceContextUTest, SingleDeviceReturnsInitializationFailure)
+{
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(false));
+    auto context = DeviceContext::Create();
+    DataInventory inventory;
+    std::string statistics;
+    EXPECT_FALSE(RunSingleDevice(File::PathJoin({PROF_DIR, DEVICE_DIR}), *context, inventory, statistics));
+    EXPECT_FALSE(statistics.empty());
+    GlobalMockObject::verify();
+}
+
+TEST_F(DeviceContextUTest, SingleDeviceReturnsExecutionFailureWithoutEnumeratingDevices)
+{
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    MOCKER(GetDeviceDirectories).expects(never());
+    MOCKER_CPP(static_cast<bool (ProcessControl::*)()>(&ProcessControl::ExecuteProcess))
+        .expects(once()).will(returnValue(false));
+    MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
+    auto context = DeviceContext::Create();
+    DataInventory inventory;
+    std::string statistics;
+    EXPECT_FALSE(RunSingleDevice(File::PathJoin({PROF_DIR, DEVICE_DIR}), *context, inventory, statistics));
+    EXPECT_FALSE(statistics.empty());
+    GlobalMockObject::verify();
+}
+
+TEST_F(DeviceContextUTest, SingleDeviceReturnsExecutionSuccessWithoutEnumeratingDevices)
+{
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    MOCKER(GetDeviceDirectories).expects(never());
+    MOCKER_CPP(static_cast<bool (ProcessControl::*)()>(&ProcessControl::ExecuteProcess))
+        .expects(once()).will(returnValue(true));
+    MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
+    auto context = DeviceContext::Create();
+    DataInventory inventory;
+    std::string statistics;
+    EXPECT_TRUE(RunSingleDevice(File::PathJoin({PROF_DIR, DEVICE_DIR}), *context, inventory, statistics));
+    EXPECT_FALSE(statistics.empty());
+    GlobalMockObject::verify();
+}
+
+TEST_F(DeviceContextUTest, SingleDeviceUsesDirectoryScopeInStatisticsAndStopAt)
+{
+    struct RegistryGuard
+    {
+        Application::TopoNodeCollection original = Application::TopoNodeRegistry::GetDefinitions();
+        ~RegistryGuard() { Application::TopoNodeRegistry::MutableDefinitions() = std::move(original); }
+    } guard;
+    const auto id = TOPO_NODE(DEVICE_PROCESSING, "DeviceContextTest.Process");
+    const auto definition = Application::TopoNodeRegistry::GetDefinitions().at(id);
+    auto& definitions = Application::TopoNodeRegistry::MutableDefinitions();
+    definitions.clear();
+    definitions.emplace(id, definition);
+    MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    const std::vector<std::pair<std::string, bool>> cases = {
+        {"", true},
+        {"DeviceContextTest.Process", false},
+        {"Analysis::Domain::DeviceContextTest.Process", false},
+        {"device_0/DeviceContextTest.Process", false},
+        {"device_1/DeviceContextTest.Process", true},
+    };
+    for (const auto& suffix : {"", "/"})
+    {
+        const auto devicePath = File::PathJoin({PROF_DIR, DEVICE_DIR}) + suffix;
+        for (const auto& test : cases)
+        {
+            SCOPED_TRACE(devicePath + ", stopAt=" + test.first);
+            auto context = DeviceContext::Create();
+            DataInventory inventory;
+            std::string statistics;
+            EXPECT_EQ(RunSingleDevice(devicePath, *context, inventory, statistics, test.first.c_str()), test.second);
+            EXPECT_NE(statistics.find("[device_0/DeviceContextTest.Process]"), std::string::npos);
+            EXPECT_EQ(statistics.find("dfxStop:true") != std::string::npos, !test.second);
+        }
+    }
     GlobalMockObject::verify();
 }
 
@@ -248,7 +339,7 @@ TEST_F(DeviceContextUTest, TestDeviceContextEntryShouldCreateSqliteDirForEachDev
     const auto device1 = File::PathJoin({PROF_DIR, "device_1"});
     EXPECT_TRUE(File::CreateDir(device1));
     MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
-    MOCKER_CPP(&ProcessControl::ExecuteProcess).stubs().will(returnValue(true));
+    MOCKER_CPP(static_cast<bool (ProcessControl::*)()>(&ProcessControl::ExecuteProcess)).stubs().will(returnValue(true));
     MOCKER_CPP(&ProcessControl::GetExecuteStat).stubs().will(returnValue(ExecuteProcessStat{}));
     EXPECT_EQ(2, DeviceContextEntry(PROF_DIR, "").size());
     EXPECT_TRUE(File::Exist(File::PathJoin({PROF_DIR, DEVICE_DIR, "sqlite"})));

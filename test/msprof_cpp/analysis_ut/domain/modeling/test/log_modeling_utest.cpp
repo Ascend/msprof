@@ -18,7 +18,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <vector>
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/context/include/device_context.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"

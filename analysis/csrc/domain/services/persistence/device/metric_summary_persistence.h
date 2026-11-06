@@ -22,7 +22,6 @@
 #include "analysis/csrc/domain/services/association/calculator/include/metric_calculator_factory.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 
 namespace Analysis
 {

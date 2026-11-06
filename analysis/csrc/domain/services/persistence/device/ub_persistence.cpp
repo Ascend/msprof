@@ -27,7 +27,7 @@
 #include "analysis/csrc/domain/services/parser/ub/include/ub_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -80,8 +80,5 @@ uint32_t UbPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const 
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(UbPersistence, false, UbParser);
-REGISTER_PROCESS_DEPENDENT_DATA(UbPersistence, std::vector<HalUbBwData>);
-REGISTER_PROCESS_SUPPORT_CHIP(UbPersistence, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace Domain
 }  // namespace Analysis

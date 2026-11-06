@@ -54,7 +54,5 @@ uint32_t DeviceTaskProcess::ProcessEntry(DataInventory& dataInventory, const Inf
     }
 }
 
-REGISTER_PROCESS_SEQUENCE(DeviceTaskProcess, true);
-REGISTER_PROCESS_SUPPORT_CHIP(DeviceTaskProcess, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

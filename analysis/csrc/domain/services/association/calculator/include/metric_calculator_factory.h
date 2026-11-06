@@ -30,7 +30,7 @@ using Creator = std::function<std::unique_ptr<MetricCalculator>(ChipId)>;
 class MetricCalculatorFactory
 {
    public:
-    // 芯片信息由调用方传入：DeviceContext::Instance()为thread_local，计算器在worker线程创建时无法获取正确芯片信息
+    // 芯片信息由调用方显式传入，避免依赖工作线程中的隐式上下文。
     static std::unique_ptr<MetricCalculator> GetAicCalculator(AicMetricsEventsType type, ChipId chipId = CHIP_ID_ALL)
     {
         auto it = aicEvent.find(type);

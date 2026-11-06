@@ -23,7 +23,7 @@
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -113,9 +113,5 @@ uint32_t StepTracePersistence::ProcessEntry(DataInventory& dataInventory, const 
     res |= ProcessStepTimeEntry(dataInventory, deviceContext, stepTraceInfo);
     return res;
 }
-REGISTER_PROCESS_SEQUENCE(StepTracePersistence, true, StepTraceProcess, TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(StepTracePersistence, std::map<uint32_t, std::vector<StepTraceTasks>>,
-                                std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(StepTracePersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

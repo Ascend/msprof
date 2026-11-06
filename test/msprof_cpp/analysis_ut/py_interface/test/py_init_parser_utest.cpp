@@ -16,22 +16,31 @@
  * -------------------------------------------------------------------------
  */
 
+#include <algorithm>
 #include <set>
 #include <string>
-
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "analysis/csrc/application/include/export_manager.h"
+#include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/host_worker/kernel_parser_worker.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "analysis/csrc/interface/py_interface/py_init_parser.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
 using Analysis::Application::ExportManager;
 using Analysis::Application::ExportMode;
+using Analysis::Application::PIPELINE_CANN_TRACE;
+using Analysis::Application::PIPELINE_DEVICE_DATA;
+using Analysis::Application::PIPELINE_DB;
+using Analysis::Application::PIPELINE_TIMELINE;
+using Analysis::Application::PIPELINE_SUMMARY;
 using Analysis::Domain::GetDeviceDirectories;
 using Analysis::Interface::WrapRunPipeline;
 using Analysis::Utils::File;
@@ -42,11 +51,30 @@ using KernelParserWorker = Analysis::Domain::KernelParserWorker;
 namespace
 {
 constexpr int ANALYSIS_INVALID_PARAM = 101;
-constexpr int PIPELINE_CANN_TRACE = 0x01;
-constexpr int PIPELINE_DEVICE_DATA = 0x02;
-constexpr int PIPELINE_DB = 0x04;
-constexpr int PIPELINE_TIMELINE = 0x08;
-constexpr int PIPELINE_SUMMARY = 0x10;
+Analysis::Application::PipelineRequest capturedRequest;
+int CaptureUnifiedRequest(const Analysis::Application::PipelineRequest& request)
+{
+    capturedRequest = request;
+    return Analysis::ANALYSIS_OK;
+}
+std::string capturedExportPath;
+std::unordered_set<Analysis::Application::TopoNodeId, Analysis::Application::TopoNodeIdHash> capturedExportNodes;
+bool CaptureExportGraph(const Analysis::Application::TopoGraphBuilder &builder,
+                        Analysis::Infra::RuntimeProcessCollection &, const std::string &path)
+{
+    capturedExportPath = path;
+    capturedExportNodes.clear();
+    for (const auto &node : builder.GetRuntimeNodeKeys())
+    {
+        capturedExportNodes.insert(node.first);
+    }
+    return true;
+}
+bool HasExportStage(Analysis::Application::TopoNodeStage stage)
+{
+    return std::any_of(capturedExportNodes.begin(), capturedExportNodes.end(),
+                       [stage](const Analysis::Application::TopoNodeId &node) { return node.stage == stage; });
+}
 const std::string BASE_PATH = "./py_init_parser_utest";
 const std::string PROF_PATH = File::PathJoin({BASE_PATH, "PROF_0"});
 const std::string HOST_PATH = File::PathJoin({PROF_PATH, "host"});
@@ -104,7 +132,13 @@ class PyInitParserUtest : public testing::Test
     void SetUp() override
     {
         GlobalMockObject::verify();
+        capturedRequest = Analysis::Application::PipelineRequest{};
+        capturedExportPath.clear();
+        capturedExportNodes.clear();
+        FileWriter(REPORTS_JSON_PATH).WriteText("{}");
         MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
+        MOCKER(&Analysis::Application::ExecuteTopoGraph).stubs().will(invoke(CaptureExportGraph));
+        MOCKER(&Analysis::Application::RunUnifiedPipeline).stubs().will(invoke(CaptureUnifiedRequest));
     }
 
     void TearDown() override { GlobalMockObject::verify(); }
@@ -120,6 +154,11 @@ TEST_F(PyInitParserUtest, TestRunPipelineReturnsInvalidParamWhenFlagsIsZero)
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), 0), ANALYSIS_INVALID_PARAM);
 }
 
+TEST_F(PyInitParserUtest, TestRunPipelineRejectsRemovedPlanningFlag)
+{
+    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_DEVICE_DATA | 0x20), ANALYSIS_INVALID_PARAM);
+}
+
 TEST_F(PyInitParserUtest, TestRunPipelineReturnsInvalidParamWhenReportsJsonNotExist)
 {
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_TIMELINE, nullptr, nullptr,
@@ -129,60 +168,116 @@ TEST_F(PyInitParserUtest, TestRunPipelineReturnsInvalidParamWhenReportsJsonNotEx
 
 TEST_F(PyInitParserUtest, TestRunPipelineRunsTimelineWithReportsJson)
 {
-    MOCKER_CPP(&ExportManager::Run).stubs().will(returnValue(true));
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_TIMELINE, nullptr, nullptr,
-                              REPORTS_JSON_PATH.c_str()),
-              Analysis::ANALYSIS_OK);
+                              REPORTS_JSON_PATH.c_str()), Analysis::ANALYSIS_OK);
+    EXPECT_EQ(capturedRequest.reportsJson, REPORTS_JSON_PATH);
+    EXPECT_EQ(capturedRequest.flags, PIPELINE_TIMELINE);
 }
 
 TEST_F(PyInitParserUtest, TestRunPipelineIgnoresReportsJsonWithoutTimeline)
 {
-    MOCKER_CPP(&ExportManager::Run).stubs().will(returnValue(true));
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_DB, nullptr, nullptr,
-                              "./not_exist_reports.json"),
-              Analysis::ANALYSIS_OK);
+                              "./not_exist_reports.json"), Analysis::ANALYSIS_OK);
 }
 
-TEST_F(PyInitParserUtest, TestRunPipelineRunsAllStages)
+TEST_F(PyInitParserUtest, TestRunPipelineDelegatesAllStagesToOnePlanner)
 {
-    MOCKER_CPP(&KernelParserWorker::Run).stubs().will(returnValue(Analysis::ANALYSIS_OK));
-    MOCKER_CPP(&ExportManager::Run).expects(exactly(3)).will(returnValue(true));
-    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_DB |
-                              PIPELINE_TIMELINE | PIPELINE_SUMMARY),
-              Analysis::ANALYSIS_OK);
+    const int flags = PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY;
+    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), flags), Analysis::ANALYSIS_OK);
+    EXPECT_EQ(capturedRequest.flags, flags);
+    EXPECT_EQ(capturedRequest.profPath, PROF_PATH);
+    EXPECT_EQ(capturedRequest.hostPath, HOST_PATH);
 }
 
-TEST_F(PyInitParserUtest, TestRunPipelineSkipsDBWhenMsprofDBExists)
+TEST_F(PyInitParserUtest, TestRunPipelinePreservesExplicitPaths)
 {
-    MOCKER_CPP(&ExportManager::HasExportedMsprofDB).stubs().will(returnValue(true));
-    MOCKER_CPP(&ExportManager::Run).expects(exactly(2)).will(returnValue(true));
-    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY),
-              Analysis::ANALYSIS_OK);
+    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_DEVICE_DATA, "custom_host", "custom_device"), Analysis::ANALYSIS_OK);
+    EXPECT_EQ(capturedRequest.hostPath, "custom_host");
+    EXPECT_EQ(capturedRequest.devicePath, "custom_device");
 }
 
-TEST_F(PyInitParserUtest, TestRunPipelineSkipsHostAndDeviceWhenSqliteIsNonEmpty)
+TEST_F(PyInitParserUtest, TestRunPipelinePropagatesUnifiedFailure)
 {
-    MOCKER_CPP(&ExportManager::IsPythonParseComplete).stubs().will(returnValue(true));
-    MOCKER_CPP(&KernelParserWorker::Run).expects(never());
-    MOCKER_CPP(&GetDeviceDirectories).expects(never());
-    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA), Analysis::ANALYSIS_OK);
+    MOCKER(&Analysis::Application::RunUnifiedPipeline).reset();
+    MOCKER(&Analysis::Application::RunUnifiedPipeline).stubs().will(returnValue(Analysis::ANALYSIS_ERROR));
+    EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_CANN_TRACE), Analysis::ANALYSIS_ERROR);
 }
 
-TEST_F(PyInitParserUtest, TestIsPythonParseCompleteReturnsTrueWhenSqliteIsNonEmpty)
+TEST_F(PyInitParserUtest, LegacyExportInterfacesUseExportManagerAndBuildCompleteGraph)
 {
-    const std::string sqlitePath = File::PathJoin({HOST_PATH, "sqlite"});
-    EXPECT_TRUE(File::CreateDir(sqlitePath));
-    FileWriter(File::PathJoin({sqlitePath, "op_summary.db"})).WriteText("");
-    EXPECT_TRUE(ExportManager::IsPythonParseComplete(PROF_PATH));
-    EXPECT_TRUE(File::RemoveDir(sqlitePath, 0));
+    using namespace Analysis::Interface;
+    const std::vector<std::pair<PyCFunction, int>> exports{{WrapExportUnifiedDB, PIPELINE_DB},
+                                                           {WrapExportTimeline, PIPELINE_TIMELINE | PIPELINE_DB},
+                                                           {WrapExportSummary, PIPELINE_SUMMARY | PIPELINE_DB}};
+    for (const auto &entry : exports)
+    {
+        PyObject *args = entry.first == WrapExportTimeline
+                             ? Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str())
+                             : Py_BuildValue("(s)", PROF_PATH.c_str());
+        PyObject *result = entry.first(nullptr, args);
+        Py_DECREF(args);
+        ASSERT_NE(result, nullptr);
+        EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_OK);
+        Py_DECREF(result);
+        EXPECT_EQ(capturedExportPath, PROF_PATH);
+        EXPECT_EQ(HasExportStage(Analysis::Application::TopoNodeStage::DATABASE_PERSISTENCE),
+                  (entry.second & PIPELINE_DB) != 0);
+        EXPECT_EQ(HasExportStage(Analysis::Application::TopoNodeStage::TIMELINE_EXPORT),
+                  (entry.second & PIPELINE_TIMELINE) != 0);
+        EXPECT_EQ(HasExportStage(Analysis::Application::TopoNodeStage::SUMMARY_GENERATION),
+                  (entry.second & PIPELINE_SUMMARY) != 0);
+        EXPECT_TRUE(HasExportStage(Analysis::Application::TopoNodeStage::HOST_PROCESSING));
+    }
 }
 
-TEST_F(PyInitParserUtest, TestIsPythonParseCompleteReturnsFalseWhenSqliteIsEmpty)
+TEST_F(PyInitParserUtest, ExportManagerRunPreservesRequestedModesAndReportPath)
 {
-    const std::string sqlitePath = File::PathJoin({HOST_PATH, "sqlite"});
-    EXPECT_TRUE(File::CreateDir(sqlitePath));
-    EXPECT_FALSE(ExportManager::IsPythonParseComplete(PROF_PATH));
-    EXPECT_TRUE(File::RemoveDir(sqlitePath, 0));
+    FileWriter(REPORTS_JSON_PATH)
+        .WriteText("{\"json_process\":{\"ascend\":true},\"summary_process\":{\"step_trace\":true}}");
+    ExportManager manager(PROF_PATH, REPORTS_JSON_PATH);
+    const std::vector<std::pair<std::set<ExportMode>, int>> selections{
+        {{ExportMode::DB}, PIPELINE_DB},
+        {{ExportMode::TIMELINE}, PIPELINE_TIMELINE},
+        {{ExportMode::SUMMARY}, PIPELINE_SUMMARY},
+        {{ExportMode::DB, ExportMode::TIMELINE, ExportMode::SUMMARY},
+         PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY}};
+    for (const auto &selection : selections)
+    {
+        ASSERT_TRUE(manager.Run(selection.first));
+        using Analysis::Application::TopoNodeStage;
+        EXPECT_EQ(capturedExportPath, PROF_PATH);
+        EXPECT_EQ(HasExportStage(TopoNodeStage::DATABASE_PERSISTENCE), (selection.second & PIPELINE_DB) != 0);
+        EXPECT_EQ(HasExportStage(TopoNodeStage::TIMELINE_EXPORT), (selection.second & PIPELINE_TIMELINE) != 0);
+        EXPECT_EQ(HasExportStage(TopoNodeStage::SUMMARY_GENERATION), (selection.second & PIPELINE_SUMMARY) != 0);
+        if ((selection.second & PIPELINE_TIMELINE) != 0)
+        {
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::TIMELINE_EXPORT, "Task Scheduler", "export"}), 1U);
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::TIMELINE_EXPORT, "NPU MEM", "export"}), 0U);
+        }
+        if ((selection.second & PIPELINE_SUMMARY) != 0)
+        {
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::SUMMARY_GENERATION, "NPU_MEM", "export"}), 0U);
+        }
+    }
+}
+
+TEST_F(PyInitParserUtest, ExportManagerRunRejectsInvalidModesBeforeDispatch)
+{
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).reset();
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).expects(never());
+    ExportManager manager(PROF_PATH);
+    EXPECT_FALSE(manager.Run({}));
+    EXPECT_FALSE(manager.Run({static_cast<ExportMode>(99)}));
+    EXPECT_FALSE(manager.Run({ExportMode::DB, static_cast<ExportMode>(99)}));
+}
+
+TEST_F(PyInitParserUtest, ExportManagerRunPropagatesGraphExecutionFailure)
+{
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).reset();
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).expects(once()).will(returnValue(false));
+    ExportManager manager(PROF_PATH);
+    EXPECT_FALSE(manager.Run({ExportMode::DB}));
 }
 
 TEST_F(PyInitParserUtest, TestHasExportedMsprofDBReturnsTrueWhenMsprofDBExists)

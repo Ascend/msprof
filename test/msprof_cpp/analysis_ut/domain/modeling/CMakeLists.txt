@@ -2,6 +2,7 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/data_inventory DEVI
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/process DEVICE_MODELING_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/entities/hal DEVICE_MODELING_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling DEVICE_MODELING_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/init DEVICE_MODELING_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/batch_id DEVICE_MODELING_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/utils DEVICE_MODELING_SOURCE)
 

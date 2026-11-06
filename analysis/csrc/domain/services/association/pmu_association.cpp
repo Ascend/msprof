@@ -25,7 +25,7 @@
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/modeling/include/pmu_modeling.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -456,9 +456,5 @@ uint32_t PmuAssociation::ProcessEntry(Infra::DataInventory& dataInventory, const
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(PmuAssociation, true, LoadHostData, AscendTaskAssociation, PmuModeling);
-REGISTER_PROCESS_DEPENDENT_DATA(PmuAssociation, std::vector<HalPmuData>, std::map<TaskId, std::vector<DeviceTask>>,
-                                std::vector<HalFreqLpmData>, HostStreamInfo);
-REGISTER_PROCESS_SUPPORT_CHIP(PmuAssociation, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

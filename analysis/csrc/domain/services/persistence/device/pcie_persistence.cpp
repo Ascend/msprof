@@ -27,7 +27,7 @@
 #include "analysis/csrc/domain/services/parser/pcie/include/pcie_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 
@@ -101,9 +101,5 @@ uint32_t PciePersistence::ProcessEntry(Infra::DataInventory &dataInventory, cons
     return ANALYSIS_OK;
 }
 
-// REGISTER_PROCESS_SEQUENCE(PciePersistence, true, PcieParser);
-// REGISTER_PROCESS_DEPENDENT_DATA(PciePersistence, std::vector<HalPcieData>);
-// REGISTER_PROCESS_SUPPORT_CHIP(PciePersistence, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
-//                               CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

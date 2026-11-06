@@ -20,9 +20,11 @@
 #include "analysis/csrc/application/include/export_manager.h"
 #include "analysis/csrc/application/timeline/chip_trans_v6_assembler.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
+#include "analysis/csrc/application/timeline/timeline_manager.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/chip_trans_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/process/include/process_control.h"
 #include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 #include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 #include "gtest/gtest.h"
@@ -185,7 +187,20 @@ TEST_F(ChipTransV6AssemblerUTest, ShouldExportTimelineFromV6PcieData)
         };
     };
 
-    const bool exportSuccess = manager.Run({ExportMode::TIMELINE});
+    TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<Analysis::Infra::DataInventory>();
+    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, RESULT_PATH);
+    std::vector<TopoNodeId> roots;
+    Analysis::Infra::RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    const bool built = manager.Plan({ExportMode::TIMELINE}, context, roots) && builder.Build(context, roots, graph);
+    bool exportSuccess = false;
+    if (built)
+    {
+        Analysis::Infra::ProcessControl executor(graph);
+        exportSuccess = executor.ExecuteProcess();
+    }
     definitions.at(chipTransNode) = chipTransDefinition;
     definitions.at(pcieNode) = pcieDefinition;
     ASSERT_TRUE(exportSuccess);

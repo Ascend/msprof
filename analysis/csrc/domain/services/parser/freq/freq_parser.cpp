@@ -21,7 +21,7 @@
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item/freq_lpm_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -137,7 +137,5 @@ uint32_t FreqParser::ParseData(DataInventory &dataInventory, const Infra::Contex
     return stat;
 }
 
-REGISTER_PROCESS_SEQUENCE(FreqParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(FreqParser, CHIP_V1_1_1, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace Domain
 }  // namespace Analysis

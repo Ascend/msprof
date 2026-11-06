@@ -153,7 +153,7 @@ DeliverableConsumer::DeliverableConsumer() : impl_(new Impl()) {}
 
 DeliverableConsumer::~DeliverableConsumer()
 {
-    // No file IO here: static destruction order is not ours to rely on. ExportManager::Run owns
+    // No file IO here: static destruction order is not ours to rely on. ExecuteTopoGraph owns
     // FinishTimeline(), the destructor only joins the DB writer threads.
     CloseAllDb();
 }
@@ -297,6 +297,11 @@ void DeliverableConsumer::Drain(ByteStream *stream)
                 continue;
             }
             file.WriteText(op.data);
+            if (!file.IsGood())
+            {
+                ERROR("Write deliverable file failed: %", op.path);
+                impl_->ok = false;
+            }
         }
     }
     catch (const std::exception &ex)

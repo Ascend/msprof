@@ -549,8 +549,5 @@ bool HcclCalculator::InjectData(DataInventory& inventory)
     return flag;
 }
 
-REGISTER_PROCESS_SEQUENCE(HcclCalculator, true, AscendTaskAssociation, LoadHostData);
-REGISTER_PROCESS_DEPENDENT_DATA(HcclCalculator, std::vector<TopDownTask>, std::vector<HcclTask>, std::vector<HcclOp>);
-REGISTER_PROCESS_SUPPORT_CHIP(HcclCalculator, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

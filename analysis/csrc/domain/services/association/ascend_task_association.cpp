@@ -29,7 +29,7 @@
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/parser/aicpu/include/aicpu_parser.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
@@ -252,9 +252,5 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(AscendTaskAssociation, true, LoadHostData, AicpuParser);
-REGISTER_PROCESS_DEPENDENT_DATA(AscendTaskAssociation, std::map<TaskId, std::vector<DeviceTask>>,
-                                std::map<TaskId, std::vector<HostTask>>, HostStreamInfo, DeviceStreamInfo);
-REGISTER_PROCESS_SUPPORT_CHIP(AscendTaskAssociation, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

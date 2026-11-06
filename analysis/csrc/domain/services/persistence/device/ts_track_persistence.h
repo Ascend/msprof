@@ -17,18 +17,20 @@
 #ifndef ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_TS_TRACK_PERSISTENCE_H
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_TS_TRACK_PERSISTENCE_H
 
-#include "analysis/csrc/infrastructure/process/include/process.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_track.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Infra;
-class TsTrackPersistence : public Process {
-private:
+class TsTrackPersistence : public Process
+{
+   private:
     uint32_t ProcessEntry(DataInventory& dataInventory, const Context& context) override;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_TS_TRACK_PERSISTENCE_H
+#endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_TS_TRACK_PERSISTENCE_H

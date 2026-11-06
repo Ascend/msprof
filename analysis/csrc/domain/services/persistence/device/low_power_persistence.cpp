@@ -26,7 +26,7 @@
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -133,10 +133,6 @@ uint32_t LowPowerPersistence::ProcessEntry(DataInventory& dataInventory, const C
     }
     return ANALYSIS_OK;
 }
-
-REGISTER_PROCESS_SEQUENCE(LowPowerPersistence, true, StarsSocProfileParser);
-REGISTER_PROCESS_DEPENDENT_DATA(LowPowerPersistence, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(LowPowerPersistence, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

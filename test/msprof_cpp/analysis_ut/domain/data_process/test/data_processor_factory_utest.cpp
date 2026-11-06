@@ -20,14 +20,14 @@
 #include <string>
 #include <typeindex>
 
-#include "gtest/gtest.h"
-
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/domain/data_process/ai_task/aicpu_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/communication_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/compute_task_info_processor.h"
 #include "analysis/csrc/domain/data_process/ai_task/hash_init_processor.h"
 #include "analysis/csrc/domain/data_process/include/data_processor_factory.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
+#include "gtest/gtest.h"
 
 using namespace Analysis::Application;
 using namespace Analysis::Domain;
@@ -60,8 +60,10 @@ struct ProcessorB
 
 TEST(DataProcessorFactoryUTest, ShouldRejectEmptyProcessorSet)
 {
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
     EXPECT_FALSE(builder.Build(context, {}, processes));
@@ -70,36 +72,43 @@ TEST(DataProcessorFactoryUTest, ShouldRejectEmptyProcessorSet)
 
 TEST(DataProcessorFactoryUTest, ShouldRejectUnknownProcessorAndClearPartialTopology)
 {
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HASH}}, processes));
     ASSERT_FALSE(processes.empty());
 
-    EXPECT_FALSE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HASH},
-                                         {TopoNodeStage::DATA_PROCESSING, "unknown_processor"}}, processes));
+    EXPECT_FALSE(builder.Build(
+        context,
+        {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HASH}, {TopoNodeStage::DATA_PROCESSING, "unknown_processor"}},
+        processes));
     EXPECT_TRUE(processes.empty());
 }
 
 TEST(DataProcessorFactoryUTest, ShouldBuildSharedDependencyOnlyOnce)
 {
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
-    ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION},
-                                        {TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO}}, processes));
+    ASSERT_TRUE(builder.Build(context,
+                              {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION},
+                               {TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO}},
+                              processes));
 
     EXPECT_EQ(processes.size(), 3UL);
-    EXPECT_EQ(processes.count(typeid(HashInitProcessor)), 1UL);
-    EXPECT_EQ(processes.count(typeid(CommunicationInfoProcessor)), 1UL);
-    EXPECT_EQ(processes.count(typeid(ComputeTaskInfoProcessor)), 1UL);
-    EXPECT_EQ(processes.at(typeid(CommunicationInfoProcessor)).processDependence,
-              std::vector<std::type_index>{typeid(HashInitProcessor)});
-    EXPECT_EQ(processes.at(typeid(ComputeTaskInfoProcessor)).processDependence,
-              std::vector<std::type_index>{typeid(HashInitProcessor)});
-    EXPECT_EQ(processes.at(typeid(HashInitProcessor)).chipIds, std::vector<uint32_t>{CHIP_ID_ALL});
+    const auto& keys = builder.GetRuntimeNodeKeys();
+    const auto hash = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HASH, "export"});
+    const auto communication = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION, "export"});
+    const auto compute = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO, "export"});
+    EXPECT_EQ(processes.at(communication).processDependence, std::vector<RuntimeProcessKey>{hash});
+    EXPECT_EQ(processes.at(compute).processDependence, std::vector<RuntimeProcessKey>{hash});
+    EXPECT_EQ(processes.at(hash).chipIds, std::vector<uint32_t>{CHIP_ID_ALL});
 }
 
 TEST(DataProcessorFactoryUTest, ShouldExposeRegisteredProcessorDefinition)
@@ -129,10 +138,44 @@ TEST(DataProcessorFactoryUTest, ShouldKeepRegistryNamesCreatorsAndDependenciesCo
         EXPECT_TRUE(processorNames.insert(definition.id.name).second);
         for (const auto& dependency : definition.processDependencies)
         {
+            if (dependency.stage == TopoNodeStage::DEVICE_PROCESSING)
+            {
+                EXPECT_TRUE(dependency.scope.empty());
+                continue;  // This partial UT target links export processors only.
+            }
             EXPECT_EQ(dependency.stage, TopoNodeStage::DATA_PROCESSING);
             EXPECT_NE(TopoNodeRegistry::Find(dependency), nullptr);
         }
     }
+}
+
+TEST(DataProcessorFactoryUTest, ShouldRegisterAicpuWithDirectDeviceDependencies)
+{
+    const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_AICPU);
+    ASSERT_NE(definition, nullptr);
+    EXPECT_EQ(definition->processDependencies, TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
+                                                         TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
+                                                         TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence")));
+    EXPECT_EQ(definition->inputDataTypes,
+              (std::vector<std::type_index>{typeid(std::vector<AscendTaskData>), typeid(std::vector<TaskInfoData>)}));
+}
+
+TEST(DataProcessorFactoryUTest, ShouldPreserveOptionalProcessorWithoutNativeDependencies)
+{
+    const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_NETDEV_STATS);
+    ASSERT_NE(definition, nullptr);
+    EXPECT_FALSE(definition->mandatory);
+    EXPECT_TRUE(definition->processDependencies.empty());
+    EXPECT_EQ(definition->scopeKind, TopoScopeKind::EXPORT);
+}
+
+TEST(DataProcessorFactoryUTest, ShouldExpressChipAlternativesAsDeviceDependencies)
+{
+    const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_AICORE_FREQ);
+    ASSERT_NE(definition, nullptr);
+    EXPECT_EQ(definition->processDependencies, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "FreqPersistence"),
+                                                         TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence")));
+    EXPECT_TRUE(definition->id.scope.empty());
 }
 
 TEST(DataProcessorFactoryUTest, ShouldRejectUnregisteredDependency)
@@ -147,8 +190,10 @@ TEST(DataProcessorFactoryUTest, ShouldRejectUnregisteredDependency)
     processor.creatorFactory = [](const TopoBuildContext&) { return Infra::ProcessCreator(); };
     registry.emplace(processor.id, std::move(processor));
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
     EXPECT_FALSE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, "processor_a"}}, processes));
@@ -173,8 +218,10 @@ TEST(DataProcessorFactoryUTest, ShouldRejectProcessorDependencyCycle)
     registry.emplace(processorA.id, std::move(processorA));
     registry.emplace(processorB.id, std::move(processorB));
 
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
     EXPECT_FALSE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, "processor_a"}}, processes));

@@ -185,7 +185,12 @@ struct DeviceContextInfo
 class DeviceContext : public Infra::Context
 {
    public:
-    static DeviceContext &Instance();
+    static std::shared_ptr<DeviceContext> Create(uint32_t chip = 0)
+    {
+        auto context = std::shared_ptr<DeviceContext>(new DeviceContext, [](DeviceContext *value) { delete value; });
+        context->deviceContextInfo.deviceInfo.chipID = chip;
+        return context;
+    }
 
     // getters
     void Getter(std::string &deviceFilePath) const { deviceFilePath = this->deviceContextInfo.deviceFilePath; };
@@ -253,6 +258,9 @@ class DeviceContext : public Infra::Context
     bool GetCpuInfo();
     bool GetStartInfo();
 };
+// Executes exactly one device. Callers own its context/inventory and receive the actual outcome.
+bool RunSingleDevice(const std::string &devicePath, DeviceContext &context, DataInventory &inventory,
+                     std::string &statistics, const char *stopAt = nullptr);
 std::vector<DataInventory> DeviceContextEntry(const char *targetDir, const char *stopAt);
 std::vector<std::string> GetDeviceDirectories(const std::string &path);
 }  // namespace Domain

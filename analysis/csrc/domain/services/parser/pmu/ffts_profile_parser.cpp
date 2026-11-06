@@ -22,7 +22,7 @@
 #include "analysis/csrc/domain/services/device_context/load_stream_expand_spec_data.h"
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -115,8 +115,5 @@ uint32_t FftsProfileParser::ParseData(DataInventory &dataInventory, const Infra:
     return stat;
 }
 
-REGISTER_PROCESS_SEQUENCE(FftsProfileParser, true, LoadStreamExpandSpec);
-REGISTER_PROCESS_DEPENDENT_DATA(FftsProfileParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(FftsProfileParser, CHIP_V4_1_0, CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

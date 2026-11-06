@@ -15,7 +15,8 @@ class KernelParserWorker
     // 初始化传入host路径
     explicit KernelParserWorker(std::string hostFilePath);
     // 启动流程
-    int Run();
+    // The unified graph loads Environment once before the HostC node.
+    int Run(bool loadEnvironment = true);
 
    private:
     // hashData解析落盘

@@ -26,6 +26,8 @@ namespace {
 std::mutex g_logMutex;
 bool g_isLogCaptureEnabled = false;
 std::vector<TestLogMessage> g_logMessages;
+bool g_isPrintCaptureEnabled = false;
+std::vector<TestLogMessage> g_printMessages;
 }  // namespace
 
 void StartTestLogCapture()
@@ -43,7 +45,28 @@ std::vector<TestLogMessage> StopTestLogCapture()
 }
 
 std::string Analysis::Log::GetFileName(std::string const&) {return {};}
-void Analysis::Log::PrintMsg(std::string const&, std::string const&, std::string const&) const {}
+void StartTestPrintCapture()
+{
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    g_printMessages.clear();
+    g_isPrintCaptureEnabled = true;
+}
+
+std::vector<TestLogMessage> StopTestPrintCapture()
+{
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    g_isPrintCaptureEnabled = false;
+    return std::move(g_printMessages);
+}
+
+void Log::PrintMsg(const std::string& message, const std::string& level, const std::string& fileName) const
+{
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    if (g_isPrintCaptureEnabled)
+    {
+        g_printMessages.push_back({message, level, fileName, 0});
+    }
+}
 void Log::LogMsg(const std::string& message, const std::string &level,
                  const std::string &fileName, const uint32_t &line)
 {

@@ -103,8 +103,5 @@ uint32_t AscendTaskPersistence::ProcessEntry(DataInventory& dataInventory, const
     ERROR("Save % data failed: %", ascendTaskDB.tableName, dbPath);
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(AscendTaskPersistence, true, HcclCalculator);
-REGISTER_PROCESS_DEPENDENT_DATA(AscendTaskPersistence, std::vector<TopDownTask>);
-REGISTER_PROCESS_SUPPORT_CHIP(AscendTaskPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

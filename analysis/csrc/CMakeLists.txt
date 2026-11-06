@@ -5,6 +5,7 @@ set(TOP_DIR ${CMAKE_SOURCE_DIR}/../..)
 
 # 严格控制so中源文件范围，所有源文件精细到最末端文件夹
 aux_source_directory(${CMAKE_SOURCE_DIR}/application SOURCES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/application/pipeline SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/application/credential SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/application/summary SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/application/timeline SOURCES)
@@ -23,6 +24,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/association/calculator/
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/association/calculator/metric SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/association/cann SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/device_context SOURCES)
+list(APPEND SOURCES ${CMAKE_SOURCE_DIR}/domain/services/device_topology_register.cpp)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/environment SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/host_worker SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/init SOURCES)

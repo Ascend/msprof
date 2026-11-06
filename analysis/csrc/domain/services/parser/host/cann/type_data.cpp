@@ -81,7 +81,7 @@ bool TypeData::ReadFiles(const std::vector<std::string> &files)
         if (status != ANALYSIS_OK)
         {
             ERROR("Read txt from % error", file);
-            continue;
+            return false;
         }
         for (const auto &line : text)
         {

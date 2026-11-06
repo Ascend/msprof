@@ -33,6 +33,8 @@ MSPROF_OK = 0
 MSPROF_ERROR = 1
 MSPROF_INVALID_PARAM = 101
 
+# Keep aligned with csrc/application/pipeline/pipeline_flags.h; checked by test_msprof_c_interface.py.
+# Local constants keep this module importable when the optional native module is unavailable.
 MSPROF_PIPELINE_CANN_TRACE = 0x01
 MSPROF_PIPELINE_DEVICE_DATA = 0x02
 MSPROF_PIPELINE_DB = 0x04

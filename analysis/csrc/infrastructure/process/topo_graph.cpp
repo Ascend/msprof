@@ -19,8 +19,9 @@
 #include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 
 #include <algorithm>
+#include <exception>
 #include <memory>
-#include <new>
+#include <unordered_set>
 
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
@@ -32,27 +33,6 @@ namespace Application
 {
 namespace
 {
-template <TopoNodeStage Stage, size_t Index>
-struct TopoNodeTag
-{
-};
-
-template <TopoNodeStage Stage, size_t Index>
-struct TopoNodeTypeGetter
-{
-    static std::type_index Get(size_t index)
-    {
-        return index == Index ? std::type_index(typeid(TopoNodeTag<Stage, Index>))
-                              : TopoNodeTypeGetter<Stage, Index - 1>::Get(index);
-    }
-};
-
-template <TopoNodeStage Stage>
-struct TopoNodeTypeGetter<Stage, 0>
-{
-    static std::type_index Get(size_t) { return std::type_index(typeid(TopoNodeTag<Stage, 0>)); }
-};
-
 TopoNodeCollection& Definitions()
 {
     static TopoNodeCollection definitions;
@@ -78,10 +58,26 @@ const TopoNodeCollection& TopoNodeRegistry::GetDefinitions() { return Definition
 
 TopoNodeCollection& TopoNodeRegistry::MutableDefinitions() { return Definitions(); }
 
+bool TopoNodeRegistry::SupportsChip(const TopoNodeDefinition& definition, uint32_t chip)
+{
+    return definition.chipIds.empty() ||
+           std::find(definition.chipIds.begin(), definition.chipIds.end(), CHIP_ID_ALL) != definition.chipIds.end() ||
+           std::find(definition.chipIds.begin(), definition.chipIds.end(), chip) != definition.chipIds.end();
+}
+
+TopoNodeSequenceRegister::TopoNodeSequenceRegister(TopoNodeDefinition definition)
+{
+    if (!TopoNodeRegistry::Register(std::move(definition)))
+    {
+        ERROR("Register topology definition failed.");
+    }
+}
+
 TopoNodeSequenceRegister::TopoNodeSequenceRegister(TopoNodeId id, std::type_index runtimeType, bool mandatory,
                                                    std::vector<TopoNodeId> dependencies,
                                                    TopoNodeCreatorFactory creatorFactory,
-                                                   TopoDependencyResolver dependencyResolver)
+                                                   TopoDependencyResolver dependencyResolver,
+                                                   bool runOnDependencyFailure)
 {
     TopoNodeDefinition definition;
     definition.id = std::move(id);
@@ -90,6 +86,7 @@ TopoNodeSequenceRegister::TopoNodeSequenceRegister(TopoNodeId id, std::type_inde
     definition.processDependencies = std::move(dependencies);
     definition.creatorFactory = std::move(creatorFactory);
     definition.dependencyResolver = std::move(dependencyResolver);
+    definition.runOnDependencyFailure = runOnDependencyFailure;
     if (!TopoNodeRegistry::Register(std::move(definition)))
     {
         ERROR("Register topology sequence failed.");
@@ -130,127 +127,251 @@ const TopoNodeDefinition* TopoNodeRegistry::FindProcessorByRuntimeType(std::type
     return nullptr;
 }
 
-bool TopoGraphBuilder::Build(const TopoBuildContext& context, const std::vector<TopoNodeId>& roots,
-                             Infra::ProcessCollection& processes)
+namespace
 {
-    if (roots.empty())
+class TopoGraphCompiler
+{
+   public:
+    TopoGraphCompiler(const TopoBuildContext& context, const std::vector<TopoNodeId>& roots,
+                      const TopoNodeCollection* overlay, Infra::RuntimeProcessCollection& processes,
+                      std::unordered_map<TopoNodeId, Infra::RuntimeProcessKey, TopoNodeIdHash>& keys)
+        : context_(context), roots_(roots), overlay_(overlay), processes_(processes), keys_(keys)
     {
-        ERROR("Topology roots are empty.");
-        return false;
     }
-    context_ = &context;
-    roots_ = &roots;
-    processes_ = &processes;
-    nodeKeys_.clear();
-    nextSyntheticIndex_.clear();
-    visiting_.clear();
-    processes.clear();
-    for (const auto& root : roots)
+
+    bool Add(TopoNodeId id, const std::string& parentScope, Infra::RuntimeProcessKey& key)
     {
-        std::type_index key(typeid(void));
-        if (!AddNode(root, key))
+        const auto* definition = Find(id);
+        if (!definition || !ResolveScope(*definition, parentScope, id))
         {
-            processes.clear();
+            ERROR("Unknown or ambiguous runtime node %/%.", id.scope, id.name);
             return false;
         }
-    }
-    return true;
-}
-
-bool TopoGraphBuilder::ResolveDependencies(const TopoNodeDefinition& definition,
-                                           std::vector<std::type_index>& dependencies)
-{
-    std::vector<TopoNodeId> ids = definition.processDependencies;
-    if (definition.dependencyResolver != nullptr)
-    {
-        const auto dynamicDependencies = definition.dependencyResolver(*context_, *roots_);
-        ids.insert(ids.end(), dynamicDependencies.begin(), dynamicDependencies.end());
-    }
-    for (const auto& id : ids)
-    {
-        std::type_index key(typeid(void));
-        if (!AddNode(id, key))
+        // Dependencies may be registered without scope; prefer this request's scoped override after resolution.
+        definition = Find(id);
+        const auto existing = keys_.find(id);
+        if (existing != keys_.end())
+        {
+            key = existing->second;
+            return true;
+        }
+        if (!visiting_.insert(id).second)
+        {
+            ERROR("Runtime topology contains a cycle at %/%.", id.scope, id.name);
+            return false;
+        }
+        if (definition->scopeKind == TopoScopeKind::DEVICE)
+        {
+            const auto chip = context_.scopeChips.find(id.scope);
+            if (chip == context_.scopeChips.end() || !TopoNodeRegistry::SupportsChip(*definition, chip->second))
+            {
+                ERROR("Unsupported chip for runtime node %/%.", id.scope, id.name);
+                return false;
+            }
+        }
+        TopoBuildContext instanceContext = context_;
+        instanceContext.currentScope = id.scope;
+        auto dependencies = definition->processDependencies;
+        if (definition->dependencyResolver)
+        {
+            auto resolved = definition->dependencyResolver(instanceContext, roots_);
+            dependencies.insert(dependencies.end(), resolved.begin(), resolved.end());
+        }
+        auto completionDependencies = definition->completionDependencies;
+        if (definition->completionDependencyResolver)
+        {
+            auto resolved = definition->completionDependencyResolver(instanceContext, roots_);
+            completionDependencies.insert(completionDependencies.end(), resolved.begin(), resolved.end());
+        }
+        if (definition->scopeKind != TopoScopeKind::DEVICE)
+        {
+            dependencies = ExpandDeviceDependencies(dependencies);
+            completionDependencies = ExpandDeviceDependencies(completionDependencies);
+        }
+        Infra::RuntimeProcessInfo info;
+        auto compileDependencies = [&](const std::vector<TopoNodeId>& inputs,
+                                       std::vector<Infra::RuntimeProcessKey>& output) -> bool
+        {
+            for (const auto& dependency : inputs)
+            {
+                Infra::RuntimeProcessKey dependencyKey = 0;
+                if (!Add(dependency, id.scope, dependencyKey))
+                {
+                    ERROR("Dependency %/% required by %/% failed.", dependency.scope, dependency.name, id.scope,
+                          id.name);
+                    return false;
+                }
+                if (std::find(info.processDependence.begin(), info.processDependence.end(), dependencyKey) ==
+                        info.processDependence.end() &&
+                    std::find(output.begin(), output.end(), dependencyKey) == output.end())
+                {
+                    output.push_back(dependencyKey);
+                }
+            }
+            return true;
+        };
+        if (!compileDependencies(dependencies, info.processDependence) ||
+            !compileDependencies(completionDependencies, info.completionDependence))
         {
             return false;
         }
-        if (std::find(dependencies.begin(), dependencies.end(), key) == dependencies.end())
+        const auto context = context_.scopeContexts.find(id.scope);
+        const auto inventory = context_.scopeInventories.find(id.scope);
+        if (!definition->creatorFactory || context == context_.scopeContexts.end() ||
+            inventory == context_.scopeInventories.end() || !context->second || !inventory->second)
         {
-            dependencies.emplace_back(key);
+            ERROR("Missing runtime binding for %/%.", id.scope, id.name);
+            return false;
         }
-    }
-    return true;
-}
-
-bool TopoGraphBuilder::AddNode(const TopoNodeId& id, std::type_index& key)
-{
-    const auto keyIter = nodeKeys_.find(id);
-    if (keyIter != nodeKeys_.end())
-    {
-        key = keyIter->second;
+        info.creator = definition->creatorFactory(instanceContext);
+        if (!info.creator)
+        {
+            ERROR("Topology creator factory returned an empty creator for %/%, profile path: %.", id.scope, id.name,
+                  context_.profPath);
+            return false;
+        }
+        info.context = context->second;
+        info.inventory = inventory->second;
+        info.paramTypes = definition->inputDataTypes;
+        info.chipIds = definition->chipIds;
+        info.mandatory = definition->mandatory;
+        info.processName = id.name;
+        info.scope = id.scope;
+        info.resources = definition->resources;
+        std::sort(info.resources.begin(), info.resources.end());
+        info.resources.erase(std::unique(info.resources.begin(), info.resources.end()), info.resources.end());
+        info.opensDeviceScope = definition->opensDeviceScope;
+        info.closesDeviceScope = definition->closesDeviceScope;
+        info.runOnDependencyFailure = definition->runOnDependencyFailure;
+        key = ++nextKey_;
+        processes_.emplace(key, std::move(info));
+        keys_.emplace(id, key);
+        visiting_.erase(id);
         return true;
     }
-    if (visiting_[id])
-    {
-        ERROR("Topology contains a cycle at %.", id.name);
-        return false;
-    }
-    const auto* definition = TopoNodeRegistry::Find(id);
-    if (definition == nullptr)
-    {
-        ERROR("Topology contains an unregistered node %.", id.name);
-        return false;
-    }
-    visiting_[id] = true;
-    std::vector<std::type_index> dependencies;
-    if (!ResolveDependencies(*definition, dependencies))
-    {
-        return false;
-    }
-    key = definition->id.stage == TopoNodeStage::DATA_PROCESSING ? definition->runtimeType
-                                                                 : AllocateSyntheticKey(definition->id.stage);
-    if (key == std::type_index(typeid(void)))
-    {
-        ERROR("Failed to allocate topology key for %.", definition->id.name);
-        return false;
-    }
-    Infra::RegProcessInfo processInfo;
-    processInfo.creator = definition->creatorFactory(*context_);
-    processInfo.processDependence = std::move(dependencies);
-    processInfo.paramTypes = definition->inputDataTypes;
-    processInfo.chipIds = definition->chipIds;
-    processInfo.processName = definition->id.name;
-    processInfo.mandatory = definition->mandatory;
-    if (processInfo.creator == nullptr || !processes_->emplace(key, std::move(processInfo)).second)
-    {
-        ERROR("Failed to append topology node %.", definition->id.name);
-        return false;
-    }
-    nodeKeys_.emplace(id, key);
-    visiting_.erase(id);
-    return true;
-}
 
-std::type_index TopoGraphBuilder::AllocateSyntheticKey(TopoNodeStage stage)
+   private:
+    std::vector<TopoNodeId> ExpandDeviceDependencies(const std::vector<TopoNodeId>& dependencies) const
+    {
+        std::vector<TopoNodeId> expanded;
+        for (const auto& dependency : dependencies)
+        {
+            if (dependency.stage != TopoNodeStage::DEVICE_PROCESSING || !dependency.scope.empty())
+            {
+                expanded.push_back(dependency);
+                continue;
+            }
+            // An unscoped Device dependency means the applicable instance on each requested device.
+            // Chip alternatives and reused whole-device results do not create redundant work.
+            for (const auto& scope : context_.scopeChips)
+            {
+                const auto reuse = context_.scopeReuse.find(scope.first);
+                if (reuse != context_.scopeReuse.end() && reuse->second)
+                {
+                    continue;
+                }
+                auto instance = dependency;
+                instance.scope = scope.first;
+                const auto* definition = Find(instance);
+                if (!definition || TopoNodeRegistry::SupportsChip(*definition, scope.second))
+                {
+                    expanded.push_back(std::move(instance));
+                }
+            }
+        }
+        return expanded;
+    }
+
+    const TopoNodeDefinition* Find(const TopoNodeId& id) const
+    {
+        TopoNodeId normalized{id.stage, id.name, ""};
+        if (overlay_)
+        {
+            auto found = overlay_->find(id);
+            if (found != overlay_->end())
+            {
+                return &found->second;
+            }
+            found = overlay_->find(normalized);
+            if (found != overlay_->end())
+            {
+                return &found->second;
+            }
+        }
+        return TopoNodeRegistry::Find(normalized);
+    }
+
+    bool ResolveScope(const TopoNodeDefinition& definition, const std::string& parent, TopoNodeId& id) const
+    {
+        std::string expected;
+        switch (definition.scopeKind)
+        {
+            case TopoScopeKind::PROFILE:
+                expected = "profile";
+                break;
+            case TopoScopeKind::HOST:
+                expected = "host";
+                break;
+            case TopoScopeKind::EXPORT:
+                expected = "export";
+                break;
+            case TopoScopeKind::DEVICE:
+                expected = id.scope.empty() ? parent : id.scope;
+                if (context_.scopeChips.count(expected) == 0)
+                {
+                    return false;
+                }
+                break;
+        }
+        if (!id.scope.empty() && id.scope != expected)
+        {
+            return false;
+        }
+        id.scope = expected;
+        return true;
+    }
+    const TopoBuildContext& context_;
+    const std::vector<TopoNodeId>& roots_;
+    const TopoNodeCollection* overlay_;
+    Infra::RuntimeProcessCollection& processes_;
+    std::unordered_map<TopoNodeId, Infra::RuntimeProcessKey, TopoNodeIdHash>& keys_;
+    std::unordered_set<TopoNodeId, TopoNodeIdHash> visiting_;
+    Infra::RuntimeProcessKey nextKey_ = 0;
+};
+}  // namespace
+
+bool TopoGraphBuilder::Build(const TopoBuildContext& context, const std::vector<TopoNodeId>& roots,
+                             Infra::RuntimeProcessCollection& processes, const TopoNodeCollection* overlay)
 {
-    const size_t index = nextSyntheticIndex_[stage]++;
-    if (index >= MAX_TOPO_NODE_COUNT)
+    processes.clear();
+    runtimeNodeKeys_.clear();
+    if (roots.empty())
     {
-        ERROR("Too many topology nodes in stage %.", static_cast<uint8_t>(stage));
-        return std::type_index(typeid(void));
+        ERROR("Cannot build runtime topology: roots are empty, profile path: %.", context.profPath);
+        return false;
     }
-    switch (stage)
+    try
     {
-        case TopoNodeStage::SUMMARY_GENERATION:
-            return TopoNodeTypeGetter<TopoNodeStage::SUMMARY_GENERATION, MAX_TOPO_NODE_COUNT - 1>::Get(index);
-        case TopoNodeStage::DATABASE_PERSISTENCE:
-            return TopoNodeTypeGetter<TopoNodeStage::DATABASE_PERSISTENCE, MAX_TOPO_NODE_COUNT - 1>::Get(index);
-        case TopoNodeStage::TIMELINE_EXPORT:
-            return TopoNodeTypeGetter<TopoNodeStage::TIMELINE_EXPORT, MAX_TOPO_NODE_COUNT - 1>::Get(index);
-        case TopoNodeStage::FLOW_CONTROL:
-            return TopoNodeTypeGetter<TopoNodeStage::FLOW_CONTROL, MAX_TOPO_NODE_COUNT - 1>::Get(index);
-        default:
-            return std::type_index(typeid(void));
+        TopoGraphCompiler compiler(context, roots, overlay, processes, runtimeNodeKeys_);
+        for (const auto& root : roots)
+        {
+            Infra::RuntimeProcessKey key = 0;
+            if (!compiler.Add(root, "", key))
+            {
+                processes.clear();
+                runtimeNodeKeys_.clear();
+                return false;
+            }
+        }
     }
+    catch (const std::exception& error)
+    {
+        ERROR("Build runtime graph failed, profile path: %, reason: %.", context.profPath, error.what());
+        processes.clear();
+        runtimeNodeKeys_.clear();
+        return false;
+    }
+    return true;
 }
 }  // namespace Application
 }  // namespace Analysis

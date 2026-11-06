@@ -20,358 +20,521 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
-#include <exception>
-#include <iostream>
-#include <mutex>
+#include <deque>
+#include <map>
 #include <set>
 #include <sstream>
 #include <thread>
-#include <unordered_map>
-#include <utility>
 
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/process_topo.h"
 
 namespace Analysis
 {
-
 namespace Infra
 {
 namespace
 {
-
-void GetDepProcessNames(const RegProcessInfo& procInfo, const ProcessCollection& allRegProcess,
-                        std::vector<std::string>& depProcNames)
+std::string ProcessName(const RuntimeProcessInfo& info)
 {
-    for (const auto& typeIndex : procInfo.processDependence)
-    {
-        auto it = allRegProcess.find(typeIndex);
-        if (it == allRegProcess.end())
-        {
-            continue;
-        }
-        depProcNames.emplace_back(it->second.processName);
-    }
+    return info.scope.empty() ? info.processName : info.scope + "/" + info.processName;
 }
 
-void FillStatisticianDependence(const ProcessCollection& regProcess, std::vector<ProcessStatistics>& stat)
+bool VerifyDependencies(const RuntimeProcessCollection& processes)
 {
-    for (auto& node : stat)
+    std::map<RuntimeProcessKey, size_t> pending;
+    std::unordered_map<RuntimeProcessKey, std::vector<RuntimeProcessKey>> dependents;
+    std::deque<RuntimeProcessKey> ready;
+    for (const auto& item : processes)
     {
-        for (const auto& regPair : regProcess)
+        std::set<RuntimeProcessKey> unique;
+        auto dependencies = item.second.processDependence;
+        dependencies.insert(dependencies.end(), item.second.completionDependence.begin(),
+                            item.second.completionDependence.end());
+        for (auto dependency : dependencies)
         {
-            if (node.processName == regPair.second.processName)
+            if (processes.count(dependency) == 0 || !unique.insert(dependency).second)
             {
-                GetDepProcessNames(regPair.second, regProcess, node.dependProcessNames);
+                ERROR("Missing or duplicate runtime dependency for %.", ProcessName(item.second));
+                return false;
+            }
+            dependents[dependency].push_back(item.first);
+        }
+        pending[item.first] = unique.size();
+        if (unique.empty())
+        {
+            ready.push_back(item.first);
+        }
+    }
+    size_t removed = 0;
+    while (!ready.empty())
+    {
+        const auto key = ready.front();
+        ready.pop_front();
+        ++removed;
+        for (auto child : dependents[key])
+        {
+            if (--pending.at(child) == 0)
+            {
+                ready.push_back(child);
             }
         }
+    }
+    if (removed != processes.size())
+    {
+        ERROR("Process topology contains a cycle.");
+        return false;
+    }
+    return true;
+}
+
+void LogProcessResult(const ProcessStatistics& stat)
+{
+    if (stat.returnCode == ANALYSIS_OK && !stat.dfxStop)
+    {
+        return;
+    }
+    std::ostringstream details;
+    details << "node=" << stat.processName << ", chip_id=" << stat.chipId << ", return_code=0x" << std::hex
+            << stat.returnCode << std::dec << ", mandatory=" << std::boolalpha << stat.mandatory;
+    if (stat.returnCode != ANALYSIS_OK)
+    {
+        ERROR("Process failed: %.", details.str());
+    }
+    if (stat.dfxStop)
+    {
+        INFO("DFX stop requested: %.", details.str());
     }
 }
 
 }  // namespace
 
-class ProcessControl::Impl final
+class ProcessControl::Impl
 {
    public:
-    explicit Impl(ProcessCollection& processes, ProcessControlOptions options)
-        : allProcess_(std::move(processes)), options_(options)
+    Impl(RuntimeProcessCollection processes, ProcessControlOptions options)
+        : processes_(std::move(processes)), options_(options)
     {
-        stat_.chipId = 0;
     }
-    ~Impl() = default;
 
-    bool VerifyProcess(const ProcessCollection& chipRelatedProcess) const
+    bool Verify() const
     {
-        auto verifyProcess = chipRelatedProcess;
-        auto preparedProcess = TakeAwayPreparedProcess(verifyProcess);
-        while (!preparedProcess.empty())
+        for (const auto& item : processes_)
         {
-            preparedProcess = TakeAwayPreparedProcess(verifyProcess);
+            if (!item.second.creator || !item.second.context || !item.second.inventory)
+            {
+                ERROR("Invalid runtime binding for %.", ProcessName(item.second));
+                return false;
+            }
         }
-        return verifyProcess.empty();
+        return VerifyDependencies(processes_);
     }
 
-    bool ExecuteProcess(DataInventory& dataInventory, const Context& context)
+    bool Execute()
     {
-        chipId_ = context.GetChipID();
-        stat_.chipId = chipId_;
-
-        ProcessTopo processTopoBuilder(allProcess_);
-        auto chipRelatedProcess = processTopoBuilder.BuildProcessControlTopoByChip(chipId_);
-        if (!VerifyProcess(chipRelatedProcess))
+        results_.clear();
+        levels_.clear();
+        if (!Verify())
         {
-            ERROR("Topo Verify failed!");
             return false;
         }
-
-        return RunProcesses(chipRelatedProcess, dataInventory, context);
-    }
-
-    ExecuteProcessStat GetExecuteStat() const { return stat_; }
-
-   private:
-    /**
-     * @brief 拓扑排序算法执行所有Process 使用的算法为卡恩算法
-     * @param chipRelatedProcess 相应Chip的Process集合
-     */
-    bool RunProcesses(ProcessCollection& chipRelatedProcess, DataInventory& dataInventory, const Context& context)
-    {
-        const ProcessCollection regProcessCopy = chipRelatedProcess;
-        if (chipRelatedProcess.empty())
+        if (processes_.empty())
         {
             return true;
         }
-
-        using ProcessKey = std::type_index;
-        struct CompletedProcess
+        std::unordered_map<RuntimeProcessKey, size_t> pending;
+        std::unordered_map<RuntimeProcessKey, std::vector<RuntimeProcessKey>> dependents;
+        std::deque<RuntimeProcessKey> ready;
+        for (const auto& item : processes_)
         {
-            ProcessKey key;
-            size_t level;
-            ProcessStatistics statistics;
-        };
-
-        std::unordered_map<ProcessKey, size_t> unresolvedDependencies;
-        std::unordered_map<ProcessKey, std::vector<ProcessKey>> dependents;
-        std::unordered_map<ProcessKey, size_t> levels;
-        std::vector<ProcessKey> readyProcesses;
-        for (const auto& processPair : chipRelatedProcess)
-        {
-            const ProcessKey& key = processPair.first;
-            unresolvedDependencies.emplace(key, processPair.second.processDependence.size());
-            levels.emplace(key, 0UL);
-            if (processPair.second.processDependence.empty())
+            results_[item.first] = RuntimeProcessResult{};
+            auto dependencies = item.second.processDependence;
+            dependencies.insert(dependencies.end(), item.second.completionDependence.begin(),
+                                item.second.completionDependence.end());
+            pending[item.first] = dependencies.size();
+            levels_[item.first] = 0;
+            if (pending[item.first] == 0)
             {
-                readyProcesses.emplace_back(key);
+                ready.push_back(item.first);
             }
-            for (const auto& dependency : processPair.second.processDependence)
+            for (auto dependency : dependencies)
             {
-                dependents[dependency].emplace_back(key);
+                dependents[dependency].push_back(item.first);
             }
         }
-
-        const uint32_t hardwareWorkerCount = std::thread::hardware_concurrency();
-        const uint32_t defaultWorkerCount = hardwareWorkerCount == 0 ? 10U : std::min(10U, hardwareWorkerCount);
-        const uint32_t configuredWorkerCount =
-            options_.maxWorkerThreads == 0 ? defaultWorkerCount : options_.maxWorkerThreads;
-        const uint32_t workerCount =
-            std::max(1U, std::min(configuredWorkerCount, static_cast<uint32_t>(chipRelatedProcess.size())));
-        Analysis::Utils::ThreadPool pool(workerCount);
+        const uint32_t hardware = std::thread::hardware_concurrency();
+        const uint32_t workers =
+            std::max(1U, std::min(options_.maxWorkerThreads == 0 ? (hardware == 0 ? 10U : std::min(10U, hardware))
+                                                                 : options_.maxWorkerThreads,
+                                  static_cast<uint32_t>(processes_.size())));
+        Utils::ThreadPool pool(workers);
         if (!pool.Start())
         {
-            ERROR("Start process worker pool failed.");
             return false;
         }
-
-        std::mutex schedulerMutex;
-        std::condition_variable schedulerDone;
-        ProcessCollection remainingProcesses = chipRelatedProcess;
-        std::vector<CompletedProcess> completedProcesses;
-        size_t activeTaskCount = 0;
-        size_t completedTaskCount = 0;
-        size_t releaseIndex = 0;
-        bool stopScheduling = false;
-
-        std::function<void(const ProcessKey&)> schedule;
-        schedule = [&](const ProcessKey& key)
+        std::mutex mutex;
+        std::condition_variable changed;
+        struct Completion
         {
-            const auto processIter = chipRelatedProcess.find(key);
-            if (processIter == chipRelatedProcess.end())
+            RuntimeProcessKey key;
+            ProcessStatistics stat;
+        };
+        std::deque<Completion> completed;
+        std::set<std::string> resources;
+        std::set<std::string> activeDevices;
+        size_t active = 0;
+        size_t finished = 0;
+        bool stopped = false;
+
+        auto finish = [&](RuntimeProcessKey key, RuntimeProcessState state, ProcessStatistics stat)
+        {
+            const auto& info = processes_.at(key);
+            if (results_.at(key).state == RuntimeProcessState::RUNNING)
             {
-                ERROR("Scheduled process is not registered.");
-                stopScheduling = true;
-                return;
-            }
-            ++activeTaskCount;
-            const RegProcessInfo processInfo = processIter->second;
-            const size_t level = levels.at(key);
-            pool.AddTask(
-                [&, key, level, processInfo]()
+                --active;
+                for (const auto& resource : info.resources)
                 {
-                    ProcessStatistics statistics{};
-                    const auto startTime = std::chrono::steady_clock::now();
-                    if (!processInfo.creator)
+                    resources.erase(resource);
+                }
+            }
+            if (info.closesDeviceScope)
+            {
+                activeDevices.erase(info.scope);
+            }
+            stat.processName = info.processName;
+            stat.scope = info.scope;
+            stat.mandatory = info.mandatory;
+            for (auto dependency : info.processDependence)
+            {
+                const auto& predecessor = processes_.at(dependency);
+                stat.dependProcessNames.push_back(ProcessName(predecessor));
+            }
+            results_.at(key).state = state;
+            results_.at(key).statistics = std::move(stat);
+            ++finished;
+            if ((options_.failureMode == FailureMode::STOP_ON_MANDATORY_FAILURE &&
+                 state != RuntimeProcessState::SUCCEEDED && info.mandatory) ||
+                results_.at(key).statistics.dfxStop)
+            {
+                stopped = true;
+            }
+            for (auto child : dependents[key])
+            {
+                levels_[child] = std::max(levels_.at(child), levels_.at(key) + 1);
+                if (--pending[child] == 0)
+                {
+                    ready.push_back(child);
+                }
+            }
+            if (options_.releaseUnusedData)
+            {
+                ReleaseUnused();
+            }
+        };
+
+        std::unique_lock<std::mutex> lock(mutex);
+        // Join workers before their captured completion queue and synchronization objects are destroyed,
+        // including when dispatch or inventory reclamation throws.
+        struct DrainWorkers
+        {
+            Utils::ThreadPool& pool;
+            std::unique_lock<std::mutex>& lock;
+            ~DrainWorkers()
+            {
+                if (lock.owns_lock())
+                {
+                    lock.unlock();
+                }
+                pool.Stop();
+            }
+        } drain{pool, lock};
+        while (finished < processes_.size())
+        {
+            while (!completed.empty())
+            {
+                auto completion = std::move(completed.front());
+                completed.pop_front();
+                const auto state = completion.stat.returnCode == ANALYSIS_OK && !completion.stat.dfxStop
+                                       ? RuntimeProcessState::SUCCEEDED
+                                       : RuntimeProcessState::FAILED;
+                finish(completion.key, state, std::move(completion.stat));
+            }
+            bool progressed = false;
+            const size_t readyCount = ready.size();
+            for (size_t index = 0; index < readyCount; ++index)
+            {
+                const auto key = ready.front();
+                ready.pop_front();
+                const auto& info = processes_.at(key);
+                const bool blocked =
+                    !info.runOnDependencyFailure &&
+                    std::any_of(info.processDependence.begin(), info.processDependence.end(),
+                                [&](RuntimeProcessKey dependency)
+                                { return results_.at(dependency).state != RuntimeProcessState::SUCCEEDED; });
+                if (blocked)
+                {
+                    for (auto dependency : info.processDependence)
                     {
-                        ERROR("creator==nullptr, process name: %", processInfo.processName);
+                        const auto& result = results_.at(dependency);
+                        if (result.state == RuntimeProcessState::SUCCEEDED)
+                        {
+                            continue;
+                        }
+                        auto& causes = results_.at(key).failedDependencies;
+                        if (result.failedDependencies.empty())
+                        {
+                            causes.push_back(dependency);
+                        }
+                        else
+                        {
+                            causes.insert(causes.end(), result.failedDependencies.begin(),
+                                          result.failedDependencies.end());
+                        }
+                        std::sort(causes.begin(), causes.end());
+                        causes.erase(std::unique(causes.begin(), causes.end()), causes.end());
                     }
-                    else
+                }
+                if (blocked || stopped)
+                {
+                    ProcessStatistics stat{};
+                    stat.returnCode = ANALYSIS_ERROR;
+                    finish(key, blocked ? RuntimeProcessState::BLOCKED : RuntimeProcessState::CANCELLED, stat);
+                    progressed = true;
+                    continue;
+                }
+                const bool deviceLimit = info.opensDeviceScope && options_.maxActiveDevices != 0 &&
+                                         activeDevices.count(info.scope) == 0 &&
+                                         activeDevices.size() >= options_.maxActiveDevices;
+                const bool busy =
+                    std::any_of(info.resources.begin(), info.resources.end(),
+                                [&](const std::string& resource) { return resources.count(resource) != 0; });
+                if (active >= workers || deviceLimit || busy)
+                {
+                    ready.push_back(key);
+                    continue;
+                }
+                if (info.opensDeviceScope)
+                {
+                    activeDevices.insert(info.scope);
+                }
+                resources.insert(info.resources.begin(), info.resources.end());
+                results_.at(key).state = RuntimeProcessState::RUNNING;
+                ++active;
+                progressed = true;
+                pool.AddTask(
+                    [&, key]()
                     {
+                        const auto& node = processes_.at(key);
+                        ProcessStatistics stat{};
+                        stat.returnCode = ANALYSIS_ERROR;
+                        stat.processName = node.processName;
+                        stat.mandatory = node.mandatory;
+                        const auto start = std::chrono::steady_clock::now();
                         try
                         {
-                            auto proc = processInfo.creator();
-                            if (proc != nullptr)
+                            stat.chipId = node.context->GetChipID();
+                            auto process = node.creator();
+                            if (process)
                             {
-                                statistics.returnCode = proc->Run(dataInventory, context);
-                                statistics.mandatory = processInfo.mandatory;
+                                stat.returnCode = process->Run(*node.inventory, *node.context);
                             }
+                            const auto& stopAt = node.context->GetDfxStopAtName();
+                            stat.dfxStop = !stopAt.empty() && (stopAt == node.processName ||
+                                                               stopAt == node.scope + "/" + node.processName);
                         }
-                        catch (const std::exception& exception)
+                        catch (const std::exception& error)
                         {
-                            ERROR("Process % threw an exception: %", processInfo.processName, exception.what());
-                            statistics.returnCode = ANALYSIS_ERROR;
-                            statistics.mandatory = processInfo.mandatory;
+                            stat.returnCode = ANALYSIS_ERROR;
+                            ERROR("Runtime process %/% failed: %.", node.scope, node.processName, error.what());
                         }
                         catch (...)
                         {
-                            ERROR("Process % threw an unknown exception.", processInfo.processName);
-                            statistics.returnCode = ANALYSIS_ERROR;
-                            statistics.mandatory = processInfo.mandatory;
+                            stat.returnCode = ANALYSIS_ERROR;
+                            ERROR("Runtime process %/% failed with an unknown exception.", node.scope,
+                                  node.processName);
                         }
-                    }
-                    const auto endTime = std::chrono::steady_clock::now();
-                    statistics.startTime =
-                        std::chrono::duration_cast<std::chrono::microseconds>(startTime.time_since_epoch()).count();
-                    statistics.duration =
-                        std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-                    statistics.processName = processInfo.processName;
-                    const std::string& stopProcessName = context.GetDfxStopAtName();
-                    statistics.dfxStop = !stopProcessName.empty() && stopProcessName == processInfo.processName;
-
-                    std::unique_lock<std::mutex> lock(schedulerMutex);
-                    --activeTaskCount;
-                    ++completedTaskCount;
-                    completedProcesses.push_back({key, level, std::move(statistics)});
-                    const ProcessStatistics& completedStat = completedProcesses.back().statistics;
-                    remainingProcesses.erase(key);
-                    if (options_.releaseUnusedData)
+                        stat.startTime =
+                            std::chrono::duration_cast<std::chrono::microseconds>(start.time_since_epoch()).count();
+                        stat.duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                                            std::chrono::steady_clock::now() - start)
+                                            .count();
+                        LogProcessResult(stat);
+                        std::lock_guard<std::mutex> guard(mutex);
+                        completed.push_back({key, std::move(stat)});
+                        changed.notify_one();
+                    });
+            }
+            if (finished == processes_.size())
+            {
+                break;
+            }
+            if (!progressed)
+            {
+                if (active == 0)
+                {
+                    ERROR("Runtime graph cannot make progress; check device scope/resource lifetimes.");
+                    stopped = true;
+                    for (auto& result : results_)
                     {
-                        ReleaseNoLongerUsedData(remainingProcesses, dataInventory, releaseIndex++);
-                    }
-
-                    if ((completedStat.returnCode != ANALYSIS_OK && completedStat.mandatory) || completedStat.dfxStop)
-                    {
-                        stopScheduling = true;
-                    }
-                    if (!stopScheduling)
-                    {
-                        const auto dependentIter = dependents.find(key);
-                        if (dependentIter != dependents.end())
+                        if (result.second.state == RuntimeProcessState::PENDING)
                         {
-                            for (const auto& dependent : dependentIter->second)
-                            {
-                                size_t& pendingCount = unresolvedDependencies.at(dependent);
-                                levels.at(dependent) = std::max(levels.at(dependent), level + 1);
-                                if (--pendingCount == 0)
-                                {
-                                    schedule(dependent);
-                                }
-                            }
+                            result.second.state = RuntimeProcessState::CANCELLED;
                         }
                     }
-                    schedulerDone.notify_all();
-                });
-        };
-
-        {
-            std::unique_lock<std::mutex> lock(schedulerMutex);
-            for (const auto& readyProcess : readyProcesses)
-            {
-                schedule(readyProcess);
+                    break;
+                }
+                changed.wait(lock, [&]() { return !completed.empty(); });
             }
         }
+        if (LogMandatoryFailures())
         {
-            std::unique_lock<std::mutex> lock(schedulerMutex);
-            schedulerDone.wait(lock,
-                               [&]() {
-                                   return activeTaskCount == 0 &&
-                                          (stopScheduling || completedTaskCount == chipRelatedProcess.size());
-                               });
+            PRINT_ERROR("Processing failed. Please check the logs for details.");
         }
-        pool.Stop();
-
-        std::map<size_t, std::vector<ProcessStatistics>> statisticsByLevel;
-        for (auto& completed : completedProcesses)
-        {
-            statisticsByLevel[completed.level].emplace_back(std::move(completed.statistics));
-        }
-        bool overallResult = !stopScheduling;
-        for (auto& levelStatistics : statisticsByLevel)
-        {
-            FillStatisticianDependence(regProcessCopy, levelStatistics.second);
-            bool dfxStop = false;
-            const bool levelResult = GetStatistician(std::move(levelStatistics.second), dfxStop);
-            overallResult = overallResult && levelResult && !dfxStop;
-        }
-        if (stopScheduling)
-        {
-            PRINT_INFO("!!!!!!! DFX Stops or a mandatory process failed !!!!!!!!");
-        }
-        return overallResult && completedTaskCount == chipRelatedProcess.size();
+        return !stopped && std::all_of(results_.begin(), results_.end(),
+                                       [&](const std::pair<const RuntimeProcessKey, RuntimeProcessResult>& item) {
+                                           return !processes_.at(item.first).mandatory ||
+                                                  item.second.state == RuntimeProcessState::SUCCEEDED;
+                                       });
     }
 
-    bool GetStatistician(std::vector<ProcessStatistics>&& statistics, bool& dfxStop)
+    ExecuteProcessStat Statistics() const
     {
-        auto generalResult = std::all_of(statistics.begin(), statistics.end(), [](ProcessStatistics& node)
-                                         { return (node.returnCode == 0 || !node.mandatory); });
-        dfxStop =
-            std::any_of(statistics.begin(), statistics.end(), [](ProcessStatistics& node) { return node.dfxStop; });
-        stat_.allLevelStat.emplace_back();
-        auto& oneLevelStat = stat_.allLevelStat.back();
-        oneLevelStat.generalResult = generalResult;
-        oneLevelStat.processStatistics = std::move(statistics);
-        return generalResult;  // Stop on error  这里是否停止还与Process类注册时，注册宏中mandatory字段确定
-    }
-
-    void ReleaseNoLongerUsedData(const ProcessCollection& chipRelatedProcess, DataInventory& dataInventory,
-                                 size_t levelIndex)
-    {
-        std::set<std::type_index> dataTobeUsing;
-        for (const auto& processInfo : chipRelatedProcess)
+        ExecuteProcessStat stat{};
+        std::map<size_t, OneLevelStat> levels;
+        for (const auto& item : results_)
         {
-            for (const auto& dataType : processInfo.second.paramTypes)
+            // Blocked/cancelled nodes never ran. Their states remain available in Results().
+            if (item.second.state != RuntimeProcessState::SUCCEEDED && item.second.state != RuntimeProcessState::FAILED)
             {
-                dataTobeUsing.insert(dataType);
-            }
-        }
-        auto removedTypes = dataInventory.RemoveRestData(dataTobeUsing);
-
-        std::string typeStr;
-        for (const auto& typeInfo : removedTypes)
-        {
-            typeStr += typeInfo.name();
-            typeStr += " ";
-        }
-        INFO("Level[%]Release Data Types: %", levelIndex, typeStr);
-    }
-
-    ProcessCollection TakeAwayPreparedProcess(ProcessCollection& chipRelatedProcess) const
-    {
-        ProcessCollection preparedProcess;
-        // 先拿走已经没有前向依赖的，即入度为0的节点
-        for (auto it = chipRelatedProcess.begin(); it != chipRelatedProcess.end();)
-        {
-            if (it->second.processDependence.empty())
-            {
-                preparedProcess.insert({it->first, it->second});
-                it = chipRelatedProcess.erase(it);
                 continue;
             }
-            ++it;
+            const size_t index = levels_.at(item.first);
+            auto inserted = levels.emplace(index, OneLevelStat{true, {}});
+            auto& level = inserted.first->second;
+            const auto& process = item.second.statistics;
+            level.processStatistics.push_back(process);
+            level.generalResult = level.generalResult && (process.returnCode == ANALYSIS_OK || !process.mandatory);
         }
-
-        // 再将其它节点中的前向依赖删除，即修正其它节点的入度
-        for (auto& process : chipRelatedProcess)
+        for (auto& level : levels)
         {
-            auto& processDep = process.second.processDependence;
-            for (const auto& preparedNode : preparedProcess)
-            {
-                processDep.erase(std::remove(processDep.begin(), processDep.end(), preparedNode.first),
-                                 processDep.end());
-            }
+            stat.allLevelStat.push_back(std::move(level.second));
         }
-        return preparedProcess;
+        return stat;
     }
+    std::unordered_map<RuntimeProcessKey, RuntimeProcessResult> Results() const { return results_; }
 
    private:
-    ProcessCollection allProcess_;
+    std::set<RuntimeProcessKey> ExecutionFailureCauses(RuntimeProcessKey key) const
+    {
+        const auto& result = results_.at(key);
+        const auto failed = [](const RuntimeProcessResult& value)
+        {
+            // A successful stopAt callback is represented as FAILED, but is not an execution error.
+            return value.state == RuntimeProcessState::FAILED && value.statistics.returnCode != ANALYSIS_OK;
+        };
+        std::set<RuntimeProcessKey> causes;
+        if (failed(result))
+        {
+            causes.insert(key);
+        }
+        for (auto dependency : result.failedDependencies)
+        {
+            if (failed(results_.at(dependency)))
+            {
+                causes.insert(dependency);
+            }
+        }
+        return causes;
+    }
+
+    std::string DescribeFailures(const std::set<RuntimeProcessKey>& causes) const
+    {
+        std::ostringstream details;
+        for (auto key : causes)
+        {
+            if (key != *causes.begin())
+            {
+                details << ", ";
+            }
+            details << ProcessName(processes_.at(key)) << "(return_code=0x" << std::hex
+                    << results_.at(key).statistics.returnCode << std::dec << ")";
+        }
+        return details.str();
+    }
+
+    bool LogMandatoryFailures() const
+    {
+        std::set<RuntimeProcessKey> requiredFailureCauses;
+        std::vector<RuntimeProcessKey> stoppedNodes;
+        for (const auto& node : processes_)
+        {
+            const auto& result = results_.at(node.first);
+            if (!node.second.mandatory || result.state == RuntimeProcessState::SUCCEEDED)
+            {
+                continue;
+            }
+            const auto causes = ExecutionFailureCauses(node.first);
+            requiredFailureCauses.insert(causes.begin(), causes.end());
+            if (result.state != RuntimeProcessState::BLOCKED && result.state != RuntimeProcessState::CANCELLED)
+            {
+                continue;
+            }
+            if (causes.empty())
+            {
+                stoppedNodes.push_back(node.first);
+                continue;
+            }
+            ERROR("Required process blocked: node=%, failed_dependencies=[%].", ProcessName(node.second),
+                  DescribeFailures(causes));
+        }
+        if (requiredFailureCauses.empty())
+        {
+            return false;
+        }
+        for (auto key : stoppedNodes)
+        {
+            const auto state = results_.at(key).state == RuntimeProcessState::BLOCKED ? "BLOCKED" : "CANCELLED";
+            ERROR("Required process not executed: node=%, state=%, execution_failures=[%].",
+                  ProcessName(processes_.at(key)), state, DescribeFailures(requiredFailureCauses));
+        }
+        return true;
+    }
+
+    void ReleaseUnused()
+    {
+        using InventoryUse = std::pair<std::shared_ptr<DataInventory>, std::set<std::type_index>>;
+        std::map<DataInventory*, InventoryUse> uses;
+        for (const auto& item : processes_)
+        {
+            auto& use = uses[item.second.inventory.get()];
+            use.first = item.second.inventory;
+            const auto state = results_.at(item.first).state;
+            if (state == RuntimeProcessState::PENDING || state == RuntimeProcessState::RUNNING)
+            {
+                use.second.insert(item.second.paramTypes.begin(), item.second.paramTypes.end());
+            }
+        }
+        for (auto& use : uses)
+        {
+            use.second.first->RemoveRestData(use.second.second);
+        }
+    }
+    RuntimeProcessCollection processes_;
     ProcessControlOptions options_;
-    ExecuteProcessStat stat_;  // dfx: 统计运行结果
-    uint32_t chipId_{};        // dfx: 记录运行什么芯片ID
+    std::unordered_map<RuntimeProcessKey, size_t> levels_;
+    std::unordered_map<RuntimeProcessKey, RuntimeProcessResult> results_;
 };
 
 void RecordProcessStat(const ExecuteProcessStat& stat, const std::string& subDir, std::string& log)
 {
     std::stringstream ss;
-    ss.imbue(std::locale(""));
+    try
+    {
+        ss.imbue(std::locale(""));
+    }
+    catch (const std::runtime_error&)
+    {
+        ss.imbue(std::locale::classic());
+    }
     ss << "===============================================================================" << std::endl;
     ss << "deivce file in " << subDir << std::endl;
 
@@ -386,8 +549,14 @@ void RecordProcessStat(const ExecuteProcessStat& stat, const std::string& subDir
         size_t j = 0;
         for (const auto& proc : node.processStatistics)
         {
-            ss << "\tprocess" << j++ << "[" << proc.processName << "]:" << "return: 0x" << std::hex << proc.returnCode
-               << std::dec << ", mandatory:" << std::boolalpha << proc.mandatory << std::noboolalpha << std::endl;
+            const auto name = proc.scope.empty() ? proc.processName : proc.scope + "/" + proc.processName;
+            ss << "\tprocess" << j++ << "[" << name << "]:" << "return: 0x" << std::hex << proc.returnCode << std::dec
+               << ", mandatory:" << std::boolalpha << proc.mandatory << ", dfxStop:" << proc.dfxStop << std::noboolalpha
+               << std::endl;
+            if (!proc.scope.empty())
+            {
+                ss << "\t\tchip id: " << proc.chipId << std::endl;
+            }
             ss << "\t\tdependProcessNames: ";
             for (const auto& depName : proc.dependProcessNames)
             {
@@ -401,44 +570,21 @@ void RecordProcessStat(const ExecuteProcessStat& stat, const std::string& subDir
     log += ss.str();
 }
 
-ProcessControl::ProcessControl(ProcessCollection& processes, ProcessControlOptions options)
-    : impl_(new(std::nothrow) Impl(processes, options))
+ProcessControl::ProcessControl(RuntimeProcessCollection& processes, ProcessControlOptions options)
+    : impl_(new Impl(std::move(processes), options))
 {
 }
 
 ProcessControl::~ProcessControl() = default;
 
-bool ProcessControl::ExecuteProcess(DataInventory& dataInventory, const Context& context)
-{
-    if (!impl_)
-    {
-        ERROR("ProcessControl Impl create failed!");
-        return false;
-    };
-    return impl_->ExecuteProcess(dataInventory, context);
-}
+bool ProcessControl::ExecuteProcess() { return impl_->Execute(); }
 
-// 获取运行结果 key为level, value为统计结构
-ExecuteProcessStat ProcessControl::GetExecuteStat() const
-{
-    if (!impl_)
-    {
-        ERROR("ProcessControl Impl create failed!");
-        return {};
-    };
-    return impl_->GetExecuteStat();
-}
+ExecuteProcessStat ProcessControl::GetExecuteStat() const { return impl_->Statistics(); }
 
-bool ProcessControl::VerifyProcess(const ProcessCollection& chipRelatedProcess) const
+std::unordered_map<RuntimeProcessKey, RuntimeProcessResult> ProcessControl::GetRuntimeResults() const
 {
-    if (!impl_)
-    {
-        ERROR("ProcessControl Impl create failed!");
-        return false;
-    };
-    return impl_->VerifyProcess(chipRelatedProcess);
+    return impl_->Results();
 }
 
 }  // namespace Infra
-
 }  // namespace Analysis

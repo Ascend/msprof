@@ -28,7 +28,7 @@
 #include "analysis/csrc/domain/services/parser/parser_item/task_memcpy_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item/task_type_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -115,8 +115,5 @@ uint32_t TsTrackParser::ParseData(DataInventory &dataInventory, const Infra::Con
     return stat;
 }
 
-REGISTER_PROCESS_SEQUENCE(TsTrackParser, true, LoadStreamExpandSpec);
-REGISTER_PROCESS_DEPENDENT_DATA(TsTrackParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(TsTrackParser, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

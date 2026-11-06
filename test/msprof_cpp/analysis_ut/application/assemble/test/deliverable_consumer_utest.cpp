@@ -539,3 +539,16 @@ TEST_F(DeliverableConsumerUTest, ShouldSplitLargeDbInsertIntoBatches)
     ASSERT_EQ(result.size(), 1UL);
     EXPECT_EQ(std::get<0>(result[0]), 200000);
 }
+
+TEST_F(DeliverableConsumerUTest, ShouldReportCsvWriteFailureAndResetForNextExport)
+{
+    const auto blocker = File::PathJoin({BASE_PATH, "write_blocker"});
+    { FileWriter file(blocker); file.WriteText("file blocks directory creation"); }
+    auto& consumer = DeliverableConsumer::Instance();
+    consumer.WriteCsv(File::PathJoin({blocker, "report"}), {"value"}, {{"1"}}, {}, "fixed");
+    EXPECT_FALSE(consumer.Ok());
+    consumer.ResetOk();
+    consumer.WriteCsv(File::PathJoin({BASE_PATH, "recovered_report"}), {"value"}, {{"1"}}, {}, "fixed");
+    EXPECT_TRUE(consumer.Ok());
+    EXPECT_TRUE(File::DeleteFile(blocker));
+}

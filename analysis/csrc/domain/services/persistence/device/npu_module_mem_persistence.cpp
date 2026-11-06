@@ -26,7 +26,7 @@
 #include "analysis/csrc/domain/services/parser/npu_module_mem/include/npu_module_mem_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -76,8 +76,5 @@ uint32_t NpuModuleMemPersistence::ProcessEntry(Infra::DataInventory &dataInvento
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(NpuModuleMemPersistence, true, NpuModuleMemParser);
-REGISTER_PROCESS_DEPENDENT_DATA(NpuModuleMemPersistence, std::vector<HalNpuModuleMemData>);
-REGISTER_PROCESS_SUPPORT_CHIP(NpuModuleMemPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

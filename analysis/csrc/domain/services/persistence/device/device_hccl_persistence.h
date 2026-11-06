@@ -18,15 +18,17 @@
 #define ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_HCCL_PERSISTENCE_H
 
 #include "analysis/csrc/infrastructure/process/include/process.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 using namespace Infra;
-class DeviceHcclPersistence : public Process {
-private:
+class DeviceHcclPersistence : public Process
+{
+   private:
     uint32_t ProcessEntry(DataInventory& dataInventory, const Context& context) override;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_HCCL_PERSISTENCE_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_SERVICES_PERSISTENCE_DEVICE_HCCL_PERSISTENCE_H

@@ -137,45 +137,48 @@ protected:
         FileWriter reportsWriter(File::PathJoin({BASE_PATH, REPORTS_JSON}));
         reportsWriter.WriteText(reports.dump());
     }
+    bool Plan(ExportManager &manager, const std::set<ExportMode> &modes)
+    {
+        TopoBuildContext context;
+        std::vector<TopoNodeId> roots;
+        return manager.Plan(modes, context, roots);
+    }
 };
 
 TEST_F(ExportManagerUTest, ShouldReturnFalseWhenPathIsInvalid)
 {
     std::string path = "/home/prof_0";
     ExportManager manager(path);
-    EXPECT_FALSE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_FALSE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
-TEST_F(ExportManagerUTest, ShouldReturnFalseWhenContextInitFail)
+TEST_F(ExportManagerUTest, ShouldPlanWithoutLoadingEnvironment)
 {
     ExportManager manager(PROF_PATH);
-    EXPECT_FALSE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    MOCKER_CPP(&EnvContext::Load).expects(never());
+    MOCKER_CPP(&File::CreateDir).expects(never());
+    TopoBuildContext context;
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(manager.Plan({ExportMode::TIMELINE}, context, roots));
+    EXPECT_FALSE(roots.empty());
+    EXPECT_EQ(context.dbSession, nullptr);
+    EXPECT_NE(context.timelineSession, nullptr);
+    EXPECT_EQ(context.outputPath, RESULT_PATH);
 }
 
-TEST_F(ExportManagerUTest, ShouldReturnTrueWhenProcessFail)
+TEST_F(ExportManagerUTest, ShouldPlanTimelineRoots)
 {
     ExportManager manager(PROF_PATH);
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
-TEST_F(ExportManagerUTest, ShouldReturnTrueWhenProcessSuccessWithDB)
+TEST_F(ExportManagerUTest, ShouldPlanDatabaseRoots)
 {
     ExportManager manager(PROF_PATH);
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::DB}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::DB}));
 }
 
-TEST_F(ExportManagerUTest, ShouldReturnTrueWhenProcessSuccessWithReportJson)
+TEST_F(ExportManagerUTest, ShouldPlanSelectedTimelineRoots)
 {
     nlohmann::json reports = {
         {"json_process", {
@@ -187,13 +190,7 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenProcessSuccessWithReportJson)
     CreateReportsJson(reports);
     auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
 TEST_F(ExportManagerUTest, ShouldReturnTrueWhenReportJsonValueError)
@@ -208,14 +205,7 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenReportJsonValueError)
     CreateReportsJson(reports);
     auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
 TEST_F(ExportManagerUTest, ShouldReturnFalseWhenSummaryDeliverableIsInvalid)
@@ -228,12 +218,8 @@ TEST_F(ExportManagerUTest, ShouldReturnFalseWhenSummaryDeliverableIsInvalid)
     CreateReportsJson(reports);
     const auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
 
-    EXPECT_FALSE(manager.Run({Analysis::Application::ExportMode::SUMMARY}));
+    EXPECT_FALSE(Plan(manager, {Analysis::Application::ExportMode::SUMMARY}));
 }
 
 TEST_F(ExportManagerUTest, ShouldSelectEnabledTimelineAndSummaryDeliverables)
@@ -323,14 +309,7 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenReportJsonProcessNotExist)
     CreateReportsJson(reports);
     auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
 TEST_F(ExportManagerUTest, ShouldReturnTrueWhenReportJsonPathNotExist)
@@ -338,43 +317,40 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenReportJsonPathNotExist)
     auto jsonPath = File::PathJoin({BASE_PATH, "missing_reports.json"});
     ASSERT_FALSE(File::Exist(jsonPath));
     ExportManager manager(PROF_PATH, jsonPath);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }
 
 TEST_F(ExportManagerUTest, ShouldRejectEmptyAndUnsupportedExportModes)
 {
     ExportManager manager(PROF_PATH);
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
 
-    EXPECT_FALSE(manager.Run({}));
-    EXPECT_FALSE(manager.Run({static_cast<ExportMode>(99)}));
+    EXPECT_FALSE(Plan(manager, {}));
+    EXPECT_FALSE(Plan(manager, {static_cast<ExportMode>(99)}));
 }
 
 TEST_F(ExportManagerUTest, ShouldReturnFalseWhenProcessorTopologyRegistrationIsMissing)
 {
-    ExportManager manager(PROF_PATH, REPORTS_JSON);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
+    ExportManager manager(PROF_PATH);
     TopologyRegistryGuard guard;
     TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_TASK});
-
-    EXPECT_FALSE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
+    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, RESULT_PATH);
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(manager.Plan({ExportMode::TIMELINE}, context, roots));
+    Analysis::Infra::RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    EXPECT_FALSE(builder.Build(context, roots, graph));
+    EXPECT_TRUE(graph.empty());
 }
 
 TEST_F(ExportManagerUTest, ShouldBuildProcessorDependencyClosure)
 {
-    Analysis::Infra::ProcessCollection processes;
+    Analysis::Infra::RuntimeProcessCollection processes;
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_OVERLAP_ANALYSIS}}, processes));
@@ -402,12 +378,14 @@ TEST_F(ExportManagerUTest, ShouldBuildCombinedDbTimelineAndSummaryTopology)
     const auto dbOutputPath = File::PathJoin({BASE_PATH, "combined_db"});
     ASSERT_TRUE(File::CreateDir(dbOutputPath));
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     context.outputPath = dbOutputPath;
     context.timelineProcesses = {JsonProcess::NPU_MEM};
     context.dbSession = std::make_shared<DBAssembler>(PROF_PATH, dbOutputPath);
     context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, RESULT_PATH);
-    Analysis::Infra::ProcessCollection processes;
+    Analysis::Infra::RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));
 
@@ -435,26 +413,11 @@ TEST_F(ExportManagerUTest, ShouldBuildCombinedDbTimelineAndSummaryTopology)
     EXPECT_TRUE(summaryFound);
 }
 
-TEST_F(ExportManagerUTest, ShouldReturnFalseWhenCheckOutputPathFailed)
+TEST_F(ExportManagerUTest, ShouldPlanWithoutCreatingOutputPath)
 {
-    ExportManager manager(PROF_PATH, REPORTS_JSON);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-
-    MOCKER_CPP(&File::Exist).
-    stubs()
-    .will(returnValue(false));
-
-    MOCKER_CPP(&File::CreateDir)
-    .stubs()
-    .will(returnValue(false));
-
-    EXPECT_FALSE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
-    MOCKER_CPP(&File::Exist).reset();
-    MOCKER_CPP(&File::CreateDir).reset();
+    ExportManager manager(PROF_PATH);
+    MOCKER_CPP(&File::CreateDir).expects(never());
+    EXPECT_TRUE(Plan(manager, {ExportMode::TIMELINE, ExportMode::SUMMARY}));
 }
 
 TEST_F(ExportManagerUTest, ShouldReturnTrueWhenAnalysisReportJsonFailed)
@@ -469,20 +432,13 @@ TEST_F(ExportManagerUTest, ShouldReturnTrueWhenAnalysisReportJsonFailed)
     CreateReportsJson(reports);
     auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
     const int analysisError = 1;
 
     MOCKER_CPP(&FileReader::ReadJson)
     .stubs()
     .will(returnValue(analysisError));
 
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 
     MOCKER_CPP(&FileReader::ReadJson).reset();
 }
@@ -497,14 +453,6 @@ TEST_F(ExportManagerUTest, ShouldAddLowPowerWhenFreqIsTrue)
     CreateReportsJson(reports);
     auto jsonPath = File::PathJoin({BASE_PATH, REPORTS_JSON});
     ExportManager manager(PROF_PATH, jsonPath);
-    
-    // mock Init()
-    MOCKER_CPP(&EnvContext::Load).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetProfTimeRecordInfo).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetSyscntConversionParams).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetClockMonotonicRaw).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::GetMetricMode).stubs().will(returnValue(true));
-    MOCKER_CPP(&EnvContext::IsChipV6).stubs().will(returnValue(false));
-    
-    EXPECT_TRUE(manager.Run({Analysis::Application::ExportMode::TIMELINE}));
+
+    EXPECT_TRUE(Plan(manager, {Analysis::Application::ExportMode::TIMELINE}));
 }

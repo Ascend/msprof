@@ -168,7 +168,8 @@ REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_CCU_MISSION,
                             std::vector<CCUMissionTimelineData>);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, DB_STRING_IDS), true,
-                            DBAssembler::CreateStringIdsSaver(), TOPO_DEPS(), DBAssembler::ResolveSelectedDBSavers);
+                            DBAssembler::CreateStringIdsSaver(), TOPO_DEPS(), DBAssembler::ResolveSelectedDBSavers,
+                            true);
 
 #undef REGISTER_DB_SAVER_WITH_DATA
 #undef REGISTER_DB_SAVER

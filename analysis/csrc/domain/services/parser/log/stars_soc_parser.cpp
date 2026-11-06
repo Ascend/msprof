@@ -22,7 +22,7 @@
 #include "analysis/csrc/domain/services/device_context/load_stream_expand_spec_data.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -125,17 +125,7 @@ uint32_t StarsSocParser::ParseData(DataInventory &dataInventory, const Infra::Co
     return stat;
 }
 
-REGISTER_PROCESS_SEQUENCE(StarsSocParser, true, LoadStreamExpandSpec);
-REGISTER_PROCESS_DEPENDENT_DATA(StarsSocParser, StreamExpandSpec);
-REGISTER_PROCESS_SUPPORT_CHIP(StarsSocParser, CHIP_V4_1_0);
-
 uint32_t StarsSocParserV6::GetTrunkSize() { return STARS_SOC_STRUCT_SIZE_V6; }
-
-namespace CHIP_V6_REGISTER
-{
-REGISTER_PROCESS_SEQUENCE(StarsSocParserV6, true);
-REGISTER_PROCESS_SUPPORT_CHIP(StarsSocParserV6, CHIP_V6_1_0, CHIP_V6_1_1);
-}  // namespace CHIP_V6_REGISTER
 
 }  // namespace Domain
 }  // namespace Analysis

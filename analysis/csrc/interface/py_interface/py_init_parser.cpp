@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "analysis/csrc/application/include/export_manager.h"
-#include "analysis/csrc/application/include/export_mode_enum.h"
+#include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/host_worker/kernel_parser_worker.h"
@@ -38,60 +38,24 @@ namespace Interface
 {
 using KernelParserWorker = Analysis::Domain::KernelParserWorker;
 using EnvContext = Analysis::Domain::Environment::Context;
+using ExportManager = Analysis::Application::ExportManager;
+using ExportMode = Analysis::Application::ExportMode;
+using Analysis::Application::IsValidPipelineFlags;
+using Analysis::Application::PIPELINE_ALL;
+using Analysis::Application::PIPELINE_SUMMARY;
+using Analysis::Application::PIPELINE_TIMELINE;
 using namespace Analysis::Utils;
 using namespace Analysis::Domain;
 
 namespace
 {
 constexpr int ANALYSIS_INVALID_PARAM = 101;
-constexpr int PIPELINE_CANN_TRACE = 0x01;
-constexpr int PIPELINE_DEVICE_DATA = 0x02;
-constexpr int PIPELINE_DB = 0x04;
-constexpr int PIPELINE_TIMELINE = 0x08;
-constexpr int PIPELINE_SUMMARY = 0x10;
-constexpr int PIPELINE_ALL =
-    PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY;
 
 std::string GetPipelineFlagsString(int flags)
 {
     std::ostringstream oss;
     oss << "0x" << std::hex << flags;
     return oss.str();
-}
-
-int RunCannTrace(const std::string &cannTracePath)
-{
-    if (cannTracePath.empty() || !File::CheckDir(cannTracePath))
-    {
-        ERROR("Host CANN trace parsing path is invalid, path: %.", cannTracePath);
-        return ANALYSIS_INVALID_PARAM;
-    }
-    INFO("Start host CANN trace parsing, path: %.", cannTracePath);
-    KernelParserWorker parserWorker(cannTracePath);
-    const int ret = parserWorker.Run();
-    INFO("Host CANN trace parsing finished, path: %, ret: %.", cannTracePath, ret);
-    return ret;
-}
-
-int RunDeviceData(const std::string &devicePath)
-{
-    const std::string targetDir = File::ParentPath(devicePath);
-    if (!File::CheckDir(targetDir))
-    {
-        ERROR("Device data parsing path is invalid, path: %.", targetDir);
-        return ANALYSIS_INVALID_PARAM;
-    }
-    INFO("Start device data parsing, path: %.", targetDir);
-    DeviceContextEntry(targetDir.c_str(), "");
-    INFO("Device data parsing finished, path: %.", targetDir);
-    return ANALYSIS_OK;
-}
-
-int RunExport(const std::string &profPath, const std::string &jsonPath,
-              const std::set<Analysis::Application::ExportMode> &exportModes)
-{
-    Analysis::Application::ExportManager exportManager(profPath, jsonPath);
-    return exportManager.Run(exportModes) ? ANALYSIS_OK : ANALYSIS_ERROR;
 }
 
 std::string ResolveCannTracePath(const std::string &profPath, const char *cannTracePath)
@@ -122,103 +86,41 @@ std::string ResolveDevicePath(const std::string &profPath, const char *devicePat
 int RunPipeline(const char *profPath, int flags, const char *cannTracePath, const char *devicePath,
                 const char *reportsJson)
 {
-    if (profPath == nullptr || profPath[0] == '\0' || flags == 0 || (flags & ~PIPELINE_ALL) != 0)
+    if (profPath == nullptr || profPath[0] == '\0')
     {
+        ERROR("Cannot run unified pipeline: profile path is null or empty, flags: %.", flags);
         return ANALYSIS_INVALID_PARAM;
     }
-    if ((flags & PIPELINE_TIMELINE) != 0 && reportsJson != nullptr && reportsJson[0] != '\0' &&
+    if (!IsValidPipelineFlags(flags))
+    {
+        ERROR("Cannot run unified pipeline: invalid flags %, supported mask: %, profile path: %.", flags, PIPELINE_ALL,
+              profPath);
+        return ANALYSIS_INVALID_PARAM;
+    }
+    if ((flags & (PIPELINE_TIMELINE | PIPELINE_SUMMARY)) != 0 && reportsJson != nullptr && reportsJson[0] != '\0' &&
         !FileReader::Check(reportsJson))
     {
+        PRINT_ERROR("Cannot run unified pipeline: invalid reports file %, profile path: %.", reportsJson, profPath);
         return ANALYSIS_INVALID_PARAM;
     }
     const std::string profPathStr(profPath);
     if (!File::CheckDir(profPathStr))
     {
+        PRINT_ERROR("Cannot run unified pipeline: invalid profile directory %.", profPathStr);
         return ANALYSIS_INVALID_PARAM;
     }
     if (Log::GetInstance().Init(File::PathJoin({profPathStr, "mindstudio_profiler_log"})) != 0)
     {
         ERROR("Init msprof log failed, path is %.", profPathStr);
     }
-    if (!EnvContext::GetInstance().Load({profPathStr}))
-    {
-        ERROR("Context load failed, path is %.", profPathStr);
-        return ANALYSIS_ERROR;
-    }
-    const std::string flagsStr = GetPipelineFlagsString(flags);
-    INFO("Start C pipeline, prof path: %, flags: %.", profPathStr, flagsStr);
-    const bool isPythonParseComplete = Analysis::Application::ExportManager::IsPythonParseComplete(profPathStr);
-    const bool hasExportStage = (flags & (PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY)) != 0;
-    const bool hasExportedMsprofDB = Analysis::Application::ExportManager::HasExportedMsprofDB(profPathStr);
-    bool needDbExport = hasExportStage && !hasExportedMsprofDB;
-    if (hasExportStage && hasExportedMsprofDB)
-    {
-        INFO("The exported msprof db already exists, skip DB export, prof path: %.", profPathStr);
-    }
-    if ((flags & PIPELINE_CANN_TRACE) != 0 && !isPythonParseComplete)
-    {
-        const int ret = RunCannTrace(ResolveCannTracePath(profPathStr, cannTracePath));
-        if (ret != ANALYSIS_OK)
-        {
-            return ret;
-        }
-    }
-    if ((flags & PIPELINE_CANN_TRACE) != 0 && isPythonParseComplete)
-    {
-        INFO("Python parse is complete, skip host data parsing.");
-    }
-    if ((flags & PIPELINE_DEVICE_DATA) != 0 && !isPythonParseComplete)
-    {
-        const int ret = RunDeviceData(ResolveDevicePath(profPathStr, devicePath));
-        if (ret != ANALYSIS_OK)
-        {
-            return ret;
-        }
-    }
-    if ((flags & PIPELINE_DEVICE_DATA) != 0 && isPythonParseComplete)
-    {
-        INFO("Python parse is complete, skip device data parsing.");
-    }
-    if ((flags & PIPELINE_DB) != 0 && needDbExport)
-    {
-        INFO("Start DB export, prof path: %.", profPathStr);
-        if (RunExport(profPathStr, "", {Analysis::Application::ExportMode::DB}) != ANALYSIS_OK)
-        {
-            return ANALYSIS_ERROR;
-        }
-    }
-    if ((flags & PIPELINE_DB) != 0)
-    {
-        needDbExport = false;
-    }
-    if ((flags & PIPELINE_TIMELINE) != 0)
-    {
-        const std::string reportsJsonPath = reportsJson == nullptr ? "" : reportsJson;
-        const std::set<Analysis::Application::ExportMode> exportModes =
-            needDbExport ? std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::TIMELINE,
-                                                                       Analysis::Application::ExportMode::DB}
-                         : std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::TIMELINE};
-        INFO("Start timeline export, prof path: %, export DB: %.", profPathStr, needDbExport ? "true" : "false");
-        if (RunExport(profPathStr, reportsJsonPath, exportModes) != ANALYSIS_OK)
-        {
-            return ANALYSIS_ERROR;
-        }
-        needDbExport = false;
-    }
-    if ((flags & PIPELINE_SUMMARY) != 0)
-    {
-        const std::set<Analysis::Application::ExportMode> exportModes =
-            needDbExport ? std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::SUMMARY,
-                                                                       Analysis::Application::ExportMode::DB}
-                         : std::set<Analysis::Application::ExportMode>{Analysis::Application::ExportMode::SUMMARY};
-        INFO("Start summary export, prof path: %, export DB: %.", profPathStr, needDbExport ? "true" : "false");
-        if (RunExport(profPathStr, "", exportModes) != ANALYSIS_OK)
-        {
-            return ANALYSIS_ERROR;
-        }
-    }
-    INFO("C pipeline finished, prof path: %, flags: %.", profPathStr, flagsStr);
-    return ANALYSIS_OK;
+    Analysis::Application::PipelineRequest request;
+    request.profPath = profPathStr;
+    request.flags = flags;
+    request.hostPath = ResolveCannTracePath(profPathStr, cannTracePath);
+    request.devicePath = ResolveDevicePath(profPathStr, devicePath);
+    request.reportsJson = reportsJson == nullptr ? "" : reportsJson;
+    INFO("Start unified C pipeline, path: %, flags: %.", profPathStr, GetPipelineFlagsString(flags));
+    return Analysis::Application::RunUnifiedPipeline(request);
 }
 }  // namespace
 
@@ -287,13 +189,8 @@ PyObject *WrapExportUnifiedDB(PyObject *self, PyObject *args)
         return NULL;
     }
     Log::GetInstance().Init(Utils::File::PathJoin({parseFilePath, "mindstudio_profiler_log"}));
-    auto exportManager = Analysis::Application::ExportManager(parseFilePath);
-    if (!exportManager.Run({Analysis::Application::ExportMode::DB}))
-    {
-        ERROR("UnifiedDB run failed.");
-        return Py_BuildValue("i", ANALYSIS_ERROR);
-    }
-    return Py_BuildValue("i", ANALYSIS_OK);
+    ExportManager manager(parseFilePath);
+    return Py_BuildValue("i", manager.Run({ExportMode::DB}) ? ANALYSIS_OK : ANALYSIS_ERROR);
 }
 
 PyObject *WrapExportTimeline(PyObject *self, PyObject *args)
@@ -317,13 +214,8 @@ PyObject *WrapExportTimeline(PyObject *self, PyObject *args)
         return NULL;
     }
     Log::GetInstance().Init(Utils::File::PathJoin({parseFilePath, "mindstudio_profiler_log"}));
-    auto exportManager = Analysis::Application::ExportManager(parseFilePath, reportJsonPath);
-    if (!exportManager.Run({Analysis::Application::ExportMode::TIMELINE, Analysis::Application::ExportMode::DB}))
-    {
-        ERROR("Timeline run failed.");
-        return Py_BuildValue("i", ANALYSIS_ERROR);
-    }
-    return Py_BuildValue("i", ANALYSIS_OK);
+    ExportManager manager(parseFilePath, reportJsonPath);
+    return Py_BuildValue("i", manager.Run({ExportMode::TIMELINE, ExportMode::DB}) ? ANALYSIS_OK : ANALYSIS_ERROR);
 }
 
 PyObject *WrapExportSummary(PyObject *self, PyObject *args)
@@ -341,13 +233,8 @@ PyObject *WrapExportSummary(PyObject *self, PyObject *args)
         return NULL;
     }
     Log::GetInstance().Init(Utils::File::PathJoin({parseFilePath, "mindstudio_profiler_log"}));
-    auto exportManager = Analysis::Application::ExportManager(parseFilePath, "");
-    if (!exportManager.Run({Analysis::Application::ExportMode::SUMMARY, Analysis::Application::ExportMode::DB}))
-    {
-        ERROR("Summary run failed.");
-        return Py_BuildValue("i", ANALYSIS_ERROR);
-    }
-    return Py_BuildValue("i", ANALYSIS_OK);
+    ExportManager manager(parseFilePath);
+    return Py_BuildValue("i", manager.Run({ExportMode::SUMMARY, ExportMode::DB}) ? ANALYSIS_OK : ANALYSIS_ERROR);
 }
 
 PyObject *WrapRunPipeline(PyObject *self, PyObject *args)
@@ -364,5 +251,6 @@ PyObject *WrapRunPipeline(PyObject *self, PyObject *args)
     }
     return Py_BuildValue("i", RunPipeline(profPath, flags, cannTracePath, devicePath, reportsJson));
 }
+
 }  // namespace Interface
 }  // namespace Analysis

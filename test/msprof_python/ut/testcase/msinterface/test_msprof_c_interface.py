@@ -15,9 +15,12 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import re
 import unittest
+from pathlib import Path
 from unittest import mock
 
+from msinterface import msprof_c_interface
 from msinterface.msprof_c_interface import _dump_cann_trace
 from msinterface.msprof_c_interface import _dump_device_data
 from msinterface.msprof_c_interface import _export_unified_db
@@ -33,6 +36,21 @@ NAMESPACE = 'msinterface.msprof_c_interface'
 
 
 class TestMsprofCInterface(unittest.TestCase):
+
+    def test_pipeline_flags_match_native_header(self):
+        header = Path(msprof_c_interface.__file__).resolve().parents[1] / "csrc/application/pipeline/pipeline_flags.h"
+        declarations = re.findall(
+            r"constexpr\s+int\s+(PIPELINE_\w+)\s*=\s*(0[xX][0-9a-fA-F]+|\d+)\s*;",
+            header.read_text(encoding="utf-8"),
+        )
+        native_flags = {name: int(value, 0) for name, value in declarations}
+        python_flags = {
+            name[len("MSPROF_"):]: value
+            for name, value in vars(msprof_c_interface).items()
+            if name.startswith("MSPROF_PIPELINE_")
+        }
+        self.assertTrue(native_flags, "No native pipeline flag declarations found")
+        self.assertEqual(python_flags, native_flags)
 
     def test_dump_cann_trace(self):
         with mock.patch('importlib.import_module'):

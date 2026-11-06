@@ -21,7 +21,7 @@
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -180,8 +180,5 @@ uint32_t TsTrackPersistence::ProcessEntry(DataInventory& dataInventory, const Co
     ERROR("Save tsTrack data failed");
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(TsTrackPersistence, true, TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(TsTrackPersistence, std::vector<HalTrackData>);
-REGISTER_PROCESS_SUPPORT_CHIP(TsTrackPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

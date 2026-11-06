@@ -16,6 +16,7 @@
 
 #ifndef ANALYSIS_WORKER_HOST_TRACE_THREAD_H
 #define ANALYSIS_WORKER_HOST_TRACE_THREAD_H
+#include <atomic>
 #include <cstdint>
 #include <set>
 #include <string>
@@ -50,6 +51,7 @@ class HostTraceWorker
     bool Run();
 
    private:
+    void AddCheckedTask(ThreadPool &pool, const std::string &step, const Task &task);
     void PrepareLookupData(const std::shared_ptr<EventGrouper> &grouper, CaptureStreamInfoData &formattedCaptureData);
     void PrepareCaptureStreamInfo(const std::shared_ptr<EventGrouper> &grouper,
                                   CaptureStreamInfoData &formattedCaptureData);
@@ -77,6 +79,7 @@ class HostTraceWorker
     void MultiThreadAnalyzeTreeDumpData();
 
    private:
+    std::atomic<bool> succeeded_{true};
     const uint32_t poolSize_ = 10;
     std::mutex mutex_;
     std::vector<std::pair<uint32_t, std::shared_ptr<TreeNode>>> treeNodes_;

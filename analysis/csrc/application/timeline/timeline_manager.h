@@ -46,7 +46,7 @@ class TimelineManager
     static std::vector<TopoNodeId> ResolveTimelinePreDumpDependencies(const TopoBuildContext &context,
                                                                       const std::vector<TopoNodeId> &roots);
     bool PreDumpJson(const std::vector<JsonProcess> &jsonProcess, DataInventory &dataInventory);
-    void PostDumpJson();
+    bool PostDumpJson();
 
    private:
     static std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess> &jsonProcess);

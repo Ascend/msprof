@@ -141,6 +141,43 @@ class ContextUTest : public testing::Test
     }
 };
 
+TEST_F(ContextUTest, ShouldResolveLoadedProfileThroughHostParentPathWithoutReloading)
+{
+    auto &context = Context::GetInstance();
+    context.Clear();
+    const auto first = File::PathJoin({CONTEXT_DIR, LOCAL_DIR});
+    const auto second = File::PathJoin({CONTEXT_DIR, TEST_DIR});
+    ASSERT_TRUE(context.Load({first, second}));
+    for (auto &device : context.context_.at(first)) { device.second["profLevel"] = "l0"; }
+    for (auto &device : context.context_.at(second)) { device.second["profLevel"] = "l1"; }
+    const auto *expected = &context.GetInfoByDeviceId(HOST_ID, second);
+    const std::vector<std::string> aliases{
+        second + "/host/..", second + "/host/../", second + "/device_0/..",
+        second + "/./host/../", second.substr(2)};
+    for (const auto &alias : aliases)
+    {
+        SCOPED_TRACE(alias);
+        EXPECT_EQ(&context.GetInfoByDeviceId(HOST_ID, alias), expected);
+        EXPECT_FALSE(context.IsLevel0(alias));
+    }
+    EXPECT_TRUE(context.IsLevel0(first + "/host/.."));
+    EXPECT_TRUE(context.GetInfoByDeviceId(HOST_ID, "./context/PROF_missing/host/..").empty());
+    EXPECT_EQ(context.context_.size(), 2U);
+}
+
+TEST_F(ContextUTest, ShouldResolveCanonicalQueryWhenProfileWasLoadedThroughHostParentPath)
+{
+    auto &context = Context::GetInstance();
+    context.Clear();
+    const auto prof = File::PathJoin({CONTEXT_DIR, TEST_DIR});
+    const auto loaded = prof + "/host/..";
+    ASSERT_TRUE(context.Load({loaded}));
+    for (auto &device : context.context_.at(loaded)) { device.second["profLevel"] = "l1"; }
+    EXPECT_EQ(&context.GetInfoByDeviceId(HOST_ID, prof), &context.GetInfoByDeviceId(HOST_ID, loaded));
+    EXPECT_FALSE(context.IsLevel0(prof));
+    EXPECT_EQ(context.context_.size(), 1U);
+}
+
 TEST_F(ContextUTest, TestLoadShouldReturnTrueWhenReadJsonSuccess)
 {
     EXPECT_TRUE(Context::GetInstance().Load({File::PathJoin(std::vector<std::string>{CONTEXT_DIR, LOCAL_DIR})}));

@@ -19,11 +19,12 @@
 
 #include <algorithm>
 
+#include "analysis/csrc/domain/services/init/include/device_task_process.h"
 #include "analysis/csrc/domain/services/modeling/batch_id/batch_id.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_parser.h"
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/time_logger.h"
 
@@ -270,20 +271,6 @@ MergeTaskKeyData LogModeling::GenMergeTaskKey(const HalLogData& logData)
 {
     return {logData.hd.taskId.contextId, logData.hd.taskId.taskId, logData.hd.taskId.streamId};
 }
-
-REGISTER_PROCESS_SEQUENCE(Domain::LogModeling, true, Domain::StarsSocParser, Domain::TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(Domain::LogModeling, std::vector<Domain::HalLogData>, std::vector<Domain::HalTrackData>,
-                                std::map<Domain::TaskId, std::vector<Domain::DeviceTask>>);
-REGISTER_PROCESS_SUPPORT_CHIP(Domain::LogModeling, CHIP_V4_1_0);
-
-namespace CHIP_V6
-{
-REGISTER_PROCESS_SEQUENCE(Domain::LogModelingV6, true, Domain::StarsSocParserV6, Domain::TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(Domain::LogModelingV6, std::vector<Domain::HalLogData>,
-                                std::vector<Domain::HalTrackData>,
-                                std::map<Domain::TaskId, std::vector<Domain::DeviceTask>>);
-REGISTER_PROCESS_SUPPORT_CHIP(Domain::LogModelingV6, CHIP_V6_1_0, CHIP_V6_1_1);
-}  // namespace CHIP_V6
 
 }  // namespace Domain
 }  // namespace Analysis

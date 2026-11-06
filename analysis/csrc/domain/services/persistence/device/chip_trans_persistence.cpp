@@ -27,7 +27,7 @@
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -163,10 +163,6 @@ uint32_t ChipTransPersistence::ProcessEntry(DataInventory& dataInventory, const 
     }
     return ANALYSIS_OK;
 }
-
-REGISTER_PROCESS_SEQUENCE(ChipTransPersistence, false, StarsSocProfileParser);
-REGISTER_PROCESS_DEPENDENT_DATA(ChipTransPersistence, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(ChipTransPersistence, CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0);
 
 }  // namespace Domain
 }  // namespace Analysis

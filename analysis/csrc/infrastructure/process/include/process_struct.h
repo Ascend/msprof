@@ -18,24 +18,49 @@
 
 #include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
+namespace Analysis
+{
 
-namespace Infra {
+namespace Infra
+{
 
 using ProcessCreator = std::function<std::unique_ptr<Process>()>;
 
-struct RegProcessInfo {
-    ProcessCreator creator;  // 本Process的创建函数
+template <typename Key>
+struct BasicProcessInfo
+{
+    BasicProcessInfo() = default;
+    BasicProcessInfo(ProcessCreator create, std::vector<std::type_index> inputs, std::vector<Key> dependencies,
+                     std::vector<uint32_t> chips, std::string name, bool required)
+        : creator(std::move(create)),
+          paramTypes(std::move(inputs)),
+          processDependence(std::move(dependencies)),
+          chipIds(std::move(chips)),
+          processName(std::move(name)),
+          mandatory(required)
+    {
+    }
+    ProcessCreator creator;                   // 本Process的创建函数
     std::vector<std::type_index> paramTypes;  // 本Process需要的数据类型
-    std::vector<std::type_index> processDependence;  // 本Process依赖的前向Process
-    std::vector<uint32_t> chipIds;  // 本Process支持的ChipId
-    std::string processName;  // 本Process的类名for Dfx
-    bool mandatory;  // 是否为关键流程，关键流程失败后，会停止后续流程导致整体失败 true表示关键流程
+    std::vector<Key> processDependence;       // 本Process依赖的前向Process
+    std::vector<Key> completionDependence;    // Wait for termination, without requiring success.
+    std::vector<uint32_t> chipIds;            // 本Process支持的ChipId
+    std::string processName;                  // 本Process的类名for Dfx
+    bool mandatory = false;
+    std::string scope;
+    std::shared_ptr<const Context> context;
+    std::shared_ptr<DataInventory> inventory;
+    std::vector<std::string> resources;
+    bool opensDeviceScope = false;
+    bool closesDeviceScope = false;
+    // Wait for all predecessors, but allow execution when they failed or were blocked.
+    bool runOnDependencyFailure = false;
 };
 
-using ProcessCollection = std::unordered_map<std::type_index, RegProcessInfo>;
-}
-}
-
+using RuntimeProcessKey = uint64_t;
+using RuntimeProcessInfo = BasicProcessInfo<RuntimeProcessKey>;
+using RuntimeProcessCollection = std::unordered_map<RuntimeProcessKey, RuntimeProcessInfo>;
+}  // namespace Infra
+}  // namespace Analysis
 
 #endif

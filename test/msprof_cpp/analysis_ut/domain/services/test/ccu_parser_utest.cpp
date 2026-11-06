@@ -16,9 +16,6 @@
  * -------------------------------------------------------------------------
  */
 
-#include "analysis/csrc/domain/services/parser/ccu_parser.h"
-#include "analysis/csrc/domain/services/persistence/device/ccu_persistence.h"
-
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -30,11 +27,13 @@
 #include <vector>
 
 #include "analysis/csrc/domain/services/device_context/device_context.h"
+#include "analysis/csrc/domain/services/parser/ccu_parser.h"
+#include "analysis/csrc/domain/services/persistence/device/ccu_persistence.h"
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "gtest/gtest.h"
@@ -44,6 +43,7 @@ namespace Analysis
 namespace Domain
 {
 using namespace Infra;
+using namespace Application;
 using namespace Utils;
 
 namespace
@@ -142,48 +142,53 @@ std::unique_ptr<Process> CreateProcess()
     return std::unique_ptr<Process>(new T);
 }
 
-void RegisterCcuTopologyForTest()
+template <typename T>
+TopoNodeDefinition CcuDefinition(const char* name, std::vector<TopoNodeId> dependencies = {})
 {
-    // The device-parser UT target stubs registration macros, so populate the same metadata explicitly.
-    static ProcessRegister missionSequence(typeid(CcuMissionParser), CreateProcess<CcuMissionParser>, true,
-                                           "CcuMissionParser", {});
-    static ProcessRegister missionChip(typeid(CcuMissionParser), {CHIP_V6_1_0});
-    static ProcessRegister channelSequence(typeid(CcuChannelParser), CreateProcess<CcuChannelParser>, true,
-                                           "CcuChannelParser", {});
-    static ProcessRegister channelChip(typeid(CcuChannelParser), {CHIP_V6_1_0});
-    static ProcessRegister persistenceSequence(
-        typeid(CcuPersistence), CreateProcess<CcuPersistence>, true, "CcuPersistence",
-        {typeid(CcuMissionParser), typeid(CcuChannelParser)});
-    static ProcessRegister persistenceData(
-        typeid(CcuPersistence), std::vector<std::type_index>{typeid(CcuMissionDataSet), typeid(CcuChannelDataSet)});
-    static ProcessRegister persistenceChip(typeid(CcuPersistence), {CHIP_V6_1_0});
-    (void)missionSequence;
-    (void)missionChip;
-    (void)channelSequence;
-    (void)channelChip;
-    (void)persistenceSequence;
-    (void)persistenceData;
-    (void)persistenceChip;
+    TopoNodeDefinition definition;
+    definition.id = TOPO_NODE(DEVICE_PROCESSING, name);
+    definition.scopeKind = TopoScopeKind::DEVICE;
+    definition.runtimeType = typeid(T);
+    definition.mandatory = true;
+    definition.chipIds = {CHIP_V6_1_0, CHIP_V6_1_1};
+    definition.processDependencies = std::move(dependencies);
+    definition.creatorFactory = [](const TopoBuildContext&) -> ProcessCreator { return CreateProcess<T>; };
+    return definition;
 }
 
-ProcessCollection SelectCcuTopology()
+void RegisterCcuTopologyForTest()
+{
+    // This partial business target supplies only the three CCU implementations.
+    static const bool registered = []
+    {
+        TopoNodeRegistry::Register(CcuDefinition<CcuMissionParser>("CcuMissionParser"));
+        TopoNodeRegistry::Register(CcuDefinition<CcuChannelParser>("CcuChannelParser"));
+        auto persistence = CcuDefinition<CcuPersistence>("CcuPersistence",
+                                                         TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"),
+                                                                   TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")));
+        persistence.inputDataTypes = {typeid(CcuMissionDataSet), typeid(CcuChannelDataSet)};
+        return TopoNodeRegistry::Register(std::move(persistence));
+    }();
+    (void)registered;
+}
+
+bool RunCcuTopology(DataInventory& inventory, DeviceContext& context, ProcessControlOptions options = {})
 {
     RegisterCcuTopologyForTest();
-    ProcessCollection registered = ProcessRegister::CopyProcessInfo();
-    ProcessCollection selected;
-    const std::vector<std::type_index> processTypes = {
-        typeid(CcuMissionParser), typeid(CcuChannelParser), typeid(CcuPersistence)
-    };
-    for (const auto& processType : processTypes)
+    TopoBuildContext bindings;
+    const std::string scope = "device_0";
+    bindings.scopeChips[scope] = context.GetChipID();
+    bindings.scopePaths[scope] = DEVICE_PATH;
+    bindings.scopeContexts[scope] = std::shared_ptr<Context>(&context, [](Context*) {});
+    bindings.scopeInventories[scope] = std::shared_ptr<DataInventory>(&inventory, [](DataInventory*) {});
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    if (!builder.Build(bindings, {{TopoNodeStage::DEVICE_PROCESSING, "CcuPersistence", scope}}, graph))
     {
-        const auto process = registered.find(processType);
-        EXPECT_NE(process, registered.end());
-        if (process != registered.end())
-        {
-            selected.emplace(processType, process->second);
-        }
+        return false;
     }
-    return selected;
+    ProcessControl executor(graph, options);
+    return executor.ExecuteProcess();
 }
 
 }  // namespace
@@ -290,12 +295,10 @@ TEST_F(CcuParserUTest, TopologyKeepsSourceStateHostMappingAndSqliteContract)
     WriteBytes(File::PathJoin({DATA_PATH, "ccu0.stat.7.slice_0"}), BuildChannelRecord());
     CreateRuntimeDb(taskA);
 
-    ProcessCollection topology = SelectCcuTopology();
     ProcessControlOptions options;
     options.maxWorkerThreads = 2;
-    ProcessControl control(topology, options);
     DataInventory inventory;
-    ASSERT_TRUE(control.ExecuteProcess(inventory, context_));
+    ASSERT_TRUE(RunCcuTopology(inventory, context_, options));
 
     using MissionRows =
         std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint64_t, uint64_t, uint32_t, uint64_t, uint32_t,
@@ -337,26 +340,24 @@ TEST_F(CcuParserUTest, TopologyConsumesPrefixAcrossShortSlicesAndRejectsUnsafeRe
         WriteBytes(File::PathJoin({DATA_PATH, "ccu0.instr.7.slice_" + std::to_string(i)}),
                    std::vector<uint8_t>(bytes.begin() + offsets[i], bytes.begin() + offsets[i + 1]));
     }
-    auto topology = SelectCcuTopology();
     ProcessControlOptions options;
     options.maxWorkerThreads = 2;
-    ProcessControl control(topology, options);
     DataInventory first;
-    ASSERT_TRUE(control.ExecuteProcess(first, context_));
+    ASSERT_TRUE(RunCcuTopology(first, context_, options));
     DBRunner runner(CCU_DB_PATH);
     std::vector<std::tuple<uint32_t>> rows;
     ASSERT_TRUE(runner.QueryData("SELECT task_id FROM OriginMission", rows));
     ASSERT_EQ(1U, rows.size());
     EXPECT_EQ((9U << 16) | 7U, std::get<0>(rows[0]));
     DataInventory completed;
-    ASSERT_TRUE(control.ExecuteProcess(completed, context_));
+    ASSERT_TRUE(RunCcuTopology(completed, context_, options));
     ASSERT_TRUE(File::DeleteFile(File::PathJoin({DATA_PATH, "ccu0.instr.7.slice_0.complete"})));
     DataInventory partial;
-    EXPECT_FALSE(control.ExecuteProcess(partial, context_));
+    EXPECT_FALSE(RunCcuTopology(partial, context_, options));
     ASSERT_TRUE(File::DeleteFile(File::PathJoin({DATA_PATH, "ccu0.instr.7.slice_1.complete"})));
     ASSERT_TRUE(File::DeleteFile(File::PathJoin({DATA_PATH, "ccu0.instr.7.slice_2.complete"})));
     DataInventory unmarked;
-    EXPECT_FALSE(control.ExecuteProcess(unmarked, context_));
+    EXPECT_FALSE(RunCcuTopology(unmarked, context_, options));
     rows.clear();
     ASSERT_TRUE(runner.QueryData("SELECT task_id FROM OriginMission", rows));
     EXPECT_EQ(1U, rows.size());
@@ -367,15 +368,13 @@ TEST_F(CcuParserUTest, ZeroRowRetryShouldRejectExistingRowsWithoutCreatingMarker
     const std::string sourceName = "ccu0.instr.7.slice_0";
     const auto sourcePath = File::PathJoin({DATA_PATH, sourceName});
     WriteBytes(sourcePath, BuildMissionRecord(7, 9));
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory first;
-    ASSERT_TRUE(control.ExecuteProcess(first, context_));
+    ASSERT_TRUE(RunCcuTopology(first, context_));
     ASSERT_TRUE(File::DeleteFile(sourcePath + ".complete"));
     WriteBytes(sourcePath, {1});
 
     DataInventory retry;
-    EXPECT_FALSE(control.ExecuteProcess(retry, context_));
+    EXPECT_FALSE(RunCcuTopology(retry, context_));
     EXPECT_FALSE(File::Exist(sourcePath + ".complete"));
     DBRunner runner(CCU_DB_PATH);
     std::vector<std::tuple<uint64_t>> count;
@@ -388,15 +387,13 @@ TEST_F(CcuParserUTest, CompletedSourceWithoutPersistedTableShouldFail)
 {
     const std::string sourceName = "ccu0.instr.7.slice_0";
     WriteBytes(File::PathJoin({DATA_PATH, sourceName}), BuildMissionRecord(7, 9));
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory first;
-    ASSERT_TRUE(control.ExecuteProcess(first, context_));
+    ASSERT_TRUE(RunCcuTopology(first, context_));
     ASSERT_TRUE(File::Exist(File::PathJoin({DATA_PATH, sourceName + ".complete"})));
     ASSERT_TRUE(File::DeleteFile(CCU_DB_PATH));
 
     DataInventory retry;
-    EXPECT_FALSE(control.ExecuteProcess(retry, context_));
+    EXPECT_FALSE(RunCcuTopology(retry, context_));
 }
 
 TEST_F(CcuParserUTest, CompletedSourcePreflightShouldRunBeforeOtherTableWrites)
@@ -406,11 +403,9 @@ TEST_F(CcuParserUTest, CompletedSourcePreflightShouldRunBeforeOtherTableWrites)
     WriteBytes(File::PathJoin({DATA_PATH, missionSource}), BuildMissionRecord(7, 9));
     WriteBytes(File::PathJoin({DATA_PATH, channelSource}), BuildChannelRecord());
     WriteBytes(File::PathJoin({DATA_PATH, channelSource + ".complete"}), {});
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory inventory;
 
-    EXPECT_FALSE(control.ExecuteProcess(inventory, context_));
+    EXPECT_FALSE(RunCcuTopology(inventory, context_));
     DBRunner runner(CCU_DB_PATH);
     EXPECT_FALSE(runner.CheckTableExists("OriginMission"));
 }
@@ -422,11 +417,9 @@ TEST_F(CcuParserUTest, CompletedAndPendingSourcesWithoutTableShouldNotLoseComple
     WriteBytes(File::PathJoin({DATA_PATH, completedSource}), BuildMissionRecord(7, 9));
     WriteBytes(File::PathJoin({DATA_PATH, completedSource + ".complete"}), {});
     WriteBytes(File::PathJoin({DATA_PATH, pendingSource}), BuildMissionRecord(3, 2));
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory inventory;
 
-    EXPECT_FALSE(control.ExecuteProcess(inventory, context_));
+    EXPECT_FALSE(RunCcuTopology(inventory, context_));
     EXPECT_FALSE(File::Exist(File::PathJoin({DATA_PATH, pendingSource + ".complete"})));
     DBRunner runner(CCU_DB_PATH);
     EXPECT_FALSE(runner.CheckTableExists("OriginMission"));
@@ -437,11 +430,9 @@ TEST_F(CcuParserUTest, MalformedHostTaskShouldFailInsteadOfUsingDefaultStream)
     const std::string sourceName = "ccu0.instr.7.slice_0";
     WriteBytes(File::PathJoin({DATA_PATH, sourceName}), BuildMissionRecord(7, 9));
     CreateMalformedRuntimeDb();
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory inventory;
 
-    EXPECT_FALSE(control.ExecuteProcess(inventory, context_));
+    EXPECT_FALSE(RunCcuTopology(inventory, context_));
     EXPECT_FALSE(File::Exist(File::PathJoin({DATA_PATH, sourceName + ".complete"})));
 }
 
@@ -453,11 +444,9 @@ TEST_F(CcuParserUTest, SqliteIntegerOverflowShouldFailBeforeCompletionMarker)
     auto channel = BuildChannelRecord();
     PutLittleEndian<uint32_t>(channel, sizeof(uint32_t), std::numeric_limits<uint32_t>::max());
     WriteBytes(File::PathJoin({DATA_PATH, channelSource}), channel);
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory inventory;
 
-    EXPECT_FALSE(control.ExecuteProcess(inventory, context_));
+    EXPECT_FALSE(RunCcuTopology(inventory, context_));
     DBRunner runner(CCU_DB_PATH);
     EXPECT_FALSE(runner.CheckTableExists("OriginMission"));
     EXPECT_FALSE(runner.CheckTableExists("OriginChannel"));
@@ -471,10 +460,8 @@ TEST_F(CcuParserUTest, ArbitraryLengthSourceIdsShouldRemainIndependent)
     const std::string sourceB = "ccu0.instr.184467440737095516161.slice_1";
     WriteBytes(File::PathJoin({DATA_PATH, sourceA}), BuildMissionRecord(7, 9));
     WriteBytes(File::PathJoin({DATA_PATH, sourceB}), BuildMissionRecord(3, 2));
-    auto topology = SelectCcuTopology();
-    ProcessControl control(topology);
     DataInventory inventory;
-    ASSERT_TRUE(control.ExecuteProcess(inventory, context_));
+    ASSERT_TRUE(RunCcuTopology(inventory, context_));
 
     DBRunner runner(CCU_DB_PATH);
     std::vector<std::tuple<uint32_t>> rows;
@@ -485,8 +472,8 @@ TEST_F(CcuParserUTest, ArbitraryLengthSourceIdsShouldRemainIndependent)
 TEST_F(CcuParserUTest, UnifiedDeviceEntryParsesCcuAlongsideOtherRegisteredProcesses)
 {
     RegisterCcuTopologyForTest();
-    static ProcessRegister sequence(typeid(NonCcuWriter), CreateProcess<NonCcuWriter>, true, "NonCcuWriter", {});
-    static ProcessRegister chip(typeid(NonCcuWriter), {CHIP_ID_ALL});
+    auto other = CcuDefinition<NonCcuWriter>("NonCcuWriter");
+    TopoNodeRegistry::Register(std::move(other));
     nonCcuExecutions = 0;
     const std::vector<std::pair<std::string, std::string>> config = {
         {"info.json.0", R"({"platform_version":"15","devices":"0","DeviceInfo":[{"hwts_frequency":"49",
@@ -523,27 +510,16 @@ TEST_F(CcuParserUTest, UnifiedDeviceEntryParsesCcuAlongsideOtherRegisteredProces
 TEST_F(CcuParserUTest, RegisteredTopologySupportsOnlyV61)
 {
     RegisterCcuTopologyForTest();
-    const ProcessCollection registered = ProcessRegister::CopyProcessInfo();
-    const std::vector<std::type_index> processTypes = {
-        typeid(CcuMissionParser), typeid(CcuChannelParser), typeid(CcuPersistence)
-    };
-    for (const auto& processType : processTypes)
+    for (const auto& name : {"CcuMissionParser", "CcuChannelParser", "CcuPersistence"})
     {
-        const auto process = registered.find(processType);
-        ASSERT_NE(process, registered.end());
-        ASSERT_EQ(1UL, process->second.chipIds.size());
-        EXPECT_EQ(CHIP_V6_1_0, process->second.chipIds.front());
+        const auto* definition = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, name));
+        ASSERT_NE(definition, nullptr);
+        EXPECT_EQ(definition->chipIds, (std::vector<uint32_t>{CHIP_V6_1_0, CHIP_V6_1_1}));
     }
-
-    const auto persistence = registered.find(typeid(CcuPersistence));
-    ASSERT_NE(persistence, registered.end());
-    ASSERT_EQ(2UL, persistence->second.processDependence.size());
-    EXPECT_NE(std::find(persistence->second.processDependence.begin(), persistence->second.processDependence.end(),
-                        typeid(CcuMissionParser)),
-              persistence->second.processDependence.end());
-    EXPECT_NE(std::find(persistence->second.processDependence.begin(), persistence->second.processDependence.end(),
-                        typeid(CcuChannelParser)),
-              persistence->second.processDependence.end());
+    const auto* persistence = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence"));
+    ASSERT_NE(persistence, nullptr);
+    EXPECT_EQ(persistence->processDependencies, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"),
+                                                          TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")));
 }
 
 }  // namespace Domain

@@ -448,10 +448,5 @@ uint32_t LoadHostData::ProcessEntry(DataInventory& dataInventory, const Infra::C
            ReadMc2CommInfo(dataInventory, deviceContext);
 }
 
-REGISTER_PROCESS_SEQUENCE(LoadHostData, false, Analysis::Domain::LogModeling, Analysis::Domain::LogModelingV6);
-REGISTER_PROCESS_DEPENDENT_DATA(LoadHostData, std::map<TaskId, std::vector<Domain::DeviceTask>>, AicpuOpNameMap,
-                                std::vector<Mc2CommInfo>);
-REGISTER_PROCESS_SUPPORT_CHIP(LoadHostData, CHIP_ID_ALL);
-
 }  // namespace Domain
 }  // namespace Analysis

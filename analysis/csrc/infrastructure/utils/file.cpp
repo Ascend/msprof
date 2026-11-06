@@ -20,9 +20,13 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <set>
 #include <unordered_map>
@@ -47,7 +51,156 @@ const std::unordered_map<std::string, std::string> INVALID_CHAR = {
     {"\n", "\\n"},         {"\f", "\\f"},  {"\r", "\\r"}, {"\b", "\\b"},  {"\t", "\\t"}, {"\v", "\\v"},
     {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},   {"\\", "\\\\"}, {"%", "\\%"},  {">", "\\>"},
     {"<", "\\<"},          {"|", "\\|"},   {"&", "\\&"},  {"$", "\\$"}};
+
+bool CheckFilePath(const std::string &path)
+{
+    if (path.empty() || path.size() > MAX_PATH_SIZE)
+    {
+        ERROR("Invalid file path length: %.", path.size());
+        return false;
+    }
+    if (path.find('\0') != std::string::npos)
+    {
+        ERROR("The file path contains an embedded null character.");
+        return false;
+    }
+    for (const auto &item : INVALID_CHAR)
+    {
+        if (path.find(item.first) != std::string::npos)
+        {
+            ERROR("The file path contains invalid character: %.", item.second);
+            return false;
+        }
+    }
+    return true;
+}
+
+struct TemporaryFile
+{
+    std::string path;
+    int descriptor = -1;
+    bool created = false;
+    ~TemporaryFile()
+    {
+        if (descriptor >= 0 && close(descriptor) != 0)
+        {
+            ERROR("Close temporary file failed: %, reason: %.", path, strerror(errno));
+        }
+        if (created && !File::DeleteFile(path))
+        {
+            ERROR("Remove temporary file failed: %, reason: %.", path, strerror(errno));
+        }
+    }
+};
 }  // namespace
+
+bool File::GetMetadata(const std::string &filePath, FileMetadata &metadata)
+{
+    metadata = {};
+    if (!CheckFilePath(filePath))
+    {
+        return false;
+    }
+    struct stat info
+    {
+    };
+    if (stat(filePath.c_str(), &info) != 0)
+    {
+        ERROR("Read file metadata failed: %, reason: %.", filePath, strerror(errno));
+        return false;
+    }
+    if (!S_ISREG(info.st_mode))
+    {
+        ERROR("Cannot read regular file metadata: % is not a regular file.", filePath);
+        return false;
+    }
+    metadata.size = info.st_size;
+    metadata.modifiedTime = info.st_mtime;
+    metadata.modifiedTimeNanoseconds = info.st_mtim.tv_nsec;
+    return true;
+}
+
+bool File::WriteTextAtomic(const std::string &filePath, const std::string &content, const mode_t &permission)
+{
+    if (!CheckFilePath(filePath))
+    {
+        return false;
+    }
+    const auto parent = filePath.find_last_of("/\\") == std::string::npos ? "." : ParentPath(filePath);
+    if (!CheckDir(parent))
+    {
+        return false;
+    }
+    struct stat target
+    {
+    };
+    if (lstat(filePath.c_str(), &target) == 0)
+    {
+        if (!S_ISREG(target.st_mode))
+        {
+            ERROR("Cannot atomically replace a non-regular file: %.", filePath);
+            return false;
+        }
+    }
+    else if (errno != ENOENT)
+    {
+        ERROR("Check atomic write target failed: %, reason: %.", filePath, strerror(errno));
+        return false;
+    }
+    if (!FileWriter::Check(filePath))
+    {
+        return false;
+    }
+    TemporaryFile temporary;
+    temporary.path = filePath + ".tmp.XXXXXX";
+    std::vector<char> name(temporary.path.begin(), temporary.path.end());
+    name.push_back('\0');
+    temporary.descriptor = mkstemp(name.data());
+    if (temporary.descriptor < 0)
+    {
+        ERROR("Create atomic write temporary file failed for %, reason: %.", filePath, strerror(errno));
+        return false;
+    }
+    std::copy(name.begin(), name.end() - 1, temporary.path.begin());
+    temporary.created = true;
+    // Keep the exclusively created descriptor open; reopening the path could follow a substituted symbolic link.
+    if (fchmod(temporary.descriptor, permission) != 0)
+    {
+        ERROR("Set temporary file permissions failed: %, reason: %.", temporary.path, strerror(errno));
+        return false;
+    }
+    size_t written = 0;
+    while (written < content.size())
+    {
+        const auto count = write(temporary.descriptor, content.data() + written, content.size() - written);
+        if (count < 0 && errno == EINTR)
+        {
+            continue;
+        }
+        if (count <= 0)
+        {
+            ERROR("Write atomic temporary file failed: %, bytes written: %, reason: %.", temporary.path, written,
+                  count < 0 ? strerror(errno) : "zero bytes written");
+            return false;
+        }
+        written += count;
+    }
+    const int descriptor = temporary.descriptor;
+    temporary.descriptor = -1;
+    if (close(descriptor) != 0)
+    {
+        ERROR("Close atomic temporary file failed: %, reason: %.", temporary.path, strerror(errno));
+        return false;
+    }
+    if (rename(temporary.path.c_str(), filePath.c_str()) != 0)
+    {
+        ERROR("Publish atomic file failed, source: %, target: %, reason: %.", temporary.path, filePath,
+              strerror(errno));
+        return false;
+    }
+    temporary.created = false;
+    return true;
+}
 
 bool File::Chmod(const std::string &path, const mode_t &mode)
 {

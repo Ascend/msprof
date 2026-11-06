@@ -113,6 +113,24 @@ TEST_F(KernelParserWorkerUtest, TestKernelParserWorkerShouldReturnFailedWhenDump
     EXPECT_EQ(res, 1);
 }
 
+TEST_F(KernelParserWorkerUtest, HostShouldFailWhenExistingHashInputCannotBeLoaded)
+{
+    const auto input = File::PathJoin({TEST_HOST_FILE_PATH, "data", "unaging.additional.hash_dic.slice_0"});
+    { FileWriter writer(input); writer.WriteText("1:value\n"); }
+    MOCKER_CPP(&HashData::Load).stubs().will(returnValue(false));
+    KernelParserWorker worker(TEST_HOST_FILE_PATH);
+    EXPECT_EQ(ANALYSIS_ERROR, worker.Run(false));
+}
+
+TEST_F(KernelParserWorkerUtest, HostShouldFailWhenExistingTypeInfoInputCannotBeLoaded)
+{
+    const auto input = File::PathJoin({TEST_HOST_FILE_PATH, "data", "unaging.additional.type_info_dic.slice_0"});
+    { FileWriter writer(input); writer.WriteText("1_2:value\n"); }
+    MOCKER_CPP(&TypeData::Load).stubs().will(returnValue(false));
+    KernelParserWorker worker(TEST_HOST_FILE_PATH);
+    EXPECT_EQ(ANALYSIS_ERROR, worker.Run(false));
+}
+
 TEST_F(KernelParserWorkerUtest, TestKernelParserWorkerShouldReturnFailedWhenTypeInfoDumpFailed)
 {
     StubContextLoadSuccess();
@@ -199,7 +217,7 @@ TEST_F(KernelParserWorkerUtest, ShouldDumpMc2CommInfoWhenMc2SliceExists)
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "mc2_comm_info.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldContinueWhenCaptureFormattingReserveFails)
+TEST_F(KernelParserWorkerUtest, ShouldReportFailureWhenCaptureFormattingReserveFails)
 {
     UseRealHostTraceWorker();
     MsprofCompactInfo capture{};
@@ -216,11 +234,11 @@ TEST_F(KernelParserWorkerUtest, ShouldContinueWhenCaptureFormattingReserveFails)
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     auto result = worker.Run();
     Analysis::Test::ResetReserveFailureForVector<CaptureStreamInfoData>();
-    EXPECT_EQ(ANALYSIS_OK, result);
+    EXPECT_EQ(ANALYSIS_ERROR, result);
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
 }
 
-TEST_F(KernelParserWorkerUtest, ShouldContinueWhenMc2FormattingReserveFails)
+TEST_F(KernelParserWorkerUtest, ShouldReportFailureWhenMc2FormattingReserveFails)
 {
     UseRealHostTraceWorker();
     MsprofAdditionalInfo mc2{};
@@ -238,7 +256,7 @@ TEST_F(KernelParserWorkerUtest, ShouldContinueWhenMc2FormattingReserveFails)
     KernelParserWorker worker(TEST_HOST_FILE_PATH);
     auto result = worker.Run();
     Analysis::Test::ResetReserveFailureForVector<Mc2CommInfoData>();
-    EXPECT_EQ(ANALYSIS_OK, result);
+    EXPECT_EQ(ANALYSIS_ERROR, result);
     EXPECT_TRUE(File::Exist(File::PathJoin({TEST_HOST_FILE_PATH, "sqlite", "ge_hash.db"})));
 }
 

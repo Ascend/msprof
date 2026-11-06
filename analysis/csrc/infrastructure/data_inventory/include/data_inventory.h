@@ -14,7 +14,7 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------*/
 /* 非常重要，使用DataInventory缓存的数据，
-   如果没有用REGISTER_PROCESS_DEPENDENT_DATA注册，会立即被释放 */
+   如果没有用REGISTER_TOPO_NODE_DEPENDENT_DATA注册，会立即被释放 */
 
 #ifndef ANALYSIS_DEVICE_TASK_DATAINVENTORY_DATA_INVENTORY_H
 #define ANALYSIS_DEVICE_TASK_DATAINVENTORY_DATA_INVENTORY_H
@@ -62,7 +62,7 @@ class DataInventory
      * @tparam T 数据类型
      * @param ptr 数据实例
      * @return 成功或失败
-     * @note 非常重要：使用本接口缓存的数据，如果没有用REGISTER_PROCESS_DEPENDENT_DATA注册，会立即被释放
+     * @note 非常重要：使用本接口缓存的数据，如果没有用REGISTER_TOPO_NODE_DEPENDENT_DATA注册，会立即被释放
      */
     template <typename T>
     bool Inject(std::shared_ptr<T> ptr)

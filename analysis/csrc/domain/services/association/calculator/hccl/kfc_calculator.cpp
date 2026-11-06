@@ -784,10 +784,5 @@ KfcOpRecord KfcCalculator::SerializeKfcOp(const DeviceKfcOp& kernel, HcclType so
 
 // 拓扑：AicpuPersistence（kfc 上游注入）/ AscendTaskPersistence（TopDownTask 同源）→ KfcCalculator。
 // TopDownTask 由 AscendTaskAssociation 生产、HcclOp 由 LoadHostData 生产，经依赖链传递保证先于本流程执行。
-REGISTER_PROCESS_SEQUENCE(KfcCalculator, true, AicpuPersistence, AscendTaskPersistence);
-REGISTER_PROCESS_DEPENDENT_DATA(KfcCalculator, std::vector<KfcInfoData>, std::vector<MasterStreamTaskData>,
-                                std::vector<HcclOp>, std::vector<TopDownTask>, AicpuOpNameMap,
-                                std::vector<Mc2CommInfo>);
-REGISTER_PROCESS_SUPPORT_CHIP(KfcCalculator, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

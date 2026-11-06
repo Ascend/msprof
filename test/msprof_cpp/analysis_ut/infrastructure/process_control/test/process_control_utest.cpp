@@ -25,18 +25,12 @@
 #include <utility>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
-#include "analysis/csrc/infrastructure/process/process_topo.h"
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "fake_process/pah_d.h"
-#include "fake_process/pstart_a.h"
-#include "fake_process/pstart_h.h"
-#include "fake_process/base_gc.h"
-#include "fake_process/process_spy.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/context/include/device_context.h"
+#include "test/msprof_cpp/analysis_ut/stubs/dfx/log_stubs.h"
 
 using namespace testing;
 using namespace Analysis;
@@ -58,25 +52,6 @@ class CallbackProcess final : public Process
     std::function<uint32_t(DataInventory&)> callback_;
 };
 
-struct ProducerProcessTag
-{
-};
-struct FirstConsumerProcessTag
-{
-};
-struct LastConsumerProcessTag
-{
-};
-struct SlowRootProcessTag
-{
-};
-struct FastRootProcessTag
-{
-};
-struct FastChildProcessTag
-{
-};
-
 struct DynamicSchedulingState
 {
     std::mutex mutex;
@@ -85,206 +60,31 @@ struct DynamicSchedulingState
     bool allowSlowRootFinish{false};
     bool fastChildRan{false};
 };
+
+ProcessCreator Returning(uint32_t code)
+{
+    return [code]() -> std::unique_ptr<Process>
+    { return std::unique_ptr<Process>(new CallbackProcess([code](DataInventory&) { return code; })); };
+}
 }  // namespace
 
-class ProcessControlUTest : public Test {
-protected:
-    void SetUp() override
+class ProcessControlUTest : public Test
+{
+   protected:
+    void SetUp() override { context->deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0; }
+
+    void Bind(RuntimeProcessCollection& processes)
     {
-    }
-    void TearDown() override
-    {
-        dataInventory.RemoveRestData({});
+        for (auto& process : processes)
+        {
+            process.second.context = context;
+            process.second.inventory = inventory;
+        }
     }
 
-    DataInventory dataInventory;
+    std::shared_ptr<DataInventory> inventory = std::make_shared<DataInventory>();
+    std::shared_ptr<Infra::DeviceContext> context = std::make_shared<Infra::DeviceContext>();
 };
-
-/* 此测试套的TOPO图如下
-                                         ┌───────────────┐
-                                         │     PdfE      │
-                                         │               │
-                                         │  CHIP_V3_2_0  │
-                                ┌────────┤  CHIP_V2_1_0  │
-                                │        └───────┬───────┘
-                                ▼                │
-                        ┌───────────────┐        │
-                        │     PgF       │        │
-                        │               │        │
-            ┌───────────┤  CHIP_V3_2_0  │        │
-            │           │  CHIP_V2_1_0  │        │
-            │           └───────┬───────┘        │
-            │                   │                │
-            ▼                   ▼                │
-   ┌───────────────┐    ┌───────────────┐        │
-   │     PabC      │    │     PabG      │        │
-   │               │    │               │        │
-   │  CHIP_V3_2_0  │    │  CHIP_V3_2_0  │        │
-   │               │    │  CHIP_V2_1_0  │        │
-   └──┬────────┬───┘    └┬──────┬───────┘        │
-      │        │         │      │                │
-      │        ▼         ▼      │                ▼
-      │    ┌───────────────┐    │         ┌───────────────┐
-      │    │     PdB       │    │         │     PahD      │
-      │    │               ├────┼────────►│               │
-      │    │  CHIP_V3_2_0  │    │         │  CHIP_V3_2_0  │
-      │    │  CHIP_V2_1_0  │    │ ┌───────┤  CHIP_V2_1_0  │
-      │    └───────────────┘    │ │       └──────┬────────┘
-      │                         │ │              │
-      │                         │ │              │
-      │                         ▼ ▼              ▼
-      │             ┌───────────────┐      ┌───────────────┐
-      │             │    PStartA    │      │    PstartH    │
-      └────────────►│               │      │               │
-                    │  CHIP_V3_2_0  │      │  CHIP_V3_2_0  │
-                    │  CHIP_V2_1_0  │      │               │
-                    └───────────────┘      └───────────────┘
-*/
-
-TEST_F(ProcessControlUTest, ShouldGetAllRegisterInfoRight)
-{
-    std::vector<uint32_t> expChipsPA{CHIP_V3_2_0, CHIP_V2_1_0};
-    std::vector<std::type_index> expProcPreProc{typeid(Ps::PstartA), typeid(Ps::PstartH)};
-    std::vector<std::type_index> exparamTypes{typeid(Ps::StartA), typeid(Ps::StartH)};
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ASSERT_EQ(regInfo.size(), 8ul);   // 应该有8个相关Process
-    EXPECT_EQ(regInfo[typeid(Ps::PstartA)].chipIds, expChipsPA);
-    EXPECT_EQ(regInfo[typeid(Ps::PahD)].processDependence, expProcPreProc);
-    EXPECT_EQ(regInfo[typeid(Ps::PahD)].paramTypes, exparamTypes);
-}
-
-TEST_F(ProcessControlUTest, ShouldFilterRelatedProcessWhenBuildProcessTopo)
-{
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessTopo processTopoBuilder(regInfo);
-    auto chipRelatedProcess = processTopoBuilder.BuildProcessControlTopoByChip(CHIP_V3_2_0);
-    ASSERT_EQ(chipRelatedProcess.size(), 8ul);  // 应该有8个相关Process
-
-    ProcessTopo processTopoBuilderChip2(regInfo);
-    chipRelatedProcess = processTopoBuilderChip2.BuildProcessControlTopoByChip(CHIP_V2_1_0);
-    ASSERT_EQ(chipRelatedProcess.size(), 6ul);  // 应该有6个相关Process
-    std::vector<std::type_index> expProcPreProc{typeid(Ps::PstartA)};
-    EXPECT_EQ(chipRelatedProcess[typeid(Ps::PahD)].processDependence, expProcPreProc);
-}
-
-static void VerifyLastTwoFakeLevel(const ExecuteProcessStat& stat)
-{
-    const auto& allStat = stat.allLevelStat;
-    std::vector<std::string> deps;
-    EXPECT_TRUE(allStat[4].generalResult);  // 第4个Level应该成功
-    ASSERT_EQ(allStat[4].processStatistics.size(), 1ul);  // 第4个Level应该有1个Process
-    EXPECT_THAT(allStat[4].processStatistics[0].processName, testing::StrEq("Ps::PgF"));
-    ASSERT_EQ(allStat[4].processStatistics[0].dependProcessNames.size(), 2ul);  // 第4个Level应该有两个依赖的Process
-    deps.push_back(allStat[4].processStatistics[0].dependProcessNames[0]);  // 判断第4个Level的依赖
-    deps.push_back(allStat[4].processStatistics[0].dependProcessNames[1]);  // 判断第4个Level的依赖
-    EXPECT_THAT(deps, testing::Contains("Ps::PabC"));
-    EXPECT_THAT(deps, testing::Contains("Ps::PabG"));
-
-    EXPECT_TRUE(allStat[5].generalResult);  // 第5个Level应该成功
-    ASSERT_EQ(allStat[5].processStatistics.size(), 1ul);  // 第5个Level应该有1个Process
-    EXPECT_THAT(allStat[5].processStatistics[0].processName, testing::StrEq("Ps::PdfE"));
-    ASSERT_EQ(allStat[5].processStatistics[0].dependProcessNames.size(), 2ul);  // 第5个Level应该有两个依赖的Process
-    deps.clear();
-    deps.push_back(allStat[5].processStatistics[0].dependProcessNames[0]);  // 校验第5个Level依赖的Process
-    deps.push_back(allStat[5].processStatistics[0].dependProcessNames[1]);  // 校验第5个Level依赖的Process
-    EXPECT_THAT(deps, testing::Contains("Ps::PgF"));
-    EXPECT_THAT(deps, testing::Contains("Ps::PahD"));
-}
-
-static void VerifyWholeChipV1FakeProcess(const ExecuteProcessStat stat)
-{
-    const auto& allStat = stat.allLevelStat;
-    EXPECT_EQ(stat.chipId, CHIP_V3_2_0);
-    ASSERT_EQ(allStat.size(), 6ul);  // 一共有6个统计结果
-    EXPECT_TRUE(allStat[0].generalResult);
-    ASSERT_EQ(allStat[0].processStatistics.size(), 2ul);  // 第0个Leve有两个Process
-    std::vector<std::string> names;
-    names.push_back(allStat[0].processStatistics[0].processName);
-    names.push_back(allStat[0].processStatistics[1].processName);
-    EXPECT_THAT(names, testing::Contains("Ps::PstartA"));
-    EXPECT_THAT(names, testing::Contains("Ps::PstartH"));
-    // 头一轮执行的Process没有依赖
-    EXPECT_TRUE(allStat[0].processStatistics[0].dependProcessNames.empty());
-    EXPECT_TRUE(allStat[0].processStatistics[1].dependProcessNames.empty());
-
-    EXPECT_TRUE(allStat[1].generalResult);
-    ASSERT_EQ(allStat[1].processStatistics.size(), 1ul);
-    EXPECT_THAT(allStat[1].processStatistics[0].processName, testing::StrEq("Ps::PahD"));
-    ASSERT_EQ(allStat[1].processStatistics[0].dependProcessNames.size(), 2ul); // 第1个Level有2个依赖
-    std::vector<std::string> deps;
-    deps.push_back(allStat[1].processStatistics[0].dependProcessNames[0]);
-    deps.push_back(allStat[1].processStatistics[0].dependProcessNames[1]);
-    EXPECT_THAT(deps, testing::Contains("Ps::PstartA"));
-    EXPECT_THAT(deps, testing::Contains("Ps::PstartH"));
-
-    EXPECT_TRUE(allStat[2].generalResult);  // 第2个Level应该成功
-    ASSERT_EQ(allStat[2].processStatistics.size(), 1ul);  // 第2个Level应该有1个Process
-    EXPECT_THAT(allStat[2].processStatistics[0].processName, testing::StrEq("Ps::PdB")); // 第2个Level的Process Name
-    ASSERT_EQ(allStat[2].processStatistics[0].dependProcessNames.size(), 1ul); // 第2个Level的1个依赖
-    EXPECT_EQ(allStat[2].processStatistics[0].dependProcessNames[0], "Ps::PahD"); // 判断第2个Level的1 个依赖
-
-    EXPECT_TRUE(allStat[3].generalResult);  // 第3个Level应该成功
-    ASSERT_EQ(allStat[3].processStatistics.size(), 2ul); // 第3个Level应该有2个Process
-    ASSERT_EQ(allStat[3].processStatistics[0].dependProcessNames.size(), 2ul); // 第3个Level应该有2个依赖
-    ASSERT_EQ(allStat[3].processStatistics[1].dependProcessNames.size(), 2ul); // 第3个Level应该有2个依赖
-    names.clear();
-    names.push_back(allStat[3].processStatistics[0].processName); // 判断第3个Level的Process
-    names.push_back(allStat[3].processStatistics[1].processName); // 判断第3个Level的Process
-    EXPECT_THAT(names, testing::Contains("Ps::PabC"));
-    EXPECT_THAT(names, testing::Contains("Ps::PabG"));
-    deps.clear();
-    deps.push_back(allStat[3].processStatistics[0].dependProcessNames[0]); // 判断第3个Level的依赖
-    deps.push_back(allStat[3].processStatistics[0].dependProcessNames[1]); // 判断第3个Level的依赖
-    deps.push_back(allStat[3].processStatistics[1].dependProcessNames[0]); // 判断第3个Level的依赖
-    deps.push_back(allStat[3].processStatistics[1].dependProcessNames[1]); // 判断第3个Level的依赖
-    EXPECT_THAT(deps, testing::Contains("Ps::PstartA"));
-    EXPECT_THAT(deps, testing::Contains("Ps::PdB"));
-    VerifyLastTwoFakeLevel(stat);
-}
-
-TEST_F(ProcessControlUTest, ShouldRunAllChipV1ProcessWhenExecute)
-{
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessControl processControl(regInfo);
-
-    ASSERT_TRUE(processControl.ExecuteProcess(dataInventory, deviceInstance));
-    auto stat = processControl.GetExecuteStat();
-    VerifyWholeChipV1FakeProcess(stat);
-    EXPECT_EQ(Ps::GetBaseGcCount(), 2ul);
-
-    Ps::ResetBaseGcCount();
-}
-
-TEST_F(ProcessControlUTest, ShouldKeepDataWhenReleaseUnusedDataDisabled)
-{
-    Ps::ResetBaseGcCount();
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessControlOptions options;
-    options.releaseUnusedData = false;
-    ProcessControl processControl(regInfo, options);
-
-    ASSERT_TRUE(processControl.ExecuteProcess(dataInventory, deviceInstance));
-    EXPECT_NE(dataInventory.GetPtr<Ps::StartA>(), nullptr);
-    EXPECT_GT(dataInventory.Size(), 0UL);
-    Ps::ResetBaseGcCount();
-}
-
-TEST_F(ProcessControlUTest, ShouldReleaseDataByDefault)
-{
-    Ps::ResetBaseGcCount();
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessControl processControl(regInfo);
-
-    ASSERT_TRUE(processControl.ExecuteProcess(dataInventory, deviceInstance));
-    EXPECT_EQ(dataInventory.Size(), 0UL);
-    Ps::ResetBaseGcCount();
-}
 
 TEST_F(ProcessControlUTest, ShouldKeepDataUntilLastConsumerFinishes)
 {
@@ -321,26 +121,25 @@ TEST_F(ProcessControlUTest, ShouldKeepDataUntilLastConsumerFinishes)
         }));
     };
 
-    ProcessCollection processes = {
-        {typeid(ProducerProcessTag), {producer, {}, {}, {CHIP_ID_ALL}, "producer", true}},
-        {typeid(FirstConsumerProcessTag),
-         {firstConsumer, {typeid(int)}, {typeid(ProducerProcessTag)}, {CHIP_ID_ALL}, "first_consumer", true}},
-        {typeid(LastConsumerProcessTag),
+    RuntimeProcessCollection processes = {
+        {1, {producer, {}, {}, {CHIP_ID_ALL}, "producer", true}},
+        {2,
+         {firstConsumer, {typeid(int)}, {1}, {CHIP_ID_ALL}, "first_consumer", true}},
+        {3,
          {lastConsumer,
           {typeid(int), typeid(std::string)},
-          {typeid(FirstConsumerProcessTag)},
+          {2},
           {CHIP_ID_ALL},
           "last_consumer",
           true}},
     };
-    Infra::DeviceContext context;
-    context.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
+    Bind(processes);
     ProcessControl processControl(processes);
 
-    EXPECT_TRUE(processControl.ExecuteProcess(dataInventory, context));
+    EXPECT_TRUE(processControl.ExecuteProcess());
     EXPECT_TRUE(firstConsumerSawData);
     EXPECT_TRUE(lastConsumerSawData);
-    EXPECT_EQ(dataInventory.Size(), 0UL);
+    EXPECT_EQ(inventory->Size(), 0UL);
 }
 
 TEST_F(ProcessControlUTest, ShouldScheduleReadyDependentWithoutWaitingForUnrelatedProcess)
@@ -372,19 +171,18 @@ TEST_F(ProcessControlUTest, ShouldScheduleReadyDependentWithoutWaitingForUnrelat
         }));
     };
 
-    ProcessCollection processes = {
-        {typeid(SlowRootProcessTag), {slowRoot, {}, {}, {CHIP_ID_ALL}, "slow_root", true}},
-        {typeid(FastRootProcessTag), {fastRoot, {}, {}, {CHIP_ID_ALL}, "fast_root", true}},
-        {typeid(FastChildProcessTag),
-         {fastChild, {}, {typeid(FastRootProcessTag)}, {CHIP_ID_ALL}, "fast_child", true}},
+    RuntimeProcessCollection processes = {
+        {1, {slowRoot, {}, {}, {CHIP_ID_ALL}, "slow_root", true}},
+        {2, {fastRoot, {}, {}, {CHIP_ID_ALL}, "fast_root", true}},
+        {3,
+         {fastChild, {}, {2}, {CHIP_ID_ALL}, "fast_child", true}},
     };
-    Infra::DeviceContext context;
-    context.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
     ProcessControlOptions options;
     options.maxWorkerThreads = 2;
+    Bind(processes);
     ProcessControl processControl(processes, options);
     bool result = false;
-    std::thread executionThread([&]() { result = processControl.ExecuteProcess(dataInventory, context); });
+    std::thread executionThread([&]() { result = processControl.ExecuteProcess(); });
 
     bool slowRootStarted = false;
     bool fastChildRan = false;
@@ -402,89 +200,240 @@ TEST_F(ProcessControlUTest, ShouldScheduleReadyDependentWithoutWaitingForUnrelat
     EXPECT_TRUE(result);
 }
 
-TEST_F(ProcessControlUTest, ShouldFailedWhenProcessTopoCircled)
+TEST_F(ProcessControlUTest, ShouldReportOptionalFailureWithoutStoppingScheduling)
 {
-    struct A {};
-    struct B {};
-    struct C {};
-    struct D {};
-    ProcessCollection circled = {
-        {typeid(A), {{}, {}, {}, {CHIP_ID_ALL}, "A", true}},
-        {typeid(B), {{}, {}, {typeid(A), typeid(D)}, {CHIP_ID_ALL}, "B", true}},
-        {typeid(C), {{}, {}, {typeid(B)}, {CHIP_ID_ALL}, "C", true}},
-        {typeid(D), {{}, {}, {typeid(C)}, {CHIP_ID_ALL}, "D", true}},
+    auto creator = []() -> std::unique_ptr<Process>
+    { return std::unique_ptr<Process>(new CallbackProcess([](DataInventory&) { return 0x2aU; })); };
+    RuntimeProcessCollection processes = {
+        {1, {creator, {}, {}, {CHIP_ID_ALL}, "optional_parser", false}},
     };
-    ProcessCollection empty;
-    ProcessControl processControl(empty);
-    EXPECT_FALSE(processControl.VerifyProcess(circled));
+    Bind(processes);
+    ProcessControl processControl(processes);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool result = processControl.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    const auto prints = StopTestPrintCapture();
+
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(prints.empty());
+    EXPECT_THAT(messages,
+                Contains(AllOf(Field(&TestLogMessage::level, "[ERROR]"),
+                               Field(&TestLogMessage::message,
+                                     HasSubstr("Process failed: node=optional_parser, chip_id=" +
+                                               std::to_string(CHIP_V3_2_0) + ", return_code=0x2a, mandatory=false")))));
 }
 
-TEST_F(ProcessControlUTest, ShouldFilterTheLastProcess)
+TEST_F(ProcessControlUTest, ShouldPrioritizeMandatoryFailureOverDfxStopInConsole)
 {
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V1_1_1;
-    auto creator = []() -> std::unique_ptr<Process> {return nullptr;};
-    struct A {};
-    struct B {};
-    struct C {};
-    struct D {};
-    ProcessCollection chain = {
-        {typeid(A), {creator, {}, {}, {CHIP_ID_ALL}, "A", true}},
-        {typeid(B), {creator, {}, {typeid(A)}, {CHIP_ID_ALL}, "B", true}},
-        {typeid(C), {creator, {}, {}, {CHIP_ID_ALL}, "C", true}},
-        {typeid(D), {creator, {}, {typeid(A), typeid(B), typeid(C)}, {CHIP_V1_1_3}, "D", true}},
+    auto creator = []() -> std::unique_ptr<Process>
+    { return std::unique_ptr<Process>(new CallbackProcess([](DataInventory&) { return 0x2aU; })); };
+    RuntimeProcessCollection processes = {
+        {1, {creator, {}, {}, {CHIP_ID_ALL}, "failing_parser", true}},
     };
-    ProcessCollection empty;
-    ProcessControl processControl(chain);
-    auto ret = processControl.ExecuteProcess(dataInventory, deviceInstance);
-    ASSERT_TRUE(ret);
-    auto stat = processControl.GetExecuteStat();
-    ASSERT_EQ(stat.allLevelStat.size(), 2ul);
-    std::vector<std::string> names;
-    names.push_back(stat.allLevelStat[0].processStatistics[0].processName);
-    names.push_back(stat.allLevelStat[0].processStatistics[1].processName);
-    EXPECT_THAT(names, testing::Contains("A"));
-    EXPECT_THAT(names, testing::Contains("C"));
+    context->deviceContextInfo.dfxInfo.stopAt = "failing_parser";
+    Bind(processes);
+    ProcessControl processControl(processes);
+    StartTestPrintCapture();
+    const bool result = processControl.ExecuteProcess();
+    const auto prints = StopTestPrintCapture();
 
-    ASSERT_EQ(stat.allLevelStat[1].processStatistics.size(), 1ul);
-    EXPECT_EQ(stat.allLevelStat[1].processStatistics[0].processName, "B");
-    EXPECT_FALSE(stat.allLevelStat[1].processStatistics[0].mandatory);
+    EXPECT_FALSE(result);
+    EXPECT_THAT(prints, ElementsAre(AllOf(
+                            Field(&TestLogMessage::level, "[ERROR]"),
+                            Field(&TestLogMessage::message, "Processing failed. Please check the logs for details."))));
 }
 
-TEST_F(ProcessControlUTest, ShouldStopWhenOneMandatoryFailed)
+TEST_F(ProcessControlUTest, ShouldBlockFailedDependenciesAndRunIndependentBranch)
 {
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
-    ProcessSpy::SetResult("PabG", 1);
+    bool dependentRan = false;
+    bool independentRan = false;
+    auto fail = []() -> std::unique_ptr<Process>
+    { return std::unique_ptr<Process>(new CallbackProcess([](DataInventory&) { return ANALYSIS_ERROR; })); };
+    auto dependent = [&]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess(
+            [&](DataInventory&)
+            {
+                dependentRan = true;
+                return ANALYSIS_OK;
+            }));
+    };
+    auto independent = [&]() -> std::unique_ptr<Process>
+    {
+        return std::unique_ptr<Process>(new CallbackProcess(
+            [&](DataInventory&)
+            {
+                independentRan = true;
+                return ANALYSIS_OK;
+            }));
+    };
+    RuntimeProcessCollection processes = {
+        {1, {fail, {}, {}, {CHIP_ID_ALL}, "failed", false}},
+        {2,
+         {dependent, {}, {1}, {CHIP_ID_ALL}, "blocked", false}},
+        {3, {independent, {}, {}, {CHIP_ID_ALL}, "independent", true}},
+    };
+    Bind(processes);
+    ProcessControl control(processes);
 
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessControl processControl(regInfo);
-
-    auto ret = processControl.ExecuteProcess(dataInventory, deviceInstance);
-    ProcessSpy::ClearResult();
-
-    ASSERT_FALSE(ret);
-    auto stat = processControl.GetExecuteStat();
-    EXPECT_EQ(stat.chipId, CHIP_V3_2_0);
-    ASSERT_EQ(stat.allLevelStat.size(), 4ul);  // 应该有4个Level
-    EXPECT_FALSE(stat.allLevelStat[3].generalResult);  // 第3个Level应该为失败
-    ASSERT_EQ(stat.allLevelStat[3].processStatistics.size(), 2ul);  // 第3个Level包含2个Process
-    EXPECT_NE(stat.allLevelStat[3].processStatistics[0].returnCode,   // 第3个Level的两个Process结果不应该相同
-              stat.allLevelStat[3].processStatistics[1].returnCode);  // 第3个Level的两个Process结果不应该相同
+    EXPECT_TRUE(control.ExecuteProcess());
+    EXPECT_FALSE(dependentRan);
+    EXPECT_TRUE(independentRan);
+    const auto results = control.GetRuntimeResults();
+    ASSERT_EQ(results.size(), 3U);
+    for (const auto& result : results)
+    {
+        const auto& name = result.second.statistics.processName;
+        if (name == "failed")
+        {
+            EXPECT_EQ(result.second.state, RuntimeProcessState::FAILED);
+        }
+        else if (name == "blocked")
+        {
+            EXPECT_EQ(result.second.state, RuntimeProcessState::BLOCKED);
+        }
+        else
+        {
+            EXPECT_EQ(name, "independent");
+            EXPECT_EQ(result.second.state, RuntimeProcessState::SUCCEEDED);
+        }
+    }
 }
 
-TEST_F(ProcessControlUTest, ShouldStopAtAssignedProcessWhenUserAssigned)
+TEST_F(ProcessControlUTest, ShouldHonorDataReleaseOption)
 {
-    Infra::DeviceContext deviceInstance;
-    deviceInstance.deviceContextInfo.deviceInfo.chipID = CHIP_V3_2_0;
-    deviceInstance.deviceContextInfo.dfxInfo.stopAt = "Ps::PahD";
-    auto regInfo = ProcessRegister::CopyProcessInfo();
-    ProcessControl processControl(regInfo);
+    for (bool release : {false, true})
+    {
+        inventory = std::make_shared<DataInventory>();
+        RuntimeProcessCollection processes = {
+            {1, {[]() -> std::unique_ptr<Process> {
+                return std::unique_ptr<Process>(new CallbackProcess([](DataInventory& data) {
+                    return data.Inject(std::make_shared<int>(7)) ? ANALYSIS_OK : ANALYSIS_ERROR;
+                }));
+            }, {}, {}, {}, "producer", true}},
+        };
+        Bind(processes);
+        ProcessControlOptions options;
+        options.releaseUnusedData = release;
+        ProcessControl executor(processes, options);
+        ASSERT_TRUE(executor.ExecuteProcess());
+        EXPECT_EQ(inventory->GetPtr<int>() == nullptr, release);
+    }
+}
 
-    EXPECT_FALSE(processControl.ExecuteProcess(dataInventory, deviceInstance));
-    auto stat = processControl.GetExecuteStat();
-    const auto& levelStat = stat.allLevelStat;
-    ASSERT_EQ(levelStat.size(), 2ul);
-    ASSERT_EQ(levelStat[1].processStatistics.size(), 1ul);
-    EXPECT_EQ(levelStat[1].processStatistics[0].processName, "Ps::PahD");
+TEST_F(ProcessControlUTest, ShouldReportMandatoryFailureAndBlockItsChild)
+{
+    RuntimeProcessCollection processes = {
+        {1, {Returning(0x2aU), {}, {}, {}, "failing_parser", true}},
+        {2, {Returning(ANALYSIS_OK), {}, {1}, {}, "persistence", true}},
+    };
+    Bind(processes);
+    ProcessControl executor(processes);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool result = executor.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    const auto prints = StopTestPrintCapture();
+    EXPECT_FALSE(result);
+    EXPECT_THAT(prints, ElementsAre(AllOf(
+        Field(&TestLogMessage::level, "[ERROR]"),
+        Field(&TestLogMessage::message, "Processing failed. Please check the logs for details."))));
+    EXPECT_THAT(messages, Contains(AllOf(
+        Field(&TestLogMessage::level, "[ERROR]"),
+        Field(&TestLogMessage::message, HasSubstr("Process failed: node=failing_parser, chip_id=" +
+            std::to_string(CHIP_V3_2_0) + ", return_code=0x2a, mandatory=true")))));
+    EXPECT_EQ(executor.GetRuntimeResults().at(2).state, RuntimeProcessState::BLOCKED);
+    const auto statistics = executor.GetExecuteStat();
+    ASSERT_EQ(statistics.allLevelStat.size(), 1U);
+    EXPECT_FALSE(statistics.allLevelStat[0].generalResult);
+    ASSERT_EQ(statistics.allLevelStat[0].processStatistics.size(), 1U);
+    EXPECT_EQ(statistics.allLevelStat[0].processStatistics[0].chipId, CHIP_V3_2_0);
+}
+
+TEST_F(ProcessControlUTest, ShouldStopAtAssignedProcessAndRecordDfxStatistics)
+{
+    context->deviceContextInfo.dfxInfo.stopAt = "parser";
+    RuntimeProcessCollection processes = {
+        {1, {Returning(ANALYSIS_OK), {}, {}, {}, "parser", true}},
+        {2, {Returning(ANALYSIS_OK), {}, {1}, {}, "persistence", true}},
+    };
+    Bind(processes);
+    ProcessControl executor(processes);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool result = executor.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    const auto prints = StopTestPrintCapture();
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(prints.empty());
+    EXPECT_THAT(messages, Contains(AllOf(
+        Field(&TestLogMessage::level, "[INFO]"),
+        Field(&TestLogMessage::message, HasSubstr("DFX stop requested: node=parser, chip_id=" +
+            std::to_string(CHIP_V3_2_0) + ", return_code=0x0, mandatory=true")))));
+    EXPECT_THAT(messages, Not(Contains(Field(&TestLogMessage::message, HasSubstr("Process failed:")))));
+    EXPECT_EQ(executor.GetRuntimeResults().at(2).state, RuntimeProcessState::BLOCKED);
+    const auto statistics = executor.GetExecuteStat();
+    ASSERT_EQ(statistics.allLevelStat.size(), 1U);
+    std::string report;
+    RecordProcessStat(statistics, "device_0", report);
+    EXPECT_THAT(report, HasSubstr("[parser]:return: 0x0, mandatory:true, dfxStop:true"));
+}
+
+TEST_F(ProcessControlUTest, ShouldRejectMissingDuplicateAndCyclicDependencies)
+{
+    const std::vector<std::vector<RuntimeProcessKey>> invalid = {{42}, {1, 1}, {2}};
+    for (const auto& dependencies : invalid)
+    {
+        RuntimeProcessCollection processes = {
+            {1, {Returning(ANALYSIS_OK), {}, {}, {}, "producer", true}},
+            {2, {Returning(ANALYSIS_OK), {}, dependencies, {}, "consumer", true}},
+        };
+        Bind(processes);
+        ProcessControl executor(processes);
+        EXPECT_FALSE(executor.ExecuteProcess());
+        EXPECT_TRUE(executor.GetRuntimeResults().empty());
+    }
+}
+
+TEST_F(ProcessControlUTest, ShouldKeepOwnedBindingsAndResultSnapshotsAfterCallerReleasesThem)
+{
+    class BindingProcess final : public Process
+    {
+        uint32_t ProcessEntry(DataInventory& data, const Context& ctx) override
+        {
+            return data.Inject(std::make_shared<uint32_t>(ctx.GetChipID())) ? ANALYSIS_OK : ANALYSIS_ERROR;
+        }
+    };
+    RuntimeProcessCollection processes = {
+        {1, {[]() -> std::unique_ptr<Process> { return std::unique_ptr<Process>(new BindingProcess); },
+             {}, {}, {}, "binding", true}},
+    };
+    Bind(processes);
+    std::weak_ptr<DataInventory> ownedInventory = inventory;
+    std::weak_ptr<const Context> ownedContext = context;
+    ProcessControlOptions options;
+    options.releaseUnusedData = false;
+    ProcessControl executor(processes, options);
+    inventory.reset();
+    context.reset();
+    ASSERT_TRUE(executor.ExecuteProcess());
+    ASSERT_FALSE(ownedInventory.expired());
+    ASSERT_FALSE(ownedContext.expired());
+    const auto value = ownedInventory.lock()->GetPtr<uint32_t>();
+    ASSERT_NE(value, nullptr);
+    EXPECT_EQ(*value, CHIP_V3_2_0);
+    EXPECT_EQ(executor.GetRuntimeResults().at(1).statistics.chipId, CHIP_V3_2_0);
+}
+
+TEST_F(ProcessControlUTest, ShouldHandleRepeatedEmptyGraphsWithFreshStatistics)
+{
+    RuntimeProcessCollection processes;
+    ProcessControl executor(processes);
+    for (size_t run = 0; run < 2; ++run)
+    {
+        EXPECT_TRUE(executor.ExecuteProcess());
+        EXPECT_TRUE(executor.GetExecuteStat().allLevelStat.empty());
+        EXPECT_TRUE(executor.GetRuntimeResults().empty());
+    }
 }

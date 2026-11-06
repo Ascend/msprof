@@ -148,6 +148,89 @@ class TestCppPipelineRunner(unittest.TestCase):
             try_full_cpp_pipeline(self.request)
 
 
+class TestCppPipelineSqliteReuse(unittest.TestCase):
+    def setUp(self):
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        self.collection = Path(temp_dir.name) / "PROF_0"
+        self.paths = tuple(self.collection / name for name in ("host", "device_0", "device_1"))
+        self.request = CppPipelineDecisionRequest(
+            "export", "timeline", str(self.collection), str(self.paths[0]),
+            tuple(str(path) for path in self.paths[1:]),
+        )
+
+    def _create_databases(self, paths):
+        for path in paths:
+            sqlite = path / "sqlite"
+            sqlite.mkdir(parents=True, exist_ok=True)
+            (sqlite / "data.db").touch()
+
+    def test_export_flags_reflect_host_and_all_devices_independently(self):
+        for parsed_mask in range(8):
+            self._create_databases(self.paths)
+            for index, path in enumerate(self.paths):
+                if not parsed_mask & (1 << index):
+                    (path / "sqlite" / "data.db").unlink()
+            for command_type, export_flag in (("timeline", 0x08), ("summary", 0x10), ("db", 0x04)):
+                with self.subTest(parsed_mask=parsed_mask, command_type=command_type):
+                    expected = export_flag
+                    if not parsed_mask & 0x01:
+                        expected |= 0x01
+                    if parsed_mask & 0x06 != 0x06:
+                        expected |= 0x02
+                    request = replace(self.request, command_type=command_type, reports_path="/reports.json")
+                    with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+                        CppPipelineRunner()._run(request)
+                    native.assert_called_once_with(
+                        request.collection_path, expected, request.host_path, request.device_paths[0],
+                        request.reports_path,
+                    )
+
+    def test_second_export_skips_parsing_in_both_orders(self):
+        for first, second, first_flags, second_flags in (
+            ("timeline", "summary", 0x0B, 0x10),
+            ("summary", "timeline", 0x13, 0x08),
+        ):
+            with self.subTest(first=first):
+                for path in self.paths:
+                    database = path / "sqlite" / "data.db"
+                    if database.exists():
+                        database.unlink()
+
+                def parse_and_export(*_args):
+                    self._create_databases(self.paths)
+                    return 0
+
+                with mock.patch(
+                    NAMESPACE + ".msprof_c_interface.run_pipeline", side_effect=parse_and_export,
+                ) as native:
+                    CppPipelineRunner()._run(replace(self.request, command_type=first))
+                    # A fresh runner must discover the results left by the first call.
+                    CppPipelineRunner()._run(replace(self.request, command_type=second))
+                self.assertEqual([call.args[1] for call in native.call_args_list], [first_flags, second_flags])
+
+    def test_missing_empty_or_non_database_sqlite_keeps_parsing(self):
+        for contents in ("missing", "empty", "other_files"):
+            with self.subTest(contents=contents):
+                if contents != "missing":
+                    for path in self.paths:
+                        sqlite = path / "sqlite"
+                        sqlite.mkdir(parents=True, exist_ok=True)
+                        if contents == "other_files":
+                            (sqlite / "notes.txt").touch()
+                            (sqlite / "directory.db").mkdir()
+                with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+                    CppPipelineRunner()._run(self.request)
+                self.assertEqual(native.call_args.args[1], 0x0B)
+
+    def test_import_with_existing_databases_does_not_call_native_with_zero_flags(self):
+        self._create_databases(self.paths)
+        request = replace(self.request, command="import", command_type=None)
+        with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline") as native:
+            CppPipelineRunner()._run(request)
+        native.assert_not_called()
+
+
 class TestPipelineLogging(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()

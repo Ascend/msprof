@@ -19,15 +19,17 @@
 
 #include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
-class DeviceTaskProcess : public Infra::Process {
-private:
-    uint32_t ProcessEntry(Infra::DataInventory &dataInventory, const Infra::Context& context) override;
+class DeviceTaskProcess : public Infra::Process
+{
+   private:
+    uint32_t ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context) override;
 };
-}
-}
-#endif // MSPROF_ANALYSIS_DEVICE_TASK_PROCESS_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_DEVICE_TASK_PROCESS_H

@@ -29,7 +29,7 @@
 #include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/common_constant.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
@@ -180,13 +180,6 @@ uint32_t CcuPersistence::ProcessEntry(DataInventory& dataInventory, const Infra:
                ? ANALYSIS_OK
                : ANALYSIS_ERROR;
 }
-
-namespace CCU_PERSISTENCE_REGISTER
-{
-REGISTER_PROCESS_SEQUENCE(CcuPersistence, true, CcuMissionParser, CcuChannelParser);
-REGISTER_PROCESS_DEPENDENT_DATA(CcuPersistence, CcuMissionDataSet, CcuChannelDataSet);
-REGISTER_PROCESS_SUPPORT_CHIP(CcuPersistence, CHIP_V6_1_0, CHIP_V6_1_1);
-}  // namespace CCU_PERSISTENCE_REGISTER
 
 }  // namespace Domain
 }  // namespace Analysis

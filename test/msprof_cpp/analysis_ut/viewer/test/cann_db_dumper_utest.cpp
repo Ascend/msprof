@@ -18,6 +18,8 @@
 
 #include <dirent.h>
 
+#include <chrono>
+#include <condition_variable>
 #include <iostream>
 #include <map>
 #include <utility>
@@ -50,6 +52,44 @@ const uint32_t INPUT_SHAPE_POSITION = 16;
 const uint32_t OUTPUT_SHAPE_POSITION = 19;
 const uint32_t GROUP_NAME_POSITION = 3;
 const uint32_t THREAD_ID = 1;
+
+namespace
+{
+struct PreparationBarrier
+{
+    std::mutex mutex;
+    std::condition_variable changed;
+    size_t arrived = 0;
+    bool timedOut = false;
+    HostTasks tasks;
+};
+
+PreparationBarrier *preparationBarrier = nullptr;
+
+void WaitForConcurrentCalls()
+{
+    auto &barrier = *preparationBarrier;
+    std::unique_lock<std::mutex> lock(barrier.mutex);
+    ++barrier.arrived;
+    barrier.changed.notify_all();
+    if (!barrier.changed.wait_for(lock, std::chrono::seconds(5), [&barrier] { return barrier.arrived == 2; }))
+    {
+        barrier.timedOut = true;
+    }
+}
+
+HostTasks &WaitForConcurrentPreparation(TreeAnalyzer *)
+{
+    WaitForConcurrentCalls();
+    return preparationBarrier->tasks;
+}
+
+bool WaitForConcurrentCreate(DBRunner *, const std::string &, const std::vector<TableColumn> &)
+{
+    WaitForConcurrentCalls();
+    return false;
+}
+}  // namespace
 
 class CannDBDumperUtest : public testing::Test
 {
@@ -198,6 +238,149 @@ class CannDBDumperUtest : public testing::Test
         MOCKER_CPP(&TreeAnalyzer::GetHcclBigOps).stubs().will(returnValue(*hcclBigOps));
     }
 };
+
+TEST_F(CannDBDumperUtest, ShouldKeepLevel1OpTypeWhenContextWasLoadedWithProfileRoot)
+{
+    using EnvContext = Analysis::Domain::Environment::Context;
+    auto &context = EnvContext::GetInstance();
+    struct ContextGuard
+    {
+        ~ContextGuard() { EnvContext::GetInstance().Clear(); }
+    } guard;
+    context.Clear();
+    context.context_[TEST_DB_FILE_PATH][HOST_ID] = {{"profLevel", "l1"}};
+    const auto hostPath = File::PathJoin({TEST_DB_FILE_PATH, "host"});
+    ASSERT_TRUE(File::CreateDir(hostPath));
+    ASSERT_TRUE(File::CreateDir(hostPath + "/sqlite"));
+    MOCKER_CPP(&HashData::Get).stubs().will(returnValue(std::string("MatMul")));
+    MOCKER_CPP(&TypeData::Get).stubs().will(returnValue(std::string("KERNEL_AICORE")));
+    auto task = std::make_shared<HostTask>();
+    auto desc = std::make_shared<OpDesc>();
+    desc->nodeDesc = std::make_shared<ParserCompactInfo>();
+    desc->nodeDesc->data.nodeBasicInfo = ParserNodeBasicInfo{};
+    task->op = std::make_shared<Operator>(desc, 0, OpType::OPTYPE_COMPUTE);
+    CANNTraceDBDumper dumper(hostPath);
+    dumper.DumpOpDesc({task});
+    ASSERT_TRUE(dumper.result_);
+    DBRunner runner(File::PathJoin({hostPath, "sqlite", GEInfoDB().GetDBName()}));
+    std::vector<std::tuple<std::string, std::string>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT op_type, task_type FROM TaskInfo", rows));
+    ASSERT_EQ(rows.size(), 1U);
+    EXPECT_EQ(std::get<0>(rows[0]), "MatMul");
+    EXPECT_EQ(std::get<1>(rows[0]), TASK_TYPE_AI_CORE);
+}
+
+TEST_F(CannDBDumperUtest, ShouldPrepareDifferentDumpDataCallsConcurrently)
+{
+    PreparationBarrier barrier;
+    barrier.tasks.push_back(std::make_shared<HostTask>());
+    preparationBarrier = &barrier;
+    MOCKER_CPP(&TreeAnalyzer::GetTasks).stubs().will(invoke(WaitForConcurrentPreparation));
+    bool results[2] = {false, false};
+    std::vector<std::thread> threads;
+    for (uint32_t tid = 0; tid < 2; ++tid)
+    {
+        threads.emplace_back([tid, &results]
+                             {
+                                 TreeAnalyzer analyzer(std::make_shared<TreeNode>(nullptr), tid);
+                                 CANNTraceDBDumper dumper(TEST_DB_FILE_PATH);
+                                 results[tid] = dumper.DumpData(analyzer);
+                             });
+    }
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+    preparationBarrier = nullptr;
+    EXPECT_FALSE(barrier.timedOut) << "DumpData calls must overlap before database writes.";
+    EXPECT_TRUE(results[0]);
+    EXPECT_TRUE(results[1]);
+    DBRunner runner(File::PathJoin({TEST_DB_FILE_PATH, "sqlite", RuntimeDB().GetDBName()}));
+    std::vector<std::tuple<uint32_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HostTask", rows));
+    ASSERT_EQ(rows.size(), 1U);
+    EXPECT_EQ(std::get<0>(rows[0]), 2U);
+}
+
+TEST_F(CannDBDumperUtest, ShouldWriteDifferentDatabasePathsConcurrently)
+{
+    PreparationBarrier barrier;
+    preparationBarrier = &barrier;
+    MOCKER_CPP(&DBRunner::CreateTable).stubs().will(invoke(WaitForConcurrentCreate));
+    CANNTraceDBDumper first(TEST_DB_FILE_PATH);
+    CANNTraceDBDumper second(TEST_DB_FILE_PATH + "/other");
+    const HostTasks tasks{std::make_shared<HostTask>()};
+    std::thread firstThread([&] { first.DumpHostTasks(tasks); });
+    std::thread secondThread([&] { second.DumpHostTasks(tasks); });
+    firstThread.join();
+    secondThread.join();
+    preparationBarrier = nullptr;
+    EXPECT_FALSE(barrier.timedOut) << "Writes to different database paths must not share a lock.";
+    EXPECT_FALSE(first.result_);
+    EXPECT_FALSE(second.result_);
+}
+
+TEST_F(CannDBDumperUtest, ShouldAppendAllTablesWhenMultipleDumpersShareDatabases)
+{
+    const uint32_t count = 8;
+    std::vector<int> results(count, 0);
+    std::vector<std::thread> threads;
+    for (uint32_t tid = 0; tid < count; ++tid)
+    {
+        threads.emplace_back([tid, &results]
+                             {
+                                 TreeAnalyzer analyzer(std::make_shared<TreeNode>(nullptr), tid);
+                                 auto task = std::make_shared<HostTask>();
+                                 task->threadId = tid;
+                                 auto desc = std::make_shared<OpDesc>();
+                                 desc->nodeDesc = std::make_shared<ParserCompactInfo>();
+                                 desc->nodeDesc->data.nodeBasicInfo = ParserNodeBasicInfo{};
+                                 task->op = std::make_shared<Operator>(desc, 0, OpType::OPTYPE_COMPUTE);
+                                 analyzer.GetTasks().push_back(task);
+                                 analyzer.GetComputeTasks().push_back(task);
+                                 auto hcclTask = std::make_shared<HostTask>();
+                                 hcclTask->threadId = tid;
+                                 hcclTask->op = std::make_shared<Operator>(
+                                     std::make_shared<HcclSmallOpDesc>(0, 0, nullptr), 0, OpType::OPTYPE_HCCL_SMALL);
+                                 analyzer.GetHCCLTasks().push_back(hcclTask);
+                                 analyzer.GetHcclBigOps().push_back(std::make_shared<Operator>(
+                                     std::make_shared<HcclBigOpDesc>(0, 0, 0, tid, 0, 0, tid, nullptr, nullptr, ""),
+                                     0, OpType::OPTYPE_HCCL_BIG));
+                                 analyzer.GetGeFusionOpInfos().push_back(std::make_shared<GeFusionOpInfo>(
+                                     tid, std::make_shared<ParserProfFusionOpInfo>()));
+                                 CANNTraceDBDumper dumper(TEST_DB_FILE_PATH);
+                                 results[tid] = dumper.DumpData(analyzer) ? 1 : 0;
+                             });
+    }
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+    for (auto result : results)
+    {
+        EXPECT_EQ(result, 1);
+    }
+    const std::vector<std::pair<std::string, std::string>> tables = {
+        {HCCLDB().GetDBName(), "HCCLOP"}, {HCCLDB().GetDBName(), "HCCLTask"},
+        {RuntimeDB().GetDBName(), "HostTask"}, {GEInfoDB().GetDBName(), "TaskInfo"},
+        {GeModelInfoDB().GetDBName(), "GeFusionOpInfo"}};
+    for (const auto &table : tables)
+    {
+        DBRunner runner(File::PathJoin({TEST_DB_FILE_PATH, "sqlite", table.first}));
+        std::vector<std::tuple<uint32_t>> rows;
+        ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM " + table.second, rows));
+        ASSERT_EQ(rows.size(), 1U);
+        EXPECT_EQ(std::get<0>(rows[0]), count) << table.second;
+    }
+    DBRunner runner(File::PathJoin({TEST_DB_FILE_PATH, "sqlite", RuntimeDB().GetDBName()}));
+    std::vector<std::tuple<uint32_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT thread_id FROM HostTask ORDER BY thread_id", rows));
+    ASSERT_EQ(rows.size(), count);
+    for (uint32_t tid = 0; tid < count; ++tid)
+    {
+        EXPECT_EQ(std::get<0>(rows[tid]), tid);
+    }
+}
 
 TEST_F(CannDBDumperUtest,
        TestCANNDumperShouldReturnTrueWhenAllDataIsCorrectAndDBFunctionsNormalThenQueryDBShouldReturnRecords)

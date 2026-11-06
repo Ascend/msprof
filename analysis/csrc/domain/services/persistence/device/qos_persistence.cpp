@@ -29,7 +29,7 @@
 #include "analysis/csrc/domain/services/parser/qos/include/qos_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/time_utils.h"
 
@@ -115,8 +115,5 @@ uint32_t QosPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(QosPersistence, false, QosParser, StarsSocProfileParser);
-REGISTER_PROCESS_DEPENDENT_DATA(QosPersistence, std::vector<HalQosBwData>, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(QosPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

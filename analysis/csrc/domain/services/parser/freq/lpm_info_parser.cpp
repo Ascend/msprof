@@ -23,7 +23,7 @@
 #include "analysis/csrc/domain/services/parser/parser_error_code.h"
 #include "analysis/csrc/domain/services/parser/parser_item/lpm_info_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
@@ -164,7 +164,5 @@ uint32_t LpmInfoParser::ParseData(DataInventory& dataInventory, const Infra::Con
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(LpmInfoParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(LpmInfoParser, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis

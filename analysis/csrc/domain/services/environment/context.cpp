@@ -1,4 +1,4 @@
-/*
+﻿/*
  * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
  * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
@@ -18,6 +18,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 
 #include <unordered_set>
+#include <vector>
 
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -60,6 +61,29 @@ const std::set<std::string> CHECK_VALUES = {"platform_version",
                                             "hostname",
                                             "memoryTotal",
                                             "netCard"};
+
+std::string NormalizeProfPath(const std::string &path)
+{
+    const bool absolute = !path.empty() && path.front() == '/';
+    std::vector<std::string> parts;
+    for (const auto &part : Split(path, "/"))
+    {
+        if (part.empty() || part == ".")
+        {
+            continue;
+        }
+        if (part == ".." && !parts.empty() && parts.back() != "..")
+        {
+            parts.pop_back();
+        }
+        else if (part != ".." || !absolute)
+        {
+            parts.push_back(part);
+        }
+    }
+    const auto normalized = (absolute ? "/" : "") + Join(parts, "/");
+    return normalized.empty() ? "." : normalized;
+}
 }  // namespace
 
 bool Context::Load(const std::set<std::string> &profPaths)
@@ -291,6 +315,18 @@ const nlohmann::json &Context::GetInfoByDeviceId(uint16_t deviceId, const std::s
     // 静态空对象作为未命中时的兜底，保证返回的引用始终有效。
     static const nlohmann::json emptyJson;
     auto profInfo = profPath.empty() ? context_.begin() : context_.find(profPath);
+    if (profInfo == context_.end() && !profPath.empty())
+    {
+        const auto normalized = NormalizeProfPath(profPath);
+        for (auto entry = context_.begin(); entry != context_.end(); ++entry)
+        {
+            if (NormalizeProfPath(entry->first) == normalized)
+            {
+                profInfo = entry;
+                break;
+            }
+        }
+    }
     if (profInfo == context_.end())
     {
         ERROR("Can't find PROF file. input path %.", profPath);

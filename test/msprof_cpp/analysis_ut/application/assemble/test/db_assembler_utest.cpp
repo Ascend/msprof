@@ -102,11 +102,13 @@ private:
     bool RunRoots(const std::vector<TopoNodeId>& roots, DataInventory& dataInventory)
     {
         TopoBuildContext context;
+        context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+        context.scopeInventories["export"] = std::shared_ptr<DataInventory>(&dataInventory, [](DataInventory*) {});
         context.profPath = PROF;
         context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
         context.dbSession =
             std::shared_ptr<Analysis::Application::DBAssembler>(this, [](Analysis::Application::DBAssembler*) {});
-        ProcessCollection processes;
+        RuntimeProcessCollection processes;
         TopoGraphBuilder builder;
         TopoNodeCollection definitions = TopoNodeRegistry::GetDefinitions();
         TopoNodeCollection& registeredDefinitions = TopoNodeRegistry::MutableDefinitions();
@@ -123,9 +125,8 @@ private:
         {
             return false;
         }
-        Analysis::Infra::Context processContext;
         ProcessControl processControl(processes);
-        return processControl.ExecuteProcess(dataInventory, processContext);
+        return processControl.ExecuteProcess();
     }
 };
 }
@@ -2390,16 +2391,18 @@ TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
     ASSERT_FALSE(roots.empty());
 
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF;
     context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
     context.dbSession = std::make_shared<DBAssembler>(context.profPath, context.outputPath);
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));
 
-    const RegProcessInfo* apiSaver = nullptr;
-    const RegProcessInfo* taskSaver = nullptr;
-    const RegProcessInfo* stringIdsSaver = nullptr;
+    const RuntimeProcessInfo* apiSaver = nullptr;
+    const RuntimeProcessInfo* taskSaver = nullptr;
+    const RuntimeProcessInfo* stringIdsSaver = nullptr;
     size_t dbNodeCount = 0;
     for (const auto& process : processes)
     {

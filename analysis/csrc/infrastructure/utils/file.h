@@ -29,6 +29,13 @@ namespace Analysis
 {
 namespace Utils
 {
+struct FileMetadata
+{
+    uint64_t size = 0;
+    int64_t modifiedTime = 0;             // Seconds since the Unix epoch.
+    int64_t modifiedTimeNanoseconds = 0;  // Fractional nanoseconds within that second.
+};
+
 // 该类主要用于文件相关的处理接口
 // 主要包括以下特性：
 // 1. 空路径、软连接和路径长度的校验
@@ -72,6 +79,11 @@ class File
     static bool IsFile(const std::string &path);
     static bool DeleteFile(const std::string &filePath);
     static uint64_t Size(const std::string &filePath);
+    static bool GetMetadata(const std::string &filePath, FileMetadata &metadata);
+    // Atomically publishes a complete text file; failures preserve the previous target and clean up the temporary file.
+    // Atomic replacement does not provide crash durability (no file/directory fsync).
+    static bool WriteTextAtomic(const std::string &filePath, const std::string &content,
+                                const mode_t &permission = 0640);
 };  // class File
 
 // 该类主要用于文件安全读取
@@ -119,6 +131,7 @@ class FileWriter
     void Open(const std::string &path, const std::ios_base::openmode &mode = std::ios::out);
     void Close();
     bool IsOpen() const;
+    bool IsGood() const { return outStream_.is_open() && outStream_.good(); }
     void WriteText(const std::string &content);
     void WriteText(const char *content, std::size_t len);
     void WriteTextBack(const std::string &content, int back);

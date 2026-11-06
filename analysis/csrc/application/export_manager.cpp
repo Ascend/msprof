@@ -28,36 +28,18 @@
 
 #include "analysis/csrc/application/database/db_assembler.h"
 #include "analysis/csrc/application/database/db_constant.h"
-#include "analysis/csrc/application/deliverable_consumer.h"
+#include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
-#include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_control.h"
 
 namespace Analysis
 {
 namespace Application
 {
 using namespace Analysis::Domain;
-namespace
-{
-std::string CreateOutputPath(const std::string& profPath)
-{
-    std::string outputPath = File::PathJoin({profPath, Analysis::Common::OUTPUT_PATH});
-    if (!File::Exist(outputPath) && !File::CreateDir(outputPath))
-    {
-        ERROR("Create mindstudio_profiler_output error, can't export data");
-        PRINT_ERROR("Create mindstudio_profiler_output error, can't export data");
-        return "";
-    }
-    return outputPath;
-}
-
-}  // namespace
-
 bool ExportManager::HasExportedMsprofDB(const std::string& profPath)
 {
     const std::string dbSuffix = ".db";
@@ -68,29 +50,6 @@ bool ExportManager::HasExportedMsprofDB(const std::string& profPath)
                            return dbPath.size() >= dbSuffix.size() &&
                                   dbPath.compare(dbPath.size() - dbSuffix.size(), dbSuffix.size(), dbSuffix) == 0;
                        });
-}
-
-namespace
-{
-bool IsResultPathPythonParseComplete(const std::string& resultPath)
-{
-    const std::string sqlitePath = File::PathJoin({resultPath, "sqlite"});
-    return File::IsDirNotEmpty(sqlitePath);
-}
-}  // namespace
-
-bool ExportManager::IsPythonParseComplete(const std::string& profPath)
-{
-    std::vector<std::string> resultPaths;
-    const std::string hostPath = File::PathJoin({profPath, "host"});
-    if (File::Exist(hostPath) && File::CheckDir(hostPath))
-    {
-        resultPaths.emplace_back(hostPath);
-    }
-    const std::vector<std::string> devicePaths = Analysis::Domain::GetDeviceDirectories(profPath);
-    resultPaths.insert(resultPaths.end(), devicePaths.begin(), devicePaths.end());
-    return !resultPaths.empty() && std::all_of(resultPaths.begin(), resultPaths.end(), [](const std::string& resultPath)
-                                               { return IsResultPathPythonParseComplete(resultPath); });
 }
 
 bool ExportManager::CheckProfDirsValid()
@@ -129,28 +88,8 @@ bool ExportManager::Init()
     return true;
 }
 
-namespace
-{
-// Closes the shared consumer on every return path of ExportManager::Run. The JSON closing bracket
-// and the DB writer threads both have to be released before the caller looks at the deliverables.
-class DeliverableScope final
-{
-   public:
-    DeliverableScope() = default;
-    ~DeliverableScope()
-    {
-        DeliverableConsumer::Instance().FinishTimeline();
-        DeliverableConsumer::Instance().CloseAllDb();
-    }
-    DeliverableScope(const DeliverableScope&) = delete;
-    DeliverableScope& operator=(const DeliverableScope&) = delete;
-};
-}  // namespace
-
 bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
 {
-    DeliverableScope deliverableScope;
-    DeliverableConsumer::Instance().ResetOk();
     INFO("Start to load data!");
     PRINT_INFO("Start to load data!");
     if (!Init())
@@ -158,79 +97,24 @@ bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
         return false;
     }
 
-    ExportSelection selection;
-    if (!GetExportSelection(exportModeSet, selection))
+    TopoBuildContext buildContext;
+    buildContext.environmentLoaded = true;
+    std::vector<TopoNodeId> roots;
+    if (!Plan(exportModeSet, buildContext, roots))
     {
         return false;
     }
 
-    TopoBuildContext buildContext;
-    buildContext.profPath = profPath_;
-    buildContext.outputPath = profPath_;
-    buildContext.timelineProcesses = selection.timelineProcesses;
-    std::vector<TopoNodeId> roots;
-    for (const auto& exportMode : exportModeSet)
-    {
-        switch (exportMode)
-        {
-            case ExportMode::DB:
-            {
-                if (HasExportedMsprofDB(profPath_))
-                {
-                    INFO("The exported msprof db already exists, skip DB export.");
-                    break;
-                }
-                buildContext.dbSession =
-                    std::shared_ptr<DBAssembler>(new (std::nothrow) DBAssembler(profPath_, profPath_));
-                if (buildContext.dbSession == nullptr || !DBAssembler::GetTopologyRoots(roots))
-                {
-                    ERROR("Build DB topology roots failed.");
-                    return false;
-                }
-                break;
-            }
-            case ExportMode::TIMELINE:
-            {
-                const std::string outputPath = CreateOutputPath(profPath_);
-                if (outputPath.empty())
-                {
-                    return false;
-                }
-                buildContext.outputPath = outputPath;
-                buildContext.timelineSession =
-                    std::shared_ptr<TimelineManager>(new (std::nothrow) TimelineManager(profPath_, outputPath));
-                if (buildContext.timelineSession == nullptr ||
-                    !TimelineManager::GetTopologyRoots(selection.timelineProcesses, roots))
-                {
-                    return false;
-                }
-                break;
-            }
-            case ExportMode::SUMMARY:
-                if (CreateOutputPath(profPath_).empty() ||
-                    !SummaryManager::GetTopologyRoots(selection.summaryDeliverables, roots))
-                {
-                    return false;
-                }
-                break;
-            default:
-                ERROR("Unsupported ExportMode: %.", static_cast<int>(exportMode));
-                return false;
-        }
-    }
-
-    Infra::ProcessCollection processes;
+    Infra::RuntimeProcessCollection processes;
     TopoGraphBuilder graphBuilder;
-    if (!graphBuilder.Build(buildContext, roots, processes))
+    if (!graphBuilder.BuildExport(buildContext, roots, processes))
     {
         ERROR("Build export topology failed.");
         return false;
     }
 
-    DataInventory dataInventory;
-    Infra::Context context;
-    Infra::ProcessControl processControl(processes);
-    if (!processControl.ExecuteProcess(dataInventory, context))
+    const bool success = ExecuteTopoGraph(graphBuilder, processes, profPath_);
+    if (!success)
     {
         ERROR("The % export topology failed to be executed.", profPath_);
         PRINT_ERROR(
@@ -242,12 +126,91 @@ bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
     return true;
 }
 
-bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection)
+bool ExportManager::Plan(const std::set<ExportMode>& exportModeSet, TopoBuildContext& buildContext,
+                         std::vector<TopoNodeId>& roots)
+{
+    roots.clear();
+    if (exportModeSet.empty() || !File::CheckDir(profPath_))
+    {
+        ERROR("Invalid export modes or profile path.");
+        return false;
+    }
+    ExportSelection selection;
+    if (!GetExportSelection(exportModeSet, selection, buildContext.strictSelection))
+    {
+        return false;
+    }
+
+    buildContext.profPath = profPath_;
+    buildContext.outputPath = profPath_;
+    buildContext.timelineProcesses = selection.timelineProcesses;
+    for (const auto& exportMode : exportModeSet)
+    {
+        switch (exportMode)
+        {
+            case ExportMode::DB:
+            {
+                if (HasExportedMsprofDB(profPath_))
+                {
+                    INFO("The exported msprof db already exists, skip DB export.");
+                    break;
+                }
+                if (!DBAssembler::GetTopologyRoots(roots))
+                {
+                    ERROR("Build DB topology roots failed.");
+                    return false;
+                }
+                buildContext.dbSession =
+                    std::shared_ptr<DBAssembler>(new (std::nothrow) DBAssembler(profPath_, profPath_));
+                if (buildContext.dbSession == nullptr)
+                {
+                    ERROR("Prepare DB export session failed.");
+                    return false;
+                }
+                break;
+            }
+            case ExportMode::TIMELINE:
+            {
+                buildContext.outputPath = File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH});
+                if (!TimelineManager::GetTopologyRoots(selection.timelineProcesses, roots))
+                {
+                    return false;
+                }
+                buildContext.timelineSession = std::shared_ptr<TimelineManager>(
+                    new (std::nothrow) TimelineManager(profPath_, buildContext.outputPath));
+                if (buildContext.timelineSession == nullptr)
+                {
+                    ERROR("Prepare timeline export session failed.");
+                    return false;
+                }
+                break;
+            }
+            case ExportMode::SUMMARY:
+                if (!SummaryManager::GetTopologyRoots(selection.summaryDeliverables, roots))
+                {
+                    return false;
+                }
+                break;
+            default:
+                ERROR("Unsupported ExportMode: %.", static_cast<int>(exportMode));
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection,
+                                       bool strict)
 {
     selection.timelineProcesses.clear();
     selection.summaryDeliverables.clear();
     const bool exportTimeline = exportModeSet.find(ExportMode::TIMELINE) != exportModeSet.end();
     const bool exportSummary = exportModeSet.find(ExportMode::SUMMARY) != exportModeSet.end();
+    if (!exportTimeline && !exportSummary)
+    {
+        return true;
+    }
     if (exportTimeline)
     {
         selection.timelineProcesses = allProcesses;
@@ -264,14 +227,24 @@ bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet
     {
         ERROR("Load report config failed: '%'.", jsonPath_);
         PRINT_ERROR("Load report config failed: '%'.", jsonPath_);
-        return true;
+        return !strict;
     }
 
+    if (!config.is_object())
+    {
+        ERROR("Report selection must be a JSON object.");
+        return !strict;
+    }
     if (exportTimeline)
     {
         const auto jsonProcessConfig = config["json_process"];
         if (jsonProcessConfig.is_null() || !jsonProcessConfig.is_object() || jsonProcessConfig.empty())
         {
+            if (strict && !jsonProcessConfig.is_null() && !jsonProcessConfig.is_object())
+            {
+                ERROR("Timeline process must be a JSON object.");
+                return false;
+            }
             INFO("The json_process is not exist.");
             PRINT_INFO("The json_process is not exist.");
         }
@@ -313,6 +286,10 @@ bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet
                     return false;
                 }
                 selection.timelineProcesses = std::move(jsonProcesses);
+            }
+            else if (strict)
+            {
+                return false;
             }
         }
     }

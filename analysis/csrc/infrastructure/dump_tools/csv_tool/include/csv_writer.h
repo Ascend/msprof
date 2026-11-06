@@ -17,6 +17,7 @@
 #ifndef ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H
 #define ANALYSIS_INFRASTRUCTURE_DUMP_TOOLS_CSV_TOOL_INCLUDE_CSV_WRITER_H
 
+#include <cstdint>
 #include <set>
 #include <string>
 #include <vector>

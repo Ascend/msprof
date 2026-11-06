@@ -44,10 +44,10 @@ KernelParserWorker::KernelParserWorker(std::string hostFilePath) : hostFilePath_
 {
 }
 
-int KernelParserWorker::Run()
+int KernelParserWorker::Run(bool loadEnvironment)
 {
     std::set<std::string> profPaths{Utils::File::PathJoin({hostFilePath_, ".."})};
-    if (!Context::GetInstance().Load(profPaths))
+    if (loadEnvironment && !Context::GetInstance().Load(profPaths))
     {
         ERROR("Context load failed.");
         return ANALYSIS_ERROR;
@@ -63,9 +63,21 @@ int KernelParserWorker::Run()
     // Hash 与 TypeInfo 都写入 ge_hash.db，不能并行打开同一库
     INFO("Start parse hash data");
     DumpHashData();
+    if (!result_)
+    {
+        return ANALYSIS_ERROR;
+    }
     INFO("Start parse type info data");
     DumpTypeInfoData();
+    if (!result_)
+    {
+        return ANALYSIS_ERROR;
+    }
     DumpNpuOpMemData();
+    if (!result_)
+    {
+        return ANALYSIS_ERROR;
+    }
     LaunchTraceParser();
     if (!result_)
     {
@@ -79,7 +91,15 @@ void KernelParserWorker::DumpHashData()
 {
     auto dataPath = Utils::File::PathJoin({hostFilePath_, "data"});
     INFO("Hash data load from path: %", dataPath);
-    HashData::GetInstance().Load(dataPath);
+    if (!HashData::GetInstance().Load(dataPath) &&
+        !Utils::File::GetOriginData(dataPath, {"unaging.additional.hash_dic.slice", "aging.additional.hash_dic.slice"},
+                                    {"done", "complete"})
+             .empty())
+    {
+        ERROR("Hash data load failed");
+        result_ = false;
+        return;
+    }
     auto hashDataContent = HashData::GetInstance().GetAll();
     INFO("success get hash data");
     if (hashDataContent.empty())
@@ -87,8 +107,12 @@ void KernelParserWorker::DumpHashData()
         WARN("Empty hash data");
         return;
     }
-    std::shared_ptr<HashDBDumper> hashDbDumper;
-    MAKE_SHARED_RETURN_VOID(hashDbDumper, HashDBDumper, hostFilePath_);
+    std::shared_ptr<HashDBDumper> hashDbDumper(new (std::nothrow) HashDBDumper(hostFilePath_));
+    if (!hashDbDumper)
+    {
+        result_ = false;
+        return;
+    }
     INFO("success get hashDbDumper");
     if (!hashDbDumper->DumpData(hashDataContent))
     {
@@ -101,7 +125,16 @@ void KernelParserWorker::DumpTypeInfoData()
 {
     auto dataPath = Utils::File::PathJoin({hostFilePath_, "data"});
     INFO("Typeinfo data load from path: %", dataPath);
-    TypeData::GetInstance().Load(dataPath);
+    if (!TypeData::GetInstance().Load(dataPath) &&
+        !Utils::File::GetOriginData(dataPath,
+                                    {"unaging.additional.type_info_dic.slice", "aging.additional.type_info_dic.slice"},
+                                    {"done", "complete"})
+             .empty())
+    {
+        ERROR("Type info data load failed");
+        result_ = false;
+        return;
+    }
     auto typeInfoContent = TypeData::GetInstance().GetAll();
     if (typeInfoContent.empty())
     {

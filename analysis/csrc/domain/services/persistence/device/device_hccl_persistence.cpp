@@ -286,10 +286,5 @@ uint32_t DeviceHcclPersistence::ProcessEntry(DataInventory& dataInventory, const
     }
     return (flag) ? ANALYSIS_OK : ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(DeviceHcclPersistence, true, HcclCalculator, KfcCalculator);
-REGISTER_PROCESS_DEPENDENT_DATA(DeviceHcclPersistence, std::vector<DeviceHcclOp>, std::vector<DeviceHcclTask>,
-                                std::vector<HcclStatistics>, std::vector<KfcTaskRecord>, std::vector<KfcOpRecord>,
-                                std::vector<KfcOpStatistics>);
-REGISTER_PROCESS_SUPPORT_CHIP(DeviceHcclPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

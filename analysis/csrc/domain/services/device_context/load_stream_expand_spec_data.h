@@ -17,14 +17,17 @@
 #ifndef MSPROF_ANALYSIS_LOAD_STREAM_EXPAND_SPEC_DATA_H
 #define MSPROF_ANALYSIS_LOAD_STREAM_EXPAND_SPEC_DATA_H
 
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
-namespace Analysis {
-namespace Domain {
-class LoadStreamExpandSpec : public Infra::Process {
-private:
+namespace Analysis
+{
+namespace Domain
+{
+class LoadStreamExpandSpec : public Infra::Process
+{
+   private:
     uint32_t ProcessEntry(Infra::DataInventory &dataInventory, const Infra::Context &deviceContext) override;
 };
-}
-}
-#endif // MSPROF_ANALYSIS_LOAD_STREAM_EXPAND_SPEC_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // MSPROF_ANALYSIS_LOAD_STREAM_EXPAND_SPEC_DATA_H

@@ -19,7 +19,7 @@
 
 #include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
 #include "analysis/csrc/domain/valueobject/include/task_id.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 
 namespace Analysis
 {

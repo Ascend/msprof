@@ -16,6 +16,11 @@
  * -------------------------------------------------------------------------
  */
 
+#include <fcntl.h>
+#include <sys/stat.h>
+
+#include <cstdio>
+
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "gtest/gtest.h"
@@ -75,6 +80,106 @@ TEST_F(FileUTest, TestSize)
     EXPECT_EQ(0, File::Size(""));
     EXPECT_EQ(0, File::Size("test_file_not_exist"));
     EXPECT_EQ(0, File::Size("test_file"));
+}
+
+TEST_F(FileUTest, MetadataDistinguishesEmptyFilesFromReadFailures)
+{
+    FileMetadata metadata;
+    ASSERT_TRUE(File::GetMetadata("test_file", metadata));
+    EXPECT_EQ(metadata.size, 0U);
+    EXPECT_GT(metadata.modifiedTime, 0);
+    FileWriter("test_file").WriteText("snapshot");
+    ASSERT_TRUE(File::GetMetadata("test_file", metadata));
+    EXPECT_EQ(metadata.size, 8U);
+    EXPECT_FALSE(File::GetMetadata("test_file_not_exist", metadata));
+    EXPECT_EQ(metadata.size, 0U);
+    EXPECT_EQ(metadata.modifiedTime, 0);
+    EXPECT_EQ(metadata.modifiedTimeNanoseconds, 0);
+    EXPECT_FALSE(File::GetMetadata("", metadata));
+    EXPECT_FALSE(File::GetMetadata(std::string("test_file\0ignored", 17), metadata));
+    EXPECT_FALSE(File::GetMetadata(".", metadata));
+}
+
+TEST_F(FileUTest, MetadataDistinguishesSameSizeWritesWithinOneSecond)
+{
+    FileWriter("test_file").WriteText("before");
+    struct timespec times[2] = {{1700000000, 0}, {1700000000, 123000000}};
+    ASSERT_EQ(utimensat(AT_FDCWD, "test_file", times, 0), 0);
+    FileMetadata before;
+    ASSERT_TRUE(File::GetMetadata("test_file", before));
+    EXPECT_EQ(before.modifiedTime, 1700000000);
+    EXPECT_EQ(before.modifiedTimeNanoseconds, 123000000);
+
+    FileWriter("test_file").WriteText("after!");
+    times[1].tv_nsec = 987000000;
+    ASSERT_EQ(utimensat(AT_FDCWD, "test_file", times, 0), 0);
+    FileMetadata after;
+    ASSERT_TRUE(File::GetMetadata("test_file", after));
+    EXPECT_EQ(before.size, after.size);
+    EXPECT_EQ(before.modifiedTime, after.modifiedTime);
+    EXPECT_EQ(after.modifiedTimeNanoseconds, 987000000);
+}
+
+TEST_F(FileUTest, AtomicTextWriteCreatesAndReplacesCompleteFiles)
+{
+    EXPECT_TRUE(File::DeleteFile("test_file"));
+    ASSERT_TRUE(File::WriteTextAtomic("test_file", "first\n"));
+    ASSERT_TRUE(File::WriteTextAtomic("test_file", "replacement\n"));
+    std::vector<std::string> lines;
+    ASSERT_EQ(FileReader("test_file").ReadText(lines), ANALYSIS_OK);
+    EXPECT_EQ(lines, (std::vector<std::string>{"replacement"}));
+    struct stat info {};
+    ASSERT_EQ(stat("test_file", &info), 0);
+    EXPECT_EQ(info.st_mode & 0777, 0640U);
+    ASSERT_TRUE(File::WriteTextAtomic("test_file", ""));
+    EXPECT_EQ(File::Size("test_file"), 0U);
+    EXPECT_TRUE(File::GetFilesWithPrefix(".", "test_file.tmp.").empty());
+}
+
+TEST_F(FileUTest, FailedAtomicPublishPreservesOldFileAndCleansTemporaryFile)
+{
+    FileWriter("test_file").WriteText("original\n");
+    MOCKER(::rename).stubs().will(returnValue(-1));
+    const bool result = File::WriteTextAtomic("test_file", "replacement\n");
+    MOCKER(::rename).reset();
+    EXPECT_FALSE(result);
+    std::vector<std::string> lines;
+    ASSERT_EQ(FileReader("test_file").ReadText(lines), ANALYSIS_OK);
+    EXPECT_EQ(lines, (std::vector<std::string>{"original"}));
+    EXPECT_TRUE(File::GetFilesWithPrefix(".", "test_file.tmp.").empty());
+}
+
+TEST_F(FileUTest, FailedAtomicPermissionSetupCleansTemporaryFile)
+{
+    FileWriter("test_file").WriteText("original\n");
+    MOCKER(::fchmod).stubs().will(returnValue(-1));
+    const bool result = File::WriteTextAtomic("test_file", "replacement\n");
+    MOCKER(::fchmod).reset();
+    EXPECT_FALSE(result);
+    std::vector<std::string> lines;
+    ASSERT_EQ(FileReader("test_file").ReadText(lines), ANALYSIS_OK);
+    EXPECT_EQ(lines, (std::vector<std::string>{"original"}));
+    EXPECT_TRUE(File::GetFilesWithPrefix(".", "test_file.tmp.").empty());
+}
+
+TEST_F(FileUTest, AtomicTextWriteRejectsInvalidTargetsWithoutFollowingLinks)
+{
+    EXPECT_FALSE(File::WriteTextAtomic("", "replacement"));
+    EXPECT_FALSE(File::WriteTextAtomic("invalid\npath", "replacement"));
+    EXPECT_FALSE(File::WriteTextAtomic(std::string("test_file\0ignored", 17), "replacement"));
+    EXPECT_FALSE(File::WriteTextAtomic(".", "replacement"));
+    FileWriter("test_file").WriteText("original\n");
+    ASSERT_EQ(symlink("test_file", "test_file_atomic_link"), 0);
+    EXPECT_FALSE(File::WriteTextAtomic("test_file_atomic_link", "replacement\n"));
+    EXPECT_TRUE(File::DeleteFile("test_file_atomic_link"));
+    ASSERT_EQ(symlink("test_file_not_exist", "test_file_atomic_link"), 0);
+    EXPECT_FALSE(File::WriteTextAtomic("test_file_atomic_link", "replacement\n"));
+    EXPECT_TRUE(File::DeleteFile("test_file_atomic_link"));
+    std::vector<std::string> lines;
+    ASSERT_EQ(FileReader("test_file").ReadText(lines), ANALYSIS_OK);
+    EXPECT_EQ(lines, (std::vector<std::string>{"original"}));
+    EXPECT_FALSE(File::Exist("test_file_not_exist"));
+    EXPECT_TRUE(File::GetFilesWithPrefix(".", "test_file.tmp.").empty());
 }
 
 TEST_F(FileUTest, TestCheckDir)

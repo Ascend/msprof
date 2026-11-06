@@ -19,6 +19,7 @@
 #include "analysis/csrc/domain/services/persistence/host/cann_trace_db_dumper.h"
 
 #include <set>
+#include <unordered_map>
 
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -61,6 +62,43 @@ using GeFusionOpsDumpData = std::vector<std::tuple<uint64_t, std::string, uint32
 
 namespace
 {
+std::shared_ptr<std::mutex> GetDatabaseMutex(const std::string &path)
+{
+    static std::mutex registryMutex;
+    static std::unordered_map<std::string, std::weak_ptr<std::mutex>> mutexes;
+    std::lock_guard<std::mutex> guard(registryMutex);
+    for (auto it = mutexes.begin(); it != mutexes.end();)
+    {
+        if (it->second.expired())
+        {
+            it = mutexes.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+    auto &entry = mutexes[path];
+    auto mutex = entry.lock();
+    if (!mutex)
+    {
+        mutex = std::make_shared<std::mutex>();
+        entry = mutex;
+    }
+    return mutex;
+}
+
+template <typename... Args>
+bool DumpRows(const DBRunner &runner, const std::string &table, const std::vector<TableColumn> &columns,
+              const std::vector<std::tuple<Args...>> &rows)
+{
+    // Serialize only writes to the same SQLite file, including writes to different tables.
+    // Keep data preparation outside the lock so independent dumpers and databases can progress together.
+    const auto mutex = GetDatabaseMutex(runner.GetPath());
+    std::lock_guard<std::mutex> guard(*mutex);
+    return runner.CreateTable(table, columns) && runner.InsertData(table, rows);
+}
+
 // taskTrack(runtime) 的任务类型到 TaskInfo 中 GE 任务类型名的映射
 const std::unordered_map<std::string, std::string> RtsToGeTaskTypeMap = {
     {KERNEL_AICORE_TASK_TYPE, TASK_TYPE_AI_CORE},
@@ -173,8 +211,26 @@ bool CANNTraceDBDumper::DumpData(TreeAnalyzer analyzer)
 {
     Utils::TimeLogger t{"Dump CANN data"};
     ThreadPool pool(poolSize_);
-    pool.Start();
-    pool.AddTask(
+    if (!pool.Start())
+    {
+        return false;
+    }
+    const auto addTask = [this, &pool](const std::function<void()> &task)
+    {
+        pool.AddTask(
+            [this, task]()
+            {
+                try
+                {
+                    task();
+                }
+                catch (...)
+                {
+                    result_ = false;
+                }
+            });
+    };
+    addTask(
         [this, &analyzer]()
         {
             HCCLBigOpDescs hcclBigOps = analyzer.GetHcclBigOps();
@@ -182,19 +238,19 @@ bool CANNTraceDBDumper::DumpData(TreeAnalyzer analyzer)
             DumpHcclOps(hcclBigOps);
             DumpHcclTasks(hcclTasks);
         });
-    pool.AddTask(
+    addTask(
         [this, &analyzer]()
         {
             HostTasks hostTasks = analyzer.GetTasks();
             DumpHostTasks(hostTasks);
         });
-    pool.AddTask(
+    addTask(
         [this, &analyzer]()
         {
             HostTasks computeTasks = analyzer.GetComputeTasks();
             DumpOpDesc(computeTasks);
         });
-    pool.AddTask(
+    addTask(
         [this, &analyzer]()
         {
             GeFusionOpInfos geFusionOps = analyzer.GetGeFusionOpInfos();
@@ -221,12 +277,6 @@ void CANNTraceDBDumper::DumpHcclOps(const HCCLBigOpDescs &hcclOps)
     HCCLDB hcclDB;
     std::string hcclTaskDBPath = Utils::File::PathJoin({hostFilePath_, "sqlite", hcclDB.GetDBName()});
     DBRunner hcclOpDBRunner(hcclTaskDBPath);
-    if (!hcclOpDBRunner.CreateTable("HCCLOP", hcclDB.GetTableCols("HCCLOP")))
-    {
-        ERROR("DumpHcclOps: create table HCCLOP failed");
-        result_ = false;
-        return;
-    }
     HCCLOpsDumpData data;
     if (!Utils::Reserve(data, hcclOps.size()))
     {
@@ -242,9 +292,9 @@ void CANNTraceDBDumper::DumpHcclOps(const HCCLBigOpDescs &hcclOps)
         }
         AddHcclOpDumpData(data, op);
     }
-    if (!hcclOpDBRunner.InsertData("HCCLOP", data))
+    if (!DumpRows(hcclOpDBRunner, "HCCLOP", hcclDB.GetTableCols("HCCLOP"), data))
     {
-        ERROR("DumpHcclOps: Insert into db failed");
+        ERROR("DumpHcclOps: persist HCCLOP failed");
         result_ = false;
     }
 }
@@ -260,12 +310,6 @@ void CANNTraceDBDumper::DumpHostTasks(const HostTasks &hostTasks)
     RuntimeDB runtimeDB;
     std::string hostTaskDBPath = Utils::File::PathJoin({hostFilePath_, "sqlite", runtimeDB.GetDBName()});
     DBRunner hostTaskDBRunner(hostTaskDBPath);
-    if (!hostTaskDBRunner.CreateTable("HostTask", runtimeDB.GetTableCols("HostTask")))
-    {
-        result_ = false;
-        ERROR("DumpHostTasks: create table HostTask failed");
-        return;
-    }
     HostTasksDumpData data;
     if (!Utils::Reserve(data, hostTasks.size()))
     {
@@ -281,10 +325,10 @@ void CANNTraceDBDumper::DumpHostTasks(const HostTasks &hostTasks)
                           task->batchId, taskType, kernelName, task->deviceId, std::to_string(task->timeStamp),
                           task->connectionId, task->threadId);
     }
-    if (!hostTaskDBRunner.InsertData("HostTask", data))
+    if (!DumpRows(hostTaskDBRunner, "HostTask", runtimeDB.GetTableCols("HostTask"), data))
     {
         result_ = false;
-        ERROR("DumpHostTasks: Insert into db failed");
+        ERROR("DumpHostTasks: persist HostTask failed");
     }
 }
 
@@ -318,16 +362,10 @@ void CANNTraceDBDumper::DumpOpDesc(const HostTasks &computeTasks)
         INFO("No valid TaskInfo data, skip creating TaskInfo table.");
         return;
     }
-    if (!opDescDBRunner.CreateTable("TaskInfo", geInfoDb.GetTableCols("TaskInfo")))
+    if (!DumpRows(opDescDBRunner, "TaskInfo", geInfoDb.GetTableCols("TaskInfo"), data))
     {
         result_ = false;
-        ERROR("DumpOpDesc: Create table TaskInfo failed");
-        return;
-    }
-    if (!opDescDBRunner.InsertData("TaskInfo", data))
-    {
-        result_ = false;
-        ERROR("DumpOpDesc: Insert into db failed");
+        ERROR("DumpOpDesc: persist TaskInfo failed");
     }
 }
 
@@ -572,12 +610,6 @@ void CANNTraceDBDumper::DumpHcclTasks(const HostTasks &hcclTasks)
     HCCLDB hcclDB;
     std::string hcclTaskDBPath = Utils::File::PathJoin({hostFilePath_, "sqlite", hcclDB.GetDBName()});
     DBRunner hcclTaskDBRunner(hcclTaskDBPath);
-    if (!hcclTaskDBRunner.CreateTable("HCCLTask", hcclDB.GetTableCols("HCCLTask")))
-    {
-        result_ = false;
-        ERROR("DumpHcclTasks: create table HCCLTask failed");
-        return;
-    }
     HcclTasksDumpData data;
     if (!Utils::Reserve(data, hcclTasks.size()))
     {
@@ -612,10 +644,10 @@ void CANNTraceDBDumper::DumpHcclTasks(const HostTasks &hcclTasks)
             NumberMapping::Get(MappingType::HCCL_RDMA_TYPE, hcclTrace.rdmaType), task->threadId, hcclTrace.rankSize,
             task->connectionId);
     }
-    if (!hcclTaskDBRunner.InsertData("HCCLTask", data))
+    if (!DumpRows(hcclTaskDBRunner, "HCCLTask", hcclDB.GetTableCols("HCCLTask"), data))
     {
         result_ = false;
-        ERROR("DumpHcclTasks: Insert into db failed");
+        ERROR("DumpHcclTasks: persist HCCLTask failed");
     }
 }
 
@@ -630,12 +662,6 @@ void CANNTraceDBDumper::DumpGeFusionOps(const GeFusionOpInfos &geFusionOps)
     GeModelInfoDB geModelInfoDb;
     std::string geModelInfoDbPath = Utils::File::PathJoin({hostFilePath_, "sqlite", geModelInfoDb.GetDBName()});
     DBRunner geFusionOpDBRunner(geModelInfoDbPath);
-    if (!geFusionOpDBRunner.CreateTable("GeFusionOpInfo", geModelInfoDb.GetTableCols("GeFusionOpInfo")))
-    {
-        result_ = false;
-        ERROR("DumpGeFusionOps: create table GeFusionOpInfo failed");
-        return;
-    }
     GeFusionOpsDumpData data;
     if (!Utils::Reserve(data, geFusionOps.size()))
     {
@@ -660,10 +686,10 @@ void CANNTraceDBDumper::DumpGeFusionOps(const GeFusionOpInfos &geFusionOps)
                           std::to_string(fusionStruct->weightMemSize), std::to_string(fusionStruct->workspaceMemSize),
                           std::to_string(fusionStruct->totalMemSize));
     }
-    if (!geFusionOpDBRunner.InsertData("GeFusionOpInfo", data))
+    if (!DumpRows(geFusionOpDBRunner, "GeFusionOpInfo", geModelInfoDb.GetTableCols("GeFusionOpInfo"), data))
     {
         result_ = false;
-        ERROR("DumpGeFusionOps: Insert into db failed");
+        ERROR("DumpGeFusionOps: persist GeFusionOpInfo failed");
     }
 }
 }  // namespace Domain

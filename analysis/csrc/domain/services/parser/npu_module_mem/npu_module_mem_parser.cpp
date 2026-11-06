@@ -23,7 +23,7 @@
 #include "analysis/csrc/domain/services/parser/parser_item/npu_module_mem_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
@@ -74,7 +74,5 @@ uint32_t NpuModuleMemParser::ParseData(Infra::DataInventory &dataInventory, cons
     return ANALYSIS_OK;
 }
 
-REGISTER_PROCESS_SEQUENCE(NpuModuleMemParser, true);
-REGISTER_PROCESS_SUPPORT_CHIP(NpuModuleMemParser, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

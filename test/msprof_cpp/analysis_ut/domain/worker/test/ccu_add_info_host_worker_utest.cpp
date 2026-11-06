@@ -107,7 +107,7 @@ TEST_F(CcuAddInfoHostWorkerUTest, TestRunShouldParseAndDumpCcuAddInfo)
     EXPECT_EQ(uint32_t{9}, std::get<10>(rows[0]));
 }
 
-TEST_F(CcuAddInfoHostWorkerUTest, TestRetryShouldNotDuplicateCommittedRows)
+TEST_F(CcuAddInfoHostWorkerUTest, TestRetryWithoutMarkerShouldFailWithoutDuplicatingCommittedRows)
 {
     ASSERT_TRUE(WriteTaskRecord());
     ASSERT_TRUE(HostTraceWorker(HOST_PATH).Run());
@@ -115,7 +115,9 @@ TEST_F(CcuAddInfoHostWorkerUTest, TestRetryShouldNotDuplicateCommittedRows)
     const auto marker = File::PathJoin({DATA_PATH, "unaging.additional.ccu_task_info.slice_0.complete"});
     ASSERT_TRUE(File::Exist(marker));
     ASSERT_TRUE(File::DeleteFile(marker));
-    EXPECT_TRUE(HostTraceWorker(HOST_PATH).Run());
+    // Existing rows without a completion marker require a full clean before reimport.
+    EXPECT_FALSE(HostTraceWorker(HOST_PATH).Run());
+    EXPECT_FALSE(File::Exist(marker));
     DBRunner runner(DB_PATH);
     std::vector<std::tuple<uint64_t>> rows;
     ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM CCUTaskInfo", rows));

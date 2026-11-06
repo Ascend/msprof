@@ -23,7 +23,7 @@
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -97,8 +97,5 @@ uint32_t AccPmuPersistence::ProcessEntry(DataInventory& dataInventory, const Con
     ERROR("Save % data failed: %", accPmuDB.tableName, dbPath);
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(AccPmuPersistence, true, StarsSocParser, StarsSocParserV6, StarsSocProfileParser);
-REGISTER_PROCESS_DEPENDENT_DATA(AccPmuPersistence, std::vector<HalLogData>, HalSocProfileData);
-REGISTER_PROCESS_SUPPORT_CHIP(AccPmuPersistence, CHIP_V4_1_0, CHIP_V6_1_0);
 }  // namespace Domain
 }  // namespace Analysis

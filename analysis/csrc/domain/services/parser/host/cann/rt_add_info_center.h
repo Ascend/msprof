@@ -57,6 +57,14 @@ class RTAddInfoCenter : public Utils::Singleton<RTAddInfoCenter>
 
    public:
     void Load(const std::string &path);
+    void Clear()
+    {
+        runtimeOpInfoData_.clear();
+        dumpList_.clear();
+        captureStreamInfoData_.clear();
+        captureInfoTimeRangeDict_.clear();
+        loadedFromBinary_ = false;
+    }
     void SetCaptureStreamInfoData(const std::vector<CaptureStreamInfo> &data);
     void Add(const RuntimeOpInfo &info);
     RuntimeOpInfo Get(uint16_t deviceId, uint32_t streamId, uint32_t taskId);

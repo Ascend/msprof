@@ -59,18 +59,17 @@ TEST(SummaryManagerUTest, ShouldBuildOnlySelectedDeliverable)
     EXPECT_EQ(roots.front(), (TopoNodeId{TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_NPU_MEM}));
 
     TopoBuildContext context;
+    context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+    context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
     context.outputPath = RESULT_PATH;
-    ProcessCollection processes;
+    RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));
 
     const auto summary = std::find_if(
-        processes.begin(), processes.end(), [](const ProcessCollection::value_type& process) -> bool
-        {
-            return process.second.processName == PROCESSOR_NAME_NPU_MEM &&
-                   process.second.paramTypes.size() == 1UL;
-        });
+        processes.begin(), processes.end(), [](const RuntimeProcessCollection::value_type& process) -> bool
+        { return process.second.processName == PROCESSOR_NAME_NPU_MEM && process.second.paramTypes.size() == 1UL; });
     ASSERT_NE(summary, processes.end());
     EXPECT_EQ(summary->second.processDependence.size(), 1UL);
     EXPECT_EQ(summary->second.paramTypes.size(), 1UL);

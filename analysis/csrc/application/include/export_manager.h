@@ -24,6 +24,7 @@
 #include "analysis/csrc/application/include/export_mode_enum.h"
 #include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
+#include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 
 namespace Analysis
 {
@@ -44,16 +45,16 @@ class ExportManager
     ExportManager(const std::string& profPath, const std::string& jsonPath) : profPath_(profPath), jsonPath_(jsonPath)
     {
     }
+    // Select export roots, extend their graph with Host/Device parsing, then execute it once.
     bool Run(const std::set<ExportMode>& exportModeSet);
-    bool GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection);
+    // Select roots and fill the caller's export sessions without loading data or creating files.
+    bool Plan(const std::set<ExportMode>& modes, TopoBuildContext& context, std::vector<TopoNodeId>& roots);
+    bool GetExportSelection(const std::set<ExportMode>& exportModeSet, ExportSelection& selection, bool strict = false);
     static bool HasExportedMsprofDB(const std::string& profPath);
-    static bool IsPythonParseComplete(const std::string& profPath);
 
    private:
-    bool Init();
     bool CheckProfDirsValid();
-
-   private:
+    bool Init();
     std::string profPath_;
     std::string jsonPath_;
 };

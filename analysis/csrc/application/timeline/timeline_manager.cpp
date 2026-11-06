@@ -83,7 +83,11 @@ bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>&, DataInventory
     return true;
 }
 
-void TimelineManager::PostDumpJson() { DeliverableConsumer::Instance().FinishTimeline(); }
+bool TimelineManager::PostDumpJson()
+{
+    DeliverableConsumer::Instance().FinishTimeline();
+    return DeliverableConsumer::Instance().Ok();
+}
 
 std::vector<std::string> TimelineManager::GetAssemblerList(const std::vector<JsonProcess>& jsonProcess)
 {
@@ -184,8 +188,7 @@ TopoNodeCreatorFactory TimelineManager::CreateTimelinePostDump()
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
                 [session](DataInventory&) -> bool
                 {
-                    session->PostDumpJson();
-                    if (!DeliverableConsumer::Instance().Ok())
+                    if (!session->PostDumpJson())
                     {
                         ERROR("Export timeline deliverable failed.");
                         return false;

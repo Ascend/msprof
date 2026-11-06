@@ -10,12 +10,14 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "analysis/csrc/application/include/export_mode_enum.h"
 #include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/process/include/process_struct.h"
@@ -27,7 +29,6 @@ namespace Application
 {
 class DBAssembler;
 class TimelineManager;
-constexpr size_t MAX_TOPO_NODE_COUNT = 64;
 
 enum class TopoNodeStage : uint8_t
 {
@@ -36,21 +37,36 @@ enum class TopoNodeStage : uint8_t
     DATABASE_PERSISTENCE,  // Application database persistence.
     TIMELINE_EXPORT,       // Application timeline export.
     FLOW_CONTROL,          // Topology lifecycle control.
+    HOST_PROCESSING,
+    DEVICE_PROCESSING,
+};
+
+enum class TopoScopeKind
+{
+    PROFILE,
+    HOST,
+    DEVICE,
+    EXPORT
 };
 
 struct TopoNodeId
 {
     TopoNodeStage stage;
     std::string name;
+    std::string scope;
 
-    bool operator==(const TopoNodeId& other) const { return stage == other.stage && name == other.name; }
+    bool operator==(const TopoNodeId& other) const
+    {
+        return stage == other.stage && name == other.name && scope == other.scope;
+    }
 };
 
 struct TopoNodeIdHash
 {
     size_t operator()(const TopoNodeId& id) const
     {
-        return std::hash<uint8_t>()(static_cast<uint8_t>(id.stage)) ^ (std::hash<std::string>()(id.name) << 1U);
+        return std::hash<uint8_t>()(static_cast<uint8_t>(id.stage)) ^ (std::hash<std::string>()(id.name) << 1U) ^
+               (std::hash<std::string>()(id.scope) << 2U);
     }
 };
 
@@ -61,6 +77,17 @@ struct TopoBuildContext
     std::vector<JsonProcess> timelineProcesses;
     std::shared_ptr<TimelineManager> timelineSession;
     std::shared_ptr<DBAssembler> dbSession;
+    std::string currentScope;
+    // Init nodes may initialize these owned contexts before business processes receive const bindings.
+    std::unordered_map<std::string, std::shared_ptr<Infra::Context>> scopeContexts;
+    std::unordered_map<std::string, std::shared_ptr<Infra::DataInventory>> scopeInventories;
+    std::unordered_map<std::string, uint32_t> scopeChips;
+    std::unordered_map<std::string, std::string> scopePaths;
+    std::unordered_map<std::string, bool> scopeReuse;
+    std::vector<TopoNodeId> parseRoots;
+    bool strictSelection = false;
+    // The export entry may have already loaded the environment before preparing its sessions.
+    bool environmentLoaded = false;
 };
 
 using TopoNodeCreatorFactory = std::function<Infra::ProcessCreator(const TopoBuildContext&)>;
@@ -70,13 +97,21 @@ using TopoDependencyResolver =
 struct TopoNodeDefinition
 {
     TopoNodeId id;
+    // Unscoped Device dependencies on non-Device nodes expand per requested device and chip.
     std::vector<TopoNodeId> processDependencies;
+    std::vector<TopoNodeId> completionDependencies;
     std::vector<std::type_index> inputDataTypes;
     bool mandatory{false};
     std::vector<uint32_t> chipIds;
     TopoNodeCreatorFactory creatorFactory;
     TopoDependencyResolver dependencyResolver;
+    TopoDependencyResolver completionDependencyResolver;
     std::type_index runtimeType{typeid(void)};
+    TopoScopeKind scopeKind = TopoScopeKind::EXPORT;
+    std::vector<std::string> resources;
+    bool opensDeviceScope = false;
+    bool closesDeviceScope = false;
+    bool runOnDependencyFailure = false;
 };
 
 using TopoNodeCollection = std::unordered_map<TopoNodeId, TopoNodeDefinition, TopoNodeIdHash>;
@@ -89,15 +124,17 @@ class TopoNodeRegistry
     static const TopoNodeDefinition* Find(const TopoNodeId& id);
     static const TopoNodeDefinition* FindProcessorByName(const std::string& name);
     static const TopoNodeDefinition* FindProcessorByRuntimeType(std::type_index runtimeType);
+    static bool SupportsChip(const TopoNodeDefinition& definition, uint32_t chip);
     static TopoNodeCollection& MutableDefinitions();
 };
 
 class TopoNodeSequenceRegister
 {
    public:
+    explicit TopoNodeSequenceRegister(TopoNodeDefinition definition);
     TopoNodeSequenceRegister(TopoNodeId id, std::type_index runtimeType, bool mandatory,
                              std::vector<TopoNodeId> dependencies, TopoNodeCreatorFactory creatorFactory,
-                             TopoDependencyResolver dependencyResolver = nullptr);
+                             TopoDependencyResolver dependencyResolver = nullptr, bool runOnDependencyFailure = false);
 };
 
 class TopoNodeDataRegister
@@ -113,24 +150,29 @@ struct TopoNodeTypeIndexList
     std::vector<std::type_index> types;
 };
 
+struct PipelineRequest;
+
 class TopoGraphBuilder
 {
    public:
+    // Extends the caller's selected export roots with Host/Device parsing and lifecycle nodes.
+    bool BuildExport(const TopoBuildContext& exportContext, const std::vector<TopoNodeId>& exportRoots,
+                     Infra::RuntimeProcessCollection& processes);
+    // Discovers Host/Device scopes and builds the full graph required by these export modes.
+    bool Build(const std::string& profPath, const std::set<ExportMode>& modes, const std::string& reportsJson,
+               Infra::RuntimeProcessCollection& processes);
+    // Builds the complete request, including Host/Device parsing and selected exports, without executing nodes.
+    bool Build(const PipelineRequest& request, Infra::RuntimeProcessCollection& processes);
+    // Uses the same compiler for a caller-owned set of bindings and roots.
     bool Build(const TopoBuildContext& context, const std::vector<TopoNodeId>& roots,
-               Infra::ProcessCollection& processes);
+               Infra::RuntimeProcessCollection& processes, const TopoNodeCollection* overlay = nullptr);
+    const std::unordered_map<TopoNodeId, Infra::RuntimeProcessKey, TopoNodeIdHash>& GetRuntimeNodeKeys() const
+    {
+        return runtimeNodeKeys_;
+    }
 
    private:
-    bool AddNode(const TopoNodeId& id, std::type_index& key);
-    bool ResolveDependencies(const TopoNodeDefinition& definition, std::vector<std::type_index>& dependencies);
-    std::type_index AllocateSyntheticKey(TopoNodeStage stage);
-
-   private:
-    const TopoBuildContext* context_{};
-    const std::vector<TopoNodeId>* roots_{};
-    Infra::ProcessCollection* processes_{};
-    std::unordered_map<TopoNodeId, std::type_index, TopoNodeIdHash> nodeKeys_;
-    std::unordered_map<TopoNodeStage, size_t> nextSyntheticIndex_;
-    std::unordered_map<TopoNodeId, bool, TopoNodeIdHash> visiting_;
+    std::unordered_map<TopoNodeId, Infra::RuntimeProcessKey, TopoNodeIdHash> runtimeNodeKeys_;
 };
 }  // namespace Application
 }  // namespace Analysis
@@ -150,10 +192,10 @@ class TopoGraphBuilder
  *              且依赖关系不能形成环。无依赖时使用 TOPO_DEPS()。
  *
  * REGISTER_TOPO_NODE_SEQUENCE(RuntimeType, NodeId, Mandatory, CreatorFactory,
- *                             Dependencies, Resolver)
+ *                             Dependencies, Resolver[, RunOnDependencyFailure])
  * @param RuntimeType    DATA_PROCESSING 阶段节点对应具体处理器类型，
- *                       使用 typeid(ProcessorType)；其余阶段节点使用 typeid(void)，
- *                       由拓扑构建器生成 synthetic key。
+ *                       使用 typeid(ProcessorType)，供处理器工厂查找；其余阶段使用 typeid(void)。
+ *                       所有节点实例均由拓扑构建器分配运行时 key。
  * @param NodeId         当前节点标识，使用 TOPO_NODE(stage, name) 构造。
  * @param Mandatory      是否为必需节点。true 表示节点执行失败会导致本次流程失败；
  *                       false 表示该节点失败后流程可继续执行。
@@ -162,6 +204,8 @@ class TopoGraphBuilder
  * @param Dependencies   静态依赖列表，使用 TOPO_DEPS(...) 构造。
  * @param Resolver       可选动态依赖解析器；根据 TopoBuildContext 和根节点列表
  *                       补充依赖。没有动态依赖时传入 nullptr。
+ * @param RunOnDependencyFailure 可省略，默认 false。显式传 true 时，等待全部前驱结束后执行，
+ *                       不因前驱失败而阻塞；不覆盖 DFX 或 fail-fast 的全局停止。
  *
  * REGISTER_TOPO_NODE_DEPENDENT_DATA(NodeId, ...)
  * @param NodeId 当前节点标识，必须与 REGISTER_TOPO_NODE_SEQUENCE 的 NodeId 完全一致。
@@ -193,12 +237,20 @@ class TopoGraphBuilder
 #define TOPO_NODE(stage, name) (Analysis::Application::TopoNodeId{Analysis::Application::TopoNodeStage::stage, name})
 #define TOPO_DEPS(...) (std::vector<Analysis::Application::TopoNodeId>{__VA_ARGS__})
 
-#define REGISTER_TOPO_NODE_SEQUENCE(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, Resolver) \
-    REGISTER_TOPO_NODE_SEQUENCE_IMPL(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, Resolver, __LINE__)
+// Registers a full definition, including scope, resources and device slot lifetime.
+// The definition must contain only request-independent metadata; factories bind request state at Build time.
+#define REGISTER_TOPO_NODE_DEFINITION(Definition) REGISTER_TOPO_NODE_DEFINITION_IMPL(Definition, __LINE__)
+#define REGISTER_TOPO_NODE_DEFINITION_IMPL(Definition, line)                                                     \
+    static Analysis::Application::TopoNodeSequenceRegister TOPO_NODE_REGISTER_CONCAT(topoNodeDefinitionRegister, \
+                                                                                     line)(Definition)
 
-#define REGISTER_TOPO_NODE_SEQUENCE_IMPL(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, Resolver, line) \
-    static Analysis::Application::TopoNodeSequenceRegister TOPO_NODE_REGISTER_CONCAT(topoNodeSequenceRegister, line)(  \
-        NodeId, RuntimeType, Mandatory, Dependencies, CreatorFactory, Resolver)
+#define REGISTER_TOPO_NODE_SEQUENCE(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, ...)       \
+    REGISTER_TOPO_NODE_SEQUENCE_IMPL(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, __LINE__, \
+                                     __VA_ARGS__)
+
+#define REGISTER_TOPO_NODE_SEQUENCE_IMPL(RuntimeType, NodeId, Mandatory, CreatorFactory, Dependencies, line, ...)     \
+    static Analysis::Application::TopoNodeSequenceRegister TOPO_NODE_REGISTER_CONCAT(topoNodeSequenceRegister, line)( \
+        NodeId, RuntimeType, Mandatory, Dependencies, CreatorFactory, __VA_ARGS__)
 
 #define REGISTER_TOPO_NODE_DEPENDENT_DATA(NodeId, ...) \
     REGISTER_TOPO_NODE_DEPENDENT_DATA_IMPL(NodeId, __LINE__, __VA_ARGS__)

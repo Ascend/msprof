@@ -23,6 +23,8 @@ aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/application/summary/
 
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/device_context SOURCES)
 
+include(${TOP_DIR}/test/msprof_cpp/analysis_ut/native_topology_sources.cmake)
+
 add_executable(export_summary_utest
         ${SOURCES}
 )

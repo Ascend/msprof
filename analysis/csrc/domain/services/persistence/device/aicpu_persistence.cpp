@@ -28,7 +28,7 @@
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/domain/services/persistence/host/number_mapping.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/hp_float.h"
 
@@ -815,9 +815,5 @@ uint32_t AicpuPersistence::ProcessEntry(DataInventory& dataInventory, const Cont
     }
     return GenerateAndSaveData(deviceContext.GetDeviceFilePath());
 }
-REGISTER_PROCESS_SEQUENCE(AicpuPersistence, true, AicpuParser, LoadHostData, TsTrackParser);
-REGISTER_PROCESS_DEPENDENT_DATA(AicpuPersistence, std::vector<AicpuData>, DeviceStreamInfo, HostStreamInfo, GeHashMap,
-                                std::vector<HalTrackData>, std::vector<KfcInfoData>, std::vector<MasterStreamTaskData>);
-REGISTER_PROCESS_SUPPORT_CHIP(AicpuPersistence, CHIP_ID_ALL);
 }  // namespace Domain
 }  // namespace Analysis

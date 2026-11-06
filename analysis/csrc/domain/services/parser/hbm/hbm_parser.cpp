@@ -22,7 +22,6 @@
 
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
@@ -83,9 +82,5 @@ uint32_t HbmParser::ParseData(Infra::DataInventory &dataInventory, const Infra::
 }
 
 // 暂不启用 HBM C++ 解析；启用时同步恢复持久化注册及 Python parser 跳过名单。
-// REGISTER_PROCESS_SEQUENCE(HbmParser, false);
-// REGISTER_PROCESS_SUPPORT_CHIP(HbmParser, CHIP_V2_1_0, CHIP_V3_1_0, CHIP_V3_2_0, CHIP_V3_3_0,
-// CHIP_V4_1_0,
-//                               CHIP_V1_1_1, CHIP_V1_1_2, CHIP_V1_1_3, CHIP_V6_1_0, CHIP_V6_2_0);
 }  // namespace Domain
 }  // namespace Analysis

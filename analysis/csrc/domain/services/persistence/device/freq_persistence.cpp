@@ -20,7 +20,7 @@
 
 #include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -71,8 +71,5 @@ uint32_t FreqPersistence::ProcessEntry(DataInventory& dataInventory, const Conte
     ERROR("Save % data failed: %", freqDB.tableName, dbPath);
     return ANALYSIS_ERROR;
 }
-REGISTER_PROCESS_SEQUENCE(FreqPersistence, true, FreqParser);
-REGISTER_PROCESS_DEPENDENT_DATA(FreqPersistence, std::vector<HalFreqLpmData>);
-REGISTER_PROCESS_SUPPORT_CHIP(FreqPersistence, CHIP_V1_1_1, CHIP_V6_1_0, CHIP_V6_1_1);
 }  // namespace Domain
 }  // namespace Analysis

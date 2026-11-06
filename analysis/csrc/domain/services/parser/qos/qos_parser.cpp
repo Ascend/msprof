@@ -25,7 +25,7 @@
 #include "analysis/csrc/domain/services/parser/parser_item/qos_parser_item.h"
 #include "analysis/csrc/domain/services/parser/parser_item_factory.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process_register.h"
+#include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/resource/binary_struct_info.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/binary_utils.h"
@@ -95,7 +95,5 @@ std::vector<std::string> QosParser::GetFilePattern() { return filePrefix_; }
 
 uint32_t QosParser::GetParserItemType() const { return QOS_V4_ITEM_TYPE; }
 
-REGISTER_PROCESS_SEQUENCE(QosParser, false);
-REGISTER_PROCESS_SUPPORT_CHIP(QosParser, CHIP_V4_1_0);
 }  // namespace Domain
 }  // namespace Analysis
