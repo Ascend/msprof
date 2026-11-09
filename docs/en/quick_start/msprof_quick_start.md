@@ -256,7 +256,7 @@ You can sort the data by `Task Duration(us)` in descending order to locate long-
 
 Perform operations in this section in a local environment with MindStudio Insight installed. Windows or macOS with a graphical user interface is recommended.
 
-1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/developer/software/mindstudio/download) page.
+1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/en/developer/software/mindstudio/download) page.
 2. **Getting familiar with the tool**: For basic usage, see [MindStudio Insight System Tuning Quick Start](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/quick_start/system_tuning_quick_start.md).
 
 #### 2.3.2 Loading msProf Collected Data

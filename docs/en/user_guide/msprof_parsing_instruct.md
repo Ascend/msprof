@@ -23,7 +23,7 @@ To customize the export of profile data, you are advised to read [Parsing and Ex
 
 **Environment Setup**
 
-1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/cann/download).
+1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/en/cann/download).
 
     In Ascend EP scenarios, the msProf tool is located in `${INSTALL_DIR}/tools/profiler/bin`. Replace `${INSTALL_DIR}` with the actual CANN installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.
 

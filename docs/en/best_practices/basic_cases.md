@@ -6,8 +6,8 @@ This use case uses a ResNet50 inference model as an example to demonstrate how t
 
 ### 1.1 Environment Requirements
 
-- The Ascend NPU driver and CANN software (including the Toolkit and ops packages) are installed. For details, see [CANN Quick Installation](https://www.hiascend.com/cann/download).
-- The MindStudio Insight visualization and analysis tool is installed. For details, see the [MindStudio download](https://www.hiascend.com/developer/software/mindstudio/download) page on the Ascend community website.
+- The Ascend NPU driver and CANN software (including the Toolkit and ops packages) are installed. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download).
+- The MindStudio Insight visualization and analysis tool is installed. For details, see the [MindStudio download](https://www.hiascend.com/en/developer/software/mindstudio/download) page on the Ascend community website.
 
 ### 1.2 Configuring Environment Variables
 

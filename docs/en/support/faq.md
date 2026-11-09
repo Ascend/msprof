@@ -20,7 +20,7 @@
 
 - You can use environment variables to adjust the log level and output path: `export ASCEND_GLOBAL_LOG_LEVEL=0` sets the log level, and `export ASCEND_PROCESS_LOG_PATH=/path/to/plog` specifies a custom output path.
 - When data collection fails or the host directory is empty, check the ERROR/WARNING logs in PLOG first to quickly identify the cause.
-- Reference: [Ascend Environment Variables](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/maintenref/envvar/envref_07_0001.html)
+- Reference: [Ascend Environment Variables](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/env-vars/intro.md)
 
 - **Q: Why is the host directory empty when I use msProf to collect operator data?**
 - A: Check the PLOG error messages first. Possible causes include:
