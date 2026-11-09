@@ -53,15 +53,15 @@ class TestCppPipelineRunner(unittest.TestCase):
             "export", "timeline", "/PROF_0", "/PROF_0/host", ("/PROF_0/device_0", "/PROF_0/device_1")
         )
 
-    def test_native_flags_and_paths_match_pr474(self):
+    def test_native_flags_include_missing_unified_db(self):
         cases = (
-            (self.request, 0x0B),
-            (replace(self.request, reports_path="/reports.json"), 0x0B),
+            (self.request, 0x0F),
+            (replace(self.request, reports_path="/reports.json"), 0x0F),
             (replace(self.request, command_type="db"), 0x07),
-            (replace(self.request, command_type="summary", export_format="csv"), 0x13),
-            (replace(self.request, command="import", command_type=None), 0x03),
-            (replace(self.request, host_path=""), 0x0A),
-            (replace(self.request, device_paths=()), 0x09),
+            (replace(self.request, command_type="summary", export_format="csv"), 0x17),
+            (replace(self.request, command="import", command_type=None), 0x07),
+            (replace(self.request, host_path=""), 0x0E),
+            (replace(self.request, device_paths=()), 0x0D),
         )
         for request, expected_flags in cases:
             with self.subTest(request=request):
@@ -109,7 +109,7 @@ class TestCppPipelineRunner(unittest.TestCase):
             self.assertIs(sys.modules["msprof_analysis"], module)
             create_spec.assert_called_once()
             loader.exec_module.assert_called_once_with(module)
-        native.assert_called_once_with("/PROF_0", 0x0B, "/PROF_0/host", "/PROF_0/device_0", None)
+        native.assert_called_once_with("/PROF_0", 0x0F, "/PROF_0/host", "/PROF_0/device_0", None)
 
     def test_process_receives_full_request_and_exit_status_is_checked(self):
         for exitcode in (0, 1, -11):
@@ -171,34 +171,49 @@ class TestCppPipelineSqliteReuse(unittest.TestCase):
             for index, path in enumerate(self.paths):
                 if not parsed_mask & (1 << index):
                     (path / "sqlite" / "data.db").unlink()
-            for command_type, export_flag in (("timeline", 0x08), ("summary", 0x10), ("db", 0x04)):
-                with self.subTest(parsed_mask=parsed_mask, command_type=command_type):
-                    expected = export_flag
-                    if not parsed_mask & 0x01:
-                        expected |= 0x01
-                    if parsed_mask & 0x06 != 0x06:
-                        expected |= 0x02
-                    request = replace(self.request, command_type=command_type, reports_path="/reports.json")
-                    with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
-                        CppPipelineRunner()._run(request)
-                    native.assert_called_once_with(
-                        request.collection_path, expected, request.host_path, request.device_paths[0],
-                        request.reports_path,
-                    )
+            for has_unified_db in (False, True):
+                unified_db = self.collection / "msprof_123.db"
+                if has_unified_db:
+                    unified_db.touch()
+                elif unified_db.exists():
+                    unified_db.unlink()
+                for command_type, export_flag in (("timeline", 0x08), ("summary", 0x10), ("db", 0x04)):
+                    with self.subTest(
+                        parsed_mask=parsed_mask, has_unified_db=has_unified_db, command_type=command_type,
+                    ):
+                        expected = export_flag
+                        if not has_unified_db:
+                            expected |= 0x04
+                        if not parsed_mask & 0x01:
+                            expected |= 0x01
+                        if parsed_mask & 0x06 != 0x06:
+                            expected |= 0x02
+                        request = replace(self.request, command_type=command_type, reports_path="/reports.json")
+                        with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+                            CppPipelineRunner()._run(request)
+                        native.assert_called_once_with(
+                            request.collection_path, expected, request.host_path, request.device_paths[0],
+                            request.reports_path,
+                        )
 
     def test_second_export_skips_parsing_in_both_orders(self):
         for first, second, first_flags, second_flags in (
-            ("timeline", "summary", 0x0B, 0x10),
-            ("summary", "timeline", 0x13, 0x08),
+            ("timeline", "summary", 0x0F, 0x10),
+            ("summary", "timeline", 0x17, 0x08),
         ):
             with self.subTest(first=first):
+                unified_db = self.collection / "msprof_123.db"
+                if unified_db.exists():
+                    unified_db.unlink()
                 for path in self.paths:
                     database = path / "sqlite" / "data.db"
                     if database.exists():
                         database.unlink()
 
-                def parse_and_export(*_args):
+                def parse_and_export(_path, flags, *_args):
                     self._create_databases(self.paths)
+                    if flags & msprof_c_interface.MSPROF_PIPELINE_DB:
+                        unified_db.touch()
                     return 0
 
                 with mock.patch(
@@ -221,14 +236,42 @@ class TestCppPipelineSqliteReuse(unittest.TestCase):
                             (sqlite / "directory.db").mkdir()
                 with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
                     CppPipelineRunner()._run(self.request)
-                self.assertEqual(native.call_args.args[1], 0x0B)
+                self.assertEqual(native.call_args.args[1], 0x0F)
 
-    def test_import_with_existing_databases_does_not_call_native_with_zero_flags(self):
+    def test_import_with_existing_sqlite_exports_missing_unified_db(self):
         self._create_databases(self.paths)
+        request = replace(self.request, command="import", command_type=None)
+        with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+            CppPipelineRunner()._run(request)
+        native.assert_called_once_with(
+            request.collection_path, msprof_c_interface.MSPROF_PIPELINE_DB,
+            request.host_path, request.device_paths[0], None,
+        )
+
+    def test_import_with_existing_sqlite_and_unified_db_skips_native(self):
+        self._create_databases(self.paths)
+        (self.collection / "msprof_123.db").touch()
         request = replace(self.request, command="import", command_type=None)
         with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline") as native:
             CppPipelineRunner()._run(request)
         native.assert_not_called()
+
+    def test_only_root_unified_db_files_satisfy_existence_check(self):
+        self._create_databases(self.paths)
+        for name in ("data.db", "msprof.db", "msproftx.db", "msprof_123.db.tmp", "other_msprof_123.db"):
+            (self.collection / name).touch()
+        (self.collection / "msprof_directory.db").mkdir()
+        (self.paths[0] / "sqlite" / "msprof_123.db").touch()
+        self.assertFalse(CppPipelineRunner._has_unified_db(str(self.collection)))
+        with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+            CppPipelineRunner()._run(self.request)
+        self.assertEqual(native.call_args.args[1], 0x0C)
+
+        (self.collection / "msprof_123.db").touch()
+        self.assertTrue(CppPipelineRunner._has_unified_db(str(self.collection)))
+        with mock.patch(NAMESPACE + ".msprof_c_interface.run_pipeline", return_value=0) as native:
+            CppPipelineRunner()._run(self.request)
+        self.assertEqual(native.call_args.args[1], 0x08)
 
 
 class TestPipelineLogging(unittest.TestCase):

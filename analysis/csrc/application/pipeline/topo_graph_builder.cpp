@@ -44,105 +44,14 @@ namespace
 using namespace Infra;
 using namespace Domain;
 using namespace Utils;
-const std::string INCOMPLETE = ".unified.incomplete";
-const std::string COMPLETE = ".unified.complete";
-const std::string COMPLETE_SUFFIX = ".complete";
-const std::string DONE_SUFFIX = ".done";
 const std::string DATABASE_SUFFIX = ".db";
 const std::string EXPORTED_DB_PREFIX = DB_NAME_MSPROF_DB + "_";
-
-bool IsIgnoredSnapshotEntry(const std::string& name)
-{
-    return name == INCOMPLETE || name == COMPLETE || EndsWith(name, COMPLETE_SUFFIX) || EndsWith(name, DONE_SUFFIX) ||
-           (name.find(EXPORTED_DB_PREFIX) == 0 && EndsWith(name, DATABASE_SUFFIX));
-}
-
-bool InputSnapshot(const std::string& sqlite, nlohmann::json& snapshot)
-{
-    snapshot = nullptr;
-    const auto result = File::ParentPath(sqlite);
-    nlohmann::json inputs = nlohmann::json::array();
-    // Snapshot direct files in the input root and its data directory only; do not recurse into subdirectories.
-    for (const auto& directory : {result, File::PathJoin({result, "data"})})
-    {
-        if (!File::Exist(directory))
-        {
-            continue;
-        }
-        auto paths = File::GetFilesWithPrefix(directory, "");
-        std::sort(paths.begin(), paths.end());
-        for (const auto& path : paths)
-        {
-            if (!File::IsFile(path))
-            {
-                continue;
-            }
-            const auto name = File::BaseName(path);
-            if (IsIgnoredSnapshotEntry(name))
-            {
-                continue;
-            }
-            FileMetadata metadata;
-            if (!File::GetMetadata(path, metadata))
-            {
-                ERROR("Cannot snapshot pipeline input: %.", path);
-                return false;
-            }
-            inputs.push_back({{"name", path},
-                              {"size", metadata.size},
-                              {"mtime", metadata.modifiedTime},
-                              {"mtime_nsec", metadata.modifiedTimeNanoseconds}});
-        }
-    }
-    snapshot = std::move(inputs);
-    return true;
-}
 
 TopoNodeId Control(const std::string& name) { return {TopoNodeStage::FLOW_CONTROL, name, "profile"}; }
 TopoNodeId HostNode(const std::string& name) { return {TopoNodeStage::HOST_PROCESSING, name, "host"}; }
 TopoNodeId DeviceNode(const std::string& name, const std::string& scope)
 {
     return {TopoNodeStage::DEVICE_PROCESSING, name, scope};
-}
-
-bool WriteMarker(const std::string& directory, bool complete)
-{
-    nlohmann::json record = {{"version", 1}};
-    if (File::BaseName(directory) == "sqlite")
-    {
-        nlohmann::json inputs;
-        if (!InputSnapshot(directory, inputs))
-        {
-            return false;
-        }
-        record["inputs"] = std::move(inputs);
-        if (complete)
-        {
-            nlohmann::json started;
-            FileReader reader(File::PathJoin({directory, INCOMPLETE}));
-            if (reader.ReadJson(started) != ANALYSIS_OK || started != record)
-            {
-                ERROR("Cannot complete parsing: invalid start marker or changed inputs in %.", directory);
-                return false;
-            }
-        }
-    }
-    const auto path = File::PathJoin({directory, complete ? COMPLETE : INCOMPLETE});
-    if (!File::WriteTextAtomic(path, record.dump() + "\n"))
-    {
-        ERROR("Write pipeline marker failed: %.", path);
-        return false;
-    }
-    if (complete && File::Exist(File::PathJoin({directory, INCOMPLETE})))
-    {
-        const auto incomplete = File::PathJoin({directory, INCOMPLETE});
-        if (!File::DeleteFile(incomplete))
-        {
-            ERROR("Remove incomplete pipeline marker failed: %.", incomplete);
-            return false;
-        }
-    }
-    return true;
 }
 
 bool CheckDatabase(const std::string& path, bool& hasTables)
@@ -190,13 +99,8 @@ bool HealthyDatabase(const std::string& path)
     return true;
 }
 
-bool ValidateExportState(const std::string& profPath)
+bool ValidateExportDatabases(const std::string& profPath)
 {
-    if (File::Exist(File::PathJoin({profPath, INCOMPLETE})))
-    {
-        ERROR("Incomplete previous export in %; rebuild in a clean output directory.", profPath);
-        return false;
-    }
     for (const auto& path : File::GetFilesWithPrefix(profPath, EXPORTED_DB_PREFIX))
     {
         if (EndsWith(path, DATABASE_SUFFIX) && !HealthyDatabase(path))
@@ -207,48 +111,13 @@ bool ValidateExportState(const std::string& profPath)
     return true;
 }
 
-bool IntermediateReady(const std::string& path, bool& ready, bool device = false)
+bool IntermediateReady(const std::string& path, bool& ready)
 {
     const auto sqlite = File::PathJoin({path, "sqlite"});
     ready = false;
     if (!File::Exist(sqlite))
     {
         return true;
-    }
-    if (File::Exist(File::PathJoin({sqlite, INCOMPLETE})))
-    {
-        ERROR("Incomplete previous parse in %; rebuild in a clean output directory.", path);
-        return false;
-    }
-    if (File::Exist(File::PathJoin({sqlite, COMPLETE})))
-    {
-        nlohmann::json completed;
-        FileReader reader(File::PathJoin({sqlite, COMPLETE}));
-        if (reader.ReadJson(completed) != ANALYSIS_OK || !completed.is_object() || !completed.contains("version") ||
-            !completed.at("version").is_number_integer() ||
-            (completed.value("version", 0) != 1 && !(device && completed.value("version", 0) == 2)) ||
-            !completed.contains("inputs"))
-        {
-            ERROR("Invalid pipeline completion marker in %; rebuild in a clean output directory.", path);
-            return false;
-        }
-        nlohmann::json inputs;
-        if (!InputSnapshot(sqlite, inputs))
-        {
-            return false;
-        }
-        // Compare complete entries: legacy snapshots without mtime_nsec cannot validate unchanged inputs.
-        if (completed.at("inputs") != inputs)
-        {
-            ERROR("Parsed inputs changed for %; rebuild in a clean output directory.", path);
-            return false;
-        }
-        if (completed.value("version", 0) == 2)
-        {
-            // A partial Device run is never a whole-device cache hit. Selected producers
-            // are executed again and replace only the tables that they own.
-            return true;
-        }
     }
     const auto files = File::GetFilesWithPrefix(sqlite, "");
     for (const auto& file : files)
@@ -264,7 +133,6 @@ bool IntermediateReady(const std::string& path, bool& ready, bool device = false
             ready = ready || hasTables;
         }
     }
-    ready = ready || File::Exist(File::PathJoin({sqlite, COMPLETE}));
     return true;
 }
 
@@ -343,12 +211,12 @@ ProcessCreator CreateHost(const TopoBuildContext& context)
                 return true;
             }
             const auto sqlite = File::PathJoin({path, "sqlite"});
-            if (!File::CreateDir(sqlite) || !WriteMarker(sqlite, false))
+            if (!File::CreateDir(sqlite))
             {
                 return false;
             }
             KernelParserWorker worker(path);
-            return worker.Run(false) == ANALYSIS_OK && WriteMarker(sqlite, true);
+            return worker.Run(false) == ANALYSIS_OK;
         });
 }
 
@@ -383,7 +251,7 @@ ProcessCreator CreateDeviceInit(const TopoBuildContext& context)
                 return true;
             }
             const auto sqlite = File::PathJoin({path, "sqlite"});
-            if (!File::CreateDir(sqlite) || !WriteMarker(sqlite, false))
+            if (!File::CreateDir(sqlite))
             {
                 return false;
             }
@@ -485,7 +353,7 @@ bool BindDevice(const std::string& path, const std::string& scope, TopoBuildCont
         return false;
     }
     bool reused = false;
-    if (!IntermediateReady(path, reused, true))
+    if (!IntermediateReady(path, reused))
     {
         return false;
     }
@@ -534,7 +402,6 @@ bool AddDeviceCompletion(const TopoBuildContext& context, TopoNodeCollection& de
     {
         std::vector<TopoNodeId> requiredNodes;
         std::vector<TopoNodeId> optionalNodes;
-        std::vector<std::string> nodeNames;
     };
     std::map<std::string, DeviceOperations> operations;
     for (const auto& node : builder.GetRuntimeNodeKeys())
@@ -552,60 +419,11 @@ bool AddDeviceCompletion(const TopoBuildContext& context, TopoNodeCollection& de
         }
         auto& operation = operations[node.first.scope];
         (process->second.mandatory ? operation.requiredNodes : operation.optionalNodes).push_back(node.first);
-        operation.nodeNames.push_back(node.first.name);
     }
     for (auto& scope : operations)
     {
         const auto id = DeviceNode("Device.Ready", scope.first);
-        const auto sqlite = File::PathJoin({context.scopePaths.at(scope.first), "sqlite"});
-        const bool reused = context.scopeReuse.at(scope.first);
-        const std::shared_ptr<const std::vector<std::string>> nodeNames =
-            std::make_shared<std::vector<std::string>>(std::move(scope.second.nodeNames));
-        AddCallback(definitions, id, TopoScopeKind::DEVICE, std::move(scope.second.requiredNodes),
-                    [sqlite, reused, nodeNames]
-                    {
-                        if (reused)
-                        {
-                            return true;
-                        }
-                        nlohmann::json marker;
-                        FileReader reader(File::PathJoin({sqlite, INCOMPLETE}));
-                        if (reader.ReadJson(marker) != ANALYSIS_OK || !marker.contains("inputs"))
-                        {
-                            ERROR("Cannot complete Device parsing: invalid start marker in %.", sqlite);
-                            return false;
-                        }
-                        nlohmann::json inputs;
-                        if (!InputSnapshot(sqlite, inputs))
-                        {
-                            return false;
-                        }
-                        if (marker.at("inputs") != inputs)
-                        {
-                            ERROR("Cannot complete Device parsing: inputs changed in %.", sqlite);
-                            return false;
-                        }
-                        reader.Close();
-                        marker["version"] = 2;
-                        marker["nodes"] = nlohmann::json::array();
-                        for (const auto& name : *nodeNames)
-                        {
-                            marker["nodes"].push_back(name);
-                        }
-                        const auto completed = File::PathJoin({sqlite, COMPLETE});
-                        if (!File::WriteTextAtomic(completed, marker.dump() + "\n"))
-                        {
-                            ERROR("Publish Device completion marker failed: %.", completed);
-                            return false;
-                        }
-                        const auto incomplete = File::PathJoin({sqlite, INCOMPLETE});
-                        if (!File::DeleteFile(incomplete))
-                        {
-                            ERROR("Remove incomplete Device marker failed: %.", incomplete);
-                            return false;
-                        }
-                        return true;
-                    });
+        AddCallback(definitions, id, TopoScopeKind::DEVICE, std::move(scope.second.requiredNodes), [] { return true; });
         // Wait for optional work without promoting its failure to a required completion failure.
         auto& ready = definitions.at(id);
         ready.completionDependencies = std::move(scope.second.optionalNodes);
@@ -690,14 +508,14 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
     }
     if (exporting)
     {
-        if (!ValidateExportState(request.profPath))
+        if (!ValidateExportDatabases(request.profPath))
         {
             return false;
         }
         const auto init = TopoNodeId{TopoNodeStage::FLOW_CONTROL, "Export.Init", "export"};
         const auto output = File::PathJoin({request.profPath, Common::OUTPUT_PATH});
         AddCallback(definitions, init, TopoScopeKind::EXPORT, {Control("Environment.Load")},
-                    [request, output] { return File::CreateDir(output) && WriteMarker(request.profPath, false); });
+                    [output] { return File::CreateDir(output); });
         for (auto& id : roots)
         {
             id.scope = "export";
@@ -733,8 +551,7 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
     {
         done.insert(done.end(), roots.begin(), roots.end());
         const auto finalize = TopoNodeId{TopoNodeStage::FLOW_CONTROL, "Export.Finalize", "export"};
-        AddCallback(definitions, finalize, TopoScopeKind::EXPORT, done,
-                    [request] { return WriteMarker(request.profPath, true); });
+        AddCallback(definitions, finalize, TopoScopeKind::EXPORT, done, [] { return true; });
         done = {finalize};
     }
     const auto final = Control("Pipeline.Done");
@@ -858,7 +675,7 @@ bool TopoGraphBuilder::BuildExport(const TopoBuildContext& exportContext, const 
                 ERROR("No export roots were selected and no exported DB exists, profile path: %.", request.profPath);
                 return false;
             }
-            if (!ValidateExportState(request.profPath))
+            if (!ValidateExportDatabases(request.profPath))
             {
                 return false;
             }

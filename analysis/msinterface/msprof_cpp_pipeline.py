@@ -55,8 +55,10 @@ class CppPipelineRunner:
                 "timeline": msprof_c_interface.MSPROF_PIPELINE_TIMELINE,
                 "summary": msprof_c_interface.MSPROF_PIPELINE_SUMMARY,
             }[request.command_type]
+        if not self._has_unified_db(request.collection_path):
+            flags |= msprof_c_interface.MSPROF_PIPELINE_DB
         if flags == 0:
-            logging.info("Skip C pipeline: SQLite data already exists for %s.", request.collection_path)
+            logging.info("Skip C pipeline: SQLite data and unified DB already exist for %s.", request.collection_path)
             return
         # DeviceContext consumes the parent PROF directory of this result path.
         device_path = request.device_paths[0] if request.device_paths else None
@@ -71,6 +73,16 @@ class CppPipelineRunner:
             raise ProfException(
                 ProfException.PROF_INVALID_DATA_ERROR,
                 "Full C pipeline failed for %s (status %s)." % (request.collection_path, status),
+            )
+
+    @staticmethod
+    def _has_unified_db(collection_path: str) -> bool:
+        """Match exported msprof_*.db files directly under the collection directory."""
+        if not os.path.isdir(collection_path):
+            return False
+        with os.scandir(collection_path) as entries:
+            return any(
+                entry.name.startswith("msprof_") and entry.name.endswith(".db") and entry.is_file() for entry in entries
             )
 
     @staticmethod

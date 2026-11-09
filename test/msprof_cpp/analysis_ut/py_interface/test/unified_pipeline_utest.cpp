@@ -15,8 +15,6 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  */#include <algorithm>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -72,6 +70,16 @@ protected:
         try { GlobalMockObject::verify(); }
         catch (...) { File::RemoveDir(root, 0); throw; }
         File::RemoveDir(root, 0);
+    }
+    void ExpectNoUnifiedMarkers() const
+    {
+        for (const auto& directory : {root, root + "/host/sqlite", root + "/device_0/sqlite", root + "/device_1/sqlite"})
+        {
+            for (const auto& name : {".unified.complete", ".unified.incomplete"})
+            {
+                EXPECT_FALSE(File::Exist(File::PathJoin({directory, name})));
+            }
+        }
     }
     PipelineRequest Request(int flags)
     {
@@ -395,26 +403,16 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedChainRunsWithOneActiveDeviceAndNoNested
     ProcessControl executor(graph, options);
     EXPECT_TRUE(executor.ExecuteProcess());
     EXPECT_EQ(processed.load(), 1U);
-    for (const auto& scope : {"device_0", "device_1"}) {
-        nlohmann::json marker;
-        FileReader reader(File::PathJoin({root, scope, "sqlite", ".unified.complete"}));
-        ASSERT_EQ(reader.ReadJson(marker), ANALYSIS_OK);
-        EXPECT_EQ(marker.at("version"), 2);
-        EXPECT_EQ(marker.at("nodes").size(), 5U);
-        std::set<std::string> expectedNodes;
-        for (const auto& node : builder.GetRuntimeNodeKeys())
-        {
-            if (node.first.stage == TopoNodeStage::DEVICE_PROCESSING && node.first.scope == scope &&
-                node.first.name != "Device.Ready")
-            {
-                expectedNodes.insert(node.first.name);
-            }
-        }
-        EXPECT_EQ(marker.at("nodes").get<std::set<std::string>>(), expectedNodes);
+    const auto results = executor.GetRuntimeResults();
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        const auto ready = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope});
+        EXPECT_EQ(results.at(ready).state, RuntimeProcessState::SUCCEEDED);
     }
+    ExpectNoUnifiedMarkers();
 }
 
-TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotAndDoesNotPublishCompletion)
+TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotWithoutWritingMarkers)
 {
     MOCKER_CPP(&Domain::Environment::Context::Load).expects(once()).will(returnValue(true));
     MOCKER_CPP(&Domain::KernelParserWorker::Run).expects(once()).will(returnValue(ANALYSIS_OK));
@@ -463,10 +461,10 @@ TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotAndDoesNotP
               RuntimeProcessState::SUCCEEDED);
     EXPECT_EQ(results.at(keys.at({TopoNodeStage::FLOW_CONTROL, "Export.Finalize", "export"})).state,
               RuntimeProcessState::BLOCKED);
-    EXPECT_TRUE(File::Exist(root + "/device_0/sqlite/.unified.incomplete"));
+    EXPECT_FALSE(File::Exist(root + "/device_0/sqlite/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite/.unified.complete"));
     EXPECT_FALSE(File::Exist(root + "/device_1/sqlite/.unified.incomplete"));
-    EXPECT_TRUE(File::Exist(root + "/device_1/sqlite/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/device_1/sqlite/.unified.complete"));
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
 
@@ -663,7 +661,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportManagerRunKeepsPlannedSummaryAndExistingD
     EXPECT_TRUE(summaryFound);
     EXPECT_EQ(hostNodes, 1U);
     EXPECT_EQ(deviceNodes, 4U);
-    EXPECT_TRUE(File::Exist(root + "/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
     EXPECT_FALSE(File::Exist(root + "/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/host/sqlite/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite/.unified.incomplete"));
@@ -720,7 +718,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportManagerRunRecordsFailedExecutionBeforeRet
     }
     EXPECT_TRUE(failedSummary);
     EXPECT_TRUE(blockedFinalize);
-    EXPECT_TRUE(File::Exist(root + "/.unified.incomplete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
 
@@ -793,7 +791,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportManagerContinuesIndependentSummaryAfterPr
     EXPECT_EQ(states[std::make_pair(static_cast<int>(TopoNodeStage::SUMMARY_GENERATION), "STEP_TRACE")], "BLOCKED");
     EXPECT_EQ(states[std::make_pair(static_cast<int>(TopoNodeStage::SUMMARY_GENERATION), "NPU_MEM")], "SUCCEEDED");
     EXPECT_EQ(states[std::make_pair(static_cast<int>(TopoNodeStage::FLOW_CONTROL), "Pipeline.Done")], "SUCCEEDED");
-    EXPECT_TRUE(File::Exist(root + "/.unified.incomplete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
 
@@ -987,7 +985,7 @@ TEST_F(UnifiedPipelinePlanUTest, IndependentExportNodesPrepareConcurrentlyAndFin
     consumer.CloseAllDb();
     ASSERT_TRUE(success && consumer.Ok());
     EXPECT_EQ(preparing, 4U);
-    EXPECT_TRUE(File::Exist(root + "/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
     EXPECT_FALSE(DeliverableConsumer::Instance().HasDbWriterForTest(dbPath));
     DBRunner database(dbPath);
     std::vector<std::tuple<std::string, std::string>> rows;
@@ -1105,7 +1103,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndSessions
     ASSERT_TRUE(builder.BuildExport(context, roots, graph));
     EXPECT_FALSE(File::Exist(context.outputPath));
     EXPECT_TRUE(ExecuteTopoGraph(builder, graph, root));
-    EXPECT_TRUE(File::Exist(root + "/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
 
 TEST_F(UnifiedPipelinePlanUTest, ExportEntryBuildDiscoversHostAndAllDeviceScopes)
@@ -1303,7 +1301,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildKeepsExistingDatabaseSkipWithoutAddi
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
 }
 
-TEST_F(UnifiedPipelinePlanUTest, EmptyExportStillRejectsIncompleteAndUnhealthyExistingDatabase)
+TEST_F(UnifiedPipelinePlanUTest, EmptyExportIgnoresLegacyMarkersButRejectsUnhealthyExistingDatabase)
 {
     TopoBuildContext context;
     context.profPath = root;
@@ -1315,10 +1313,12 @@ TEST_F(UnifiedPipelinePlanUTest, EmptyExportStillRejectsIncompleteAndUnhealthyEx
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.BuildExport(context, {}, graph));
-    ASSERT_TRUE(File::WriteTextAtomic(root + "/.unified.incomplete", "unfinished"));
-    EXPECT_FALSE(builder.BuildExport(context, {}, graph));
-    EXPECT_TRUE(File::Exist(root + "/.unified.incomplete"));
-    ASSERT_TRUE(File::DeleteFile(root + "/.unified.incomplete"));
+    const auto markerPath = root + "/.unified.incomplete";
+    FileWriter(markerPath).WriteText("unfinished");
+    EXPECT_TRUE(builder.BuildExport(context, {}, graph));
+    std::vector<std::string> marker;
+    ASSERT_EQ(FileReader(markerPath).ReadText(marker), ANALYSIS_OK);
+    EXPECT_EQ(marker, (std::vector<std::string>{"unfinished"}));
     for (const auto& content : {"not a SQLite database", ""})
     {
         ASSERT_TRUE(File::WriteTextAtomic(dbPath, content));
@@ -1350,7 +1350,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExplicitHostParseStillRunsWhenExistingDatabaseS
         EXPECT_NE(node.first.stage, TopoNodeStage::DEVICE_PROCESSING);
     }
     ASSERT_TRUE(ExecuteTopoGraph(builder, graph, root));
-    EXPECT_TRUE(File::Exist(root + "/host/sqlite/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/host/sqlite/.unified.complete"));
 }
 
 TEST_F(UnifiedPipelinePlanUTest, ExportEntryBuildSupportsProfilesWithoutHost)
@@ -1490,150 +1490,134 @@ TEST_F(UnifiedPipelinePlanUTest, InvalidSelectionDoesNotFallBackToFullExport)
     }
 }
 
-TEST_F(UnifiedPipelinePlanUTest, RefusesIncompletePreviousParse)
+TEST_F(UnifiedPipelinePlanUTest, LegacyMarkersAloneDoNotMakeIntermediateDataReusable)
 {
-    const auto sqlite = File::PathJoin({root, "device_0", "sqlite"});
-    File::CreateDir(sqlite);
-    FileWriter(File::PathJoin({sqlite, ".unified.incomplete"})).WriteText("incomplete");
+    for (const auto& scope : {"host", "device_0", "device_1"})
+    {
+        const auto sqlite = File::PathJoin({root, scope, "sqlite"});
+        ASSERT_TRUE(File::CreateDir(sqlite));
+        FileWriter(File::PathJoin({sqlite, ".unified.incomplete"})).WriteText("unfinished");
+        FileWriter(File::PathJoin({sqlite, ".unified.complete"})).WriteText("invalid marker");
+    }
+    MOCKER(File::GetMetadata).expects(never());
     TopoBuildContext context;
     TopoNodeCollection definitions;
     std::vector<TopoNodeId> roots;
-    EXPECT_FALSE(PlanUnifiedPipeline(Request(2), context, definitions, roots));
+    ASSERT_TRUE(PlanUnifiedPipeline(Request(3), context, definitions, roots));
+    for (const auto& scope : {"host", "device_0", "device_1"})
+    {
+        EXPECT_FALSE(context.scopeReuse.at(scope));
+    }
 }
 
-TEST_F(UnifiedPipelinePlanUTest, SnapshotFiltersOutputsAndMarkersWhileTrackingDirectInputs)
+TEST_F(UnifiedPipelinePlanUTest, LegacyUnifiedMarkersDoNotBlockExecutionOrGetModified)
 {
     MOCKER_CPP(&Domain::Environment::Context::Load).expects(once()).will(returnValue(true));
     MOCKER_CPP(&Domain::KernelParserWorker::Run).expects(once()).will(returnValue(ANALYSIS_OK));
-    auto request = Request(PIPELINE_CANN_TRACE);
-    // The Host input may be the PROF directory itself, where exported msprof_*.db files can occur.
-    request.hostPath = root;
-    const auto data = File::PathJoin({root, "data"});
-    ASSERT_TRUE(File::CreateDir(data));
-    std::set<std::string> expectedInputs;
-    std::vector<std::string> ignoredPaths;
-    for (const auto& directory : {root, data})
+    MOCKER_CPP(&Domain::DeviceContext::Init).expects(exactly(2)).will(returnValue(true));
+    MOCKER(File::GetMetadata).expects(never());
+    std::vector<std::string> markerPaths;
+    for (const auto& directory : {root, root + "/host/sqlite", root + "/device_0/sqlite", root + "/device_1/sqlite"})
     {
-        for (const auto& name : {"a", "raw.slice_0", "raw.complet", "raw.don", "msprof_", "msprof_input.txt",
-                                 "xmsprof_123.db", "other.db"})
+        ASSERT_TRUE(File::CreateDir(directory));
+        for (const auto& name : {".unified.complete", ".unified.incomplete"})
         {
             const auto path = File::PathJoin({directory, name});
-            FileWriter(path).WriteText("input");
-            expectedInputs.insert(path);
+            FileWriter(path).WriteText("legacy marker");
+            markerPaths.push_back(path);
         }
-        for (const auto& name : {".unified.incomplete", ".unified.complete", "raw.complete", "raw.done", "msprof_123.db"})
+    }
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(StepTraceRequest(), graph));
+    for (auto& node : graph)
+    {
+        const auto name = node.second.processName;
+        const bool deviceBusiness = node.second.scope.find("device_") == 0 &&
+                                    name != "Device.Init" && name != "Device.Ready";
+        const bool exportBusiness = name == "STEP_TRACE";
+        if (deviceBusiness || exportBusiness)
         {
-            const auto path = File::PathJoin({directory, name});
-            FileWriter(path).WriteText("output");
-            ignoredPaths.push_back(path);
+            node.second.creator = []() -> std::unique_ptr<Process>
+            { return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; })); };
         }
-        const auto nested = File::PathJoin({directory, "nested"});
-        ASSERT_TRUE(File::CreateDir(nested));
-        const auto path = File::PathJoin({nested, "raw.slice_0"});
-        FileWriter(path).WriteText("nested input");
-        ignoredPaths.push_back(path);
     }
-    ASSERT_EQ(RunUnifiedPipeline(request), ANALYSIS_OK);
-    nlohmann::json marker;
-    ASSERT_EQ(FileReader(root + "/sqlite/.unified.complete").ReadJson(marker), ANALYSIS_OK);
-    std::set<std::string> actualInputs;
-    for (const auto& input : marker.at("inputs"))
+    ASSERT_TRUE(ExecuteTopoGraph(builder, graph, root));
+    EXPECT_TRUE(File::Exist(root + "/mindstudio_profiler_output"));
+    for (const auto& path : markerPaths)
     {
-        actualInputs.insert(input.at("name").get<std::string>());
+        std::vector<std::string> content;
+        ASSERT_EQ(FileReader(path).ReadText(content), ANALYSIS_OK);
+        EXPECT_EQ(content, (std::vector<std::string>{"legacy marker"}));
     }
-    EXPECT_EQ(actualInputs, expectedInputs);
+}
 
-    for (const auto& path : ignoredPaths)
+TEST_F(UnifiedPipelinePlanUTest, ExistingDatabasesAreReusedWithoutInputSnapshotChecks)
+{
+    const auto request = Request(PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA);
+    for (const auto& scope : {"host", "device_0", "device_1"})
     {
-        FileWriter(path).WriteText("changed output or nested input");
+        const auto sqlite = File::PathJoin({root, scope, "sqlite"});
+        ASSERT_TRUE(File::CreateDir(sqlite));
+        DBRunner db(File::PathJoin({sqlite, "existing.db"}));
+        ASSERT_TRUE(db.CreateTable("ParsedData", {{"value", "INTEGER"}}));
+        FileWriter(File::PathJoin({sqlite, ".unified.complete"})).WriteText("legacy input snapshot");
     }
+    MOCKER(File::GetMetadata).expects(never());
     TopoBuildContext context;
     TopoNodeCollection definitions;
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(PlanUnifiedPipeline(request, context, definitions, roots));
-    EXPECT_TRUE(context.scopeReuse.at("host"));
-
-    FileWriter(data + "/raw.slice_0").WriteText("changed direct input");
-    EXPECT_FALSE(PlanUnifiedPipeline(request, context, definitions, roots));
+    for (const auto& content : {"before", "after!"})
+    {
+        FileWriter(root + "/host/input.bin").WriteText(content);
+        FileWriter(root + "/device_0/data/raw.slice_0").WriteText(content);
+        ASSERT_TRUE(PlanUnifiedPipeline(request, context, definitions, roots));
+        for (const auto& scope : {"host", "device_0", "device_1"})
+        {
+            EXPECT_TRUE(context.scopeReuse.at(scope));
+        }
+    }
 }
 
-TEST_F(UnifiedPipelinePlanUTest, SameSecondSameSizeInputReplacementInvalidatesCompletedSnapshot)
-{
-    MOCKER_CPP(&Domain::Environment::Context::Load).expects(once()).will(returnValue(true));
-    MOCKER_CPP(&Domain::KernelParserWorker::Run).expects(once()).will(returnValue(ANALYSIS_OK));
-    const auto request = Request(PIPELINE_CANN_TRACE);
-    const auto input = File::PathJoin({request.hostPath, "input.bin"});
-    FileWriter(input).WriteText("before");
-    struct timespec times[2] = {{1700000000, 0}, {1700000000, 123000000}};
-    ASSERT_EQ(utimensat(AT_FDCWD, input.c_str(), times, 0), 0);
-    ASSERT_EQ(RunUnifiedPipeline(request), ANALYSIS_OK);
-    nlohmann::json marker;
-    ASSERT_EQ(FileReader(request.hostPath + "/sqlite/.unified.complete").ReadJson(marker), ANALYSIS_OK);
-    ASSERT_EQ(marker.at("inputs").size(), 1U);
-    EXPECT_EQ(marker.at("inputs").at(0).at("size"), 6);
-    EXPECT_EQ(marker.at("inputs").at(0).at("mtime"), 1700000000);
-    EXPECT_EQ(marker.at("inputs").at(0).at("mtime_nsec"), 123000000);
-    TopoBuildContext context;
-    TopoNodeCollection definitions;
-    std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(PlanUnifiedPipeline(request, context, definitions, roots));
-    EXPECT_TRUE(context.scopeReuse.at("host"));
-
-    ASSERT_TRUE(File::WriteTextAtomic(input, "after!"));
-    times[1].tv_nsec = 987000000;
-    ASSERT_EQ(utimensat(AT_FDCWD, input.c_str(), times, 0), 0);
-    FileMetadata replaced;
-    ASSERT_TRUE(File::GetMetadata(input, replaced));
-    EXPECT_EQ(replaced.size, 6U);
-    EXPECT_EQ(replaced.modifiedTime, 1700000000);
-    EXPECT_EQ(replaced.modifiedTimeNanoseconds, 987000000);
-    EXPECT_FALSE(PlanUnifiedPipeline(request, context, definitions, roots));
-}
-
-TEST_F(UnifiedPipelinePlanUTest, LegacySnapshotWithoutNanosecondsIsNotReusedEvenWhenFractionIsZero)
-{
-    const auto request = Request(PIPELINE_CANN_TRACE);
-    const auto input = File::PathJoin({request.hostPath, "input.bin"});
-    FileWriter(input).WriteText("input");
-    struct timespec times[2] = {{1700000000, 0}, {1700000000, 0}};
-    ASSERT_EQ(utimensat(AT_FDCWD, input.c_str(), times, 0), 0);
-    const auto sqlite = request.hostPath + "/sqlite";
-    ASSERT_TRUE(File::CreateDir(sqlite));
-    const auto completed = sqlite + "/.unified.complete";
-    nlohmann::json snapshot = nlohmann::json::array({
-        {{"name", input}, {"size", 5}, {"mtime", 1700000000}},
-    });
-    nlohmann::json marker = {{"version", 1}, {"inputs", snapshot}};
-    ASSERT_TRUE(File::WriteTextAtomic(completed, marker.dump()));
-    TopoBuildContext context;
-    TopoNodeCollection definitions;
-    std::vector<TopoNodeId> roots;
-    EXPECT_FALSE(PlanUnifiedPipeline(request, context, definitions, roots));
-
-    marker["inputs"][0]["mtime_nsec"] = 0;
-    ASSERT_TRUE(File::WriteTextAtomic(completed, marker.dump()));
-    ASSERT_TRUE(PlanUnifiedPipeline(request, context, definitions, roots));
-    EXPECT_TRUE(context.scopeReuse.at("host"));
-}
-
-TEST_F(UnifiedPipelinePlanUTest, SnapshotMetadataFailureReturnsFalseWithoutPublishingMarkers)
+TEST_F(UnifiedPipelinePlanUTest, MixedDeviceDatabasesKeepPerScopeReuseWithoutMarkers)
 {
     const auto sqlite = root + "/device_0/sqlite";
     ASSERT_TRUE(File::CreateDir(sqlite));
-    const auto completed = sqlite + "/.unified.complete";
-    FileWriter(completed).WriteText(nlohmann::json{{"version", 2}, {"inputs", nlohmann::json::array()}}.dump());
-    MOCKER(File::GetMetadata).stubs().will(returnValue(false));
+    DBRunner db(sqlite + "/existing.db");
+    ASSERT_TRUE(db.CreateTable("ParsedData", {{"value", "INTEGER"}}));
     TopoBuildContext context;
     TopoNodeCollection definitions;
     std::vector<TopoNodeId> roots;
-    EXPECT_NO_THROW({ EXPECT_FALSE(PlanUnifiedPipeline(Request(2), context, definitions, roots)); });
-    EXPECT_TRUE(File::Exist(completed));
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(Build(Request(PIPELINE_DEVICE_DATA), context, definitions, roots, graph, builder));
+    EXPECT_TRUE(context.scopeReuse.at("device_0"));
+    EXPECT_FALSE(context.scopeReuse.at("device_1"));
+    const auto& keys = builder.GetRuntimeNodeKeys();
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_0"}), 0U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_1"}), 1U);
+    ExpectNoUnifiedMarkers();
+}
+
+TEST_F(UnifiedPipelinePlanUTest, CorruptIntermediateDatabaseIsRejectedDespiteLegacyCompletionMarker)
+{
+    const auto sqlite = root + "/device_0/sqlite";
+    ASSERT_TRUE(File::CreateDir(sqlite));
+    FileWriter(sqlite + "/invalid.db").WriteText("not a SQLite database");
+    const auto completed = sqlite + "/.unified.complete";
+    FileWriter(completed).WriteText("legacy marker");
+    TopoBuildContext context;
+    TopoNodeCollection definitions;
+    std::vector<TopoNodeId> roots;
+    EXPECT_FALSE(PlanUnifiedPipeline(Request(PIPELINE_DEVICE_DATA), context, definitions, roots));
+    std::vector<std::string> content;
+    ASSERT_EQ(FileReader(completed).ReadText(content), ANALYSIS_OK);
+    EXPECT_EQ(content, (std::vector<std::string>{"legacy marker"}));
     EXPECT_FALSE(File::Exist(sqlite + "/.unified.incomplete"));
-    EXPECT_TRUE(File::GetFilesWithPrefix(sqlite, ".unified.complete.tmp.").empty());
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
 }
 
-TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsPreserveBusinessWritesWithoutDroppingTables)
+TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsReuseDatabasesWithoutDroppingTables)
 {
     const auto request = StepTraceRequest();
     struct RegistryGuard
@@ -1685,6 +1669,9 @@ TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsPreserveBusinessWritesWi
         TopoGraphBuilder builder;
         ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
         for (const auto& scope : {"device_0", "device_1"}) {
+            EXPECT_EQ(context.scopeReuse.at(scope), run != 0);
+            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}),
+                      run == 0 ? 1U : 0U);
             const auto path = context.scopePaths.at(scope);
             ASSERT_TRUE(context.scopeInventories.at(scope)->Inject(std::make_shared<std::string>(path)));
             if (run == 0) {
@@ -1707,7 +1694,7 @@ TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsPreserveBusinessWritesWi
             DBRunner db(File::PathJoin({root, scope, "sqlite", "trace.db"}));
             std::vector<std::tuple<int>> rows;
             ASSERT_TRUE(db.QueryData("SELECT value FROM training_trace", rows));
-            ASSERT_EQ(rows.size(), run + 1);
+            ASSERT_EQ(rows.size(), 1U);
             EXPECT_EQ(std::get<0>(rows.front()), 1);
             rows.clear();
             ASSERT_TRUE(db.QueryData("SELECT value FROM OtherProducer", rows));
@@ -1803,7 +1790,7 @@ TEST_F(UnifiedPipelinePlanUTest, MissingOptionalQosDoesNotFailFullParseOrHoldDev
                   RuntimeProcessState::FAILED);
         EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope})).state,
                   RuntimeProcessState::SUCCEEDED);
-        EXPECT_TRUE(File::Exist(root + "/" + scope + "/sqlite/.unified.complete"));
+        EXPECT_FALSE(File::Exist(root + "/" + scope + "/sqlite/.unified.complete"));
         EXPECT_FALSE(File::Exist(root + "/" + scope + "/sqlite/.unified.incomplete"));
     }
     EXPECT_EQ(results.at(final).state, RuntimeProcessState::SUCCEEDED);
@@ -2064,7 +2051,7 @@ TEST_F(UnifiedPipelinePlanUTest, FusionTaskWithRawDataAndMissingIntermediateUses
     }
     // Keep the real Processor and Assembler: missing optional data must not fail the export.
     EXPECT_TRUE(ExecuteTopoGraph(builder, graph, root));
-    EXPECT_TRUE(File::Exist(root + "/.unified.complete"));
+    EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
     EXPECT_TRUE(File::GetFilesWithPrefix(root + "/mindstudio_profiler_output", "msprof_").empty());
 }
 
