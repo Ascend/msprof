@@ -22,6 +22,7 @@
 #include <cstdio>
 
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
@@ -203,6 +204,55 @@ TEST_F(FileUTest, TestCheckDir)
     EXPECT_TRUE(File::CheckDir("test_dir"));
     EXPECT_TRUE(File::RemoveDir("test_dir", 0));
     EXPECT_TRUE(File::DeleteFile("test_dir_soft_link"));
+}
+
+TEST_F(FileUTest, CheckDirLogsMissingDirectoryByDefault)
+{
+    const std::string missingPath = "test_check_dir_missing";
+    ASSERT_FALSE(File::Exist(missingPath));
+    MOCKER_CPP(&Log::LogMsg).expects(once());
+    EXPECT_FALSE(File::CheckDir(missingPath));
+    GlobalMockObject::verify();
+
+    MOCKER_CPP(&Log::LogMsg).expects(once());
+    EXPECT_FALSE(File::CheckDir(missingPath, true));
+    GlobalMockObject::verify();
+}
+
+TEST_F(FileUTest, CheckDirCanSilenceMissingDirectoryError)
+{
+    const std::string missingPath = "test_check_dir_missing";
+    const std::string existingPath = "test_check_dir_existing";
+    ASSERT_FALSE(File::Exist(missingPath));
+    ASSERT_TRUE(File::CreateDir(existingPath));
+    MOCKER_CPP(&Log::LogMsg).expects(never());
+    EXPECT_FALSE(File::CheckDir(missingPath, false));
+    EXPECT_TRUE(File::CheckDir(existingPath, false));
+    GlobalMockObject::verify();
+    EXPECT_TRUE(File::RemoveDir(existingPath, 0));
+}
+
+TEST_F(FileUTest, CheckDirStillLogsInvalidPathsWhenMissingDirectoryLoggingIsDisabled)
+{
+    const std::vector<std::string> invalidPaths{"", std::string(4097, 'a'), "test\ndir"};
+    for (const auto &path : invalidPaths)
+    {
+        MOCKER_CPP(&Log::LogMsg).expects(once());
+        EXPECT_FALSE(File::CheckDir(path, false));
+        GlobalMockObject::verify();
+    }
+}
+
+TEST_F(FileUTest, CheckDirStillLogsAccessErrorsWhenMissingDirectoryLoggingIsDisabled)
+{
+    const std::string path = "test_check_dir_access";
+    ASSERT_TRUE(File::CreateDir(path));
+    MOCKER_CPP(&File::Exist).stubs().will(returnValue(true));
+    MOCKER_CPP(&File::Access).stubs().will(returnValue(false));
+    MOCKER_CPP(&Log::LogMsg).expects(once());
+    EXPECT_FALSE(File::CheckDir(path, false));
+    GlobalMockObject::verify();
+    EXPECT_TRUE(File::RemoveDir(path, 0));
 }
 
 TEST_F(FileUTest, TestIsDirNotEmpty)

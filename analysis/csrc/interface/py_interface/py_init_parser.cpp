@@ -65,7 +65,7 @@ std::string ResolveCannTracePath(const std::string &profPath, const char *cannTr
         return cannTracePath;
     }
     const std::string hostPath = File::PathJoin({profPath, "host"});
-    return File::CheckDir(hostPath) ? hostPath : profPath;
+    return File::CheckDir(hostPath, false) ? hostPath : profPath;
 }
 
 std::string ResolveDevicePath(const std::string &profPath, const char *devicePath)
@@ -75,7 +75,7 @@ std::string ResolveDevicePath(const std::string &profPath, const char *devicePat
         return devicePath;
     }
     const std::string hostPath = File::PathJoin({profPath, "host"});
-    if (File::CheckDir(hostPath))
+    if (File::CheckDir(hostPath, false))
     {
         return hostPath;
     }

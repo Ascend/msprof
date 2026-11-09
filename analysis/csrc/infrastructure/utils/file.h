@@ -51,7 +51,8 @@ class File
     static bool Check(const std::string &path, uint64_t maxReadFileBytes = UINT64_MAX);
     static bool CreateDir(const std::string &path, const mode_t &mode = 0750);
     static bool RemoveDir(const std::string &path, int depth);
-    static bool CheckDir(const std::string &path);
+    // logIfMissing only controls the error for a missing directory.
+    static bool CheckDir(const std::string &path, bool logIfMissing = true);
     static bool IsDirNotEmpty(const std::string &path);
     static bool Chmod(const std::string &path, const mode_t &mode);
     static std::string PathJoin(const std::vector<std::string> &paths);

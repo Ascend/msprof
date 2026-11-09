@@ -29,6 +29,7 @@
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/domain/services/host_worker/kernel_parser_worker.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/dfx/log.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
 #include "analysis/csrc/interface/py_interface/py_init_parser.h"
 #include "gtest/gtest.h"
@@ -52,6 +53,16 @@ namespace
 {
 constexpr int ANALYSIS_INVALID_PARAM = 101;
 Analysis::Application::PipelineRequest capturedRequest;
+std::vector<std::string> capturedErrors;
+void CaptureErrorLog(Analysis::Log *, const std::string &message, const std::string &level, const std::string &,
+                     const uint32_t &)
+{
+    if (level == "[ERROR]")
+    {
+        capturedErrors.push_back(message);
+    }
+}
+
 int CaptureUnifiedRequest(const Analysis::Application::PipelineRequest& request)
 {
     capturedRequest = request;
@@ -133,6 +144,7 @@ class PyInitParserUtest : public testing::Test
     {
         GlobalMockObject::verify();
         capturedRequest = Analysis::Application::PipelineRequest{};
+        capturedErrors.clear();
         capturedExportPath.clear();
         capturedExportNodes.clear();
         FileWriter(REPORTS_JSON_PATH).WriteText("{}");
@@ -194,6 +206,49 @@ TEST_F(PyInitParserUtest, TestRunPipelinePreservesExplicitPaths)
     EXPECT_EQ(CallRunPipeline(PROF_PATH.c_str(), PIPELINE_DEVICE_DATA, "custom_host", "custom_device"), Analysis::ANALYSIS_OK);
     EXPECT_EQ(capturedRequest.hostPath, "custom_host");
     EXPECT_EQ(capturedRequest.devicePath, "custom_device");
+}
+
+TEST_F(PyInitParserUtest, TestRunPipelineWithoutHostDoesNotLogErrors)
+{
+    const auto profPath = File::PathJoin({BASE_PATH, "PROF_device_only"});
+    const auto devicePath = File::PathJoin({profPath, "device_0"});
+    ASSERT_TRUE(File::CreateDir(profPath));
+    ASSERT_TRUE(File::CreateDir(devicePath));
+    ASSERT_FALSE(File::Exist(File::PathJoin({profPath, "host"})));
+    // Avoid reopening the singleton logger while checking directory errors.
+    MOCKER_CPP(&Analysis::Log::Init).stubs().will(returnValue(Analysis::ANALYSIS_OK));
+    MOCKER_CPP(&Analysis::Log::LogMsg).stubs().will(invoke(CaptureErrorLog));
+
+    for (const char *explicitDevicePath : {static_cast<const char *>(nullptr), devicePath.c_str()})
+    {
+        EXPECT_EQ(CallRunPipeline(profPath.c_str(), PIPELINE_DEVICE_DATA, nullptr, explicitDevicePath),
+                  Analysis::ANALYSIS_OK);
+        EXPECT_EQ(capturedRequest.hostPath, profPath);
+        EXPECT_EQ(capturedRequest.devicePath, devicePath);
+        EXPECT_EQ(capturedRequest.flags, PIPELINE_DEVICE_DATA);
+    }
+    EXPECT_TRUE(capturedErrors.empty()) << testing::PrintToString(capturedErrors);
+}
+
+TEST_F(PyInitParserUtest, LegacyExportWithoutHostDoesNotLogErrors)
+{
+    const auto profPath = File::PathJoin({BASE_PATH, "PROF_device_only_export"});
+    const auto devicePath = File::PathJoin({profPath, "device_0"});
+    ASSERT_TRUE(File::CreateDir(profPath));
+    ASSERT_TRUE(File::CreateDir(devicePath));
+    ASSERT_TRUE(File::CreateDir(File::PathJoin({devicePath, "data"})));
+    FileWriter(File::PathJoin({devicePath, "info.json"})).WriteText("{\"platform_version\":\"5\"}");
+    FileWriter(REPORTS_JSON_PATH).WriteText("{\"summary_process\":{\"step_trace\":true}}");
+    ASSERT_FALSE(File::Exist(File::PathJoin({profPath, "host"})));
+    MOCKER_CPP(&Analysis::Log::LogMsg).stubs().will(invoke(CaptureErrorLog));
+
+    ExportManager manager(profPath, REPORTS_JSON_PATH);
+    EXPECT_TRUE(manager.Run({ExportMode::SUMMARY}));
+    EXPECT_EQ(capturedExportPath, profPath);
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::HOST_PROCESSING));
+    EXPECT_TRUE(HasExportStage(Analysis::Application::TopoNodeStage::DEVICE_PROCESSING));
+    EXPECT_TRUE(HasExportStage(Analysis::Application::TopoNodeStage::SUMMARY_GENERATION));
+    EXPECT_TRUE(capturedErrors.empty()) << testing::PrintToString(capturedErrors);
 }
 
 TEST_F(PyInitParserUtest, TestRunPipelinePropagatesUnifiedFailure)

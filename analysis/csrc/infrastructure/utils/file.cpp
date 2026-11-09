@@ -283,7 +283,7 @@ uint64_t File::Size(const std::string &filePath)
     return fileStat.st_size;
 }
 
-bool File::CheckDir(const std::string &path)
+bool File::CheckDir(const std::string &path, bool logIfMissing)
 {
     if (path.empty())
     {
@@ -305,7 +305,10 @@ bool File::CheckDir(const std::string &path)
     }
     if (!File::Exist(path))
     {
-        ERROR("The directory path '%' not exists.", path);
+        if (logIfMissing)
+        {
+            ERROR("The directory path '%' not exists.", path);
+        }
         return false;
     }
     if (IsSoftLink(path))

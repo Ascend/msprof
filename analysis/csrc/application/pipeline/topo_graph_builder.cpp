@@ -707,7 +707,7 @@ bool TopoGraphBuilder::BuildExport(const TopoBuildContext& exportContext, const 
             return false;
         }
         request.hostPath = File::PathJoin({request.profPath, "host"});
-        if (File::CheckDir(request.hostPath))
+        if (File::CheckDir(request.hostPath, false))
         {
             request.flags |= PIPELINE_CANN_TRACE;
         }
