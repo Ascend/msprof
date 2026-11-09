@@ -512,6 +512,77 @@ TEST_F(UnifiedPipelinePlanUTest, ExistingDataExportUsesSameBuilderWithoutParsing
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
 }
 
+TEST_F(UnifiedPipelinePlanUTest, DbOnlyExportWritesDatabaseWithoutFileOutputDirectory)
+{
+    const std::vector<std::pair<bool, int>> cases{
+        {false, PIPELINE_DB}, {false, PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_DB}, {true, PIPELINE_DB}};
+    for (const auto& entry : cases)
+    {
+        SCOPED_TRACE(testing::Message() << "legacyExport=" << entry.first << ", flags=" << entry.second);
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(entry.first ? builder.Build(root, {ExportMode::DB}, "", graph)
+                                : builder.Build(Request(entry.second), graph));
+        for (auto& node : graph)
+        {
+            if (node.second.processName == "Export.Init" || node.second.processName == "DB:ENUM")
+            {
+                continue;
+            }
+            node.second.creator = []() -> std::unique_ptr<Process>
+            { return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; })); };
+        }
+        ASSERT_TRUE(ExecuteTopoGraph(builder, graph, root));
+        EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
+        const auto files = File::GetFilesWithPrefix(root, "msprof_");
+        ASSERT_EQ(files.size(), 1U);
+        DBRunner db(files.front());
+        EXPECT_TRUE(db.CheckTableExists(TABLE_NAME_ENUM_API_TYPE));
+        EXPECT_TRUE(File::DeleteFile(files.front()));
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, TimelineAndSummaryInitializationStillCreatesFileOutputDirectory)
+{
+    for (const int flags : {PIPELINE_TIMELINE, PIPELINE_SUMMARY, PIPELINE_DB | PIPELINE_TIMELINE,
+                           PIPELINE_DB | PIPELINE_SUMMARY, PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY})
+    {
+        SCOPED_TRACE(flags);
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(Request(flags), graph));
+        const auto init = builder.GetRuntimeNodeKeys().at({TopoNodeStage::FLOW_CONTROL, "Export.Init", "export"});
+        auto process = graph.at(init).creator();
+        ASSERT_NE(process, nullptr);
+        DataInventory inventory;
+        Infra::Context context;
+        EXPECT_EQ(process->Run(inventory, context), ANALYSIS_OK);
+        const auto output = root + "/mindstudio_profiler_output";
+        EXPECT_TRUE(File::Exist(output));
+        EXPECT_TRUE(File::RemoveDir(output, 0));
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, DbOnlyInitializationPreservesExistingFileOutputDirectory)
+{
+    const auto output = root + "/mindstudio_profiler_output";
+    ASSERT_TRUE(File::CreateDir(output));
+    const auto existing = File::PathJoin({output, "existing.csv"});
+    FileWriter(existing).WriteText("value\n7\n");
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(Request(PIPELINE_DB), graph));
+    const auto init = builder.GetRuntimeNodeKeys().at({TopoNodeStage::FLOW_CONTROL, "Export.Init", "export"});
+    auto process = graph.at(init).creator();
+    ASSERT_NE(process, nullptr);
+    DataInventory inventory;
+    Infra::Context context;
+    EXPECT_EQ(process->Run(inventory, context), ANALYSIS_OK);
+    std::vector<std::string> content;
+    ASSERT_EQ(FileReader(existing).ReadText(content), ANALYSIS_OK);
+    EXPECT_EQ(content, (std::vector<std::string>{"value", "7"}));
+}
+
 TEST_F(UnifiedPipelinePlanUTest, DatabaseSelectionDoesNotDependOnReportPath)
 {
     auto request = Request(0x07);

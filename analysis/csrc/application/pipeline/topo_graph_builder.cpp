@@ -514,8 +514,9 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
         }
         const auto init = TopoNodeId{TopoNodeStage::FLOW_CONTROL, "Export.Init", "export"};
         const auto output = File::PathJoin({request.profPath, Common::OUTPUT_PATH});
+        const bool needsOutputDir = (request.flags & (PIPELINE_TIMELINE | PIPELINE_SUMMARY)) != 0;
         AddCallback(definitions, init, TopoScopeKind::EXPORT, {Control("Environment.Load")},
-                    [output] { return File::CreateDir(output); });
+                    [output, needsOutputDir] { return !needsOutputDir || File::CreateDir(output); });
         for (auto& id : roots)
         {
             id.scope = "export";
