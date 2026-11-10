@@ -66,7 +66,8 @@ class GeDataType(Enum):
     DT_FLOAT4_E2M1 = 40
     DT_FLOAT4_E1M2 = 41
     DT_HIFLOAT4 = 42
-    DT_MAX = 43
+    DT_HIFLOAT4_SCALE = 43
+    DT_MAX = 44
     NUMBER_TYPE_BEGIN_ = 229
     BOOL_ = 230
     INT_ = 231

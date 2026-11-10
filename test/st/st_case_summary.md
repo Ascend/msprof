@@ -23,4 +23,20 @@
 | `l1_test_ascend_msprof_torchair_add` | `activities=[CPU,NPU]`，`schedule(wait=0,warmup=1,active=2,repeat=1,skip_first=1)`，`profiler_level=Level1` | 验证 TorchAir 编译 Add 场景 profiling 能力 | 重点校验 `ASCEND_PROFILER_OUTPUT` 下的 `kernel_details` / `operator_details` / `api_statistic` / `op_statistic` / `step_trace_time` / `trace_view` 及相关 DB 交付件，并校验 Add 记录存在且 `Input Shapes` 不为 `N/A` |
 | `l1_test_ascend_msprof_acl_graph_and_triton` | `默认参数，仅指定 --output` | 验证 ACL Graph 与 Triton 混合场景 profiling 能力 | 重点校验 `op_summary` 中 `triton_kernel_add` 存在，且 `Model ID` 不为默认无效值 `4294967295` |
 | `l1_test_ascend_msprof_acl_graph_and_triton_inductor` | `默认参数，仅指定 --output` | 验证 Triton Inductor 混合场景 profiling 能力 | 重点校验 `op_summary` 中所有 `triton*` 行存在有效 `Model ID`，避免全部落为默认无效值 |
-| `l0_test_ascend_msprof_matmul_basic_api` | `--ascendcl=on --model-execution=on --runtime-api=on --task-time=on --ai-core=on --l2=on --aic-freq=100 --aicpu=on --sys-hardware-mem=on --sys-hardware-mem-freq=50 --sys-cpu-profiling=on --sys-cpu-freq=50 --sys-profiling=on --sys-sampling-freq=10 --sys-pid-profiling=on --sys-pid-sampling-freq=10 --sys-io-profiling=on --sys-io-sampling-freq=100 --sys-interconnection-profiling=on --sys-interconnection-freq=50 --dvpp-profiling=on --dvpp-freq=50` | 验证自定义 Matmul 算子 profiling 能力 | 重点校验 `task_time` / `op_summary` / `op_statistic` 中 `mmad_custom` 相关记录，并同步校验 all_switch 场景的通用 CSV 和 DB 表 |
+| `l1_test_ascend_msprof_matmul_basic_api` | `--ascendcl=on --model-execution=on --runtime-api=on --task-time=on --ai-core=on --l2=on --aic-freq=100 --aicpu=on --sys-hardware-mem=on --sys-hardware-mem-freq=50 --sys-cpu-profiling=on --sys-cpu-freq=50 --sys-profiling=on --sys-sampling-freq=10 --sys-pid-profiling=on --sys-pid-sampling-freq=10 --sys-io-profiling=on --sys-io-sampling-freq=100 --sys-interconnection-profiling=on --sys-interconnection-freq=50 --dvpp-profiling=on --dvpp-freq=50` | 验证自定义 Matmul 算子 profiling 能力 | 重点校验 `task_time` / `op_summary` / `op_statistic` 中 `mmad_custom` 相关记录，并同步校验 all_switch 场景的通用 CSV 和 DB 表 |
+| `l1_test_ascend_msprof_upstream_enum_data_type` | 无（不采集数据，直接跑校验脚本） | 看护 dataType 枚举与上游对齐，防止上游新增类型时本仓库漏适配 | 实时拉取 `cann/metadef: inc/external/graph/c_types.h` 的 `C_DataType`，校验 Python `GeDataType`、C++ `geDataTypeMap` 是否覆盖上游全部取值；报告上游新增项与同值异名项，并给出需同步的文件 |
+| `l1_test_ascend_msprof_upstream_enum_data_format` | 无（不采集数据，直接跑校验脚本） | 看护 dataFormat 枚举与上游对齐 | 同上，比对 `C_Format` 与 Python `GeDataFormat`、C++ `geFormatMap` |
+| `l1_test_ascend_msprof_upstream_enum_module_id` | 无（不采集数据，直接跑校验脚本） | 看护 npuModuleMem 的 moduleId 与上游对齐，防止新模块内存落成兜底 `UNKNOWN` | 实时拉取 `cann/runtime: pkg_inc/driver/hal_pkg/common_pkg.h`，比对 `ModuleName` 与 `MODULE_NAME_TABLE` |
+
+## 上游枚举对齐用例说明
+
+`l1_test_ascend_msprof_upstream_enum_*` 三个用例属于**维护性看护**，与其它采集类用例形态不同：
+
+- 不调用 `msprof` 采集数据，直接执行 `src/<用例名>.py`，因此单次执行仅数秒；
+- **需要网络**：运行时实时拉取上游头文件（gitcode raw 地址），不使用本地快照，避免快照过期后用例形同虚设；拉取或解析失败一律判失败，不静默跳过；
+- **比对规则是单向包含**：上游有的每个枚举值，本仓库（Python 与 C++ 两份副本）必须存在且名称一致，否则判失败；
+  - 上游新增、本地缺失 → 报错，提示需同步的枚举值与文件；
+  - 同值异名 → 报错（例如本地登记了 `59=PYPTO`，上游日后新增 `59` 但叫 `PYPTI`，两者含义不一致，需人工确认）；
+  - **本地独有的值不报错**，上游未使用该取值时，本地按自身需要适配不影响业务正确性（如 `PYPTO=59`、GE 内部数值类型区段、`UNDEFINED` 哨兵值）；
+- 失败时输出 `[UPSTREAM-ENUM-DRIFT]` 报告，包含上游新增的枚举值、同值异名项、上游文件路径与分支、以及本仓库需要同步修改的文件；
+- 另有一项独立检查：Python 与 C++ 两份本地副本必须彼此严格一致（双向），用于发现"只改一侧"的问题。
