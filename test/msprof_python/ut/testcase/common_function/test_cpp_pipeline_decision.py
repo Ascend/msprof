@@ -369,6 +369,21 @@ class TestCollectionFactsCollector(unittest.TestCase):
         self.assertFalse(result.can_run_in_cpp)
         self.assertEqual(result.issues[0].details["tags"], [DataTag.STATIC_OP_MEM.name])
 
+    def test_nonempty_host_ftrace_directory_is_admitted_for_db_export(self):
+        os.mkdir(os.path.join(self.data_path, "ftrace"))
+        self._write_raw("ftrace/trace.cpu0.bin")
+        request = replace(self._request(command_type="db"), host_path=self.result_path, device_paths=())
+        decider = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe())
+        facts = self.collector.collect(request)
+        self.assertEqual(facts.result_paths[0].raw_tags, frozenset({"HOST_FTRACE"}))
+        result = decider.decide(request)
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+
+        os.mkdir(os.path.join(self.data_path, "other_ftrace"))
+        self._write_raw("other_ftrace/raw.bin")
+        result = decider.decide(request)
+        self.assertIn("UNKNOWN_RAW_DATA", {issue.reason_code for issue in result.issues})
+
     def test_unknown_data_and_invalid_metadata_are_reported(self):
         self._write_raw("unknown.raw")
         self._write_raw("empty.raw", b"")

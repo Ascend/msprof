@@ -30,6 +30,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/unified_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/acc_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/ftrace_generic_event_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
@@ -163,6 +164,9 @@ REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_OVERLAP_ANALYSIS,
                             std::vector<OverlapAnalysisData>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_QOS, TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_QOS)),
                             std::vector<QosData>);
+REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_FTRACE_GENERIC_EVENT,
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_FTRACE_GENERIC_EVENT)),
+                            std::vector<GenericEventBundle>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_CCU_MISSION,
                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION)),
                             std::vector<CCUMissionTimelineData>);
@@ -170,6 +174,7 @@ REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_CCU_MISSION,
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, DB_STRING_IDS), true,
                             DBAssembler::CreateStringIdsSaver(), TOPO_DEPS(), DBAssembler::ResolveSelectedDBSavers,
                             true);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(FLOW_CONTROL, DB_STRING_IDS), FtraceTablesSaved);
 
 #undef REGISTER_DB_SAVER_WITH_DATA
 #undef REGISTER_DB_SAVER

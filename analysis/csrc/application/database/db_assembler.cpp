@@ -41,6 +41,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/unified_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/acc_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/ftrace_generic_event_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
@@ -959,14 +960,16 @@ bool SaveStringIdsData(DataInventory& dataInventory, DBInfo& msprofDB, const std
 {
     using OriDataFormat = std::unordered_map<std::string, uint64_t>;
     using ProcessedDataFormat = std::vector<std::tuple<uint64_t, std::string>>;
-    OriDataFormat oriData = IdPool::GetInstance().GetAllUint64Ids();
+    auto& idPool = IdPool::GetInstance();
+    OriDataFormat oriData = idPool.GetAllUint64Ids();
+    const auto zeroAlias = idPool.GetZeroStringAlias();
     if (oriData.empty())
     {
         WARN("No StringIds data.");
         return true;
     }
     ProcessedDataFormat res;
-    if (!Utils::Reserve(res, oriData.size()))
+    if (!Utils::Reserve(res, oriData.size() + (zeroAlias.first != 0 ? 1 : 0)))
     {
         ERROR("Reserve for stringIds data failed.");
         return false;
@@ -974,6 +977,10 @@ bool SaveStringIdsData(DataInventory& dataInventory, DBInfo& msprofDB, const std
     for (const auto& pair : oriData)
     {
         res.emplace_back(pair.second, pair.first);
+    }
+    if (zeroAlias.first != 0)
+    {
+        res.emplace_back(zeroAlias.first, zeroAlias.second);
     }
     return SaveData(res, TABLE_NAME_STRING_IDS, msprofDB);
 }
@@ -1651,6 +1658,207 @@ bool SaveHostPlatformData(DataInventory& dataInventory, DBInfo& msprofDB, const 
     return true;
 }
 
+bool SaveFtraceMarker(const std::string& key, DBInfo& msprofDB)
+{
+    const std::vector<std::tuple<std::string, std::string>> rows{{key, FTRACE_META_COMPLETE_VALUE}};
+    return SaveData(rows, TABLE_NAME_META_DATA, msprofDB);
+}
+
+bool SaveFtraceGenericEventData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
+{
+    (void)profPath;
+    auto bundles = dataInventory.GetPtr<std::vector<GenericEventBundle>>();
+    if (msprofDB.dbRunner == nullptr || msprofDB.database == nullptr ||
+        !DeliverableConsumer::Instance().RunDb(
+            msprofDB.dbRunner->GetPath(),
+            [&](DBRunner& runner)
+            {
+                return runner.CreateTable(TABLE_NAME_META_DATA,
+                                          msprofDB.database->GetTableCols(TABLE_NAME_META_DATA)) &&
+                       runner.DeleteData(std::string("DELETE FROM ") + TABLE_NAME_META_DATA + " WHERE name IN ('" +
+                                         FTRACE_META_PRESENT_KEY + "', '" + FTRACE_META_COMPLETE_KEY + "')");
+            }))
+    {
+        ERROR("Failed to clear ftrace metadata markers.");
+        return false;
+    }
+    if (bundles == nullptr || bundles->empty())
+    {
+        return true;
+    }
+    if (bundles->size() != 1)
+    {
+        ERROR("Expected one ftrace dataset, got %.", bundles->size());
+        return false;
+    }
+    if (!SaveFtraceMarker(FTRACE_META_PRESENT_KEY, msprofDB))
+    {
+        return false;
+    }
+    const auto& bundle = bundles->front();
+    if (bundle.events.empty())
+    {
+        return true;
+    }
+
+    constexpr uint64_t TIME_SOURCE_SESSION_NS = 3;
+    constexpr uint64_t SOURCE_GROUP_FTRACE = 1;
+    auto& idPool = IdPool::GetInstance();
+    // These enums include a display label in addition to the name.
+    const std::vector<std::tuple<uint64_t, std::string, std::string>> sourceEnums = {
+        {0, "NotSpecified", "Not Specified"},
+        {1, "ClockMonotonicRaw", "Clock Monotonic Raw"},
+        {2, "CntVct", "Counter-Timer Virtual Count Register"},
+        {TIME_SOURCE_SESSION_NS, "SessionNs", "Session Nanoseconds"}};
+    const std::vector<std::tuple<uint64_t, std::string, std::string>> groupEnums = {
+        {0, "Unknown", "Unknown"}, {SOURCE_GROUP_FTRACE, "FTrace", "FTrace"}};
+    const std::vector<std::tuple<uint64_t, std::string, std::string>> fieldTypeEnums = {
+        {0, "Signed", "Signed integer"},
+        {1, "Unsigned", "Unsigned integer"},
+        {2, "Float", "Float"},
+        {3, "Double", "Double"}};
+    if (!SaveData(sourceEnums, TABLE_NAME_ENUM_GENERIC_EVENT_SOURCE, msprofDB) ||
+        !SaveData(groupEnums, TABLE_NAME_ENUM_GENERIC_EVENT_GROUP, msprofDB) ||
+        !SaveData(fieldTypeEnums, TABLE_NAME_ENUM_GENERIC_EVENT_FIELD_TYPE, msprofDB))
+    {
+        ERROR("Save ftrace generic event enums failed.");
+        return false;
+    }
+
+    // GENERIC_EVENT_SOURCES: one row per ftrace subsystem.
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, std::string>> sources;
+    std::unordered_map<std::string, uint64_t> sourceIds;
+    for (const auto& type : bundle.meta.types)
+    {
+        const auto result = sourceIds.emplace(type.system, 0);
+        if (result.second)
+        {
+            const auto id = idPool.GetUint64Id(type.system);
+            result.first->second = id;
+            sources.emplace_back(id, id, TIME_SOURCE_SESSION_NS, SOURCE_GROUP_FTRACE, "{}");
+        }
+    }
+    if (!SaveData(sources, TABLE_NAME_GENERIC_EVENT_SOURCES, msprofDB))
+    {
+        ERROR("Save ftrace generic event sources failed.");
+        return false;
+    }
+
+    // GENERIC_EVENT_TYPES + GENERIC_EVENT_TYPE_FIELDS
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, std::string, std::string>> types;
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, std::string, std::string>>
+        typeFields;
+    for (const auto& type : bundle.meta.types)
+    {
+        JsonWriter extra;
+        extra.StartObject();
+        extra["kernelId"] << type.kernelId;
+        extra["formatHash"] << type.formatHash;
+        extra.EndObject();
+        types.emplace_back(type.typeId, sourceIds.at(type.system), idPool.GetUint64Id(type.name), type.formatText,
+                           extra.GetString());
+        uint64_t fieldIdx = 0;
+        for (const auto& field : type.fields)
+        {
+            // 0 = Signed, 1 = Unsigned (ENUM_GENERIC_EVENT_FIELD_TYPE). The enum has no string
+            // Logical type, not the physical one: string columns keep their text in STRING_IDS
+            // and stay Signed (0) as in the reference schema, so consumers keep using
+            // "type == 0 && size > 8" / "strId != 0" to recognise them.
+            uint64_t fieldType = 0;  // 0=Signed
+            if (field.kind == GenericFieldKind::UINT_VALUE)
+            {
+                fieldType = 1;
+            }
+            else if (field.kind == GenericFieldKind::FLOAT_VALUE)
+            {
+                fieldType = 2;
+            }
+            else if (field.kind == GenericFieldKind::DOUBLE_VALUE)
+            {
+                fieldType = 3;
+            }
+            typeFields.emplace_back(type.typeId, fieldIdx, idPool.GetUint64Id(field.name),
+                                    static_cast<uint64_t>(field.offset), static_cast<uint64_t>(field.size), fieldType,
+                                    field.name + "=", std::string(" "));
+            fieldIdx++;
+        }
+    }
+    if (!SaveData(types, TABLE_NAME_GENERIC_EVENT_TYPES, msprofDB))
+    {
+        ERROR("Save ftrace generic event types failed.");
+        return false;
+    }
+    if (!typeFields.empty() && !SaveData(typeFields, TABLE_NAME_GENERIC_EVENT_TYPE_FIELDS, msprofDB))
+    {
+        ERROR("Save ftrace generic event type fields failed.");
+        return false;
+    }
+
+    // GENERIC_EVENTS + GENERIC_EVENT_DATA
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint32_t>> events;
+    std::vector<std::tuple<uint64_t, uint64_t, int64_t, uint64_t, double, double, uint64_t>> eventData;
+    events.reserve(bundle.events.size());
+    eventData.reserve(bundle.events.size() * 4);
+    uint64_t eventId = 0;
+    for (const auto& event : bundle.events)
+    {
+        eventId++;
+        events.emplace_back(eventId, event.rawTimestamp, event.timestamp, event.typeId, event.globalTid,
+                            static_cast<uint64_t>(event.cpuId), event.flags);
+        for (const auto& value : event.values)
+        {
+            const auto strId =
+                value.kind == GenericFieldKind::STRING_VALUE ? idPool.GetNonzeroStringId(value.strVal) : 0;
+            const auto floatVal = value.kind == GenericFieldKind::FLOAT_VALUE ? value.realVal : 0.0;
+            const auto doubleVal = value.kind == GenericFieldKind::DOUBLE_VALUE ? value.realVal : 0.0;
+            eventData.emplace_back(eventId, static_cast<uint64_t>(value.fieldIdx), value.intVal, value.uintVal,
+                                   floatVal, doubleVal, strId);
+        }
+    }
+    if (!SaveData(events, TABLE_NAME_GENERIC_EVENTS, msprofDB))
+    {
+        ERROR("Save ftrace generic events failed.");
+        return false;
+    }
+    if (!eventData.empty() && !SaveData(eventData, TABLE_NAME_GENERIC_EVENT_DATA, msprofDB))
+    {
+        ERROR("Save ftrace generic event data failed.");
+        return false;
+    }
+    if (!CreateTableIndex(TABLE_NAME_GENERIC_EVENTS, "GenericEventTsIndex", msprofDB, {"timestamp"}) ||
+        !CreateTableIndex(TABLE_NAME_GENERIC_EVENTS, "GenericEventTypeIndex", msprofDB, {"typeId", "timestamp"}) ||
+        !CreateTableIndex(TABLE_NAME_GENERIC_EVENTS, "GenericEventTidIndex", msprofDB, {"globalTid", "timestamp"}) ||
+        !CreateTableIndex(TABLE_NAME_GENERIC_EVENTS, "GenericEventCpuIndex", msprofDB, {"cpuId", "timestamp"}))
+    {
+        return false;
+    }
+
+    // SQLite uses unique indexes to enforce the two composite keys. GENERIC_EVENT_DATA is only queried by
+    // (genericEventId, fieldIdx), so the unique index below already covers every lookup; a second plain index
+    // on the same columns would only duplicate that B-tree (~0.8 GB at 60M rows) without serving any query.
+    const auto createUniqueIndex = [&](const std::string& table, const std::string& name, const std::string& columns)
+    {
+        if (!DeliverableConsumer::Instance().RunDb(msprofDB.dbRunner->GetPath(),
+                                                   [&](DBRunner& runner) {
+                                                       return runner.UpdateData("CREATE UNIQUE INDEX IF NOT EXISTS " +
+                                                                                name + " ON " + table + " (" + columns +
+                                                                                ")");
+                                                   }))
+        {
+            ERROR("Create unique index failed, table is %, index is %.", table, name);
+            return false;
+        }
+        return true;
+    };
+    if (!createUniqueIndex(TABLE_NAME_GENERIC_EVENT_TYPE_FIELDS, "UxGenericEventTypeFields", "typeId, fieldIdx") ||
+        !createUniqueIndex(TABLE_NAME_GENERIC_EVENT_DATA, "UxGenericEventData", "genericEventId, fieldIdx"))
+    {
+        return false;
+    }
+
+    return dataInventory.Inject(std::make_shared<FtraceTablesSaved>());
+}
+
 const std::string DB_PREFIX = "DB:";
 const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
 const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
@@ -1694,6 +1902,7 @@ const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_OSRT_API, SaveOSRuntimeApiData},
     {PROCESSOR_NAME_OVERLAP_ANALYSIS, SaveOverlapAnalysisData},
     {PROCESSOR_NAME_QOS, SaveQosData},
+    {PROCESSOR_NAME_FTRACE_GENERIC_EVENT, SaveFtraceGenericEventData},
     {PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
 };
 
@@ -1750,7 +1959,10 @@ TopoNodeCreatorFactory DBAssembler::CreateStringIdsSaver()
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
                 [session](DataInventory& dataInventory) -> bool
                 {
-                    const bool result = SaveStringIdsData(dataInventory, session->msprofDB_, session->profPath_);
+                    const bool stringsSaved = SaveStringIdsData(dataInventory, session->msprofDB_, session->profPath_);
+                    const bool result =
+                        stringsSaved && (dataInventory.GetPtr<FtraceTablesSaved>() == nullptr ||
+                                         SaveFtraceMarker(FTRACE_META_COMPLETE_KEY, session->msprofDB_));
                     PRINT_INFO("End exporting db output_file. The file is stored in the PROF file.");
                     return result;
                 }));

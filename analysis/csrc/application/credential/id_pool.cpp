@@ -44,6 +44,7 @@ void IdPool::Clear()
     correlationIds_.clear();
     uint32Ids_.clear();
     uint64Index_ = 0;
+    zeroStringAlias_ = {};
     correlationIndex_ = 0;
     uint32Index_ = 0;
 }
@@ -52,6 +53,33 @@ void IdPool::Clear()
 uint64_t IdPool::GetUint64Id(const std::string& key)
 {
     std::lock_guard<std::mutex> lock(uint64Mutex_);
+    return GetOrAddUint64Id(key);
+}
+
+uint64_t IdPool::GetNonzeroStringId(const std::string& key)
+{
+    std::lock_guard<std::mutex> lock(uint64Mutex_);
+    const auto id = GetOrAddUint64Id(key);
+    if (id != 0)
+    {
+        return id;
+    }
+    // Ftrace reserves strId=0 for non-string values. Keep the original shared ID and export an alias.
+    if (zeroStringAlias_.first == 0)
+    {
+        zeroStringAlias_ = {uint64Index_++, key};
+    }
+    return zeroStringAlias_.first;
+}
+
+std::pair<uint64_t, std::string> IdPool::GetZeroStringAlias()
+{
+    std::lock_guard<std::mutex> lock(uint64Mutex_);
+    return zeroStringAlias_;
+}
+
+uint64_t IdPool::GetOrAddUint64Id(const std::string& key)
+{
     if (uint64Ids_.find(key) == uint64Ids_.end())
     {
         uint64Ids_.insert({key, uint64Index_});

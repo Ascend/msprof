@@ -44,6 +44,17 @@ const std::string PROCESSOR_NAME_STEP_TRACE = "STEP_TRACE";
 const std::string PROCESSOR_NAME_STRING_IDS = "STRING_IDS";
 const std::string TABLE_NAME_STRING_IDS = "STRING_IDS";
 
+// ftrace generic event model
+const std::string TABLE_NAME_GENERIC_EVENT_SOURCES = "GENERIC_EVENT_SOURCES";
+const std::string TABLE_NAME_GENERIC_EVENT_TYPES = "GENERIC_EVENT_TYPES";
+const std::string TABLE_NAME_GENERIC_EVENT_TYPE_FIELDS = "GENERIC_EVENT_TYPE_FIELDS";
+const std::string TABLE_NAME_GENERIC_EVENTS = "GENERIC_EVENTS";
+const std::string TABLE_NAME_GENERIC_EVENT_DATA = "GENERIC_EVENT_DATA";
+const std::string TABLE_NAME_ENUM_GENERIC_EVENT_SOURCE = "ENUM_GENERIC_EVENT_SOURCE";
+const std::string TABLE_NAME_ENUM_GENERIC_EVENT_GROUP = "ENUM_GENERIC_EVENT_GROUP";
+const std::string TABLE_NAME_ENUM_GENERIC_EVENT_FIELD_TYPE = "ENUM_GENERIC_EVENT_FIELD_TYPE";
+const std::string PROCESSOR_NAME_FTRACE_GENERIC_EVENT = "FTRACE_GENERIC_EVENT";
+
 const std::string PROCESSOR_NAME_SESSION_TIME_INFO = "SESSION_TIME_INFO";
 const std::string TABLE_NAME_SESSION_TIME_INFO = "SESSION_TIME_INFO";
 
@@ -144,6 +155,11 @@ const std::string TABLE_NAME_SOC = "SOC_BANDWIDTH_LEVEL";
 
 const std::string PROCESSOR_NAME_META_DATA = "META_DATA";
 const std::string TABLE_NAME_META_DATA = "META_DATA";
+// The selected dataset contains ftrace artifacts, even if no event rows could be exported.
+const std::string FTRACE_META_PRESENT_KEY = "ftrace";
+// Event tables, indexes and referenced strings are persisted. Row flags describe capture completeness.
+const std::string FTRACE_META_COMPLETE_KEY = "ftrace_events_complete";
+const std::string FTRACE_META_COMPLETE_VALUE = "1";
 
 const std::string PROCESSOR_NAME_AICORE_FREQ = "AICORE_FREQ";
 const std::string TABLE_NAME_AICORE_FREQ = "AICORE_FREQ";
@@ -364,17 +380,17 @@ const std::unordered_map<std::string, uint16_t> MEMCPY_OPERATION_TABLE{
 const std::unordered_map<std::string, uint16_t> OVERLAP_TYPE_TABLE{
     {"COMPUTE", 0}, {"COMMUNICATION", 1}, {"COMM_NOT_OVERLAP_COMP", 2}, {"FREE", 3}, {"RESERVE", UINT16_MAX}};
 
-const std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>>
-
-    ENUM_TABLE = {{TABLE_NAME_ENUM_API_TYPE, API_LEVEL_TABLE},
-                  {TABLE_NAME_ENUM_MODULE, MODULE_NAME_TABLE},
-                  {TABLE_NAME_ENUM_HCCL_DATA_TYPE, HCCL_DATA_TYPE_TABLE},
-                  {TABLE_NAME_ENUM_HCCL_LINK_TYPE, HCCL_LINK_TYPE_TABLE},
-                  {TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE, HCCL_TRANSPORT_TYPE_TABLE},
-                  {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, HCCL_RDMA_TYPE_TABLE},
-                  {TABLE_NAME_MSTX_EVENT_TYPE, MSTX_EVENT_TYPE_TABLE},
-                  {TABLE_NAME_ENUM_MEMCPY_OPERATION, MEMCPY_OPERATION_TABLE},
-                  {TABLE_NAME_ENUM_OVERLAP_ANALYSIS_TYPE, OVERLAP_TYPE_TABLE}};
+const std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> ENUM_TABLE = {
+    {TABLE_NAME_ENUM_API_TYPE, API_LEVEL_TABLE},
+    {TABLE_NAME_ENUM_MODULE, MODULE_NAME_TABLE},
+    {TABLE_NAME_ENUM_HCCL_DATA_TYPE, HCCL_DATA_TYPE_TABLE},
+    {TABLE_NAME_ENUM_HCCL_LINK_TYPE, HCCL_LINK_TYPE_TABLE},
+    {TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE, HCCL_TRANSPORT_TYPE_TABLE},
+    {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, HCCL_RDMA_TYPE_TABLE},
+    {TABLE_NAME_MSTX_EVENT_TYPE, MSTX_EVENT_TYPE_TABLE},
+    {TABLE_NAME_ENUM_MEMCPY_OPERATION, MEMCPY_OPERATION_TABLE},
+    {TABLE_NAME_ENUM_OVERLAP_ANALYSIS_TYPE, OVERLAP_TYPE_TABLE},
+};
 
 const std::string SCHEMA_VERSION_MAJOR = "1";
 const std::string SCHEMA_VERSION_MINOR = "2";

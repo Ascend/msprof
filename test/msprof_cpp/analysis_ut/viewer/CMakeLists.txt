@@ -14,6 +14,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/data_inventory SOUR
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/ai_task SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/system SOURCES)
+# host ftrace parser: system/ftrace_generic_event_processor.cpp links against it
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/ftrace SOURCES)
 aux_source_directory(${TOP_DIR}/test/msprof_cpp/analysis_ut/viewer/test SOURCES)
 
 list(APPEND SOURCES

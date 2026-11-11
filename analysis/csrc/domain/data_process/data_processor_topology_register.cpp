@@ -47,6 +47,7 @@
 #include "analysis/csrc/domain/data_process/system/block_detail_processor.h"
 #include "analysis/csrc/domain/data_process/system/chip_trans_processor.h"
 #include "analysis/csrc/domain/data_process/system/ddr_processor.h"
+#include "analysis/csrc/domain/data_process/system/ftrace_generic_event_processor.h"
 #include "analysis/csrc/domain/data_process/system/hbm_processor.h"
 #include "analysis/csrc/domain/data_process/system/hccs_processor.h"
 #include "analysis/csrc/domain/data_process/system/host_platform_processor.h"
@@ -178,6 +179,7 @@ REGISTER_PROCESSOR(MetricProcessor, PROCESSOR_PMU, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence")));
 
 REGISTER_PROCESSOR(MemcpyInfoProcessor, PROCESSOR_NAME_MEMCPY_INFO, true, TOPO_DEPS());
+REGISTER_PROCESSOR(FtraceGenericEventProcessor, PROCESSOR_NAME_FTRACE_GENERIC_EVENT, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR_WITH_DATA(NpuOpMemProcessor, PROCESSOR_NAME_NPU_OP_MEM, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HASH)), GeHashMap);

@@ -16,6 +16,8 @@
  * -------------------------------------------------------------------------
  */
 
+#include <typeindex>
+
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/database/db_assembler.h"
@@ -39,6 +41,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/ftrace_generic_event_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hccs_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_platform_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/host_usage_data.h"
@@ -959,7 +962,7 @@ static void CheckStringId(std::vector<std::tuple<uint64_t, std::string>> data)
     }
     std::sort(stringIds.begin(), stringIds.end());
     for (int i = 0; i < 2; ++i) {
-        EXPECT_EQ(stringIds[i], i);
+        EXPECT_EQ(stringIds[i], static_cast<uint64_t>(i));
     }
 }
 
@@ -2439,7 +2442,9 @@ TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
     EXPECT_EQ(taskSaver->paramTypes.size(), 2UL);
     ASSERT_NE(stringIdsSaver, nullptr);
     EXPECT_EQ(stringIdsSaver->processDependence.size(), dbNodeCount);
-    EXPECT_TRUE(stringIdsSaver->paramTypes.empty());
+    // STRING_IDS reads the marker injected by the ftrace saver, so it is the only node allowed to run last.
+    EXPECT_EQ(stringIdsSaver->paramTypes.size(), 1UL);
+    EXPECT_EQ(stringIdsSaver->paramTypes[0], std::type_index(typeid(FtraceTablesSaved)));
 }
 
 TEST_F(DBAssemblerUTest, ShouldSaveHostPlatformDataFromDataInventory)
@@ -2599,4 +2604,122 @@ TEST_F(DBAssemblerUTest, ShouldKeepDbWriterWhenAssemblerIsDestroyed)
     EXPECT_EQ(2ULL, std::get<1>(rows[0]));
     EXPECT_EQ(7ULL, std::get<0>(rows[1]));
     EXPECT_EQ(8ULL, std::get<1>(rows[1]));
+}
+
+static std::shared_ptr<std::vector<GenericEventBundle>> MakeFtraceBundle(bool duplicateValue)
+{
+    auto bundles = std::make_shared<std::vector<GenericEventBundle>>(1);
+    auto& bundle = bundles->front();
+    GenericEventTypeDef type;
+    type.typeId = 1;
+    type.kernelId = 42;
+    type.system = "sched";
+    type.name = "event";
+    type.formatHash = "quote\"slash\\";
+    GenericEventData event;
+    event.typeId = type.typeId;
+    event.rawTimestamp = 12;
+    event.timestamp = 1715760307197379012ULL;
+    event.flags = 3;
+    const GenericFieldKind kinds[] = {GenericFieldKind::STRING_VALUE, GenericFieldKind::FLOAT_VALUE,
+                                      GenericFieldKind::DOUBLE_VALUE, GenericFieldKind::INT_VALUE};
+    for (uint32_t index = 0; index < 4; ++index)
+    {
+        GenericEventTypeField field;
+        field.kind = kinds[index];
+        field.name = "field" + std::to_string(index);
+        field.size = 8;
+        type.fields.emplace_back(field);
+        GenericEventFieldValue value;
+        value.fieldIdx = index;
+        value.kind = field.kind;
+        value.realVal = 1.25;
+        event.values.emplace_back(value);
+    }
+    if (duplicateValue)
+    {
+        event.values.push_back(event.values.front());
+    }
+    bundle.meta.types.emplace_back(std::move(type));
+    bundle.events.emplace_back(std::move(event));
+    return bundles;
+}
+
+TEST_F(DBAssemblerUTest, FtraceSaverWritesTypedValuesAndMarkersAfterStrings)
+{
+    auto assembler = DBAssembler(PROF, File::PathJoin({PROF, OUTPUT_PATH}));
+    DataInventory inventory;
+    // The empty string is the first ID in the shared pool. A ftrace string must still join successfully.
+    ASSERT_EQ(0U, IdPool::GetInstance().GetUint64Id(""));
+    inventory.Inject(MakeFtraceBundle(false));
+    ASSERT_TRUE(assembler.RunSaver(PROCESSOR_NAME_FTRACE_GENERIC_EVENT, inventory));
+
+    DBRunner db(GetMsprofDbPath());
+    using MetaRow = std::tuple<std::string, std::string>;
+    std::vector<MetaRow> markers;
+    ASSERT_TRUE(db.QueryData("SELECT name, value FROM META_DATA ORDER BY name", markers));
+    EXPECT_EQ((std::vector<MetaRow>{{"ftrace", "1"}, {"ftrace_events_complete", "1"}}), markers);
+    std::vector<std::tuple<std::string>> groups;
+    ASSERT_TRUE(db.QueryData("SELECT name FROM ENUM_GENERIC_EVENT_GROUP ORDER BY id", groups));
+    EXPECT_EQ((std::vector<std::tuple<std::string>>{{"Unknown"}, {"FTrace"}}), groups);
+    std::vector<std::tuple<std::string>> extra;
+    ASSERT_TRUE(db.QueryData("SELECT data FROM GENERIC_EVENT_TYPES", extra));
+    ASSERT_EQ(1U, extra.size());
+    const auto json = nlohmann::json::parse(std::get<0>(extra[0]));
+    EXPECT_EQ("quote\"slash\\", json["formatHash"].get<std::string>());
+
+    using ValueRow = std::tuple<uint64_t, double, double, uint64_t, std::string>;
+    std::vector<ValueRow> rows;
+    ASSERT_TRUE(db.QueryData("SELECT fieldIdx, floatVal, doubleVal, strId, IFNULL(value, 'missing') "
+                             "FROM GENERIC_EVENT_DATA LEFT JOIN STRING_IDS ON strId <> 0 AND strId = id "
+                             "ORDER BY fieldIdx", rows));
+    ASSERT_EQ(4U, rows.size());
+    EXPECT_NE(0U, std::get<3>(rows[0]));
+    EXPECT_EQ("", std::get<4>(rows[0]));
+    EXPECT_EQ(ValueRow(1, 1.25, 0, 0, "missing"), rows[1]);
+    EXPECT_EQ(ValueRow(2, 0, 1.25, 0, "missing"), rows[2]);
+    EXPECT_EQ(ValueRow(3, 0, 0, 0, "missing"), rows[3]);
+    std::vector<std::tuple<uint64_t, uint64_t>> timeAndFlags;
+    ASSERT_TRUE(db.QueryData("SELECT timestamp, flags FROM GENERIC_EVENTS", timeAndFlags));
+    ASSERT_EQ(1U, timeAndFlags.size());
+    EXPECT_EQ(std::make_tuple(1715760307197379012ULL, 3ULL), timeAndFlags[0]);
+    std::vector<std::tuple<uint64_t>> indexes;
+    ASSERT_TRUE(db.QueryData("SELECT count(*) FROM sqlite_master WHERE type='index' AND "
+                             "(name LIKE 'GenericEvent%Index' OR name LIKE 'UxGenericEvent%')", indexes));
+    ASSERT_EQ(1U, indexes.size());
+    EXPECT_EQ(6U, std::get<0>(indexes[0]));
+    // (genericEventId, fieldIdx) must be backed by exactly one B-tree: the unique index that also
+    // enforces the composite key. A second plain index on the same columns only bloats the file.
+    std::vector<std::tuple<std::string>> eventDataIndexes;
+    ASSERT_TRUE(db.QueryData(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='GENERIC_EVENT_DATA' "
+        "ORDER BY name",
+        eventDataIndexes));
+    EXPECT_EQ((std::vector<std::tuple<std::string>>{{"UxGenericEventData"}}), eventDataIndexes);
+}
+
+TEST_F(DBAssemblerUTest, FtraceSaverDoesNotMarkCompletionAfterUniqueIndexFailure)
+{
+    auto assembler = DBAssembler(PROF, File::PathJoin({PROF, OUTPUT_PATH}));
+    DataInventory inventory;
+    inventory.Inject(MakeFtraceBundle(true));
+    EXPECT_FALSE(assembler.RunSaver(PROCESSOR_NAME_FTRACE_GENERIC_EVENT, inventory));
+
+    DBRunner db(GetMsprofDbPath());
+    using MetaRow = std::tuple<std::string, std::string>;
+    std::vector<MetaRow> markers;
+    ASSERT_TRUE(db.QueryData("SELECT name, value FROM META_DATA ORDER BY name", markers));
+    EXPECT_EQ((std::vector<MetaRow>{{"ftrace", "1"}}), markers);
+}
+
+TEST_F(DBAssemblerUTest, FtraceSaverLeavesNoMarkersWithoutArtifacts)
+{
+    auto assembler = DBAssembler(PROF, File::PathJoin({PROF, OUTPUT_PATH}));
+    DataInventory inventory;
+    ASSERT_TRUE(assembler.RunSaver(PROCESSOR_NAME_FTRACE_GENERIC_EVENT, inventory));
+
+    DBRunner db(GetMsprofDbPath());
+    std::vector<std::tuple<std::string>> markers;
+    ASSERT_TRUE(db.QueryData("SELECT name FROM META_DATA WHERE name IN ('ftrace', 'ftrace_events_complete')", markers));
+    EXPECT_TRUE(markers.empty());
 }

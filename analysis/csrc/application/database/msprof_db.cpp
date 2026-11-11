@@ -224,6 +224,9 @@ const TableColumns NETDEV_STATS = {
     {"nicTxBandwidth", SQL_NUMERIC_TYPE}, {"nicRxByte", SQL_INTEGER_TYPE},      {"nicRxBandwidth", SQL_NUMERIC_TYPE}};
 
 const TableColumns ENUM_TABLE_COLS = {{"id", SQL_INTEGER_TYPE, true}, {"name", SQL_TEXT_TYPE}};
+// generic event enums keep the reference sqlite shape: id/name/label
+const TableColumns ENUM_TABLE_COLS_WITH_LABEL = {
+    {"id", SQL_INTEGER_TYPE, true}, {"name", SQL_TEXT_TYPE}, {"label", SQL_TEXT_TYPE}};
 
 const TableColumns ACC_PMU = {{"accId", SQL_INTEGER_TYPE},         {"readBwLevel", SQL_INTEGER_TYPE},
                               {"writeBwLevel", SQL_INTEGER_TYPE},  {"readOstLevel", SQL_INTEGER_TYPE},
@@ -306,6 +309,32 @@ const TableColumns CCU = {{"deviceId", SQL_NUMERIC_TYPE}, {"globalTaskId", SQL_N
                           {"endNs", SQL_NUMERIC_TYPE},    {"args", SQL_NUMERIC_TYPE}};
 }  // namespace
 
+// ftrace generic event model (structure mirrors the Nsight Systems sqlite export)
+const TableColumns GenericEventSources = {{"sourceId", SQL_INTEGER_TYPE, true},
+                                          {"nameId", SQL_INTEGER_TYPE},
+                                          {"timeSourceId", SQL_INTEGER_TYPE},
+                                          {"sourceGroupId", SQL_INTEGER_TYPE},
+                                          {"data", SQL_TEXT_TYPE}};
+const TableColumns GenericEventTypes = {{"typeId", SQL_INTEGER_TYPE, true},
+                                        {"sourceId", SQL_INTEGER_TYPE},
+                                        {"nameId", SQL_INTEGER_TYPE},
+                                        {"ftraceFormat", SQL_TEXT_TYPE},
+                                        {"data", SQL_TEXT_TYPE}};
+const TableColumns GenericEventTypeFields = {{"typeId", SQL_INTEGER_TYPE},      {"fieldIdx", SQL_INTEGER_TYPE},
+                                             {"fieldNameId", SQL_INTEGER_TYPE}, {"offset", SQL_INTEGER_TYPE},
+                                             {"size", SQL_INTEGER_TYPE},        {"type", SQL_INTEGER_TYPE},
+                                             {"ftracePrefix", SQL_TEXT_TYPE},   {"ftraceSuffix", SQL_TEXT_TYPE}};
+const TableColumns GenericEvents = {{"genericEventId", SQL_INTEGER_TYPE, true},
+                                    {"rawTimestamp", SQL_NUMERIC_TYPE},
+                                    {"timestamp", SQL_NUMERIC_TYPE},
+                                    {"typeId", SQL_INTEGER_TYPE},
+                                    {"globalTid", SQL_INTEGER_TYPE},
+                                    {"cpuId", SQL_INTEGER_TYPE},
+                                    {"flags", SQL_INTEGER_TYPE}};
+const TableColumns GenericEventDataCols = {{"genericEventId", SQL_INTEGER_TYPE}, {"fieldIdx", SQL_INTEGER_TYPE},
+                                           {"intVal", SQL_NUMERIC_TYPE},         {"uintVal", SQL_NUMERIC_TYPE},
+                                           {"floatVal", SQL_NUMERIC_TYPE},       {"doubleVal", SQL_NUMERIC_TYPE},
+                                           {"strId", SQL_INTEGER_TYPE}};
 MsprofDB::MsprofDB()
 {
     dbName_ = "msprof.db";
@@ -360,12 +389,20 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_UB, UB},
                       {TABLE_NAME_SIO, SIO},
                       {TABLE_NAME_CCU, CCU},
+                      {TABLE_NAME_GENERIC_EVENT_SOURCES, GenericEventSources},
+                      {TABLE_NAME_GENERIC_EVENT_TYPES, GenericEventTypes},
+                      {TABLE_NAME_GENERIC_EVENT_TYPE_FIELDS, GenericEventTypeFields},
+                      {TABLE_NAME_GENERIC_EVENTS, GenericEvents},
+                      {TABLE_NAME_GENERIC_EVENT_DATA, GenericEventDataCols},
                       // ENUM
                       {TABLE_NAME_ENUM_API_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_MODULE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_HCCL_DATA_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_HCCL_LINK_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_HCCL_TRANSPORT_TYPE, ENUM_TABLE_COLS},
+                      {TABLE_NAME_ENUM_GENERIC_EVENT_SOURCE, ENUM_TABLE_COLS_WITH_LABEL},
+                      {TABLE_NAME_ENUM_GENERIC_EVENT_GROUP, ENUM_TABLE_COLS_WITH_LABEL},
+                      {TABLE_NAME_ENUM_GENERIC_EVENT_FIELD_TYPE, ENUM_TABLE_COLS_WITH_LABEL},
                       {TABLE_NAME_ENUM_HCCL_RDMA_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_MSTX_EVENT_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_MEMCPY_OPERATION, ENUM_TABLE_COLS},

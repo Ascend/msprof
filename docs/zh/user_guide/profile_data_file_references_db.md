@@ -929,6 +929,25 @@ PCIe带宽数据。
 |SCHEMA_VERSION_MINOR|中版本号，如0，当更改列或类型时更改，存在兼容性问题|
 |SCHEMA_VERSION_MICRO|小版本号，如2，当更新表时都会更改，不具有兼容性问题|
 
+## ftrace 通用事件表
+
+支持 ftrace 的解析版本可在 DB 导出中生成以下表。表按采集内容生成。
+
+| 表名 | 字段与含义 |
+|--|--|
+| GENERIC_EVENT_SOURCES | `sourceId` 为主键，`nameId` 引用 STRING_IDS，`timeSourceId` 和 `sourceGroupId` 分别引用时钟来源和来源组枚举，`data` 为 JSON 文本。每个 ftrace 子系统一行。 |
+| GENERIC_EVENT_TYPES | `typeId` 为主键，`sourceId` 引用来源表，`nameId` 引用 STRING_IDS，`ftraceFormat` 为 tracefs 格式原文，`data` 为含 `kernelId` 和 `formatHash` 的 JSON 文本。 |
+| GENERIC_EVENT_TYPE_FIELDS | `(typeId, fieldIdx)` 标识类型中的字段。索引从 0 起，`fieldNameId` 引用 STRING_IDS，`offset`、`size` 的单位为字节，`type` 引用字段类型枚举，`ftracePrefix`、`ftraceSuffix` 为显示文本。 |
+| GENERIC_EVENTS | `genericEventId` 为主键，`rawTimestamp` 为 Host CLOCK_MONOTONIC_RAW 时间，`timestamp` 为通过同一次采集 Host 锚点换算的 Unix epoch 时间，两者单位均为 ns。`typeId` 引用类型表，`globalTid` 高 32 位为 TGID、低 32 位为 TID，`cpuId` 为 CPU 编号。 |
+| GENERIC_EVENT_DATA | `(genericEventId, fieldIdx)` 标识事件的字段。`intVal`、`uintVal`、`floatVal`、`doubleVal` 分别存储有符号整数、无符号整数、单精度及双精度值，只有对应类型的列有效。`strId` 非 0 时引用 STRING_IDS，含空字符串。数值字段的 `strId` 为 0。 |
+| ENUM_GENERIC_EVENT_SOURCE | `id`、`name`、`label` 分别为时钟来源编号、名称和显示标签。 |
+| ENUM_GENERIC_EVENT_GROUP | `id`、`name`、`label` 分别为来源组编号、名称和显示标签。FTrace 的编号为 1，0 为 Unknown。 |
+| ENUM_GENERIC_EVENT_FIELD_TYPE | `id`、`name`、`label` 分别为字段类型编号、名称和显示标签。数值类型编号为 0（有符号）、1（无符号）、2（单精度）、3（双精度）。字符串以非零 `strId` 识别。 |
+
+- `GENERIC_EVENTS.flags` 的 bit0 表示该 CPU 文件不完整，保留行可供分析。bit1 表示至少一个字段解码失败。原始 `common_flags` 作为普通字段写入 `GENERIC_EVENT_DATA`。
+- `genericEventId` 按 `(timestamp, cpuId)` 稳定排序后分配。查询结果需使用 `ORDER BY` 指定顺序。
+- `META_DATA` 中 `ftrace=1` 表示发现 ftrace 产物，`ftrace_events_complete=1` 表示事件表、索引及关联字符串已写入。采集完整性通过事件标志判断。无 ftrace 产物时不写这两个标记。
+
 ## MSTX\_EVENTS
 
 mstx接口采集的Host侧数据，Device侧数据在TASK表中整合。

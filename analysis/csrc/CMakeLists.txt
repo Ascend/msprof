@@ -48,6 +48,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/parser_item SOUR
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/pmu SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/aicpu SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/track SOURCES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/parser/ftrace SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/persistence/device SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/domain/services/persistence/host SOURCES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/infrastructure/data_inventory SOURCES)

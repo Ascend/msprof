@@ -929,6 +929,25 @@ There is no enable or disable option for this table. It is generated automatical
 |SCHEMA_VERSION_MINOR|Minor version number, such as `0`. When the column or type is changed, compatibility issues occur.|
 |SCHEMA_VERSION_MICRO|Micro version number, such as `2`. The version number changes when the table is updated. There is no compatibility issue.|
 
+## ftrace generic event tables
+
+Parser versions with ftrace support can include these tables in DB exports when ftrace data is available.
+
+| Table | Columns |
+|--|--|
+| GENERIC_EVENT_SOURCES | One row per ftrace subsystem. `sourceId` is the primary key. `nameId` references STRING_IDS. `timeSourceId` and `sourceGroupId` reference the source enums. `data` is JSON text. |
+| GENERIC_EVENT_TYPES | `typeId` is the primary key. `sourceId` references the source. `nameId` references STRING_IDS. `ftraceFormat` stores the original tracefs format. `data` contains `kernelId` and `formatHash` as JSON. |
+| GENERIC_EVENT_TYPE_FIELDS | `(typeId, fieldIdx)` identifies a field within a type. `fieldIdx` starts at 0. `fieldNameId` references STRING_IDS. `offset` and `size` use bytes. `type` references the field type enum. `ftracePrefix` and `ftraceSuffix` contain display text. |
+| GENERIC_EVENTS | `genericEventId` is the primary key. `rawTimestamp` uses host CLOCK_MONOTONIC_RAW ns. `timestamp` uses Unix epoch ns converted with the host anchor from the same collection. `typeId` references the event type. `globalTid` stores TGID in the high 32 bits and TID in the low 32 bits. `cpuId` is the CPU number. |
+| GENERIC_EVENT_DATA | `(genericEventId, fieldIdx)` identifies an event field. The applicable numeric column is one of `intVal`, `uintVal`, `floatVal`, and `doubleVal`. A nonzero `strId` references STRING_IDS, including for empty strings. Numeric fields use `strId=0`. |
+| ENUM_GENERIC_EVENT_SOURCE | `id`, `name`, and `label` describe the clock source. |
+| ENUM_GENERIC_EVENT_GROUP | `id`, `name`, and `label` describe the source group. FTrace uses 1 and Unknown uses 0. |
+| ENUM_GENERIC_EVENT_FIELD_TYPE | `id`, `name`, and `label` describe the field type. Numeric IDs are 0 (signed), 1 (unsigned), 2 (float), and 3 (double). A nonzero `strId` identifies a string. |
+
+- Bit 0 of `GENERIC_EVENTS.flags` indicates an incomplete CPU file. Successfully decoded rows remain available. Bit 1 indicates a field decode failure. The original `common_flags` is an ordinary field in `GENERIC_EVENT_DATA`.
+- `genericEventId` is assigned after stable sorting by `(timestamp, cpuId)`. Use `ORDER BY` for ordered query results.
+- In `META_DATA`, `ftrace=1` means ftrace artifacts were found. `ftrace_events_complete=1` means the event tables, indexes, and referenced strings were written. Use event flags to check capture completeness. Both markers are omitted when there are no ftrace artifacts.
+
 ## `MSTX_EVENTS`
 
 Stores host-side data collected by mstx APIs. Device-side data is aggregated in the `TASK` table.

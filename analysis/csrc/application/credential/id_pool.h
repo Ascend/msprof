@@ -21,6 +21,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "analysis/csrc/infrastructure/utils/singleton.h"
 
@@ -37,12 +38,16 @@ class IdPool : public Utils::Singleton<IdPool>
     void Clear();
     uint64_t GetId(const CorrelationTuple& key);
     uint64_t GetUint64Id(const std::string& key);
+    uint64_t GetNonzeroStringId(const std::string& key);
+    std::pair<uint64_t, std::string> GetZeroStringAlias();
     uint32_t GetUint32Id(const std::string& key);
     std::unordered_map<std::string, uint64_t>& GetAllUint64Ids();
 
    private:
     uint64_t correlationIndex_ = 0;
+    uint64_t GetOrAddUint64Id(const std::string& key);
     uint64_t uint64Index_ = 0;
+    std::pair<uint64_t, std::string> zeroStringAlias_;
     uint32_t uint32Index_ = 0;
     std::mutex correlationMutex_;
     std::mutex uint64Mutex_;

@@ -36,6 +36,11 @@ using namespace Analysis::Infra;
 
 using DBSaveDataFunc = std::function<bool(DataInventory &dataInventory, DBInfo &msprofDB, const std::string &profPath)>;
 
+// Kept across the DB saver and the final STRING_IDS node by the topology.
+struct FtraceTablesSaved
+{
+};
+
 class DBAssembler
 {
    public:
