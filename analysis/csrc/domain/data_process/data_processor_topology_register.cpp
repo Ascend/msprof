@@ -145,12 +145,13 @@ REGISTER_PROCESSOR_WITH_DATA(HostPlatformProcessor, PROCESSOR_NAME_HOST_PLATFORM
                              std::vector<HostCoreThreadData>, std::vector<HostCoreProcessData>,
                              std::vector<HostCoreMetricDescData>, std::vector<HostCoreMetricData>);
 
-REGISTER_PROCESSOR(LLcProcessor, PROCESSOR_NAME_LLC, true, TOPO_DEPS());
+REGISTER_PROCESSOR(LLcProcessor, PROCESSOR_NAME_LLC, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence")));
 
 REGISTER_PROCESSOR(NpuMemProcessor, PROCESSOR_NAME_NPU_MEM, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuMemPersistence")));
 
-REGISTER_PROCESSOR(PCIeProcessor, PROCESSOR_NAME_PCIE, true, TOPO_DEPS());
+REGISTER_PROCESSOR(PCIeProcessor, PROCESSOR_NAME_PCIE, true,
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence")));
 
 REGISTER_PROCESSOR(SioProcessor, PROCESSOR_NAME_SIO, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "SioPersistence")));
 

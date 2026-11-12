@@ -67,7 +67,7 @@ struct EventKey
 
     bool operator<(const EventKey &other) const
     {
-        return std::tie(deviceId, l3tid, timestamp) < std::tie(other.deviceId, other.l3tid, other.timestamp);
+        return std::tie(deviceId, timestamp, l3tid) < std::tie(other.deviceId, other.timestamp, other.l3tid);
     }
 };
 

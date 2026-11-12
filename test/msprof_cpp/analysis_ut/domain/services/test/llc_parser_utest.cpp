@@ -200,10 +200,39 @@ TEST_F(LlcParserUtest, ShouldReturnErrorWhenV1TimeContextIsMissing)
     EXPECT_EQ(nullptr, dataInventory_.GetPtr<std::vector<HalLlcData>>());
 }
 
-TEST_F(LlcParserUtest, ShouldReturnErrorWhenHostMonotonicPrecedesDeviceStart)
+TEST_F(LlcParserUtest, ShouldConvertV1TimestampWithNegativeHostDeviceOffset)
 {
-    context_.deviceContextInfo.hostStartLog.clockMonotonicRaw = 1000;
-    context_.deviceContextInfo.deviceStart.clockMonotonicRaw = 2000;
+    context_.deviceContextInfo.hostStartLog.clockMonotonicRaw = 1000000;
+    context_.deviceContextInfo.deviceStart.clockMonotonicRaw = 2000000;
+    const std::vector<LlcV1Wire> records{{4, 17, 0x20, 0}};
+    WriteBytes("llc.data.0.slice_0", ToBytes(records));
+
+    auto actual = RunParser();
+
+    ASSERT_NE(nullptr, actual);
+    ASSERT_EQ(1UL, actual->size());
+    EXPECT_EQ(UINT64_C(2004000), actual->at(0).timestamp);
+}
+
+TEST_F(LlcParserUtest, ShouldConvertV1TimestampWithZeroHostDeviceOffset)
+{
+    context_.deviceContextInfo.hostStartLog.clockMonotonicRaw = 1000000;
+    context_.deviceContextInfo.deviceStart.clockMonotonicRaw = 1000000;
+    const std::vector<LlcV1Wire> records{{4, 17, 0x20, 0}};
+    WriteBytes("llc.data.0.slice_0", ToBytes(records));
+
+    auto actual = RunParser();
+
+    ASSERT_NE(nullptr, actual);
+    ASSERT_EQ(1UL, actual->size());
+    EXPECT_EQ(UINT64_C(2004000), actual->at(0).timestamp);
+}
+
+TEST_F(LlcParserUtest, ShouldReturnErrorWhenConvertedV1TimestampExceedsUint64)
+{
+    context_.deviceContextInfo.hostStartLog.clockMonotonicRaw = UINT64_C(1000000000000);
+    context_.deviceContextInfo.deviceStart.clockMonotonicRaw = UINT64_C(2000000000000);
+    context_.deviceContextInfo.startInfo.collectionTimeBegin = std::numeric_limits<uint64_t>::max() / 1000;
     const std::vector<LlcV1Wire> records{{4, 17, 0x20, 0}};
     WriteBytes("llc.data.0.slice_0", ToBytes(records));
 

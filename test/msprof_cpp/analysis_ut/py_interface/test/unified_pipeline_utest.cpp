@@ -32,6 +32,7 @@
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -1254,6 +1255,22 @@ TEST_F(UnifiedPipelinePlanUTest, EmptyIntermediateDatabasesDoNotMarkScopeAsParse
     EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TsTrackParser", "device_0"}), 1U);
 }
 
+TEST_F(UnifiedPipelinePlanUTest, PcieStageOnlyDatabaseDoesNotMarkDeviceAsParsed)
+{
+    const auto sqlite = File::PathJoin({root, "device_0", "sqlite"});
+    ASSERT_TRUE(File::CreateDir(sqlite));
+    DBRunner database(File::PathJoin({sqlite, "pcie.db"}));
+    ASSERT_TRUE(database.CreateTable("PcieOriginalDataStage_999999_1_0", {{"value", "INTEGER"}}));
+
+    TopoBuildContext context;
+    TopoNodeCollection definitions;
+    std::vector<TopoNodeId> roots;
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(Build(StepTraceRequest(), context, definitions, roots, graph, builder));
+    EXPECT_FALSE(context.scopeReuse.at("device_0"));
+}
+
 TEST_F(UnifiedPipelinePlanUTest, CorruptedIntermediateDatabaseIsRejected)
 {
     const auto sqlite = root + "/device_0/sqlite";
@@ -1793,7 +1810,7 @@ TEST(UnifiedDeviceRegistrationUTest, CentralConfigurationUsesNativeTopoDefinitio
         EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), TOPO_NODE(DEVICE_PROCESSING, "Device.Init")),
                   dependencies.end());
     }
-    EXPECT_EQ(businessNodes, 44U);
+    EXPECT_EQ(businessNodes, 48U);
     const auto* parser = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser"));
     ASSERT_NE(parser, nullptr);
     EXPECT_NE(std::find(parser->processDependencies.begin(), parser->processDependencies.end(),
@@ -1935,6 +1952,79 @@ TEST_F(UnifiedPipelinePlanUTest, MigratedRegistrationKeepsUpstreamV6ReadersAndSt
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_1));
         EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, name, "device_1"}), 1U);
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesLlcAndPcieProducersOnSupportedChips)
+{
+    FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(Request(PIPELINE_DEVICE_DATA), graph));
+    const auto& keys = builder.GetRuntimeNodeKeys();
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        for (const auto& prefix : {"Llc", "Pcie"})
+        {
+            const std::string parserName = std::string(prefix) + "Parser";
+            const std::string persistenceName = std::string(prefix) + "Persistence";
+            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, parserName, scope}), 1U);
+            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, persistenceName, scope}), 1U);
+            const auto parser = keys.at({TopoNodeStage::DEVICE_PROCESSING, parserName, scope});
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PROCESSING, persistenceName, scope});
+            const auto init = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Init", scope});
+            const auto& parserDependencies = graph.at(parser).processDependence;
+            EXPECT_NE(std::find(parserDependencies.begin(), parserDependencies.end(), init), parserDependencies.end());
+            const auto& dependencies = graph.at(persistence).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), parser), dependencies.end());
+            EXPECT_TRUE(graph.at(parser).mandatory);
+            EXPECT_TRUE(graph.at(persistence).mandatory);
+            const std::type_index inputType = std::string(prefix) == "Llc"
+                ? typeid(std::vector<Domain::HalLlcData>) : typeid(std::vector<Domain::HalPcieData>);
+            const auto& inputs = graph.at(persistence).paramTypes;
+            EXPECT_NE(std::find(inputs.begin(), inputs.end(), inputType), inputs.end());
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, SelectedLlcAndPcieTimelineWaitsForNativePersistence)
+{
+    FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());
+    for (const auto& report : {"llc", "pcie"})
+    {
+        SCOPED_TRACE(report);
+        auto request = Request(PIPELINE_DEVICE_DATA | PIPELINE_TIMELINE);
+        request.reportsJson = root + "/reports.json";
+        FileWriter(request.reportsJson).WriteText(nlohmann::json{{"json_process", {{report, true}}}}.dump());
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(request, graph));
+        const auto& keys = builder.GetRuntimeNodeKeys();
+        const bool llc = std::string(report) == "llc";
+        const auto processor = keys.at({TopoNodeStage::DATA_PROCESSING, llc ? "LLC" : "PCIE", "export"});
+        for (const auto& scope : {"device_0", "device_1"})
+        {
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PROCESSING,
+                                              llc ? "LlcPersistence" : "PciePersistence", scope});
+            const auto& dependencies = graph.at(processor).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), persistence), dependencies.end());
+            EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, llc ? "PcieParser" : "LlcParser", scope}), 0U);
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, LlcAndPcieNativeOwnershipKeepsChipBoundary)
+{
+    for (const auto& name : {"LlcParser", "LlcPersistence", "PcieParser", "PciePersistence"})
+    {
+        const auto* definition = TopoNodeRegistry::Find({TopoNodeStage::DEVICE_PROCESSING, name});
+        ASSERT_NE(definition, nullptr);
+        EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V4_1_0));
+        EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
+        for (const auto chip : {CHIP_V1_1_1, CHIP_V3_3_0, CHIP_V6_1_1, CHIP_V6_2_0})
+        {
+            EXPECT_FALSE(TopoNodeRegistry::SupportsChip(*definition, chip));
+        }
     }
 }
 

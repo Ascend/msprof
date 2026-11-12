@@ -193,6 +193,8 @@ class ConfigDataParsers:
             "CCUMissionParser",
             "CCUChannelParser",
             "ParsingUBData",
+            "NonMiniLLCParser",
+            "ParsingPcieData",
             "LowPowerParser",
             "SocProfilerParser",
             "SioParser",
@@ -214,6 +216,8 @@ class ConfigDataParsers:
             "LpmInfoConvParser",
             "TstrackParser",  # 写 step_trace.db/trace.db 共 10 张表，对应 C++ TsTrack/StepTrace/TracePersistence
             "ParsingQosData",
+            "NonMiniLLCParser",
+            "ParsingPcieData",
             "SocProfilerParser",
             "AccPmuParser",
             "InterSocParser",

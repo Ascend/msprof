@@ -28,6 +28,7 @@
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hal/include/hal.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_freq.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_log.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_npu_mem.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_npu_module_mem.h"
@@ -51,10 +52,12 @@
 #include "analysis/csrc/domain/services/parser/ccu_parser.h"
 #include "analysis/csrc/domain/services/parser/freq/include/freq_parser.h"
 #include "analysis/csrc/domain/services/parser/freq/include/lpm_info_parser.h"
+#include "analysis/csrc/domain/services/parser/llc/include/llc_parser.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_parser.h"
 #include "analysis/csrc/domain/services/parser/log/include/stars_soc_profile_parser.h"
 #include "analysis/csrc/domain/services/parser/npu_mem/include/npu_mem_parser.h"
 #include "analysis/csrc/domain/services/parser/npu_module_mem/include/npu_module_mem_parser.h"
+#include "analysis/csrc/domain/services/parser/pcie/include/pcie_parser.h"
 #include "analysis/csrc/domain/services/parser/pmu/include/ffts_profile_parser.h"
 #include "analysis/csrc/domain/services/parser/qos/include/qos_parser.h"
 #include "analysis/csrc/domain/services/parser/track/include/ts_track_parser.h"
@@ -67,11 +70,13 @@
 #include "analysis/csrc/domain/services/persistence/device/device_hccl_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/freq_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/inter_soc_persistence.h"
+#include "analysis/csrc/domain/services/persistence/device/llc_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/low_power_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/lpm_info_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/metric_summary_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/npu_mem_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/npu_module_mem_persistence.h"
+#include "analysis/csrc/domain/services/persistence/device/pcie_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/qos_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/sio_persistence.h"
 #include "analysis/csrc/domain/services/persistence/device/step_trace_persistence.h"
@@ -175,6 +180,12 @@ REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<FreqParser>(TOPO_NODE(DEVICE_PROC
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LpmInfoParser>(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoParser"), true,
                                                               TOPO_DEPS(), {CHIP_V4_1_0}));
+
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LlcParser>(TOPO_NODE(DEVICE_PROCESSING, "LlcParser"), true, TOPO_DEPS(),
+                                                          {CHIP_V4_1_0, CHIP_V6_1_0}));
+
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<PcieParser>(TOPO_NODE(DEVICE_PROCESSING, "PcieParser"), true,
+                                                           TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0}));
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<NpuMemParser>(TOPO_NODE(DEVICE_PROCESSING, "NpuMemParser"), true,
                                                              TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0}));
@@ -325,6 +336,16 @@ REGISTER_TOPO_NODE_DEFINITION(
     DeviceDefinition<LpmInfoPersistence>(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence"), true,
                                          TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoParser")), {CHIP_V4_1_0}));
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence"), HalLpmInfoData);
+
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LlcPersistence>(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence"), true,
+                                                               TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LlcParser")),
+                                                               {CHIP_V4_1_0, CHIP_V6_1_0}));
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence"), std::vector<HalLlcData>);
+
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<PciePersistence>(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence"), true,
+                                                                TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "PcieParser")),
+                                                                {CHIP_V4_1_0, CHIP_V6_1_0}));
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence"), std::vector<HalPcieData>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<MetricSummaryPersistence>(
     TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence"), false,

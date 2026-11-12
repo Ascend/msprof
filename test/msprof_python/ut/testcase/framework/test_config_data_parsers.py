@@ -195,39 +195,37 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingHBMData"))
         self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NetDevStatsParser"))
 
-    def test_llc_and_pcie_should_not_enter_cpp_skip_list_even_for_existing_chip_five_gate(self):
-        ChipManager().chip_id = ChipModel.CHIP_V4_1_0
-        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NonMiniLLCParser"))
-        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingPcieData"))
-        ChipManager().chip_id = ChipModel.CHIP_V3_3_0
-        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NonMiniLLCParser"))
-        self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingPcieData"))
+    def test_llc_and_pcie_should_use_existing_device_scene_gates(self):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
+            for so_valid, all_export, version, task in (
+                    (True, True, True, True), (False, True, True, True),
+                    (True, False, True, True), (True, True, False, True),
+                    (True, True, True, False)):
+                with self.subTest(chip=chip, so_valid=so_valid, all_export=all_export, version=version, task=task), \
+                        mock.patch("common_func.cpp_enable_scene.check_so_valid", return_value=so_valid), \
+                        mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
+                        mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
+                        mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=version), \
+                        mock.patch.object(ProfilingScene(), "is_all_export", return_value=all_export), \
+                        mock.patch.object(ChipManager(), "chip_id", chip):
+                    names = self._parser_names(ConfigDataParsers.get_parsers(
+                        ConfigManager.DATA_PARSERS, str(chip.value), task))
+                    for name in ("NonMiniLLCParser", "ParsingPcieData"):
+                        self.assertEqual(name in names, not (so_valid and all_export and version and task))
 
-    def test_get_parsers_should_keep_llc_and_pcie_when_device_cpp_is_enabled(self):
-        InfoConfReader()._sample_json = {'devices': '0'}
-        ChipManager().chip_id = ChipModel.CHIP_V4_1_0
-        with mock.patch("framework.config_data_parsers.CannCalculatorScene.is_cpp_enable", return_value=False), \
-                mock.patch("framework.config_data_parsers.DeviceParseScene.is_cpp_enable", return_value=True), \
-                mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
-                mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True):
-            parsers = ConfigDataParsers.get_parsers(ConfigManager.DATA_PARSERS,
-                                                    str(ChipModel.CHIP_V4_1_0.value), True)
-        parser_names = self._parser_names(parsers)
-        self.assertIn("NonMiniLLCParser", parser_names)
-        self.assertIn("ParsingPcieData", parser_names)
-
-    def test_get_parsers_should_keep_llc_and_pcie_when_device_cpp_is_disabled(self):
-        InfoConfReader()._sample_json = {'devices': '0'}
-        ChipManager().chip_id = ChipModel.CHIP_V4_1_0
-        with mock.patch("framework.config_data_parsers.CannCalculatorScene.is_cpp_enable", return_value=False), \
-                mock.patch("framework.config_data_parsers.DeviceParseScene.is_cpp_enable", return_value=False), \
-                mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
-                mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True):
-            parsers = ConfigDataParsers.get_parsers(ConfigManager.DATA_PARSERS,
-                                                    str(ChipModel.CHIP_V4_1_0.value), True)
-        parser_names = self._parser_names(parsers)
-        self.assertIn("NonMiniLLCParser", parser_names)
-        self.assertIn("ParsingPcieData", parser_names)
+    def test_get_parsers_should_keep_llc_and_pcie_on_unsupported_chips(self):
+        for chip in (ChipModel.CHIP_V3_3_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
+            with self.subTest(chip=chip), \
+                    mock.patch("common_func.cpp_enable_scene.check_so_valid", return_value=True), \
+                    mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
+                    mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
+                    mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True), \
+                    mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
+                    mock.patch.object(ChipManager(), "chip_id", chip):
+                names = self._parser_names(ConfigDataParsers.get_parsers(
+                    ConfigManager.DATA_PARSERS, str(chip.value), True))
+                self.assertIn("NonMiniLLCParser", names)
+                self.assertIn("ParsingPcieData", names)
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_handle_ascend_tasks_for_v6_1(self):
         with mock.patch('framework.config_data_parsers.ChipManager') as chip_manager:

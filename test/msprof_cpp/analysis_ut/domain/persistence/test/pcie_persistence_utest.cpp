@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -26,6 +27,7 @@
 #include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/persistence/device/pcie_persistence.h"
+#include "analysis/csrc/infrastructure/db/include/database.h"
 #include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
@@ -130,6 +132,79 @@ TEST_F(PciePersistenceUtest, ShouldSaveAllTwentyThreeColumnsInParserOrder)
     ASSERT_EQ(2UL, rows.size());
     EXPECT_EQ(ToRow(first), rows[0]);
     EXPECT_EQ(ToRow(second), rows[1]);
+    std::vector<std::tuple<std::string>> stageTables;
+    ASSERT_TRUE(runner.QueryData(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'PcieOriginalDataStage_%'", stageTables));
+    EXPECT_TRUE(stageTables.empty());
+}
+
+TEST_F(PciePersistenceUtest, ShouldReplaceRowsWhenSameRawDataIsParsedAgain)
+{
+    const auto first = MakePcieData(100, 0, 1);
+    const auto second = MakePcieData(200, 0, 101);
+    ASSERT_EQ(ANALYSIS_OK, Run({first, second}));
+    ASSERT_EQ(ANALYSIS_OK, Run({first, second}));
+
+    Infra::DBRunner runner(PCIE_DB_PATH);
+    std::vector<PcieRow> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieOriginalData ORDER BY rowid", rows));
+    ASSERT_EQ(2UL, rows.size());
+    EXPECT_EQ(ToRow(first), rows[0]);
+    EXPECT_EQ(ToRow(second), rows[1]);
+
+    const auto replacement = MakePcieData(300, 0, 201);
+    ASSERT_EQ(ANALYSIS_OK, Run({replacement}));
+    rows.clear();
+    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieOriginalData", rows));
+    ASSERT_EQ(1UL, rows.size());
+    EXPECT_EQ(ToRow(replacement), rows[0]);
+}
+
+TEST_F(PciePersistenceUtest, ShouldMapColumnsByNameWhenExistingTableOrderDiffers)
+{
+    Infra::PCIeDB database;
+    auto columns = database.GetTableCols("PcieOriginalData");
+    ASSERT_EQ(23UL, columns.size());
+    std::swap(columns[2], columns[3]);
+    Infra::DBRunner runner(PCIE_DB_PATH);
+    ASSERT_TRUE(runner.CreateTable("PcieOriginalData", columns));
+
+    const auto data = MakePcieData(100, 0, 11);
+    ASSERT_EQ(ANALYSIS_OK, Run({data}));
+    std::vector<std::tuple<uint32_t, uint32_t>> metrics;
+    ASSERT_TRUE(runner.QueryData(
+        "SELECT tx_p_bandwidth_min, tx_p_bandwidth_max FROM PcieOriginalData", metrics));
+    ASSERT_EQ(1UL, metrics.size());
+    EXPECT_EQ(data.txPBandwidthMin, std::get<0>(metrics[0]));
+    EXPECT_EQ(data.txPBandwidthMax, std::get<1>(metrics[0]));
+}
+
+TEST_F(PciePersistenceUtest, ShouldKeepPreviousRowsIfReplacementInsertFails)
+{
+    const auto original = MakePcieData(100, 0, 1);
+    ASSERT_EQ(ANALYSIS_OK, Run({original}));
+    Infra::DBRunner runner(PCIE_DB_PATH);
+    ASSERT_TRUE(runner.UpdateData(
+        "CREATE TRIGGER reject_pcie_insert BEFORE INSERT ON PcieOriginalData "
+        "BEGIN SELECT RAISE(FAIL, 'injected insert failure'); END;"));
+
+    EXPECT_EQ(ANALYSIS_ERROR, Run({MakePcieData(200, 0, 101)}));
+    std::vector<PcieRow> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieOriginalData", rows));
+    ASSERT_EQ(1UL, rows.size());
+    EXPECT_EQ(ToRow(original), rows[0]);
+    std::vector<std::tuple<std::string>> stageTables;
+    ASSERT_TRUE(runner.QueryData(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'PcieOriginalDataStage_%'", stageTables));
+    EXPECT_TRUE(stageTables.empty());
+
+    ASSERT_TRUE(runner.UpdateData("DROP TRIGGER reject_pcie_insert;"));
+    const auto replacement = MakePcieData(200, 0, 101);
+    ASSERT_EQ(ANALYSIS_OK, Run({replacement}));
+    rows.clear();
+    ASSERT_TRUE(runner.QueryData("SELECT * FROM PcieOriginalData", rows));
+    ASSERT_EQ(1UL, rows.size());
+    EXPECT_EQ(ToRow(replacement), rows[0]);
 }
 
 TEST_F(PciePersistenceUtest, ShouldNotCreateDatabaseForEmptyInput)

@@ -17,6 +17,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/batch_id 
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/modeling/step_trace SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/llc SOURCES)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pcie SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/npu_mem SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/npu_module_mem SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/ub SOURCES)

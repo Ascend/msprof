@@ -405,6 +405,20 @@ class TestPipelineCommandIntegration(unittest.TestCase):
             command._execute_prof_task(self.path_table)
         parse.assert_not_called()
 
+    def test_repeated_import_fallback_runs_native_device_parse_each_time(self):
+        command = ImportCommand(Namespace(collection_path="/root", cluster_flag=False))
+        with (
+            mock.patch("msinterface.msprof_import.try_full_cpp_pipeline", return_value=False) as run,
+            mock.patch.object(command, "_parse_data") as parse,
+            mock.patch("msinterface.msprof_import.dump_device_data") as native,
+        ):
+            command._execute_prof_task(self.path_table)
+            command._execute_prof_task(self.path_table)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(parse.call_count, 6)
+        self.assertEqual(native.call_count, 2)
+        native.assert_any_call(self.path_table["host"])
+
     def test_import_discovery_preserves_collection_and_cluster(self):
         command = ImportCommand(Namespace(collection_path="/root", cluster_flag=False))
         def scan(path, *_args, **_kwargs):

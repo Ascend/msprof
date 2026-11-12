@@ -75,7 +75,10 @@ bool CheckDatabase(const std::string& path, bool& hasTables)
         return false;
     }
     rows.clear();
-    if (!runner.QueryData("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1", rows))
+    // A PCIe stage table left by an interrupted parse is not completed business data.
+    if (!runner.QueryData("SELECT name FROM sqlite_master WHERE type='table' "
+                          "AND name NOT GLOB 'PcieOriginalDataStage_*' LIMIT 1",
+                          rows))
     {
         ERROR("Read database schema failed: %.", path);
         return false;

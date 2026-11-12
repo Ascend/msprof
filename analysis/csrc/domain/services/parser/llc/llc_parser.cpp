@@ -87,11 +87,6 @@ bool ValidateV1TimeContext(const HostStartLog &hostStart, const DeviceStartLog &
         ERROR("LLC V1 time context is incomplete.");
         return false;
     }
-    if (hostStart.clockMonotonicRaw < deviceStart.clockMonotonicRaw)
-    {
-        ERROR("LLC V1 host monotonic timestamp precedes device start timestamp.");
-        return false;
-    }
     if (startInfo.collectionTimeBegin > std::numeric_limits<uint64_t>::max() / NS_TO_US)
     {
         ERROR("LLC V1 collection epoch is out of range.");

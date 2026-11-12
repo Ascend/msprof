@@ -18,18 +18,21 @@
 
 #include "analysis/csrc/domain/services/persistence/device/pcie_persistence.h"
 
+#include <unistd.h>
+
+#include <atomic>
+#include <chrono>
+#include <string>
 #include <tuple>
 #include <vector>
 
 #include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
-#include "analysis/csrc/domain/services/parser/llc/include/llc_pcie_cpp_enable.h"
-#include "analysis/csrc/domain/services/parser/pcie/include/pcie_parser.h"
-#include "analysis/csrc/domain/services/persistence/device/persistence_utils.h"
+#include "analysis/csrc/infrastructure/db/include/database.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
-#include "analysis/csrc/infrastructure/process/include/process.h"
-#include "analysis/csrc/infrastructure/resource/chip_id.h"
 #include "analysis/csrc/infrastructure/utils/file.h"
+#include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
 {
@@ -40,6 +43,59 @@ namespace
 using PcieRows = std::vector<std::tuple<uint64_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
                                         uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
                                         uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>;
+// Unique stage names allow concurrent parses of the same profile without sharing temporary rows.
+std::string MakePcieStageTableName()
+{
+    static std::atomic<uint64_t> sequence{0};
+    const auto tick = static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count());
+    return "PcieOriginalDataStage_" + std::to_string(getpid()) + "_" + std::to_string(tick) + "_" +
+           std::to_string(sequence.fetch_add(1));
+}
+
+bool SavePcieData(const std::string &dbPath, const PcieRows &rows)
+{
+    // Stage PCIe rows before replacing the single table in a transaction, preserving old rows on failure.
+    // LlcPersistence replaces three related tables by dropping and recreating them instead.
+    Infra::PCIeDB database;
+    Infra::DBRunner dbRunner(dbPath);
+    const std::string stageTable = MakePcieStageTableName();
+    const auto columns = database.GetTableCols("PcieOriginalData");
+    std::vector<std::string> columnNames;
+    columnNames.reserve(columns.size());
+    for (const auto &column : columns)
+    {
+        columnNames.emplace_back(column.name);
+    }
+    const std::string columnList = Utils::Join(columnNames, ", ");
+    if (!dbRunner.CreateTable("PcieOriginalData", columns) || !dbRunner.CreateTable(stageTable, columns))
+    {
+        return false;
+    }
+    if (!dbRunner.InsertData(stageTable, rows))
+    {
+        if (!dbRunner.DropTable(stageTable))
+        {
+            ERROR("Failed to clean up PCIe stage table % in %", stageTable, dbPath);
+        }
+        return false;
+    }
+
+    const std::string replaceSql =
+        "BEGIN IMMEDIATE; DELETE FROM PcieOriginalData; "
+        "INSERT INTO PcieOriginalData (" +
+        columnList + ") SELECT " + columnList + " FROM " + stageTable + "; DROP TABLE " + stageTable + "; COMMIT;";
+    if (!dbRunner.UpdateData(replaceSql))
+    {
+        // UpdateData closes its connection on failure, rolling back the open transaction.
+        // A separate DBRunner call cannot issue ROLLBACK on that connection.
+        if (!dbRunner.DropTable(stageTable))
+        {
+            ERROR("Failed to clean up PCIe stage table % in %", stageTable, dbPath);
+        }
+        return false;
+    }
+    return true;
+}
 
 PcieRows GeneratePcieRows(const std::vector<HalPcieData> &records)
 {
@@ -82,17 +138,14 @@ uint32_t PciePersistence::ProcessEntry(Infra::DataInventory &dataInventory, cons
         ERROR("PCIe persistence requires DeviceContext.");
         return ANALYSIS_ERROR;
     }
-    DBInfo pcieDB("pcie.db", "PcieOriginalData");
-    MAKE_SHARED0_RETURN_VALUE(pcieDB.database, Infra::PCIeDB, ANALYSIS_ERROR);
-    std::string dbPath = Utils::File::PathJoin({deviceContext->GetDeviceFilePath(), "sqlite", pcieDB.dbName});
-    MAKE_SHARED_RETURN_VALUE(pcieDB.dbRunner, Infra::DBRunner, ANALYSIS_ERROR, dbPath);
+    const std::string dbPath = Utils::File::PathJoin({deviceContext->GetDeviceFilePath(), "sqlite", "pcie.db"});
     const auto rows = GeneratePcieRows(*records);
     if (rows.size() != records->size())
     {
         ERROR("Generate PcieOriginalData failed.");
         return ANALYSIS_ERROR;
     }
-    if (!SaveData(rows, pcieDB, dbPath))
+    if (!SavePcieData(dbPath, rows))
     {
         ERROR("Save PCIe data failed: %", dbPath);
         return ANALYSIS_ERROR;
