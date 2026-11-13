@@ -52,7 +52,6 @@ struct BasicProcessInfo
     std::shared_ptr<DataInventory> inventory;
     std::vector<std::string> resources;
     bool opensDeviceScope = false;
-    bool closesDeviceScope = false;
     // Wait for all predecessors, but allow execution when they failed or were blocked.
     bool runOnDependencyFailure = false;
 };

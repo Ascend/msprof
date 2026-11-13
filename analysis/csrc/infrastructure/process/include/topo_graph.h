@@ -39,6 +39,7 @@ enum class TopoNodeStage : uint8_t
     FLOW_CONTROL,          // Topology lifecycle control.
     HOST_PROCESSING,
     DEVICE_PROCESSING,
+    DEVICE_PERSISTENCE,  // Device intermediate SQLite persistence.
 };
 
 enum class TopoScopeKind
@@ -85,6 +86,8 @@ struct TopoBuildContext
     std::unordered_map<std::string, std::string> scopePaths;
     std::unordered_map<std::string, bool> scopeReuse;
     std::vector<TopoNodeId> parseRoots;
+    // Export selection is separate from the final pipeline entry roots; empty keeps direct Build callers' roots.
+    std::vector<TopoNodeId> selectedExportRoots;
     bool strictSelection = false;
     // The export entry may have already loaded the environment before preparing its sessions.
     bool environmentLoaded = false;
@@ -110,7 +113,6 @@ struct TopoNodeDefinition
     TopoScopeKind scopeKind = TopoScopeKind::EXPORT;
     std::vector<std::string> resources;
     bool opensDeviceScope = false;
-    bool closesDeviceScope = false;
     bool runOnDependencyFailure = false;
 };
 
@@ -163,7 +165,7 @@ class TopoGraphBuilder
                Infra::RuntimeProcessCollection& processes);
     // Builds the complete request, including Host/Device parsing and selected exports, without executing nodes.
     bool Build(const PipelineRequest& request, Infra::RuntimeProcessCollection& processes);
-    // Uses the same compiler for a caller-owned set of bindings and roots.
+    // Compiles caller-owned bindings and roots in one dependency expansion.
     bool Build(const TopoBuildContext& context, const std::vector<TopoNodeId>& roots,
                Infra::RuntimeProcessCollection& processes, const TopoNodeCollection* overlay = nullptr);
     const std::unordered_map<TopoNodeId, Infra::RuntimeProcessKey, TopoNodeIdHash>& GetRuntimeNodeKeys() const

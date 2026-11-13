@@ -166,6 +166,7 @@ void RegisterCcuTopologyForTest()
         auto persistence = CcuDefinition<CcuPersistence>("CcuPersistence",
                                                          TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"),
                                                                    TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")));
+        persistence.id.stage = TopoNodeStage::DEVICE_PERSISTENCE;
         persistence.inputDataTypes = {typeid(CcuMissionDataSet), typeid(CcuChannelDataSet)};
         return TopoNodeRegistry::Register(std::move(persistence));
     }();
@@ -183,7 +184,7 @@ bool RunCcuTopology(DataInventory& inventory, DeviceContext& context, ProcessCon
     bindings.scopeInventories[scope] = std::shared_ptr<DataInventory>(&inventory, [](DataInventory*) {});
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
-    if (!builder.Build(bindings, {{TopoNodeStage::DEVICE_PROCESSING, "CcuPersistence", scope}}, graph))
+    if (!builder.Build(bindings, {{TopoNodeStage::DEVICE_PERSISTENCE, "CcuPersistence", scope}}, graph))
     {
         return false;
     }
@@ -510,13 +511,15 @@ TEST_F(CcuParserUTest, UnifiedDeviceEntryParsesCcuAlongsideOtherRegisteredProces
 TEST_F(CcuParserUTest, RegisteredTopologySupportsOnlyV61)
 {
     RegisterCcuTopologyForTest();
-    for (const auto& name : {"CcuMissionParser", "CcuChannelParser", "CcuPersistence"})
+    for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"),
+                           TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser"),
+                           TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence")})
     {
-        const auto* definition = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, name));
+        const auto* definition = TopoNodeRegistry::Find(id);
         ASSERT_NE(definition, nullptr);
         EXPECT_EQ(definition->chipIds, (std::vector<uint32_t>{CHIP_V6_1_0, CHIP_V6_1_1}));
     }
-    const auto* persistence = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence"));
+    const auto* persistence = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence"));
     ASSERT_NE(persistence, nullptr);
     EXPECT_EQ(persistence->processDependencies, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"),
                                                           TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")));

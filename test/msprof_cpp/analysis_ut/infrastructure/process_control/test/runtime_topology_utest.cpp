@@ -84,7 +84,6 @@ TopoNodeDefinition RegisteredDeviceDefinition()
     definition.chipIds = {5, 15};
     definition.resources = {"runtime-test-resource"};
     definition.opensDeviceScope = true;
-    definition.closesDeviceScope = true;
     definition.creatorFactory = [](const TopoBuildContext& context) {
         const auto path = context.scopePaths.at(context.currentScope);
         return Action([path](DataInventory&, const Context& device) {
@@ -156,7 +155,6 @@ TEST(RuntimeTopology, StaticDefinitionInstantiatesDevicesWithFreshRequestBinding
         ASSERT_EQ(graph.size(), 2U);
         for (const auto& node : graph) {
             EXPECT_TRUE(node.second.opensDeviceScope);
-            EXPECT_TRUE(node.second.closesDeviceScope);
             EXPECT_EQ(node.second.resources, std::vector<std::string>{"runtime-test-resource"});
         }
         ProcessControl executor(graph);
@@ -565,32 +563,48 @@ TEST(RuntimeTopology, DfxStopDoesNotPromoteUnrelatedOptionalFailureToOverallErro
     EXPECT_TRUE(prints.empty());
 }
 
-TEST(RuntimeTopology, DeviceLimitReleasesAtReadyWithoutDeadlock)
+TEST(RuntimeTopology, DeviceLimitReleasesAfterLastNodeWithoutCompletionCallbacks)
 {
-    RuntimeProcessCollection graph;
-    std::atomic<int> active{0};
-    std::atomic<int> maximum{0};
-    for (uint64_t index = 0; index < 3; ++index) {
-        const auto scope = "device_" + std::to_string(index);
-        auto init = Node(Action([&](DataInventory&, const Context&) {
-            int count = ++active;
-            maximum = std::max(maximum.load(), count);
-            return ANALYSIS_OK;
-        }), scope);
-        init.opensDeviceScope = true;
-        graph.emplace(index * 2 + 1, init);
-        auto ready = Node(Action([&](DataInventory&, const Context&) { --active; return ANALYSIS_OK; }), scope);
-        ready.processDependence = {index * 2 + 1};
-        ready.closesDeviceScope = true;
-        graph.emplace(index * 2 + 2, ready);
+    for (const bool optionalFailure : {false, true})
+    {
+        RuntimeProcessCollection graph;
+        std::atomic<int> active{0};
+        std::atomic<int> maximum{0};
+        std::atomic<int> completedBranches[3];
+        for (uint64_t index = 0; index < 3; ++index)
+        {
+            completedBranches[index] = 0;
+            const auto scope = "device_" + std::to_string(index);
+            auto init = Node(Action([&](DataInventory&, const Context&)
+            {
+                const int count = ++active;
+                maximum = std::max(maximum.load(), count);
+                return ANALYSIS_OK;
+            }), scope);
+            init.opensDeviceScope = true;
+            graph.emplace(index * 3 + 1, init);
+            for (uint64_t branch = 0; branch < 2; ++branch)
+            {
+                const bool fail = optionalFailure && branch == 1;
+                auto work = Node(Action([&, index, fail](DataInventory&, const Context&)
+                {
+                    if (++completedBranches[index] == 2) { --active; }
+                    return fail ? ANALYSIS_ERROR : ANALYSIS_OK;
+                }), scope);
+                work.processDependence = {index * 3 + 1};
+                work.mandatory = !fail;
+                graph.emplace(index * 3 + branch + 2, work);
+            }
+        }
+        ProcessControlOptions options;
+        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
+        options.maxActiveDevices = 1;
+        options.maxWorkerThreads = 2;
+        ProcessControl executor(graph, options);
+        EXPECT_TRUE(executor.ExecuteProcess());
+        EXPECT_EQ(active.load(), 0);
+        EXPECT_EQ(maximum.load(), 1);
     }
-    ProcessControlOptions options;
-    options.maxActiveDevices = 1;
-    options.maxWorkerThreads = 2;
-    ProcessControl executor(graph, options);
-    EXPECT_TRUE(executor.ExecuteProcess());
-    EXPECT_EQ(active, 0);
-    EXPECT_EQ(maximum, 1);
 }
 
 TEST(RuntimeTopology, ExclusiveResourcesAreAcquiredBeforeWorkerDispatch)
@@ -656,7 +670,6 @@ TEST(RuntimeTopology, CoarseDeviceBodiesRunExistingSchedulerBeforeSharedExport)
     device.mandatory = true;
     device.processDependencies = {host.id};
     device.opensDeviceScope = true;
-    device.closesDeviceScope = true;
     device.creatorFactory = Factory(Action([&](DataInventory&, const Context& ctx) {
         if (hosts != 1) { return ANALYSIS_ERROR; }
         auto internal = std::make_shared<DataInventory>();
@@ -765,6 +778,7 @@ TopoNodeDefinition NativePersistence()
                                  return data.Inject(std::make_shared<long>(*value)) ? ANALYSIS_OK : ANALYSIS_ERROR;
                              }),
                          TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Parser")), {typeid(int)});
+    definition.id.stage = TopoNodeStage::DEVICE_PERSISTENCE;
     return definition;
 }
 TopoNodeDefinition NativeAlternativeConsumer()
@@ -797,7 +811,7 @@ REGISTER_TOPO_NODE_DEFINITION(NativeDefinition("Config.Calculation",
                                                        ++nativeComputed;
                                                        return ANALYSIS_OK;
                                                    }),
-                                               TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Persistence")),
+                                               TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "Config.Persistence")),
                                                {typeid(long)}));
 REGISTER_TOPO_NODE_DEFINITION(NativeDefinition("Config.UnusedMissing", Action(Success),
                                                TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Missing"))));
@@ -826,8 +840,8 @@ TEST(RuntimeTopology, NativeConfigurationPrunesUnselectedMissingBranches)
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context,
-                              {{TopoNodeStage::DEVICE_PROCESSING, "Config.Persistence", "device_0"},
-                               {TopoNodeStage::DEVICE_PROCESSING, "Config.Persistence", "device_1"}},
+                              {{TopoNodeStage::DEVICE_PERSISTENCE, "Config.Persistence", "device_0"},
+                               {TopoNodeStage::DEVICE_PERSISTENCE, "Config.Persistence", "device_1"}},
                               graph));
     EXPECT_EQ(graph.size(), 6U);
     for (const auto& node : graph)
@@ -859,7 +873,7 @@ TEST(RuntimeTopology, NativeConfigurationSelectsChipAlternativesPerDevice)
 
 TEST(RuntimeTopology, NativeConfigurationPreservesInputMetadata)
 {
-    const auto* definition = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "Config.Persistence"));
+    const auto* definition = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PERSISTENCE, "Config.Persistence"));
     ASSERT_NE(definition, nullptr);
     EXPECT_EQ(definition->inputDataTypes, std::vector<std::type_index>{typeid(int)});
     EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, 5));
@@ -891,11 +905,6 @@ TEST(RuntimeTopology, NativeDevicesReleaseSlotsBeforeCrossDeviceExportAndPreserv
     for (const auto& scope : {"device_0", "device_1"}) {
         const TopoNodeId operation{TopoNodeStage::DEVICE_PROCESSING, "Config.Calculation", scope};
         output.processDependencies.push_back(operation);
-        auto ready = NativeDefinition("Config.Ready", Action(Success), {operation});
-        ready.id.scope = scope;
-        ready.closesDeviceScope = true;
-        definitions.emplace(ready.id, ready);
-        roots.push_back(ready.id);
     }
     definitions.emplace(output.id, output);
     RuntimeProcessCollection graph;
@@ -951,7 +960,7 @@ TEST(RuntimeTopology, UnscopedDeviceDependenciesExpandPerRequestedDevice)
     BindTest(context, "device_0", 5);
     BindTest(context, "device_1", 15);
     BindExport(context);
-    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Persistence")));
+    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "Config.Persistence")));
     TopoNodeCollection definitions{{output.id, output}};
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
@@ -962,7 +971,7 @@ TEST(RuntimeTopology, UnscopedDeviceDependenciesExpandPerRequestedDevice)
     const auto& dependencies = graph.at(key).processDependence;
     for (const auto& scope : {"device_0", "device_1"})
     {
-        const auto producer = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Config.Persistence", scope});
+        const auto producer = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "Config.Persistence", scope});
         EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), producer), dependencies.end());
     }
     ProcessControl executor(graph);
@@ -995,15 +1004,15 @@ TEST(RuntimeTopology, ReusedDeviceSkipsItsProducerInstances)
     BindTest(context, "device_1", 15);
     BindExport(context);
     context.scopeReuse["device_0"] = true;
-    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Persistence")));
+    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "Config.Persistence")));
     TopoNodeCollection definitions{{output.id, output}};
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {output.id}, graph, &definitions));
     EXPECT_EQ(graph.size(), 4U);
-    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "Config.Persistence", "device_0"}),
+    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "Config.Persistence", "device_0"}),
               0U);
-    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "Config.Persistence", "device_1"}),
+    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "Config.Persistence", "device_1"}),
               1U);
 }
 
@@ -1024,7 +1033,7 @@ TEST(RuntimeTopology, StandaloneExportBuildDoesNotScheduleDeviceParsing)
 {
     TopoBuildContext context;
     BindExport(context);
-    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "Config.Persistence")));
+    auto output = ExportWithDeviceDependencies(TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "Config.Persistence")));
     ASSERT_TRUE(TopoNodeRegistry::Register(output));
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
@@ -1142,7 +1151,7 @@ TEST(RuntimeTopology, RuntimeBindingsPreserveDependencyFailurePolicy)
     EXPECT_EQ(executor.GetRuntimeResults().at(2).state, RuntimeProcessState::SUCCEEDED);
 }
 
-TEST(RuntimeTopology, BlockedDeviceReadyReleasesSlotWithoutRunningItsCallback)
+TEST(RuntimeTopology, BlockedDeviceNodesReleaseSlotWithoutRunningCallbacks)
 {
     RuntimeProcessCollection graph;
     graph[1] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_ERROR; }));
@@ -1152,7 +1161,6 @@ TEST(RuntimeTopology, BlockedDeviceReadyReleasesSlotWithoutRunningItsCallback)
     std::atomic<int> markedComplete{0};
     graph[3] = Node(Action([&](DataInventory&, const Context&) { ++markedComplete; return ANALYSIS_OK; }));
     graph[3].processDependence = {1, 2};
-    graph[3].closesDeviceScope = true;
     std::atomic<int> nextDevice{0};
     graph[4] = Node(Action([&](DataInventory&, const Context&) { ++nextDevice; return ANALYSIS_OK; }), "device_1");
     // Ensure device_0 acquired its slot first, while device_1 remains independent of its success.
@@ -1160,7 +1168,6 @@ TEST(RuntimeTopology, BlockedDeviceReadyReleasesSlotWithoutRunningItsCallback)
     graph[4].opensDeviceScope = true;
     graph[5] = Node(Action(Success), "device_1");
     graph[5].completionDependence = {4};
-    graph[5].closesDeviceScope = true;
     ProcessControlOptions options;
     options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     options.maxActiveDevices = 1;

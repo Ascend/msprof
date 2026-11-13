@@ -144,9 +144,22 @@ class ProcessControl::Impl
         std::unordered_map<RuntimeProcessKey, size_t> pending;
         std::unordered_map<RuntimeProcessKey, std::vector<RuntimeProcessKey>> dependents;
         std::deque<RuntimeProcessKey> ready;
+        std::unordered_map<std::string, size_t> remainingDeviceNodes;
+        for (const auto& item : processes_)
+        {
+            if (item.second.opensDeviceScope)
+            {
+                remainingDeviceNodes.emplace(item.second.scope, 0);
+            }
+        }
         for (const auto& item : processes_)
         {
             results_[item.first] = RuntimeProcessResult{};
+            const auto device = remainingDeviceNodes.find(item.second.scope);
+            if (device != remainingDeviceNodes.end())
+            {
+                ++device->second;
+            }
             auto dependencies = item.second.processDependence;
             dependencies.insert(dependencies.end(), item.second.completionDependence.begin(),
                                 item.second.completionDependence.end());
@@ -196,7 +209,9 @@ class ProcessControl::Impl
                     resources.erase(resource);
                 }
             }
-            if (info.closesDeviceScope)
+            // Every terminal state counts, including blocked and cancelled nodes that never ran.
+            const auto device = remainingDeviceNodes.find(info.scope);
+            if (device != remainingDeviceNodes.end() && --device->second == 0)
             {
                 activeDevices.erase(info.scope);
             }

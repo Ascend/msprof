@@ -2005,11 +2005,12 @@ bool DBAssembler::GetTopologyRoots(std::vector<TopoNodeId>& roots)
     return true;
 }
 
-std::vector<TopoNodeId> DBAssembler::ResolveSelectedDBSavers(const TopoBuildContext&,
+std::vector<TopoNodeId> DBAssembler::ResolveSelectedDBSavers(const TopoBuildContext& context,
                                                              const std::vector<TopoNodeId>& roots)
 {
     std::vector<TopoNodeId> dependencies;
-    for (const auto& root : roots)
+    const auto& selectedRoots = context.selectedExportRoots.empty() ? roots : context.selectedExportRoots;
+    for (const auto& root : selectedRoots)
     {
         if (root.stage == TopoNodeStage::DATABASE_PERSISTENCE)
         {

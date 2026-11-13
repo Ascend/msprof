@@ -241,7 +241,6 @@ class TopoGraphCompiler
         std::sort(info.resources.begin(), info.resources.end());
         info.resources.erase(std::unique(info.resources.begin(), info.resources.end()), info.resources.end());
         info.opensDeviceScope = definition->opensDeviceScope;
-        info.closesDeviceScope = definition->closesDeviceScope;
         info.runOnDependencyFailure = definition->runOnDependencyFailure;
         key = ++nextKey_;
         processes_.emplace(key, std::move(info));
@@ -256,7 +255,9 @@ class TopoGraphCompiler
         std::vector<TopoNodeId> expanded;
         for (const auto& dependency : dependencies)
         {
-            if (dependency.stage != TopoNodeStage::DEVICE_PROCESSING || !dependency.scope.empty())
+            if ((dependency.stage != TopoNodeStage::DEVICE_PROCESSING &&
+                 dependency.stage != TopoNodeStage::DEVICE_PERSISTENCE) ||
+                !dependency.scope.empty())
             {
                 expanded.push_back(dependency);
                 continue;

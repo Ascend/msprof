@@ -276,10 +276,11 @@ REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<HcclCalculator>(
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator"), std::vector<TopDownTask>,
                                   std::vector<HcclTask>, std::vector<HcclOp>);
 
-REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<KfcCalculator>(
-    TOPO_NODE(DEVICE_PROCESSING, "KfcCalculator"), true,
-    TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence"), TOPO_NODE(DEVICE_PROCESSING, "AscendTaskPersistence")),
-    {CHIP_ID_ALL}));
+REGISTER_TOPO_NODE_DEFINITION(
+    DeviceDefinition<KfcCalculator>(TOPO_NODE(DEVICE_PROCESSING, "KfcCalculator"), true,
+                                    TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence"),
+                                              TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")),
+                                    {CHIP_ID_ALL}));
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "KfcCalculator"), std::vector<KfcInfoData>,
                                   std::vector<MasterStreamTaskData>, std::vector<HcclOp>, std::vector<TopDownTask>,
                                   AicpuOpNameMap, std::vector<Mc2CommInfo>);
@@ -294,126 +295,127 @@ REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "PmuAssociation")
 
 // Persistence.
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<AccPmuPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "AccPmuPersistence"), true, TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0},
+    TOPO_NODE(DEVICE_PERSISTENCE, "AccPmuPersistence"), true, TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0},
     ChipDependencies({"StarsSocParser", "StarsSocParserV6", "StarsSocProfileParser"})));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "AccPmuPersistence"), std::vector<HalLogData>,
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "AccPmuPersistence"), std::vector<HalLogData>,
                                   HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<AicpuPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AicpuParser"), TOPO_NODE(DEVICE_PROCESSING, "LoadHostData"),
               TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser")),
     {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence"), std::vector<AicpuData>,
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence"), std::vector<AicpuData>,
                                   DeviceStreamInfo, HostStreamInfo, GeHashMap, std::vector<HalTrackData>,
                                   std::vector<KfcInfoData>, std::vector<MasterStreamTaskData>);
 
 REGISTER_TOPO_NODE_DEFINITION(
-    DeviceDefinition<AscendTaskPersistence>(TOPO_NODE(DEVICE_PROCESSING, "AscendTaskPersistence"), true,
+    DeviceDefinition<AscendTaskPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence"), true,
                                             TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator")), {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "AscendTaskPersistence"), std::vector<TopDownTask>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence"), std::vector<TopDownTask>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<CcuPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuMissionParser"), TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")),
     {CHIP_V6_1_0, CHIP_V6_1_1}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence"), CcuMissionDataSet, CcuChannelDataSet);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence"), CcuMissionDataSet,
+                                  CcuChannelDataSet);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<DeviceHcclPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "DeviceHcclPersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "DeviceHcclPersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator"), TOPO_NODE(DEVICE_PROCESSING, "KfcCalculator")),
     {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "DeviceHcclPersistence"), std::vector<DeviceHcclOp>,
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "DeviceHcclPersistence"), std::vector<DeviceHcclOp>,
                                   std::vector<DeviceHcclTask>, std::vector<HcclStatistics>, std::vector<KfcTaskRecord>,
                                   std::vector<KfcOpRecord>, std::vector<KfcOpStatistics>);
 
-REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<FreqPersistence>(TOPO_NODE(DEVICE_PROCESSING, "FreqPersistence"), true,
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<FreqPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "FreqPersistence"), true,
                                                                 TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "FreqParser")),
                                                                 {CHIP_V1_1_1, CHIP_V6_1_0, CHIP_V6_1_1}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "FreqPersistence"), std::vector<HalFreqLpmData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "FreqPersistence"), std::vector<HalFreqLpmData>);
 
 REGISTER_TOPO_NODE_DEFINITION(
-    DeviceDefinition<LpmInfoPersistence>(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence"), true,
+    DeviceDefinition<LpmInfoPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "LpmInfoPersistence"), true,
                                          TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoParser")), {CHIP_V4_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence"), HalLpmInfoData);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "LpmInfoPersistence"), HalLpmInfoData);
 
-REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LlcPersistence>(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence"), true,
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LlcPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "LlcPersistence"), true,
                                                                TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LlcParser")),
                                                                {CHIP_V4_1_0, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence"), std::vector<HalLlcData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "LlcPersistence"), std::vector<HalLlcData>);
 
-REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<PciePersistence>(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence"), true,
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<PciePersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "PciePersistence"), true,
                                                                 TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "PcieParser")),
                                                                 {CHIP_V4_1_0, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence"), std::vector<HalPcieData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "PciePersistence"), std::vector<HalPcieData>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<MetricSummaryPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence"), false,
+    TOPO_NODE(DEVICE_PERSISTENCE, "MetricSummaryPersistence"), false,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "PmuAssociation")), {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence"),
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "MetricSummaryPersistence"),
                                   std::map<TaskId, std::vector<Domain::DeviceTask>>, std::vector<HalPmuData>,
                                   HostStreamInfo);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<NpuMemPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "NpuMemPersistence"), true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuMemParser")),
+    TOPO_NODE(DEVICE_PERSISTENCE, "NpuMemPersistence"), true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuMemParser")),
     {CHIP_V4_1_0, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "NpuMemPersistence"), std::vector<HalNpuMemData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "NpuMemPersistence"), std::vector<HalNpuMemData>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<NpuModuleMemPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "NpuModuleMemPersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "NpuModuleMemPersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuModuleMemParser")), {CHIP_V4_1_0, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "NpuModuleMemPersistence"),
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "NpuModuleMemPersistence"),
                                   std::vector<HalNpuModuleMemData>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<QosPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "QosPersistence"), false, TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0},
+    TOPO_NODE(DEVICE_PERSISTENCE, "QosPersistence"), false, TOPO_DEPS(), {CHIP_V4_1_0, CHIP_V6_1_0},
     ChipDependencies({"QosParser", "StarsSocProfileParser"})));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "QosPersistence"), std::vector<HalQosBwData>,
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "QosPersistence"), std::vector<HalQosBwData>,
                                   HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<LowPowerPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "LowPowerPersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "LowPowerPersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StarsSocProfileParser")), {CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "LowPowerPersistence"), HalSocProfileData);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "LowPowerPersistence"), HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<ChipTransPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "ChipTransPersistence"), false,
+    TOPO_NODE(DEVICE_PERSISTENCE, "ChipTransPersistence"), false,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StarsSocProfileParser")), {CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "ChipTransPersistence"), HalSocProfileData);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "ChipTransPersistence"), HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<InterSocPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "InterSocPersistence"), false,
+    TOPO_NODE(DEVICE_PERSISTENCE, "InterSocPersistence"), false,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StarsSocProfileParser")), {CHIP_V4_1_0, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "InterSocPersistence"), HalSocProfileData);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "InterSocPersistence"), HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<SioPersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "SioPersistence"), false,
+    TOPO_NODE(DEVICE_PERSISTENCE, "SioPersistence"), false,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StarsSocProfileParser")), {CHIP_V4_1_0, CHIP_V1_1_1, CHIP_V6_1_0}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "SioPersistence"), HalSocProfileData);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "SioPersistence"), HalSocProfileData);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<StepTracePersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "StepTracePersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "StepTracePersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess"), TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser")),
     {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "StepTracePersistence"),
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "StepTracePersistence"),
                                   std::map<uint32_t, std::vector<StepTraceTasks>>, std::vector<HalTrackData>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<TracePersistence>(
-    TOPO_NODE(DEVICE_PROCESSING, "TracePersistence"), true,
+    TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess"), TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser")),
     {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "TracePersistence"),
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence"),
                                   std::map<uint32_t, std::vector<StepTraceTasks>>, std::vector<HalTrackData>);
 
 REGISTER_TOPO_NODE_DEFINITION(
-    DeviceDefinition<TsTrackPersistence>(TOPO_NODE(DEVICE_PROCESSING, "TsTrackPersistence"), true,
+    DeviceDefinition<TsTrackPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "TsTrackPersistence"), true,
                                          TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser")), {CHIP_ID_ALL}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "TsTrackPersistence"), std::vector<HalTrackData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "TsTrackPersistence"), std::vector<HalTrackData>);
 
-REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<UbPersistence>(TOPO_NODE(DEVICE_PROCESSING, "UbPersistence"), false,
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<UbPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "UbPersistence"), false,
                                                               TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "UbParser")),
                                                               {CHIP_V6_1_0, CHIP_V6_1_1}));
-REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "UbPersistence"), std::vector<HalUbBwData>);
+REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "UbPersistence"), std::vector<HalUbBwData>);
 
 }  // namespace Domain
 }  // namespace Analysis

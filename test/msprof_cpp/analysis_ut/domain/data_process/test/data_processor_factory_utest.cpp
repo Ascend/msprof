@@ -138,7 +138,8 @@ TEST(DataProcessorFactoryUTest, ShouldKeepRegistryNamesCreatorsAndDependenciesCo
         EXPECT_TRUE(processorNames.insert(definition.id.name).second);
         for (const auto& dependency : definition.processDependencies)
         {
-            if (dependency.stage == TopoNodeStage::DEVICE_PROCESSING)
+            if (dependency.stage == TopoNodeStage::DEVICE_PROCESSING ||
+                dependency.stage == TopoNodeStage::DEVICE_PERSISTENCE)
             {
                 EXPECT_TRUE(dependency.scope.empty());
                 continue;  // This partial UT target links export processors only.
@@ -155,7 +156,7 @@ TEST(DataProcessorFactoryUTest, ShouldRegisterAicpuWithDirectDeviceDependencies)
     ASSERT_NE(definition, nullptr);
     EXPECT_EQ(definition->processDependencies, TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
                                                          TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-                                                         TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence")));
+                                                         TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence")));
     EXPECT_EQ(definition->inputDataTypes,
               (std::vector<std::type_index>{typeid(std::vector<AscendTaskData>), typeid(std::vector<TaskInfoData>)}));
 }
@@ -173,8 +174,8 @@ TEST(DataProcessorFactoryUTest, ShouldExpressChipAlternativesAsDeviceDependencie
 {
     const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_AICORE_FREQ);
     ASSERT_NE(definition, nullptr);
-    EXPECT_EQ(definition->processDependencies, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "FreqPersistence"),
-                                                         TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence")));
+    EXPECT_EQ(definition->processDependencies, TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "FreqPersistence"),
+                                                         TOPO_NODE(DEVICE_PERSISTENCE, "LpmInfoPersistence")));
     EXPECT_TRUE(definition->id.scope.empty());
 }
 

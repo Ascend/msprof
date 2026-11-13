@@ -130,6 +130,7 @@ bool ExportManager::Plan(const std::set<ExportMode>& exportModeSet, TopoBuildCon
                          std::vector<TopoNodeId>& roots)
 {
     roots.clear();
+    buildContext.selectedExportRoots.clear();
     if (exportModeSet.empty() || !File::CheckDir(profPath_))
     {
         ERROR("Invalid export modes or profile path.");

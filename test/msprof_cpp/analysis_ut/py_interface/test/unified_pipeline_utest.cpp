@@ -21,6 +21,7 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <unordered_map>
 
 #include "analysis/csrc/application/credential/id_pool.h"
 #include "analysis/csrc/application/database/db_assembler.h"
@@ -182,7 +183,7 @@ TEST_F(UnifiedPipelinePlanUTest, LegacySingleDeviceKeepsPersistenceFailurePolicy
         TopoNodeCollection original = TopoNodeRegistry::GetDefinitions();
         ~RegistryGuard() { TopoNodeRegistry::MutableDefinitions() = std::move(original); }
     } guard;
-    const auto id = TOPO_NODE(DEVICE_PROCESSING, "QosPersistence");
+    const auto id = TOPO_NODE(DEVICE_PERSISTENCE, "QosPersistence");
     const auto* registered = TopoNodeRegistry::Find(id);
     ASSERT_NE(registered, nullptr);
     auto persistence = *registered;
@@ -290,12 +291,15 @@ TEST_F(UnifiedPipelinePlanUTest, HostFailureBlocksItsReadersButIndependentDevice
     const auto& keys = builder.GetRuntimeNodeKeys();
     for (const auto& scope : {"device_0", "device_1"})
     {
-        for (const auto& name : {"Device.Init", "NpuMemParser", "NpuMemPersistence", "CcuChannelParser"})
+        for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "Device.Init"),
+                              TOPO_NODE(DEVICE_PROCESSING, "NpuMemParser"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "NpuMemPersistence"),
+                              TOPO_NODE(DEVICE_PROCESSING, "CcuChannelParser")})
         {
-            EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, name, scope})).state,
-                      RuntimeProcessState::SUCCEEDED) << name;
+            EXPECT_EQ(results.at(keys.at({id.stage, id.name, scope})).state,
+                      RuntimeProcessState::SUCCEEDED) << id.name;
         }
-        for (const auto& name : {"LoadStreamExpandSpec", "LoadHostData", "CcuMissionParser", "Device.Ready"})
+        for (const auto& name : {"LoadStreamExpandSpec", "LoadHostData", "CcuMissionParser"})
         {
             EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, name, scope})).state,
                       RuntimeProcessState::BLOCKED) << name;
@@ -305,7 +309,152 @@ TEST_F(UnifiedPipelinePlanUTest, HostFailureBlocksItsReadersButIndependentDevice
               RuntimeProcessState::SUCCEEDED);
 }
 
-TEST_F(UnifiedPipelinePlanUTest, SelectedSummaryExpandsOnlyRequiredDeviceChain)
+TEST_F(UnifiedPipelinePlanUTest, PlanningDoesNotCompileAndFinalBuildCompilesEachNodeOnce)
+{
+    struct RegistryGuard
+    {
+        TopoNodeCollection original = TopoNodeRegistry::GetDefinitions();
+        ~RegistryGuard() { TopoNodeRegistry::MutableDefinitions() = std::move(original); }
+    } guard;
+    std::unordered_map<TopoNodeId, size_t, TopoNodeIdHash> factoryCalls;
+    std::unordered_map<TopoNodeId, size_t, TopoNodeIdHash> resolverCalls;
+    for (auto& entry : TopoNodeRegistry::MutableDefinitions())
+    {
+        auto& definition = entry.second;
+        const auto id = definition.id;
+        const auto factory = definition.creatorFactory;
+        const auto resolver = definition.dependencyResolver;
+        definition.creatorFactory = [&, id, factory](const TopoBuildContext& context) -> ProcessCreator
+        {
+            ++factoryCalls[{id.stage, id.name, context.currentScope}];
+            return factory(context);
+        };
+        definition.dependencyResolver = [&, id, resolver](const TopoBuildContext& context,
+                                                         const std::vector<TopoNodeId>& roots)
+        {
+            ++resolverCalls[{id.stage, id.name, context.currentScope}];
+            return resolver ? resolver(context, roots) : std::vector<TopoNodeId>{};
+        };
+    }
+    TopoBuildContext context;
+    TopoNodeCollection definitions;
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(PlanUnifiedPipeline(StepTraceRequest(), context, definitions, roots));
+    EXPECT_EQ(roots, (std::vector<TopoNodeId>{{TopoNodeStage::FLOW_CONTROL, "Pipeline.Done", "profile"}}));
+    EXPECT_EQ(context.selectedExportRoots,
+              (std::vector<TopoNodeId>{{TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}}));
+    EXPECT_TRUE(factoryCalls.empty());
+    EXPECT_TRUE(resolverCalls.empty());
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(context, roots, graph, &definitions));
+    EXPECT_FALSE(factoryCalls.empty());
+    EXPECT_EQ(factoryCalls.size(), resolverCalls.size());
+    for (const auto& entry : factoryCalls)
+    {
+        EXPECT_EQ(entry.second, 1U) << entry.first.scope << "/" << entry.first.name;
+        EXPECT_EQ(resolverCalls.at(entry.first), 1U);
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, SinglePipelineRootPreservesSelectedExportDependencies)
+{
+    // db_topology_register.cpp registers the DB export finalizer under "DB:" + TABLE_NAME_STRING_IDS.
+    const std::string stringIdsFinalizer = std::string("DB:") + TABLE_NAME_STRING_IDS;
+    for (const auto flags : {PIPELINE_CANN_TRACE, PIPELINE_SUMMARY, PIPELINE_DB | PIPELINE_TIMELINE})
+    {
+        SCOPED_TRACE(flags);
+        auto request = StepTraceRequest();
+        request.flags = flags;
+        FileWriter(request.reportsJson).WriteText(
+            "{\"summary_process\":{\"step_trace\":true},\"json_process\":{\"llc\":true}}");
+        TopoBuildContext context;
+        TopoNodeCollection definitions;
+        std::vector<TopoNodeId> roots;
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
+        EXPECT_EQ(roots, (std::vector<TopoNodeId>{{TopoNodeStage::FLOW_CONTROL, "Pipeline.Done", "profile"}}));
+        if (flags == PIPELINE_CANN_TRACE)
+        {
+            EXPECT_TRUE(context.selectedExportRoots.empty());
+            continue;
+        }
+        ASSERT_FALSE(context.selectedExportRoots.empty());
+        const auto& keys = builder.GetRuntimeNodeKeys();
+        size_t dbSavers = 0;
+        size_t timelines = 0;
+        for (const auto& selected : context.selectedExportRoots)
+        {
+            dbSavers += selected.stage == TopoNodeStage::DATABASE_PERSISTENCE;
+            timelines += selected.stage == TopoNodeStage::TIMELINE_EXPORT;
+            EXPECT_EQ(selected.scope, "export");
+            ASSERT_EQ(keys.count(selected), 1U);
+            if (selected.stage == TopoNodeStage::DATABASE_PERSISTENCE ||
+                selected.stage == TopoNodeStage::TIMELINE_EXPORT)
+            {
+                const auto name = selected.stage == TopoNodeStage::DATABASE_PERSISTENCE
+                                      ? stringIdsFinalizer : std::string("TIMELINE:POST_DUMP");
+                const auto finalizer = keys.at({TopoNodeStage::FLOW_CONTROL, name, "export"});
+                const auto& dependencies = graph.at(finalizer).processDependence;
+                EXPECT_EQ(std::count(dependencies.begin(), dependencies.end(), keys.at(selected)), 1);
+            }
+        }
+        if ((flags & PIPELINE_DB) != 0)
+        {
+            EXPECT_GT(dbSavers, 0U);
+            EXPECT_EQ(timelines, 1U);
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, DeviceFlagIncludesPersistenceOutsideSelectedSummary)
+{
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(StepTraceRequest(), graph));
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        for (const auto& name : {"TracePersistence", "NpuMemPersistence", "QosPersistence", "DeviceHcclPersistence"})
+        {
+            EXPECT_EQ(std::count_if(graph.begin(), graph.end(), [&](const RuntimeProcessCollection::value_type& node)
+            {
+                return node.second.scope == scope && node.second.processName == name;
+            }), 1) << scope << "/" << name;
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, FullDeviceRootsAndExportDependenciesExecuteSharedPersistenceOnce)
+{
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(StepTraceRequest(), graph));
+    std::atomic<size_t> traceCalls{0};
+    std::atomic<size_t> memoryCalls{0};
+    for (auto& node : graph)
+    {
+        const auto name = node.second.processName;
+        node.second.creator = [&, name]() -> std::unique_ptr<Process>
+        {
+            return std::unique_ptr<Process>(new TopoCallbackProcess([&, name](DataInventory&)
+            {
+                if (name == "TracePersistence") { ++traceCalls; }
+                if (name == "NpuMemPersistence") { ++memoryCalls; }
+                return true;
+            }));
+        };
+    }
+    ProcessControlOptions options;
+    options.maxActiveDevices = 1;
+    options.maxWorkerThreads = 2;
+    ProcessControl executor(graph, options);
+    EXPECT_TRUE(executor.ExecuteProcess());
+    EXPECT_EQ(traceCalls.load(), 2U);
+    EXPECT_EQ(memoryCalls.load(), 2U);
+}
+
+TEST_F(UnifiedPipelinePlanUTest, SelectedSummaryKeepsExportSelectionAndIncludesDevicePersistence)
 {
     TopoBuildContext context;
     TopoNodeCollection definitions;
@@ -322,48 +471,24 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedSummaryExpandsOnlyRequiredDeviceChain)
         EXPECT_NE(node.second.processName, "Timeline.Done");
     }
     const std::set<std::string> expected{"Device.Init", "LoadStreamExpandSpec", "TsTrackParser",
-                                         "StepTraceProcess", "TracePersistence", "Device.Ready"};
-    EXPECT_EQ(names["device_0"], expected);
-    EXPECT_EQ(names["device_1"], expected);
+                                         "StepTraceProcess", "TracePersistence", "NpuMemPersistence",
+                                         "QosPersistence", "DeviceHcclPersistence"};
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        EXPECT_TRUE(std::includes(names[scope].begin(), names[scope].end(), expected.begin(), expected.end()));
+    }
     EXPECT_EQ(names["host"], (std::set<std::string>{"HostC"}));
     EXPECT_EQ(names["export"], (std::set<std::string>{"Export.Init", "STEP_TRACE", "Export.Finalize"}));
     EXPECT_NE(context.scopeContexts.at("device_0"), context.scopeContexts.at("device_1"));
     EXPECT_NE(context.scopeInventories.at("device_0"), context.scopeInventories.at("device_1"));
     const auto processor = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DATA_PROCESSING, "STEP_TRACE", "export"});
     for (const auto& scope : {"device_0", "device_1"}) {
-        const auto persistence = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope});
+        const auto persistence = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope});
         const auto& deps = graph.at(processor).processDependence;
         EXPECT_NE(std::find(deps.begin(), deps.end(), persistence), deps.end());
     }
     EXPECT_FALSE(File::Exist(File::PathJoin({root, "mindstudio_profiler_output"})));
     EXPECT_FALSE(File::Exist(File::PathJoin({root, "device_0", "sqlite"})));
-}
-
-TEST_F(UnifiedPipelinePlanUTest, DeviceCompletionWaitsOnlyForItsOwnSelectedOperations)
-{
-    EXPECT_EQ(TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "DeviceC")), nullptr);
-    const auto* init = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "Device.Init"));
-    ASSERT_NE(init, nullptr);
-    EXPECT_TRUE(init->opensDeviceScope);
-    EXPECT_FALSE(init->closesDeviceScope);
-    const auto count = TopoNodeRegistry::GetDefinitions().size();
-    TopoBuildContext context;
-    TopoNodeCollection definitions;
-    std::vector<TopoNodeId> roots;
-    RuntimeProcessCollection graph;
-    TopoGraphBuilder builder;
-    ASSERT_TRUE(Build(StepTraceRequest(), context, definitions, roots, graph, builder));
-    EXPECT_EQ(TopoNodeRegistry::GetDefinitions().size(), count);
-    for (const auto& scope : {"device_0", "device_1"}) {
-        const auto ready = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope});
-        const auto optional = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "StepTraceProcess", scope});
-        const auto consumer = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope});
-        EXPECT_TRUE(graph.at(ready).closesDeviceScope);
-        EXPECT_EQ(graph.at(ready).completionDependence, (std::vector<RuntimeProcessKey>{optional}));
-        const auto& businessDependencies = graph.at(consumer).processDependence;
-        EXPECT_NE(std::find(businessDependencies.begin(), businessDependencies.end(), optional), businessDependencies.end());
-        for (auto dependency : graph.at(ready).processDependence) { EXPECT_EQ(graph.at(dependency).scope, scope); }
-    }
 }
 
 TEST_F(UnifiedPipelinePlanUTest, SelectedChainRunsWithOneActiveDeviceAndNoNestedExecutor)
@@ -380,7 +505,7 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedChainRunsWithOneActiveDeviceAndNoNested
     const auto processor = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DATA_PROCESSING, "STEP_TRACE", "export"});
     for (auto& node : graph) {
         const auto name = node.second.processName;
-        if (node.second.scope.find("device_") == 0 && name != "Device.Init" && name != "Device.Ready") {
+        if (node.second.scope.find("device_") == 0 && name != "Device.Init") {
             node.second.creator = [&, name]() -> std::unique_ptr<Process> {
                 return std::unique_ptr<Process>(new TopoCallbackProcess([&, name](DataInventory&) {
                     if (name == "TracePersistence") { ++persisted; }
@@ -407,13 +532,13 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedChainRunsWithOneActiveDeviceAndNoNested
     const auto results = executor.GetRuntimeResults();
     for (const auto& scope : {"device_0", "device_1"})
     {
-        const auto ready = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope});
-        EXPECT_EQ(results.at(ready).state, RuntimeProcessState::SUCCEEDED);
+        const auto persistence = builder.GetRuntimeNodeKeys().at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope});
+        EXPECT_EQ(results.at(persistence).state, RuntimeProcessState::SUCCEEDED);
     }
     ExpectNoUnifiedMarkers();
 }
 
-TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotWithoutWritingMarkers)
+TEST_F(UnifiedPipelinePlanUTest, FailedDeviceWorkReleasesSingleSlotWithoutWritingMarkers)
 {
     MOCKER_CPP(&Domain::Environment::Context::Load).expects(once()).will(returnValue(true));
     MOCKER_CPP(&Domain::KernelParserWorker::Run).expects(once()).will(returnValue(ANALYSIS_OK));
@@ -423,7 +548,7 @@ TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotWithoutWrit
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(StepTraceRequest(), graph));
     const auto& keys = builder.GetRuntimeNodeKeys();
-    const auto failed = keys.at({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_0"});
+    const auto failed = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_0"});
     const auto next = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Init", "device_1"});
     // Make device_0 acquire the only slot first, without requiring its success for device_1.
     graph.at(next).completionDependence = {failed};
@@ -431,7 +556,7 @@ TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotWithoutWrit
     for (auto& node : graph)
     {
         const auto name = node.second.processName;
-        if (node.second.scope.find("device_") != 0 || name == "Device.Init" || name == "Device.Ready")
+        if (node.second.scope.find("device_") != 0 || name == "Device.Init")
         {
             continue;
         }
@@ -454,9 +579,9 @@ TEST_F(UnifiedPipelinePlanUTest, BlockedDeviceReadyReleasesSingleSlotWithoutWrit
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     EXPECT_EQ(persisted.load(), 1U);
-    EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", "device_0"})).state,
-              RuntimeProcessState::BLOCKED);
-    EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", "device_1"})).state,
+    EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_0"})).state,
+              RuntimeProcessState::FAILED);
+    EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_1"})).state,
               RuntimeProcessState::SUCCEEDED);
     EXPECT_EQ(results.at(keys.at({TopoNodeStage::FLOW_CONTROL, "Pipeline.Done", "profile"})).state,
               RuntimeProcessState::SUCCEEDED);
@@ -482,9 +607,9 @@ TEST_F(UnifiedPipelinePlanUTest, RequestBuildIncludesParsingAndExportsWithoutExe
     EXPECT_EQ(keys.count({TopoNodeStage::HOST_PROCESSING, "HostC", "host"}), 1U);
     for (const auto& scope : {"device_0", "device_1"})
     {
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}), 1U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 1U);
     }
     EXPECT_EQ(keys.count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
     EXPECT_EQ(TopoNodeRegistry::GetDefinitions().size(), registrationCount);
@@ -507,6 +632,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExistingDataExportUsesSameBuilderWithoutParsing
     {
         EXPECT_NE(node.first.stage, TopoNodeStage::HOST_PROCESSING);
         EXPECT_NE(node.first.stage, TopoNodeStage::DEVICE_PROCESSING);
+        EXPECT_NE(node.first.stage, TopoNodeStage::DEVICE_PERSISTENCE);
         EXPECT_NE(node.first.stage, TopoNodeStage::DATABASE_PERSISTENCE);
     }
     EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
@@ -607,7 +733,7 @@ TEST_F(UnifiedPipelinePlanUTest, DatabaseSelectionDoesNotDependOnReportPath)
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite"));
 }
 
-TEST_F(UnifiedPipelinePlanUTest, SummaryWithoutReportsDoesNotAddDatabaseOrUnrelatedDeviceOperations)
+TEST_F(UnifiedPipelinePlanUTest, SummaryWithoutReportsIncludesDevicePersistenceWithoutAddingDatabase)
 {
     TopoBuildContext context;
     TopoNodeCollection definitions;
@@ -622,8 +748,8 @@ TEST_F(UnifiedPipelinePlanUTest, SummaryWithoutReportsDoesNotAddDatabaseOrUnrela
     }
     for (const auto& scope : {"device_0", "device_1"})
     {
-        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}), 1U);
-        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", scope}), 0U);
+        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}), 1U);
+        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", scope}), 1U);
     }
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite"));
 }
@@ -725,14 +851,14 @@ TEST_F(UnifiedPipelinePlanUTest, ExportManagerRunKeepsPlannedSummaryAndExistingD
         if (stage == static_cast<uint8_t>(TopoNodeStage::DEVICE_PROCESSING))
         {
             ++deviceNodes;
-            EXPECT_TRUE(node.at("name") == "Device.Init" || node.at("name") == "Device.Ready");
+            EXPECT_EQ(node.at("name"), "Device.Init");
         }
         EXPECT_NE(stage, static_cast<uint8_t>(TopoNodeStage::DATABASE_PERSISTENCE));
         summaryFound = summaryFound || stage == static_cast<uint8_t>(TopoNodeStage::SUMMARY_GENERATION);
     }
     EXPECT_TRUE(summaryFound);
     EXPECT_EQ(hostNodes, 1U);
-    EXPECT_EQ(deviceNodes, 4U);
+    EXPECT_EQ(deviceNodes, 2U);
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
     EXPECT_FALSE(File::Exist(root + "/.unified.incomplete"));
     EXPECT_FALSE(File::Exist(root + "/host/sqlite/.unified.incomplete"));
@@ -1174,6 +1300,18 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndSessions
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.BuildExport(context, roots, graph));
     EXPECT_FALSE(File::Exist(context.outputPath));
+    // Export also drives the complete device persistence chain; this case only judges the prepared
+    // environment and sessions, so let device work succeed without real device raw data.
+    for (auto& node : graph)
+    {
+        if (node.second.scope.find("device_") == 0)
+        {
+            node.second.creator = []() -> std::unique_ptr<Process>
+            {
+                return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; }));
+            };
+        }
+    }
     EXPECT_TRUE(ExecuteTopoGraph(builder, graph, root));
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
@@ -1189,9 +1327,9 @@ TEST_F(UnifiedPipelinePlanUTest, ExportEntryBuildDiscoversHostAndAllDeviceScopes
     for (const auto& scope : {"device_0", "device_1"})
     {
         EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TsTrackParser", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}), 1U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 1U);
     }
     EXPECT_EQ(keys.count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
     for (const auto& node : keys)
@@ -1321,9 +1459,9 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildExtendsPreparedRootsWithoutSelecting
     EXPECT_EQ(keys.count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
     for (const auto& scope : {"device_0", "device_1"})
     {
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}), 1U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 0U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 1U);
     }
     for (const auto& node : keys)
     {
@@ -1436,6 +1574,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExplicitHostParseStillRunsWhenExistingDatabaseS
     {
         EXPECT_NE(node.first.stage, TopoNodeStage::DATABASE_PERSISTENCE);
         EXPECT_NE(node.first.stage, TopoNodeStage::DEVICE_PROCESSING);
+        EXPECT_NE(node.first.stage, TopoNodeStage::DEVICE_PERSISTENCE);
     }
     ASSERT_TRUE(ExecuteTopoGraph(builder, graph, root));
     EXPECT_FALSE(File::Exist(root + "/host/sqlite/.unified.complete"));
@@ -1452,7 +1591,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportEntryBuildSupportsProfilesWithoutHost)
     {
         EXPECT_NE(node.first.stage, TopoNodeStage::HOST_PROCESSING);
     }
-    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_0"}),
+    EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_0"}),
               1U);
 }
 
@@ -1520,7 +1659,12 @@ TEST_F(UnifiedPipelinePlanUTest, RequiredMissingProducerFailsBeforeAnyWrites)
     TopoBuildContext context;
     TopoNodeCollection definitions;
     std::vector<TopoNodeId> roots;
-    EXPECT_FALSE(PlanUnifiedPipeline(request, context, definitions, roots));
+    ASSERT_TRUE(PlanUnifiedPipeline(request, context, definitions, roots));
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    EXPECT_FALSE(builder.Build(context, roots, graph, &definitions));
+    EXPECT_TRUE(graph.empty());
+    EXPECT_TRUE(builder.GetRuntimeNodeKeys().empty());
     EXPECT_FALSE(File::Exist(File::PathJoin({root, "device_0", "sqlite"})));
     EXPECT_FALSE(File::Exist(File::PathJoin({root, "host", "sqlite"})));
 }
@@ -1535,12 +1679,15 @@ TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesAllSupportedDeviceOperations)
     ASSERT_TRUE(Build(Request(3), context, definitions, roots, graph, builder));
     for (const auto& scope : {"device_0", "device_1"}) {
         EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 1U);
-        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}), 1U);
-        for (const auto& name : {"StarsSocProfileParser", "ChipTransPersistence", "InterSocPersistence", "SioPersistence"})
+        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}), 1U);
+        for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "StarsSocProfileParser"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "ChipTransPersistence"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "InterSocPersistence"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "SioPersistence")})
         {
-            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, name, scope}), 1U);
+            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({id.stage, id.name, scope}), 1U);
         }
-        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "LowPowerPersistence", scope}), 0U);
+        EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "LowPowerPersistence", scope}), 0U);
     }
     for (const auto& node : graph) { EXPECT_NE(node.second.scope, "export"); }
 }
@@ -1622,7 +1769,7 @@ TEST_F(UnifiedPipelinePlanUTest, LegacyUnifiedMarkersDoNotBlockExecutionOrGetMod
     {
         const auto name = node.second.processName;
         const bool deviceBusiness = node.second.scope.find("device_") == 0 &&
-                                    name != "Device.Init" && name != "Device.Ready";
+                                    name != "Device.Init";
         const bool exportBusiness = name == "STEP_TRACE";
         if (deviceBusiness || exportBusiness)
         {
@@ -1682,8 +1829,8 @@ TEST_F(UnifiedPipelinePlanUTest, MixedDeviceDatabasesKeepPerScopeReuseWithoutMar
     EXPECT_TRUE(context.scopeReuse.at("device_0"));
     EXPECT_FALSE(context.scopeReuse.at("device_1"));
     const auto& keys = builder.GetRuntimeNodeKeys();
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_0"}), 0U);
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", "device_1"}), 1U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_0"}), 0U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_1"}), 1U);
     ExpectNoUnifiedMarkers();
 }
 
@@ -1716,8 +1863,7 @@ TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsReuseDatabasesWithoutDro
     for (auto& entry : TopoNodeRegistry::MutableDefinitions())
     {
         auto& definition = entry.second;
-        if (definition.scopeKind != TopoScopeKind::DEVICE || definition.opensDeviceScope ||
-            definition.closesDeviceScope)
+        if (definition.scopeKind != TopoScopeKind::DEVICE || definition.opensDeviceScope)
         {
             continue;
         }
@@ -1758,7 +1904,7 @@ TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsReuseDatabasesWithoutDro
         ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
         for (const auto& scope : {"device_0", "device_1"}) {
             EXPECT_EQ(context.scopeReuse.at(scope), run != 0);
-            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope}),
+            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope}),
                       run == 0 ? 1U : 0U);
             const auto path = context.scopePaths.at(scope);
             ASSERT_TRUE(context.scopeInventories.at(scope)->Inject(std::make_shared<std::string>(path)));
@@ -1795,15 +1941,18 @@ TEST_F(UnifiedPipelinePlanUTest, RepeatedSelectedExportsReuseDatabasesWithoutDro
 TEST(UnifiedDeviceRegistrationUTest, CentralConfigurationUsesNativeTopoDefinitions)
 {
     size_t businessNodes = 0;
+    size_t persistenceNodes = 0;
     for (const auto& entry : TopoNodeRegistry::GetDefinitions())
     {
         const auto& definition = entry.second;
-        if (definition.scopeKind != TopoScopeKind::DEVICE || definition.opensDeviceScope ||
-            definition.closesDeviceScope)
+        if (definition.scopeKind != TopoScopeKind::DEVICE || definition.opensDeviceScope)
         {
             continue;
         }
         ++businessNodes;
+        const bool persistence = definition.id.name.find("Persistence") != std::string::npos;
+        EXPECT_EQ(definition.id.stage, persistence ? TopoNodeStage::DEVICE_PERSISTENCE : TopoNodeStage::DEVICE_PROCESSING);
+        persistenceNodes += persistence;
         EXPECT_TRUE(definition.id.scope.empty());
         EXPECT_TRUE(static_cast<bool>(definition.creatorFactory));
         const auto& dependencies = definition.processDependencies;
@@ -1811,16 +1960,17 @@ TEST(UnifiedDeviceRegistrationUTest, CentralConfigurationUsesNativeTopoDefinitio
                   dependencies.end());
     }
     EXPECT_EQ(businessNodes, 48U);
+    EXPECT_EQ(persistenceNodes, 21U);
     const auto* parser = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser"));
     ASSERT_NE(parser, nullptr);
     EXPECT_NE(std::find(parser->processDependencies.begin(), parser->processDependencies.end(),
                         TOPO_NODE(DEVICE_PROCESSING, "LoadStreamExpandSpec")),
               parser->processDependencies.end());
-    const auto* trace = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "TracePersistence"));
+    const auto* trace = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence"));
     ASSERT_NE(trace, nullptr);
     EXPECT_NE(std::find(trace->processDependencies.begin(), trace->processDependencies.end(),
                         TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess")), trace->processDependencies.end());
-    const auto* ccu = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence"));
+    const auto* ccu = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence"));
     ASSERT_NE(ccu, nullptr);
     EXPECT_EQ(ccu->chipIds, (std::vector<uint32_t>{CHIP_V6_1_0, CHIP_V6_1_1}));
 }
@@ -1839,24 +1989,19 @@ TEST_F(UnifiedPipelinePlanUTest, MissingOptionalQosDoesNotFailFullParseOrHoldDev
     EXPECT_TRUE(graph.at(final).runOnDependencyFailure);
     for (const auto& scope : {"device_0", "device_1"})
     {
-        const auto qos = keys.at({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", scope});
-        const auto required = keys.at({TopoNodeStage::DEVICE_PROCESSING, "TracePersistence", scope});
-        const auto ready = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope});
+        const auto qos = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", scope});
+        const auto required = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope});
         EXPECT_FALSE(graph.at(qos).mandatory);
         EXPECT_TRUE(graph.at(required).mandatory);
-        const auto& successDependencies = graph.at(ready).processDependence;
-        const auto& completionDependencies = graph.at(ready).completionDependence;
-        EXPECT_EQ(std::find(successDependencies.begin(), successDependencies.end(), qos), successDependencies.end());
-        EXPECT_NE(std::find(completionDependencies.begin(), completionDependencies.end(), qos), completionDependencies.end());
-        EXPECT_NE(std::find(successDependencies.begin(), successDependencies.end(), required), successDependencies.end());
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope}), 0U);
     }
-    const auto firstQos = keys.at({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", "device_0"});
+    const auto firstQos = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", "device_0"});
     const auto nextInit = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Init", "device_1"});
     graph.at(nextInit).completionDependence = {firstQos};
     for (auto& node : graph)
     {
         const auto& name = node.second.processName;
-        if (node.second.scope.find("device_") != 0 || name == "Device.Init" || name == "Device.Ready" ||
+        if (node.second.scope.find("device_") != 0 || name == "Device.Init" ||
             name == "QosPersistence")
         {
             continue;
@@ -1874,9 +2019,9 @@ TEST_F(UnifiedPipelinePlanUTest, MissingOptionalQosDoesNotFailFullParseOrHoldDev
     const auto results = executor.GetRuntimeResults();
     for (const auto& scope : {"device_0", "device_1"})
     {
-        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", scope})).state,
+        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", scope})).state,
                   RuntimeProcessState::FAILED);
-        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Ready", scope})).state,
+        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", scope})).state,
                   RuntimeProcessState::SUCCEEDED);
         EXPECT_FALSE(File::Exist(root + "/" + scope + "/sqlite/.unified.complete"));
         EXPECT_FALSE(File::Exist(root + "/" + scope + "/sqlite/.unified.incomplete"));
@@ -1927,9 +2072,12 @@ TEST_F(UnifiedPipelinePlanUTest, MigratedRegistrationKeepsUpstreamV6ReadersAndSt
     const auto& keys = builder.GetRuntimeNodeKeys();
     for (const auto& scope : {"device_0", "device_1"})
     {
-        for (const auto& name : {"NpuMemParser", "NpuModuleMemParser", "NpuMemPersistence", "NpuModuleMemPersistence"})
+        for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "NpuMemParser"),
+                              TOPO_NODE(DEVICE_PROCESSING, "NpuModuleMemParser"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "NpuMemPersistence"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "NpuModuleMemPersistence")})
         {
-            EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, name, scope}), 1U);
+            EXPECT_EQ(keys.count({id.stage, id.name, scope}), 1U);
         }
         const auto association = keys.at({TopoNodeStage::DEVICE_PROCESSING, "AscendTaskAssociation", scope});
         const auto aicpu = keys.at({TopoNodeStage::DEVICE_PROCESSING, "AicpuParser", scope});
@@ -1938,20 +2086,21 @@ TEST_F(UnifiedPipelinePlanUTest, MigratedRegistrationKeepsUpstreamV6ReadersAndSt
         const auto& inputs = graph.at(association).paramTypes;
         EXPECT_NE(std::find(inputs.begin(), inputs.end(), typeid(Domain::DeviceStreamInfo)), inputs.end());
     }
-    const auto acc = keys.at({TopoNodeStage::DEVICE_PROCESSING, "AccPmuPersistence", "device_1"});
+    const auto acc = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "AccPmuPersistence", "device_1"});
     const auto log = keys.at({TopoNodeStage::DEVICE_PROCESSING, "StarsSocParserV6", "device_1"});
     const auto profile = keys.at({TopoNodeStage::DEVICE_PROCESSING, "StarsSocProfileParser", "device_1"});
     const auto& dependencies = graph.at(acc).processDependence;
     EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), log), dependencies.end());
     EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), profile), dependencies.end());
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "InterSocPersistence", "device_1"}), 1U);
-    for (const auto& name : {"FreqParser", "FreqPersistence"})
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "InterSocPersistence", "device_1"}), 1U);
+    for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "FreqParser"),
+                          TOPO_NODE(DEVICE_PERSISTENCE, "FreqPersistence")})
     {
-        const auto* definition = TopoNodeRegistry::Find({TopoNodeStage::DEVICE_PROCESSING, name});
+        const auto* definition = TopoNodeRegistry::Find({id.stage, id.name});
         ASSERT_NE(definition, nullptr);
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_1));
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, name, "device_1"}), 1U);
+        EXPECT_EQ(keys.count({id.stage, id.name, "device_1"}), 1U);
     }
 }
 
@@ -1969,9 +2118,9 @@ TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesLlcAndPcieProducersOnSupported
             const std::string parserName = std::string(prefix) + "Parser";
             const std::string persistenceName = std::string(prefix) + "Persistence";
             ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, parserName, scope}), 1U);
-            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, persistenceName, scope}), 1U);
+            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, persistenceName, scope}), 1U);
             const auto parser = keys.at({TopoNodeStage::DEVICE_PROCESSING, parserName, scope});
-            const auto persistence = keys.at({TopoNodeStage::DEVICE_PROCESSING, persistenceName, scope});
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, persistenceName, scope});
             const auto init = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Init", scope});
             const auto& parserDependencies = graph.at(parser).processDependence;
             EXPECT_NE(std::find(parserDependencies.begin(), parserDependencies.end(), init), parserDependencies.end());
@@ -1987,7 +2136,7 @@ TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesLlcAndPcieProducersOnSupported
     }
 }
 
-TEST_F(UnifiedPipelinePlanUTest, SelectedLlcAndPcieTimelineWaitsForNativePersistence)
+TEST_F(UnifiedPipelinePlanUTest, SelectedLlcAndPcieTimelineIncludesFullDevicePersistence)
 {
     FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());
     for (const auto& report : {"llc", "pcie"})
@@ -2004,20 +2153,23 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedLlcAndPcieTimelineWaitsForNativePersist
         const auto processor = keys.at({TopoNodeStage::DATA_PROCESSING, llc ? "LLC" : "PCIE", "export"});
         for (const auto& scope : {"device_0", "device_1"})
         {
-            const auto persistence = keys.at({TopoNodeStage::DEVICE_PROCESSING,
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE,
                                               llc ? "LlcPersistence" : "PciePersistence", scope});
             const auto& dependencies = graph.at(processor).processDependence;
             EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), persistence), dependencies.end());
-            EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, llc ? "PcieParser" : "LlcParser", scope}), 0U);
+            EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, llc ? "PcieParser" : "LlcParser", scope}), 1U);
         }
     }
 }
 
 TEST_F(UnifiedPipelinePlanUTest, LlcAndPcieNativeOwnershipKeepsChipBoundary)
 {
-    for (const auto& name : {"LlcParser", "LlcPersistence", "PcieParser", "PciePersistence"})
+    for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "LlcParser"),
+                          TOPO_NODE(DEVICE_PERSISTENCE, "LlcPersistence"),
+                          TOPO_NODE(DEVICE_PROCESSING, "PcieParser"),
+                          TOPO_NODE(DEVICE_PERSISTENCE, "PciePersistence")})
     {
-        const auto* definition = TopoNodeRegistry::Find({TopoNodeStage::DEVICE_PROCESSING, name});
+        const auto* definition = TopoNodeRegistry::Find({id.stage, id.name});
         ASSERT_NE(definition, nullptr);
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V4_1_0));
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
@@ -2043,23 +2195,23 @@ TEST_F(UnifiedPipelinePlanUTest, FullParseSelectsChipSpecificDefinitions)
     {
         EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "LogModeling", scope}), 0U);
         ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "LogModelingV6", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "CcuPersistence", scope}), 1U);
+        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "CcuPersistence", scope}), 1U);
         const auto load = keys.at({TopoNodeStage::DEVICE_PROCESSING, "LoadHostData", scope});
         const auto model = keys.at({TopoNodeStage::DEVICE_PROCESSING, "LogModelingV6", scope});
         const auto& dependencies = graph.at(load).processDependence;
         EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), model), dependencies.end());
     }
     EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "StarsSocProfileParser", "device_0"}), 1U);
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "LowPowerPersistence", "device_0"}), 1U);
-    ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", "device_0"}), 1U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "LowPowerPersistence", "device_0"}), 1U);
+    ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", "device_0"}), 1U);
     EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "QosParser", "device_0"}), 0U);
-    const auto qos = keys.at({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", "device_0"});
+    const auto qos = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", "device_0"});
     const auto profile = keys.at({TopoNodeStage::DEVICE_PROCESSING, "StarsSocProfileParser", "device_0"});
     const auto& qosDependencies = graph.at(qos).processDependence;
     EXPECT_NE(std::find(qosDependencies.begin(), qosDependencies.end(), profile), qosDependencies.end());
     EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "StarsSocProfileParser", "device_1"}), 0U);
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "LowPowerPersistence", "device_1"}), 0U);
-    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "QosPersistence", "device_1"}), 0U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "LowPowerPersistence", "device_1"}), 0U);
+    EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "QosPersistence", "device_1"}), 0U);
 }
 
 TEST_F(UnifiedPipelinePlanUTest, SelectedTaskAndAicpuIncludeTaskInitializationWithoutLogModeling)
@@ -2160,13 +2312,18 @@ TEST_F(UnifiedPipelinePlanUTest, SelectedV6TsTrackProducerUsesNativeTopology)
         RuntimeProcessCollection graph;
         TopoGraphBuilder builder;
         ASSERT_TRUE(builder.Build(request, graph));
-        for (const auto& name : {"TsTrackParser", "StepTraceProcess", "TracePersistence"})
+        for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser"),
+                              TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence")})
         {
-            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({TopoNodeStage::DEVICE_PROCESSING, name, "device_0"}), 1U);
+            EXPECT_EQ(builder.GetRuntimeNodeKeys().count({id.stage, id.name, "device_0"}), 1U);
         }
-        for (const auto& name : {"StepTraceProcess", "StepTracePersistence", "TracePersistence", "TsTrackPersistence"})
+        for (const auto& id : {TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "StepTracePersistence"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence"),
+                              TOPO_NODE(DEVICE_PERSISTENCE, "TsTrackPersistence")})
         {
-            const auto* definition = TopoNodeRegistry::Find({TopoNodeStage::DEVICE_PROCESSING, name});
+            const auto* definition = TopoNodeRegistry::Find({id.stage, id.name});
             ASSERT_NE(definition, nullptr);
             EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, chip));
         }
@@ -2211,6 +2368,18 @@ TEST_F(UnifiedPipelinePlanUTest, FusionTaskWithRawDataAndMissingIntermediateUses
         EXPECT_FALSE(File::Exist(File::PathJoin({root, scope, "sqlite", "fusion_task.db"})));
     }
     // Keep the real Processor and Assembler: missing optional data must not fail the export.
+    // Device persistence is not under test here; it runs on both scopes only because export requires
+    // the complete intermediate databases, so replace it with no-op implementations.
+    for (auto& node : graph)
+    {
+        if (node.second.scope.find("device_") == 0)
+        {
+            node.second.creator = []() -> std::unique_ptr<Process>
+            {
+                return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; }));
+            };
+        }
+    }
     EXPECT_TRUE(ExecuteTopoGraph(builder, graph, root));
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
     EXPECT_TRUE(File::GetFilesWithPrefix(root + "/mindstudio_profiler_output", "msprof_").empty());

@@ -375,7 +375,7 @@ bool BindDeviceDefinitions(const TopoBuildContext& context, TopoNodeCollection& 
         {
             const auto& registered = item.second;
             if (registered.scopeKind != TopoScopeKind::DEVICE || registered.opensDeviceScope ||
-                registered.closesDeviceScope || !TopoNodeRegistry::SupportsChip(registered, scope.second))
+                !TopoNodeRegistry::SupportsChip(registered, scope.second))
             {
                 continue;
             }
@@ -392,54 +392,11 @@ bool BindDeviceDefinitions(const TopoBuildContext& context, TopoNodeCollection& 
     return true;
 }
 
-bool AddDeviceCompletion(const TopoBuildContext& context, TopoNodeCollection& definitions,
-                         const std::vector<TopoNodeId>& selectedRoots, std::vector<TopoNodeId>& done)
-{
-    RuntimeProcessCollection selected;
-    TopoGraphBuilder builder;
-    if (!builder.Build(context, selectedRoots, selected, &definitions))
-    {
-        return false;
-    }
-    struct DeviceOperations
-    {
-        std::vector<TopoNodeId> requiredNodes;
-        std::vector<TopoNodeId> optionalNodes;
-    };
-    std::map<std::string, DeviceOperations> operations;
-    for (const auto& node : builder.GetRuntimeNodeKeys())
-    {
-        if (node.first.stage != TopoNodeStage::DEVICE_PROCESSING)
-        {
-            continue;
-        }
-        const auto process = selected.find(node.second);
-        if (process == selected.end())
-        {
-            ERROR("Missing selected Device process, scope: %, node: %, key: %.", node.first.scope, node.first.name,
-                  node.second);
-            return false;
-        }
-        auto& operation = operations[node.first.scope];
-        (process->second.mandatory ? operation.requiredNodes : operation.optionalNodes).push_back(node.first);
-    }
-    for (auto& scope : operations)
-    {
-        const auto id = DeviceNode("Device.Ready", scope.first);
-        AddCallback(definitions, id, TopoScopeKind::DEVICE, std::move(scope.second.requiredNodes), [] { return true; });
-        // Wait for optional work without promoting its failure to a required completion failure.
-        auto& ready = definitions.at(id);
-        ready.completionDependencies = std::move(scope.second.optionalNodes);
-        ready.closesDeviceScope = true;
-        done.push_back(id);
-    }
-    return true;
-}
-
 bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, TopoNodeCollection& definitions,
                   std::vector<TopoNodeId>& roots)
 {
     definitions.clear();
+    context.selectedExportRoots.clear();
     Bind(context, "profile", std::make_shared<Infra::Context>());
     Bind(context, "host", std::make_shared<Infra::Context>());
     Bind(context, "export", std::make_shared<Infra::Context>());
@@ -489,19 +446,16 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
             done.push_back(DeviceNode("Device.Init", scope.first));
             continue;
         }
-        if (exporting)
-        {
-            continue;
-        }
         bool supported = false;
         for (const auto& item : definitions)
         {
-            if (item.first.scope == scope.first && item.second.scopeKind == TopoScopeKind::DEVICE)
+            if (item.first.scope == scope.first && item.first.stage == TopoNodeStage::DEVICE_PERSISTENCE)
             {
                 supported = true;
                 done.push_back(item.first);
             }
         }
+
         if (!supported)
         {
             ERROR("No supported Device operations, scope: %, chip: %, device path: %.", scope.first, scope.second,
@@ -524,6 +478,7 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
         {
             id.scope = "export";
         }
+        context.selectedExportRoots = roots;
         // Copy immutable export definitions into this request's overlay; shared processors remain singletons in export
         // scope.
         for (const auto& item : TopoNodeRegistry::GetDefinitions())
@@ -545,15 +500,9 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
             definitions.emplace(definition.id, std::move(definition));
         }
     }
-    auto selectedRoots = roots;
-    selectedRoots.insert(selectedRoots.end(), done.begin(), done.end());
-    if (!AddDeviceCompletion(context, definitions, selectedRoots, done))
-    {
-        return false;
-    }
     if (exporting)
     {
-        done.insert(done.end(), roots.begin(), roots.end());
+        done.insert(done.end(), context.selectedExportRoots.begin(), context.selectedExportRoots.end());
         const auto finalize = TopoNodeId{TopoNodeStage::FLOW_CONTROL, "Export.Finalize", "export"};
         AddCallback(definitions, finalize, TopoScopeKind::EXPORT, done, [] { return true; });
         done = {finalize};
@@ -561,7 +510,7 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
     const auto final = Control("Pipeline.Done");
     // Observe completion after dependency failures; ProcessControl still checks every required node's outcome.
     AddCallback(definitions, final, TopoScopeKind::PROFILE, done, [] { return true; }, true);
-    roots.push_back(final);
+    roots = {final};
     return true;
 }
 

@@ -86,38 +86,38 @@ REGISTER_PROCESSOR(DPUProcessor, PROCESSOR_NAME_DPU, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR_WITH_DATA(CommunicationInfoProcessor, PROCESSOR_NAME_COMMUNICATION, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HASH),
-                                       TOPO_NODE(DEVICE_PROCESSING, "DeviceHcclPersistence")),
+                                       TOPO_NODE(DEVICE_PERSISTENCE, "DeviceHcclPersistence")),
                              GeHashMap);
 
 REGISTER_PROCESSOR(CCUMissionProcessor, PROCESSOR_NAME_CCU_MISSION, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "CcuPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "CcuPersistence")));
 
 REGISTER_PROCESSOR_WITH_DATA(ComputeTaskInfoProcessor, PROCESSOR_NAME_COMPUTE_TASK_INFO, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HASH)), GeHashMap);
 
 REGISTER_PROCESSOR(KfcTaskProcessor, PROCESSOR_NAME_KFC_TASK, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence")));
 
 REGISTER_PROCESSOR(MsprofTxDeviceProcessor, PROCESSOR_NAME_DEVICE_TX, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "TsTrackPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "TsTrackPersistence")));
 
 REGISTER_PROCESSOR(MsprofTxHostProcessor, PROCESSOR_NAME_MSTX, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR(StepTraceProcessor, PROCESSOR_NAME_STEP_TRACE, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "TracePersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence")));
 
 REGISTER_PROCESSOR(TaskProcessor, PROCESSOR_NAME_TASK, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AscendTaskPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")));
 
 REGISTER_PROCESSOR(AccPmuProcessor, PROCESSOR_NAME_ACC_PMU, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AccPmuPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AccPmuPersistence")));
 
 REGISTER_PROCESSOR(AicoreFreqProcessor, PROCESSOR_NAME_AICORE_FREQ, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "FreqPersistence"),
-                             TOPO_NODE(DEVICE_PROCESSING, "LpmInfoPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "FreqPersistence"),
+                             TOPO_NODE(DEVICE_PERSISTENCE, "LpmInfoPersistence")));
 
 REGISTER_PROCESSOR(ChipTransProcessor, PROCESSOR_NAME_CHIP_TRAINS, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "ChipTransPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "ChipTransPersistence")));
 
 REGISTER_PROCESSOR(DDRProcessor, PROCESSOR_NAME_DDR, true, TOPO_DEPS());
 
@@ -145,25 +145,25 @@ REGISTER_PROCESSOR_WITH_DATA(HostPlatformProcessor, PROCESSOR_NAME_HOST_PLATFORM
                              std::vector<HostCoreThreadData>, std::vector<HostCoreProcessData>,
                              std::vector<HostCoreMetricDescData>, std::vector<HostCoreMetricData>);
 
-REGISTER_PROCESSOR(LLcProcessor, PROCESSOR_NAME_LLC, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LlcPersistence")));
+REGISTER_PROCESSOR(LLcProcessor, PROCESSOR_NAME_LLC, true, TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "LlcPersistence")));
 
 REGISTER_PROCESSOR(NpuMemProcessor, PROCESSOR_NAME_NPU_MEM, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuMemPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "NpuMemPersistence")));
 
 REGISTER_PROCESSOR(PCIeProcessor, PROCESSOR_NAME_PCIE, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "PciePersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "PciePersistence")));
 
-REGISTER_PROCESSOR(SioProcessor, PROCESSOR_NAME_SIO, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "SioPersistence")));
+REGISTER_PROCESSOR(SioProcessor, PROCESSOR_NAME_SIO, true, TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "SioPersistence")));
 
 REGISTER_PROCESSOR(SocBandwidthProcessor, PROCESSOR_NAME_SOC, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "InterSocPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "InterSocPersistence")));
 
 REGISTER_PROCESSOR(PageFaultProcessor, PROCESSOR_NAME_PAGE_FAULT, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR_WITH_DATA(AicpuProcessor, PROCESSOR_NAME_AICPU, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
                                        TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-                                       TOPO_NODE(DEVICE_PROCESSING, "AicpuPersistence")),
+                                       TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistence")),
                              std::vector<AscendTaskData>, std::vector<TaskInfoData>);
 
 REGISTER_PROCESSOR(NicTimelineProcessor, PROCESSOR_NAME_NIC_TIMELINE, true, TOPO_DEPS());
@@ -174,10 +174,10 @@ REGISTER_PROCESSOR(NicProcessor, PROCESSOR_NAME_NIC, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR(RoCEProcessor, PROCESSOR_NAME_ROCE, true, TOPO_DEPS());
 
-REGISTER_PROCESSOR(QosProcessor, PROCESSOR_NAME_QOS, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "QosPersistence")));
+REGISTER_PROCESSOR(QosProcessor, PROCESSOR_NAME_QOS, true, TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "QosPersistence")));
 
 REGISTER_PROCESSOR(MetricProcessor, PROCESSOR_PMU, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "MetricSummaryPersistence")));
 
 REGISTER_PROCESSOR(MemcpyInfoProcessor, PROCESSOR_NAME_MEMCPY_INFO, true, TOPO_DEPS());
 REGISTER_PROCESSOR(FtraceGenericEventProcessor, PROCESSOR_NAME_FTRACE_GENERIC_EVENT, true, TOPO_DEPS());
@@ -186,10 +186,10 @@ REGISTER_PROCESSOR_WITH_DATA(NpuOpMemProcessor, PROCESSOR_NAME_NPU_OP_MEM, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HASH)), GeHashMap);
 
 REGISTER_PROCESSOR(NpuModuleMemProcessor, PROCESSOR_NAME_NPU_MODULE_MEM, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "NpuModuleMemPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "NpuModuleMemPersistence")));
 
 REGISTER_PROCESSOR(UnifiedPmuProcessor, PROCESSOR_NAME_UNIFIED_PMU, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "MetricSummaryPersistence")));
 
 REGISTER_PROCESSOR(FusionOpProcessor, PROCESSOR_NAME_FUSION_OP, true, TOPO_DEPS());
 
@@ -198,7 +198,7 @@ REGISTER_PROCESSOR(FusionTaskProcessor, PROCESSOR_NAME_FUSION_TASK, true, TOPO_D
 REGISTER_PROCESSOR(ModelNameProcessor, PROCESSOR_NAME_MODEL_NAME, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR(HcclStatisticProcessor, PROCESSOR_NAME_COMM_STATISTIC, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "DeviceHcclPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "DeviceHcclPersistence")));
 
 REGISTER_PROCESSOR_WITH_DATA(TaskAssociationProcessor, PROCESSOR_NAME_TASK_ASSOCIATION, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
@@ -218,14 +218,14 @@ REGISTER_PROCESSOR_WITH_DATA(OverlapAnalysisProcessor, PROCESSOR_NAME_OVERLAP_AN
                              std::vector<AscendTaskData>, std::vector<TaskInfoData>, std::vector<CommunicationOpData>);
 
 REGISTER_PROCESSOR(LowPowerProcessor, PROCESSOR_NAME_LOW_POWER, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LowPowerPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "LowPowerPersistence")));
 
 REGISTER_PROCESSOR(BiuPerfProcessor, PROCESSOR_NAME_BIU_PERF, true, TOPO_DEPS());
 
-REGISTER_PROCESSOR(UbProcessor, PROCESSOR_NAME_UB, true, TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "UbPersistence")));
+REGISTER_PROCESSOR(UbProcessor, PROCESSOR_NAME_UB, true, TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "UbPersistence")));
 
 REGISTER_PROCESSOR(BlockDetailProcessor, PROCESSOR_NAME_BLOCK_DETAIL, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "MetricSummaryPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "MetricSummaryPersistence")));
 
 #undef REGISTER_PROCESSOR_WITH_DATA
 #undef REGISTER_PROCESSOR

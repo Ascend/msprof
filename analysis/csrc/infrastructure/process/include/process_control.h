@@ -66,6 +66,7 @@ struct ProcessControlOptions
     bool releaseUnusedData = true;
     // 0 selects min(10, hardware_concurrency()).
     uint32_t maxWorkerThreads = 0;
+    // A Device slot is held from its opening node until every node in the same scope has terminated.
     uint32_t maxActiveDevices = 0;
     FailureMode failureMode = FailureMode::STOP_ON_MANDATORY_FAILURE;
 };

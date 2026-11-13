@@ -63,7 +63,6 @@ bool RunSingleDevice(const std::string &devicePath, DeviceContext &context, Infr
     {
         const auto &definition = entry.second;
         if (definition.scopeKind == Application::TopoScopeKind::DEVICE && !definition.opensDeviceScope &&
-            !definition.closesDeviceScope &&
             Application::TopoNodeRegistry::SupportsChip(definition, context.GetChipID()))
         {
             auto id = definition.id;

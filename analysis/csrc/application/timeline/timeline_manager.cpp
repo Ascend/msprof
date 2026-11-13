@@ -200,11 +200,12 @@ TopoNodeCreatorFactory TimelineManager::CreateTimelinePostDump()
     };
 }
 
-std::vector<TopoNodeId> TimelineManager::ResolveSelectedTimelineNodes(const TopoBuildContext&,
+std::vector<TopoNodeId> TimelineManager::ResolveSelectedTimelineNodes(const TopoBuildContext& context,
                                                                       const std::vector<TopoNodeId>& roots)
 {
     std::vector<TopoNodeId> dependencies;
-    for (const auto& root : roots)
+    const auto& selectedRoots = context.selectedExportRoots.empty() ? roots : context.selectedExportRoots;
+    for (const auto& root : selectedRoots)
     {
         if (root.stage == TopoNodeStage::TIMELINE_EXPORT)
         {
