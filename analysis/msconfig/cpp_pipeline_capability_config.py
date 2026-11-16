@@ -126,8 +126,8 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.TS_TRACK.name,
         DataTag.AICPU_ADD_INFO.name,
         DataTag.LPM_INFO.name,
-        DataTag.LLC.name,
-        DataTag.PCIE.name,
+        # DataTag.LLC.name,  # LLC summary 尚未实现 C++ 导出，回退混合流程。
+        # DataTag.PCIE.name,  # PCIe summary 尚未实现 C++ 导出，回退混合流程。
         DataTag.QOS.name,
         DataTag.SOC_PROFILER.name,
         DataTag.NPU_MEM.name,
@@ -170,8 +170,8 @@ V6_DEVICE_TAGS = frozenset(
         DataTag.FREQ.name,
         DataTag.AICPU_ADD_INFO.name,
         DataTag.UB.name,
-        DataTag.LLC.name,
-        DataTag.PCIE.name,
+        # DataTag.LLC.name,  # LLC summary 尚未实现 C++ 导出，回退混合流程。
+        # DataTag.PCIE.name,  # PCIe summary 尚未实现 C++ 导出，回退混合流程。
         DataTag.CCU_MISSION.name,
         DataTag.CCU_CHANNEL.name,
         DataTag.SOC_PROFILER.name,
@@ -180,7 +180,6 @@ V6_DEVICE_TAGS = frozenset(
         DataTag.TS_TRACK.name,
     }
 )
-
 
 # 当前全 C 流程仅放行 V4/V6_1_0，其他芯片待对应 SO 能力交付后再补充注册。
 DEFAULT_CAPABILITY_REGISTRY = CapabilityRegistry(

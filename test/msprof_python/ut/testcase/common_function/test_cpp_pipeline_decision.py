@@ -91,7 +91,7 @@ class TestCppPipelineDecider(unittest.TestCase):
         self.assertTrue(result.can_run_in_cpp)
         self.assertEqual(result.issues, ())
 
-    def test_llc_and_pcie_are_supported_by_native_pipeline(self):
+    def test_llc_and_pcie_use_hybrid_flow_for_all_commands(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
             for tag in (DataTag.LLC, DataTag.PCIE):
                 for command, command_type, export_format in (
@@ -104,7 +104,8 @@ class TestCppPipelineDecider(unittest.TestCase):
                         request = replace(self.request, command=command, command_type=command_type,
                                           export_format=export_format)
                         result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
-                        self.assertTrue(result.can_run_in_cpp, result.issues)
+                        self.assertFalse(result.can_run_in_cpp, result.issues)
+                        self.assertIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
 
     def test_llc_and_pcie_do_not_enable_unsupported_chips(self):
         for chip in (ChipModel.CHIP_V3_3_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):

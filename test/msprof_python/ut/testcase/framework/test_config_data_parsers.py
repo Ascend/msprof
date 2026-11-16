@@ -195,7 +195,7 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingHBMData"))
         self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NetDevStatsParser"))
 
-    def test_llc_and_pcie_should_use_existing_device_scene_gates(self):
+    def test_llc_and_pcie_use_native_parser_with_device_scene_gates(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
             for so_valid, all_export, version, task in (
                     (True, True, True, True), (False, True, True, True),
@@ -210,8 +210,9 @@ class TestConfigDataParsers(unittest.TestCase):
                         mock.patch.object(ChipManager(), "chip_id", chip):
                     names = self._parser_names(ConfigDataParsers.get_parsers(
                         ConfigManager.DATA_PARSERS, str(chip.value), task))
-                    for name in ("NonMiniLLCParser", "ParsingPcieData"):
-                        self.assertEqual(name in names, not (so_valid and all_export and version and task))
+                    expected_python = not (so_valid and all_export and version and task)
+                    self.assertEqual("NonMiniLLCParser" in names, expected_python)
+                    self.assertEqual("ParsingPcieData" in names, expected_python)
 
     def test_get_parsers_should_keep_llc_and_pcie_on_unsupported_chips(self):
         for chip in (ChipModel.CHIP_V3_3_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
