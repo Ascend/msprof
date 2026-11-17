@@ -78,8 +78,7 @@ REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSO
                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_AICPU)), nullptr);
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_AICPU), std::vector<AicpuSummaryData>,
                                   std::vector<AicpuDpData>, std::vector<AicpuMiData>);
-// 暂不启用 HBM summary；启用时同步恢复 SummaryManager 和 SummaryFactory 中的条目。
-// REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_HBM, std::vector<HbmSummaryData>, PROCESSOR_NAME_HBM);
+REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_HBM, std::vector<HbmSummaryData>, PROCESSOR_NAME_HBM);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_FUSION_OP), true,
                             SummaryManager::CreateSummaryAssembler(PROCESSOR_NAME_FUSION_OP),

@@ -443,16 +443,17 @@ TEST_F(HbmNetDevParserUTest, ShouldCalculateBandwidthForOneNanosecondDuration)
                       {{10000.0, 0.0, 0, "read"}, {10001.0, 1000000000.0, 0, "read"}});
 }
 
-TEST_F(HbmNetDevParserUTest, ShouldRejectInvalidHbmEventCountAfterPreservingOriginalRows)
+TEST_F(HbmNetDevParserUTest, ShouldRejectInvalidHbmEventCountWithoutChangingBandwidth)
 {
     auto record = CreateHbmV2Record(10000, 88, 0, 2);
     ASSERT_TRUE(WriteBin(record, DATA_DIR, "hbm.data.0.slice_0"));
     HbmParser parser;
     HbmPersistence persistence;
     Infra::DataInventory inventory;
-    const auto context = CreateContext("2.0", "read,write,invalid");
-    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
-    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, CreateContext("2.0", "read")));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, CreateContext("2.0", "read")));
+    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, CreateContext("2.0", "read,write,invalid")));
+
     Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "hbm.db"}));
     std::vector<std::tuple<uint64_t>> originalCount;
     std::vector<std::tuple<uint64_t>> bandwidthCount;
@@ -460,20 +461,140 @@ TEST_F(HbmNetDevParserUTest, ShouldRejectInvalidHbmEventCountAfterPreservingOrig
     ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMbwData", bandwidthCount));
     ASSERT_EQ(1UL, originalCount.size());
     ASSERT_EQ(1UL, bandwidthCount.size());
-    EXPECT_EQ(1U, std::get<0>(originalCount[0]));
-    EXPECT_EQ(0U, std::get<0>(bandwidthCount[0]));
+    // SaveData appends the raw row before the event configuration is checked.
+    EXPECT_EQ(2U, std::get<0>(originalCount[0]));
+    EXPECT_EQ(1U, std::get<0>(bandwidthCount[0]));
 }
 
-TEST_F(HbmNetDevParserUTest, ShouldRejectHbmCountOutsideSqliteSignedIntegerRange)
+TEST_F(HbmNetDevParserUTest, ShouldAppendHbmRowsWhenRawDataChanges)
 {
-    std::vector<uint8_t> record = CreateHbmV1Record(10, UINT64_MAX, 0, 0);
+    auto record = CreateHbmV2Record(10000, 88, 0, 2);
     ASSERT_TRUE(WriteBin(record, DATA_DIR, "hbm.data.0.slice_0"));
     HbmParser parser;
     HbmPersistence persistence;
     Infra::DataInventory inventory;
+    const auto context = CreateContext("2.0", "read");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+    auto records = inventory.GetPtr<std::vector<HalHbmData>>();
+    ASSERT_NE(nullptr, records);
+    records->at(0).count = 99;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
 
-    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, CreateContext()));
-    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, CreateContext()));
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "hbm.db"}));
+    std::vector<std::tuple<uint64_t>> original;
+    std::vector<std::tuple<double>> bandwidth;
+    ASSERT_TRUE(runner.QueryData("SELECT counts FROM HBMOriginalData ORDER BY counts", original));
+    ASSERT_TRUE(runner.QueryData("SELECT bandwidth FROM HBMbwData ORDER BY bandwidth", bandwidth));
+    ASSERT_EQ(2UL, original.size());
+    ASSERT_EQ(3UL, bandwidth.size());
+    EXPECT_EQ(88U, std::get<0>(original[0]));
+    EXPECT_EQ(99U, std::get<0>(original[1]));
+    EXPECT_DOUBLE_EQ(88.0, std::get<0>(bandwidth[0]));
+    EXPECT_DOUBLE_EQ(88.0, std::get<0>(bandwidth[1]));
+    EXPECT_DOUBLE_EQ(99.0, std::get<0>(bandwidth[2]));
+}
+
+TEST_F(HbmNetDevParserUTest, ShouldKeepOldBandwidthWhenSecondInsertFails)
+{
+    auto record = CreateHbmV2Record(10000, 88, 0, 2);
+    ASSERT_TRUE(WriteBin(record, DATA_DIR, "hbm.data.0.slice_0"));
+    HbmParser parser;
+    HbmPersistence persistence;
+    Infra::DataInventory inventory;
+    const auto context = CreateContext("2.0", "read");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "hbm.db"}));
+    ASSERT_TRUE(runner.UpdateData("CREATE TRIGGER FailHbmBwInsert BEFORE INSERT ON HBMbwData "
+                                  "BEGIN SELECT RAISE(ABORT, 'test failure'); END;"));
+    auto records = inventory.GetPtr<std::vector<HalHbmData>>();
+    ASSERT_NE(nullptr, records);
+    records->at(0).count = 99;
+    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, context));
+
+    std::vector<std::tuple<uint64_t>> original;
+    std::vector<std::tuple<double>> bandwidth;
+    ASSERT_TRUE(runner.QueryData("SELECT counts FROM HBMOriginalData ORDER BY counts", original));
+    ASSERT_TRUE(runner.QueryData("SELECT bandwidth FROM HBMbwData", bandwidth));
+    ASSERT_EQ(2UL, original.size());
+    ASSERT_EQ(1UL, bandwidth.size());
+    EXPECT_EQ(88U, std::get<0>(original[0]));
+    EXPECT_EQ(99U, std::get<0>(original[1]));
+    EXPECT_DOUBLE_EQ(88.0, std::get<0>(bandwidth[0]));
+    std::vector<std::tuple<uint32_t>> stageCount;
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND "
+                                 "(name GLOB 'HBMOriginalDataStage_*' OR name GLOB 'HBMbwDataStage_*')", stageCount));
+    ASSERT_EQ(1UL, stageCount.size());
+    EXPECT_EQ(0U, std::get<0>(stageCount[0]));
+}
+
+TEST_F(HbmNetDevParserUTest, ShouldRecoverAfterOriginalInsertFailure)
+{
+    auto record = CreateHbmV2Record(10000, 88, 0, 2);
+    ASSERT_TRUE(WriteBin(record, DATA_DIR, "hbm.data.0.slice_0"));
+    HbmParser parser;
+    HbmPersistence persistence;
+    Infra::DataInventory inventory;
+    const auto context = CreateContext("2.0", "read");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "hbm.db"}));
+    Infra::HBMDB database;
+    ASSERT_TRUE(runner.CreateTable("HBMOriginalData", database.GetTableCols("HBMOriginalData")));
+    ASSERT_TRUE(runner.UpdateData("CREATE TRIGGER FailHbmOriginalInsert BEFORE INSERT ON HBMOriginalData "
+                                  "BEGIN SELECT RAISE(ABORT, 'test failure'); END;"));
+    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, context));
+
+    // SaveData creates the tables before inserting; the failed insert leaves them empty.
+    std::vector<std::tuple<uint64_t>> originalCount;
+    std::vector<std::tuple<uint64_t>> bandwidthCount;
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMOriginalData", originalCount));
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMbwData", bandwidthCount));
+    ASSERT_EQ(1UL, originalCount.size());
+    ASSERT_EQ(1UL, bandwidthCount.size());
+    EXPECT_EQ(0U, std::get<0>(originalCount[0]));
+    EXPECT_EQ(0U, std::get<0>(bandwidthCount[0]));
+
+    ASSERT_TRUE(runner.UpdateData("DROP TRIGGER FailHbmOriginalInsert"));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+    originalCount.clear();
+    bandwidthCount.clear();
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMOriginalData", originalCount));
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMbwData", bandwidthCount));
+    ASSERT_EQ(1UL, originalCount.size());
+    ASSERT_EQ(1UL, bandwidthCount.size());
+    EXPECT_EQ(1U, std::get<0>(originalCount[0]));
+    EXPECT_EQ(1U, std::get<0>(bandwidthCount[0]));
+}
+
+TEST_F(HbmNetDevParserUTest, ShouldRejectHbmCountOutsideSqliteSignedIntegerRange)
+{
+    std::vector<uint8_t> record = CreateHbmV2Record(10000, 88, 0, 2);
+    ASSERT_TRUE(WriteBin(record, DATA_DIR, "hbm.data.0.slice_0"));
+    HbmParser parser;
+    HbmPersistence persistence;
+    Infra::DataInventory inventory;
+    const auto context = CreateContext("2.0", "read");
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+
+    const auto parsed = inventory.GetPtr<std::vector<HalHbmData>>();
+    ASSERT_NE(nullptr, parsed);
+    ASSERT_EQ(1UL, parsed->size());
+    parsed->at(0).count = UINT64_MAX;
+    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, context));
+
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "hbm.db"}));
+    std::vector<std::tuple<uint64_t>> originalCounts;
+    std::vector<std::tuple<uint64_t>> bandwidthCounts;
+    ASSERT_TRUE(runner.QueryData("SELECT counts FROM HBMOriginalData", originalCounts));
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM HBMbwData", bandwidthCounts));
+    ASSERT_EQ(1UL, originalCounts.size());
+    ASSERT_EQ(1UL, bandwidthCounts.size());
+    EXPECT_EQ(88U, std::get<0>(originalCounts[0]));
+    EXPECT_EQ(1U, std::get<0>(bandwidthCounts[0]));
 }
 
 TEST_F(HbmNetDevParserUTest, ShouldParseAndPersistNetDevStatsSlices)
@@ -505,6 +626,64 @@ TEST_F(HbmNetDevParserUTest, ShouldParseAndPersistNetDevStatsSlices)
     EXPECT_EQ(3U, std::get<0>(rows[0]));
     EXPECT_EQ(10U, std::get<1>(rows[0]));
     EXPECT_EQ(35U, std::get<2>(rows[1]));
+}
+
+TEST_F(HbmNetDevParserUTest, ShouldAppendNetDevStatsRowsWhenRawDataChanges)
+{
+    Utils::FileWriter writer(Utils::File::PathJoin({DATA_DIR, "netdev_stats.data.0.slice_0"}));
+    writer.WriteText("10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25\n");
+    writer.Close();
+    NetDevStatsParser parser;
+    NetDevStatsPersistence persistence;
+    Infra::DataInventory inventory;
+    const auto context = CreateContext();
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+
+    auto records = inventory.GetPtr<std::vector<HalNetDevStatsData>>();
+    ASSERT_NE(nullptr, records);
+    records->at(0).fields[0] = 99;
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "netdev_stats.db"}));
+    std::vector<std::tuple<uint32_t, uint64_t>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT device_id, timestamp FROM NetDevStatsOriginalData ORDER BY timestamp", rows));
+    ASSERT_EQ(2UL, rows.size());
+    EXPECT_EQ(3U, std::get<0>(rows[0]));
+    EXPECT_EQ(10U, std::get<1>(rows[0]));
+    EXPECT_EQ(3U, std::get<0>(rows[1]));
+    EXPECT_EQ(99U, std::get<1>(rows[1]));
+}
+
+TEST_F(HbmNetDevParserUTest, ShouldKeepOldNetDevStatsRowsWhenReplacementFails)
+{
+    Utils::FileWriter writer(Utils::File::PathJoin({DATA_DIR, "netdev_stats.data.0.slice_0"}));
+    writer.WriteText("10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25\n");
+    writer.Close();
+    NetDevStatsParser parser;
+    NetDevStatsPersistence persistence;
+    Infra::DataInventory inventory;
+    const auto context = CreateContext();
+    ASSERT_EQ(ANALYSIS_OK, parser.Run(inventory, context));
+    ASSERT_EQ(ANALYSIS_OK, persistence.Run(inventory, context));
+
+    Infra::DBRunner runner(Utils::File::PathJoin({SQLITE_DIR, "netdev_stats.db"}));
+    ASSERT_TRUE(runner.UpdateData("CREATE TRIGGER FailNetDevInsert BEFORE INSERT ON NetDevStatsOriginalData "
+                                  "BEGIN SELECT RAISE(ABORT, 'test failure'); END;"));
+    auto records = inventory.GetPtr<std::vector<HalNetDevStatsData>>();
+    ASSERT_NE(nullptr, records);
+    records->at(0).fields[0] = 99;
+    EXPECT_EQ(ANALYSIS_ERROR, persistence.Run(inventory, context));
+
+    std::vector<std::tuple<uint64_t>> timestamps;
+    ASSERT_TRUE(runner.QueryData("SELECT timestamp FROM NetDevStatsOriginalData", timestamps));
+    ASSERT_EQ(1UL, timestamps.size());
+    EXPECT_EQ(10U, std::get<0>(timestamps[0]));
+    std::vector<std::tuple<uint32_t>> stageCount;
+    ASSERT_TRUE(runner.QueryData("SELECT COUNT(*) FROM sqlite_master WHERE type='table' "
+                                 "AND name GLOB 'NetDevStatsOriginalDataStage_*'", stageCount));
+    ASSERT_EQ(1UL, stageCount.size());
+    EXPECT_EQ(0U, std::get<0>(stageCount[0]));
 }
 
 TEST_F(HbmNetDevParserUTest, ShouldRejectNetDevStatsRecordWithTooFewFields)

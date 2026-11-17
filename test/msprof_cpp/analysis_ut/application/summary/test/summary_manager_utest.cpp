@@ -79,7 +79,7 @@ TEST(SummaryManagerUTest, ShouldSelectAllDeliverablesWhenSelectionIsEmpty)
 {
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(SummaryManager::GetTopologyRoots({}, roots));
-    EXPECT_EQ(roots.size(), 11UL);  // HBM summary 暂由 Python 导出。
+    EXPECT_EQ(roots.size(), 12UL);
     std::unordered_set<TopoNodeId, TopoNodeIdHash> uniqueRoots;
     for (const auto& root : roots)
     {
@@ -89,18 +89,18 @@ TEST(SummaryManagerUTest, ShouldSelectAllDeliverablesWhenSelectionIsEmpty)
     }
 }
 
-TEST(SummaryManagerUTest, ShouldKeepHbmSummaryDisabledUntilCppIsEnabled)
+TEST(SummaryManagerUTest, ShouldRegisterHbmSummaryForCppExport)
 {
-    EXPECT_FALSE(SummaryManager::IsDeliverableSupported("hbm"));
-    EXPECT_EQ(nullptr, SummaryFactory::GetAssemblerByName(PROCESSOR_NAME_HBM, PROF_PATH));
-    EXPECT_EQ(nullptr, TopoNodeRegistry::Find({TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_HBM}));
+    EXPECT_TRUE(SummaryManager::IsDeliverableSupported("hbm"));
+    EXPECT_NE(nullptr, SummaryFactory::GetAssemblerByName(PROCESSOR_NAME_HBM, PROF_PATH));
+    EXPECT_NE(nullptr, TopoNodeRegistry::Find({TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_HBM}));
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(SummaryManager::GetTopologyRoots({}, roots));
     const TopoNodeId hbmRoot{TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_HBM};
-    EXPECT_EQ(roots.end(), std::find(roots.begin(), roots.end(), hbmRoot));
+    EXPECT_NE(roots.end(), std::find(roots.begin(), roots.end(), hbmRoot));
     roots.clear();
-    EXPECT_FALSE(SummaryManager::GetTopologyRoots({"hbm"}, roots));
-    EXPECT_TRUE(roots.empty());
+    EXPECT_TRUE(SummaryManager::GetTopologyRoots({"hbm"}, roots));
+    EXPECT_EQ(roots, (std::vector<TopoNodeId>{hbmRoot}));
 }
 
 TEST(SummaryManagerUTest, ShouldSelectAndDeduplicateDeliverables)

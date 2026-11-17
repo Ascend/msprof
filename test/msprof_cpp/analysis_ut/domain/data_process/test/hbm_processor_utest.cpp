@@ -36,8 +36,8 @@ const std::string DB_SUFFIX = "hbm.db";
 const std::string PROF_DIR = File::PathJoin({HBM_DIR, "./PROF_0"});
 const std::string TABLE_NAME = "HBMbwData";
 // device_id, timestamp, bandwidth, hbmid, event_type
-using HbmDataFormat = std::vector<std::tuple<uint32_t, double, double, uint8_t, std::string>>;
-using SummaryData = std::vector<std::tuple<uint32_t, double, double>>;
+using HbmDataFormat = std::vector<std::tuple<uint32_t, double, double, uint32_t, std::string>>;
+using SummaryData = std::vector<std::tuple<uint32_t, std::string, double>>;
 const HbmDataFormat HBM_DATA = {
     {2, 71735309797040, 20.82875495833125, 0, "read"},   {2, 71735309797040, 20.40716971570149, 1, "read"},
     {2, 71735309797040, 20.12305792175534, 2, "read"},   {2, 71735309797040, 20.75849075122629, 3, "read"},
@@ -90,6 +90,225 @@ TEST_F(HBMProcessorUTest, TestRunShouldReturnTrueWhenRunSuccess)
     auto processor = HBMProcessor(PROF_DIR);
     DataInventory dataInventory;
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(summary->size(), 5UL);
+    EXPECT_TRUE(summary->front().isAverage);
+    for (size_t i = 1; i < summary->size(); ++i)
+    {
+        EXPECT_FALSE(summary->at(i).isAverage);
+    }
+    EXPECT_GT(summary->front().readBandwidth, 0);
+    EXPECT_GT(summary->front().writeBandwidth, 0);
+}
+
+TEST_F(HBMProcessorUTest, AverageUsesPerHbmIdMeansWhenSampleCountsDiffer)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_uneven_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    HBMDB database;
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{
+        {2, 71735309797040, 100, 0, "read"},
+        {2, 71735309797041, 200, 0, "read"},
+        {2, 71735309797042, 600, 1, "read"},
+    }));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(3UL, summary->size());
+    EXPECT_TRUE(summary->at(0).isAverage);
+    EXPECT_DOUBLE_EQ(375, summary->at(0).readBandwidth);
+    EXPECT_DOUBLE_EQ(0, summary->at(0).writeBandwidth);
+    EXPECT_DOUBLE_EQ(150, summary->at(1).readBandwidth);
+    EXPECT_DOUBLE_EQ(600, summary->at(2).readBandwidth);
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, ReadOnlySampleDefaultsWriteBandwidthToZero)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_read_only_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    const auto dbPath = File::PathJoin({sqliteDir, DB_SUFFIX});
+    HBMDB database;
+    DBRunner runner(dbPath);
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{{2, 71735309797040, 88, 0, "read"}}));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(summary->size(), 2UL);
+    for (const auto &row : *summary)
+    {
+        EXPECT_DOUBLE_EQ(88, row.readBandwidth);
+        EXPECT_DOUBLE_EQ(0, row.writeBandwidth);
+    }
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, WriteOnlySampleDefaultsReadBandwidthToZero)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_write_only_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    HBMDB database;
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{{2, 71735309797040, 12, 1, "write"}}));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(summary->size(), 2UL);
+    for (const auto &row : *summary)
+    {
+        EXPECT_DOUBLE_EQ(row.readBandwidth, 0);
+        EXPECT_DOUBLE_EQ(row.writeBandwidth, 12);
+    }
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, SampledEventsAreTrackedPerHbmId)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_mixed_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    const auto dbPath = File::PathJoin({sqliteDir, DB_SUFFIX});
+    HBMDB database;
+    DBRunner runner(dbPath);
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{
+        {2, 71735309797040, 0, 0, "read"},
+        {2, 71735309797040, 12, 1, "write"},
+        {2, 71735309797040, 7, 2, "unknown"},
+    }));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(summary->size(), 3UL);
+    EXPECT_DOUBLE_EQ(summary->at(0).readBandwidth, 0);
+    EXPECT_DOUBLE_EQ(summary->at(0).writeBandwidth, 12);
+    for (size_t i = 1; i < summary->size(); ++i)
+    {
+        const auto &row = summary->at(i);
+        if (row.hbmId == 0)
+        {
+            EXPECT_DOUBLE_EQ(row.readBandwidth, 0);
+            EXPECT_DOUBLE_EQ(row.writeBandwidth, 0);
+        }
+        else
+        {
+            EXPECT_EQ(row.hbmId, 1);
+            EXPECT_DOUBLE_EQ(row.readBandwidth, 0);
+            EXPECT_DOUBLE_EQ(row.writeBandwidth, 12);
+        }
+    }
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, OutOfRangeHbmIdDoesNotCollideWithValidSummaryOrDetail)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_hbm_id_range"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    HBMDB database;
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{
+        // The fixture's collection start is 1701069323851824000 ns; keep these samples after it.
+        {2, 1701069323852824000.0, 10, 0, "read"},
+        {2, 1701069323853824000.0, 20, 255, "read"},
+        {2, 1701069323854824000.0, 30, 256, "read"},
+    }));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    ASSERT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    const auto detail = dataInventory.GetPtr<std::vector<HbmData>>();
+    const auto summary = dataInventory.GetPtr<std::vector<HbmSummaryData>>();
+    ASSERT_NE(detail, nullptr);
+    ASSERT_NE(summary, nullptr);
+    ASSERT_EQ(detail->size(), 2UL);
+    bool hasZero = false;
+    bool has255 = false;
+    for (const auto &item : *detail)
+    {
+        hasZero |= item.hbmId == 0;
+        has255 |= item.hbmId == 255;
+    }
+    EXPECT_TRUE(hasZero);
+    EXPECT_TRUE(has255);
+    ASSERT_EQ(summary->size(), 3UL);
+    EXPECT_TRUE(summary->at(0).isAverage);
+    EXPECT_DOUBLE_EQ(summary->at(0).readBandwidth, 15);
+    EXPECT_EQ(summary->at(1).hbmId, 0);
+    EXPECT_EQ(summary->at(2).hbmId, 255);
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, UnknownEventsDoNotProduceEmptySummaryRows)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_unknown_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    HBMDB database;
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+    ASSERT_TRUE(runner.InsertData(TABLE_NAME, HbmDataFormat{{2, 71735309797040, 7, 2, "unknown"}}));
+
+    HBMProcessor processor(profile);
+    DataInventory dataInventory;
+    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    EXPECT_EQ(dataInventory.GetPtr<std::vector<HbmSummaryData>>(), nullptr);
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
+TEST_F(HBMProcessorUTest, MissingFormalTableAfterFailedParseFails)
+{
+    const auto profile = File::PathJoin({HBM_DIR, "PROF_missing_hbm"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable("HBMbwDataStage_interrupted", {{"value", "INTEGER"}}));
+    DataInventory dataInventory;
+    HBMProcessor processor(profile);
+    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_HBM));
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
 }
 
 TEST_F(HBMProcessorUTest, TestRunShouldReturnFalseWhenProcessorFail)

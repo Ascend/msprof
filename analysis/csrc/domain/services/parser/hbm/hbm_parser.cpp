@@ -81,6 +81,5 @@ uint32_t HbmParser::ParseData(Infra::DataInventory &dataInventory, const Infra::
     return dataInventory.Inject(data) ? ANALYSIS_OK : ANALYSIS_ERROR;
 }
 
-// 暂不启用 HBM C++ 解析；启用时同步恢复持久化注册及 Python parser 跳过名单。
 }  // namespace Domain
 }  // namespace Analysis

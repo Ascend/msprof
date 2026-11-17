@@ -128,6 +128,8 @@ V4_DEVICE_TAGS = frozenset(
         DataTag.LPM_INFO.name,
         # DataTag.LLC.name,  # LLC summary 尚未实现 C++ 导出，回退混合流程。
         # DataTag.PCIE.name,  # PCIe summary 尚未实现 C++ 导出，回退混合流程。
+        DataTag.HBM.name,
+        DataTag.NETDEV_STATS.name,
         DataTag.QOS.name,
         DataTag.SOC_PROFILER.name,
         DataTag.NPU_MEM.name,
@@ -172,6 +174,7 @@ V6_DEVICE_TAGS = frozenset(
         DataTag.UB.name,
         # DataTag.LLC.name,  # LLC summary 尚未实现 C++ 导出，回退混合流程。
         # DataTag.PCIE.name,  # PCIe summary 尚未实现 C++ 导出，回退混合流程。
+        DataTag.HBM.name,
         DataTag.CCU_MISSION.name,
         DataTag.CCU_CHANNEL.name,
         DataTag.SOC_PROFILER.name,

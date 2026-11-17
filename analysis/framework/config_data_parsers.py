@@ -180,7 +180,7 @@ class ConfigDataParsers:
         load can cpp parse
         :param section: parser name config in the config file
         """
-        if ChipManager().chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1) and section in [
+        if ChipManager().chip_id == ChipModel.CHIP_V6_1_0 and section in [
             "AscendTaskCalculator",
             "StarsLogCalCulator",
             "FftsPmuCalculator",
@@ -193,6 +193,7 @@ class ConfigDataParsers:
             "CCUMissionParser",
             "CCUChannelParser",
             "ParsingUBData",
+            "ParsingHBMData",
             "NonMiniLLCParser",
             "ParsingPcieData",
             "LowPowerParser",
@@ -225,8 +226,8 @@ class ConfigDataParsers:
             "StarsChipTransParser",
             "NpuMemParser",
             "NpuModuleMemParser",
-            # "ParsingHBMData",  # 暂不启用 C++ 解析，保留 Python parser。
-            # "NetDevStatsParser",  # 暂不启用 C++ 解析，保留 Python parser。
+            "ParsingHBMData",
+            "NetDevStatsParser",
         ]:
             return True
         return False

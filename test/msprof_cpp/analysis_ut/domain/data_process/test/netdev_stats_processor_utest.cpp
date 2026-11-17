@@ -96,6 +96,48 @@ TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnTrueWhenRunSuccess)
     EXPECT_TRUE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
 }
 
+TEST_F(NetDevStatsProcessorUTest, FewerThanTwoSamplesCannotProduceEventData)
+{
+    for (size_t sampleCount : {0UL, 1UL})
+    {
+        const auto profile = File::PathJoin({NETDEV_STATS_DIR, "PROF_" + std::to_string(sampleCount) + "_samples"});
+        const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+        const auto sqliteDir = File::PathJoin({device, SQLITE});
+        ASSERT_TRUE(File::CreateDir(profile));
+        ASSERT_TRUE(File::CreateDir(device));
+        ASSERT_TRUE(File::CreateDir(sqliteDir));
+        NetDevStatsDB database;
+        DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+        ASSERT_TRUE(runner.CreateTable(TABLE_NAME, database.GetTableCols(TABLE_NAME)));
+        if (sampleCount == 1)
+        {
+            ASSERT_TRUE(runner.InsertData(TABLE_NAME, std::vector<NetDevStatsDbRow>{NETDEV_STATS_DATA.front()}));
+        }
+
+        NetDevStatsProcessor processor(profile);
+        DataInventory dataInventory;
+        EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
+        EXPECT_EQ(nullptr, dataInventory.GetPtr<std::vector<NetDevStatsEventData>>());
+        EXPECT_TRUE(File::RemoveDir(profile, 0));
+    }
+}
+
+TEST_F(NetDevStatsProcessorUTest, MissingFormalTableAfterFailedParseFails)
+{
+    const auto profile = File::PathJoin({NETDEV_STATS_DIR, "PROF_missing_netdev"});
+    const auto device = File::PathJoin({profile, DEVICE_SUFFIX});
+    const auto sqliteDir = File::PathJoin({device, SQLITE});
+    ASSERT_TRUE(File::CreateDir(profile));
+    ASSERT_TRUE(File::CreateDir(device));
+    ASSERT_TRUE(File::CreateDir(sqliteDir));
+    DBRunner runner(File::PathJoin({sqliteDir, DB_SUFFIX}));
+    ASSERT_TRUE(runner.CreateTable("NetDevStatsOriginalDataStage_interrupted", {{"value", "INTEGER"}}));
+    DataInventory dataInventory;
+    NetDevStatsProcessor processor(profile);
+    EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
+    EXPECT_TRUE(File::RemoveDir(profile, 0));
+}
+
 TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnFalseWhenGetOriginalDataFailed)
 {
     auto processor = NetDevStatsProcessor(PROF_DIR);
@@ -118,9 +160,12 @@ TEST_F(NetDevStatsProcessorUTest, TestRunShouldReturnFalseWhenProcessDataFailed)
     auto processor = NetDevStatsProcessor(PROF_DIR);
     DataInventory dataInventory;
     // QueryData failed
+    // Keep the table-existence check successful so QueryCmd fails in ProcessData.
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).stubs().will(returnValue(CHECK_SUCCESS));
     MOCKER_CPP(&Analysis::Infra::Connection::QueryCmd).stubs().will(returnValue(false));
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));
     MOCKER_CPP(&Analysis::Infra::Connection::QueryCmd).reset();
+    MOCKER_CPP(&DataProcessor::CheckPathAndTable).reset();
     // Reserve failed
     Analysis::Test::StubReserveFailureForVector<std::vector<NetDevStatsEventData>>();
     EXPECT_FALSE(processor.Run(dataInventory, PROCESSOR_NAME_NETDEV_STATS));

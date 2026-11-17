@@ -57,16 +57,16 @@ class TestConfigDataParsers(unittest.TestCase):
         self.assertNotIn(ChipModel.CHIP_V6_2_0, DeviceParseScene.SCENE_CHIP_WHITELIST)
         self.assertNotIn(ChipModel.CHIP_V6_1_1, DeviceParseScene.SCENE_CHIP_WHITELIST)
 
-    def test_ccu_native_ownership_is_limited_to_v61(self):
+    def test_ccu_native_ownership_is_limited_to_v610(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0,
                      ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
                 for parser in ("CCUMissionParser", "CCUChannelParser"):
                     self.assertEqual(
                         ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
-                        chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1))
+                        chip == ChipModel.CHIP_V6_1_0)
 
-    def test_v61_chips_should_handle_device_parser_whitelist(self):
+    def test_v610_should_handle_device_parser_whitelist(self):
         parsers = ("CCUMissionParser", "CCUChannelParser", "ParsingUBData", "LowPowerParser",
                    "SocProfilerParser", "SioParser", "StarsChipTransParser", "StarsQosParser",
                    "NpuMemParser", "NpuModuleMemParser")
@@ -76,7 +76,7 @@ class TestConfigDataParsers(unittest.TestCase):
                         mock.patch.object(ChipManager(), "chip_id", chip):
                     self.assertEqual(
                         ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
-                        chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1))
+                        chip == ChipModel.CHIP_V6_1_0)
 
     @staticmethod
     def _parser_names(parsers):
@@ -146,39 +146,47 @@ class TestConfigDataParsers(unittest.TestCase):
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("AscendTaskCalculator")
         self.assertTrue(ret)
 
-    def test_hbm_and_netdev_should_remain_python_owned_until_cpp_is_enabled(self):
+    def test_hbm_and_netdev_native_ownership_matches_supported_chips(self):
         for chip in ChipModel:
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
-                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("ParsingHBMData"))
-                self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("NetDevStatsParser"))
+                expected_hbm = chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0)
+                self.assertEqual(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(
+                    "ParsingHBMData"), expected_hbm)
+                self.assertEqual(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(
+                    "NetDevStatsParser"), chip == ChipModel.CHIP_V4_1_0)
 
-    def test_get_parsers_should_keep_hbm_and_netdev_when_device_cpp_is_enabled(self):
-        with mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
-                mock.patch.object(ChipManager(), "chip_id", ChipModel.CHIP_V4_1_0), \
-                mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
-                mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=True), \
-                mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
-                mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True):
-            parser_names = self._parser_names(ConfigDataParsers.get_parsers(
-                ConfigManager.DATA_PARSERS, str(ChipModel.CHIP_V4_1_0.value), True))
-        self.assertIn("ParsingHBMData", parser_names)
-        self.assertIn("NetDevStatsParser", parser_names)
-        self.assertNotIn("FreqParser", parser_names)
+    def test_get_parsers_respects_hbm_and_netdev_chip_filters_and_device_cpp_gate(self):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
+            for cpp_enabled in (False, True):
+                with self.subTest(chip=chip, cpp_enabled=cpp_enabled), \
+                        mock.patch.object(InfoConfReader(), "get_device_list", return_value=["0"]), \
+                        mock.patch.object(ChipManager(), "chip_id", chip), \
+                        mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=False), \
+                        mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=cpp_enabled), \
+                        mock.patch.object(ProfilingScene(), "is_all_export", return_value=True), \
+                        mock.patch.object(InfoConfReader(), "is_all_export_version", return_value=True):
+                    parser_names = self._parser_names(ConfigDataParsers.get_parsers(
+                        ConfigManager.DATA_PARSERS, str(chip.value), True))
+                    if chip != ChipModel.CHIP_V6_1_1:
+                        self.assertEqual("ParsingHBMData" in parser_names, not cpp_enabled)
+                    expected_netdev = chip == ChipModel.CHIP_V4_1_0 and not cpp_enabled
+                    self.assertEqual("NetDevStatsParser" in parser_names, expected_netdev)
 
     def test_load_can_cpp_parse_or_calculate_device_data_should_return_true_when_given_tstrack_parser(self):
         ChipManager().chip_id = ChipModel.CHIP_V4_1_0
         ret = ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser")
         self.assertTrue(ret)
 
-    def test_load_can_cpp_parse_or_calculate_device_data_should_handle_tstrack_on_v61(self):
+    def test_load_can_cpp_parse_or_calculate_device_data_should_handle_tstrack_on_v610(self):
         for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
             with self.subTest(chip=chip), mock.patch.object(ChipManager(), "chip_id", chip):
-                self.assertTrue(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"))
+                self.assertEqual(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data("TstrackParser"),
+                                 chip == ChipModel.CHIP_V6_1_0)
 
     def test_device_cpp_should_handle_npu_memory_parsers_only_on_supported_chips(self):
         for chip, expected in ((ChipModel.CHIP_V4_1_0, True),
                                (ChipModel.CHIP_V6_1_0, True),
-                               (ChipModel.CHIP_V6_1_1, True),
+                               (ChipModel.CHIP_V6_1_1, False),
                                (ChipModel.CHIP_V6_2_0, False)):
             for parser in ("NpuMemParser", "NpuModuleMemParser"):
                 with self.subTest(chip=chip, parser=parser), \
@@ -242,10 +250,11 @@ class TestConfigDataParsers(unittest.TestCase):
                         mock.patch.object(ChipManager(), "chip_id", chip):
                     self.assertFalse(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser))
 
-    def test_v61_should_handle_native_task_calculators_and_aicpu(self):
+    def test_v610_should_handle_native_task_calculators_and_aicpu(self):
         for chip in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1):
             for parser in ("AscendTaskCalculator", "StarsLogCalCulator", "FftsPmuCalculator",
                            "HcclCalculator", "SubTaskCalculator", "FreqParser", "AicpuAddInfoParser", "KfcCalculator"):
                 with self.subTest(chip=chip, parser=parser), \
                         mock.patch.object(ChipManager(), "chip_id", chip):
-                    self.assertTrue(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser))
+                    self.assertEqual(ConfigDataParsers._load_can_cpp_parse_or_calculate_device_data(parser),
+                                     chip == ChipModel.CHIP_V6_1_0)

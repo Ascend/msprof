@@ -81,6 +81,5 @@ uint32_t NetDevStatsPersistence::ProcessEntry(Infra::DataInventory &dataInventor
     return ANALYSIS_OK;
 }
 
-// 暂不启用 NetDev C++ 持久化，避免与 Python 重复写入。
 }  // namespace Domain
 }  // namespace Analysis

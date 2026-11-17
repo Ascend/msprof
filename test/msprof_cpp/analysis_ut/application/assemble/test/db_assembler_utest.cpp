@@ -2030,6 +2030,14 @@ TEST_F(DBAssemblerUTest, TestRunNetDevStatDataShouldReturnFalseWhenReserveFailed
     ResetReserveFailureForVector<NetDevStatEventDataFormat>();
 }
 
+TEST_F(DBAssemblerUTest, TestRunSaveNetDevStatsDataFailsOnEmptyInput)
+{
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
+    DataInventory dataInventory;
+    ASSERT_TRUE(dataInventory.Inject(std::make_shared<std::vector<NetDevStatsEventData>>()));
+    EXPECT_FALSE(assembler.RunSaver(PROCESSOR_NAME_NETDEV_STATS, dataInventory));
+}
+
 TEST_F(DBAssemblerUTest, TestRunSaveNetDevStatsDataShouldReturnTrueWhenRunSuccess)
 {
     auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));

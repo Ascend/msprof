@@ -343,6 +343,5 @@ uint32_t HbmPersistence::ProcessEntry(Infra::DataInventory &dataInventory, const
     return ANALYSIS_OK;
 }
 
-// 暂不启用 HBM C++ 持久化，避免覆盖 Python 解析结果。
 }  // namespace Domain
 }  // namespace Analysis

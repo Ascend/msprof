@@ -34,6 +34,7 @@ from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.profiling_scene import ExportMode
+from common_func.system_data_check_manager import SystemDataCheckManager
 from msinterface.msprof_export import ExportCommand
 from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 from profiling_bean.prof_enum.export_data_type import ExportDataType
@@ -202,6 +203,27 @@ class TestExportCommand(unittest.TestCase):
             test = ExportCommand("summary", args)
             InfoConfReader()._sample_json = {"devices": '0'}
             test._add_export_type("")
+
+    def test_hbm_summary_handler_follows_native_scene(self):
+        summary_handlers = ExportCommand.EXPORT_HANDLE_MAP['summary']
+        timeline_handlers = ExportCommand.EXPORT_HANDLE_MAP['timeline']
+        summary_by_type = {item['export_type']: item['handler'] for item in summary_handlers}
+        timeline_by_type = {item['export_type']: item['handler'] for item in timeline_handlers}
+        self.assertEqual(summary_by_type[ExportDataType.HBM], SystemDataCheckManager.contain_hbm_summary_data)
+        self.assertEqual(timeline_by_type[ExportDataType.HBM], SystemDataCheckManager.contain_hbm_data)
+
+    def test_start_view_exports_native_summary_when_enabled(self):
+        for native_enabled in (True, False):
+            with self.subTest(native_enabled=native_enabled):
+                command = ExportCommand('summary', Namespace(collection_path='test', export_format='csv'))
+                with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
+                        mock.patch.object(command, '_check_export_summary_with_so', return_value=native_enabled), \
+                        mock.patch.object(command, '_view_data') as view_data, \
+                        mock.patch(NAMESPACE + '.export_summary') as native_export, \
+                        mock.patch(NAMESPACE + '.MsprofOutputSummary'):
+                    command._start_view({'collection_path': 'test', 'device': ['test/device_0']})
+                self.assertEqual(native_export.called, native_enabled)
+                view_data.assert_any_call('test/device_0')
 
     def test_add_export_type_should_return_timeline_list_map_when_current_dir_is_host_and_device_exists(self):
         result_dir = "./msprof/test/"

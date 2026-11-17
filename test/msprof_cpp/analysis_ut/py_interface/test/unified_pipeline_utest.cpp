@@ -33,7 +33,9 @@
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_hbm.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
+#include "analysis/csrc/domain/entities/hal/include/hal_netdev_stats.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -1959,8 +1961,8 @@ TEST(UnifiedDeviceRegistrationUTest, CentralConfigurationUsesNativeTopoDefinitio
         EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), TOPO_NODE(DEVICE_PROCESSING, "Device.Init")),
                   dependencies.end());
     }
-    EXPECT_EQ(businessNodes, 48U);
-    EXPECT_EQ(persistenceNodes, 21U);
+    EXPECT_EQ(businessNodes, 52U);
+    EXPECT_EQ(persistenceNodes, 23U);
     const auto* parser = TopoNodeRegistry::Find(TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser"));
     ASSERT_NE(parser, nullptr);
     EXPECT_NE(std::find(parser->processDependencies.begin(), parser->processDependencies.end(),
@@ -2101,6 +2103,161 @@ TEST_F(UnifiedPipelinePlanUTest, MigratedRegistrationKeepsUpstreamV6ReadersAndSt
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
         EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_1));
         EXPECT_EQ(keys.count({id.stage, id.name, "device_1"}), 1U);
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesHbmAndNetDevProducersOnSupportedChips)
+{
+    FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    ASSERT_TRUE(builder.Build(Request(PIPELINE_DEVICE_DATA), graph));
+    const auto& keys = builder.GetRuntimeNodeKeys();
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        for (const auto& prefix : {"Hbm", "NetDevStats"})
+        {
+            const std::string parserName = std::string(prefix) + "Parser";
+            const std::string persistenceName = std::string(prefix) + "Persistence";
+            if (std::string(scope) == "device_1" && std::string(prefix) == "NetDevStats")
+            {
+                EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, parserName, scope}), 0U);
+                EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, persistenceName, scope}), 0U);
+                continue;
+            }
+            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, parserName, scope}), 1U);
+            ASSERT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, persistenceName, scope}), 1U);
+            const auto parser = keys.at({TopoNodeStage::DEVICE_PROCESSING, parserName, scope});
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, persistenceName, scope});
+            const auto init = keys.at({TopoNodeStage::DEVICE_PROCESSING, "Device.Init", scope});
+            const auto& parserDependencies = graph.at(parser).processDependence;
+            EXPECT_NE(std::find(parserDependencies.begin(), parserDependencies.end(), init), parserDependencies.end());
+            const auto& dependencies = graph.at(persistence).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), parser), dependencies.end());
+            EXPECT_TRUE(graph.at(parser).mandatory);
+            EXPECT_TRUE(graph.at(persistence).mandatory);
+            const std::type_index inputType = std::string(prefix) == "Hbm"
+                ? typeid(std::vector<Domain::HalHbmData>) : typeid(std::vector<Domain::HalNetDevStatsData>);
+            const auto& inputs = graph.at(persistence).paramTypes;
+            EXPECT_NE(std::find(inputs.begin(), inputs.end(), inputType), inputs.end());
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, HbmOrNetDevFailureFailsPipeline)
+{
+    MOCKER_CPP(&Domain::Environment::Context::Load).stubs().will(returnValue(true));
+    MOCKER_CPP(&Domain::DeviceContext::Init).stubs().will(returnValue(true));
+    MOCKER_CPP(&Domain::KernelParserWorker::Run).expects(never());
+    for (const auto& failingNode : {"HbmPersistence", "NetDevStatsParser"})
+    {
+        SCOPED_TRACE(failingNode);
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(Request(PIPELINE_DEVICE_DATA), graph));
+        const auto& keys = builder.GetRuntimeNodeKeys();
+        const auto failedStage = std::string(failingNode) == "HbmPersistence"
+            ? TopoNodeStage::DEVICE_PERSISTENCE : TopoNodeStage::DEVICE_PROCESSING;
+        const auto failed = keys.at({failedStage, failingNode, "device_0"});
+        for (auto& node : graph)
+        {
+            const auto& name = node.second.processName;
+            if (node.second.scope.find("device_") != 0 || name == "Device.Init" || name == "Device.Ready")
+            {
+                continue;
+            }
+            const bool fail = node.first == failed;
+            node.second.creator = [fail]() -> std::unique_ptr<Process>
+            {
+                return std::unique_ptr<Process>(new TopoCallbackProcess([fail](DataInventory&) { return !fail; }));
+            };
+        }
+        ProcessControlOptions options;
+        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
+        ProcessControl executor(graph, options);
+        EXPECT_FALSE(executor.ExecuteProcess());
+        const auto results = executor.GetRuntimeResults();
+        EXPECT_EQ(results.at(failed).state, RuntimeProcessState::FAILED);
+        if (std::string(failingNode) == "NetDevStatsParser")
+        {
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "NetDevStatsPersistence", "device_0"});
+            EXPECT_EQ(results.at(persistence).state, RuntimeProcessState::BLOCKED);
+        }
+        const auto otherDeviceTrace = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "TracePersistence", "device_1"});
+        EXPECT_EQ(results.at(otherDeviceTrace).state, RuntimeProcessState::SUCCEEDED);
+        const auto final = keys.at({TopoNodeStage::FLOW_CONTROL, "Pipeline.Done", "profile"});
+        EXPECT_EQ(results.at(final).state, RuntimeProcessState::SUCCEEDED);
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, FirstExportSelectsHbmAndNetDevProducers)
+{
+    FileWriter(root + "/device_0/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V4_1_0}}.dump());
+    FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());
+    for (const auto mode : {PIPELINE_TIMELINE, PIPELINE_DB, PIPELINE_SUMMARY})
+    {
+        SCOPED_TRACE(mode);
+        auto request = Request(PIPELINE_DEVICE_DATA | mode);
+        if (mode == PIPELINE_TIMELINE)
+        {
+            request.reportsJson = root + "/reports.json";
+            const char* section = "json_process";
+            FileWriter(request.reportsJson).WriteText(nlohmann::json{{section, {{"hbm", true}}}}.dump());
+        }
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(request, graph));
+        const auto& keys = builder.GetRuntimeNodeKeys();
+        if (mode == PIPELINE_SUMMARY)
+        {
+            const auto summary = keys.at({TopoNodeStage::SUMMARY_GENERATION, PROCESSOR_NAME_HBM, "export"});
+            const auto processor = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HBM, "export"});
+            const auto& dependencies = graph.at(summary).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), processor), dependencies.end());
+        }
+        for (const auto& scope : {"device_0", "device_1"})
+        {
+            SCOPED_TRACE(scope);
+            const auto parser = keys.at({TopoNodeStage::DEVICE_PROCESSING, "HbmParser", scope});
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "HbmPersistence", scope});
+            const auto processor = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_HBM, "export"});
+            const auto& inputs = graph.at(persistence).processDependence;
+            EXPECT_NE(std::find(inputs.begin(), inputs.end(), parser), inputs.end());
+            const auto& dependencies = graph.at(processor).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), persistence), dependencies.end());
+            EXPECT_FALSE(graph.at(processor).runOnDependencyFailure);
+        }
+        if (mode == PIPELINE_DB)
+        {
+            const auto parser = keys.at({TopoNodeStage::DEVICE_PROCESSING, "NetDevStatsParser", "device_0"});
+            const auto persistence = keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "NetDevStatsPersistence", "device_0"});
+            const auto processor = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_NETDEV_STATS, "export"});
+            const auto& inputs = graph.at(persistence).processDependence;
+            EXPECT_NE(std::find(inputs.begin(), inputs.end(), parser), inputs.end());
+            const auto& dependencies = graph.at(processor).processDependence;
+            EXPECT_NE(std::find(dependencies.begin(), dependencies.end(), persistence), dependencies.end());
+            EXPECT_FALSE(graph.at(processor).runOnDependencyFailure);
+            EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "NetDevStatsParser", "device_1"}), 0U);
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, HbmAndNetDevNativeOwnershipKeepsChipBoundary)
+{
+    for (const auto& name : {"HbmParser", "HbmPersistence", "NetDevStatsParser", "NetDevStatsPersistence"})
+    {
+        const auto stage = std::string(name).find("Persistence") == std::string::npos
+            ? TopoNodeStage::DEVICE_PROCESSING : TopoNodeStage::DEVICE_PERSISTENCE;
+        const auto* definition = TopoNodeRegistry::Find({stage, name});
+        ASSERT_NE(definition, nullptr);
+        EXPECT_TRUE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V4_1_0));
+        const bool supportsV6 = std::string(name).find("Hbm") == 0;
+        EXPECT_EQ(supportsV6, TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_0));
+        EXPECT_FALSE(TopoNodeRegistry::SupportsChip(*definition, CHIP_V6_1_1));
+        for (const auto chip : {CHIP_V1_1_1, CHIP_V3_3_0, CHIP_V6_2_0})
+        {
+            EXPECT_FALSE(TopoNodeRegistry::SupportsChip(*definition, chip));
+        }
     }
 }
 

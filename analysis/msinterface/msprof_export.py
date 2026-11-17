@@ -165,7 +165,7 @@ class ExportCommand:
             },
             {'export_type': ExportDataType.SYS_MEM, 'handler': SystemDataCheckManager.contains_sys_memory_data},
             {'export_type': ExportDataType.PROCESS_MEM, 'handler': SystemDataCheckManager.contains_pid_memory_data},
-            {'export_type': ExportDataType.HBM, 'handler': SystemDataCheckManager.contain_hbm_data},
+            {'export_type': ExportDataType.HBM, 'handler': SystemDataCheckManager.contain_hbm_summary_data},
             {'export_type': ExportDataType.DDR, 'handler': SystemDataCheckManager.contain_ddr_data},
             {'export_type': ExportDataType.PCIE, 'handler': SystemDataCheckManager.contain_pcie_data},
             {'export_type': ExportDataType.HCCS, 'handler': SystemDataCheckManager.contain_hccs_data},

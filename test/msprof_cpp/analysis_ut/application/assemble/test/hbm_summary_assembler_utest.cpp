@@ -54,7 +54,7 @@ TEST_F(HbmSummaryAssemblerUTest, ShouldGeneratePythonCompatibleCsv)
 {
     Domain::HbmSummaryData average;
     average.deviceId = 1;
-    average.hbmId = UINT8_MAX;
+    average.isAverage = true;
     average.readBandwidth = 40.1364;
     average.writeBandwidth = 83.4186;
     Domain::HbmSummaryData hbm0;
@@ -62,7 +62,12 @@ TEST_F(HbmSummaryAssemblerUTest, ShouldGeneratePythonCompatibleCsv)
     hbm0.hbmId = 0;
     hbm0.readBandwidth = 44.5701;
     hbm0.writeBandwidth = 86.3474;
-    std::vector<Domain::HbmSummaryData> source{average, hbm0};
+    Domain::HbmSummaryData hbm255;
+    hbm255.deviceId = 1;
+    hbm255.hbmId = UINT8_MAX;
+    hbm255.readBandwidth = 1.25;
+    hbm255.writeBandwidth = 2.5;
+    std::vector<Domain::HbmSummaryData> source{average, hbm0, hbm255};
     std::shared_ptr<std::vector<Domain::HbmSummaryData>> data;
     MAKE_SHARED_NO_OPERATION(data, std::vector<Domain::HbmSummaryData>, source);
     Infra::DataInventory inventory;
@@ -75,13 +80,14 @@ TEST_F(HbmSummaryAssemblerUTest, ShouldGeneratePythonCompatibleCsv)
     Utils::FileReader reader(files[0]);
     std::vector<std::string> lines;
     ASSERT_EQ(ANALYSIS_OK, reader.ReadText(lines));
-    ASSERT_EQ(3UL, lines.size());
+    ASSERT_EQ(4UL, lines.size());
     EXPECT_EQ("Device_id,Metric,Read(MB/s),Write(MB/s)", lines[0]);
     EXPECT_EQ("1,Average,40.136,83.419", lines[1]);
     EXPECT_EQ("1,0,44.57,86.347", lines[2]);
+    EXPECT_EQ("1,255,1.25,2.5", lines[3]);
 }
 
-TEST_F(HbmSummaryAssemblerUTest, ShouldSkipMissingDataAndRejectEmptyData)
+TEST_F(HbmSummaryAssemblerUTest, ShouldSkipMissingDataAndFailOnEmptyData)
 {
     HbmSummaryAssembler assembler(PROCESSOR_NAME_HBM, PROF_PATH);
     Infra::DataInventory inventory;
@@ -91,6 +97,39 @@ TEST_F(HbmSummaryAssemblerUTest, ShouldSkipMissingDataAndRejectEmptyData)
     MAKE_SHARED0_NO_OPERATION(empty, std::vector<Domain::HbmSummaryData>);
     ASSERT_TRUE(inventory.Inject(empty));
     EXPECT_FALSE(assembler.Run(inventory));
+}
+
+TEST_F(HbmSummaryAssemblerUTest, ShouldExportMissingDirectionAsZero)
+{
+    Domain::HbmSummaryData readOnly;
+    readOnly.deviceId = 1;
+    readOnly.hbmId = 0;
+    readOnly.readBandwidth = 88;
+    Domain::HbmSummaryData writeOnly;
+    writeOnly.deviceId = 1;
+    writeOnly.hbmId = 1;
+    writeOnly.writeBandwidth = 12;
+    Domain::HbmSummaryData measuredZero;
+    measuredZero.deviceId = 1;
+    measuredZero.hbmId = 2;
+    measuredZero.readBandwidth = 0;
+    measuredZero.writeBandwidth = 0;
+    auto data = std::make_shared<std::vector<Domain::HbmSummaryData>>(
+        std::vector<Domain::HbmSummaryData>{readOnly, writeOnly, measuredZero});
+    Infra::DataInventory inventory;
+    ASSERT_TRUE(inventory.Inject(data));
+    HbmSummaryAssembler assembler(PROCESSOR_NAME_HBM, PROF_PATH);
+    ASSERT_TRUE(assembler.Run(inventory));
+
+    const auto files = Utils::File::GetOriginData(RESULT_PATH, {HBM_SUMMARY_NAME}, {});
+    ASSERT_EQ(1UL, files.size());
+    Utils::FileReader reader(files[0]);
+    std::vector<std::string> lines;
+    ASSERT_EQ(ANALYSIS_OK, reader.ReadText(lines));
+    ASSERT_EQ(4UL, lines.size());
+    EXPECT_EQ("1,0,88,0", lines[1]);
+    EXPECT_EQ("1,1,0,12", lines[2]);
+    EXPECT_EQ("1,2,0,0", lines[3]);
 }
 }  // namespace
 }  // namespace Application

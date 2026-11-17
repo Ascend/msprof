@@ -17,6 +17,8 @@
  */
 #include "analysis/csrc/domain/data_process/system/hbm_processor.h"
 
+#include <map>
+
 #include "analysis/csrc/domain/services/environment/context.h"
 
 namespace Analysis
@@ -25,6 +27,12 @@ namespace Domain
 {
 using namespace Analysis::Domain::Environment;
 using namespace Analysis::Utils;
+
+namespace
+{
+// HbmData and HbmSummaryData store IDs as uint8_t; both queries must apply this filter before conversion.
+const std::string HBM_ID_FILTER = "hbmid BETWEEN 0 AND " + std::to_string(UINT8_MAX);
+}  // namespace
 
 HBMProcessor::HBMProcessor(const std::string &profPath) : DataProcessor(profPath) {}
 
@@ -116,41 +124,65 @@ std::vector<HbmData> HBMProcessor::ProcessData(const DBInfo &hbmDB, LocaltimeCon
 std::vector<HbmSummaryData> HBMProcessor::ProcessSummaryData(const uint16_t &deviceId, const DBInfo &hbmDB)
 {
     std::vector<HbmSummaryData> processedData;
-    std::vector<std::tuple<double, double>> avgData;
-    std::vector<std::tuple<uint32_t, double, double>> avgHbmIdData;
-    // csv表里面的第一行，所有数据的read和write的平均带宽
-    std::string sql{
-        "SELECT AVG(CASE WHEN event_type = 'read' THEN bandwidth END) AS read_bandwidth, "
-        "AVG(CASE WHEN event_type = 'write' THEN bandwidth END) AS write_bandwidth FROM " +
-        hbmDB.tableName};
-    if (!hbmDB.dbRunner->QueryData(sql, avgData) || avgData.empty())
+    // Grouping by HBM ID and event type avoids reading NULL AVG for an uncollected direction.
+    const std::string filter = " WHERE event_type IN ('read', 'write') AND bandwidth IS NOT NULL AND " + HBM_ID_FILTER;
+    std::vector<std::tuple<uint32_t, std::string, double>> avgHbmIdData;
+    const std::string sql =
+        "SELECT hbmid, event_type, AVG(bandwidth) FROM " + hbmDB.tableName + filter + " GROUP BY hbmid, event_type";
+    if (!hbmDB.dbRunner->QueryData(sql, avgHbmIdData))
     {
         ERROR("Failed to obtain avg bandwidth from the % table, profPath is %, deviceId is %", hbmDB.tableName,
               profPath_, deviceId);
         return processedData;
     }
-    // 按照hbmid分组的read和write的平均带宽
-    sql =
-        "SELECT hbmid, AVG(CASE WHEN event_type = 'read' THEN bandwidth END) AS read_bandwidth,"
-        "AVG(CASE WHEN event_type = 'write' THEN bandwidth END) AS write_bandwidth FROM " +
-        hbmDB.tableName + " GROUP BY hbmid";
-    if (!hbmDB.dbRunner->QueryData(sql, avgHbmIdData) || avgHbmIdData.empty())
+    if (avgHbmIdData.empty())
     {
-        ERROR("Failed to obtain avg bandwidth from the % table, profPath is %, deviceId is %", hbmDB.tableName,
-              profPath_, deviceId);
+        WARN("No read or write HBM samples in the % table, profPath is %, deviceId is %", hbmDB.tableName, profPath_,
+             deviceId);
         return processedData;
     }
-    HbmSummaryData tempData;
-    // 在这里赋值可以在外面根据deviceId判断是否查询失败
-    tempData.deviceId = deviceId;
-    // 这里vector已经判断过是否为空，所以可以取固定的索引
-    std::tie(tempData.readBandwidth, tempData.writeBandwidth) = avgData.at(0);
-    // 先将所有数据的平均值放进去，然后一一放每个hbmid的平均值
-    processedData.push_back(tempData);
+    std::map<uint32_t, HbmSummaryData> byHbmId;
+    double readSum = 0;
+    double writeSum = 0;
+    size_t readCount = 0;
+    size_t writeCount = 0;
     for (const auto &row : avgHbmIdData)
     {
-        std::tie(tempData.hbmId, tempData.readBandwidth, tempData.writeBandwidth) = row;
-        processedData.push_back(tempData);
+        uint32_t hbmId;
+        std::string eventType;
+        double avgBandwidth;
+        std::tie(hbmId, eventType, avgBandwidth) = row;
+        auto &item = byHbmId[hbmId];
+        item.deviceId = deviceId;
+        item.hbmId = static_cast<uint8_t>(hbmId);
+        if (eventType == "read")
+        {
+            item.readBandwidth = avgBandwidth;
+            readSum += item.readBandwidth;
+            ++readCount;
+        }
+        else
+        {
+            item.writeBandwidth = avgBandwidth;
+            writeSum += item.writeBandwidth;
+            ++writeCount;
+        }
+    }
+    HbmSummaryData average;
+    average.deviceId = deviceId;
+    average.isAverage = true;
+    if (readCount != 0)
+    {
+        average.readBandwidth = readSum / readCount;
+    }
+    if (writeCount != 0)
+    {
+        average.writeBandwidth = writeSum / writeCount;
+    }
+    processedData.push_back(average);
+    for (const auto &entry : byHbmId)
+    {
+        processedData.push_back(entry.second);
     }
     return processedData;
 }
@@ -158,7 +190,8 @@ std::vector<HbmSummaryData> HBMProcessor::ProcessSummaryData(const uint16_t &dev
 OriHbmData HBMProcessor::LoadData(const DBInfo &hbmDB)
 {
     OriHbmData oriData;
-    std::string sql{"SELECT timestamp, bandwidth, hbmid, event_type FROM " + hbmDB.tableName};
+    const std::string sql =
+        "SELECT timestamp, bandwidth, hbmid, event_type FROM " + hbmDB.tableName + " WHERE " + HBM_ID_FILTER;
     if (!hbmDB.dbRunner->QueryData(sql, oriData) || oriData.empty())
     {
         ERROR("Failed to obtain data from the % table.", hbmDB.tableName);

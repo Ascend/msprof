@@ -107,6 +107,37 @@ class TestCppPipelineDecider(unittest.TestCase):
                         self.assertFalse(result.can_run_in_cpp, result.issues)
                         self.assertIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
 
+    def test_hbm_summary_is_supported_by_native_pipeline(self):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
+            path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({DataTag.HBM.name}))
+            request = replace(self.request, command=PipelineCommand.EXPORT, command_type="summary",
+                              export_format="csv")
+            with self.subTest(chip=chip):
+                result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
+                self.assertTrue(result.can_run_in_cpp, result.issues)
+
+    def test_hbm_json_summary_keeps_python_fallback(self):
+        path_facts = replace(self.path_facts, chip_model=ChipModel.CHIP_V6_1_0,
+                             raw_tags=frozenset({DataTag.HBM.name}))
+        request = replace(self.request, command=PipelineCommand.EXPORT, command_type="summary",
+                          export_format="json")
+        result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
+        self.assertFalse(result.can_run_in_cpp)
+        self.assertIn("EXPORT_FORMAT_UNSUPPORTED", self.reason_codes(result))
+
+    def test_netdev_is_supported_by_native_pipeline_on_v4(self):
+        path_facts = replace(self.path_facts, chip_model=ChipModel.CHIP_V4_1_0,
+                             raw_tags=frozenset({DataTag.NETDEV_STATS.name}))
+        result = self.decide(facts=replace(self.facts, result_paths=(path_facts,)))
+        self.assertTrue(result.can_run_in_cpp, result.issues)
+
+    def test_netdev_does_not_enable_full_cpp_pipeline_on_v6(self):
+        path_facts = replace(self.path_facts, chip_model=ChipModel.CHIP_V6_1_0,
+                             raw_tags=frozenset({DataTag.NETDEV_STATS.name}))
+        result = self.decide(facts=replace(self.facts, result_paths=(path_facts,)))
+        self.assertFalse(result.can_run_in_cpp)
+        self.assertIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
+
     def test_llc_and_pcie_do_not_enable_unsupported_chips(self):
         for chip in (ChipModel.CHIP_V3_3_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0):
             with self.subTest(chip=chip):

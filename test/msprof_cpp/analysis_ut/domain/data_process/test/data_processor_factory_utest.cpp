@@ -161,12 +161,13 @@ TEST(DataProcessorFactoryUTest, ShouldRegisterAicpuWithDirectDeviceDependencies)
               (std::vector<std::type_index>{typeid(std::vector<AscendTaskData>), typeid(std::vector<TaskInfoData>)}));
 }
 
-TEST(DataProcessorFactoryUTest, ShouldPreserveOptionalProcessorWithoutNativeDependencies)
+TEST(DataProcessorFactoryUTest, ShouldKeepOptionalNetDevProcessorDependentOnNativePersistence)
 {
     const auto* definition = TopoNodeRegistry::FindProcessorByName(PROCESSOR_NAME_NETDEV_STATS);
     ASSERT_NE(definition, nullptr);
     EXPECT_FALSE(definition->mandatory);
-    EXPECT_TRUE(definition->processDependencies.empty());
+    EXPECT_EQ(definition->processDependencies,
+              TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "NetDevStatsPersistence")));
     EXPECT_EQ(definition->scopeKind, TopoScopeKind::EXPORT);
 }
 

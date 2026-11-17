@@ -61,9 +61,8 @@ std::unordered_map<std::string, AssemblerCreator> SummaryFactory::assemblerTable
      { MAKE_SHARED0_NO_OPERATION(assembler, PageFaultAssembler, PROCESSOR_NAME_PAGE_FAULT, profPath); }},
     {PROCESSOR_NAME_AICPU, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
      { MAKE_SHARED0_NO_OPERATION(assembler, AicpuAssembler, PROCESSOR_NAME_AICPU, profPath); }},
-    // 暂不启用新增的 HBM summary 导出，仍由 Python 生成。
-    // {PROCESSOR_NAME_HBM, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
-    //  { MAKE_SHARED0_NO_OPERATION(assembler, HbmSummaryAssembler, PROCESSOR_NAME_HBM, profPath); }},
+    {PROCESSOR_NAME_HBM, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
+     { MAKE_SHARED0_NO_OPERATION(assembler, HbmSummaryAssembler, PROCESSOR_NAME_HBM, profPath); }},
 };
 
 std::shared_ptr<SummaryAssembler> SummaryFactory::GetAssemblerByName(const std::string& processName,

@@ -115,7 +115,7 @@ std::vector<NetDevStatsEventData> NetDevStatsProcessor::ProcessData(const DBInfo
         "mac_tx_bad_oct, mac_rx_bad_oct, roce_tx_all_pkt, roce_rx_all_pkt, roce_tx_err_pkt, roce_rx_err_pkt,"
         "roce_tx_cnp_pkt, roce_rx_cnp_pkt, roce_new_pkt_rty, nic_tx_all_oct, nic_rx_all_oct FROM " +
         netDevStatsDB.tableName + " ORDER BY timestamp"};
-    if (!netDevStatsDB.dbRunner->QueryData(sql, oriData) || oriData.size() < MIN_RECORD_NUM)
+    if (!netDevStatsDB.dbRunner->QueryData(sql, oriData))
     {
         ERROR("Get % data failed, profPath is %, device is %", netDevStatsDB.tableName, profPath_, deviceId);
         return {};
@@ -128,6 +128,12 @@ std::vector<NetDevStatsEventData> NetDevStatsProcessor::ComputeEventData(const s
                                                                          const ProfTimeRecord &record)
 {
     std::vector<NetDevStatsEventData> rstEventData;
+    if (oriData.size() < MIN_RECORD_NUM)
+    {
+        WARN("NetDevStats needs at least % samples, got %, profPath is %, deviceId is %.", MIN_RECORD_NUM,
+             oriData.size(), profPath_, deviceId);
+        return rstEventData;
+    }
     if (!Reserve(rstEventData, oriData.size() - 1))
     {
         ERROR("Reserve for NetDevStats data failed, profPath is %, deviceId is %.", profPath_, deviceId);

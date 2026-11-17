@@ -18,24 +18,30 @@
 #define ANALYSIS_DOMAIN_HBM_FORMAT_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct HbmData : public BasicData {
+namespace Analysis
+{
+namespace Domain
+{
+struct HbmData : public BasicData
+{
     uint8_t hbmId = UINT8_MAX;
     uint16_t deviceId = UINT16_MAX;
-    double bandWidth = 0; // MB/s
-    std::string eventType; // read和write
+    double bandWidth = 0;   // MB/s
+    std::string eventType;  // read和write
 };
 
-struct HbmSummaryData {
+struct HbmSummaryData
+{
     uint16_t deviceId = UINT16_MAX;
-    uint8_t hbmId = UINT8_MAX; // hbmId为UINT8_MAX，表示Average,否则表示内存访问单元的ID
-    double readBandwidth = 0; // 读带宽（MB/s）
-    double writeBandwidth = 0; // 写带宽（MB/s）
+    uint8_t hbmId = 0;  // Per-HBM row ID; all uint8_t values are valid.
+    bool isAverage = false;
+    double readBandwidth = 0;
+    double writeBandwidth = 0;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_HBM_FORMAT_DATA_H
+#endif  // ANALYSIS_DOMAIN_HBM_FORMAT_DATA_H

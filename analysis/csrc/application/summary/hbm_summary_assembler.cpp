@@ -16,7 +16,6 @@
 
 #include "analysis/csrc/application/summary/hbm_summary_assembler.h"
 
-#include <limits>
 #include <string>
 #include <vector>
 
@@ -47,8 +46,7 @@ uint8_t HbmSummaryAssembler::AssembleData(Infra::DataInventory &dataInventory)
     }
     for (const auto &item : *data)
     {
-        const std::string metric =
-            item.hbmId == std::numeric_limits<uint8_t>::max() ? "Average" : std::to_string(item.hbmId);
+        const std::string metric = item.isAverage ? "Average" : std::to_string(item.hbmId);
         res_.emplace_back(std::vector<std::string>{std::to_string(item.deviceId), metric,
                                                    DoubleToStr(item.readBandwidth), DoubleToStr(item.writeBandwidth)});
     }

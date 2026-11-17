@@ -42,6 +42,12 @@ class SystemDataCheckManager(DataCheckManager):
         return cls.check_data_exist(result_dir, file_name_manager.get_hbm_compiles(), device_id=device_id)
 
     @classmethod
+    def contain_hbm_summary_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        if cls.check_export_with_so():
+            return False
+        return cls.contain_hbm_data(result_dir, device_id=device_id)
+
+    @classmethod
     def contain_dvpp_data(cls: any, result_dir: str, device_id: any = None) -> bool:
         """
         The data path contain dvpp data or not
