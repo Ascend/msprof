@@ -23,7 +23,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX
 
 **环境准备**
 
-1. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
+1. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/zh/cann/download)。
 
     Ascend EP场景下 msProf 工具路径为：`${INSTALL_DIR}/tools/profiler/bin`，其中 `${INSTALL_DIR}` 请替换为 CANN 软件安装后文件存储路径。若安装的 Toolkit 软件包，以 root 安装举例，则安装后文件存储路径为：`/usr/local/Ascend/cann`。
 

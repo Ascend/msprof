@@ -14,11 +14,11 @@ Training
 
 The issue can be reproduced consistently.
 
-1. In a server cluster with 8 machines and 96 cards, we observed a consistently reproducible anomaly: in each training iteration, a certain card experienced an excessively long queue retrieval (dequeue) operation on the PyTorch framework side, with the longest duration reaching 7.9 seconds. The specific data is shown in the following figure:
+1. In a server cluster with 8 machines and 96 cards, we observed a consistently reproducible anomaly: in each training iteration, a certain card experienced an excessively long queue retrieval (dequeue) operation on the PyTorch framework side, with the longest duration reaching 7.9 seconds. The specific data is shown in the following figure.
 
    ![Long dequeue latency](../figures/profiler_case_cpu_switch_1.png)
 
-2. At the same time, we found that no operators were actually executing on the device side during this period. However, the `synchronize` function on the CPU side took an additional 92 ms to return. This directly resulted in 92 ms of ineffective idle waiting on the device side, as shown in the following timeline:
+2. At the same time, we found that no operators were actually executing on the device side during this period. However, the `synchronize` function on the CPU side took an additional 92 ms to return. This directly resulted in 92 ms of ineffective idle waiting on the device side, as shown in the following timeline.
 
    ![Long synchronize latency](../figures/profiler_case_cpu_switch_2.png)
 
@@ -53,7 +53,7 @@ The issue can be reproduced consistently.
 
    According to the results, thread scheduling overhead accounted for a relatively large proportion of total CPU time, exceeding 20%.
 
-3. Use the [ftrace_tools](https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools) tool provided by MindStudio to collect CPU scheduling events. The collection results are as follows:
+3. Use the [ftrace_tools](https://gitcode.com/Ascend/msinsight/tree/master/scripts/ftrace_tools) tool provided by MindStudio to collect CPU scheduling events. The collection results are as follows.
 
    ![ftrace_tools result](../figures/profiler_case_cpu_switch_5.png)
 

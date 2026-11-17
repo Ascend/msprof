@@ -12,7 +12,7 @@
 
 </div>
 
-English | [简体中文](./README.md)
+English | [简体中文](https://gitcode.com/Ascend/msprof/blob/master/README.md)
 
 ## ✨ What's New
 
@@ -76,7 +76,7 @@ To improve the efficiency of documentation lookup, we provide several efficient 
 
 We welcome contributions to the project. See [Contributing Guide](docs/en/contributing/contributing_guide.md).
 
-When using AI agents for development, read the [AI Native development guide](docs/zh/development_guide/msprof_ai_native_development_guide.md) first. The guide is currently Chinese-only; the English version will follow.
+When using AI agents for development, read the [AI Native Development Guide](docs/en/development_guide/msprof_ai_native_development_guide.md) first.
 
 ## ⚖️ Related Information
 

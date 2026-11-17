@@ -108,6 +108,7 @@ msprof\_\*.json在“chrome://tracing”中展示如下。
 - async\_task\_queue：应用层Enqueue \> Dequeue的入队列到出队列对应关系。
 - HostToDevice：CANN层Node（算子） \> Ascend Hardware的NPU算子的下发执行关系（Host到Device）。
 - HostToDevice：CANN层Node（算子） \> Communication通信算子的下发执行关系（Host到Device）。
+- HostToDevice(*)：Host侧的CANN层API到Device侧执行算子的下发关系，其中`*`代表不同的连线场景，当前仅支持Graph。
 - fwdbwd：前向API \> 反向API。
 
 > [!NOTE]

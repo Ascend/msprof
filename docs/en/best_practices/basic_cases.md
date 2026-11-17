@@ -6,8 +6,8 @@ This use case uses a ResNet50 inference model as an example to demonstrate how t
 
 ### 1.1 Environment Requirements
 
-- The Ascend NPU driver and CANN software (including the Toolkit and ops packages) are installed. For details, see [CANN Quick Installation](https://www.hiascend.com/cann/download).
-- The MindStudio Insight visualization and analysis tool is installed. For details, see the [MindStudio download](https://www.hiascend.com/developer/software/mindstudio/download) page on the Ascend community website.
+- The Ascend NPU driver and CANN software (including the Toolkit and ops packages) are installed. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download).
+- The MindStudio Insight visualization and analysis tool is installed. For details, see the [MindStudio download](https://www.hiascend.com/en/developer/software/mindstudio/download) page on the Ascend community website.
 
 ### 1.2 Configuring Environment Variables
 
@@ -96,4 +96,4 @@ After parsing, a `PROF_XXX` directory (or an `OPPROF` directory, depending on th
 
     Go to the `PROF_XXX/mindstudio_profiler_output` directory and import the performance data into the MindStudio Insight tool for visual analysis. MindStudio Insight provides multiple visualization options, including timeline view, communication analysis, and computation duration visualization, helping users quickly locate performance bottlenecks.
 
-    For details, see *[MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/system_tuning.md)*.
+    For details, see *[MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/system_tuning/system_tuning_overview.md)*.

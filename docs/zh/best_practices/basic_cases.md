@@ -6,8 +6,8 @@
 
 ### 1.1 环境要求
 
-- 已安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
-- 已安装MindStudio Insight可视化分析工具，请参见昇腾社区MindStudio[下载](https://www.hiascend.com/developer/software/mindstudio/download)页面。
+- 已安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》。
+- 已安装MindStudio Insight可视化分析工具，请参见昇腾社区MindStudio[下载](https://www.hiascend.com/zh/developer/software/mindstudio/download)页面。
 
 ### 1.2 配置环境变量
 
@@ -96,4 +96,4 @@ msprof --export=on --output="./prof_data"
 
     进入`PROF_XXX/mindstudio_profiler_output`目录，将性能数据导入MindStudio Insight工具进行可视化分析。MindStudio Insight提供了多种数据呈现形式，包括时间线视图、通信分析、计算耗时等可视化呈现，帮助用户快速定位性能瓶颈。
 
-    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》。
+    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》。

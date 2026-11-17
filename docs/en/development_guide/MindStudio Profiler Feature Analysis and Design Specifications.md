@@ -197,7 +197,7 @@ To support profile data parsing and visualization for model operators, and to en
 
 ## 3.2 Overall Solution
 
-MindStudio Profiler primarily consists of three parts: profile data collection and parsing, profile data analysis, and profile data visualization. Profile data collection covers operator development, inference (online and offline), and training scenarios (where methods vary by framework, such as MindSpore, PyTorch, and TensorFlow); parsing includes online and offline modes; and visualization is available through CSV tables, Chrome Trace or Perfetto (JSON), TensorBoard, and MindStudio Insight.
+MindStudio Profiler primarily consists of three parts: profile data collection and parsing, profile data analysis, and profile data visualization. Profile data collection covers operator development, inference (online and offline), and training scenarios (where methods vary by framework, such as MindSpore, PyTorch, and TensorFlow). Parsing includes online and offline modes. Visualization is available through CSV tables, Chrome Trace or Perfetto (JSON), TensorBoard, and MindStudio Insight.
 
 In offline inference scenarios, a trained model undergoes quantization and compression and is converted using the ATC. Then, you can develop applications using MindX SDK or AscendCL APIs. These applications are launched using MindStudio Profiler (msProf) to collect the corresponding profile data.
 

@@ -62,7 +62,7 @@ For details, see the following figure.
 
     2. Run `export LD_PRELOAD=./libmsosrt_trace.so:$LD_PRELOAD` to add `libmsosrt_trace.so` to the `LD_PRELOAD` environment variable.
 
-    3. Set the environment variables for the detection threshold and export mode (real-time printing or file export; avoid enabling both modes simultaneously):
+    3. Set the environment variables for the detection threshold and export mode (real-time printing or file export, but do not enable both modes simultaneously):
 
         ```bash
         # Detection threshold. A positive integer. Only library functions whose duration exceeds the threshold are recorded. Unit: ns. Default: 10000000.

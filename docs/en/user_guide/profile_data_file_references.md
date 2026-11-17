@@ -94,20 +94,20 @@ As shown in [Figure 1](#en-us_topic_0000001751419248_fig10608132131617), the tim
 > [!NOTE]
 >
 > - The data in the timeline data summary table is described in detail in [Performance Data File Reference](profile_data_file_references.md).
-> - The data in each area of [Figure 1](#en-us_topic_0000001751419248_fig10608132131617) is related to the collection scenario. For example, Area 1 is generated only when collected in msproftx or other framework scenarios; Communication and Overlap Analysis communication data can be collected only in scenarios involving communication, such as multi-card, multi-node, or cluster scenarios. Refer to the actual collected data.
+> - The data in each area of [Figure 1](#en-us_topic_0000001751419248_fig10608132131617) is related to the collection scenario. For example, Area 1 is generated only when collected in msproftx or other framework scenarios. Communication and Overlap Analysis communication data can be collected only in scenarios involving communication, such as multi-rank, multi-node, or cluster scenarios. Refer to the actual collected data.
 > - The data displayed in `msprof_*.json` is the data within iterations. Data outside iterations is not displayed.
 
-**Viewing Operator Delivery Directions<a name="en-us_topic_0000001751419248_section174114535213"></a>**
+**Viewing Operator Dispatch Directions<a name="en-us_topic_0000001751419248_section174114535213"></a>**
 
-When viewing a .json file in `chrome://tracing`, enable options under **Flow events** to display connection lines between application-layer operators and NPU operators. These lines show the mappings between delivery and execution. For more information, see [Figure 2](#en-us_topic_0000001751419248_fig490591821019).
+When viewing a .json file in `chrome://tracing`, enable options under **Flow events** to display connection lines between application-layer operators and NPU operators. These lines show the mappings between dispatch and execution. For more information, see [Figure 2](#en-us_topic_0000001751419248_fig490591821019).
 
 The mappings include:
 
-- `async_npu`: delivery and execution mappings from application-layer operators to NPU operators on Ascend Hardware.
-- `MsTx`: delivery and execution mappings from training or inference process instrumentation tasks to NPU instrumentation operators on Ascend Hardware. These mappings are generated when the `aclprofMarkEx` API is called for instrumentation.
+- `async_npu`: dispatch and execution mappings from application-layer operators to NPU operators on Ascend Hardware.
+- `MsTx`: dispatch and execution mappings from training or inference process instrumentation tasks to NPU instrumentation operators on Ascend Hardware. These mappings are generated when the `aclprofMarkEx` API is called for instrumentation.
 - `async_task_queue`: mappings from enqueue to dequeue at the application layer.
-- `HostToDevice`: delivery and execution mappings from CANN-layer nodes (operators) to NPU operators on Ascend Hardware (`host to device`).
-- `HostToDevice`: delivery and execution mappings from CANN-layer nodes (operators) to communication operators on Ascend Hardware (`host to device`).
+- `HostToDevice`: dispatch and execution mappings from CANN-layer nodes (operators) to NPU operators on Ascend Hardware (`host to device`).
+- `HostToDevice`: dispatch and execution mappings from CANN-layer nodes (operators) to communication operators on Ascend Hardware (`host to device`).
 - `fwdbwd`: mappings from forward APIs to backward APIs.
 
 > [!NOTE]
@@ -118,7 +118,7 @@ The mappings include:
 **Figure 2** Operator mapping relationship<a name="en-us_topic_0000001751419248_fig490591821019"></a>
 ![](../figures/operator_mappings.png "Operator mappings")
 
-You can click the operator or API at each end of a connection line to view the operator delivery direction. For more information, see [Figure 3](#en-us_topic_0000001751419248_fig11692135416129).
+You can click the operator or API at each end of a connection line to view the operator dispatch direction. For more information, see [Figure 3](#en-us_topic_0000001751419248_fig11692135416129).
 
 **Figure 3** Operator information<a name="en-us_topic_0000001751419248_fig11692135416129"></a>
 ![](../figures/operator_information.png "Operator information")
@@ -497,7 +497,7 @@ The following fields are generated when `--task-time` is set to `l1` and `--aic-
 |*_mte3_time(us)|Time taken to execute MTE3 instructions (AI Core-to-DDR transfer) (μs).|
 |*_mte3_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles.|
 |*_icache_miss_rate|iCache is the L2 cache dedicated to instructions. A high `icache_miss_rate` value indicates low instruction-read efficiency for the AI Core.|
-|memory_bound|Memory bound used to identify memory bottlenecks during AICore operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
 |cube_utilization(%)|Utilization of cube operators, indicating whether the number of operations performed by cube operators per unit time reaches the theoretical upper limit. The closer to 100%, the closer to the theoretical upper limit. Calculation formula: `cube_utilization = total_cycles / (freq * core_num * task_duration)`.|
 
 > [!NOTE]
@@ -665,7 +665,7 @@ Supported Products:
 |mte3_exe_ratio|Ratio of cycles taken to execute MTE3 instructions (AI Core-to-DDR transfer) to the total cycles.|
 |fixpipe_exe_time(us)|Time taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) (μs).|
 |fixpipe_exe_ratio|Ratio of cycles taken to execute fixpipe instructions (L0C-to-OUT/L1 transfer) to the total cycles.|
-|memory_bound|Memory bound used to identify memory bottlenecks during AICore operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
+|memory_bound|Memory bound used to identify memory bottlenecks during AI Core operator execution. It is calculated as: `mte2_ratio/max(mac_ratio, vec_ratio)`. A value less than 1 indicates no memory bottleneck. A value greater than 1 indicates that the AI Core spends most of its task execution time on memory transfers rather than computation. Higher values signify more severe memory bottlenecks.|
 |cube_utilization(%)|Utilization of cube operators, indicating whether the number of operations performed by cube operators per unit time reaches the theoretical upper limit. The closer the value is to 100%, the closer it is to the theoretical upper limit. Calculation formula: `cube_utilization = total_cycles / (freq * core_num * task_duration)`.|
 
 Supported Products: Atlas 200I/500 A2 inference products

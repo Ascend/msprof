@@ -4,7 +4,7 @@ This document is intended for msProf developers and maintenance personnel. It de
 
 ## 1. msProf Development Overview
 
-msProf provides capabilities for collecting, parsing, and exporting AI task execution profile data and Ascend AI processor system data. Development work is generally categorized into the following areas:
+msProf provides capabilities for collecting, parsing, and exporting AI task execution profile data and Ascend AI processor system data. Development work is generally categorized into the following areas.
 
 | Development Object | Typical Content |
 | --- | --- |
@@ -54,7 +54,7 @@ msProf has a built-in [devcontainer](https://containers.dev/) development enviro
 - clangd C++ language service ready
 - Git identity synchronization
 
-**Prerequisites:**
+**Prerequisites**
 
 | Environment | Requirement |
 |------|------|
@@ -69,7 +69,7 @@ msProf has a built-in [devcontainer](https://containers.dev/) development enviro
 4. After the container starts, `post-create.sh` is automatically executed to complete initialization (about 1 to 2 minutes).
 5. Press Ctrl+Shift+P → Tasks: Run Task to select a build task.
 
-**Built-in VS Code tasks:**
+**Built-in VS Code tasks**
 
 | Task | Shortcut | Description |
 |------|--------|------|
@@ -261,11 +261,11 @@ Focus on the following items:
 
 ## 7. Requirements for Documentation Updates
 
-Development changes to msProf usually directly affect the documentation. It is forbidden to modify only the code without updating the documentation. It is recommended to check the following table synchronously:
+Development changes to msProf usually directly affect the documentation. Do not modify code without updating the documentation. Use the following table to identify the documents that must be updated for each type of code change.
 
 | Change Content | Document to Update |
 | --- | --- |
-| Installation methods, dependencies, or packaging parameters | `en/insall_guide/msprof_install_guide.md` |
+| Installation methods, dependencies, or packaging parameters | `en/install_guide/msprof_install_guide.md` |
 | Basic usage workflows or examples | `en/quick_start/msprof_quick_start.md` |
 | Parsing workflows or command-line parameters | `en/user_guide/msprof_parsing_instruct.md` |
 | Script capabilities or advanced usage | `en/user_guide/extended_functions.md` |

@@ -23,7 +23,7 @@ To customize the export of profile data, you are advised to read [Parsing and Ex
 
 **Environment Setup**
 
-1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/cann/download).
+1. Install the matching CANN Toolkit and ops operator packages, and configure CANN environment variables. For details, see [CANN Installation Guide](https://www.hiascend.com/en/cann/download).
 
     In Ascend EP scenarios, the msProf tool is located in `${INSTALL_DIR}/tools/profiler/bin`. Replace `${INSTALL_DIR}` with the actual CANN installation directory. If the Toolkit is installed by the `root` user, the default installation directory is `/usr/local/Ascend/cann`.
 
@@ -525,6 +525,10 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
     ```
 
 **Output File Description<a name="en-us_topic_0000001631250206_section023216238448"></a>**
+
+> [!NOTE]
+>
+> When profile data is collected with `--task-time=l0`, detailed durations such as `transit_time`, `wait_time`, `synchronization_time`, and `idle_time` are not collected and are displayed as `-1`.
 
 - --Scenario: `--type=text` or `--type=db` and `--rule=communication`
 

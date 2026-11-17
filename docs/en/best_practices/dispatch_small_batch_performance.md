@@ -16,11 +16,11 @@ Open `msprof.json` or `trace_view.json` in MindStudio Insight. The overall workl
 
 ## 4. Troubleshooting Process
 
-First, the CANN layer is the API dispatch interface layer of the CANN software stack, while the Ascend Hardware layer represents the actual operator execution layer. For the overall workload, only rapid API dispatch combined with long-term high-density hardware execution constitutes a reasonable dispatch-execution relationship. This relationship can be observed through the host-to-device connection provided by the profiler. A well-optimized pipeline diagram should exhibit a certain degree of inclination, which indicates efficient utilization of hardware resources, as shown in the following figure:
+First, the CANN layer is the API dispatch interface layer of the CANN software stack, while the Ascend Hardware layer represents the actual operator execution layer. For the overall workload, only rapid API dispatch combined with long-term high-density hardware execution constitutes a reasonable dispatch-execution relationship. This relationship can be observed through the host-to-device connection provided by the profiler. A well-optimized pipeline diagram should exhibit a certain degree of inclination, which indicates efficient utilization of hardware resources, as shown in the following figure.
 
 ![](../figures/small_batch-normal.png)
 
-However, the current connections are vertical, meaning that each operator is executed immediately after being dispatched, followed by a wait for the next operator to be dispatched. This further confirms that the hardware still has considerable utilization headroom, as shown in the following figure:
+However, the current connections are vertical, meaning that each operator is executed immediately after being dispatched, followed by a wait for the next operator to be dispatched. This further confirms that the hardware still has considerable utilization headroom, as shown in the following figure.
 
 ![](../figures/small_batch-pipeline.png)
 

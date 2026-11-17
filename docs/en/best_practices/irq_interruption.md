@@ -52,7 +52,7 @@ Align Profiler operator dispatch data and cluster rank duration data with period
 4. Precisely identify optimization directions.
 Identify CPU cores with excessive interrupt load and high-frequency abnormal interrupts, and determine whether there are issues such as uneven load distribution or unsuitable scheduling strategies. Then, perform targeted optimization of interrupt affinity, CPU affinity, and scheduling parameters.
 
-## Suggestions for Tool Improvement
+## 6. Suggestions for Tool Improvement
 
 ftrace can comprehensively collect basic interrupt and CPU scheduling data, but its dedicated analysis capabilities for Ascend-specific service interrupts are insufficient, resulting in relatively high manual filtering and correlation costs. The following enhancements are recommended to improve troubleshooting efficiency for similar issues:
 

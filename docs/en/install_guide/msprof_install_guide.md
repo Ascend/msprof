@@ -31,7 +31,7 @@ Source builds must use the standard MindStudio build environment.
 
 The source build and unit test commands described later in this document are all executed in the container of the specified image or the container of the environment image built on site. The CANN software package version, GCC version, and Python version are subject to the unified image creation guide, and this repository does not maintain them separately.
 
-After the image is built, you must use the `ctr_in.py` command provided in Chapter 7 of the unified image creation guide to start and enter the container in an interactive terminal. Do not create a container using a standard `docker run` command, and do not use `docker exec <container_name> bash -c '<command>'` as a substitute for the interactive environment; otherwise, the Python, GCC, and CANN environment initialization may be skipped.
+After the image is built, you must use the `ctr_in.py` command provided in Chapter 7 of the unified image creation guide to start and enter the container in an interactive terminal. Do not create a container using a standard `docker run` command, and do not use `docker exec <container_name> bash -c '<command>'` as a substitute for the interactive environment. Otherwise, the Python, GCC, and CANN environment initialization may be skipped.
 
 After entering the interactive container shell opened by `ctr_in.py`, run the following command to clone this repository:
 
@@ -132,7 +132,7 @@ To uninstall the tool, perform the following steps:
 
 Upgrades follow the "uninstall first, then install" process. Simply run the installation command. The tool will automatically remove the previous version and guide you through the upgrade process.
 
-You can run the `msprof` `--version` command to view the version information of the current environment, and then select the version to upgrade. When upgrading, pay attention to the version compatibility. For details, see *[Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes_en.md)*.
+msProf is integrated into CANN. When upgrading, consider the version compatibility between MindStudio and CANN. For details, see *[Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes_en.md)*.
 
 ## 6. Appendixes
 

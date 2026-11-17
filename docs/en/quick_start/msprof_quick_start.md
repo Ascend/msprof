@@ -28,10 +28,10 @@ Before starting, ensure that the server meets the following requirements.
 
 | Item | Requirement | Verification Method |
 | :--- | :--- | :--- |
-| **Hardware** | A Linux server equipped with at least one NPU, with the driver and firmware installed | Run `npu-smi info` and verify that the NPU is operating normally |
-| **Container runtime** | Docker installed and running (version ≥ 18.0 recommended) | Run `docker ps`; no error indicates that the service is running normally |
-| **Script execution** | Python 3 installed on the host | Run `python3 -V` on the host; displayed version information indicates that it is installed |
-| **Network communication** | `curl` installed (any version) | Run `curl -V`; displayed version information indicates that it is installed |
+| **Hardware** | A Linux server equipped with at least one NPU, with the driver and firmware installed | Run `npu-smi info` and verify that the NPU is operating normally. |
+| **Container runtime** | Docker installed and running (version ≥ 18.0 recommended) | Run `docker ps`. No error indicates that the service is running normally. |
+| **Script execution** | Python 3 installed on the host | Run `python3 -V` on the host. Displayed version information indicates that it is installed. |
+| **Network communication** | `curl` installed (any version) | Run `curl -V`. Displayed version information indicates that it is installed. |
 
 > 👉 After confirming that the prerequisites are met, if the environment has public network access, all subsequent commands in this chapter can be executed directly by **Copy/Paste**, without manual input or concatenation. This helps avoid command execution failures caused by input errors.
 
@@ -239,7 +239,7 @@ You can sort the data by `Total Time(us)` in descending order and focus first on
 
 Records detailed execution information for each operator task. The fields may vary depending on the product version and collection parameters. The following example is for reference only.
 
-You can sort the data by `Task Duration(us)` in descending order to locate long-running tasks, and then check `Task Type` to view the distribution of tasks on AICore and AICPU.
+You can sort the data by `Task Duration(us)` in descending order to locate long-running tasks, and then check `Task Type` to view the distribution of tasks on AI Core and AICPU.
 
 ![op_summary CSV file](../figures/en-us_image_0000002502718556.png)
 <div style="text-align: center;">
@@ -256,7 +256,7 @@ You can sort the data by `Task Duration(us)` in descending order to locate long-
 
 Perform operations in this section in a local environment with MindStudio Insight installed. Windows or macOS with a graphical user interface is recommended.
 
-1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/developer/software/mindstudio/download) page.
+1. **Installing the tool**: If the tool is not installed, download and install it from the Ascend Community [MindStudio Download](https://www.hiascend.com/en/developer/software/mindstudio/download) page.
 2. **Getting familiar with the tool**: For basic usage, see [MindStudio Insight System Tuning Quick Start](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/quick_start/system_tuning_quick_start.md).
 
 #### 2.3.2 Loading msProf Collected Data
@@ -295,7 +295,7 @@ The preceding visual views can be used to efficiently perform the following perf
 * **Locating bottlenecks**: Quickly identify APIs, operators, and task flows with abnormal execution time.
 * **Analyzing dispatch relationships**: Use `HostToDevice` connections to visually analyze scheduling dependencies and timing alignment between host-side and device-side tasks.
 
-For more advanced operations and analysis methods, see [MindStudio Insight System Tuning Guide](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/system_tuning.md).
+For more advanced operations and analysis methods, see [MindStudio Insight System Tuning Guide](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/system_tuning/system_tuning_overview.md).
 
 ## 3. Solutions for Intranet Environments Without Public Network Access
 

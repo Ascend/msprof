@@ -18,7 +18,7 @@ To address this issue, we developed a host-side diagnostic and tuning tool that 
 
 Provides custom core binding capability. Performs process/thread-level core binding according to the configuration scheme in the user-input JSON. When no input is provided, core binding is performed using the empirically optimal scheme:
 
-A separate CPU core is allocated to the key threads `acl_thread` and `release_thread` of each card, and a separate CPU core is allocated to `dev[i]_sq_task` (which can be bound on the host; skipped if it cannot be found). A separate CPU core is allocated to each operator-related interrupt, `sq_send_trigger_irq` and `cq_update_irq` (write permission to the `/proc` directory is required; skipped if the required permission is unavailable). The remaining inference threads are jointly allocated to six CPU cores. Therefore, each NPU card is bound to 11 CPU cores. NPU affinity and cross-NUMA memory access latency are considered during CPU allocation.
+A separate CPU core is allocated to the key threads `acl_thread` and `release_thread` of each card, and a separate CPU core is allocated to `dev[i]_sq_task` (which can be bound on the host and is skipped if it cannot be found). A separate CPU core is allocated to each operator-related interrupt, `sq_send_trigger_irq` and `cq_update_irq` (write permission to the `/proc` directory is required and the binding is skipped if the permission is unavailable). The remaining inference threads are jointly allocated to six CPU cores. Therefore, each NPU card is bound to 11 CPU cores. NPU affinity and cross-NUMA memory access latency are considered during CPU allocation.
 
 #### Syntax
 
@@ -109,8 +109,8 @@ python3 entrance.py bind [-l] [-c <config_path>]
   ```
 
     1. Allocate a corresponding range of CPUs to each NPU based on NPU affinity and the number of accessible CPUs. The CPU range allocated to each NPU is within a single NUMA node.
-    2. Bind `sq_send_trigger_irq` and `cq_update_irq` (hardware interrupts for operator dispatch) corresponding to each NPU to the first two CPU cores in its CPU range. Write permission to `/proc/irq/<irq_id>/smp_affinity` is required; otherwise, the binding fails.
-    3. Bind `dev[i]_sq_task` (the NPU driver process) corresponding to each NPU to the third CPU core in its CPU range. The process must be queryable on the host; otherwise, the binding fails.
+    2. Bind `sq_send_trigger_irq` and `cq_update_irq` (hardware interrupts for operator dispatch) corresponding to each NPU to the first two CPU cores in its CPU range. Write permission to `/proc/irq/<irq_id>/smp_affinity` is required. Otherwise, the binding fails.
+    3. Bind `dev[i]_sq_task` (the NPU driver process) corresponding to each NPU to the third CPU core in its CPU range. The process must be queryable on the host. Otherwise, the binding fails.
     4. Bind the main process and all child threads corresponding to each NPU to the fourth through ninth CPU cores in its CPU range.
     5. Bind `acl_thread` (the operator dispatch thread) corresponding to each NPU to the tenth CPU core in its CPU range.
     6. Bind `release_thread` (the resource release thread) corresponding to each NPU to the eleventh CPU core in its CPU range.

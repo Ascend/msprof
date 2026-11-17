@@ -46,7 +46,7 @@ For details, see the following figure.
        data_simplification=False,
        host_sys=[torch_npu.profiler.HostSystem.OSRT],  # Collect process-level system calls
    )
-   
+
    # Add the basic profiling configuration parameters. For details, see the parameter descriptions below.
    with torch_npu.profiler.profile(
        activities=[
@@ -56,14 +56,14 @@ For details, see the following figure.
        schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),  # Used with prof.step()
        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
        experimental_config=experimental_config) as prof:
-   
+
        # Start profile data collection.
        for step in range(steps):  # Training iterations
            train_one_step()       # Training function
            prof.step()            # Used with schedule
    ```
 
-   In the Profiler deliverable file `trace_view.json`, the OS Runtime API level data is shown in the following figure:
+   In the Profiler deliverable file `trace_view.json`, the OS Runtime API level data is shown in the following figure.
 
    ![OS Runtime API-track data](../figures/profiler_case_os_runtime_api.png)
 

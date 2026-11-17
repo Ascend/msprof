@@ -4,7 +4,7 @@
 
 Source: CANN package version upgrade (from Version A to Version B), inference scenario.
 
-Symptoms: Reproducible consistently. After Version B has been running for approximately 12 hours, an OOM occurs at the 471st step. The issue does not occur on Version A, nor on GPU; it is reproduced only on the NPU with Version B. Virtual memory has been confirmed to be enabled.
+Symptoms: Reproducible consistently. After Version B has been running for approximately 12 hours, an OOM occurs at the 471st step. The issue does not occur on Version A, nor on GPU. It is reproduced only on the NPU with Version B. Virtual memory has been confirmed to be enabled.
 
 ## 2. Troubleshooting Process
 
@@ -92,7 +92,7 @@ This issue is an operator bug: the KV-cache improperly manages references to int
 <div align="center"><img src="../figures/profiler_case_leak_methodology.png" /></div>
 <div align="center"><b>Figure 3</b> Methodology for locating memory leaks</div>
 
-1. For an OOM that occurs after a version upgrade, first compare the `allocated` increase for a single step between the new and old versions. If the increase is significant (>10 MB), investigate for a memory leak directly; if the increase is minor, switch to fragmentation analysis.
+1. For an OOM that occurs after a version upgrade, first compare the `allocated` increase for a single step between the new and old versions. If the increase is significant (>10 MB), investigate for a memory leak directly. If the increase is minor, switch to fragmentation analysis.
 2. After confirming a leak in a single step, expand the profiling range to verify the accumulation trend across steps and rule out a one-time anomaly.
 3. Filter operators with mismatched allocation and release records in `operator_memory.csv`. Then, use call stacks recorded with `with_stack=True` to locate the specific code path.
 
