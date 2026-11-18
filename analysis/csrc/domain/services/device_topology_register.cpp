@@ -100,13 +100,15 @@ namespace
 {
 template <typename T>
 TopoNodeDefinition DeviceDefinition(TopoNodeId id, bool mandatory, std::vector<TopoNodeId> dependencies,
-                                    std::vector<uint32_t> chips, TopoDependencyResolver resolver = nullptr)
+                                    std::vector<uint32_t> chips, TopoDependencyResolver resolver = nullptr,
+                                    bool runOnDependencyFailure = false)
 {
     TopoNodeDefinition definition;
     definition.id = std::move(id);
     definition.scopeKind = TopoScopeKind::DEVICE;
     definition.runtimeType = typeid(T);
     definition.mandatory = mandatory;
+    definition.runOnDependencyFailure = runOnDependencyFailure;
     definition.chipIds = std::move(chips);
     definition.processDependencies = std::move(dependencies);
     definition.processDependencies.push_back(TOPO_NODE(DEVICE_PROCESSING, "Device.Init"));
@@ -272,7 +274,6 @@ REGISTER_TOPO_NODE_DEFINITION(
                                        TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "TsTrackParser")), {CHIP_ID_ALL}));
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "StepTraceProcess"), std::vector<HalTrackData>);
 
-// Association and calculations.
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<AscendTaskAssociation>(
     TOPO_NODE(DEVICE_PROCESSING, "AscendTaskAssociation"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "LoadHostData"), TOPO_NODE(DEVICE_PROCESSING, "AicpuParser")),
@@ -284,7 +285,7 @@ REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "AscendTaskAssoci
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<HcclCalculator>(
     TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator"), true,
     TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "AscendTaskAssociation"), TOPO_NODE(DEVICE_PROCESSING, "LoadHostData")),
-    {CHIP_ID_ALL}));
+    {CHIP_ID_ALL}, nullptr, true));
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator"), std::vector<TopDownTask>,
                                   std::vector<HcclTask>, std::vector<HcclOp>);
 
@@ -321,9 +322,9 @@ REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "AicpuPersistenc
                                   DeviceStreamInfo, HostStreamInfo, GeHashMap, std::vector<HalTrackData>,
                                   std::vector<KfcInfoData>, std::vector<MasterStreamTaskData>);
 
-REGISTER_TOPO_NODE_DEFINITION(
-    DeviceDefinition<AscendTaskPersistence>(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence"), true,
-                                            TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator")), {CHIP_ID_ALL}));
+REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<AscendTaskPersistence>(
+    TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence"), true,
+    TOPO_DEPS(TOPO_NODE(DEVICE_PROCESSING, "HcclCalculator")), {CHIP_ID_ALL}, nullptr, true));
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence"), std::vector<TopDownTask>);
 
 REGISTER_TOPO_NODE_DEFINITION(DeviceDefinition<CcuPersistence>(

@@ -17,6 +17,7 @@
 #define ANALYSIS_INFRASTRUCTURE_PROCESS_INCLUDE_PROCESS_STRUCT_H
 
 #include "analysis/csrc/infrastructure/process/include/process.h"
+#include "analysis/csrc/infrastructure/process/include/topo_stage.h"
 
 namespace Analysis
 {
@@ -48,6 +49,8 @@ struct BasicProcessInfo
     std::string processName;                  // 本Process的类名for Dfx
     bool mandatory = false;
     std::string scope;
+    // The topology stage of the node, UNKNOWN for a graph assembled without a topology definition.
+    Application::TopoNodeStage stage = Application::TopoNodeStage::UNKNOWN;
     std::shared_ptr<const Context> context;
     std::shared_ptr<DataInventory> inventory;
     std::vector<std::string> resources;

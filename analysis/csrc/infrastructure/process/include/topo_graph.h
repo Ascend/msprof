@@ -21,6 +21,7 @@
 #include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/process/include/process_struct.h"
+#include "analysis/csrc/infrastructure/process/include/topo_stage.h"
 #include "analysis/csrc/infrastructure/resource/chip_id.h"
 
 namespace Analysis
@@ -29,18 +30,6 @@ namespace Application
 {
 class DBAssembler;
 class TimelineManager;
-
-enum class TopoNodeStage : uint8_t
-{
-    DATA_PROCESSING,       // Domain data processing.
-    SUMMARY_GENERATION,    // Application summary generation.
-    DATABASE_PERSISTENCE,  // Application database persistence.
-    TIMELINE_EXPORT,       // Application timeline export.
-    FLOW_CONTROL,          // Topology lifecycle control.
-    HOST_PROCESSING,
-    DEVICE_PROCESSING,
-    DEVICE_PERSISTENCE,  // Device intermediate SQLite persistence.
-};
 
 enum class TopoScopeKind
 {

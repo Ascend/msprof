@@ -75,13 +75,13 @@ TEST_F(AscendTaskPersistenceUTest, ShouldSaveAscendTaskDataSuccess)
     ASSERT_EQ(ANALYSIS_OK, taskPersistence.Run(dataInventory_, context));
 }
 
-TEST_F(AscendTaskPersistenceUTest, TestRunShouldReturnErrorWhenDataIsNull)
+TEST_F(AscendTaskPersistenceUTest, TestRunShouldReturnOkWhenDataIsNull)
 {
     dataInventory_.RemoveRestData({});
     AscendTaskPersistence taskPersistence;
     DeviceContext context;
     context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
-    ASSERT_EQ(ANALYSIS_ERROR, taskPersistence.Run(dataInventory_, context));
+    ASSERT_EQ(ANALYSIS_OK, taskPersistence.Run(dataInventory_, context));
 }
 
 TEST_F(AscendTaskPersistenceUTest, TestShouldReturnOKWhenDataIsEmpty)

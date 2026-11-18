@@ -35,6 +35,8 @@ struct ProcessStatistics
     std::string scope;
     uint32_t chipId = 0;
     std::string processName;  // 以后升级到C++17或更高版本，可以使用std::string_view代替std::string
+    // The topology stage of the node, it qualifies processName because one name can appear in several stages.
+    Application::TopoNodeStage stage = Application::TopoNodeStage::UNKNOWN;
     std::vector<std::string> dependProcessNames;
     uint32_t returnCode;
     uint64_t startTime;

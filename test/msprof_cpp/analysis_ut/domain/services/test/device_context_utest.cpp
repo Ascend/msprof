@@ -310,6 +310,9 @@ TEST_F(DeviceContextUTest, SingleDeviceUsesDirectoryScopeInStatisticsAndStopAt)
     definitions.clear();
     definitions.emplace(id, definition);
     MOCKER_CPP(&DeviceContext::Init).stubs().will(returnValue(true));
+    // The statistics label is stage qualified, and its scope comes from the device directory.
+    const std::string stageName = Application::TopoStageName(Application::TopoNodeStage::DEVICE_PROCESSING);
+    const std::string expectLabel = "[" + stageName + "/" + DEVICE_DIR + "/DeviceContextTest.Process]";
     const std::vector<std::pair<std::string, bool>> cases = {
         {"", true},
         {"DeviceContextTest.Process", false},
@@ -327,7 +330,7 @@ TEST_F(DeviceContextUTest, SingleDeviceUsesDirectoryScopeInStatisticsAndStopAt)
             DataInventory inventory;
             std::string statistics;
             EXPECT_EQ(RunSingleDevice(devicePath, *context, inventory, statistics, test.first.c_str()), test.second);
-            EXPECT_NE(statistics.find("[device_0/DeviceContextTest.Process]"), std::string::npos);
+            EXPECT_NE(statistics.find(expectLabel), std::string::npos);
             EXPECT_EQ(statistics.find("dfxStop:true") != std::string::npos, !test.second);
         }
     }

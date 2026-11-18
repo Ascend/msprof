@@ -71,18 +71,14 @@ uint32_t AscendTaskPersistence::ProcessEntry(DataInventory& dataInventory, const
 {
     const DeviceContext& deviceContext = static_cast<const DeviceContext&>(context);
     auto ascendTask = dataInventory.GetPtr<std::vector<TopDownTask>>();
-    SampleInfo info;
-    deviceContext.Getter(info);
-    if (!ascendTask)
+    // A degraded association chain leaves no task data at all, and then there is simply nothing to persist.
+    if (ascendTask == nullptr || ascendTask->empty())
     {
-        ERROR("ascend task data is null.");
-        return ANALYSIS_ERROR;
-    }
-    if (ascendTask->empty())
-    {
-        WARN("no ascendTask don't persistence");
+        WARN("No ascend task data, don't persistence.");
         return ANALYSIS_OK;
     }
+    SampleInfo info;
+    deviceContext.Getter(info);
     DBInfo ascendTaskDB("ascend_task.db", "AscendTask");
     MAKE_SHARED0_RETURN_VALUE(ascendTaskDB.database, AscendTaskDB, ANALYSIS_ERROR);
     std::string dbPath = Utils::File::PathJoin({deviceContext.GetDeviceFilePath(), SQLITE, ascendTaskDB.dbName});

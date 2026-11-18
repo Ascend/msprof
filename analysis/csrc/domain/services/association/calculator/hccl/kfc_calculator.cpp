@@ -66,7 +66,7 @@ uint32_t KfcCalculator::ProcessEntry(DataInventory& dataInventory, const Context
     auto hcclOps = dataInventory.GetPtr<std::vector<HcclOp>>();
     if (ascendTasks == nullptr || hcclOps == nullptr)
     {
-        ERROR("Kfc calculator get ascend task or hccl op data pointer is nullptr.");
+        WARN("Kfc calculator get ascend task or hccl op data pointer is nullptr.");
         return ANALYSIS_ERROR;
     }
 

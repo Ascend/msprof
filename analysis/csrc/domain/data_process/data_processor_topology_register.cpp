@@ -70,9 +70,9 @@ namespace Analysis
 {
 namespace Domain
 {
-#define REGISTER_PROCESSOR(Processor, Name, Mandatory, Dependencies)                            \
+#define REGISTER_PROCESSOR(Processor, Name, Mandatory, Dependencies, ...)                       \
     REGISTER_TOPO_NODE_SEQUENCE(typeid(Processor), TOPO_NODE(DATA_PROCESSING, Name), Mandatory, \
-                                CreateDataProcessorFactory<Processor>(Name), Dependencies, nullptr)
+                                CreateDataProcessorFactory<Processor>(Name), Dependencies, nullptr, ##__VA_ARGS__)
 
 #define REGISTER_PROCESSOR_WITH_DATA(Processor, Name, Mandatory, Dependencies, ...) \
     REGISTER_PROCESSOR(Processor, Name, Mandatory, Dependencies);                   \
@@ -106,8 +106,9 @@ REGISTER_PROCESSOR(MsprofTxHostProcessor, PROCESSOR_NAME_MSTX, true, TOPO_DEPS()
 REGISTER_PROCESSOR(StepTraceProcessor, PROCESSOR_NAME_STEP_TRACE, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence")));
 
+// The processor tolerates a missing predecessor database and only degrades its own output.
 REGISTER_PROCESSOR(TaskProcessor, PROCESSOR_NAME_TASK, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")));
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")), true);
 
 REGISTER_PROCESSOR(AccPmuProcessor, PROCESSOR_NAME_ACC_PMU, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AccPmuPersistence")));

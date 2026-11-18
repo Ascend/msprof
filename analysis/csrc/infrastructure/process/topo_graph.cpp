@@ -237,6 +237,7 @@ class TopoGraphCompiler
         info.mandatory = definition->mandatory;
         info.processName = id.name;
         info.scope = id.scope;
+        info.stage = id.stage;
         info.resources = definition->resources;
         std::sort(info.resources.begin(), info.resources.end());
         info.resources.erase(std::unique(info.resources.begin(), info.resources.end()), info.resources.end());

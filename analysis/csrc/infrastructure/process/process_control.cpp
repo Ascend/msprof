@@ -34,10 +34,17 @@ namespace Infra
 {
 namespace
 {
-std::string ProcessName(const RuntimeProcessInfo& info)
+// One name can be registered in several stages, so the diagnostics always qualify it with the stage. Nodes that were
+// never part of a topology definition carry no stage and keep the bare scope/name form.
+std::string NodeLabel(Application::TopoNodeStage stage, const std::string& scope, const std::string& name)
 {
-    return info.scope.empty() ? info.processName : info.scope + "/" + info.processName;
+    std::string label = stage == Application::TopoNodeStage::UNKNOWN
+                            ? std::string()
+                            : std::string(Application::TopoStageName(stage)) + "/";
+    return scope.empty() ? label + name : label + scope + "/" + name;
 }
+
+std::string ProcessName(const RuntimeProcessInfo& info) { return NodeLabel(info.stage, info.scope, info.processName); }
 
 bool VerifyDependencies(const RuntimeProcessCollection& processes)
 {
@@ -94,8 +101,9 @@ void LogProcessResult(const ProcessStatistics& stat)
         return;
     }
     std::ostringstream details;
-    details << "node=" << stat.processName << ", chip_id=" << stat.chipId << ", return_code=0x" << std::hex
-            << stat.returnCode << std::dec << ", mandatory=" << std::boolalpha << stat.mandatory;
+    details << "node=" << NodeLabel(stat.stage, stat.scope, stat.processName) << ", chip_id=" << stat.chipId
+            << ", return_code=0x" << std::hex << stat.returnCode << std::dec << ", mandatory=" << std::boolalpha
+            << stat.mandatory;
     if (stat.returnCode != ANALYSIS_OK)
     {
         ERROR("Process failed: %.", details.str());
@@ -217,6 +225,7 @@ class ProcessControl::Impl
             }
             stat.processName = info.processName;
             stat.scope = info.scope;
+            stat.stage = info.stage;
             stat.mandatory = info.mandatory;
             for (auto dependency : info.processDependence)
             {
@@ -342,6 +351,8 @@ class ProcessControl::Impl
                         ProcessStatistics stat{};
                         stat.returnCode = ANALYSIS_ERROR;
                         stat.processName = node.processName;
+                        stat.scope = node.scope;
+                        stat.stage = node.stage;
                         stat.mandatory = node.mandatory;
                         const auto start = std::chrono::steady_clock::now();
                         try
@@ -498,8 +509,8 @@ class ProcessControl::Impl
                 stoppedNodes.push_back(node.first);
                 continue;
             }
-            ERROR("Required process blocked: node=%, failed_dependencies=[%].", ProcessName(node.second),
-                  DescribeFailures(causes));
+            WARN("Required process blocked: node=%, failed_dependencies=[%].", ProcessName(node.second),
+                 DescribeFailures(causes));
         }
         if (requiredFailureCauses.empty())
         {
@@ -564,7 +575,7 @@ void RecordProcessStat(const ExecuteProcessStat& stat, const std::string& subDir
         size_t j = 0;
         for (const auto& proc : node.processStatistics)
         {
-            const auto name = proc.scope.empty() ? proc.processName : proc.scope + "/" + proc.processName;
+            const auto name = NodeLabel(proc.stage, proc.scope, proc.processName);
             ss << "\tprocess" << j++ << "[" << name << "]:" << "return: 0x" << std::hex << proc.returnCode << std::dec
                << ", mandatory:" << std::boolalpha << proc.mandatory << ", dfxStop:" << proc.dfxStop << std::noboolalpha
                << std::endl;

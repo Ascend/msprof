@@ -436,11 +436,12 @@ TEST(RuntimeTopology, FailureLogsIdentifyExecutedProducerWithoutBlamingBlockedCo
         testing::Contains(testing::AllOf(
             testing::Field(&TestLogMessage::level, "[ERROR]"),
             testing::Field(&TestLogMessage::message,
-                           "Process failed: node=optional_parser, chip_id=15, return_code=0x2a, mandatory=false."))));
+                           "Process failed: node=device_0/optional_parser, chip_id=15, return_code=0x2a, "
+                           "mandatory=false."))));
     EXPECT_THAT(messages, testing::Not(testing::Contains(testing::Field(
                               &TestLogMessage::message, testing::HasSubstr("Process failed: node=consumer")))));
     EXPECT_THAT(messages, testing::Contains(testing::AllOf(
-        testing::Field(&TestLogMessage::level, "[ERROR]"),
+        testing::Field(&TestLogMessage::level, "[WARN]"),
         testing::Field(&TestLogMessage::message,
             "Required process blocked: node=device_0/consumer, "
             "failed_dependencies=[device_0/optional_parser(return_code=0x2a)]."))));
@@ -480,11 +481,46 @@ TEST(RuntimeTopology, RequiredBlockedNodeReportsDistinctRootFailuresAcrossDepend
     EXPECT_FALSE(success);
     EXPECT_EQ(executor.GetRuntimeResults().at(4).failedDependencies, (std::vector<RuntimeProcessKey>{1, 2}));
     EXPECT_THAT(messages, testing::Contains(testing::AllOf(
-        testing::Field(&TestLogMessage::level, "[ERROR]"),
+        testing::Field(&TestLogMessage::level, "[WARN]"),
         testing::Field(&TestLogMessage::message,
             "Required process blocked: node=export/consumer, failed_dependencies=["
             "device_1/parser(return_code=0x2a), device_2/parser(return_code=0x2a)]."))));
     EXPECT_EQ(prints.size(), 1U);
+}
+
+TEST(RuntimeTopology, StageQualifiedLabelsKeepSharedNamesDistinguishable)
+{
+    RuntimeProcessCollection graph;
+    auto processor = Node(Action([](DataInventory&, const Context&) { return 0x2aU; }));
+    processor.processName = "FusionOp";
+    processor.stage = TopoNodeStage::DATA_PROCESSING;
+    processor.mandatory = false;
+    graph.emplace(1, processor);
+    // The summary assembler keeps the same name in another stage, so the label has to carry the stage.
+    auto assembler = Node(Action(Success), "export");
+    assembler.processName = "FusionOp";
+    assembler.stage = TopoNodeStage::SUMMARY_GENERATION;
+    graph.emplace(2, assembler);
+    ProcessControlOptions options;
+    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
+    ProcessControl executor(graph, options);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool success = executor.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    StopTestPrintCapture();
+
+    EXPECT_TRUE(success);
+    EXPECT_THAT(messages, testing::Contains(testing::AllOf(
+        testing::Field(&TestLogMessage::level, "[ERROR]"),
+        testing::Field(&TestLogMessage::message,
+                       "Process failed: node=DATA_PROCESSING/device_0/FusionOp, chip_id=5, return_code=0x2a, "
+                       "mandatory=false."))));
+    // The persisted statistics use the same stage-qualified label.
+    std::string report;
+    RecordProcessStat(executor.GetExecuteStat(), "device_0", report);
+    EXPECT_THAT(report, testing::HasSubstr("[DATA_PROCESSING/device_0/FusionOp]:"));
+    EXPECT_THAT(report, testing::HasSubstr("[SUMMARY_GENERATION/export/FusionOp]:"));
 }
 
 TEST(RuntimeTopology, QualifiedDfxStopIsLoggedWithoutFailureOrConsoleDetails)
@@ -519,7 +555,8 @@ TEST(RuntimeTopology, QualifiedDfxStopIsLoggedWithoutFailureOrConsoleDetails)
                 testing::Contains(testing::AllOf(
                     testing::Field(&TestLogMessage::level, "[INFO]"),
                     testing::Field(&TestLogMessage::message,
-                                   "DFX stop requested: node=parser, chip_id=5, return_code=0x0, mandatory=true."))));
+                                   "DFX stop requested: node=device_0/parser, chip_id=5, return_code=0x0, "
+                                   "mandatory=true."))));
     EXPECT_THAT(messages, testing::Not(testing::Contains(
                               testing::Field(&TestLogMessage::message, testing::HasSubstr("Process failed:")))));
     EXPECT_THAT(messages, testing::Not(testing::Contains(testing::Field(&TestLogMessage::level, "[ERROR]"))));

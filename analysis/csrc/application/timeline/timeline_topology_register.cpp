@@ -69,12 +69,13 @@ const std::string TIMELINE_PRE_DUMP = TIMELINE_PREFIX + "PRE_DUMP";
 const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
 }  // namespace
 
-#define REGISTER_TIMELINE_NODE(Name, Dependencies)                                    \
-    REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(TIMELINE_EXPORT, Name), true, \
-                                TimelineManager::CreateTimelineAssembler(Name), Dependencies, nullptr)
+#define REGISTER_TIMELINE_NODE(Name, Dependencies, RunOnDependencyFailure)                             \
+    REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(TIMELINE_EXPORT, Name), true,                  \
+                                TimelineManager::CreateTimelineAssembler(Name), Dependencies, nullptr, \
+                                RunOnDependencyFailure)
 
-#define REGISTER_TIMELINE_NODE_WITH_DATA(Name, Dependencies, ...) \
-    REGISTER_TIMELINE_NODE(Name, Dependencies);                   \
+#define REGISTER_TIMELINE_NODE_WITH_DATA(Name, Dependencies, RunOnDependencyFailure, ...) \
+    REGISTER_TIMELINE_NODE(Name, Dependencies, RunOnDependencyFailure);                   \
     REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(TIMELINE_EXPORT, Name), __VA_ARGS__)
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), true,
@@ -88,48 +89,52 @@ REGISTER_TIMELINE_NODE_WITH_DATA(
               TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_KFC_TASK),
               TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
               TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API), TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_MEMCPY_INFO)),
-    std::unordered_map<uint32_t, uint32_t>, std::vector<TaskInfoData>, std::vector<ApiData>,
+    false, std::unordered_map<uint32_t, uint32_t>, std::vector<TaskInfoData>, std::vector<ApiData>,
     std::vector<MemcpyInfoData>, std::vector<AscendTaskData>, std::vector<KfcTurnData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_ACC_PMU,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_ACC_PMU)),
-                                 std::vector<AccPmuData>);
+                                 false, std::vector<AccPmuData>);
+// The Api layer only needs the host API data; the task data refines memcpyAsync connections and may be missing when
+// the device task association chain degrades, so a failed dependency must not drop the whole layer.
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_API,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK)),
-                                 std::vector<AscendTaskData>, std::vector<ApiData>);
+                                 true, std::vector<AscendTaskData>, std::vector<ApiData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_DDR,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_DDR)),
-                                 std::vector<DDRData>);
+                                 false, std::vector<DDRData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_STARS_CHIP_TRANS,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CHIP_TRAINS),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_PCIE)),
-                                 std::vector<PaLinkInfoData>, std::vector<PcieInfoData>, std::vector<PcieInfoV6Data>);
+                                 false, std::vector<PaLinkInfoData>, std::vector<PcieInfoData>,
+                                 std::vector<PcieInfoV6Data>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HBM,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HBM)),
-                                 std::vector<HbmData>);
+                                 false, std::vector<HbmData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HCCL,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMMUNICATION),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_KFC_TASK)),
-                                 std::vector<CommunicationTaskData>, std::vector<CommunicationOpData>,
+                                 false, std::vector<CommunicationTaskData>, std::vector<CommunicationOpData>,
                                  std::vector<KfcTaskData>, std::vector<KfcOpData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_CCU,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION)),
-                                 std::vector<CCUMissionTimelineData>);
+                                 false, std::vector<CCUMissionTimelineData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HCCS,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HCCS)),
-                                 std::vector<HccsData>);
+                                 false, std::vector<HccsData>);
 
-#define REGISTER_SIMPLE_TIMELINE_NODE(Name, Processor, DataType) \
-    REGISTER_TIMELINE_NODE_WITH_DATA(                            \
-        Name, TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), TOPO_NODE(DATA_PROCESSING, Processor)), DataType)
+#define REGISTER_SIMPLE_TIMELINE_NODE(Name, Processor, DataType)                                                   \
+    REGISTER_TIMELINE_NODE_WITH_DATA(                                                                              \
+        Name, TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), TOPO_NODE(DATA_PROCESSING, Processor)), false, \
+        DataType)
 
 REGISTER_SIMPLE_TIMELINE_NODE(PROCESSOR_NAME_OSRT_API, PROCESSOR_NAME_OSRT_API, std::vector<OSRuntimeApiData>);
 REGISTER_SIMPLE_TIMELINE_NODE(PROCESS_NETWORK_USAGE, PROCESSOR_NAME_NETWORK_USAGE, std::vector<NetWorkUsageData>);
@@ -158,23 +163,25 @@ REGISTER_SIMPLE_TIMELINE_NODE(PROCESS_FUSION_TASK, PROCESSOR_NAME_FUSION_TASK, s
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_STEP_TRACE,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_STEP_TRACE)),
-                                 std::vector<TrainTraceData>, std::vector<AllReduceData>, std::vector<GetNextData>);
+                                 false, std::vector<TrainTraceData>, std::vector<AllReduceData>,
+                                 std::vector<GetNextData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_LOW_POWER,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_AICORE_FREQ),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_LOW_POWER)),
-                                 std::vector<LowPowerData>);
+                                 false, std::vector<LowPowerData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_DEVICE_TX,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_DEVICE_TX),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_MSTX)),
-                                 std::vector<MsprofTxDeviceData>, std::vector<MsprofTxHostData>);
+                                 false, std::vector<MsprofTxDeviceData>, std::vector<MsprofTxHostData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_BLOCK_DETAIL,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_BLOCK_DETAIL),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK)),
-                                 std::vector<BlockDetailData>, std::vector<TaskInfoData>, std::vector<AscendTaskData>);
+                                 false, std::vector<BlockDetailData>, std::vector<TaskInfoData>,
+                                 std::vector<AscendTaskData>);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(FLOW_CONTROL, TIMELINE_POST_DUMP), true,
                             TimelineManager::CreateTimelinePostDump(),
