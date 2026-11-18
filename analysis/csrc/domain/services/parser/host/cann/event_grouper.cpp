@@ -182,14 +182,23 @@ void EventGrouper::GroupLookup(ThreadPool &pool)
                     "Mc2CommInfo");
             });
     }
-    // DPU HCCL / GE lookup is temporarily disabled pending integration validation.
-    // pool.AddTask([this]() {
-    //     GroupEvents<DpuHcclInfoParser, ParserAdditionalInfo, &CANNDumpWarehouse::dpuHcclInfoData>("DpuHcclInfo");
-    // });
-    // pool.AddTask([this]() {
-    //     GroupEvents<LogicStreamInfoParser, ParserAdditionalInfo,
-    //     &CANNDumpWarehouse::logicStreamInfoData>("LogicStreamInfo");
-    // });
+    if (NeedLookup(EventType::EVENT_TYPE_DPU_HCCL_INFO))
+    {
+        pool.AddTask(
+            [this]() {
+                GroupEvents<DpuHcclInfoParser, ParserAdditionalInfo, &CANNDumpWarehouse::dpuHcclInfoData>(
+                    "DpuHcclInfo");
+            });
+    }
+    if (NeedLookup(EventType::EVENT_TYPE_LOGIC_STREAM_INFO))
+    {
+        pool.AddTask(
+            [this]()
+            {
+                GroupEvents<LogicStreamInfoParser, ParserAdditionalInfo, &CANNDumpWarehouse::logicStreamInfoData>(
+                    "LogicStreamInfo");
+            });
+    }
     if (NeedLookup(EventType::EVENT_TYPE_GRAPH_ID_MAP))
     {
         pool.AddTask(

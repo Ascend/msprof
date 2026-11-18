@@ -87,6 +87,18 @@ class TestConfigDataParsers(unittest.TestCase):
             if parser
         }
 
+    def test_dpu_hccl_and_ge_follow_host_cpp_switch(self):
+        for chip, parser in ((ChipModel.CHIP_V6_1_0, "DPUHcclInfoParser"),
+                             (ChipModel.CHIP_V4_1_0, "GeLogicStreamParser")):
+            for enabled in (True, False):
+                with self.subTest(chip=chip, parser=parser, enabled=enabled), \
+                        mock.patch.object(InfoConfReader(), "get_device_list", return_value=["64"]), \
+                        mock.patch.object(CannCalculatorScene, "is_cpp_enable", return_value=enabled), \
+                        mock.patch.object(DeviceParseScene, "is_cpp_enable", return_value=False):
+                    names = self._parser_names(ConfigDataParsers.get_parsers(
+                        ConfigManager.DATA_PARSERS, str(chip.value), False))
+                    self.assertEqual(parser in names, not enabled)
+
     def test_get_parsers(self):
         InfoConfReader()._sample_json = {'devices': '0'}
         parsers = ConfigDataParsers.get_parsers(

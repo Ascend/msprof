@@ -164,6 +164,8 @@ class ConfigDataParsers:
             "MemoryApplicationParser",
             "CtxIdParser",
             "HcclOpInfoParser",
+            "DPUHcclInfoParser",
+            "GeLogicStreamParser",
             "RuntimeOpInfoParser",
             # "StaticOpMemParser",  # C++ 入口未使能，仍走 Python；使能时打开并加入 LookupEventTypes
             "StreamExpandSpecParser",

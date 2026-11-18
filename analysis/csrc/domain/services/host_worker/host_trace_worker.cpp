@@ -113,9 +113,7 @@ void HostTraceWorker::DumpAsyncHostData(ThreadPool &pool, const std::shared_ptr<
     DumpCaptureStreamInfo(pool, formattedCaptureData);
     DumpMc2CommInfo(pool, grouper, formattedCaptureData);
     DumpDpuTaskTrack(pool, grouper);
-    // DPU HCCL / GE persistence is temporarily disabled with their lookup calls.
-    // DumpDpuHcclTrack(pool, grouper);
-    // DumpGeLogicStream(pool, grouper);
+    DumpGeLogicStream(pool, grouper);
     DumpStreamExpandSpec(pool, grouper);
     // DumpStaticOpMem(pool, grouper);
     DumpHostSystemProfileData(pool);
@@ -423,39 +421,41 @@ void HostTraceWorker::DumpDpuTaskTrack(ThreadPool &pool, const std::shared_ptr<E
                        auto &dpuKernelNameMap = grouper->GetDpuKernelNameMap();
                        std::shared_ptr<DpuTaskTrackDBDumper> dpuDumper;
                        dpuDumper.reset(new (std::nothrow) DpuTaskTrackDBDumper(hostPath_));
-                       if (!dpuDumper)
+                       if (dpuDumper)
+                       {
+                           dpuDumper->SetKernelNameMap(dpuKernelNameMap);
+                           if (!dpuDumper->DumpData(dpuTrackData))
+                           {
+                               succeeded_ = false;
+                               ERROR("Dump DPUTaskTrack data failed, continuing with DPUHcclTrack");
+                           }
+                       }
+                       else
                        {
                            succeeded_ = false;
-                           return;
+                           ERROR(
+                               "Create DPUTaskTrack dumper failed, skipping DPUTaskTrack and continuing with "
+                               "DPUHcclTrack");
                        }
-                       dpuDumper->SetKernelNameMap(dpuKernelNameMap);
-                       auto ret = dpuDumper->DumpData(dpuTrackData);
-                       if (!ret)
-                       {
-                           succeeded_ = false;
-                           ERROR("Dump dpu task track data failed");
-                       }
+                       // Both tables share dpu.db; keep their writes in the same task.
+                       DumpDpuHcclTrack(grouper);
                    });
 }
 
-void HostTraceWorker::DumpDpuHcclTrack(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)
+void HostTraceWorker::DumpDpuHcclTrack(const std::shared_ptr<EventGrouper> &grouper)
 {
-    AddCheckedTask(pool, "DumpDpuHcclTrack",
-                   [this, grouper]()
-                   {
-                       const auto &records = grouper->GetDumpWarehouse().dpuHcclInfoData;
-                       if (records.empty())
-                       {
-                           return;
-                       }
-                       TimeLogger t{"Dump dpu hccl track data start"};
-                       DpuHcclTrackDumper dumper(hostPath_);
-                       if (!dumper.DumpData(records))
-                       {
-                           succeeded_ = false;
-                           ERROR("Dump dpu hccl track data failed");
-                       }
-                   });
+    const auto &records = grouper->GetDumpWarehouse().dpuHcclInfoData;
+    if (records.empty())
+    {
+        return;
+    }
+    TimeLogger t{"Dump dpu hccl track data start"};
+    DpuHcclTrackDumper dumper(hostPath_);
+    if (!dumper.DumpData(records))
+    {
+        succeeded_ = false;
+        ERROR("Dump dpu hccl track data failed");
+    }
 }
 
 void HostTraceWorker::DumpGeLogicStream(ThreadPool &pool, const std::shared_ptr<EventGrouper> &grouper)

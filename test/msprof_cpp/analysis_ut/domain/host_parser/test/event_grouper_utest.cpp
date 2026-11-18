@@ -601,6 +601,10 @@ TEST_F(EventGrouperUTest, TestNeedLookupAndNeedTreeBuildForDpuAndRts)
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_STREAM_EXPAND_SPEC));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_CAPTURE_STREAM_INFO));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_CAPTURE_STREAM_INFO));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_DPU_HCCL_INFO));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_DPU_HCCL_INFO));
+    EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_LOGIC_STREAM_INFO));
+    EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_LOGIC_STREAM_INFO));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_MC2_COMM_INFO));
     EXPECT_FALSE(Analysis::Domain::NeedTreeBuild(EventType::EVENT_TYPE_MC2_COMM_INFO));
     EXPECT_TRUE(Analysis::Domain::NeedLookup(EventType::EVENT_TYPE_GRAPH_ID_MAP));
@@ -685,7 +689,7 @@ class EventGrouperDpuHcclGeChipUTest : public testing::TestWithParam<DpuHcclGeCh
     void TearDown() override { GlobalMockObject::verify(); }
 };
 
-TEST_P(EventGrouperDpuHcclGeChipUTest, TemporarilyDisabledLookupKeepsPythonOwnership)
+TEST_P(EventGrouperDpuHcclGeChipUTest, EnabledLookupGroupsDpuHcclAndGeRecords)
 {
     const auto &param = GetParam();
     const std::string fakeDataDir = std::string("./fakeDpuHcclGeChip_") + param.name;
@@ -711,7 +715,7 @@ TEST_P(EventGrouperDpuHcclGeChipUTest, TemporarilyDisabledLookupKeepsPythonOwner
 }
 
 INSTANTIATE_TEST_SUITE_P(DpuHcclGeChips, EventGrouperDpuHcclGeChipUTest,
-                         testing::Values(DpuHcclGeChipParam{"Chip15", 15, 0, 0}, DpuHcclGeChipParam{"Chip5", 5, 0, 0},
-                                         DpuHcclGeChipParam{"Chip0", 0, 0, 0}),
+                         testing::Values(DpuHcclGeChipParam{"Chip15", 15, 1, 1}, DpuHcclGeChipParam{"Chip5", 5, 1, 1},
+                                         DpuHcclGeChipParam{"Chip0", 0, 1, 1}),
                          [](const testing::TestParamInfo<DpuHcclGeChipParam> &info)
                          { return std::string(info.param.name); });

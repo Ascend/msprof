@@ -402,6 +402,8 @@ class TestCollectionFactsCollector(unittest.TestCase):
             ("compact.capture_stream_info", DataTag.CAPTURE_STREAM_INFO),
             ("compact.capture_stream_info_v2", DataTag.CAPTURE_STREAM_INFO),
             ("additional.mc2_comm_info", DataTag.MC2_COMM_INFO),
+            ("additional.dpu_hccl_info", DataTag.DPU_HCCL_TRACK),
+            ("additional.logic_stream_info", DataTag.GE_LOGIC_STREAM_INFO),
             ("additional.capture_op_info", DataTag.RUNTIME_OP_INFO),
             ("variable.capture_op_info", DataTag.RUNTIME_OP_INFO),
             ("additional.ccu_task_info", DataTag.CCU_TASK),
