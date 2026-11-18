@@ -414,6 +414,8 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
 |--clear|No|Sets the data clearance mode. After this option is enabled, the `sqlite` directory in `PROF_XXX/device_{id}` is deleted (after profile data is exported) to save storage space. When this option is specified, the data clearance mode is enabled. This option is not specified by default.|
 |-h or --help|No|Displays the help information. This option is used only to obtain usage instructions.|
 
+Python and C++ file logs read `log.level` from the installed `analysis/msconfig/msprof_config.json`, independently of the working directory. Supported values are integers: `0` for `DEBUG`, `1` for `INFO`, `2` for `WARN`, and `3` for `ERROR`; the default is `1` (INFO). For example, `{"log":{"level":0}}` enables DEBUG messages when logging is initialized for a new task; running tasks do not reload the configuration. Python logs retain their existing `collection*.log` files, while C++ logs use `msprof_analysis_<pid>.log`, under `mindstudio_profiler_log`. Missing files or fields use INFO; unreadable, malformed, or invalid configuration produces a console warning and uses INFO. Console messages are unaffected by the file-log threshold. C++ file logs are written and flushed synchronously; enabling DEBUG may increase parsing time. This change does not introduce an asynchronous logging queue.
+
 **Examples<a name="en-us_topic_0000001265069834_section202865387012"></a>**
 
 1. Log in to the environment where the Toolkit package is installed.

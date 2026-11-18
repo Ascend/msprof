@@ -414,6 +414,8 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 |--clear|可选|数据精简模式，开启后将在导出性能数据后删除PROF_XXX/device_{id}下的sqlite目录，以节省存储空间。配置该参数时表示开启数据精简模式，未配置表示关闭，默认关闭。|
 |-h或--help|可选|显示帮助信息，仅在获取使用方式时使用。|
 
+Python 和 C++ 解析日志共用安装目录 `analysis/msconfig/msprof_config.json` 中的 `log.level`，配置路径不依赖当前工作目录。等级使用整数：`0` 对应 `DEBUG`、`1` 对应 `INFO`、`2` 对应 `WARN`、`3` 对应 `ERROR`，默认 `1`（INFO）。例如，配置为 `{"log":{"level":0}}` 后，新任务初始化日志时启用 DEBUG 日志，运行中的任务不热加载配置。Python 日志仍写入原有 `collection*.log`，C++ 日志写入 `msprof_analysis_<pid>.log`，均位于 `mindstudio_profiler_log` 目录。配置文件或字段缺省时使用 INFO；文件不可读、格式或等级无效时提示告警并使用 INFO。文件日志等级不影响控制台提示。C++ 文件日志同步写入并逐条刷新，启用 DEBUG 可能增加解析耗时。本次不引入异步日志队列。
+
 **使用示例<a name="zh-cn_topic_0000001265069834_section202865387012"></a>**
 
 1. 登录安装了Toolkit包的环境。

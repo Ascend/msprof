@@ -15,6 +15,7 @@
 # -------------------------------------------------------------------------
 
 import ctypes
+import json
 import logging
 import os
 import platform
@@ -118,6 +119,35 @@ def print_msg(*args: any, **kwargs: any) -> None:
     print(*args, **kwargs)
 
 
+def get_log_level() -> int:
+    """Read the shared file-log threshold, defaulting to INFO."""
+    # file_manager imports common; defer these imports to avoid a cycle.
+    from common_func.file_manager import FileOpen
+    from common_func.msprof_exception import ProfException
+
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "msconfig", "msprof_config.json"
+    )
+    if not os.path.exists(config_path):
+        return CommonConstant.LOG_LEVEL
+    try:
+        with FileOpen(config_path, "rb") as config_file:
+            config = json.load(config_file.file_reader)
+        if not isinstance(config, dict):
+            raise ValueError("Configuration must be an object")
+        log_config = config.get("log", {})
+        if not isinstance(log_config, dict):
+            raise ValueError("log must be an object")
+        level = log_config.get("level", 1)
+        levels = (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR)
+        if not isinstance(level, int) or isinstance(level, bool) or not 0 <= level < len(levels):
+            raise ValueError("Invalid log level")
+        return levels[level]
+    except (OSError, ValueError, RecursionError, ProfException):
+        warn(CommonConstant.FILE_NAME, "Invalid or unreadable msprof_config.json; using INFO log level.")
+        return CommonConstant.LOG_LEVEL
+
+
 class Log:
     """
     Python logger
@@ -129,7 +159,8 @@ class Log:
             self.logger = logging.getLogger(logger)
         else:
             self.logger = logging.getLogger()
-        self.logger.setLevel(CommonConstant.LOG_LEVEL)
+        log_level = get_log_level()
+        self.logger.setLevel(log_level)
         self.log_path = PathManager.get_log_dir(log_path)
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path, mode=NumberConstant.DIR_AUTHORITY)
@@ -140,7 +171,7 @@ class Log:
             self.log_name, 'a', CommonConstant.MAX_LOG_BYTES, CommonConstant.MAX_LOG_BACKUPS
         )
         os.chmod(self.log_name, CommonConstant.OPEN_AUTHORITY)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(log_level)
 
         # Handler format.
         formatter = logging.Formatter(
@@ -280,12 +311,13 @@ def init_log(output_path: str) -> None:
     """
     create data and corresponding directories
     """
+    log_level = get_log_level()
     log_path = PathManager.get_collection_log_path(output_path)
     root_logger = logging.getLogger()
     for log in root_logger.handlers:
         root_logger.removeHandler(log)
     logging.basicConfig(
-        level=CommonConstant.LOG_LEVEL,
+        level=log_level,
         format='%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         filename=log_path,
@@ -319,7 +351,8 @@ def get_free_memory(result_dir: str) -> float:
         ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(result_dir), None, None, ctypes.pointer(free_bytes))
         return float(free_bytes.value / CommonConstant.BYTE_SIZE / CommonConstant.BYTE_SIZE)
 
-    dir_info = os.statvfs(result_dir)
+    # Windows returns above; statvfs is available on Unix.
+    dir_info = os.statvfs(result_dir)  # pylint: disable=no-member
     return float(dir_info.f_bavail * dir_info.f_frsize / CommonConstant.BYTE_SIZE / CommonConstant.BYTE_SIZE)
 
 

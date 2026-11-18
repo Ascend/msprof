@@ -84,6 +84,7 @@ int KernelParserWorker::Run(bool loadEnvironment)
         ERROR("Parse failed or dump failed");
         return ANALYSIS_ERROR;
     }
+    DEBUG("Host parser completed hash, type, memory and trace stages.");
     return ANALYSIS_OK;
 }
 

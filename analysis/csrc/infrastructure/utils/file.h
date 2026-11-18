@@ -21,6 +21,7 @@
 
 #include <fstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "opensource/json/include/nlohmann/json.hpp"
@@ -131,6 +132,12 @@ class FileWriter
     virtual ~FileWriter() { Close(); }
     void Open(const std::string &path, const std::ios_base::openmode &mode = std::ios::out);
     void Close();
+    void Swap(FileWriter &other)
+    {
+        path_.swap(other.path_);
+        outStream_.swap(other.outStream_);
+        std::swap(permission_, other.permission_);
+    }
     bool IsOpen() const;
     bool IsGood() const { return outStream_.is_open() && outStream_.good(); }
     void WriteText(const std::string &content);

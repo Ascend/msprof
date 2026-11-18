@@ -117,6 +117,7 @@ target_link_directories(msprof_analysis PRIVATE
 )
 
 target_link_libraries(msprof_analysis PRIVATE
+    ${CMAKE_DL_LIBS}
     -lsqlite3
     -lpthread
     c_sec

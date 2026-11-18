@@ -424,6 +424,10 @@ bool TreeBuilder::AddTaskTrackEvents(std::shared_ptr<TreeNode> &treeNode, std::s
 
 void TreeBuilder::LogTreeNode(std::shared_ptr<TreeNode> &treeNode)
 {
+    if (!Log::GetInstance().ShouldLog(LogLevel::DEBUG))
+    {
+        return;
+    }
     uint64_t runtimeNodes = 0;
     for (auto child : treeNode->children)
     {
