@@ -25,6 +25,7 @@
 #include "analysis/csrc/application/summary/comm_statistic_assembler.h"
 #include "analysis/csrc/application/summary/fusion_op_assembler.h"
 #include "analysis/csrc/application/summary/hbm_summary_assembler.h"
+#include "analysis/csrc/application/summary/llc_summary_assembler.h"
 #include "analysis/csrc/application/summary/npu_memory_assembler.h"
 #include "analysis/csrc/application/summary/npu_module_mem_assembler.h"
 #include "analysis/csrc/application/summary/op_statistic_assembler.h"
@@ -32,6 +33,7 @@
 #include "analysis/csrc/application/summary/page_fault_assembler.h"
 #include "analysis/csrc/application/summary/summary_step_trace_assembler.h"
 #include "analysis/csrc/application/summary/task_time_assembler.h"
+#include "analysis/csrc/application/summary/ub_summary_assembler.h"
 
 namespace Analysis
 {
@@ -63,6 +65,10 @@ std::unordered_map<std::string, AssemblerCreator> SummaryFactory::assemblerTable
      { MAKE_SHARED0_NO_OPERATION(assembler, AicpuAssembler, PROCESSOR_NAME_AICPU, profPath); }},
     {PROCESSOR_NAME_HBM, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
      { MAKE_SHARED0_NO_OPERATION(assembler, HbmSummaryAssembler, PROCESSOR_NAME_HBM, profPath); }},
+    {PROCESSOR_NAME_UB, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
+     { MAKE_SHARED0_NO_OPERATION(assembler, UbSummaryAssembler, PROCESSOR_NAME_UB, profPath); }},
+    {PROCESSOR_NAME_LLC, [](const std::string& profPath, std::shared_ptr<SummaryAssembler>& assembler)
+     { MAKE_SHARED0_NO_OPERATION(assembler, LlcSummaryAssembler, PROCESSOR_NAME_LLC, profPath); }},
 };
 
 std::shared_ptr<SummaryAssembler> SummaryFactory::GetAssemblerByName(const std::string& processName,

@@ -17,6 +17,8 @@
  */
 #include "analysis/csrc/domain/data_process/system/llc_processor.h"
 
+#include <cstddef>
+#include <map>
 #include <unordered_set>
 
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -33,6 +35,7 @@ using namespace analysis::dvvp::common::config;
 namespace
 {
 std::unordered_set<std::string> LLC_MODES = {LLC_PROFILING_READ, LLC_PROFILING_WRITE};
+
 }
 
 LLcProcessor::LLcProcessor(const std::string &profPath) : DataProcessor(profPath) {}
@@ -98,80 +101,86 @@ bool LLcProcessor::ProcessSingleDevice(const std::string &devicePath, std::vecto
         ERROR("GetLLCProfiling failed in path: %, device id is %", profPath_, localtimeContext.deviceId);
         return false;
     }
-    auto processedData = ProcessData(llcDB, localtimeContext, mode);
+    OriLLcData oriData = LoadData(llcDB, localtimeContext.deviceId);
+    if (oriData.empty())
+    {
+        ERROR("Get % data failed, profPath is %, device is %", llcDB.tableName, profPath_, localtimeContext.deviceId);
+        return false;
+    }
+    auto processedData = FormatData(oriData, localtimeContext, mode);
     if (processedData.empty())
     {
         ERROR("Format LLC data error, dbPath is %.", dbPath);
         return false;
     }
     FilterDataByStartTime(processedData, localtimeContext.timeRecord.startTimeNs, PROCESSOR_NAME_LLC);
-    allProcessedData.insert(allProcessedData.end(), processedData.begin(), processedData.end());
 
-    auto summaryData = ProcessSummaryData(localtimeContext.deviceId, llcDB, mode);
+    auto summaryData = ProcessSummaryData(localtimeContext.deviceId, oriData, mode);
     if (summaryData.empty())
     {
         ERROR("Process LLC summary data error, dbPath is %.", dbPath);
         return false;
     }
+    allProcessedData.insert(allProcessedData.end(), processedData.begin(), processedData.end());
     allSummaryData.insert(allSummaryData.end(), summaryData.begin(), summaryData.end());
     return true;
 }
 
-std::vector<LLcData> LLcProcessor::ProcessData(const DBInfo &llcDB, LocaltimeContext &localtimeContext,
-                                               const std::string &mode)
-{
-    OriLLcData oriData = LoadData(llcDB);
-    if (oriData.empty())
-    {
-        ERROR("Get % data failed, profPath is %, device is %", llcDB.tableName, profPath_, localtimeContext.deviceId);
-        return {};
-    }
-    return FormatData(oriData, localtimeContext, mode);
-}
-
-std::vector<LLcSummaryData> LLcProcessor::ProcessSummaryData(const uint16_t &deviceId, const DBInfo &llcDB,
-                                                             const std::string mode)
+std::vector<LLcSummaryData> LLcProcessor::ProcessSummaryData(uint16_t deviceId, const OriLLcData &oriData,
+                                                             const std::string &mode)
 {
     std::vector<LLcSummaryData> processedData;
-    std::vector<std::tuple<double, double>> avgData;
-    std::vector<std::tuple<uint32_t, double, double>> avgLLcIdData;
-    // csv表里面的第一行，所有数据的hitrate和throughput的平均值
-    std::string sql{"SELECT AVG(hitrate), AVG(throughput) FROM " + llcDB.tableName};
-    if (!llcDB.dbRunner->QueryData(sql, avgData) || avgData.empty())
+    struct Totals
     {
-        ERROR("Failed to obtain avg data from the % table, profPath is %, deviceId is %", llcDB.tableName, profPath_,
-              deviceId);
+        double hitRate = 0;
+        double throughput = 0;
+        std::size_t count = 0;
+    };
+    std::map<uint32_t, Totals> byLlcId;
+    for (const auto &row : oriData)
+    {
+        uint32_t llcId;
+        double timestamp, hitRate, throughput;
+        std::tie(llcId, timestamp, hitRate, throughput) = row;
+        auto &totals = byLlcId[llcId];
+        totals.hitRate += hitRate;
+        totals.throughput += throughput;
+        ++totals.count;
+    }
+    if (byLlcId.empty())
+    {
         return processedData;
     }
-    // 按照llcid分组的hitrate和throughput的平均值
-    sql = "SELECT l3tid, AVG(hitrate), AVG(throughput) FROM " + llcDB.tableName + " GROUP BY l3tid";
-    if (!llcDB.dbRunner->QueryData(sql, avgLLcIdData) || avgLLcIdData.empty())
+    LLcSummaryData average;
+    average.deviceId = deviceId;
+    average.mode = mode;
+    average.isAverage = true;
+    double hitRateSum = 0;
+    double throughputSum = 0;
+    for (const auto &entry : byLlcId)
     {
-        ERROR("Failed to obtain avg llcid bandwidth from the % table, profPath is %, deviceId is %", llcDB.tableName,
-              profPath_, deviceId);
-        return processedData;
+        LLcSummaryData item;
+        item.deviceId = deviceId;
+        item.mode = mode;
+        item.llcId = entry.first;
+        item.hitRate = entry.second.hitRate / entry.second.count;
+        item.throughput = entry.second.throughput / entry.second.count;
+        item.hitRate *= PERCENTAGE;
+        hitRateSum += item.hitRate;
+        throughputSum += item.throughput;
+        processedData.emplace_back(item);
     }
-    LLcSummaryData tempData;
-    // 在这里赋值可以在外面根据deviceId判断是否查询失败
-    tempData.deviceId = deviceId;
-    tempData.mode = mode;
-    // 这里vector已经判断过是否为空，所以可以取固定的索引
-    std::tie(tempData.hitRate, tempData.throughput) = avgData.at(0);
-    // 先将所有数据的平均值放进去，然后一一放每个llcid的平均值
-    processedData.push_back(tempData);
-    for (const auto &row : avgLLcIdData)
-    {
-        std::tie(tempData.llcId, tempData.hitRate, tempData.throughput) = row;
-        tempData.hitRate = tempData.hitRate * PERCENTAGE;
-        processedData.push_back(tempData);
-    }
+    average.hitRate = hitRateSum / processedData.size();
+    average.throughput = throughputSum / processedData.size();
+    processedData.insert(processedData.begin(), average);
     return processedData;
 }
 
-OriLLcData LLcProcessor::LoadData(const DBInfo &llcDB)
+OriLLcData LLcProcessor::LoadData(const DBInfo &llcDB, uint16_t deviceId)
 {
     OriLLcData oriData;
-    std::string sql{"SELECT l3tid, timestamp, hitrate, throughput FROM " + llcDB.tableName};
+    std::string sql{"SELECT l3tid, timestamp, hitrate, throughput FROM " + llcDB.tableName +
+                    " WHERE device_id = " + std::to_string(deviceId)};
     if (!llcDB.dbRunner->QueryData(sql, oriData) || oriData.empty())
     {
         ERROR("Failed to obtain data from the % table.", llcDB.tableName);
@@ -197,7 +206,7 @@ std::vector<LLcData> LLcProcessor::FormatData(const OriLLcData &oriData, const L
         std::tie(tempData.llcID, oriTimestamp, tempData.hitRate, tempData.throughput) = row;
         tempData.timestamp = HPFloat(oriTimestamp).Uint64();
         tempData.hitRate = tempData.hitRate * PERCENTAGE;
-        formatData.push_back(tempData);
+        formatData.emplace_back(tempData);
     }
     return formatData;
 }

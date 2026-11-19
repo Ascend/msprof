@@ -24,6 +24,7 @@ from unittest import mock
 
 import pytest
 
+from common_func.ai_stack_data_check_manager import AiStackDataCheckManager
 from common_func.common import error
 from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
@@ -211,6 +212,30 @@ class TestExportCommand(unittest.TestCase):
         timeline_by_type = {item['export_type']: item['handler'] for item in timeline_handlers}
         self.assertEqual(summary_by_type[ExportDataType.HBM], SystemDataCheckManager.contain_hbm_summary_data)
         self.assertEqual(timeline_by_type[ExportDataType.HBM], SystemDataCheckManager.contain_hbm_data)
+
+    def test_ub_and_llc_summary_handlers_follow_native_scene(self):
+        summary_handlers = ExportCommand.EXPORT_HANDLE_MAP['summary']
+        timeline_handlers = ExportCommand.EXPORT_HANDLE_MAP['timeline']
+        summary_by_type = {item['export_type']: item['handler'] for item in summary_handlers}
+        timeline_by_type = {item['export_type']: item['handler'] for item in timeline_handlers}
+        self.assertEqual(summary_by_type[ExportDataType.UB], AiStackDataCheckManager.contain_ub_summary_data)
+        self.assertEqual(timeline_by_type[ExportDataType.UB], AiStackDataCheckManager.contain_ub_data)
+        self.assertEqual(summary_by_type[ExportDataType.LLC_READ_WRITE],
+                         SystemDataCheckManager.contain_read_write_summary_data)
+        self.assertEqual(timeline_by_type[ExportDataType.LLC_READ_WRITE],
+                         SystemDataCheckManager.contain_read_write_data)
+
+        for native_enabled in (True, False):
+            with (self.subTest(native_enabled=native_enabled),
+                  mock.patch.object(SystemDataCheckManager, 'check_export_with_so', return_value=native_enabled),
+                  mock.patch.object(AiStackDataCheckManager, 'check_export_with_so', return_value=native_enabled),
+                  mock.patch.object(SystemDataCheckManager, 'contain_read_write_data', return_value=True) as llc_data,
+                  mock.patch.object(AiStackDataCheckManager, 'contain_ub_data', return_value=True) as ub_data):
+                self.assertEqual(SystemDataCheckManager.contain_read_write_summary_data('device_0'),
+                                 not native_enabled)
+                self.assertEqual(AiStackDataCheckManager.contain_ub_summary_data('device_0'), not native_enabled)
+                self.assertEqual(llc_data.called, not native_enabled)
+                self.assertEqual(ub_data.called, not native_enabled)
 
     def test_start_view_exports_native_summary_when_enabled(self):
         for native_enabled in (True, False):

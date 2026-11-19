@@ -448,6 +448,12 @@ class AiStackDataCheckManager(DataCheckManager):
         )
 
     @classmethod
+    def contain_ub_summary_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        if cls.check_export_with_so():
+            return False
+        return cls.contain_ub_data(result_dir, device_id=device_id)
+
+    @classmethod
     def contain_ccu_mission_data(cls: any, result_dir: str, device_id: any = None) -> bool:
         """
         The data path contain ccu mission data or not

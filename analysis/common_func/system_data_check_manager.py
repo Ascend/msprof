@@ -94,6 +94,12 @@ class SystemDataCheckManager(DataCheckManager):
         )
 
     @classmethod
+    def contain_read_write_summary_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        if cls.check_export_with_so():
+            return False
+        return cls.contain_read_write_data(result_dir, device_id=device_id)
+
+    @classmethod
     def contain_llc_bandwidth_data(cls: any, result_dir: str, device_id: any = None) -> bool:
         """
         The data path contain llc data or not

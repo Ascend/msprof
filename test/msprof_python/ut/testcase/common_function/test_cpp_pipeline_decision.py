@@ -91,21 +91,34 @@ class TestCppPipelineDecider(unittest.TestCase):
         self.assertTrue(result.can_run_in_cpp)
         self.assertEqual(result.issues, ())
 
-    def test_llc_and_pcie_use_hybrid_flow_for_all_commands(self):
+    def test_pcie_uses_hybrid_flow_for_all_commands(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
-            for tag in (DataTag.LLC, DataTag.PCIE):
-                for command, command_type, export_format in (
-                        (PipelineCommand.IMPORT, None, None),
-                        (PipelineCommand.EXPORT, "timeline", None),
-                        (PipelineCommand.EXPORT, "summary", "csv"),
-                        (PipelineCommand.EXPORT, "db", None)):
-                    with self.subTest(chip=chip, tag=tag, command=command, command_type=command_type):
-                        path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({tag.name}))
-                        request = replace(self.request, command=command, command_type=command_type,
-                                          export_format=export_format)
-                        result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
-                        self.assertFalse(result.can_run_in_cpp, result.issues)
-                        self.assertIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
+            for command, command_type, export_format in (
+                    (PipelineCommand.IMPORT, None, None),
+                    (PipelineCommand.EXPORT, "timeline", None),
+                    (PipelineCommand.EXPORT, "summary", "csv"),
+                    (PipelineCommand.EXPORT, "db", None)):
+                with self.subTest(chip=chip, command=command, command_type=command_type):
+                    path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({DataTag.PCIE.name}))
+                    request = replace(self.request, command=command, command_type=command_type,
+                                      export_format=export_format)
+                    result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
+                    self.assertFalse(result.can_run_in_cpp, result.issues)
+                    self.assertIn("DATA_TAG_UNSUPPORTED", self.reason_codes(result))
+
+    def test_llc_is_supported_by_native_pipeline_for_all_commands(self):
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
+            for command, command_type, export_format in (
+                    (PipelineCommand.IMPORT, None, None),
+                    (PipelineCommand.EXPORT, "timeline", None),
+                    (PipelineCommand.EXPORT, "db", None),
+                    (PipelineCommand.EXPORT, "summary", "csv")):
+                with self.subTest(chip=chip, command=command, command_type=command_type):
+                    path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({DataTag.LLC.name}))
+                    request = replace(self.request, command=command, command_type=command_type,
+                                      export_format=export_format)
+                    result = self.decide(request, facts=replace(self.facts, result_paths=(path_facts,)))
+                    self.assertTrue(result.can_run_in_cpp, result.issues)
 
     def test_hbm_summary_is_supported_by_native_pipeline(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):

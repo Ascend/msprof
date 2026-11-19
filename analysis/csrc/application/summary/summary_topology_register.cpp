@@ -34,9 +34,11 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/step_trace_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/llc_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_mem_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_module_mem_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/page_fault_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/ub_data.h"
 
 namespace Analysis
 {
@@ -79,6 +81,8 @@ REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSO
 REGISTER_TOPO_NODE_DEPENDENT_DATA(TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_AICPU), std::vector<AicpuSummaryData>,
                                   std::vector<AicpuDpData>, std::vector<AicpuMiData>);
 REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_HBM, std::vector<HbmSummaryData>, PROCESSOR_NAME_HBM);
+REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_UB, std::vector<UbData>, PROCESSOR_NAME_UB);
+REGISTER_SIMPLE_SUMMARY_NODE(PROCESSOR_NAME_LLC, std::vector<LLcSummaryData>, PROCESSOR_NAME_LLC);
 
 REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(SUMMARY_GENERATION, PROCESSOR_NAME_FUSION_OP), true,
                             SummaryManager::CreateSummaryAssembler(PROCESSOR_NAME_FUSION_OP),

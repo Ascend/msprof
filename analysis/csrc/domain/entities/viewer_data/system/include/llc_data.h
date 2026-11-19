@@ -18,26 +18,32 @@
 #define ANALYSIS_DOMAIN_LLC_FORMAT_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
-struct LLcData : public BasicData {
-    uint8_t llcID = UINT8_MAX; // 原始数据对应的格式是I，对应uint32,但是实际来看uint8完全够了，节省内存
+namespace Analysis
+{
+namespace Domain
+{
+struct LLcData : public BasicData
+{
+    uint32_t llcID = UINT32_MAX;  // 保留原始报文中的完整 LLC ID
     uint16_t deviceId = UINT16_MAX;
-    double hitRate = 0.0; // %,中间db里面是小数，在这里统一变成百分数，比如50就是代表50%
-    double throughput = 0; // MB/s
-    std::string mode; // read和write,从json文件里面读
+    double hitRate = 0.0;   // %,中间db里面是小数，在这里统一变成百分数，比如50就是代表50%
+    double throughput = 0;  // MB/s
+    std::string mode;       // read和write,从json文件里面读
 };
 
-struct LLcSummaryData {
-    uint8_t llcId = UINT8_MAX; // llcId为UINT8_MAX，表示Average,否则表示任务ID
+struct LLcSummaryData
+{
+    bool isAverage = false;
+    uint32_t llcId = UINT32_MAX;  // Average 行由 isAverage 标识，llcId 保留原始 ID
     uint16_t deviceId = UINT16_MAX;
     double hitRate = 0;
     double throughput = 0;
     std::string mode;
 };
-}
-}
+}  // namespace Domain
+}  // namespace Analysis
 
-#endif // ANALYSIS_DOMAIN_LLC_FORMAT_DATA_H
+#endif  // ANALYSIS_DOMAIN_LLC_FORMAT_DATA_H

@@ -79,7 +79,7 @@ TEST(SummaryManagerUTest, ShouldSelectAllDeliverablesWhenSelectionIsEmpty)
 {
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(SummaryManager::GetTopologyRoots({}, roots));
-    EXPECT_EQ(roots.size(), 12UL);
+    EXPECT_EQ(roots.size(), 14UL);
     std::unordered_set<TopoNodeId, TopoNodeIdHash> uniqueRoots;
     for (const auto& root : roots)
     {
@@ -101,6 +101,21 @@ TEST(SummaryManagerUTest, ShouldRegisterHbmSummaryForCppExport)
     roots.clear();
     EXPECT_TRUE(SummaryManager::GetTopologyRoots({"hbm"}, roots));
     EXPECT_EQ(roots, (std::vector<TopoNodeId>{hbmRoot}));
+}
+
+TEST(SummaryManagerUTest, ShouldRegisterUbAndLlcReadWriteForCppExport)
+{
+    for (const auto &selection : std::vector<std::pair<std::string, std::string>>{
+             {"ub", PROCESSOR_NAME_UB}, {"llc_read_write", PROCESSOR_NAME_LLC}})
+    {
+        EXPECT_TRUE(SummaryManager::IsDeliverableSupported(selection.first));
+        EXPECT_NE(nullptr, SummaryFactory::GetAssemblerByName(selection.second, PROF_PATH));
+        const TopoNodeId root{TopoNodeStage::SUMMARY_GENERATION, selection.second};
+        EXPECT_NE(nullptr, TopoNodeRegistry::Find(root));
+        std::vector<TopoNodeId> roots;
+        ASSERT_TRUE(SummaryManager::GetTopologyRoots({selection.first}, roots));
+        EXPECT_EQ(roots, (std::vector<TopoNodeId>{root}));
+    }
 }
 
 TEST(SummaryManagerUTest, ShouldSelectAndDeduplicateDeliverables)
