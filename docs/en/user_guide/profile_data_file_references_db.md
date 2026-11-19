@@ -299,6 +299,73 @@ There is no enable or disable option for this table. It is generated automatical
 |3|FREE|
 |65535|RESERVED|
 
+## `ENUM_GENERIC_EVENT_SOURCE`
+
+Enumeration table for generic event clock sources.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|id|INTEGER|Clock source ID, which serves as the primary key.|
+|name|TEXT|Clock source name.|
+|label|TEXT|Clock source display label.|
+
+**Table 2** Content
+
+|id|name|label|
+|--|--|--|
+|0|NotSpecified|Not Specified|
+|1|ClockMonotonicRaw|Clock Monotonic Raw|
+|2|CntVct|Counter-Timer Virtual Count Register|
+|3|SessionNs|Session Nanoseconds|
+
+## `ENUM_GENERIC_EVENT_GROUP`
+
+Enumeration table for generic event source groups.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|id|INTEGER|Source group ID, which serves as the primary key.|
+|name|TEXT|Source group name.|
+|label|TEXT|Source group display label.|
+
+**Table 2** Content
+
+|id|name|label|
+|--|--|--|
+|0|Unknown|Unknown|
+|1|FTrace|FTrace|
+
+## `ENUM_GENERIC_EVENT_FIELD_TYPE`
+
+Enumeration table for generic event field types. Strings are identified by a nonzero `strId` in `GENERIC_EVENT_DATA`.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|id|INTEGER|Field type ID, which serves as the primary key.|
+|name|TEXT|Field type name.|
+|label|TEXT|Field type display label.|
+
+**Table 2** Content
+
+|id|name|label|
+|--|--|--|
+|0|Signed|Signed integer|
+|1|Unsigned|Unsigned integer|
+|2|Float|Float|
+|3|Double|Double|
+
 ## STRING_IDS
 
 Stores ID-to-string mappings.
@@ -909,7 +976,7 @@ Control options:
 
 ## `META_DATA`
 
-Stores basic data. Currently, only version information is stored.
+Stores basic data, including version numbers and ftrace export markers.
 
 There is no enable or disable option for this table. It is generated automatically during the export of `msprof_{timestamp}.db`.
 
@@ -928,25 +995,97 @@ There is no enable or disable option for this table. It is generated automatical
 |SCHEMA_VERSION_MAJOR|Major version number, such as `1`. The value changes only when the database format is rewritten or reconstructed.|
 |SCHEMA_VERSION_MINOR|Minor version number, such as `0`. When the column or type is changed, compatibility issues occur.|
 |SCHEMA_VERSION_MICRO|Micro version number, such as `2`. The version number changes when the table is updated. There is no compatibility issue.|
+|ftrace|The value `1` indicates that ftrace artifacts were found. This marker is omitted when there are no ftrace artifacts.|
+|ftrace_events_complete|The value `1` indicates that the generic event tables, indexes, and referenced strings were written. This marker is omitted when there are no ftrace artifacts. Use the `flags` field in `GENERIC_EVENTS` to check capture completeness.|
 
-## ftrace generic event tables
+## `GENERIC_EVENT_SOURCES`
 
-Parser versions with ftrace support can include these tables in DB exports when ftrace data is available.
+Stores ftrace generic event sources, with one row per ftrace subsystem.
 
-| Table | Columns |
-|--|--|
-| GENERIC_EVENT_SOURCES | One row per ftrace subsystem. `sourceId` is the primary key. `nameId` references STRING_IDS. `timeSourceId` and `sourceGroupId` reference the source enums. `data` is JSON text. |
-| GENERIC_EVENT_TYPES | `typeId` is the primary key. `sourceId` references the source. `nameId` references STRING_IDS. `ftraceFormat` stores the original tracefs format. `data` contains `kernelId` and `formatHash` as JSON. |
-| GENERIC_EVENT_TYPE_FIELDS | `(typeId, fieldIdx)` identifies a field within a type. `fieldIdx` starts at 0. `fieldNameId` references STRING_IDS. `offset` and `size` use bytes. `type` references the field type enum. `ftracePrefix` and `ftraceSuffix` contain display text. |
-| GENERIC_EVENTS | `genericEventId` is the primary key. `rawTimestamp` uses host CLOCK_MONOTONIC_RAW ns. `timestamp` uses Unix epoch ns converted with the host anchor from the same collection. `typeId` references the event type. `globalTid` stores TGID in the high 32 bits and TID in the low 32 bits. `cpuId` is the CPU number. |
-| GENERIC_EVENT_DATA | `(genericEventId, fieldIdx)` identifies an event field. The applicable numeric column is one of `intVal`, `uintVal`, `floatVal`, and `doubleVal`. A nonzero `strId` references STRING_IDS, including for empty strings. Numeric fields use `strId=0`. |
-| ENUM_GENERIC_EVENT_SOURCE | `id`, `name`, and `label` describe the clock source. |
-| ENUM_GENERIC_EVENT_GROUP | `id`, `name`, and `label` describe the source group. FTrace uses 1 and Unknown uses 0. |
-| ENUM_GENERIC_EVENT_FIELD_TYPE | `id`, `name`, and `label` describe the field type. Numeric IDs are 0 (signed), 1 (unsigned), 2 (float), and 3 (double). A nonzero `strId` identifies a string. |
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
 
-- Bit 0 of `GENERIC_EVENTS.flags` indicates an incomplete CPU file. Successfully decoded rows remain available. Bit 1 indicates a field decode failure. The original `common_flags` is an ordinary field in `GENERIC_EVENT_DATA`.
-- `genericEventId` is assigned after stable sorting by `(timestamp, cpuId)`. Use `ORDER BY` for ordered query results.
-- In `META_DATA`, `ftrace=1` means ftrace artifacts were found. `ftrace_events_complete=1` means the event tables, indexes, and referenced strings were written. Use event flags to check capture completeness. Both markers are omitted when there are no ftrace artifacts.
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|sourceId|INTEGER|Event source ID, which serves as the primary key.|
+|nameId|INTEGER|Ftrace subsystem name, which maps to `STRING_IDS(nameId)`.|
+|timeSourceId|INTEGER|Clock source, which maps to `ENUM_GENERIC_EVENT_SOURCE(timeSourceId)`.|
+|sourceGroupId|INTEGER|Source group, which maps to `ENUM_GENERIC_EVENT_GROUP(sourceGroupId)`.|
+|data|TEXT|Extended source information stored as JSON text.|
+
+## `GENERIC_EVENT_TYPES`
+
+Stores ftrace generic event types.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|typeId|INTEGER|Event type ID, which serves as the primary key.|
+|sourceId|INTEGER|Event source ID used to associate with `GENERIC_EVENT_SOURCES`.|
+|nameId|INTEGER|Event type name, which maps to `STRING_IDS(nameId)`.|
+|ftraceFormat|TEXT|Original tracefs format text.|
+|data|TEXT|Extended type information stored as JSON text containing `kernelId` and `formatHash`.|
+
+## `GENERIC_EVENT_TYPE_FIELDS`
+
+Stores field definitions for ftrace generic event types. The combination of `typeId` and `fieldIdx` identifies a field.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|typeId|INTEGER|Event type ID used to associate with `GENERIC_EVENT_TYPES`.|
+|fieldIdx|INTEGER|Field index within the type, starting at `0`.|
+|fieldNameId|INTEGER|Field name, which maps to `STRING_IDS(fieldNameId)`.|
+|offset|INTEGER|Field offset (bytes).|
+|size|INTEGER|Field size (bytes).|
+|type|INTEGER|Field type, which maps to `ENUM_GENERIC_EVENT_FIELD_TYPE(type)`.|
+|ftracePrefix|TEXT|Field display prefix.|
+|ftraceSuffix|TEXT|Field display suffix.|
+
+## `GENERIC_EVENTS`
+
+Stores ftrace generic event records.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|genericEventId|INTEGER|Generic event ID, which serves as the primary key. Assigned after stable sorting by `(timestamp, cpuId)`.|
+|rawTimestamp|NUMERIC|Original host `CLOCK_MONOTONIC_RAW` time (ns).|
+|timestamp|NUMERIC|Unix epoch time converted using the host time anchor from the same collection (ns).|
+|typeId|INTEGER|Event type ID used to associate with `GENERIC_EVENT_TYPES`.|
+|globalTid|INTEGER|Global thread ID. High-order 32 bits: TGID; low-order 32 bits: TID.|
+|cpuId|INTEGER|CPU number.|
+|flags|INTEGER|Event flags:<br>Bit 0: The CPU file is incomplete. Successfully decoded records remain available for analysis.<br>Bit 1: At least one field failed to decode.|
+
+Use `ORDER BY` for ordered query results. The original `common_flags` is stored as an ordinary field in `GENERIC_EVENT_DATA`.
+
+## `GENERIC_EVENT_DATA`
+
+Stores ftrace generic event field values. The combination of `genericEventId` and `fieldIdx` identifies an event field. For numeric fields, only the value column for the corresponding type is valid.
+
+There is no enable or disable option for this table. It is generated during the export of `msprof_{timestamp}.db` based on the collected ftrace data.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|genericEventId|INTEGER|Generic event ID used to associate with `GENERIC_EVENTS`.|
+|fieldIdx|INTEGER|Field index within the event type. Combined with `typeId`, it associates with `GENERIC_EVENT_TYPE_FIELDS`.|
+|intVal|NUMERIC|Signed integer value.|
+|uintVal|NUMERIC|Unsigned integer value.|
+|floatVal|NUMERIC|Single-precision floating-point value.|
+|doubleVal|NUMERIC|Double-precision floating-point value.|
+|strId|INTEGER|String value. A nonzero value references `STRING_IDS(strId)`, including for empty strings. Numeric fields use `0`.|
 
 ## `MSTX_EVENTS`
 
