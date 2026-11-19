@@ -98,9 +98,6 @@ class V5DbgParser(DataParser, MsMultiProcess):
     # 0x5a5a5a5a is 1515870810
     MAGIC_NUM = 1515870810
 
-    # 1G
-    DBG_MAX_SIZE = 1024 * 1024 * 1024
-
     SEMICOLON_CHAR = ";"
 
     L2_NAME_DICT = {
@@ -256,9 +253,9 @@ class V5DbgParser(DataParser, MsMultiProcess):
     def _read_data(self: any, file_path: str, model_id: int) -> None:
         file_size = os.path.getsize(file_path)
         data_offset = 0
-        if not file_size or file_size > self.DBG_MAX_SIZE:
-            logging.error("The dbg file's size is invalid, is %d", file_size)
-            error("The dbg file's size is invalid!")
+        if not file_size:
+            logging.error("The dbg file is empty, is %d", file_size)
+            error("The dbg file is empty!")
             return
         with FileOpen(file_path, 'rb') as _open_file:
             _all_data = _open_file.file_reader.read(file_size)

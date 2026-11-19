@@ -19,7 +19,6 @@ import os
 from abc import abstractmethod
 
 from common_func.common import print_msg
-from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.ms_constant.number_constant import NumberConstant
 from common_func.msprof_exception import ProfException
@@ -148,17 +147,6 @@ class ClusterParserFactory:
         if rank_id is None or dirname is None:
             logging.error("no valid information in %s, hccl parser is interrupted", DBNameConstant.DB_CLUSTER_RANK)
             raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB)
-
-        if rank_id == Constant.DEFAULT_INVALID_VALUE:
-            logging.error('Not Device id or rank id!')
-            raise ProfException(ProfException.PROF_CLUSTER_INVALID_DB)
-        if rank_id >= NumberConstant.MAX_RANK_NUMS:
-            logging.error(
-                "Number of ranks is %s !, exceeds the limited upper bound:%s ",
-                str(rank_id),
-                NumberConstant.MAX_RANK_NUMS,
-            )
-            raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)
 
 
 class ClusterCommunicationParserFactory(ClusterParserFactory):
