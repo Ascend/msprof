@@ -593,3 +593,39 @@ msprof --analyze=on --output=/home/profiler_data/PROF_XXX
 
     **图 5**  communication\_matrix.json<a name="zh-cn_topic_0000001631250206_fig182611711341"></a>
     ![](../figures/communication_matrix-json.png "communication_matrix-json")
+
+## 7. 附录
+
+### 7.1 日志说明
+
+msProf解析工具任务执行过程中，按照配置的日志级别输出日志。
+
+日志输出目录为PROF_XXX/mindstudio_profiler_log目录。
+
+**设置日志级别**
+
+msProf解析工具输出日志可通过${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/msprof_config.json中的log.level字段配置。
+
+${INSTALL_DIR}请替换为CANN软件安装后文件存储路径，若安装的Toolkit软件包，以root安装举例，则安装后文件存储路径为：/usr/local/Ascend/cann。
+
+log.level字段取值范围：
+
+- 0：表示DEBUG级别。
+- 1：表示INFO级别，默认值。
+- 2：表示WARNING级别。
+- 3：表示ERROR级别。
+
+配置示例：
+
+```json
+ {"log":{"level":0}}
+```
+
+表示新任务初始化日志时启用DEBUG日志。
+
+> [!NOTE]
+>
+> - msProf任务执行过程中修改日志级别不生效。
+> - 文件不可读、格式或配置其他值时，提示告警并使用INFO级别。
+> - 文件日志等级不影响控制台提示。
+> - C++ 文件日志同步写入并逐条刷新，启用 DEBUG 可能增加解析耗时。
