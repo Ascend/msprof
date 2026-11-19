@@ -120,6 +120,7 @@ protected:
         if (File::Exist(DB_PATH)) {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
+        InjectAscendTaskData(dataInventory_);
         auto hcclOp = GenerateHcclOpData();
         std::shared_ptr<std::vector<Analysis::Domain::DeviceHcclOp>> opData;
         MAKE_SHARED0_NO_OPERATION(opData, std::vector<Analysis::Domain::DeviceHcclOp>, std::move(hcclOp));
@@ -143,6 +144,15 @@ protected:
         if (File::Exist(DB_PATH)) {
             EXPECT_TRUE(File::DeleteFile(DB_PATH));
         }
+    }
+
+    static void InjectAscendTaskData(Analysis::Infra::DataInventory& inventory)
+    {
+        // hccl 落盘要求存在 ascend task 派生数据，没有时节点整体跳过。
+        std::vector<TopDownTask> ascendTask(1);
+        std::shared_ptr<std::vector<TopDownTask>> ascendTaskData;
+        MAKE_SHARED0_NO_OPERATION(ascendTaskData, std::vector<TopDownTask>, std::move(ascendTask));
+        inventory.Inject(ascendTaskData);
     }
 
     static std::vector<Analysis::Domain::DeviceHcclOp> GenerateHcclOpData()
@@ -273,7 +283,20 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataPointerIsNullThenRetu
     Analysis::Domain::DeviceHcclPersistence per;
     Analysis::Domain::DeviceContext context;
     Analysis::Infra::DataInventory tempDataInventory;
+    InjectAscendTaskData(tempDataInventory);
+    // 有 ascend task 但 hccl 结果指针缺失说明计算环节失败，仍然上报错误。
     ASSERT_EQ(Analysis::ANALYSIS_ERROR, per.Run(tempDataInventory, context));
+}
+
+TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenAscendTaskDataMissingThenReturnOK)
+{
+    Analysis::Domain::DeviceHcclPersistence per;
+    Analysis::Domain::DeviceContext context;
+    Analysis::Infra::DataInventory tempDataInventory;
+    context.deviceContextInfo.deviceFilePath = DEVICE_DIR;
+    // 没有 ascend task 派生数据时没有可落盘的内容，节点直接返回成功且不建库。
+    ASSERT_EQ(Analysis::ANALYSIS_OK, per.Run(tempDataInventory, context));
+    EXPECT_FALSE(File::Exist(DB_PATH));
 }
 
 TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
@@ -281,6 +304,7 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
     Analysis::Domain::DeviceHcclPersistence per;
     Analysis::Domain::DeviceContext context;
     Analysis::Infra::DataInventory tempDataInventory;
+    InjectAscendTaskData(tempDataInventory);
 
     std::vector<Analysis::Domain::DeviceHcclOp> hcclOp;
     std::shared_ptr<std::vector<Analysis::Domain::DeviceHcclOp>> opData;
