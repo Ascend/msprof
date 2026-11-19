@@ -436,7 +436,7 @@ def _parallel_task_supported(task: ProfTask, options: CommandOptions) -> bool:
     """仅限定并行命令范围；原集群场景标记不参与准入，合法性和芯片适配沿用原解析链。"""
     if not task.all_result_paths or options.command not in ('import', 'export'):
         return False
-    if options.command == 'export' and options.command_type not in ('summary', 'timeline', 'db'):
+    if options.command == 'export' and options.command_type not in ('summary', 'timeline', 'db', 'all'):
         return False
     return True
 

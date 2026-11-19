@@ -250,6 +250,7 @@ class MsprofEntrance:
         summary_parser = subparsers.add_parser('summary', help='Get summary data.')
         timeline_parser = subparsers.add_parser('timeline', help='Get timeline data.')
         self._add_export_argument(summary_parser)
+        self._add_reports_argument(summary_parser)
         summary_parser.add_argument(
             '--format',
             dest='export_format',
@@ -263,6 +264,20 @@ class MsprofEntrance:
         self._add_reports_argument(timeline_parser)
         db_parser = subparsers.add_parser('db', help='Get db data.')
         self._add_collect_path_argument(db_parser)
+        self._add_reports_argument(db_parser)
+        all_parser = subparsers.add_parser('all', help='Get summary, timeline and db data in one pass.')
+        self._add_export_argument(all_parser)
+        self._add_reports_argument(all_parser)
+        all_parser.add_argument(
+            '--format',
+            dest='export_format',
+            default='csv',
+            metavar='<export_format>',
+            choices=['csv', 'json'],
+            type=str,
+            # 该参数保留仅为兼容既有调用方传入；all 恒按 csv 产出 summary。
+            help='<Optional> reserved for compatibility. All export always produces csv summary data.',
+        )
 
     def _import_parser(self: any, import_parser: any) -> None:
         self._add_collect_path_argument(import_parser)

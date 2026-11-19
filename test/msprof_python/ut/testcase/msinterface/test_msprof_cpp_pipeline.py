@@ -59,6 +59,8 @@ class TestCppPipelineRunner(unittest.TestCase):
             (replace(self.request, reports_path="/reports.json"), 0x0F),
             (replace(self.request, command_type="db"), 0x07),
             (replace(self.request, command_type="summary", export_format="csv"), 0x17),
+            # all 一次产出 timeline 与 summary（0x18），叠加解析位与统一 db 位后为 0x1F。
+            (replace(self.request, command_type="all", export_format="csv"), 0x1F),
             (replace(self.request, command="import", command_type=None), 0x07),
             (replace(self.request, host_path=""), 0x0E),
             (replace(self.request, device_paths=()), 0x0D),

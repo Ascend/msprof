@@ -31,6 +31,7 @@ from common_func.cpp_pipeline_decision import CppPipelineDecisionRequest
 from common_func.cpp_pipeline_decision import ResultPathFacts
 from common_func.cpp_pipeline_decision import RuntimeProbe
 from common_func.profiling_scene import ExportMode
+from msconfig.cpp_pipeline_capability_config import DEFAULT_CAPABILITY_REGISTRY
 from msconfig.cpp_pipeline_capability_config import DataPosition
 from msconfig.cpp_pipeline_capability_config import PipelineCommand
 from profiling_bean.prof_enum.chip_model import ChipModel
@@ -91,12 +92,25 @@ class TestCppPipelineDecider(unittest.TestCase):
         self.assertTrue(result.can_run_in_cpp)
         self.assertEqual(result.issues, ())
 
+    def test_all_capability_matches_timeline_except_format(self):
+        # all = timeline + summary，而 summary 的适用特征是 timeline 的子集、
+        # 实际支持特征为空集，因此合并后与 timeline 一致，唯一差异是 summary 恒为 csv。
+        # 该断言用于防止能力表各自改动后两者漂移。
+        timeline = DEFAULT_CAPABILITY_REGISTRY.command_capabilities[(PipelineCommand.EXPORT, "timeline")]
+        all_capability = DEFAULT_CAPABILITY_REGISTRY.command_capabilities[(PipelineCommand.EXPORT, "all")]
+        self.assertEqual(all_capability.applicable_features, timeline.applicable_features)
+        self.assertEqual(all_capability.supported_features, timeline.supported_features)
+        self.assertEqual(all_capability.supports_cluster, timeline.supports_cluster)
+        self.assertEqual(all_capability.supported_formats, frozenset({"csv"}))
+        self.assertTrue(all_capability.supported_formats != timeline.supported_formats)
+
     def test_pcie_uses_hybrid_flow_for_all_commands(self):
         for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
             for command, command_type, export_format in (
                     (PipelineCommand.IMPORT, None, None),
                     (PipelineCommand.EXPORT, "timeline", None),
                     (PipelineCommand.EXPORT, "summary", "csv"),
+                    (PipelineCommand.EXPORT, "all", "csv"),
                     (PipelineCommand.EXPORT, "db", None)):
                 with self.subTest(chip=chip, command=command, command_type=command_type):
                     path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({DataTag.PCIE.name}))
@@ -112,6 +126,7 @@ class TestCppPipelineDecider(unittest.TestCase):
                     (PipelineCommand.IMPORT, None, None),
                     (PipelineCommand.EXPORT, "timeline", None),
                     (PipelineCommand.EXPORT, "db", None),
+                    (PipelineCommand.EXPORT, "all", "csv"),
                     (PipelineCommand.EXPORT, "summary", "csv")):
                 with self.subTest(chip=chip, command=command, command_type=command_type):
                     path_facts = replace(self.path_facts, chip_model=chip, raw_tags=frozenset({DataTag.LLC.name}))
@@ -168,6 +183,13 @@ class TestCppPipelineDecider(unittest.TestCase):
             ({"command_type": "summary", "export_format": "json"}, {"EXPORT_FORMAT_UNSUPPORTED"}),
             ({"clear_mode": True}, {"CLEAR_UNSUPPORTED"}),
             ({"model_id": 0}, {"EXPORT_SELECTION_UNSUPPORTED"}),
+            # all 的格式能力由 timeline 与 summary 共同决定，恒为 csv。
+            ({"command_type": "all", "export_format": "csv"}, set()),
+            ({"command_type": "all", "export_format": "json"}, {"EXPORT_FORMAT_UNSUPPORTED"}),
+            # all 未归一格式时不支持：调用方必须在判定前把格式落定为 csv。
+            ({"command_type": "all", "export_format": None}, {"EXPORT_FORMAT_UNSUPPORTED"}),
+            ({"command_type": "all", "export_format": "csv", "clear_mode": True}, {"CLEAR_UNSUPPORTED"}),
+            ({"command_type": "all", "export_format": "csv", "iteration_id": 1}, {"EXPORT_SELECTION_UNSUPPORTED"}),
         )
         for options, expected in cases:
             with self.subTest(options=options):
@@ -467,12 +489,25 @@ class TestCollectionFactsCollector(unittest.TestCase):
         invalid_facts = self.collector.collect(self._request("/missing"))
         self.assertIn("RESULT_PATH_INVALID", {issue.reason_code for issue in invalid_facts.issues})
 
-    def test_slice_config_is_read_only_for_timeline(self):
+    def test_slice_config_is_read_only_for_timeline_producing_commands(self):
         self._write_raw("stars_soc.data.0.slice_0")
         self._write_json(self.slice_config_path, {"slice_switch": "on"})
-        self.assertTrue(self.collector.collect(self._request()).slice_enabled)
-        with mock.patch.object(self.collector, "_read_slice_enabled", side_effect=AssertionError("unused")):
-            self.assertFalse(self.collector.collect(self._request(command_type="summary")).slice_enabled)
+        # timeline 与 all 都产出 timeline 文件，切片配置必须参与判定。
+        for command_type in ("timeline", "all"):
+            with self.subTest(command_type=command_type):
+                self.assertTrue(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
+        # 不产出 timeline 的命令不应读取切片配置，避免无谓 IO 与告警。
+        for command_type in ("summary", "db"):
+            with self.subTest(command_type=command_type):
+                with mock.patch.object(self.collector, "_read_slice_enabled", side_effect=AssertionError("unused")):
+                    self.assertFalse(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
+
+    def test_slice_config_off_disables_slicing_for_timeline_and_all(self):
+        self._write_raw("stars_soc.data.0.slice_0")
+        self._write_json(self.slice_config_path, {"slice_switch": "off"})
+        for command_type in ("timeline", "all"):
+            with self.subTest(command_type=command_type):
+                self.assertFalse(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
 
     def test_path_read_and_metadata_errors_fall_back_without_decision_exception(self):
         self._write_raw("stars_soc.data.0.slice_0")

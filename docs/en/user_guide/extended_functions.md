@@ -399,6 +399,14 @@ Before exporting profile data, you need to [parse profile data](#parsing-profile
     python3 msprof.py export db -dir <dir>
     ```
 
+- Export summary, timeline, and DB files in one pass
+
+    ```bash
+    python3 msprof.py export all -dir <dir> [-reports <reports_sample_config.json>] [--model-id <model-id>] [--iteration-id <iteration_id>] [--iteration-count <iteration_count>] [--clear]
+    ```
+
+    This command produces timeline, summary, and DB deliverables in a single parsing pass, avoiding repeated parsing. The summary is always CSV; `--format` is accepted only for compatibility and has no effect.
+
 **Command-line Options<a name="en-us_topic_0000001265069834_section039513131005"></a>**
 
 **Table 1** Command-line options for exporting profile data
@@ -441,6 +449,12 @@ Python and C++ file logs read `log.level` from the installed `analysis/msconfig/
 
         ```bash
         python3 msprof.py export db -dir /home/HwHiAiUser/profiler_data/PROF_XXX
+        ```
+
+    - Export summary, timeline, and DB files in one pass (recommended, parses only once).
+
+        ```bash
+        python3 msprof.py export all -dir /home/HwHiAiUser/profiler_data/PROF_XXX
         ```
 
     > [!NOTE]

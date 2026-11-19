@@ -76,6 +76,16 @@ COMMAND_CAPABILITIES = {
         applicable_features=TIMELINE_SUMMARY_FEATURES,
         supported_features=frozenset(),
     ),
+    (PipelineCommand.EXPORT, "all"): CommandCapability(
+        # all 一次产出 timeline、summary 与 db，是 timeline 与 summary 的合并导出。
+        # summary 的适用特征被 timeline 覆盖、实际支持特征为空集，故合并后
+        # 适用/支持特征与 timeline 完全一致，唯一差异是 summary 恒为 csv：
+        # --format 仅为兼容保留，不参与选择，因此这里只声明 csv。
+        supported_formats=frozenset({"csv"}),
+        applicable_features=TIMELINE_SUMMARY_FEATURES
+        | frozenset({PipelineFeature.REPORTS_FILTER, PipelineFeature.TIMELINE_SLICING}),
+        supported_features=frozenset({PipelineFeature.REPORTS_FILTER}),
+    ),
     (PipelineCommand.EXPORT, "db"): CommandCapability(
         supported_formats=frozenset({None}),
         applicable_features=frozenset(),

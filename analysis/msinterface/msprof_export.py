@@ -254,6 +254,9 @@ class ExportCommand:
         self.iteration_count = getattr(args, "iteration_count", NumberConstant.DEFAULT_ITER_COUNT)
         self.sample_config = {}
         self.export_format = getattr(args, "export_format", None)
+        if self.command_type == MsProfCommonConstant.ALL:
+            # all 恒按 csv 产出 summary；--format 仅为兼容既有调用方保留，不参与选择。
+            self.export_format = StrConstant.EXPORT_CSV
         self.list_map = {
             'export_type_list': [],
             'devices_list': '',
@@ -678,7 +681,8 @@ class ExportCommand:
         self._handle_export_data(params)
 
     def _show_cluster_tuning(self) -> None:
-        if self.command_type != MsProfCommonConstant.SUMMARY:
+        # all 同样产出 summary，因此与单独 summary 导出一致地输出集群调优建议。
+        if self.command_type not in (MsProfCommonConstant.SUMMARY, MsProfCommonConstant.ALL):
             return
 
         # 在该代码段屏蔽所有的log打印内容（对打屏内容不做处理）
@@ -861,7 +865,21 @@ class ExportCommand:
         if self.command_type == MsProfCommonConstant.DB:
             export_unified_db(path_table.get("collection_path"))
             return
+        if self.command_type == MsProfCommonConstant.ALL:
+            # C 化判定不通过时，all 在本进程内按交付件分 pass 完成，parse/calculate 只做一次。
+            # 逐 pass 切换 command_type 以复用单交付件逻辑，结束后恢复，避免污染后续 PROF 任务。
+            original_type = self.command_type
+            try:
+                for deliverable in (MsProfCommonConstant.TIMELINE, MsProfCommonConstant.SUMMARY):
+                    self._start_view_by_type(path_table, deliverable)
+            finally:
+                self.command_type = original_type
+            return
+        self._start_view_by_type(path_table, self.command_type)
 
+    def _start_view_by_type(self, path_table: dict, command_type: str):
+        """按单个交付件执行 view 阶段；command_type 决定导出类型与目标目录。"""
+        self.command_type = command_type
         # host
         mode = ProfilingScene().get_mode()
         ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
@@ -882,7 +900,7 @@ class ExportCommand:
             self._view_data(device_path)
 
         profiler = MsprofOutputSummary(path_table.get("collection_path"), self.export_format)
-        profiler.export(self.command_type)
+        profiler.export(command_type)
 
     def _view_data(self, device_path: str):
         if not device_path:

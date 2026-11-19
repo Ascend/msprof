@@ -399,6 +399,14 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
     python3 msprof.py export db -dir <dir>
     ```
 
+- 一次性导出summary、timeline和db文件
+
+    ```bash
+    python3 msprof.py export all -dir <dir> [-reports <reports_sample_config.json>] [--model-id <model-id>] [--iteration-id <iteration_id>] [--iteration-count <iteration_count>] [--clear]
+    ```
+
+    该命令在一次解析流程内同时产出timeline、summary和db三类交付件，避免重复解析。summary固定为csv格式，`--format`仅为兼容保留，传入后不生效。
+
 **参数说明<a name="zh-cn_topic_0000001265069834_section039513131005"></a>**
 
 **表 1**  导出性能数据命令参数说明
@@ -406,11 +414,11 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
 |参数|**可选/必选**|说明|
 |--|--|--|
 |-dir或--collection-dir|必选|收集到的性能数据目录。须指定为PROF\_XXX目录或PROF\_XXX目录的父目录，例如：/home/HwHiAiUser/profiler_data/PROF_XXX。|
-|-reports|可选|传入用户自定义的reports_sample_config.json配置文件，会根据配置文件中指定的范围导出相应的性能数据文件。参数实现与msprof --reports一致，详细介绍请参见[使用示例（--reports参数）](msprof_parsing_instruct.md#zh-cn_topic_0000001265229686_section1128153151819)。|
+|-reports|可选|传入用户自定义的reports_sample_config.json配置文件，会根据配置文件中指定的范围导出相应的性能数据文件。参数实现与msprof --reports一致，详细介绍请参见[使用示例（--reports参数）](msprof_parsing_instruct.md#zh-cn_topic_0000001265229686_section1128153151819)。<br/>当前export timeline与export all会依据该配置过滤导出范围；export summary与export db可传入该参数，过滤能力由后续版本补齐。|
 |--model-id|可选|模型ID。需配置为正整数。与--iteration-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br/>&#8226; 对于Atlas A2系列产品和Atlas A3系列产品，支持--model-id 4294967295，为Step模式，即--iteration-id配置的值以Step为粒度解析。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226;--model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
 |--iteration-id|可选|迭代ID。需配置为正整数。与--model-id必须同时配置，导出该Model下指定计算迭代的性能数据。--model-id与--iteration-id均未配置时，默认导出所有性能数据。<br>&#8226; 对于Atlas A2系列产品和Atlas A3系列产品，支持--model-id 4294967295，表示指定以Step为粒度统计的迭代ID（每执行完成一个Step，Iteration ID加1）。仅支持解析MindSpore（版本号大于等于2.3）框架的性能数据。<br/>&#8226; --model-id配置为其他值时，指定以Graph为粒度统计的迭代ID（每个Graph执行一次，Iteration ID加1，当一个脚本被编译为多个Graph时，该ID与脚本层面的Step ID不一致）。|
 |--iteration-count|可选|导出连续迭代的个数，取值范围为1~5的整数，根据--iteration-id配置的值为起始Step，导出连续数量的Step，比如配置--iteration-count为3，--iteration-id为1，则导出Step为1、2、3。|
-|--format|可选|summary数据文件的导出格式，支持csv和json两种格式，默认值为csv。仅配置summary参数时支持。<br/>本文中summary文件介绍均以csv文件为例。|
+|--format|可选|summary数据文件的导出格式，支持csv和json两种格式，默认值为csv。仅配置summary参数时支持；配置export all时该参数仅用于兼容保留，summary固定按csv格式导出。<br/>本文中summary文件介绍均以csv文件为例。|
 |--clear|可选|数据精简模式，开启后将在导出性能数据后删除PROF_XXX/device_{id}下的sqlite目录，以节省存储空间。配置该参数时表示开启数据精简模式，未配置表示关闭，默认关闭。|
 |-h或--help|可选|显示帮助信息，仅在获取使用方式时使用。|
 
@@ -422,6 +430,12 @@ msprof工具的查询功能获取到的信息如[表2](#zh-cn_topic_000000131270
     `${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msprof`，$\{INSTALL\_DIR\}请替换为CANN软件安装后文件存储路径。若安装的Toolkit软件包，以root安装举例，则安装后文件存储路径为：/usr/local/Ascend/cann。
 
 3. 导出性能数据。可以导出timeline、summary和db三类文件，命令行格式如下：
+
+    - 一次性导出summary、timeline和db文件（推荐，仅解析一次）。
+
+        ```bash
+        python3 msprof.py export all -dir /home/HwHiAiUser/profiler_data/PROF_XXX
+        ```
 
     - 导出timeline数据和db文件
 

@@ -39,6 +39,7 @@ class TestMsprofEntrance(unittest.TestCase):
     NO_INPUT_COMMAND_CASES = (
         (['import'], 'msinterface.msprof_import'),
         (['export', 'summary'], 'msinterface.msprof_export'),
+        (['export', 'all'], 'msinterface.msprof_export'),
         (['query'], 'msinterface.msprof_query'),
         (['analyze', '--rule', 'communication'], 'analyzer.communication_analyzer'),
         (['analyze', '--rule', 'communication_matrix'], 'analyzer.communication_matrix_analyzer'),
@@ -159,6 +160,47 @@ class TestMsprofEntrance(unittest.TestCase):
                         self.assertEqual(processing.call_args.args[0]['device'], [device_path])
                     else:
                         processing.assert_called_once_with(device_path)
+
+    def test_main_should_dispatch_all_export_command(self):
+        """export all 与 export summary 走同一处理链，独立用例避免与批量用例的子用例数耦合。"""
+        real_listdir = os.listdir
+        with tempfile.TemporaryDirectory() as root:
+            device_path = os.path.join(root, 'device_0')
+            invalid_path = os.path.join(root, 'invalid_dir')
+            os.mkdir(device_path)
+            os.mkdir(invalid_path)
+            Path(device_path, 'info.json.0').write_text('{}', encoding='utf-8')
+
+            def listdir_with_invalid_child(path):
+                if os.path.realpath(path) == invalid_path:
+                    raise PermissionError('invalid child directory')
+                return real_listdir(path)
+
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch('sys.argv', ['msprof.py', 'export', 'all', '-dir', root]))
+                scan = stack.enter_context(mock.patch('os.listdir', side_effect=listdir_with_invalid_child))
+                stack.enter_context(mock.patch('framework.load_info_manager.LoadInfoManager.load_info'))
+                stack.enter_context(mock.patch('msinterface.msprof_export.run_in_subprocess',
+                                               side_effect=lambda func, *args: func(*args)))
+                stack.enter_context(mock.patch('msinterface.msprof_export.ExportCommand._start_calculate'))
+                stack.enter_context(mock.patch('msinterface.msprof_export.ExportCommand._start_view'))
+                processing = stack.enter_context(
+                    mock.patch('msinterface.msprof_export.ExportCommand._start_parse', return_value=[]))
+                with self.assertRaises(SystemExit) as context:
+                    MsprofEntrance().main()
+                self.assertEqual(context.exception.code, 0)
+                scan.assert_any_call(invalid_path)
+                processing.assert_called_once()
+                self.assertEqual(processing.call_args.args[0]['device'], [device_path])
+
+    def test_reports_argument_is_accepted_by_every_export_subcommand(self):
+        # -reports 需同时作用于 timeline、summary、db 与 all：
+        # 回退路径下 summary/db 会各自单独调用，必须能接收该参数。
+        parser = MsprofEntrance().construct_arg_parser()[0]
+        for command_type in ('timeline', 'summary', 'db', 'all'):
+            with self.subTest(command_type=command_type):
+                parsed = parser.parse_args(['export', command_type, '-dir', 'dir', '-reports', 'reports.json'])
+                self.assertEqual(parsed.reports_path, 'reports.json')
 
     def test_main_should_set_all_export_false_when_set_model_id_and_iteration_id(self):
         args = ["msprof.py", "export", "summary", "-dir", "test_entrance_dir", "--model-id", "1", "--iteration-id", "2"]

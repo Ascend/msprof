@@ -50,10 +50,12 @@ class CppPipelineRunner:
         if request.device_paths and not all(self._has_sqlite_data(path) for path in request.device_paths):
             flags |= msprof_c_interface.MSPROF_PIPELINE_DEVICE_DATA
         if request.command == PipelineCommand.EXPORT:
+            # "all" 一次产出 timeline 与 summary，db 由下方统一 db 缺失判断补充。
             flags |= {
                 "db": msprof_c_interface.MSPROF_PIPELINE_DB,
                 "timeline": msprof_c_interface.MSPROF_PIPELINE_TIMELINE,
                 "summary": msprof_c_interface.MSPROF_PIPELINE_SUMMARY,
+                "all": msprof_c_interface.MSPROF_PIPELINE_TIMELINE | msprof_c_interface.MSPROF_PIPELINE_SUMMARY,
             }[request.command_type]
         if not self._has_unified_db(request.collection_path):
             flags |= msprof_c_interface.MSPROF_PIPELINE_DB

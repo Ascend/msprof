@@ -199,6 +199,10 @@ class CollectionFactsCollector:
     ALL_EXPORT_DRIVER_VERSION = InfoConfReader().ALL_EXPORT_VERSION
     SAMPLE_BASED = StrConstant.AIC_SAMPLE_BASED_MODE
     TASK_BASED = StrConstant.AIC_TASK_BASED_MODE
+    # 会产出 timeline 文件的导出命令。切片配置只作用于 timeline json 分片，
+    # 因此只有这些命令需要读取切片配置；"all" 与 "timeline" 的产出物相同，
+    # 只是额外多出 summary，故二者同级，summary 单独导出不涉及切片。
+    TIMELINE_PRODUCING_COMMAND_TYPES = ("timeline", "all")
 
     HOST_SYSTEM_PATTERNS = {
         "HOST_CPU_USAGE": re.compile(FileNameManagerConstant.HOST_CPU_USAGE_PATTERN),
@@ -275,7 +279,10 @@ class CollectionFactsCollector:
         is_export = request.command == PipelineCommand.EXPORT
         return CollectionFacts(
             result_paths=tuple(result_facts),
-            slice_enabled=is_export and request.command_type == "timeline" and self._read_slice_enabled(),
+            # 切片配置只影响 timeline 产出；非 timeline 命令不读配置，避免无谓的文件读取与告警。
+            slice_enabled=is_export
+            and request.command_type in self.TIMELINE_PRODUCING_COMMAND_TYPES
+            and self._read_slice_enabled(),
             issues=tuple(issues),
         )
 

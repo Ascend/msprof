@@ -30,6 +30,8 @@ from common_func.constant import Constant
 from common_func.db_name_constant import DBNameConstant
 from common_func.file_slice_helper import FileSliceHelper
 from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.str_constant import StrConstant
+from common_func.msprof_common import MsProfCommonConstant
 from common_func.msprof_exception import ProfException
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
@@ -708,6 +710,114 @@ class TestExportCommand(unittest.TestCase):
                 test.process()
             InfoConfReader()._info_json = {}
             InfoConfReader()._sample_json = {}
+
+    def test_all_command_should_always_use_csv_format(self):
+        for export_format in (None, StrConstant.EXPORT_CSV, StrConstant.EXPORT_JSON):
+            args = Namespace(collection_path="test", export_format=export_format)
+            test = ExportCommand("all", args)
+            self.assertEqual(test.export_format, StrConstant.EXPORT_CSV)
+
+    def test_single_command_should_keep_requested_format(self):
+        args = Namespace(collection_path="test", export_format=StrConstant.EXPORT_JSON)
+        self.assertEqual(ExportCommand("summary", args).export_format, StrConstant.EXPORT_JSON)
+        args = Namespace(collection_path="test", export_format=None)
+        self.assertIsNone(ExportCommand("timeline", args).export_format)
+
+    def test_start_view_should_switch_command_type_for_each_deliverable(self):
+        args = Namespace(collection_path="test", export_format=StrConstant.EXPORT_JSON)
+        test = ExportCommand("all", args)
+        observed = []
+
+        # 只替换 view 阶段的产出动作，保留 _start_view_by_type 的 command_type 切换与复位逻辑。
+        def record(device_path):
+            observed.append((device_path, test.command_type))
+
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+        with mock.patch.object(test, '_view_data', side_effect=record), \
+                mock.patch(NAMESPACE + '.ExportCommand._check_export_timeline_with_so', return_value=False), \
+                mock.patch(NAMESPACE + '.ExportCommand._check_export_summary_with_so', return_value=False), \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export') as export_mock:
+            test._start_view(path_table)
+
+        # 每个 pass 内：host 一次 + 每个 device 一次，且各 pass 使用自己的 command_type
+        per_pass = 1 + len(path_table[StrConstant.DEVICE_PATH])
+        self.assertEqual(len(observed), 2 * per_pass)
+        self.assertEqual(
+            [item[1] for item in observed],
+            [MsProfCommonConstant.TIMELINE] * per_pass + [MsProfCommonConstant.SUMMARY] * per_pass,
+        )
+        self.assertEqual(
+            [call.args[0] for call in export_mock.call_args_list],
+            [MsProfCommonConstant.TIMELINE, MsProfCommonConstant.SUMMARY],
+        )
+        # all 恒按 csv 产出 summary，即便调用方请求 json
+        self.assertEqual(test.export_format, StrConstant.EXPORT_CSV)
+        # pass 结束后恢复原 command_type，避免污染后续 PROF 任务
+        self.assertEqual(test.command_type, MsProfCommonConstant.ALL)
+
+    def test_start_view_should_restore_command_type_when_pass_raises(self):
+        args = Namespace(collection_path="test", export_format=StrConstant.EXPORT_CSV)
+        test = ExportCommand("all", args)
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+
+        # 第一个 pass 抛异常时，finally 仍须把 command_type 复位成 all。
+        with mock.patch.object(test, '_view_data', side_effect=ProfException(ProfException.PROF_INVALID_DATA_ERROR)):
+            with self.assertRaises(ProfException):
+                test._start_view(path_table)
+
+        self.assertEqual(test.command_type, MsProfCommonConstant.ALL)
+
+    def test_start_view_by_type_should_cover_every_device(self):
+        args = Namespace(collection_path="test", export_format=StrConstant.EXPORT_CSV)
+        test = ExportCommand("all", args)
+        seen = []
+
+        def record(device_path):
+            seen.append((device_path, test.command_type))
+
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0', 'test/device_1'],
+        }
+        with mock.patch.object(test, '_view_data', side_effect=record), \
+                mock.patch(NAMESPACE + '.ExportCommand._check_export_timeline_with_so', return_value=False), \
+                mock.patch(NAMESPACE + '.ExportCommand._check_export_summary_with_so', return_value=False), \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export') as export_mock:
+            test._start_view_by_type(dict(path_table), MsProfCommonConstant.SUMMARY)
+
+        # 按 host + 全部 device 逐个执行，且整体使用本次 pass 的 command_type
+        self.assertEqual(
+            [item[0] for item in seen],
+            ['test/host', 'test/device_0', 'test/device_1'],
+        )
+        self.assertEqual([item[1] for item in seen], [MsProfCommonConstant.SUMMARY] * 3)
+        export_mock.assert_called_once_with(MsProfCommonConstant.SUMMARY)
+
+    def test_show_cluster_tuning_should_apply_to_all(self):
+        args = Namespace(collection_path="test")
+        test = ExportCommand("all", args)
+        test._cluster_params['is_cluster_scene'] = True
+        with mock.patch(NAMESPACE + '.ClusterTuning') as cluster_run, \
+                mock.patch(NAMESPACE + '.ClusterTuningFacade') as cluster_process:
+            test._show_cluster_tuning()
+        cluster_run.assert_called_once()
+        cluster_process.assert_called_once()
+
+    def test_show_cluster_tuning_should_skip_non_summary_deliverable(self):
+        args = Namespace(collection_path="test")
+        test = ExportCommand("timeline", args)
+        with mock.patch(NAMESPACE + '.ClusterTuning') as cluster_run:
+            test._show_cluster_tuning()
+        cluster_run.assert_not_called()
 
     def test_handle_export_raise_profexception_0(self) -> None:
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "iteration_count": 1}

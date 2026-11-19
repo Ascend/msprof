@@ -305,6 +305,8 @@ class TestParallelTaskEligibility(unittest.TestCase):
             self.assertFalse(_parallel_task_supported(task, replace(options, command='query')))
             if command == 'export':
                 self.assertFalse(_parallel_task_supported(task, replace(options, command_type='unknown')))
+                # all 与单个交付件同样具备并行准入，否则多 PROF 会被静默降级为串行。
+                self.assertTrue(_parallel_task_supported(task, replace(options, command_type='all')))
 
 
 class TestProfResourcePlanner(unittest.TestCase):

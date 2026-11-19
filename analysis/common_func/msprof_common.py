@@ -52,6 +52,8 @@ class MsProfCommonConstant:
     DB = "db"
     SUMMARY = "summary"
     TIMELINE = "timeline"
+    # 一次产出 timeline 与 summary 的合并导出命令；db 由 C 流程按统一 db 缺失与否自动补充。
+    ALL = "all"
     COMMON_FILE_NAME = os.path.basename(__file__)
 
     # key for the query data
