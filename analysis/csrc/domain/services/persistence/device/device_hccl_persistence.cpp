@@ -252,13 +252,6 @@ bool SaveKfcOpReportData(DataInventory& dataInventory, const std::string& device
 uint32_t DeviceHcclPersistence::ProcessEntry(DataInventory& dataInventory, const Context& context)
 {
     INFO("Start to dump device hccl data.");
-    // hccl/kfc 数据都由 ascend task 派生：没有 ascend task 时没有任何可落盘的内容，直接跳过而不是报错。
-    const auto ascendTasks = dataInventory.GetPtr<std::vector<TopDownTask>>();
-    if (ascendTasks == nullptr || ascendTasks->empty())
-    {
-        WARN("No ascend task data, skip device hccl persistence.");
-        return ANALYSIS_OK;
-    }
     const std::string devicePath = dynamic_cast<const DeviceContext&>(context).GetDeviceFilePath();
     bool flag = true;
     if (!SaveHcclOpData(dataInventory, devicePath))

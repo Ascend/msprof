@@ -52,13 +52,6 @@ uint32_t HcclCalculator::ProcessEntry(DataInventory& dataInventory, const Contex
     deviceContext.Getter(startInfo);
     deviceContext.Getter(sampleInfo);
 
-    const auto ascendTasks = dataInventory.GetPtr<std::vector<TopDownTask>>();
-    if (ascendTasks == nullptr || ascendTasks->empty())
-    {
-        WARN("No ascend task data, skip hccl calculate.");
-        return ANALYSIS_OK;
-    }
-
     if (!GetHcclData(dataInventory, startInfo.clockMonotonicRaw))
     {
         ERROR("Failed to Get hccl task data or op data.");

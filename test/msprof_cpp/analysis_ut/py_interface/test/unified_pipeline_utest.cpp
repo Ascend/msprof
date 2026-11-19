@@ -2264,52 +2264,6 @@ TEST_F(UnifiedPipelinePlanUTest, HbmAndNetDevNativeOwnershipKeepsChipBoundary)
     }
 }
 
-TEST_F(UnifiedPipelinePlanUTest, DegradedAscendTaskChainRunsOnItsFailuresSoTaskAndApiKeepTheirData)
-{
-    TopoBuildContext context;
-    TopoNodeCollection definitions;
-    std::vector<TopoNodeId> roots;
-    RuntimeProcessCollection graph;
-    TopoGraphBuilder builder;
-    // The device stages are observable in the plan; the host task processor is not part of this request.
-    const auto request = Request(PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA);
-    ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
-    const auto& keys = builder.GetRuntimeNodeKeys();
-    // A missing or failed device input only degrades the stages behind the task association, it must not cancel the
-    // task and API reports that the host side data alone can still produce.
-    std::map<std::string, size_t> matched;
-    for (const auto& entry : keys)
-    {
-        const auto& id = entry.first;
-        const bool chainNode =
-            (id.stage == TopoNodeStage::DEVICE_PROCESSING && id.name == "HcclCalculator") ||
-            (id.stage == TopoNodeStage::DEVICE_PERSISTENCE && id.name == "AscendTaskPersistence");
-        if (!chainNode)
-        {
-            continue;
-        }
-        ++matched[id.name];
-        EXPECT_TRUE(graph.at(entry.second).runOnDependencyFailure) << id.name << "@" << id.scope;
-        EXPECT_TRUE(graph.at(entry.second).mandatory) << id.name << "@" << id.scope;
-    }
-    for (const auto& scope : {"device_0", "device_1"})
-    {
-        // The association reads the task maps without checking them, so it keeps waiting for its predecessors.
-        const auto association = keys.at({TopoNodeStage::DEVICE_PROCESSING, "AscendTaskAssociation", scope});
-        EXPECT_FALSE(graph.at(association).runOnDependencyFailure);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope}), 1U);
-        EXPECT_EQ(keys.count({TopoNodeStage::DEVICE_PERSISTENCE, "AscendTaskPersistence", scope}), 1U);
-    }
-    EXPECT_EQ(matched["HcclCalculator"], 2U);
-    EXPECT_EQ(matched["AscendTaskPersistence"], 2U);
-    // The host task processor only joins a plan through the timeline or summary selection, so the policy is read from
-    // the registration that every plan is compiled from; the runtime graph copies that flag for each planned node.
-    const auto* task = TopoNodeRegistry::Find({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_TASK});
-    ASSERT_NE(task, nullptr);
-    EXPECT_TRUE(task->runOnDependencyFailure);
-    EXPECT_TRUE(task->mandatory);
-}
-
 TEST_F(UnifiedPipelinePlanUTest, FullParseIncludesLlcAndPcieProducersOnSupportedChips)
 {
     FileWriter(root + "/device_1/info.json").WriteText(nlohmann::json{{"platform_version", CHIP_V6_1_0}}.dump());

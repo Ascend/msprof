@@ -95,13 +95,11 @@ REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_ACC_PMU,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_ACC_PMU)),
                                  false, std::vector<AccPmuData>);
-// The Api layer only needs the host API data; the task data refines memcpyAsync connections and may be missing when
-// the device task association chain degrades, so a failed dependency must not drop the whole layer.
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_API,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK)),
-                                 true, std::vector<AscendTaskData>, std::vector<ApiData>);
+                                 false, std::vector<AscendTaskData>, std::vector<ApiData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_DDR,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_DDR)),

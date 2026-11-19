@@ -147,25 +147,6 @@ TEST(TimelineManagerUTest, PreDumpShouldDeclareMsprofTxHostData)
     EXPECT_TRUE(definition->runOnDependencyFailure);
 }
 
-TEST(TimelineManagerUTest, ApiLayerKeepsDependenciesButSurvivesTheirFailure)
-{
-    const TopoNodeDefinition* definition = TopoNodeRegistry::Find({TopoNodeStage::TIMELINE_EXPORT, PROCESS_API});
-    ASSERT_NE(definition, nullptr);
-    // The Api layer keeps its dependencies so it still runs after them, but a failed device task association chain must
-    // not cancel the export of the host side API data.
-    EXPECT_TRUE(definition->runOnDependencyFailure);
-    EXPECT_TRUE(definition->mandatory);
-    const auto dependsOn = [definition](TopoNodeStage stage, const std::string& name)
-    {
-        return std::any_of(definition->processDependencies.begin(), definition->processDependencies.end(),
-                           [stage, &name](const TopoNodeId& id) { return id.stage == stage && id.name == name; });
-    };
-    EXPECT_EQ(definition->processDependencies.size(), 3U);
-    EXPECT_TRUE(dependsOn(TopoNodeStage::FLOW_CONTROL, "TIMELINE:PRE_DUMP"));
-    EXPECT_TRUE(dependsOn(TopoNodeStage::DATA_PROCESSING, "API"));
-    EXPECT_TRUE(dependsOn(TopoNodeStage::DATA_PROCESSING, "TASK"));
-}
-
 TEST(TimelineManagerUTest, FailedMsprofTxProcessorDoesNotBlockOtherLayersOrJsonFinalization)
 {
     const std::string output = "./timeline_branch_isolation_test";

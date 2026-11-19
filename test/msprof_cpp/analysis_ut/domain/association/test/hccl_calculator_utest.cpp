@@ -317,31 +317,6 @@ TEST_F(HcclCalculatorUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
     EXPECT_EQ(expectStatisticsDataNum, hcclStatisticsData->size());
 }
 
-TEST_F(HcclCalculatorUTest, TestProcessEntryShouldSkipWhenAscendTaskDataIsMissing)
-{
-    dataInventory_.RemoveRestData({});
-    HcclCalculator calculator;
-    DeviceContext context;
-    ASSERT_EQ(Analysis::ANALYSIS_OK, calculator.Run(dataInventory_, context));
-    // The stage is skipped completely, so it neither calculates nor injects any hccl data.
-    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclTask>>(), nullptr);
-    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclOp>>(), nullptr);
-}
-
-TEST_F(HcclCalculatorUTest, TestProcessEntryShouldSkipWhenAscendTaskDataIsEmpty)
-{
-    dataInventory_.RemoveRestData({});
-    std::shared_ptr<std::vector<TopDownTask>> ascendTaskData;
-    MAKE_SHARED0_NO_OPERATION(ascendTaskData, std::vector<TopDownTask>);
-    dataInventory_.Inject(ascendTaskData);
-    HcclCalculator calculator;
-    DeviceContext context;
-    ASSERT_EQ(Analysis::ANALYSIS_OK, calculator.Run(dataInventory_, context));
-    // An empty task list has nothing to correlate, so the stage is skipped without injecting any hccl data.
-    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclTask>>(), nullptr);
-    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclOp>>(), nullptr);
-}
-
 TEST_F(HcclCalculatorUTest, TestAllTaskTimeIsEqualZeroThenReturnFalse)
 {
     MOCKER(&Analysis::Utils::IsDoubleEqual).stubs().will(returnValue(false)).then(returnValue(true));

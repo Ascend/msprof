@@ -106,9 +106,8 @@ REGISTER_PROCESSOR(MsprofTxHostProcessor, PROCESSOR_NAME_MSTX, true, TOPO_DEPS()
 REGISTER_PROCESSOR(StepTraceProcessor, PROCESSOR_NAME_STEP_TRACE, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "TracePersistence")));
 
-// The processor tolerates a missing predecessor database and only degrades its own output.
 REGISTER_PROCESSOR(TaskProcessor, PROCESSOR_NAME_TASK, true,
-                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")), true);
+                   TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AscendTaskPersistence")));
 
 REGISTER_PROCESSOR(AccPmuProcessor, PROCESSOR_NAME_ACC_PMU, true,
                    TOPO_DEPS(TOPO_NODE(DEVICE_PERSISTENCE, "AccPmuPersistence")));
