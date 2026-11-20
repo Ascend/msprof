@@ -72,7 +72,6 @@ class MsprofOutputSummary:
     DEVICE_ID_PREFIX_LEN = 7
     SLICE_LEN = 7
     README = "README.txt"
-    FILE_MAX_SIZE = 1024 * 1024 * 1024
     JSON_LIST = ["msprof", "step_trace", "msprof_tx"]
     MSPROF_TX = "msprof_tx"
     MSPROFTX_DEVICE_START_TIME_HEADER = "Device Start_time(us)"
@@ -321,7 +320,7 @@ class MsprofOutputSummary:
 
     def _update_msproftx_device_data(self, file_name_path: str, device_id: str):
         cnt = 0
-        with FileOpen(file_name_path, mode='r', max_size=self.FILE_MAX_SIZE) as _csv_file:
+        with FileOpen(file_name_path, mode='r') as _csv_file:
             _csv_file.file_reader.readline()
             line_num = 0
             for index, row in enumerate(self.read_file(_csv_file.file_reader)):
@@ -349,7 +348,7 @@ class MsprofOutputSummary:
         data_map = self._msproftx_device_data_dict
         all_data = []
 
-        with FileOpen(file_name_path, mode='r', max_size=self.FILE_MAX_SIZE) as _csv_file:
+        with FileOpen(file_name_path, mode='r') as _csv_file:
             # handle csv header
             header = _csv_file.file_reader.readline()
             if header and helper.check_header_is_empty():
@@ -400,7 +399,7 @@ class MsprofOutputSummary:
             helper.insert_data(all_data)
 
     def _insert_summary_data(self, file_name_path: str, device_id: str, helper: FileSliceHelper):
-        with FileOpen(file_name_path, mode='r', max_size=self.FILE_MAX_SIZE) as _csv_file:
+        with FileOpen(file_name_path, mode='r') as _csv_file:
             header = _csv_file.file_reader.readline()
             if header and helper.check_header_is_empty():
                 csv_header = [self.DEVICE_ID, *list(header.split(','))]

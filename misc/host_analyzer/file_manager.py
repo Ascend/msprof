@@ -22,7 +22,6 @@ import json
 
 class FileManager:
     MAX_PATH_LENGTH = 4096
-    MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
     DATA_FILE_AUTHORITY = 0o640
     DATA_DIR_AUTHORITY = 0o750
 
@@ -88,9 +87,6 @@ class FileManager:
         file_size = os.path.getsize(file_path)
         if file_size <= 0:
             return None
-        if file_size > cls.MAX_FILE_SIZE:
-            msg = f"The file size exceeds the preset value, please check the file: {file_path}"
-            raise RuntimeError(msg)
         cls.check_directory_path_readable(file_path)
         try:
             with open(file_path, 'r', encoding='utf-8') as json_file:

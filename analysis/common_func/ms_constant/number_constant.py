@@ -175,7 +175,6 @@ class NumberConstant:
 
     RANK_NUM_PER_SERVER = 8
     RANK_NUM_PER_OS = 4
-    MAX_RANK_NUMS = 4096
 
     # magic number: 5A5A
     MAGIC_NUM = 23130

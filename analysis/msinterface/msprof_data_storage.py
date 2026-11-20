@@ -46,7 +46,7 @@ class MsprofDataStorage:
     DEFAULT_SETTING = FileSliceHelper.DEFAULT_SLICE_SETTING
     SETTING = None
     DEFAULT_SLICE_SIZE = 200 * 1024 * 1024  # MB
-    MAX_JSON_FILE_SIZE = 20 * 1024 * 1024 * 1024  # 20G
+    MAX_JSON_FILE_SIZE = Constant.MAX_READ_FILE_BYTES
 
     def __init__(self: any) -> None:
         self.tid_set = set()

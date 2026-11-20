@@ -52,7 +52,7 @@ uint8_t DataProcessor::CheckPathAndTable(const std::string &path, const DBInfo &
         WARN("Can't find the db, the path is %.", path);
         return NOT_EXIST;
     }
-    if (!Utils::FileReader::Check(path, MAX_DB_BYTES))
+    if (!Utils::FileReader::Check(path))
     {
         ERROR("Check % failed.", path);
         return CHECK_FAILED;
