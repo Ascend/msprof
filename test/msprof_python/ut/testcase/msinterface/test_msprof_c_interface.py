@@ -23,14 +23,15 @@ from unittest import mock
 from msinterface import msprof_c_interface
 from msinterface.msprof_c_interface import _dump_cann_trace
 from msinterface.msprof_c_interface import _dump_device_data
-from msinterface.msprof_c_interface import _export_unified_db
-from msinterface.msprof_c_interface import _export_timeline
-from msinterface.msprof_c_interface import _export_summary
+from msinterface.msprof_c_interface import _export_with_pipeline
 from msinterface.msprof_c_interface import run_pipeline
 from msinterface.msprof_c_interface import MSPROF_ERROR
 from msinterface.msprof_c_interface import MSPROF_INVALID_PARAM
 from msinterface.msprof_c_interface import MSPROF_OK
+from msinterface.msprof_c_interface import MSPROF_PIPELINE_DB
 from msinterface.msprof_c_interface import MSPROF_PIPELINE_DEVICE_DATA
+from msinterface.msprof_c_interface import MSPROF_PIPELINE_SUMMARY
+from msinterface.msprof_c_interface import MSPROF_PIPELINE_TIMELINE
 
 NAMESPACE = 'msinterface.msprof_c_interface'
 
@@ -61,16 +62,48 @@ class TestMsprofCInterface(unittest.TestCase):
             _dump_device_data("")
 
     def test_export_unified_db(self):
-        with mock.patch('importlib.import_module'):
-            _export_unified_db("")
+        analysis_module = mock.Mock()
+        analysis_module.parser.run_pipeline.return_value = MSPROF_OK
+        with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
+                mock.patch('importlib.import_module', return_value=analysis_module):
+            _export_with_pipeline('/tmp/PROF_0', MSPROF_PIPELINE_DB, '/tmp/reports.json')
+        # db 导出同样把 reports 透传，是否参与过滤由 C 侧选择逻辑决定
+        analysis_module.parser.run_pipeline.assert_called_once_with(
+            '/tmp/PROF_0',
+            MSPROF_PIPELINE_DB,
+            None,
+            None,
+            '/tmp/reports.json',
+        )
 
     def test_export_timeline(self):
-        with mock.patch('importlib.import_module'):
-            _export_timeline("", "")
+        analysis_module = mock.Mock()
+        analysis_module.parser.run_pipeline.return_value = MSPROF_OK
+        with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
+                mock.patch('importlib.import_module', return_value=analysis_module):
+            _export_with_pipeline('/tmp/PROF_0', MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_DB, '/tmp/reports.json')
+        analysis_module.parser.run_pipeline.assert_called_once_with(
+            '/tmp/PROF_0',
+            MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_DB,
+            None,
+            None,
+            '/tmp/reports.json',
+        )
 
     def test_export_summary(self):
-        with mock.patch('importlib.import_module'):
-            _export_summary("")
+        analysis_module = mock.Mock()
+        analysis_module.parser.run_pipeline.return_value = MSPROF_OK
+        with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
+                mock.patch('importlib.import_module', return_value=analysis_module):
+            _export_with_pipeline('/tmp/PROF_0', MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB, '')
+        # 不传 reports 时不带 reports 参数，保持既有 summary 行为
+        analysis_module.parser.run_pipeline.assert_called_once_with(
+            '/tmp/PROF_0',
+            MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+            None,
+            None,
+            None,
+        )
 
     def test_run_pipeline(self):
         analysis_module = mock.Mock()
@@ -99,3 +132,40 @@ class TestMsprofCInterface(unittest.TestCase):
         with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
                 mock.patch('importlib.import_module', side_effect=ImportError):
             self.assertEqual(run_pipeline('/tmp/PROF_0', MSPROF_PIPELINE_DEVICE_DATA), MSPROF_ERROR)
+
+    def test_export_timeline_and_summary_should_use_one_pipeline_call(self):
+        analysis_module = mock.Mock()
+        analysis_module.parser.run_pipeline.return_value = MSPROF_OK
+        with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
+                mock.patch('importlib.import_module', return_value=analysis_module):
+            _export_with_pipeline(
+                '/tmp/PROF_0',
+                MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+                '/tmp/reports.json',
+            )
+        # timeline、summary 与 db 在同一次 C 导出内完成，reports 同时作用于两件交付物
+        analysis_module.parser.run_pipeline.assert_called_once_with(
+            '/tmp/PROF_0',
+            MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+            None,
+            None,
+            '/tmp/reports.json',
+        )
+
+    def test_export_timeline_and_summary_should_omit_empty_reports(self):
+        analysis_module = mock.Mock()
+        analysis_module.parser.run_pipeline.return_value = MSPROF_OK
+        with mock.patch(NAMESPACE + '.check_so_valid', return_value=True), \
+                mock.patch('importlib.import_module', return_value=analysis_module):
+            _export_with_pipeline(
+                '/tmp/PROF_0',
+                MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+                '',
+            )
+        analysis_module.parser.run_pipeline.assert_called_once_with(
+            '/tmp/PROF_0',
+            MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+            None,
+            None,
+            None,
+        )

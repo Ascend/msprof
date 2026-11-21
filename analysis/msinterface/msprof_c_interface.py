@@ -56,25 +56,10 @@ def _dump_device_data(device_path: str):
     msprof_analysis_module.parser.dump_device_data(os.path.dirname(device_path))
 
 
-def _export_unified_db(project_path: str):
-    sys.path.append(os.path.realpath(SO_DIR))
-    logging.info("Data will be parsed by msprof_analysis.so!")
-    msprof_analysis_module = importlib.import_module("msprof_analysis")
-    msprof_analysis_module.parser.export_unified_db(project_path)
-
-
-def _export_timeline(project_path: str, report_json_path: str):
-    sys.path.append(os.path.realpath(SO_DIR))
-    logging.info("Data will be export by msprof_analysis.so!")
-    msprof_analysis_module = importlib.import_module("msprof_analysis")
-    msprof_analysis_module.parser.export_timeline(project_path, report_json_path)
-
-
-def _export_summary(project_path: str):
-    sys.path.append(os.path.realpath(SO_DIR))
-    logging.info("Summary will be export by msprof_analysis.so!")
-    msprof_analysis_module = importlib.import_module("msprof_analysis")
-    msprof_analysis_module.parser.export_summary(project_path)
+def _export_with_pipeline(project_path: str, flags: int, report_json_path: str):
+    status = _run_pipeline(project_path, flags, reports_json=report_json_path or None)
+    if status != MSPROF_OK:
+        logging.warning("Export by msprof_analysis.so failed, flags: %s, status is %s.", hex(flags), status)
 
 
 def _run_pipeline(prof_path: str, flags: int, cann_trace_path=None, device_path=None, reports_json=None) -> int:
@@ -108,15 +93,40 @@ def dump_cann_trace(project_path: str):
     run_in_subprocess(_dump_cann_trace, project_path)
 
 
-def export_timeline(project_path: str, report_json_path: str):
+def export_timeline(project_path: str, report_json_path: str = ""):
     """
-    调用viewer C化导出
+    调用viewer C化导出timeline
     """
-    run_in_subprocess(_export_timeline, project_path, report_json_path)
+    run_in_subprocess(
+        _export_with_pipeline,
+        project_path,
+        MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_DB,
+        report_json_path,
+    )
 
 
-def export_summary(project_path: str):
-    run_in_subprocess(_export_summary, project_path)
+def export_summary(project_path: str, report_json_path: str = ""):
+    """
+    调用viewer C化导出summary
+    """
+    run_in_subprocess(
+        _export_with_pipeline,
+        project_path,
+        MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+        report_json_path,
+    )
+
+
+def export_timeline_and_summary(project_path: str, report_json_path: str = ""):
+    """
+    调用viewer C化一次导出timeline和summary
+    """
+    run_in_subprocess(
+        _export_with_pipeline,
+        project_path,
+        MSPROF_PIPELINE_TIMELINE | MSPROF_PIPELINE_SUMMARY | MSPROF_PIPELINE_DB,
+        report_json_path,
+    )
 
 
 def run_pipeline(prof_path: str, flags: int, cann_trace_path=None, device_path=None, reports_json=None) -> int:
@@ -145,14 +155,14 @@ def dump_device_data(device_path: str) -> None:
     return
 
 
-def export_unified_db(project_path: str):
+def export_unified_db(project_path: str, report_json_path: str = ""):
     """
     调用统一db
     """
     if not ExportDBScene().is_cpp_enable():
         logging.warning("Does not support exporting the msprof.db!")
         return
-    run_in_subprocess(_export_unified_db, project_path)
+    run_in_subprocess(_export_with_pipeline, project_path, MSPROF_PIPELINE_DB, report_json_path)
 
 
 def export_platform(platform_uncore_trace: str, output_path: str):

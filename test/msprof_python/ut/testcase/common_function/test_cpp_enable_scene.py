@@ -165,6 +165,29 @@ class TestCppEnableScene(unittest.TestCase):
             result = scene.is_cpp_enable()
             self.assertFalse(result)
 
+    def test_export_scenes_should_accept_all_command(self):
+        """
+        all 同时产出 timeline 与 summary，两件交付物的场景判定都应支持 all
+        """
+        with mock.patch('common_func.cpp_enable_scene.check_so_valid') as mock_check_so, \
+                mock.patch('common_func.cpp_enable_scene.ChipManager') as mock_chip_manager:
+            mock_check_so.return_value = True
+            mock_chip_manager.return_value.chip_id = ChipModel.CHIP_V6_2_0
+
+            self.assertTrue(ExportTimelineScene(CppEnableSceneConstant.ALL, False).is_cpp_enable())
+            self.assertTrue(ExportSummaryScene(CppEnableSceneConstant.ALL, True).is_cpp_enable())
+
+    def test_export_summary_scene_should_return_false_when_command_is_timeline(self):
+        """
+        timeline 命令不应被 summary 场景接受
+        """
+        with mock.patch('common_func.cpp_enable_scene.check_so_valid') as mock_check_so, \
+                mock.patch('common_func.cpp_enable_scene.ChipManager') as mock_chip_manager:
+            mock_check_so.return_value = True
+            mock_chip_manager.return_value.chip_id = ChipModel.CHIP_V4_1_0
+
+            self.assertFalse(ExportSummaryScene(CppEnableSceneConstant.TIMELINE, True).is_cpp_enable())
+
     def test_cann_calculator_scene_should_return_false_when_chip_v5_1_0(self):
         """
         Test CannCalculatorScene should return false when chip is v5.1.0

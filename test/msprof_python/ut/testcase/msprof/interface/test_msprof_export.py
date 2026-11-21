@@ -252,43 +252,42 @@ class TestExportCommand(unittest.TestCase):
                 self.assertEqual(native_export.called, native_enabled)
                 view_data.assert_any_call('test/device_0')
 
-    def test_start_view_by_type_should_skip_python_csv_export_when_reports_passed(self):
+    def test_start_summary_view_should_skip_python_csv_export_when_reports_passed(self):
         command = ExportCommand('summary',
                                 Namespace(collection_path='test', export_format='csv', reports_path='test/reports.json'))
         path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
-        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
-                mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
+        with mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
                 mock.patch.object(command, '_view_data') as view_data, \
                 mock.patch(NAMESPACE + '.export_summary') as native_export, \
                 mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
-            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
-        native_export.assert_called_once_with('test')
+            command._start_summary_view(path_table)
+        # reports 同样传递给原生的 summary 导出
+        native_export.assert_called_once_with('test', 'test/reports.json')
+        # 原生 summary 已产出且按 reports 过滤，device 侧不再补导 Python CSV
         view_data.assert_called_once_with('test/host')
         output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
 
-    def test_start_view_by_type_should_keep_python_summary_export_without_reports(self):
+    def test_start_summary_view_should_keep_python_summary_export_without_reports(self):
         command = ExportCommand('summary', Namespace(collection_path='test', export_format='csv'))
         path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
-        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
-                mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
+        with mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
                 mock.patch.object(command, '_view_data') as view_data, \
                 mock.patch(NAMESPACE + '.export_summary') as native_export, \
                 mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
-            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
-        native_export.assert_called_once_with('test')
+            command._start_summary_view(path_table)
+        native_export.assert_called_once_with('test', '')
         output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
         view_data.assert_any_call('test/device_0')
 
-    def test_start_view_by_type_should_fall_back_to_python_when_native_summary_unavailable(self):
+    def test_start_summary_view_should_fall_back_to_python_when_native_summary_unavailable(self):
         command = ExportCommand('summary',
                                 Namespace(collection_path='test', export_format='csv', reports_path='test/reports.json'))
         path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
-        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
-                mock.patch.object(command, '_check_export_summary_with_so', return_value=False), \
+        with mock.patch.object(command, '_check_export_summary_with_so', return_value=False), \
                 mock.patch.object(command, '_view_data') as view_data, \
                 mock.patch(NAMESPACE + '.export_summary') as native_export, \
                 mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
-            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
+            command._start_summary_view(path_table)
         native_export.assert_not_called()
         view_data.assert_any_call('test/device_0')
         output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
@@ -764,7 +763,7 @@ class TestExportCommand(unittest.TestCase):
         test = ExportCommand("all", args)
         observed = []
 
-        # 只替换 view 阶段的产出动作，保留 _start_view_by_type 的 command_type 切换与复位逻辑。
+        # 只替换 view 阶段的产出动作，保留 command_type 切换与复位逻辑。
         def record(device_path):
             observed.append((device_path, test.command_type))
 
@@ -811,7 +810,7 @@ class TestExportCommand(unittest.TestCase):
 
         self.assertEqual(test.command_type, MsProfCommonConstant.ALL)
 
-    def test_start_view_by_type_should_cover_every_device(self):
+    def test_start_summary_view_should_cover_every_device(self):
         args = Namespace(collection_path="test", export_format=StrConstant.EXPORT_CSV)
         test = ExportCommand("all", args)
         seen = []
@@ -825,18 +824,201 @@ class TestExportCommand(unittest.TestCase):
             StrConstant.DEVICE_PATH: ['test/device_0', 'test/device_1'],
         }
         with mock.patch.object(test, '_view_data', side_effect=record), \
-                mock.patch(NAMESPACE + '.ExportCommand._check_export_timeline_with_so', return_value=False), \
                 mock.patch(NAMESPACE + '.ExportCommand._check_export_summary_with_so', return_value=False), \
                 mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export') as export_mock:
-            test._start_view_by_type(dict(path_table), MsProfCommonConstant.SUMMARY)
+            test._start_summary_view(dict(path_table))
 
-        # 按 host + 全部 device 逐个执行，且整体使用本次 pass 的 command_type
+        # 按 host + 全部 device 逐个执行，且整体使用本次交付件的 command_type
         self.assertEqual(
             [item[0] for item in seen],
             ['test/host', 'test/device_0', 'test/device_1'],
         )
         self.assertEqual([item[1] for item in seen], [MsProfCommonConstant.SUMMARY] * 3)
         export_mock.assert_called_once_with(MsProfCommonConstant.SUMMARY)
+
+    def test_start_all_view_should_export_timeline_and_summary_in_one_cpp_call(self):
+        args = Namespace(collection_path="test", export_format=None)
+        test = ExportCommand("all", args)
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+        observed = []
+
+        def timeline_ready(_):
+            observed.append(test.command_type)
+            return True
+
+        def summary_ready():
+            observed.append(test.command_type)
+            return True
+
+        # 两件交付物都支持 C 导出时只调一次 C 导出，summary pass 不再重复导出
+        with mock.patch.object(test, '_view_data') as view_data, \
+                mock.patch.object(test, '_check_export_timeline_with_so', side_effect=timeline_ready), \
+                mock.patch.object(test, '_check_export_summary_with_so', side_effect=summary_ready), \
+                mock.patch(NAMESPACE + '.ProfilingScene') as scene, \
+                mock.patch(NAMESPACE + '.export_timeline_and_summary') as merged_export, \
+                mock.patch(NAMESPACE + '.export_timeline') as timeline_export, \
+                mock.patch(NAMESPACE + '.export_summary') as summary_export, \
+                mock.patch.object(test, '_check_and_split_json_trace') as split_mock, \
+                mock.patch.object(test, '_write_output_readme') as readme_mock, \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export'):
+            scene.return_value.is_all_export.return_value = True
+            test._start_view(path_table)
+
+        merged_export.assert_called_once_with('test', '')
+        timeline_export.assert_not_called()
+        summary_export.assert_not_called()
+        split_mock.assert_called_once_with('test')
+        # README 由 summary 汇总统一写，这里不再额外补写
+        readme_mock.assert_not_called()
+        # host 视图按交付物各一次（timeline pass 的产物不参与合并，属于既有行为）
+        self.assertEqual(
+            [call.args[0] for call in view_data.call_args_list],
+            ['test/host', 'test/host', 'test/device_0'],
+        )
+        # 判定只做一次且始终用真实 command_type，不需要临时切换
+        self.assertEqual(observed, [MsProfCommonConstant.ALL, MsProfCommonConstant.ALL])
+        self.assertEqual(test.command_type, MsProfCommonConstant.ALL)
+
+    def test_start_all_view_should_fall_back_to_separate_export_when_summary_unsupported(self):
+        args = Namespace(collection_path="test", export_format=None)
+        test = ExportCommand("all", args)
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+
+        # summary 不支持 C 导出时，timeline 仍独立导出，summary 走 C 以外的既有流程
+        with mock.patch.object(test, '_view_data'), \
+                mock.patch.object(test, '_check_export_timeline_with_so', return_value=True), \
+                mock.patch.object(test, '_check_export_summary_with_so', return_value=False), \
+                mock.patch(NAMESPACE + '.ProfilingScene') as scene, \
+                mock.patch(NAMESPACE + '.export_timeline_and_summary') as merged_export, \
+                mock.patch(NAMESPACE + '.export_timeline') as timeline_export, \
+                mock.patch(NAMESPACE + '.export_summary') as summary_export, \
+                mock.patch.object(test, '_check_and_split_json_trace'), \
+                mock.patch.object(test, '_write_output_readme') as readme_mock, \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export'):
+            scene.return_value.is_all_export.return_value = True
+            test._start_view(path_table)
+
+        merged_export.assert_not_called()
+        timeline_export.assert_called_once_with('test', '')
+        summary_export.assert_not_called()
+        # timeline 由 C 导出后 Python 侧不再汇总，README 需要在此补写
+        readme_mock.assert_called_once_with('test')
+
+    def test_start_all_view_should_keep_single_cpp_export_when_timeline_unsupported(self):
+        args = Namespace(collection_path="test", export_format=None)
+        test = ExportCommand("all", args)
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+
+        # timeline 不支持 C 导出时不做合并，summary 仍按原路径只导出一次
+        with mock.patch.object(test, '_view_data'), \
+                mock.patch.object(test, '_check_export_timeline_with_so', return_value=False), \
+                mock.patch.object(test, '_check_export_summary_with_so', return_value=True), \
+                mock.patch(NAMESPACE + '.ProfilingScene') as scene, \
+                mock.patch(NAMESPACE + '.export_timeline_and_summary') as merged_export, \
+                mock.patch(NAMESPACE + '.export_timeline') as timeline_export, \
+                mock.patch(NAMESPACE + '.export_summary') as summary_export, \
+                mock.patch.object(test, '_check_and_split_json_trace'), \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export'):
+            scene.return_value.is_all_export.return_value = True
+            test._start_view(path_table)
+
+        merged_export.assert_not_called()
+        timeline_export.assert_not_called()
+        summary_export.assert_called_once_with('test', '')
+
+    def test_start_all_view_should_skip_python_csv_export_when_merged_with_reports(self):
+        args = Namespace(collection_path="test", export_format=None, reports_path="test/reports.json")
+        test = ExportCommand("all", args)
+        path_table = {
+            'collection_path': 'test',
+            StrConstant.HOST_PATH: 'test/host',
+            StrConstant.DEVICE_PATH: ['test/device_0'],
+        }
+
+        # 合并导出已产出 summary，传 reports 时与单交付件一致：不再叠加 Python 侧 CSV
+        with mock.patch.object(test, '_view_data') as view_data, \
+                mock.patch.object(test, '_check_export_timeline_with_so', return_value=True), \
+                mock.patch.object(test, '_check_export_summary_with_so', return_value=True), \
+                mock.patch(NAMESPACE + '.ProfilingScene') as scene, \
+                mock.patch(NAMESPACE + '.export_timeline_and_summary'), \
+                mock.patch(NAMESPACE + '.export_timeline'), \
+                mock.patch(NAMESPACE + '.export_summary'), \
+                mock.patch.object(test, '_check_and_split_json_trace'), \
+                mock.patch.object(test, '_write_output_readme'), \
+                mock.patch('msinterface.msprof_output_summary.MsprofOutputSummary.export'):
+            scene.return_value.is_all_export.return_value = True
+            test._start_view(path_table)
+
+        # 两个 pass 各跑一次 host 视图，device 视图因 reports 被跳过
+        self.assertEqual([call.args[0] for call in view_data.call_args_list], ['test/host', 'test/host'])
+
+    def test_start_view_should_export_host_view_when_timeline_stays_in_python(self):
+        command = ExportCommand(MsProfCommonConstant.TIMELINE, Namespace(collection_path="test", export_format=None))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch.object(command, '_view_data') as view_data, \
+                mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
+                mock.patch(NAMESPACE + '.ProfilingScene') as scene, \
+                mock.patch(NAMESPACE + '.export_timeline') as timeline_export, \
+                mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
+            scene.return_value.is_all_export.return_value = True
+            command._start_view(path_table)
+        timeline_export.assert_not_called()
+        # host 与 #662 之前一致：在交付物分支之外只跑一次，随后是 device 视图
+        self.assertEqual(
+            [call.args[0] for call in view_data.call_args_list],
+            ['test/host', 'test/device_0'],
+        )
+        output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.TIMELINE)
+
+    def test_finish_cpp_output_should_write_readme_and_split_json(self):
+        cases = (
+            (MsProfCommonConstant.TIMELINE, True, True),
+            (MsProfCommonConstant.SUMMARY, True, False),
+            (MsProfCommonConstant.ALL, True, True),
+            (MsProfCommonConstant.DB, False, False),
+        )
+        for command_type, expect_readme, expect_split in cases:
+            with self.subTest(command_type=command_type):
+                command = ExportCommand(command_type, Namespace(collection_path="test"))
+                with mock.patch.object(command, '_write_output_readme') as readme_mock, \
+                        mock.patch.object(command, '_check_and_split_json_trace') as split_mock:
+                    command._finish_cpp_output({'collection_path': 'test'})
+                self.assertEqual(readme_mock.called, expect_readme)
+                self.assertEqual(split_mock.called, expect_split)
+
+    def test_execute_prof_task_should_finish_cpp_output_when_full_pipeline_used(self):
+        command = ExportCommand(MsProfCommonConstant.TIMELINE, Namespace(collection_path="test"))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch(NAMESPACE + '.HostPlatformAnalysis'), \
+                mock.patch.object(command, '_try_full_cpp_pipeline', return_value=True), \
+                mock.patch.object(command, '_finish_cpp_output') as finish_mock, \
+                mock.patch(NAMESPACE + '.run_in_subprocess') as subprocess_mock:
+            command._execute_prof_task(path_table)
+        finish_mock.assert_called_once_with(path_table)
+        subprocess_mock.assert_not_called()
+
+    def test_execute_prof_task_should_use_python_flow_when_pipeline_unavailable(self):
+        command = ExportCommand(MsProfCommonConstant.TIMELINE, Namespace(collection_path="test"))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch(NAMESPACE + '.HostPlatformAnalysis'), \
+                mock.patch.object(command, '_try_full_cpp_pipeline', return_value=False), \
+                mock.patch.object(command, '_finish_cpp_output') as finish_mock, \
+                mock.patch(NAMESPACE + '.run_in_subprocess') as subprocess_mock:
+            command._execute_prof_task(path_table)
+        finish_mock.assert_not_called()
+        subprocess_mock.assert_called_once_with(command._process_data, path_table)
 
     def test_handle_export_raise_profexception_0(self) -> None:
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "iteration_count": 1}
@@ -1022,6 +1204,14 @@ class TestExportCommand(unittest.TestCase):
                 test = ExportCommand("summary", args)
                 event = {'export_type': ExportDataType.TASK_TIME}
                 test._multiprocessing_handle_export_data(event, "test", "summary")
+
+    def test__start_view_export_db_should_pass_reports(self) -> None:
+        path_table = {"collection_path": "test", "host": "test/host", "device": ["test/device_0"]}
+        args = Namespace(collection_path="test", reports_path="test/reports.json")
+        with mock.patch(NAMESPACE + '.export_unified_db') as db_export:
+            test = ExportCommand(MsProfCommonConstant.DB, args)
+            test._start_view(path_table)
+        db_export.assert_called_once_with('test', 'test/reports.json')
 
     def test__start_view_export_timeline_with_so(self) -> None:
         path_table = {"collection_path": "test", "host": "test/host", "device": ["test/device_0"]}

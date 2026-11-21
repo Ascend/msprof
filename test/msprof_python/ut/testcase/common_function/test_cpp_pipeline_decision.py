@@ -69,7 +69,7 @@ class TestCppPipelineDecider(unittest.TestCase):
             raw_tags=frozenset({DataTag.STARS_LOG.name}),
             unknown_raw_files=(),
         )
-        self.facts = CollectionFacts((self.path_facts,), False)
+        self.facts = CollectionFacts((self.path_facts,))
         self.request = CppPipelineDecisionRequest(
             command=PipelineCommand.EXPORT,
             command_type="timeline",
@@ -195,15 +195,12 @@ class TestCppPipelineDecider(unittest.TestCase):
                 self.assertEqual(self.reason_codes(result), expected)
                 self.assertEqual(result.can_run_in_cpp, not expected)
 
-    def test_timeline_reports_filter_is_supported_but_slicing_is_not(self):
+    def test_timeline_reports_filter_is_supported(self):
         with tempfile.NamedTemporaryFile() as reports_file:
             request = replace(self.request, reports_path=reports_file.name)
-            for slice_enabled in (False, True):
-                with self.subTest(slice_enabled=slice_enabled):
-                    result = self.decide(request, facts=replace(self.facts, slice_enabled=slice_enabled))
-                    expected = {"TIMELINE_SLICING_UNSUPPORTED"} if slice_enabled else set()
-                    self.assertEqual(self.reason_codes(result), expected)
-                    self.assertEqual(result.can_run_in_cpp, not slice_enabled)
+            result = self.decide(request)
+            self.assertEqual(self.reason_codes(result), set())
+            self.assertTrue(result.can_run_in_cpp)
 
     def test_invalid_reports_path_falls_back(self):
         result = self.decide(replace(self.request, reports_path="/not/exist/reports.json"))
@@ -349,9 +346,7 @@ class TestCollectionFactsCollector(unittest.TestCase):
                 "aiv_profiling_mode": "task-based",
             },
         )
-        self.slice_config_path = os.path.join(self.collection_path, "slice.json")
-        self._write_json(self.slice_config_path, {"slice_switch": "off"})
-        self.collector = CollectionFactsCollector(self.slice_config_path)
+        self.collector = CollectionFactsCollector()
 
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -486,26 +481,6 @@ class TestCollectionFactsCollector(unittest.TestCase):
         self.assertIn("METADATA_MISSING", {issue.reason_code for issue in facts.issues})
         invalid_facts = self.collector.collect(self._request("/missing"))
         self.assertIn("RESULT_PATH_INVALID", {issue.reason_code for issue in invalid_facts.issues})
-
-    def test_slice_config_is_read_only_for_timeline_producing_commands(self):
-        self._write_raw("stars_soc.data.0.slice_0")
-        self._write_json(self.slice_config_path, {"slice_switch": "on"})
-        # timeline 与 all 都产出 timeline 文件，切片配置必须参与判定。
-        for command_type in ("timeline", "all"):
-            with self.subTest(command_type=command_type):
-                self.assertTrue(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
-        # 不产出 timeline 的命令不应读取切片配置，避免无谓 IO 与告警。
-        for command_type in ("summary", "db"):
-            with self.subTest(command_type=command_type):
-                with mock.patch.object(self.collector, "_read_slice_enabled", side_effect=AssertionError("unused")):
-                    self.assertFalse(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
-
-    def test_slice_config_off_disables_slicing_for_timeline_and_all(self):
-        self._write_raw("stars_soc.data.0.slice_0")
-        self._write_json(self.slice_config_path, {"slice_switch": "off"})
-        for command_type in ("timeline", "all"):
-            with self.subTest(command_type=command_type):
-                self.assertFalse(self.collector.collect(self._request(command_type=command_type)).slice_enabled)
 
     def test_path_read_and_metadata_errors_fall_back_without_decision_exception(self):
         self._write_raw("stars_soc.data.0.slice_0")

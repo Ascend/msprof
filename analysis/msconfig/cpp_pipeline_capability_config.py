@@ -30,7 +30,6 @@ class PipelineFeature:
     CLEAR_RAW_DATA = "clear_raw_data"
     PARTIAL_EXPORT = "partial_export"
     REPORTS_FILTER = "reports_filter"
-    TIMELINE_SLICING = "timeline_slicing"
 
 
 class DataPosition:
@@ -42,7 +41,6 @@ FEATURE_REASON_CODES = {
     PipelineFeature.CLEAR_RAW_DATA: "CLEAR_UNSUPPORTED",
     PipelineFeature.PARTIAL_EXPORT: "EXPORT_SELECTION_UNSUPPORTED",
     PipelineFeature.REPORTS_FILTER: "REPORTS_FILTER_UNSUPPORTED",
-    PipelineFeature.TIMELINE_SLICING: "TIMELINE_SLICING_UNSUPPORTED",
 }
 
 
@@ -61,13 +59,15 @@ class CapabilityRegistry:
 
 
 TIMELINE_SUMMARY_FEATURES = frozenset({PipelineFeature.CLEAR_RAW_DATA, PipelineFeature.PARTIAL_EXPORT})
+# 会产出 timeline 文件的导出命令额外支持 reports 过滤；timeline json 切片在 C 导出后由 Python
+# 侧完成（见 msprof_export.ExportCommand._finish_cpp_output），不构成 C 流水线的准入限制。
+TIMELINE_FEATURES = TIMELINE_SUMMARY_FEATURES | frozenset({PipelineFeature.REPORTS_FILTER})
 
 # 仅声明 C 支持的命令选项，参数合法性由 Python 入口校验。
 COMMAND_CAPABILITIES = {
     (PipelineCommand.EXPORT, "timeline"): CommandCapability(
         supported_formats=frozenset({None}),
-        applicable_features=TIMELINE_SUMMARY_FEATURES
-        | frozenset({PipelineFeature.REPORTS_FILTER, PipelineFeature.TIMELINE_SLICING}),
+        applicable_features=TIMELINE_FEATURES,
         supported_features=frozenset({PipelineFeature.REPORTS_FILTER}),
     ),
     (PipelineCommand.EXPORT, "summary"): CommandCapability(
@@ -81,8 +81,7 @@ COMMAND_CAPABILITIES = {
         # 适用/支持特征与 timeline 完全一致，唯一差异是 summary 恒为 csv：
         # --format 仅为兼容保留，不参与选择，因此这里只声明 csv。
         supported_formats=frozenset({"csv"}),
-        applicable_features=TIMELINE_SUMMARY_FEATURES
-        | frozenset({PipelineFeature.REPORTS_FILTER, PipelineFeature.TIMELINE_SLICING}),
+        applicable_features=TIMELINE_FEATURES,
         supported_features=frozenset({PipelineFeature.REPORTS_FILTER}),
     ),
     (PipelineCommand.EXPORT, "db"): CommandCapability(

@@ -153,6 +153,18 @@ class MsprofOutputSummary:
                 break
             yield line
 
+    def write_readme(self: any) -> None:
+        """
+        只补写 mindstudio_profiler_output/README.txt。
+        交付件由 C 直接产出时没有 Python 侧中间目录可汇总，仅需补齐文件说明。
+        :return: None
+        """
+        self._output_dir = os.path.join(self._output, PathManager.MINDSTUDIO_PROFILER_OUTPUT)
+        if not os.path.isdir(self._output_dir):
+            logging.warning("There is no %s directory, skip writing README.", self._output_dir)
+            return
+        self._export_readme_file()
+
     def export(self: any, command_type: str) -> None:
         """
         export all data

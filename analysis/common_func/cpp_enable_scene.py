@@ -31,6 +31,7 @@ class CppEnableSceneConstant:
     DB = "db"
     SUMMARY = "summary"
     TIMELINE = "timeline"
+    ALL = "all"
 
 
 class CppEnableScene(ABC):
@@ -79,6 +80,8 @@ class ExportTimelineScene(CppEnableScene):
     """
 
     SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0]
+    # all 与 timeline 产出同一份 timeline，两命令共用本场景判定
+    SUPPORTED_COMMAND_TYPES = (CppEnableSceneConstant.TIMELINE, CppEnableSceneConstant.ALL)
 
     def __init__(self, command_type: str = None, is_sample_based: bool = False):
         self.command_type = command_type
@@ -89,7 +92,7 @@ class ExportTimelineScene(CppEnableScene):
         check export timeline scene conditions
         :return: whether export timeline scene conditions are met
         """
-        if self.command_type is None or self.command_type != CppEnableSceneConstant.TIMELINE:
+        if self.command_type not in self.SUPPORTED_COMMAND_TYPES:
             return False
         if self.is_sample_based:
             return False
@@ -102,6 +105,8 @@ class ExportSummaryScene(CppEnableScene):
     """
 
     SCENE_CHIP_WHITELIST = [ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0]
+    # all 与 summary 产出同一份 summary，两命令共用本场景判定
+    SUPPORTED_COMMAND_TYPES = (CppEnableSceneConstant.SUMMARY, CppEnableSceneConstant.ALL)
 
     def __init__(self, command_type: str = None, is_all_export: bool = False):
         self.command_type = command_type
@@ -112,7 +117,7 @@ class ExportSummaryScene(CppEnableScene):
         check export summary scene conditions
         :return: whether export summary scene conditions are met
         """
-        if self.command_type is None or self.command_type != CppEnableSceneConstant.SUMMARY:
+        if self.command_type not in self.SUPPORTED_COMMAND_TYPES:
             return False
         if not self.is_all_export:
             return False

@@ -32,7 +32,6 @@ from common_func.file_name_manager import FileNameManagerConstant
 from common_func.file_name_manager import get_file_name_pattern_match
 from common_func.file_name_manager import get_info_json_compiles
 from common_func.file_name_manager import get_sample_json_compiles
-from common_func.file_slice_helper import FileSliceHelper
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
 from common_func.msprof_exception import ProfException
@@ -132,7 +131,6 @@ class ResultPathFacts:
 @dataclass(frozen=True)
 class CollectionFacts:
     result_paths: Tuple[ResultPathFacts, ...]
-    slice_enabled: bool
     issues: Tuple[DecisionIssue, ...] = ()
 
 
@@ -198,10 +196,6 @@ class CollectionFactsCollector:
     ALL_EXPORT_DRIVER_VERSION = InfoConfReader().ALL_EXPORT_VERSION
     SAMPLE_BASED = StrConstant.AIC_SAMPLE_BASED_MODE
     TASK_BASED = StrConstant.AIC_TASK_BASED_MODE
-    # 会产出 timeline 文件的导出命令。切片配置只作用于 timeline json 分片，
-    # 因此只有这些命令需要读取切片配置；"all" 与 "timeline" 的产出物相同，
-    # 只是额外多出 summary，故二者同级，summary 单独导出不涉及切片。
-    TIMELINE_PRODUCING_COMMAND_TYPES = ("timeline", "all")
 
     HOST_SYSTEM_PATTERNS = {
         "HOST_CPU_USAGE": re.compile(FileNameManagerConstant.HOST_CPU_USAGE_PATTERN),
@@ -221,9 +215,6 @@ class CollectionFactsCollector:
             FileNameManagerConstant.END_INFO_PATTERN,
         )
     )
-
-    def __init__(self, slice_config_path: Optional[str] = None):
-        self._slice_config_path = slice_config_path or FileSliceHelper.SLICE_CONFIG_PATH
 
     def collect(self, request: CppPipelineDecisionRequest) -> CollectionFacts:
         issues = []
@@ -275,13 +266,8 @@ class CollectionFactsCollector:
                 continue
             if facts is not None:
                 result_facts.append(facts)
-        is_export = request.command == PipelineCommand.EXPORT
         return CollectionFacts(
             result_paths=tuple(result_facts),
-            # 切片配置只影响 timeline 产出；非 timeline 命令不读配置，避免无谓的文件读取与告警。
-            slice_enabled=is_export
-            and request.command_type in self.TIMELINE_PRODUCING_COMMAND_TYPES
-            and self._read_slice_enabled(),
             issues=tuple(issues),
         )
 
@@ -427,14 +413,6 @@ class CollectionFactsCollector:
                 unknown_files.append(name)
         return frozenset(raw_tags), tuple(unknown_files)
 
-    def _read_slice_enabled(self) -> bool:
-        try:
-            return FileSliceHelper.read_slice_config(self._slice_config_path)[0] == "on"
-        except (OSError, ValueError, TypeError, ProfException):
-            # Existing export behavior falls back to slicing off for an invalid config.
-            logging.warning("Failed to read timeline slice configuration for full C pipeline decision.")
-            return False
-
     @classmethod
     def _is_control_file(cls, name: str) -> bool:
         if name.endswith((Constant.DONE_TAG, Constant.COMPLETE_TAG, Constant.ZIP_TAG)):
@@ -569,7 +547,6 @@ class CppPipelineDecider:
             PipelineFeature.CLEAR_RAW_DATA: request.clear_mode,
             PipelineFeature.PARTIAL_EXPORT: request.has_export_selection,
             PipelineFeature.REPORTS_FILTER: bool(request.reports_path),
-            PipelineFeature.TIMELINE_SLICING: facts.slice_enabled,
         }
         unsupported_features = capability.applicable_features - capability.supported_features
         for feature, enabled in requested_features.items():

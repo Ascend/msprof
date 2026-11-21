@@ -14,6 +14,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+import os
+import shutil
+import tempfile
 import unittest
 from io import StringIO
 from unittest import mock
@@ -69,6 +72,42 @@ class TestMsprofOutputSummary(unittest.TestCase):
             check.export(MsProfCommonConstant.TIMELINE)
             check._export_msprof_timeline.assert_called_once()
             check._export_readme_file.assert_called_once()
+
+    def test_write_readme_when_output_dir_exists_then_write_readme_file(self):
+        with mock.patch(NAMESPACE + '.os.path.isdir', return_value=True):
+            check = MsprofOutputSummary(PROF_DIR, CSV_FORMAT)
+            check._export_readme_file = mock.Mock()
+            check.write_readme()
+            check._export_readme_file.assert_called_once()
+
+    def test_write_readme_when_output_dir_missing_then_skip(self):
+        # 没有导出任何交付件时不生成 README，避免留下空说明文件
+        with mock.patch(NAMESPACE + '.os.path.isdir', return_value=False), \
+                mock.patch(NAMESPACE + '.MsprofOutputSummary._export_readme_file') as readme:
+            MsprofOutputSummary(PROF_DIR, CSV_FORMAT).write_readme()
+            readme.assert_not_called()
+
+    def test_write_readme_should_describe_cpp_output_files(self):
+        # C 直接产出的目录里没有 Python 中间目录，write_readme 仍按已有交付件生成说明
+        prof_dir = tempfile.mkdtemp()
+        try:
+            output_dir = os.path.join(prof_dir, "mindstudio_profiler_output")
+            os.makedirs(output_dir)
+            with open(os.path.join(output_dir, "op_summary_20260101000000.csv"), "w", encoding="utf-8") as csv_file:
+                csv_file.write("a\n")
+            config = mock.Mock()
+            config.DATA = {
+                "timeline": {"begin": ""},
+                "summary": {"begin": "", "op_summary": "op summary desc\n"},
+            }
+            with mock.patch('msconfig.config_manager.ConfigManager.get', return_value=config):
+                MsprofOutputSummary(prof_dir, CSV_FORMAT).write_readme()
+            readme_path = os.path.join(output_dir, "README.txt")
+            self.assertTrue(os.path.isfile(readme_path))
+            with open(readme_path, "r", encoding="utf-8") as readme:
+                self.assertIn("op_summary.csv:op summary desc", readme.read())
+        finally:
+            shutil.rmtree(prof_dir)
 
     def test_get_file_suffix_when_summary_then_return_csv_suffix(self):
         check = MsprofOutputSummary(PROF_DIR, CSV_FORMAT)

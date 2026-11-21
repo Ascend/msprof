@@ -62,6 +62,7 @@ from msinterface.msprof_c_interface import export_unified_db
 from msinterface.msprof_c_interface import dump_device_data
 from msinterface.msprof_c_interface import export_timeline
 from msinterface.msprof_c_interface import export_summary
+from msinterface.msprof_c_interface import export_timeline_and_summary
 from msinterface.msprof_data_storage import MsprofDataStorage
 from msinterface.msprof_cpp_pipeline import try_full_cpp_pipeline
 from msinterface.msprof_export_data import MsProfExportDataUtils
@@ -716,8 +717,25 @@ class ExportCommand:
         if host_path:
             HostPlatformAnalysis({"result_dir": host_path}).ms_run()
         if self._try_full_cpp_pipeline(path_table):
+            self._finish_cpp_output(path_table)
             return
         run_in_subprocess(self._process_data, path_table)
+
+    def _finish_cpp_output(self, path_table: dict) -> None:
+        """纯 C 流程没有 Python 侧汇总：按配置对 msprof json 切片，并补写 README.txt。"""
+        collection_path = path_table.get("collection_path")
+        if self.command_type in (MsProfCommonConstant.TIMELINE, MsProfCommonConstant.ALL):
+            self._check_and_split_json_trace(collection_path)
+        if self.command_type in (
+            MsProfCommonConstant.TIMELINE,
+            MsProfCommonConstant.SUMMARY,
+            MsProfCommonConstant.ALL,
+        ):
+            self._write_output_readme(collection_path)
+
+    def _write_output_readme(self, collection_path: str) -> None:
+        """补写 mindstudio_profiler_output/README.txt；C 直接产出的交付件不经 Python 汇总。"""
+        MsprofOutputSummary(collection_path, self.export_format).write_readme()
 
     def _try_full_cpp_pipeline(self, path_table: dict) -> bool:
         if not path_table.get(StrConstant.HOST_PATH) and not path_table.get(StrConstant.DEVICE_PATH):
@@ -828,47 +846,78 @@ class ExportCommand:
 
     def _start_view(self, path_table: dict):
         if self.command_type == MsProfCommonConstant.DB:
-            export_unified_db(path_table.get("collection_path"))
+            export_unified_db(path_table.get("collection_path"), self.reports_path)
             return
-        if self.command_type == MsProfCommonConstant.ALL:
-            # C 化判定不通过时，all 在本进程内按交付件分 pass 完成，parse/calculate 只做一次。
-            # 逐 pass 切换 command_type 以复用单交付件逻辑，结束后恢复，避免污染后续 PROF 任务。
-            original_type = self.command_type
-            try:
-                for deliverable in (MsProfCommonConstant.TIMELINE, MsProfCommonConstant.SUMMARY):
-                    self._start_view_by_type(path_table, deliverable)
-            finally:
-                self.command_type = original_type
-            return
-        self._start_view_by_type(path_table, self.command_type)
+        original_type = self.command_type
+        try:
+            if self.command_type == MsProfCommonConstant.TIMELINE:
+                self._start_timeline_view(path_table)
+            elif self.command_type == MsProfCommonConstant.SUMMARY:
+                self._start_summary_view(path_table)
+            else:
+                self._start_all_view(path_table)
+        finally:
+            self.command_type = original_type
 
-    def _start_view_by_type(self, path_table: dict, command_type: str):
-        """按单个交付件执行 view 阶段；command_type 决定导出类型与目标目录。"""
-        self.command_type = command_type
-        # host
+    def _start_timeline_view(self, path_table: dict):
+        """timeline 交付件：host 视图 + device 侧导出（C 优先）+ json 分片。"""
+        self.command_type = MsProfCommonConstant.TIMELINE
+        collection_path = path_table.get("collection_path")
+        self._view_host(path_table)
+        if self._check_export_timeline_with_so(path_table) and ProfilingScene().is_all_export():
+            export_timeline(collection_path, self.reports_path)
+            self._check_and_split_json_trace(collection_path)
+            self._write_output_readme(collection_path)
+            return
+        self._view_devices(path_table)
+        MsprofOutputSummary(collection_path, self.export_format).export(self.command_type)
+
+    def _start_summary_view(self, path_table: dict):
+        """summary 交付件：host 视图 + device 侧导出（C 优先）+ 交付件汇总。"""
+        self.command_type = MsProfCommonConstant.SUMMARY
+        collection_path = path_table.get("collection_path")
+        self._view_host(path_table)
+        summary_in_cpp = self._check_export_summary_with_so()
+        if summary_in_cpp:
+            export_summary(collection_path, self.reports_path)
+        # 原生 summary 已产出且按 reports 过滤时，不再补导 Python 侧 CSV
+        if not (summary_in_cpp and self.reports_path):
+            self._view_devices(path_table)
+        MsprofOutputSummary(collection_path, self.export_format).export(self.command_type)
+
+    def _start_all_view(self, path_table: dict):
+        """all：timeline 与 summary 都能走 C 导出时合并成一次 C 导出，否则各走一遍既有流程。"""
+        collection_path = path_table.get("collection_path")
+        timeline_in_cpp = self._check_export_timeline_with_so(path_table) and ProfilingScene().is_all_export()
+        summary_in_cpp = self._check_export_summary_with_so()
+        if not (timeline_in_cpp and summary_in_cpp):
+            self._start_timeline_view(path_table)
+            self._start_summary_view(path_table)
+            return
+        # 一次 C 导出同时产出 timeline 与 summary，Python 侧只补两件交付物各自的视图与汇总
+        for command_type in (MsProfCommonConstant.TIMELINE, MsProfCommonConstant.SUMMARY):
+            self.command_type = command_type
+            self._view_host(path_table)
+
+        export_timeline_and_summary(collection_path, self.reports_path)
+        self._check_and_split_json_trace(collection_path)
+        if not self.reports_path:
+            self._view_devices(path_table)
+        # README 由 MsprofOutputSummary 汇总时统一写，这里不再重复
+        MsprofOutputSummary(collection_path, self.export_format).export(MsProfCommonConstant.SUMMARY)
+
+    def _view_host(self, path_table: dict):
+        """host 视图需要按 ALL_EXPORT 准备信息，结束后恢复原导出场景。"""
         mode = ProfilingScene().get_mode()
         ProfilingScene().set_mode(ExportMode.ALL_EXPORT)
-        host_path = path_table.get(StrConstant.HOST_PATH)
-        self._view_data(host_path)
-        # device
-        # viewer timeline
-        ProfilingScene().set_mode(mode)
-        if self._check_export_timeline_with_so(path_table) and ProfilingScene().is_all_export():
-            export_timeline(path_table.get("collection_path"), self.reports_path)
-            self._check_and_split_json_trace(path_table.get("collection_path"))
-            return
-        # viewer summary
-        cpp_summary_enabled = self._check_export_summary_with_so()
-        if cpp_summary_enabled:
-            export_summary(path_table.get("collection_path"))
-        # 原生 summary 已产出交付件时，不再补导 Python 侧 CSV；原生不可用时仍需 Python 导出兜底
-        if not (cpp_summary_enabled and self.reports_path):
-            device_paths_list = path_table.get(StrConstant.DEVICE_PATH, [])
-            for device_path in device_paths_list:
-                self._view_data(device_path)
+        try:
+            self._view_data(path_table.get(StrConstant.HOST_PATH))
+        finally:
+            ProfilingScene().set_mode(mode)
 
-        profiler = MsprofOutputSummary(path_table.get("collection_path"), self.export_format)
-        profiler.export(command_type)
+    def _view_devices(self, path_table: dict):
+        for device_path in path_table.get(StrConstant.DEVICE_PATH, []):
+            self._view_data(device_path)
 
     def _view_data(self, device_path: str):
         if not device_path:
