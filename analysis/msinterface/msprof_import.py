@@ -139,7 +139,6 @@ class ImportCommand:
             PipelineCommand.IMPORT,
             None,
             path_table,
-            is_cluster=path_table.get("is_cluster", self.is_cluster_scene),
         )
         if try_full_cpp_pipeline(request):
             return

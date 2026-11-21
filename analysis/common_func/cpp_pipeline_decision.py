@@ -69,7 +69,6 @@ class CppPipelineDecisionRequest:
     collection_path: str
     host_path: str = ""
     device_paths: Tuple[str, ...] = ()
-    is_cluster: bool = False
     export_mode: ExportMode = ExportMode.ALL_EXPORT
     export_format: Optional[str] = None
     reports_path: str = ""
@@ -522,14 +521,6 @@ class CppPipelineDecider:
         # 已发现问题仍继续检查，向调用方一次返回所有可判定的回退原因。
         facts = self._collector.collect(request)
         issues.extend(facts.issues)
-        if request.is_cluster and (capability is None or not capability.supports_cluster):
-            issues.append(
-                DecisionIssue(
-                    DecisionDimension.SCENE,
-                    "CLUSTER_UNSUPPORTED",
-                    "The full C pipeline does not support cluster data.",
-                )
-            )
         if request.command == PipelineCommand.EXPORT and request.export_mode != ExportMode.ALL_EXPORT:
             issues.append(
                 DecisionIssue(

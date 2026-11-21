@@ -225,12 +225,6 @@ class MsProfExportDataConfig(MetaConfig):
             ),
         ],
         'sio': [('handler', '_get_sio_data'), ('db', DBNameConstant.DB_SIO), ('table', DBNameConstant.TABLE_SIO)],
-        'inter_soc_transmission': [
-            ('handler', '_get_inter_soc_summary'),
-            ('db', DBNameConstant.DB_STARS_SOC),
-            ('table', DBNameConstant.TABLE_SOC_DATA),
-            ('headers', 'Metric,L2Buffer_bandwidth_level,MATA_bandwidth_level'),
-        ],
         'acc_pmu': [
             ('handler', '_get_acc_pmu'),
             ('db', DBNameConstant.DB_ACC_PMU),

@@ -13,6 +13,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
+# export 与 import 共用同一套目录级收集与调度流程，框架层存在天然结构重复。
 import json
 import logging
 import multiprocessing
@@ -74,8 +76,6 @@ from msparser.step_trace.ts_binary_data_reader.task_flip_bean import TaskFlip
 from profiling_bean.db_dto.step_trace_dto import IterationRange
 from profiling_bean.db_dto.step_trace_dto import StepTraceDto
 from profiling_bean.prof_enum.export_data_type import ExportDataType
-from tuning.cluster.cluster_tuning_facade import ClusterTuningFacade
-from tuning.cluster_tuning import ClusterTuning
 
 
 class ExportCommand:
@@ -264,7 +264,6 @@ class ExportCommand:
             'input_model_id': getattr(args, self.MODEL_ID, None) is not None,
         }
         self.iteration_range = None
-        self._cluster_params = {'is_cluster_scene': False, 'cluster_path': []}
         self.clear_mode = getattr(args, "clear_mode", False)
         self.is_data_analyzed = False
         self.reports_path = getattr(args, "reports_path", "")
@@ -351,9 +350,6 @@ class ExportCommand:
         self._process_sub_dirs()
         if not self.valid_data_count:
             warn(self.FILE_NAME, f'The path "{self.collection_path}" does not contain valid profiling data.')
-            return
-        if self._cluster_params.get('is_cluster_scene', False):
-            self._show_cluster_tuning()
 
     def _check_all_report(self, result_dir: str) -> None:
         """
@@ -680,40 +676,10 @@ class ExportCommand:
 
         self._handle_export_data(params)
 
-    def _show_cluster_tuning(self) -> None:
-        # all 同样产出 summary，因此与单独 summary 导出一致地输出集群调优建议。
-        if self.command_type not in (MsProfCommonConstant.SUMMARY, MsProfCommonConstant.ALL):
-            return
-
-        # 在该代码段屏蔽所有的log打印内容（对打屏内容不做处理）
-        logging.disable(level=logging.CRITICAL)
-        ClusterTuning(self._cluster_params.get('cluster_path')).run()
-        params = {
-            "collection_path": self.collection_path,
-            "model_id": 0,
-            "npu_id": -1,
-            "iteration_id": self.iteration_id,
-        }
-        try:
-            ClusterTuningFacade(params).process()
-        except ProfException:
-            warn(self.FILE_NAME, 'Cluster Tuning did not complete!')
-        finally:
-            # 解禁打屏限制
-            logging.disable(logging.NOTSET)
-
-    def _update_cluster_params(self: any, sub_path: str, is_cluster: bool) -> None:
-        if is_cluster:
-            self._cluster_params['is_cluster_scene'] = True
-            self._cluster_params.setdefault('cluster_path', []).append(sub_path)
-
     def _process_sub_dirs(self: any) -> None:
         """采集目录级收集与调度（不限目录名前缀，仅发现当前层）。"""
         options = self._build_command_options()
-        discovery = ProfTaskCollector(
-            self.FILE_NAME,
-            on_valid_member=self._update_cluster_params,
-        ).collect(options)
+        discovery = ProfTaskCollector(self.FILE_NAME).collect(options)
         self.valid_data_count += discovery.valid_data_count
         schedule_prof_tasks(
             discovery.tasks,
@@ -760,7 +726,6 @@ class ExportCommand:
             PipelineCommand.EXPORT,
             self.command_type,
             path_table,
-            is_cluster=self._cluster_params.get('is_cluster_scene', False),
             export_mode=ProfilingScene().get_mode(),
             export_format=self.export_format,
             reports_path=self.reports_path,

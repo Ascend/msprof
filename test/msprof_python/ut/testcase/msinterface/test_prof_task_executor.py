@@ -61,7 +61,6 @@ class TestProfTaskExecutor(unittest.TestCase):
                                ('/root/PROF_1/host',), True)
         with mock.patch('msinterface.msprof_export.ExportCommand') as command_class, \
                 mock.patch(NAMESPACE + '.ProfilingScene') as scene:
-            command_class.return_value._cluster_params = {}
             execute_prof_task(task, options)
         self.assertEqual(command_class.call_args.args[0], 'summary')
         args = command_class.call_args.args[1]
@@ -73,8 +72,6 @@ class TestProfTaskExecutor(unittest.TestCase):
         self.assertEqual(args.reports_path, '/reports.json')
         self.assertTrue(args.clear_mode)
         scene.return_value.set_mode.assert_called_once_with(ExportMode(1))
-        # worker 内按任务恢复场景上下文，不依赖父进程残留。
-        self.assertTrue(command_class.return_value._cluster_params['is_cluster_scene'])
         command_class.return_value._execute_prof_task.assert_called_once_with(task.to_path_table(options.command))
 
 

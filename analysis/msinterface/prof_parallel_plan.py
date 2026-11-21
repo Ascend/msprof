@@ -25,7 +25,7 @@ import os
 import re
 from dataclasses import dataclass, replace
 from fractions import Fraction
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from common_func.common import get_data_file_memory, is_linux, warn
 from common_func.data_check_manager import DataCheckManager
@@ -124,9 +124,8 @@ class ProfTaskCollector:
 
     _INVALID_DIR_TEMPLATE = 'Invalid parsing dir(%s), -dir must be profiling data dir, such as PROF_XXX_XXX_XXX'
 
-    def __init__(self: any, file_name: str, on_valid_member: Optional[Callable[[str, bool], None]] = None) -> None:
+    def __init__(self: any, file_name: str) -> None:
         self._file_name = file_name
-        self._on_valid_member = on_valid_member
 
     def collect(self: any, options: CommandOptions) -> DiscoveryResult:
         """发现当前层合法 PROF 并构造待执行任务。"""
@@ -159,8 +158,6 @@ class ProfTaskCollector:
         host_path = ''
         device_paths = []
         for sub_dir, valid_sub_path, _contain in valid_members:
-            if self._on_valid_member is not None:
-                self._on_valid_member(valid_sub_path, is_cluster)
             if sub_dir == StrConstant.HOST_PATH:
                 host_path = valid_sub_path
             else:

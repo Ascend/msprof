@@ -56,7 +56,6 @@ def execute_prof_task(task: any, options: any) -> None:
 
         command = ExportCommand(options.command_type, args)
         ProfilingScene().set_mode(ExportMode(options.export_mode))
-        command._cluster_params['is_cluster_scene'] = task.is_cluster
     command._execute_prof_task(task.to_path_table(options.command))
 
 

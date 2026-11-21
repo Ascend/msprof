@@ -682,15 +682,10 @@ class TestExportCommand(unittest.TestCase):
                 mock.patch(PLAN_NAMESPACE + '.DataCheckManager.iter_valid_profiling_sub_paths',
                            side_effect=[[('PROF_1', 'test/PROF_1', False)],
                                         [('device_0', 'test/PROF_1/device_0', True)]]), \
-                mock.patch(NAMESPACE + '.run_in_subprocess'), \
-                mock.patch('tuning.cluster_tuning.ClusterTuning.run') as cluster_run, \
-                mock.patch('tuning.cluster.cluster_tuning_facade.ClusterTuningFacade.process') as cluster_process:
+                mock.patch(NAMESPACE + '.run_in_subprocess'):
             test = ExportCommand("summary", args)
             test.process()
             self.assertEqual(test.valid_data_count, 1)
-            self.assertTrue(test._cluster_params['is_cluster_scene'])
-            cluster_run.assert_called_once()
-            cluster_process.assert_called_once()
 
     def test_test_process_test_when_command_type_is_db(self):
         args_dic = {"collection_path": "test"}
@@ -842,23 +837,6 @@ class TestExportCommand(unittest.TestCase):
         )
         self.assertEqual([item[1] for item in seen], [MsProfCommonConstant.SUMMARY] * 3)
         export_mock.assert_called_once_with(MsProfCommonConstant.SUMMARY)
-
-    def test_show_cluster_tuning_should_apply_to_all(self):
-        args = Namespace(collection_path="test")
-        test = ExportCommand("all", args)
-        test._cluster_params['is_cluster_scene'] = True
-        with mock.patch(NAMESPACE + '.ClusterTuning') as cluster_run, \
-                mock.patch(NAMESPACE + '.ClusterTuningFacade') as cluster_process:
-            test._show_cluster_tuning()
-        cluster_run.assert_called_once()
-        cluster_process.assert_called_once()
-
-    def test_show_cluster_tuning_should_skip_non_summary_deliverable(self):
-        args = Namespace(collection_path="test")
-        test = ExportCommand("timeline", args)
-        with mock.patch(NAMESPACE + '.ClusterTuning') as cluster_run:
-            test._show_cluster_tuning()
-        cluster_run.assert_not_called()
 
     def test_handle_export_raise_profexception_0(self) -> None:
         args_dic = {"collection_path": "test", "iteration_id": 3, "model_id": 1, "iteration_count": 1}

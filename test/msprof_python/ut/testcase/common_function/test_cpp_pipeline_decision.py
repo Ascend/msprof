@@ -100,7 +100,6 @@ class TestCppPipelineDecider(unittest.TestCase):
         all_capability = DEFAULT_CAPABILITY_REGISTRY.command_capabilities[(PipelineCommand.EXPORT, "all")]
         self.assertEqual(all_capability.applicable_features, timeline.applicable_features)
         self.assertEqual(all_capability.supported_features, timeline.supported_features)
-        self.assertEqual(all_capability.supports_cluster, timeline.supports_cluster)
         self.assertEqual(all_capability.supported_formats, frozenset({"csv"}))
         self.assertTrue(all_capability.supported_formats != timeline.supported_formats)
 
@@ -178,7 +177,6 @@ class TestCppPipelineDecider(unittest.TestCase):
     def test_command_and_feature_boundaries(self):
         cases = (
             ({"command": PipelineCommand.IMPORT, "command_type": None}, set()),
-            ({"command": PipelineCommand.IMPORT, "command_type": None, "is_cluster": True}, {"CLUSTER_UNSUPPORTED"}),
             ({"command_type": "summary", "export_format": "csv"}, set()),
             ({"command_type": "summary", "export_format": "json"}, {"EXPORT_FORMAT_UNSUPPORTED"}),
             ({"clear_mode": True}, {"CLEAR_UNSUPPORTED"}),

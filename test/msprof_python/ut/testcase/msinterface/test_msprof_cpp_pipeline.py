@@ -439,7 +439,6 @@ class TestPipelineCommandIntegration(unittest.TestCase):
             command._process_sub_dirs()
         request = run.call_args.args[0]
         self.assertEqual(request.collection_path, "/root/PROF_0")
-        self.assertTrue(request.is_cluster)
 
     def test_export_preserves_all_request_options(self):
         command = ExportCommand(
@@ -454,7 +453,6 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                 export_format=None,
             ),
         )
-        command._cluster_params['is_cluster_scene'] = True
         ProfilingScene().set_mode(ExportMode.STEP_EXPORT)
         with mock.patch("msinterface.msprof_export.try_full_cpp_pipeline", return_value=False) as run:
             self.assertFalse(command._try_full_cpp_pipeline(self.path_table))
@@ -467,7 +465,6 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                 "/root/PROF_0",
                 "/root/PROF_0/host",
                 tuple(self.path_table["device"]),
-                is_cluster=True,
                 export_mode=ExportMode.STEP_EXPORT,
                 reports_path="/reports.json",
                 model_id=2,
@@ -494,7 +491,6 @@ class TestPipelineCommandIntegration(unittest.TestCase):
                         "msinterface.prof_parallel_plan.DataCheckManager.iter_valid_profiling_sub_paths",
                         return_value=[("host", "/root/PROF_0/host", True)],
                     ),
-                    mock.patch.object(command, "_update_cluster_params"),
                     mock.patch("msinterface.msprof_export.try_full_cpp_pipeline") as run,
                     mock.patch("msinterface.msprof_export.run_in_subprocess") as hybrid,
                     mock.patch("msinterface.msprof_export.HostPlatformAnalysis.ms_run") as platform,

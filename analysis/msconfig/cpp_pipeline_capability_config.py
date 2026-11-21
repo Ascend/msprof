@@ -51,7 +51,6 @@ class CommandCapability:
     supported_formats: FrozenSet[Optional[str]]
     applicable_features: FrozenSet[str]
     supported_features: FrozenSet[str]
-    supports_cluster: bool = False
 
 
 @dataclass(frozen=True)
