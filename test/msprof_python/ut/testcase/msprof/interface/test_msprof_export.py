@@ -252,6 +252,47 @@ class TestExportCommand(unittest.TestCase):
                 self.assertEqual(native_export.called, native_enabled)
                 view_data.assert_any_call('test/device_0')
 
+    def test_start_view_by_type_should_skip_python_csv_export_when_reports_passed(self):
+        command = ExportCommand('summary',
+                                Namespace(collection_path='test', export_format='csv', reports_path='test/reports.json'))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
+                mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
+                mock.patch.object(command, '_view_data') as view_data, \
+                mock.patch(NAMESPACE + '.export_summary') as native_export, \
+                mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
+            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
+        native_export.assert_called_once_with('test')
+        view_data.assert_called_once_with('test/host')
+        output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
+
+    def test_start_view_by_type_should_keep_python_summary_export_without_reports(self):
+        command = ExportCommand('summary', Namespace(collection_path='test', export_format='csv'))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
+                mock.patch.object(command, '_check_export_summary_with_so', return_value=True), \
+                mock.patch.object(command, '_view_data') as view_data, \
+                mock.patch(NAMESPACE + '.export_summary') as native_export, \
+                mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
+            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
+        native_export.assert_called_once_with('test')
+        output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
+        view_data.assert_any_call('test/device_0')
+
+    def test_start_view_by_type_should_fall_back_to_python_when_native_summary_unavailable(self):
+        command = ExportCommand('summary',
+                                Namespace(collection_path='test', export_format='csv', reports_path='test/reports.json'))
+        path_table = {'collection_path': 'test', 'host': 'test/host', 'device': ['test/device_0']}
+        with mock.patch.object(command, '_check_export_timeline_with_so', return_value=False), \
+                mock.patch.object(command, '_check_export_summary_with_so', return_value=False), \
+                mock.patch.object(command, '_view_data') as view_data, \
+                mock.patch(NAMESPACE + '.export_summary') as native_export, \
+                mock.patch(NAMESPACE + '.MsprofOutputSummary') as output_summary:
+            command._start_view_by_type(path_table, MsProfCommonConstant.SUMMARY)
+        native_export.assert_not_called()
+        view_data.assert_any_call('test/device_0')
+        output_summary.return_value.export.assert_called_once_with(MsProfCommonConstant.SUMMARY)
+
     def test_add_export_type_should_return_timeline_list_map_when_current_dir_is_host_and_device_exists(self):
         result_dir = "./msprof/test/"
         args_dic = {'collection_path': 'test', 'iteration_id': 1, 'model_id': None}

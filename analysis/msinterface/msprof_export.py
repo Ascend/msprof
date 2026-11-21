@@ -893,11 +893,14 @@ class ExportCommand:
             self._check_and_split_json_trace(path_table.get("collection_path"))
             return
         # viewer summary
-        if self._check_export_summary_with_so():
+        cpp_summary_enabled = self._check_export_summary_with_so()
+        if cpp_summary_enabled:
             export_summary(path_table.get("collection_path"))
-        device_paths_list = path_table.get(StrConstant.DEVICE_PATH, [])
-        for device_path in device_paths_list:
-            self._view_data(device_path)
+        # 原生 summary 已产出交付件时，不再补导 Python 侧 CSV；原生不可用时仍需 Python 导出兜底
+        if not (cpp_summary_enabled and self.reports_path):
+            device_paths_list = path_table.get(StrConstant.DEVICE_PATH, [])
+            for device_path in device_paths_list:
+                self._view_data(device_path)
 
         profiler = MsprofOutputSummary(path_table.get("collection_path"), self.export_format)
         profiler.export(command_type)
