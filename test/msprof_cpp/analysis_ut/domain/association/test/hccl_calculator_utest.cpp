@@ -317,6 +317,31 @@ TEST_F(HcclCalculatorUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
     EXPECT_EQ(expectStatisticsDataNum, hcclStatisticsData->size());
 }
 
+TEST_F(HcclCalculatorUTest, TestProcessEntryShouldReturnErrorWhenAscendTaskDataIsMissing)
+{
+    dataInventory_.RemoveRestData({});
+    HcclCalculator calculator;
+    DeviceContext context;
+    ASSERT_EQ(Analysis::ANALYSIS_ERROR, calculator.Run(dataInventory_, context));
+    // Direct execution without the required inputs must fail instead of silently succeeding.
+    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclTask>>(), nullptr);
+    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclOp>>(), nullptr);
+}
+
+TEST_F(HcclCalculatorUTest, TestProcessEntryShouldReturnErrorWhenOnlyEmptyAscendTaskIsProvided)
+{
+    dataInventory_.RemoveRestData({});
+    std::shared_ptr<std::vector<TopDownTask>> ascendTaskData;
+    MAKE_SHARED0_NO_OPERATION(ascendTaskData, std::vector<TopDownTask>);
+    dataInventory_.Inject(ascendTaskData);
+    HcclCalculator calculator;
+    DeviceContext context;
+    ASSERT_EQ(Analysis::ANALYSIS_ERROR, calculator.Run(dataInventory_, context));
+    // An empty task list does not waive the requirement for HCCL input containers.
+    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclTask>>(), nullptr);
+    EXPECT_EQ(dataInventory_.GetPtr<std::vector<DeviceHcclOp>>(), nullptr);
+}
+
 TEST_F(HcclCalculatorUTest, TestAllTaskTimeIsEqualZeroThenReturnFalse)
 {
     MOCKER(&Analysis::Utils::IsDoubleEqual).stubs().will(returnValue(false)).then(returnValue(true));

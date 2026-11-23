@@ -46,6 +46,13 @@ std::string NodeLabel(Application::TopoNodeStage stage, const std::string& scope
 
 std::string ProcessName(const RuntimeProcessInfo& info) { return NodeLabel(info.stage, info.scope, info.processName); }
 
+bool IsFailureReturnCode(uint32_t code) { return code != ANALYSIS_OK && code != ANALYSIS_SKIP; }
+
+bool IsNonFailureState(RuntimeProcessState state)
+{
+    return state == RuntimeProcessState::SUCCEEDED || state == RuntimeProcessState::SKIPPED;
+}
+
 bool VerifyDependencies(const RuntimeProcessCollection& processes)
 {
     std::map<RuntimeProcessKey, size_t> pending;
@@ -96,7 +103,7 @@ bool VerifyDependencies(const RuntimeProcessCollection& processes)
 
 void LogProcessResult(const ProcessStatistics& stat)
 {
-    if (stat.returnCode == ANALYSIS_OK && !stat.dfxStop)
+    if (!IsFailureReturnCode(stat.returnCode) && !stat.dfxStop)
     {
         return;
     }
@@ -104,7 +111,7 @@ void LogProcessResult(const ProcessStatistics& stat)
     details << "node=" << NodeLabel(stat.stage, stat.scope, stat.processName) << ", chip_id=" << stat.chipId
             << ", return_code=0x" << std::hex << stat.returnCode << std::dec << ", mandatory=" << std::boolalpha
             << stat.mandatory;
-    if (stat.returnCode != ANALYSIS_OK)
+    if (IsFailureReturnCode(stat.returnCode))
     {
         ERROR("Process failed: %.", details.str());
     }
@@ -235,9 +242,7 @@ class ProcessControl::Impl
             results_.at(key).state = state;
             results_.at(key).statistics = std::move(stat);
             ++finished;
-            if ((options_.failureMode == FailureMode::STOP_ON_MANDATORY_FAILURE &&
-                 state != RuntimeProcessState::SUCCEEDED && info.mandatory) ||
-                results_.at(key).statistics.dfxStop)
+            if (results_.at(key).statistics.dfxStop)
             {
                 stopped = true;
             }
@@ -277,9 +282,12 @@ class ProcessControl::Impl
             {
                 auto completion = std::move(completed.front());
                 completed.pop_front();
-                const auto state = completion.stat.returnCode == ANALYSIS_OK && !completion.stat.dfxStop
-                                       ? RuntimeProcessState::SUCCEEDED
-                                       : RuntimeProcessState::FAILED;
+                auto state = RuntimeProcessState::FAILED;
+                if (!completion.stat.dfxStop && !IsFailureReturnCode(completion.stat.returnCode))
+                {
+                    state = completion.stat.returnCode == ANALYSIS_SKIP ? RuntimeProcessState::SKIPPED
+                                                                        : RuntimeProcessState::SUCCEEDED;
+                }
                 finish(completion.key, state, std::move(completion.stat));
             }
             bool progressed = false;
@@ -289,17 +297,21 @@ class ProcessControl::Impl
                 const auto key = ready.front();
                 ready.pop_front();
                 const auto& info = processes_.at(key);
-                const bool blocked =
+                const bool blocked = !info.runOnDependencyFailure &&
+                                     std::any_of(info.processDependence.begin(), info.processDependence.end(),
+                                                 [&](RuntimeProcessKey dependency)
+                                                 { return !IsNonFailureState(results_.at(dependency).state); });
+                const bool skipped =
                     !info.runOnDependencyFailure &&
                     std::any_of(info.processDependence.begin(), info.processDependence.end(),
                                 [&](RuntimeProcessKey dependency)
-                                { return results_.at(dependency).state != RuntimeProcessState::SUCCEEDED; });
+                                { return results_.at(dependency).state == RuntimeProcessState::SKIPPED; });
                 if (blocked)
                 {
                     for (auto dependency : info.processDependence)
                     {
                         const auto& result = results_.at(dependency);
-                        if (result.state == RuntimeProcessState::SUCCEEDED)
+                        if (IsNonFailureState(result.state))
                         {
                             continue;
                         }
@@ -317,11 +329,15 @@ class ProcessControl::Impl
                         causes.erase(std::unique(causes.begin(), causes.end()), causes.end());
                     }
                 }
-                if (blocked || stopped)
+                if (blocked || stopped || skipped)
                 {
+                    // Real dependency failures and global stops take precedence over normal no-data propagation.
+                    const auto state = blocked
+                                           ? RuntimeProcessState::BLOCKED
+                                           : (stopped ? RuntimeProcessState::CANCELLED : RuntimeProcessState::SKIPPED);
                     ProcessStatistics stat{};
-                    stat.returnCode = ANALYSIS_ERROR;
-                    finish(key, blocked ? RuntimeProcessState::BLOCKED : RuntimeProcessState::CANCELLED, stat);
+                    stat.returnCode = state == RuntimeProcessState::SKIPPED ? ANALYSIS_SKIP : ANALYSIS_ERROR;
+                    finish(key, state, stat);
                     progressed = true;
                     continue;
                 }
@@ -415,11 +431,10 @@ class ProcessControl::Impl
         {
             PRINT_ERROR("Processing failed. Please check the logs for details.");
         }
-        return !stopped && std::all_of(results_.begin(), results_.end(),
-                                       [&](const std::pair<const RuntimeProcessKey, RuntimeProcessResult>& item) {
-                                           return !processes_.at(item.first).mandatory ||
-                                                  item.second.state == RuntimeProcessState::SUCCEEDED;
-                                       });
+        return !stopped &&
+               std::all_of(results_.begin(), results_.end(),
+                           [&](const std::pair<const RuntimeProcessKey, RuntimeProcessResult>& item)
+                           { return !processes_.at(item.first).mandatory || IsNonFailureState(item.second.state); });
     }
 
     ExecuteProcessStat Statistics() const
@@ -428,7 +443,7 @@ class ProcessControl::Impl
         std::map<size_t, OneLevelStat> levels;
         for (const auto& item : results_)
         {
-            // Blocked/cancelled nodes never ran. Their states remain available in Results().
+            // Skipped, blocked and cancelled nodes are available through Results(), not execution statistics.
             if (item.second.state != RuntimeProcessState::SUCCEEDED && item.second.state != RuntimeProcessState::FAILED)
             {
                 continue;
@@ -438,7 +453,8 @@ class ProcessControl::Impl
             auto& level = inserted.first->second;
             const auto& process = item.second.statistics;
             level.processStatistics.push_back(process);
-            level.generalResult = level.generalResult && (process.returnCode == ANALYSIS_OK || !process.mandatory);
+            level.generalResult =
+                level.generalResult && (!IsFailureReturnCode(process.returnCode) || !process.mandatory);
         }
         for (auto& level : levels)
         {
@@ -455,7 +471,7 @@ class ProcessControl::Impl
         const auto failed = [](const RuntimeProcessResult& value)
         {
             // A successful stopAt callback is represented as FAILED, but is not an execution error.
-            return value.state == RuntimeProcessState::FAILED && value.statistics.returnCode != ANALYSIS_OK;
+            return value.state == RuntimeProcessState::FAILED && IsFailureReturnCode(value.statistics.returnCode);
         };
         std::set<RuntimeProcessKey> causes;
         if (failed(result))
@@ -494,7 +510,7 @@ class ProcessControl::Impl
         for (const auto& node : processes_)
         {
             const auto& result = results_.at(node.first);
-            if (!node.second.mandatory || result.state == RuntimeProcessState::SUCCEEDED)
+            if (!node.second.mandatory || IsNonFailureState(result.state))
             {
                 continue;
             }

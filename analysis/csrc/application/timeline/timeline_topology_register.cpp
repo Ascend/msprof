@@ -99,7 +99,7 @@ REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_API,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK)),
-                                 false, std::vector<AscendTaskData>, std::vector<ApiData>);
+                                 true, std::vector<AscendTaskData>, std::vector<ApiData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_DDR,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_DDR)),

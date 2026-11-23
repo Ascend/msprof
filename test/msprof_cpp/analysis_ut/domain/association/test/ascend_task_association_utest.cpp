@@ -162,11 +162,30 @@ TEST_F(AscendTaskAssociationUTest, ShouldReturnErrorWhenDeviceTaskIsEmpty)
     ASSERT_EQ(ANALYSIS_ERROR, association.Run(dataInventory_, context));
 }
 
-TEST_F(AscendTaskAssociationUTest, ShouldReturnOKWhenDeviceTaskAndHostTaskIsEmpty)
+TEST_F(AscendTaskAssociationUTest, ShouldReturnNoDataWhenDeviceTaskAndHostTaskAreEmpty)
 {
     AscendTaskAssociation association;
     DeviceContext context;
-    ASSERT_EQ(ANALYSIS_OK, association.Run(dataInventory_, context));
+    ASSERT_EQ(ANALYSIS_SKIP, association.Run(dataInventory_, context));
+    const auto result = dataInventory_.GetPtr<std::vector<TopDownTask>>();
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(result->empty());
+}
+
+TEST_F(AscendTaskAssociationUTest, ShouldInjectEmptyResultWhenNoAscendTaskCanBeGenerated)
+{
+    const TaskId taskId{1, 1, 1, 1};
+    auto hostTasks = dataInventory_.GetPtr<std::map<TaskId, std::vector<HostTask>>>();
+    auto deviceTasks = dataInventory_.GetPtr<std::map<TaskId, std::vector<DeviceTask>>>();
+    hostTasks->emplace(taskId, std::vector<HostTask>(2));
+    deviceTasks->emplace(taskId, std::vector<DeviceTask>(2));
+    AscendTaskAssociation association;
+    DeviceContext context;
+    // Nothing pairs up, so the association hands an empty list to its consumers instead of failing the chain.
+    EXPECT_EQ(ANALYSIS_OK, association.Run(dataInventory_, context));
+    const auto result = dataInventory_.GetPtr<std::vector<TopDownTask>>();
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(result->empty());
 }
 
 TEST_F(AscendTaskAssociationUTest, TestProcessEntryReturnUnsetStreamIdWhenDeviceTaskIsEmpty)

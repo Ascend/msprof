@@ -25,6 +25,7 @@ namespace Analysis
 
 const int ANALYSIS_OK = 0;
 const int ANALYSIS_ERROR = 1;
+const int ANALYSIS_SKIP = 2;
 
 const int SERVICE_OFFSET = 24;
 const int SEQUENCE_OFFSET = 16;

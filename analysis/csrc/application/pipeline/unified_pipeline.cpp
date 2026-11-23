@@ -75,7 +75,7 @@ void WriteGraphReport(nlohmann::json report, const ProcessControl& executor, con
     try
     {
         const auto results = executor.GetRuntimeResults();
-        const char* states[] = {"PENDING", "RUNNING", "SUCCEEDED", "FAILED", "BLOCKED", "CANCELLED"};
+        const char* states[] = {"PENDING", "RUNNING", "SUCCEEDED", "FAILED", "BLOCKED", "CANCELLED", "SKIPPED"};
         std::ostringstream dot;
         dot << "digraph UnifiedPipeline {\n";
         for (auto& node : report["nodes"])
@@ -157,7 +157,6 @@ bool ExecuteTopoGraph(const TopoGraphBuilder& builder, RuntimeProcessCollection&
         const auto report = IsTopoGraphDumpEnabled() ? DescribeTopoGraph(builder, processes) : nlohmann::json();
         ProcessControlOptions options;
         options.maxActiveDevices = 2;
-        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
         ProcessControl executor(processes, options);
         const bool success = executor.ExecuteProcess();
         deliverableScope.Finish();

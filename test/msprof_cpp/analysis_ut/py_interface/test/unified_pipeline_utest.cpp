@@ -32,10 +32,12 @@
 #include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
+#include "analysis/csrc/domain/entities/hal/include/ascend_obj.h"
 #include "analysis/csrc/domain/entities/hal/include/device_task.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_hbm.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_llc_pcie.h"
 #include "analysis/csrc/domain/entities/hal/include/hal_netdev_stats.h"
+#include "analysis/csrc/domain/entities/json_trace/include/meta_data_event.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/device_context/load_host_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -289,7 +291,6 @@ TEST_F(UnifiedPipelinePlanUTest, HostFailureBlocksItsReadersButIndependentDevice
     ProcessControlOptions options;
     options.maxWorkerThreads = 2;
     options.maxActiveDevices = 1;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     ProcessControl executor(graph, options);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
@@ -577,7 +578,6 @@ TEST_F(UnifiedPipelinePlanUTest, FailedDeviceWorkReleasesSingleSlotWithoutWritin
         };
     }
     ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     options.maxActiveDevices = 1;
     options.maxWorkerThreads = 2;
     ProcessControl executor(graph, options);
@@ -1179,7 +1179,6 @@ TEST_F(UnifiedPipelinePlanUTest, IndependentExportNodesPrepareConcurrentlyAndFin
     // Exercise four concurrent nodes even on hosts with fewer than four logical CPUs.
     ProcessControlOptions options;
     options.maxWorkerThreads = 4;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     auto& consumer = DeliverableConsumer::Instance();
     consumer.ResetOk();
     ProcessControl executor(graph, options);
@@ -2016,7 +2015,6 @@ TEST_F(UnifiedPipelinePlanUTest, MissingOptionalQosDoesNotFailFullParseOrHoldDev
         { return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; })); };
     }
     ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     options.maxActiveDevices = 1;
     options.maxWorkerThreads = 2;
     ProcessControl executor(graph, options);
@@ -2056,9 +2054,7 @@ TEST_F(UnifiedPipelinePlanUTest, PipelineDoneStillHonorsGlobalDfxStop)
         node.second.creator = []() -> std::unique_ptr<Process>
         { return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; })); };
     }
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     EXPECT_TRUE(results.at(host).statistics.dfxStop);
@@ -2175,9 +2171,7 @@ TEST_F(UnifiedPipelinePlanUTest, HbmOrNetDevFailureFailsPipeline)
                 return std::unique_ptr<Process>(new TopoCallbackProcess([fail](DataInventory&) { return !fail; }));
             };
         }
-        ProcessControlOptions options;
-        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-        ProcessControl executor(graph, options);
+        ProcessControl executor(graph);
         EXPECT_FALSE(executor.ExecuteProcess());
         const auto results = executor.GetRuntimeResults();
         EXPECT_EQ(results.at(failed).state, RuntimeProcessState::FAILED);
@@ -2260,6 +2254,83 @@ TEST_F(UnifiedPipelinePlanUTest, HbmAndNetDevNativeOwnershipKeepsChipBoundary)
         for (const auto chip : {CHIP_V1_1_1, CHIP_V3_3_0, CHIP_V6_2_0})
         {
             EXPECT_FALSE(TopoNodeRegistry::SupportsChip(*definition, chip));
+        }
+    }
+}
+
+TEST_F(UnifiedPipelinePlanUTest, NoAscendTaskSkipsTaskChainButKeepsApiLayer)
+{
+    TopoBuildContext context;
+    TopoNodeCollection definitions;
+    std::vector<TopoNodeId> roots;
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    auto request = Request(PIPELINE_CANN_TRACE | PIPELINE_DEVICE_DATA | PIPELINE_TIMELINE);
+    request.reportsJson = root + "/reports.json";
+    FileWriter(request.reportsJson).WriteText("{\"json_process\":{\"cann\":true}}");
+    ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
+    const auto& keys = builder.GetRuntimeNodeKeys();
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        for (const auto& name : {"AscendTaskAssociation", "HcclCalculator", "AscendTaskPersistence"})
+        {
+            const auto stage = std::string(name) == "AscendTaskPersistence"
+                                   ? TopoNodeStage::DEVICE_PERSISTENCE : TopoNodeStage::DEVICE_PROCESSING;
+            const auto key = keys.at({stage, name, scope});
+            EXPECT_FALSE(graph.at(key).runOnDependencyFailure) << name << "@" << scope;
+            EXPECT_TRUE(graph.at(key).mandatory);
+        }
+    }
+    const auto task = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_TASK, "export"});
+    const auto apiProcessor = keys.at({TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_API, "export"});
+    const auto api = keys.at({TopoNodeStage::TIMELINE_EXPORT, Domain::PROCESS_API, "export"});
+    // Only the API export tolerates the skipped task chain; every other node still propagates it.
+    EXPECT_FALSE(graph.at(task).runOnDependencyFailure);
+    EXPECT_FALSE(graph.at(apiProcessor).runOnDependencyFailure);
+    EXPECT_TRUE(graph.at(api).runOnDependencyFailure);
+    for (auto& node : graph)
+    {
+        // Keep the real association: empty task maps are normal no-data and skip the task consumers.
+        if (node.second.processName == "AscendTaskAssociation")
+        {
+            auto hostTasks = std::make_shared<std::map<Domain::TaskId, std::vector<Domain::HostTask>>>();
+            ASSERT_TRUE(node.second.inventory->Inject(hostTasks));
+            ASSERT_TRUE(node.second.inventory->Inject(
+                std::make_shared<std::map<Domain::TaskId, std::vector<Domain::DeviceTask>>>()));
+            continue;
+        }
+        node.second.creator = []() -> std::unique_ptr<Process>
+        { return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&) { return true; })); };
+    }
+    std::atomic<int> apiRuns{0};
+    graph.at(api).creator = [&]() -> std::unique_ptr<Process>
+    { return std::unique_ptr<Process>(new TopoCallbackProcess([&](DataInventory&) { ++apiRuns; return true; })); };
+    // The executor takes ownership of the process collection, so capture the planned graph before it runs.
+    const auto description = DescribeTopoGraph(builder, graph);
+    ProcessControl executor(graph);
+    EXPECT_TRUE(executor.ExecuteProcess());
+    const auto results = executor.GetRuntimeResults();
+    for (const auto& scope : {"device_0", "device_1"})
+    {
+        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "AscendTaskAssociation", scope})).state,
+                  RuntimeProcessState::SKIPPED);
+        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PROCESSING, "HcclCalculator", scope})).state,
+                  RuntimeProcessState::SKIPPED);
+        EXPECT_EQ(results.at(keys.at({TopoNodeStage::DEVICE_PERSISTENCE, "AscendTaskPersistence", scope})).state,
+                  RuntimeProcessState::SKIPPED);
+    }
+    EXPECT_EQ(results.at(task).state, RuntimeProcessState::SKIPPED);
+    EXPECT_EQ(results.at(apiProcessor).state, RuntimeProcessState::SUCCEEDED);
+    EXPECT_EQ(results.at(api).state, RuntimeProcessState::SUCCEEDED);
+    EXPECT_EQ(apiRuns.load(), 1);
+    RecordTopoGraphDiagnostics(description, executor, root);
+    nlohmann::json report;
+    ASSERT_EQ(FileReader(root + "/mindstudio_profiler_log/unified_pipeline_graph.json").ReadJson(report), ANALYSIS_OK);
+    for (const auto& node : report.at("nodes"))
+    {
+        if (node.at("key").get<RuntimeProcessKey>() == task)
+        {
+            EXPECT_EQ(node.at("state"), "SKIPPED");
         }
     }
 }
@@ -2611,9 +2682,7 @@ TEST_F(UnifiedPipelinePlanUTest, StringIdsPersistAfterSaverFailureButDoNotRunAft
         EXPECT_TRUE(graph.at(stringKey).runOnDependencyFailure);
         EXPECT_EQ(graph.at(stringKey).processDependence.size(), 3U);
         if (stop) { graph.at(failedKey).context = std::make_shared<StopContext>(); }
-        ProcessControlOptions options;
-        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-        ProcessControl executor(graph, options);
+        ProcessControl executor(graph);
         EXPECT_FALSE(executor.ExecuteProcess());
         const auto results = executor.GetRuntimeResults();
         EXPECT_EQ(results.at(failedKey).state, RuntimeProcessState::FAILED);

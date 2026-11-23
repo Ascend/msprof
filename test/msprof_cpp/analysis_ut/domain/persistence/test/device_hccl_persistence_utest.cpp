@@ -15,6 +15,8 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  */
+#include <memory>
+
 #include <gtest/gtest.h>
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/domain/services/persistence/device/device_hccl_persistence.h"
@@ -233,8 +235,9 @@ protected:
     }
 };
 
-TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenProcessSuccessThenReturnOK)
+TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenHcclDataPresentWithoutAscendTaskThenReturnOK)
 {
+    ASSERT_EQ(nullptr, dataInventory_.GetPtr<std::vector<TopDownTask>>());
     Analysis::Domain::DeviceHcclPersistence per;
     Analysis::Domain::DeviceContext context;
     MOCKER_CPP(&Analysis::Domain::DeviceContext::GetDeviceFilePath).stubs().will(returnValue(DEVICE_DIR));
@@ -273,7 +276,21 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataPointerIsNullThenRetu
     Analysis::Domain::DeviceHcclPersistence per;
     Analysis::Domain::DeviceContext context;
     Analysis::Infra::DataInventory tempDataInventory;
+    // Required HCCL result pointers must still be present when persistence is executed.
     ASSERT_EQ(Analysis::ANALYSIS_ERROR, per.Run(tempDataInventory, context));
+}
+
+TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenAscendTaskEmptyAndHcclDataPresentThenReturnOK)
+{
+    Analysis::Domain::DeviceHcclPersistence per;
+    Analysis::Domain::DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_DIR;
+    ASSERT_TRUE(dataInventory_.Inject(std::make_shared<std::vector<TopDownTask>>()));
+    ASSERT_EQ(Analysis::ANALYSIS_OK, per.Run(dataInventory_, context));
+    DBRunner dbRunner(DB_PATH);
+    HcclOpDataFormat opData;
+    ASSERT_TRUE(dbRunner.QueryData("SELECT * from HCCLOpSingleDevice", opData));
+    EXPECT_EQ(HCCL_OP_DATA, opData);
 }
 
 TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
@@ -303,6 +320,7 @@ TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenDataEmptyThenReturnOK)
 
 TEST_F(DeviceHcclPersistenceUTest, TestProcessEntryWhenKfcDataPresentThenSaveKfcTables)
 {
+    ASSERT_EQ(nullptr, dataInventory_.GetPtr<std::vector<TopDownTask>>());
     auto kfcTask = GenerateKfcTaskData();
     std::shared_ptr<std::vector<Analysis::Domain::KfcTaskRecord>> kfcTaskData;
     MAKE_SHARED0_NO_OPERATION(kfcTaskData, std::vector<Analysis::Domain::KfcTaskRecord>, std::move(kfcTask));

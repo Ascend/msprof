@@ -125,9 +125,7 @@ TEST(RuntimeTopology, SequenceMacroDefaultsToFalseAndAcceptsExplicitDependencyFa
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, {defaultNode, explicitFalse, explicitTrue}, graph));
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     const auto& keys = builder.GetRuntimeNodeKeys();
@@ -420,9 +418,7 @@ TEST(RuntimeTopology, FailureLogsIdentifyExecutedProducerWithoutBlamingBlockedCo
     consumer.processName = "consumer";
     consumer.processDependence = {1};
     graph.emplace(2, consumer);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     StartTestLogCapture();
     StartTestPrintCapture();
     const bool result = executor.ExecuteProcess();
@@ -470,9 +466,7 @@ TEST(RuntimeTopology, RequiredBlockedNodeReportsDistinctRootFailuresAcrossDepend
     output.processName = "consumer";
     output.processDependence = {1, 3};
     graph.emplace(4, output);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     StartTestLogCapture();
     StartTestPrintCapture();
     const bool success = executor.ExecuteProcess();
@@ -501,9 +495,7 @@ TEST(RuntimeTopology, StageQualifiedLabelsKeepSharedNamesDistinguishable)
     assembler.processName = "FusionOp";
     assembler.stage = TopoNodeStage::SUMMARY_GENERATION;
     graph.emplace(2, assembler);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     StartTestLogCapture();
     StartTestPrintCapture();
     const bool success = executor.ExecuteProcess();
@@ -585,9 +577,7 @@ TEST(RuntimeTopology, DfxStopDoesNotPromoteUnrelatedOptionalFailureToOverallErro
     auto consumer = Node(Action(Success));
     consumer.processDependence = {2};
     graph.emplace(3, consumer);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     StartTestLogCapture();
     StartTestPrintCapture();
     const bool success = executor.ExecuteProcess();
@@ -634,7 +624,6 @@ TEST(RuntimeTopology, DeviceLimitReleasesAfterLastNodeWithoutCompletionCallbacks
             }
         }
         ProcessControlOptions options;
-        options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
         options.maxActiveDevices = 1;
         options.maxWorkerThreads = 2;
         ProcessControl executor(graph, options);
@@ -1079,7 +1068,7 @@ TEST(RuntimeTopology, StandaloneExportBuildDoesNotScheduleDeviceParsing)
     TopoNodeRegistry::MutableDefinitions().erase(output.id);
 }
 
-TEST(RuntimeTopology, IndependentModeRunsUnrelatedWorkAfterMandatoryFailure)
+TEST(RuntimeTopology, MandatoryFailureOnlyBlocksDependentBranch)
 {
     RuntimeProcessCollection graph;
     graph[1] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_ERROR; }));
@@ -1093,7 +1082,6 @@ TEST(RuntimeTopology, IndependentModeRunsUnrelatedWorkAfterMandatoryFailure)
     graph[5] = Node(Action(Success));
     graph[5].completionDependence = {2, 4};
     ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     options.maxWorkerThreads = 1;
     ProcessControl executor(graph, options);
     EXPECT_FALSE(executor.ExecuteProcess());
@@ -1104,6 +1092,114 @@ TEST(RuntimeTopology, IndependentModeRunsUnrelatedWorkAfterMandatoryFailure)
     EXPECT_EQ(results.at(3).state, RuntimeProcessState::BLOCKED);
     EXPECT_EQ(results.at(4).failedDependencies, (std::vector<RuntimeProcessKey>{1}));
     EXPECT_EQ(results.at(5).state, RuntimeProcessState::SUCCEEDED);
+}
+
+TEST(RuntimeTopology, NoDataSkipsRequiredChainAndReleasesResourcesWithoutFailure)
+{
+    RuntimeProcessCollection graph;
+    graph[1] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_SKIP; }));
+    graph[1].opensDeviceScope = true;
+    graph[1].resources = {"shared"};
+    std::atomic<int> skippedRuns{0};
+    graph[2] = Node(Action([&](DataInventory&, const Context&) { ++skippedRuns; return ANALYSIS_OK; }));
+    graph[2].processDependence = {1};
+    graph[3] = Node(graph[2].creator);
+    graph[3].processDependence = {2};
+    graph[4] = Node(Action(Success), "device_1");
+    graph[4].completionDependence = {3};
+    graph[4].opensDeviceScope = true;
+    graph[4].resources = {"shared"};
+    std::atomic<int> handled{0};
+    graph[5] = Node(Action([&](DataInventory&, const Context&) { ++handled; return ANALYSIS_OK; }), "export");
+    graph[5].processDependence = {3, 4};
+    graph[5].runOnDependencyFailure = true;
+    ProcessControlOptions options;
+    options.maxActiveDevices = 1;
+    ProcessControl executor(graph, options);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool success = executor.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    const auto prints = StopTestPrintCapture();
+    EXPECT_TRUE(success);
+    EXPECT_EQ(skippedRuns.load(), 0);
+    EXPECT_EQ(handled.load(), 1);
+    EXPECT_TRUE(prints.empty());
+    EXPECT_THAT(messages, testing::Not(testing::Contains(testing::Field(&TestLogMessage::level, "[ERROR]"))));
+    const auto results = executor.GetRuntimeResults();
+    for (const auto key : {1U, 2U, 3U})
+    {
+        EXPECT_EQ(results.at(key).state, RuntimeProcessState::SKIPPED);
+        EXPECT_EQ(results.at(key).statistics.returnCode, ANALYSIS_SKIP);
+        EXPECT_TRUE(results.at(key).failedDependencies.empty());
+    }
+    EXPECT_EQ(results.at(4).state, RuntimeProcessState::SUCCEEDED);
+    EXPECT_EQ(results.at(5).state, RuntimeProcessState::SUCCEEDED);
+    size_t recordedProcesses = 0;
+    for (const auto& level : executor.GetExecuteStat().allLevelStat)
+    {
+        EXPECT_TRUE(level.generalResult);
+        recordedProcesses += level.processStatistics.size();
+    }
+    EXPECT_EQ(recordedProcesses, 2U);
+}
+
+TEST(RuntimeTopology, FailedDependencyTakesPrecedenceOverNoData)
+{
+    for (const bool reverse : {false, true})
+    {
+        SCOPED_TRACE(reverse);
+        RuntimeProcessCollection graph;
+        graph[1] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_SKIP; }));
+        graph[2] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_ERROR; }));
+        graph[2].mandatory = false;
+        graph[3] = Node(Action(Success));
+        graph[3].processDependence = reverse ? std::vector<RuntimeProcessKey>{2, 1}
+                                            : std::vector<RuntimeProcessKey>{1, 2};
+        graph[4] = Node(Action(Success));
+        graph[4].processDependence = {3};
+        ProcessControl executor(graph);
+        EXPECT_FALSE(executor.ExecuteProcess());
+        const auto results = executor.GetRuntimeResults();
+        EXPECT_EQ(results.at(1).state, RuntimeProcessState::SKIPPED);
+        EXPECT_EQ(results.at(2).state, RuntimeProcessState::FAILED);
+        for (const auto key : {3U, 4U})
+        {
+            EXPECT_EQ(results.at(key).state, RuntimeProcessState::BLOCKED);
+            EXPECT_EQ(results.at(key).failedDependencies, (std::vector<RuntimeProcessKey>{2}));
+        }
+    }
+}
+
+TEST(RuntimeTopology, NoDataAtDfxStopStillCancelsPendingNodes)
+{
+    class StopContext : public TestContext
+    {
+    public:
+        StopContext() : TestContext(5) {}
+        const std::string& GetDfxStopAtName() const override { return name_; }
+    private:
+        std::string name_ = "stop";
+    };
+    RuntimeProcessCollection graph;
+    graph[1] = Node(Action([](DataInventory&, const Context&) { return ANALYSIS_SKIP; }));
+    graph[1].context = std::make_shared<StopContext>();
+    graph[1].processName = "stop";
+    std::atomic<int> handled{0};
+    graph[2] = Node(Action([&](DataInventory&, const Context&) { ++handled; return ANALYSIS_OK; }));
+    graph[2].processDependence = {1};
+    graph[2].runOnDependencyFailure = true;
+    ProcessControl executor(graph);
+    StartTestLogCapture();
+    StartTestPrintCapture();
+    const bool success = executor.ExecuteProcess();
+    const auto messages = StopTestLogCapture();
+    const auto prints = StopTestPrintCapture();
+    EXPECT_FALSE(success);
+    EXPECT_EQ(handled.load(), 0);
+    EXPECT_EQ(executor.GetRuntimeResults().at(2).state, RuntimeProcessState::CANCELLED);
+    EXPECT_TRUE(prints.empty());
+    EXPECT_THAT(messages, testing::Not(testing::Contains(testing::Field(&TestLogMessage::level, "[ERROR]"))));
 }
 
 TEST(RuntimeTopology, DependencyFailurePolicyWaitsForAllPredecessorsAndKeepsNormalNodesBlocked)
@@ -1126,9 +1222,7 @@ TEST(RuntimeTopology, DependencyFailurePolicyWaitsForAllPredecessorsAndKeepsNorm
     graph[4].runOnDependencyFailure = true;
     graph[5] = Node(Action(Success));
     graph[5].processDependence = {4};
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     EXPECT_EQ(handled.load(), 1);
@@ -1163,9 +1257,7 @@ TEST(RuntimeTopology, CompilerPreservesDependencyFailurePolicyForResolvedDepende
     const auto handlerKey = builder.GetRuntimeNodeKeys().at({handler.id.stage, handler.id.name, "export"});
     EXPECT_FALSE(graph.at(normalKey).runOnDependencyFailure);
     EXPECT_TRUE(graph.at(handlerKey).runOnDependencyFailure);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     EXPECT_EQ(executor.GetRuntimeResults().at(normalKey).state, RuntimeProcessState::BLOCKED);
     EXPECT_EQ(executor.GetRuntimeResults().at(handlerKey).state, RuntimeProcessState::SUCCEEDED);
@@ -1180,9 +1272,7 @@ TEST(RuntimeTopology, RuntimeBindingsPreserveDependencyFailurePolicy)
     handler.processDependence = {1};
     handler.runOnDependencyFailure = true;
     operations.emplace(2, handler);
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(operations, options);
+    ProcessControl executor(operations);
     EXPECT_FALSE(executor.ExecuteProcess());
     EXPECT_EQ(calls.load(), 1);
     EXPECT_EQ(executor.GetRuntimeResults().at(2).state, RuntimeProcessState::SUCCEEDED);
@@ -1206,7 +1296,6 @@ TEST(RuntimeTopology, BlockedDeviceNodesReleaseSlotWithoutRunningCallbacks)
     graph[5] = Node(Action(Success), "device_1");
     graph[5].completionDependence = {4};
     ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
     options.maxActiveDevices = 1;
     ProcessControl executor(graph, options);
     EXPECT_FALSE(executor.ExecuteProcess());
@@ -1261,7 +1350,7 @@ TEST(RuntimeTopology, CompilerExpandsCompletionDependenciesAndPrefersSuccessEdge
     EXPECT_TRUE(graph.at(merged).completionDependence.empty());
 }
 
-TEST(RuntimeTopology, GlobalStopCancelsNodesEvenWhenTheyAllowDependencyFailure)
+TEST(RuntimeTopology, DfxStopCancelsNodesWhileMandatoryFailureKeepsBranchesRunning)
 {
     class StopContext : public TestContext
     {
@@ -1273,7 +1362,7 @@ TEST(RuntimeTopology, GlobalStopCancelsNodesEvenWhenTheyAllowDependencyFailure)
     };
     for (const bool dfx : {false, true})
     {
-        SCOPED_TRACE(dfx ? "DFX stop" : "fail-fast");
+        SCOPED_TRACE(dfx ? "DFX stop" : "mandatory failure");
         RuntimeProcessCollection graph;
         graph[1] = Node(Action([dfx](DataInventory&, const Context&)
             { return dfx ? ANALYSIS_OK : ANALYSIS_ERROR; }));
@@ -1281,16 +1370,14 @@ TEST(RuntimeTopology, GlobalStopCancelsNodesEvenWhenTheyAllowDependencyFailure)
         graph[1].processName = "stop";
         graph[2] = Node(Action(Success));
         graph[2].completionDependence = {1};
-        std::atomic<int> executedAfterStop{0};
-        graph[3] = Node(Action([&](DataInventory&, const Context&) { ++executedAfterStop; return ANALYSIS_OK; }));
+        std::atomic<int> handlerRuns{0};
+        graph[3] = Node(Action([&](DataInventory&, const Context&) { ++handlerRuns; return ANALYSIS_OK; }));
         graph[3].processDependence = {2};
         graph[3].runOnDependencyFailure = true;
         graph[4] = Node(Action(Success));
         graph[4].processDependence = {1};
         graph[4].runOnDependencyFailure = true;
-        ProcessControlOptions options;
-        options.failureMode = dfx ? FailureMode::CONTINUE_INDEPENDENT : FailureMode::STOP_ON_MANDATORY_FAILURE;
-        ProcessControl executor(graph, options);
+        ProcessControl executor(graph);
         StartTestLogCapture();
         StartTestPrintCapture();
         const bool success = executor.ExecuteProcess();
@@ -1298,10 +1385,11 @@ TEST(RuntimeTopology, GlobalStopCancelsNodesEvenWhenTheyAllowDependencyFailure)
         const auto prints = StopTestPrintCapture();
         EXPECT_FALSE(success);
         const auto results = executor.GetRuntimeResults();
-        EXPECT_EQ(results.at(2).state, RuntimeProcessState::CANCELLED);
-        EXPECT_EQ(results.at(3).state, RuntimeProcessState::CANCELLED);
-        EXPECT_EQ(results.at(4).state, RuntimeProcessState::CANCELLED);
-        EXPECT_EQ(executedAfterStop.load(), 0);
+        const auto expected = dfx ? RuntimeProcessState::CANCELLED : RuntimeProcessState::SUCCEEDED;
+        EXPECT_EQ(results.at(2).state, expected);
+        EXPECT_EQ(results.at(3).state, expected);
+        EXPECT_EQ(results.at(4).state, expected);
+        EXPECT_EQ(handlerRuns.load(), dfx ? 0 : 1);
         if (dfx)
         {
             EXPECT_TRUE(prints.empty());
@@ -1313,8 +1401,7 @@ TEST(RuntimeTopology, GlobalStopCancelsNodesEvenWhenTheyAllowDependencyFailure)
             EXPECT_THAT(messages, testing::Contains(testing::AllOf(
                 testing::Field(&TestLogMessage::level, "[ERROR]"),
                 testing::Field(&TestLogMessage::message,
-                    "Required process not executed: node=device_0/test, state=CANCELLED, "
-                    "execution_failures=[device_0/stop(return_code=0x1)]."))));
+                               testing::HasSubstr("Process failed: node=device_0/stop")))));
         }
     }
 }

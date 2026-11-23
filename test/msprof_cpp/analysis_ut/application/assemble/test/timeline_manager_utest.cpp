@@ -189,9 +189,7 @@ TEST(TimelineManagerUTest, FailedMsprofTxProcessorDoesNotBlockOtherLayersOrJsonF
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, graph));
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     const auto& keys = builder.GetRuntimeNodeKeys();
@@ -247,9 +245,7 @@ TEST(TimelineManagerUTest, PostDumpRunsAfterPreDumpFailureWithoutCreatingEmptyFi
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, graph));
-    ProcessControlOptions options;
-    options.failureMode = FailureMode::CONTINUE_INDEPENDENT;
-    ProcessControl executor(graph, options);
+    ProcessControl executor(graph);
     EXPECT_FALSE(executor.ExecuteProcess());
     const auto results = executor.GetRuntimeResults();
     const auto& keys = builder.GetRuntimeNodeKeys();

@@ -238,7 +238,7 @@ uint32_t AscendTaskAssociation::ProcessEntry(DataInventory& dataInventory, const
         WARN("No HostTasks and DeviceTasks, don't need to generate AscendTask!");
         MAKE_SHARED_RETURN_VALUE(data, std::vector<TopDownTask>, ANALYSIS_ERROR, std::move(res));
         dataInventory.Inject(data);
-        return ANALYSIS_OK;
+        return ANALYSIS_SKIP;
     }
     if (hostTasks->empty() || deviceTasks->empty())
     {

@@ -188,15 +188,15 @@ class TopoGraphBuilder
  *                       使用 typeid(ProcessorType)，供处理器工厂查找；其余阶段使用 typeid(void)。
  *                       所有节点实例均由拓扑构建器分配运行时 key。
  * @param NodeId         当前节点标识，使用 TOPO_NODE(stage, name) 构造。
- * @param Mandatory      是否为必需节点。true 表示节点执行失败会导致本次流程失败；
- *                       false 表示该节点失败后流程可继续执行。
+ * @param Mandatory      是否为必需节点。true 表示节点失败或被阻塞会影响最终结果；
+ *                       false 表示该节点失败不直接影响最终结果。两者均不停止无关分支。
  * @param CreatorFactory 节点创建工厂，接收 TopoBuildContext 并返回 ProcessCreator。
  *                       工厂或其创建的 Process 为空时，节点构建失败。
  * @param Dependencies   静态依赖列表，使用 TOPO_DEPS(...) 构造。
  * @param Resolver       可选动态依赖解析器；根据 TopoBuildContext 和根节点列表
  *                       补充依赖。没有动态依赖时传入 nullptr。
  * @param RunOnDependencyFailure 可省略，默认 false。显式传 true 时，等待全部前驱结束后执行，
- *                       不因前驱失败而阻塞；不覆盖 DFX 或 fail-fast 的全局停止。
+ *                       不因前驱失败或正常跳过而阻塞；不覆盖 DFX 的全局停止。
  *
  * REGISTER_TOPO_NODE_DEPENDENT_DATA(NodeId, ...)
  * @param NodeId 当前节点标识，必须与 REGISTER_TOPO_NODE_SEQUENCE 的 NodeId 完全一致。

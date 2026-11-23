@@ -41,7 +41,7 @@ struct ProcessStatistics
     uint32_t returnCode;
     uint64_t startTime;
     uint64_t duration;  // 单位：微秒(us)
-    bool mandatory;     // Failure contributes to the result; dispatch policy is controlled by FailureMode.
+    bool mandatory;     // Failure contributes to the final result without stopping independent branches.
     bool dfxStop;       // DFX需求：可以指定执行完哪个Process停止
 };
 
@@ -57,12 +57,6 @@ struct ExecuteProcessStat
     std::vector<OneLevelStat> allLevelStat;
 };
 
-enum class FailureMode
-{
-    STOP_ON_MANDATORY_FAILURE,
-    CONTINUE_INDEPENDENT
-};
-
 struct ProcessControlOptions
 {
     bool releaseUnusedData = true;
@@ -70,7 +64,6 @@ struct ProcessControlOptions
     uint32_t maxWorkerThreads = 0;
     // A Device slot is held from its opening node until every node in the same scope has terminated.
     uint32_t maxActiveDevices = 0;
-    FailureMode failureMode = FailureMode::STOP_ON_MANDATORY_FAILURE;
 };
 
 enum class RuntimeProcessState
@@ -80,7 +73,8 @@ enum class RuntimeProcessState
     SUCCEEDED,
     FAILED,
     BLOCKED,
-    CANCELLED
+    CANCELLED,
+    SKIPPED  // Normal no-data result, or propagation through a required dependency.
 };
 
 struct RuntimeProcessResult
