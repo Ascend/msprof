@@ -19,15 +19,15 @@
 #include "analysis/csrc/application/include/export_manager.h"
 
 #include <algorithm>
-#include <memory>
-#include <new>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "analysis/csrc/application/database/db_assembler.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/include/report_map.h"
 #include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/application/summary/summary_manager.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
@@ -40,6 +40,89 @@ namespace Analysis
 namespace Application
 {
 using namespace Analysis::Domain;
+
+namespace
+{
+enum class ReportSectionState
+{
+    ABSENT,  // The section is not configured, no deliverable of this kind is exported.
+    PARSED,  // The section is valid and every enabled deliverable has been applied.
+    INVALID  // The section is malformed, the caller decides whether to abort or to keep the defaults.
+};
+
+// Parses one section of the report config and hands every enabled deliverable to the caller.
+// The apply callback returns false when the deliverable name is invalid.
+template <typename ApplyFunc>
+ReportSectionState ParseReportSection(const nlohmann::json& section, const char* sectionKey, const char* displayName,
+                                      bool strict, ApplyFunc apply)
+{
+    if (section.is_null() || (section.is_object() && section.empty()))
+    {
+        INFO("The % is not exist.", sectionKey);
+        return ReportSectionState::ABSENT;
+    }
+    if (!section.is_object())
+    {
+        if (!strict)
+        {
+            INFO("The % is not exist.", sectionKey);
+            return ReportSectionState::ABSENT;
+        }
+        ERROR("% process must be a JSON object.", displayName);
+        PRINT_ERROR("% process must be a JSON object.", displayName);
+        return ReportSectionState::INVALID;
+    }
+    for (nlohmann::json::const_iterator it = section.begin(); it != section.end(); ++it)
+    {
+        if (!it.value().is_boolean())
+        {
+            ERROR("% process value must be bool.", displayName);
+            PRINT_ERROR("% process value must be bool.", displayName);
+            return ReportSectionState::INVALID;
+        }
+        if (it.value() && !apply(it.key()))
+        {
+            ERROR("% process contains invalid key.", displayName);
+            PRINT_ERROR("% process contains invalid key.", displayName);
+            return ReportSectionState::INVALID;
+        }
+    }
+    return ReportSectionState::PARSED;
+}
+
+// Expands the whole deliverable selection, it is used when the report config is not given or unreadable.
+void ApplyDefaultSelection(bool exportTimeline, bool exportSummary, bool exportDB, ExportSelection& selection)
+{
+    if (exportTimeline)
+    {
+        selection.timelineProcesses = GetAllTimelineJsonKeys();
+    }
+    if (exportSummary)
+    {
+        selection.summaryProcesses = GetAllSummaryJsonKeys();
+    }
+    if (exportDB)
+    {
+        selection.dbProcesses = GetAllDBJsonKeys();
+    }
+}
+
+void RemoveDuplicateRoots(std::vector<TopoNodeId>& roots)
+{
+    std::unordered_set<TopoNodeId, TopoNodeIdHash> seen;
+    std::vector<TopoNodeId> uniqueRoots;
+    uniqueRoots.reserve(roots.size());
+    for (const auto& root : roots)
+    {
+        if (seen.insert(root).second)
+        {
+            uniqueRoots.emplace_back(root);
+        }
+    }
+    roots.swap(uniqueRoots);
+}
+}  // namespace
+
 bool ExportManager::HasExportedMsprofDB(const std::string& profPath)
 {
     const std::string dbSuffix = ".db";
@@ -99,10 +182,16 @@ bool ExportManager::Run(const std::set<ExportMode>& exportModeSet)
 
     TopoBuildContext buildContext;
     buildContext.environmentLoaded = true;
+    buildContext.strictSelection = !jsonPath_.empty() && exportModeSet.count(ExportMode::SUMMARY) != 0;
     std::vector<TopoNodeId> roots;
     if (!Plan(exportModeSet, buildContext, roots))
     {
         return false;
+    }
+    if (roots.empty())
+    {
+        INFO("No export deliverable is selected, skip export.");
+        return true;
     }
 
     Infra::RuntimeProcessCollection processes;
@@ -143,53 +232,36 @@ bool ExportManager::Plan(const std::set<ExportMode>& exportModeSet, TopoBuildCon
     }
 
     buildContext.profPath = profPath_;
-    buildContext.outputPath = profPath_;
-    buildContext.timelineProcesses = selection.timelineProcesses;
     for (const auto& exportMode : exportModeSet)
     {
         switch (exportMode)
         {
             case ExportMode::DB:
             {
-                if (HasExportedMsprofDB(profPath_))
+                if (selection.dbProcesses.empty() || HasExportedMsprofDB(profPath_))
                 {
-                    INFO("The exported msprof db already exists, skip DB export.");
+                    INFO("Nothing to export for the DB deliverable, skip DB export.");
                     break;
                 }
-                if (!DBAssembler::GetTopologyRoots(roots))
+                buildContext.dbPath = DBAssembler::MakeDBPath(profPath_);
+                if (buildContext.dbPath.empty())
                 {
-                    ERROR("Build DB topology roots failed.");
+                    ERROR("Prepare DB export path failed.");
                     return false;
                 }
-                buildContext.dbSession =
-                    std::shared_ptr<DBAssembler>(new (std::nothrow) DBAssembler(profPath_, profPath_));
-                if (buildContext.dbSession == nullptr)
-                {
-                    ERROR("Prepare DB export session failed.");
-                    return false;
-                }
+                DBAssembler::GetTopologyRoots(selection.dbProcesses, roots);
                 break;
             }
             case ExportMode::TIMELINE:
-            {
-                buildContext.outputPath = File::PathJoin({profPath_, Analysis::Common::OUTPUT_PATH});
-                if (!TimelineManager::GetTopologyRoots(selection.timelineProcesses, roots))
+                if (!selection.timelineProcesses.empty())
                 {
-                    return false;
-                }
-                buildContext.timelineSession = std::shared_ptr<TimelineManager>(
-                    new (std::nothrow) TimelineManager(profPath_, buildContext.outputPath));
-                if (buildContext.timelineSession == nullptr)
-                {
-                    ERROR("Prepare timeline export session failed.");
-                    return false;
+                    TimelineManager::GetTopologyRoots(selection.timelineProcesses, roots);
                 }
                 break;
-            }
             case ExportMode::SUMMARY:
-                if (!SummaryManager::GetTopologyRoots(selection.summaryDeliverables, roots))
+                if (!selection.summaryProcesses.empty())
                 {
-                    return false;
+                    SummaryManager::GetTopologyRoots(selection.summaryProcesses, roots);
                 }
                 break;
             default:
@@ -197,7 +269,7 @@ bool ExportManager::Plan(const std::set<ExportMode>& exportModeSet, TopoBuildCon
                 return false;
         }
     }
-
+    RemoveDuplicateRoots(roots);
     return true;
 }
 
@@ -205,142 +277,114 @@ bool ExportManager::GetExportSelection(const std::set<ExportMode>& exportModeSet
                                        bool strict)
 {
     selection.timelineProcesses.clear();
-    selection.summaryDeliverables.clear();
+    selection.summaryProcesses.clear();
+    selection.dbProcesses.clear();
     const bool exportTimeline = exportModeSet.find(ExportMode::TIMELINE) != exportModeSet.end();
     const bool exportSummary = exportModeSet.find(ExportMode::SUMMARY) != exportModeSet.end();
-    if (!exportTimeline && !exportSummary)
+    const bool exportDB = exportModeSet.find(ExportMode::DB) != exportModeSet.end();
+    if (!exportTimeline && !exportSummary && !exportDB)
     {
         return true;
     }
-    if (exportTimeline)
-    {
-        selection.timelineProcesses = allProcesses;
-    }
+    // The report file decides the whole selection, so the defaults are only expanded when it is not given.
     if (jsonPath_.empty())
     {
+        ApplyDefaultSelection(exportTimeline, exportSummary, exportDB, selection);
         INFO("The report parameter is not used.");
-        PRINT_INFO("The report parameter is not used.");
         return true;
     }
     FileReader fd(jsonPath_);
     nlohmann::json config;
     if (fd.ReadJson(config) != ANALYSIS_OK)
     {
-        ERROR("Load report config failed: '%'.", jsonPath_);
-        PRINT_ERROR("Load report config failed: '%'.", jsonPath_);
-        return !strict;
+        if (strict)
+        {
+            ERROR("Load report config failed: '%'.", jsonPath_);
+            return false;
+        }
+        ApplyDefaultSelection(exportTimeline, exportSummary, exportDB, selection);
+        INFO("The report config is unreadable and ignored, all default deliverables are kept.");
+        return true;
     }
-
+    INFO("Load report config from '%', content: %.", jsonPath_, config.dump());
     if (!config.is_object())
     {
         ERROR("Report selection must be a JSON object.");
-        return !strict;
+        if (strict)
+        {
+            return false;
+        }
+        ApplyDefaultSelection(exportTimeline, exportSummary, exportDB, selection);
+        INFO("The report config is not a JSON object and is ignored, all default deliverables are kept.");
+        return true;
     }
     if (exportTimeline)
     {
-        const auto jsonProcessConfig = config["json_process"];
-        if (jsonProcessConfig.is_null() || !jsonProcessConfig.is_object() || jsonProcessConfig.empty())
+        const auto appendTimelineProcess = [&selection](const std::string& name)
         {
-            if (strict && !jsonProcessConfig.is_null() && !jsonProcessConfig.is_object())
-            {
-                ERROR("Timeline process must be a JSON object.");
-                return false;
-            }
-            INFO("The json_process is not exist.");
-            PRINT_INFO("The json_process is not exist.");
-        }
-        else
-        {
-            std::vector<JsonProcess> jsonProcesses;
-            bool valid = true;
-            for (nlohmann::json::const_iterator it = jsonProcessConfig.begin(); it != jsonProcessConfig.end(); ++it)
-            {
-                if (strToJsonProcess.find(it.key()) == strToJsonProcess.end())
-                {
-                    ERROR("Json process contains invalid key.");
-                    PRINT_ERROR("Json process contains invalid key.");
-                    valid = false;
-                    break;
-                }
-                if (!it.value().is_boolean())
-                {
-                    ERROR("Json contains invalid value, only the bool type is supported.");
-                    PRINT_ERROR("Json contains invalid value, only the bool type is supported.");
-                    valid = false;
-                    break;
-                }
-                if (it.value())
-                {
-                    const auto processEnum = strToJsonProcess.at(it.key());
-                    jsonProcesses.emplace_back(processEnum);
-                    if (it.key() == "freq")
-                    {
-                        jsonProcesses.emplace_back(JsonProcess::LOW_POWER);
-                    }
-                }
-            }
-            if (valid)
-            {
-                if (jsonProcesses.empty())
-                {
-                    ERROR("Json process has no enabled timeline deliverable.");
-                    return false;
-                }
-                selection.timelineProcesses = std::move(jsonProcesses);
-            }
-            else if (strict)
+            if (GetTimelineNodeKey(name).empty())
             {
                 return false;
             }
+            selection.timelineProcesses.emplace_back(name);
+            return true;
+        };
+        const auto state =
+            ParseReportSection(config["json_process"], "json_process", "Timeline", strict, appendTimelineProcess);
+        if (state == ReportSectionState::INVALID)
+        {
+            if (strict)
+            {
+                return false;
+            }
+            selection.timelineProcesses.clear();
+            selection.timelineProcesses = GetAllTimelineJsonKeys();
         }
     }
-
     if (exportSummary)
     {
-        const auto summaryProcessConfig = config["summary_process"];
-        if (summaryProcessConfig.is_null())
+        const auto appendSummaryProcess = [&selection](const std::string& name)
         {
-            return true;
-        }
-        if (!summaryProcessConfig.is_object())
-        {
-            ERROR("Summary process must be a JSON object.");
-            PRINT_ERROR("Summary process must be a JSON object.");
-            return false;
-        }
-        if (summaryProcessConfig.empty())
-        {
-            INFO("The summary_process is empty.");
-            PRINT_INFO("The summary_process is empty.");
-            return true;
-        }
-
-        std::vector<std::string> summaryDeliverables;
-        for (nlohmann::json::const_iterator it = summaryProcessConfig.begin(); it != summaryProcessConfig.end(); ++it)
-        {
-            if (!SummaryManager::IsDeliverableSupported(it.key()))
+            if (GetSummaryNodeKey(name).empty())
             {
-                ERROR("Summary process contains invalid key.");
-                PRINT_ERROR("Summary process contains invalid key.");
                 return false;
             }
-            if (!it.value().is_boolean())
+            selection.summaryProcesses.emplace_back(name);
+            return true;
+        };
+        const auto state =
+            ParseReportSection(config["summary_process"], "summary_process", "Summary", strict, appendSummaryProcess);
+        if (state == ReportSectionState::INVALID)
+        {
+            if (strict)
             {
-                ERROR("Summary process value must be bool.");
-                PRINT_ERROR("Summary process value must be bool.");
                 return false;
             }
-            if (it.value())
-            {
-                summaryDeliverables.emplace_back(it.key());
-            }
+            selection.summaryProcesses.clear();
+            selection.summaryProcesses = GetAllSummaryJsonKeys();
         }
-        if (summaryDeliverables.empty())
+    }
+    if (exportDB)
+    {
+        const auto appendDBProcess = [&selection](const std::string& name)
         {
-            ERROR("Summary process has no enabled deliverable.");
-            return false;
+            if (GetDBSaverNames(name).empty())
+            {
+                return false;
+            }
+            selection.dbProcesses.emplace_back(name);
+            return true;
+        };
+        const auto state = ParseReportSection(config["db_process"], "db_process", "DB", strict, appendDBProcess);
+        if (state == ReportSectionState::INVALID)
+        {
+            if (strict)
+            {
+                return false;
+            }
+            selection.dbProcesses.clear();
+            selection.dbProcesses = GetAllDBJsonKeys();
         }
-        selection.summaryDeliverables = std::move(summaryDeliverables);
     }
     return true;
 }

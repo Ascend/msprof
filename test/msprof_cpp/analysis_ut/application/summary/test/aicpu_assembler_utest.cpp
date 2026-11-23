@@ -25,6 +25,7 @@
 #include "mockcpp/mockcpp.hpp"
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/include/report_map.h"
 #include "analysis/csrc/application/summary/aicpu_assembler.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/application/summary/summary_factory.h"
@@ -279,8 +280,7 @@ TEST_F(AicpuAssemblerUTest, ShouldGetAicpuAssemblerFromFactory)
 
 TEST_F(AicpuAssemblerUTest, ShouldMapThreeDeliverablesToOneAssembler)
 {
-    std::vector<std::string> assemblers;
-    ASSERT_TRUE(SummaryManager::GetAssemblerList({"aicpu", "dp", "aicpu_mi", "aicpu"}, assemblers));
-    ASSERT_EQ(1ul, assemblers.size());
-    EXPECT_EQ(PROCESSOR_NAME_AICPU, assemblers[0]);
+    EXPECT_EQ(PROCESSOR_NAME_AICPU, GetSummaryNodeKey("aicpu"));
+    EXPECT_EQ(PROCESSOR_NAME_AICPU, GetSummaryNodeKey("dp"));
+    EXPECT_EQ(PROCESSOR_NAME_AICPU, GetSummaryNodeKey("aicpu_mi"));
 }

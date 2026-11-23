@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "analysis/csrc/application/include/export_mode_enum.h"
-#include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/process/include/topo_graph.h"
 
@@ -34,8 +33,9 @@ using namespace Analysis::Infra;
 
 struct ExportSelection
 {
-    std::vector<JsonProcess> timelineProcesses;
-    std::vector<std::string> summaryDeliverables;
+    std::vector<std::string> timelineProcesses;
+    std::vector<std::string> summaryProcesses;
+    std::vector<std::string> dbProcesses;
 };
 
 class ExportManager

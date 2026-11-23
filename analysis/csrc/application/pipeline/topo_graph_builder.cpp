@@ -24,6 +24,7 @@
 #include "analysis/csrc/application/credential/id_pool.h"
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/application/include/export_manager.h"
+#include "analysis/csrc/application/include/finish_done_writer.h"
 #include "analysis/csrc/application/pipeline/unified_pipeline.h"
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/services/environment/context.h"
@@ -185,6 +186,10 @@ ProcessCreator CreateEnvironment(const TopoBuildContext& context)
             Host::Cann::TypeData::GetInstance().Clear();
             Credential::IdPool::GetInstance().Clear();
             Host::Cann::RTAddInfoCenter::GetInstance().Clear();
+            if (!FinishDoneWriter::Create(path))
+            {
+                WARN("Create finish.txt failed, profile path: %.", path);
+            }
             if (environmentLoaded)
             {
                 return true;
@@ -509,7 +514,17 @@ bool PlanPipeline(const PipelineRequest& request, TopoBuildContext& context, Top
     }
     const auto final = Control("Pipeline.Done");
     // Observe completion after dependency failures; ProcessControl still checks every required node's outcome.
-    AddCallback(definitions, final, TopoScopeKind::PROFILE, done, [] { return true; }, true);
+    AddCallback(
+        definitions, final, TopoScopeKind::PROFILE, done,
+        []
+        {
+            if (!FinishDoneWriter::MarkDone())
+            {
+                WARN("Write the done marker to finish.txt failed.");
+            }
+            return true;
+        },
+        true);
     roots = {final};
     return true;
 }
@@ -595,7 +610,12 @@ bool TopoGraphBuilder::Build(const std::string& profPath, const std::set<ExportM
         ExportManager manager(profPath, reportsJson);
         TopoBuildContext context;
         std::vector<TopoNodeId> roots;
-        return manager.Plan(modes, context, roots) && BuildExport(context, roots, processes);
+        if (!manager.Plan(modes, context, roots))
+        {
+            return false;
+        }
+        const bool selectionIsEmpty = roots.empty() && modes.find(ExportMode::DB) == modes.end();
+        return selectionIsEmpty || BuildExport(context, roots, processes);
     }
     catch (const std::exception& error)
     {

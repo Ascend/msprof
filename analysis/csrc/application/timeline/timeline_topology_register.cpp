@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 #include "analysis/csrc/domain/entities/json_trace/include/meta_data_event.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
@@ -61,13 +62,6 @@ namespace Analysis
 namespace Application
 {
 using namespace Analysis::Domain;
-
-namespace
-{
-const std::string TIMELINE_PREFIX = "TIMELINE:";
-const std::string TIMELINE_PRE_DUMP = TIMELINE_PREFIX + "PRE_DUMP";
-const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
-}  // namespace
 
 #define REGISTER_TIMELINE_NODE(Name, Dependencies, RunOnDependencyFailure)                             \
     REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(TIMELINE_EXPORT, Name), true,                  \

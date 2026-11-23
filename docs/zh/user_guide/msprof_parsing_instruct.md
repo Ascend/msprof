@@ -157,7 +157,7 @@ msprof --export=on --output=/home/profiler_data/PROF_XXX --reports=${INSTALL_DIR
 
 > [!NOTE]
 >
->- --reports参数指定的是reports\_sample\_config.json文件。需要与--export同时配置，仅支持--type=text，且仅支持对json文件的timeline数据进行控制，csv文件的summary数据依然为全量导出。
+>- --reports参数指定的是reports\_sample\_config.json文件。需要与--export同时配置，仅支持--type=text，`json_process`、`summary_process`、`db_process`分别控制json文件的timeline数据、csv文件的summary数据和db文件的数据库交付件；未配置的指定交付件json表示该类交付件不导出。
 >- 不支持软链接，文件大小最大阈值为64MB，文件路径加上文件名长度最大阈值为1024字符。
 
 reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/`目录下，内容如下：
@@ -197,16 +197,112 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
         "biu_perf": true,
         "ub": true,
         "block_detail": true
+    },
+    "summary_process": {
+        "op_summary": true,
+        "comm_statistic": true,
+        "op_statistic": true,
+        "npu_memory": true,
+        "npu_module_memory": true,
+        "api_statistic": true,
+        "fusion_op": true,
+        "task_time": true,
+        "step_trace": true,
+        "page_fault": true,
+        "aicpu": true,
+        "dp": true,
+        "aicpu_mi": true
+    },
+    "db_process": {
+        "ascend_hardware": true,
+        "cann_api": true,
+        "osrt_api": true,
+        "hccl": true,
+        "ccu": true,
+        "dpu": true,
+        "overlap_analysis": true,
+        "ddr": true,
+        "hbm": true,
+        "llc": true,
+        "npu_mem": true,
+        "sio": true,
+        "hccs": true,
+        "pcie": true,
+        "nic": true,
+        "roce": true,
+        "netdev_stats": true,
+        "qos": true,
+        "ub": true,
+        "soc": true,
+        "acc_pmu": true,
+        "aicore_freq": true,
+        "sample_pmu": true,
+        "cpu_usage": true,
+        "cpu_freq": true,
+        "disk_usage": true,
+        "network_usage": true,
+        "mem_usage": true,
+        "host_info": true,
+        "npu_info": true,
+        "session_time_info": true,
+        "host_platform": true,
+        "msproftx": true,
+        "ftrace": true,
+        "meta_data": true
     }
 }
 ```
 
-以上为控制相应性能数据的开关，可配置开启（true）或关闭（false或删除字段）。控制的性能数据包括msprof\_\*.json文件的timeline数据层级（包括CANN、Ascend Hardware、AI Core Freq、片上内存、Communication、Overlap Analysis、NPU\_MEM层级等）。
+以上为控制相应性能数据的开关，可配置开启（true）或关闭（false或删除字段）。控制的性能数据包括msprof\_\*.json文件的timeline数据层级（包括CANN、Ascend Hardware、AI Core Freq、片上内存、Communication、Overlap Analysis、NPU\_MEM层级等）、msprof\_\*.csv文件的summary交付件，以及msprof\_\*.db文件中各数据表对应的交付件。
+
+`summary_process`的每个键对应一个csv交付件：op\_summary、comm\_statistic、op\_statistic、npu\_memory、npu\_module\_memory、api\_statistic、fusion\_op、task\_time、step\_trace、page\_fault、aicpu、dp、aicpu\_mi、hbm、ub、llc\_read\_write，其中aicpu、dp、aicpu\_mi三个模块交付件由同一个aicpu开关控制导出；示例文件中未配置hbm、ub、llc\_read\_write三个键，需要导出这三个交付件时请自行补充。
+
+`db_process`的每个键对应一个数据域，选中即导出该域的全部数据库交付件，键名含义见下表。一个域可能包含多个交付件，例如`ascend_hardware`同时导出Task、加速器任务、内存拷贝和Task PMU指标，因为这些表的记录都以`TASK.globalTaskId`关联任务，只导出其中一张表会留下无法关联的任务ID。使用枚举列的域会一并导出枚举表。`db_process`的任一键都始终导出StringIds表，用于还原表中的字符串ID。
+
+| 键 | 数据域 | 包含的数据库交付件 |
+| --- | --- | --- |
+| ascend_hardware | Ascend Hardware硬件执行 | Task信息、加速器任务信息、内存拷贝信息、Task PMU指标、枚举表 |
+| cann_api | CANN API | CANN API、枚举表 |
+| osrt_api | OSRT API | OS Runtime API |
+| hccl | HCCL通信 | 通信信息、枚举表 |
+| ccu | CCU | CCU任务 |
+| dpu | DPU | DPU带宽 |
+| overlap_analysis | Overlap分析 | Overlap分析、枚举表 |
+| ddr | DDR | DDR带宽 |
+| hbm | HBM | HBM带宽 |
+| llc | LLC | LLC带宽 |
+| npu_mem | NPU内存 | NPU内存、算子内存、模块内存 |
+| sio | SIO | SIO带宽 |
+| hccs | HCCS | HCCS带宽 |
+| pcie | PCIe | PCIe带宽 |
+| nic | NIC | NIC带宽 |
+| roce | RoCE | RoCE带宽 |
+| netdev_stats | 网卡统计 | 网卡统计 |
+| qos | QoS | QoS |
+| ub | UB | UB带宽 |
+| soc | SOC | SOC带宽 |
+| acc_pmu | 加速器PMU | 加速器PMU |
+| aicore_freq | AI Core频率 | AI Core频率 |
+| sample_pmu | 采样PMU | 采样PMU（timeline）、采样PMU（summary） |
+| cpu_usage | CPU使用率 | CPU使用率 |
+| cpu_freq | CPU频率 | CPU频率 |
+| disk_usage | 磁盘使用率 | 磁盘使用率 |
+| network_usage | 网络使用率 | 网络使用率 |
+| mem_usage | 内存使用率 | 内存使用率 |
+| host_info | Host信息 | Host信息 |
+| npu_info | NPU信息 | NPU信息 |
+| session_time_info | Session时间信息 | Session时间信息 |
+| host_platform | Host平台信息 | Host平台信息（CPU指标、NUMA层级等） |
+| msproftx | msproftx打点 | msproftx打点、枚举表 |
+| ftrace | 通用ftrace事件 | 通用ftrace事件、枚举表 |
+| meta_data | 元数据表 | 元数据表 |
 
 > [!NOTE]
 >
 >1. 导出以上数据的前提是原始性能数据中已存在相应数据，即相应数据已采集。
->2. 需确保reports_sample_config.json文件格式正确，否则可能导致文件内容错误（如拼写错误，--reports参数不生效，导出全量性能数据）或文件读取失败（如权限问题、文件不存在等，导致--reports无法读取配置文件，中断导出进程并报错）。
+>2. 需确保reports_sample_config.json文件格式正确，否则可能导致文件内容错误（如拼写错误，导致--reports参数不生效或导出失败）或文件读取失败（如权限问题、文件不存在等，导致--reports无法读取配置文件，中断导出进程并报错）。
+>3. `meta_data`、`host_info`、`npu_info`、`session_time_info`属于数据库基础信息交付件，一般保持开启。
+>4. 旧版本配置中的`task`、`compute_task_info`、`memcpy_info`、`task_pmu_info`已合并为`ascend_hardware`；`api`改为`cann_api`，`os_runtime_api`改为`osrt_api`，`communication`改为`hccl`，`ccu_mission`改为`ccu`，`sample_pmu_timeline`和`sample_pmu_summary`合并为`sample_pmu`，`npu_op_mem`和`npu_module_mem`合并为`npu_mem`，`ftrace_generic_event`改为`ftrace`，`enum`并入各数据域，其余键名不变。
 
 **输出说明**
 

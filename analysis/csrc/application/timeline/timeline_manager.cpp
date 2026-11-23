@@ -18,13 +18,14 @@
 
 #include "analysis/csrc/application/timeline/timeline_manager.h"
 
-#include <algorithm>
-#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "analysis/csrc/application/deliverable_consumer.h"
+#include "analysis/csrc/application/include/finish_done_writer.h"
+#include "analysis/csrc/application/include/report_map.h"
+#include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_factory.h"
 #include "analysis/csrc/infrastructure/process/include/topo_callback_process.h"
 
@@ -32,51 +33,7 @@ namespace Analysis
 {
 namespace Application
 {
-namespace
-{
-const std::string TIMELINE_PREFIX = "TIMELINE:";
-const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
-
-const std::unordered_map<JsonProcess, std::string> JSON_TO_ASSEMBLER_TABLE{
-    {JsonProcess::ASCEND, PROCESS_TASK},
-    {JsonProcess::ACC_PMU, PROCESS_ACC_PMU},
-    {JsonProcess::CANN, PROCESS_API},
-    {JsonProcess::DDR, PROCESS_DDR},
-    {JsonProcess::STARS_CHIP_TRANS, PROCESS_STARS_CHIP_TRANS},
-    {JsonProcess::HBM, PROCESS_HBM},
-    {JsonProcess::COMMUNICATION, PROCESS_HCCL},
-    {JsonProcess::CCU, PROCESS_CCU},
-    {JsonProcess::HCCS, PROCESS_HCCS},
-    {JsonProcess::OS_RUNTIME_API, PROCESSOR_NAME_OSRT_API},
-    {JsonProcess::NETWORK_USAGE, PROCESS_NETWORK_USAGE},
-    {JsonProcess::DISK_USAGE, PROCESS_DISK_USAGE},
-    {JsonProcess::MEMORY_USAGE, PROCESS_MEMORY_USAGE},
-    {JsonProcess::CPU_USAGE, PROCESS_CPU_USAGE},
-    {JsonProcess::CPU_FREQ, PROCESS_CPU_FREQUENCY},
-    {JsonProcess::MSPROFTX, PROCESS_MSPROFTX},
-    {JsonProcess::NPU_MEM, PROCESS_NPU_MEM},
-    {JsonProcess::OVERLAP_ANALYSE, PROCESS_OVERLAP_ANALYSE},
-    {JsonProcess::PCIE, PROCESS_PCIE},
-    {JsonProcess::SIO, PROCESS_SIO},
-    {JsonProcess::STARS_SOC, PROCESS_STARS_SOC},
-    {JsonProcess::STEP_TRACE, PROCESS_STEP_TRACE},
-    {JsonProcess::FREQ, PROCESS_LOW_POWER},
-    {JsonProcess::LLC, PROCESS_LLC},
-    {JsonProcess::NIC, PROCESS_NIC},
-    {JsonProcess::ROCE, PROCESS_ROCE},
-    {JsonProcess::QOS, PROCESS_QOS},
-    {JsonProcess::DEVICE_TX, PROCESS_DEVICE_TX},
-    {JsonProcess::LOW_POWER, PROCESS_LOW_POWER},
-    {JsonProcess::BIU_PERF, PROCESS_BIU_PERF},
-    {JsonProcess::UB, PROCESS_UB},
-    {JsonProcess::BLOCK_DETAIL, PROCESS_BLOCK_DETAIL},
-    {JsonProcess::DPU, PROCESS_DPU},
-    {JsonProcess::FUSION_TASK, PROCESS_FUSION_TASK},
-};
-
-}  // namespace
-
-bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>&, DataInventory&)
+bool TimelineManager::PreDumpJson()
 {
     // File names and the opening bracket are decided when the first event arrives.
     DeliverableConsumer::Instance().BeginTimeline();
@@ -85,48 +42,36 @@ bool TimelineManager::PreDumpJson(const std::vector<JsonProcess>&, DataInventory
 
 bool TimelineManager::PostDumpJson()
 {
-    DeliverableConsumer::Instance().FinishTimeline();
+    for (const auto& file : DeliverableConsumer::Instance().FinishTimeline())
+    {
+        if (!FinishDoneWriter::Append(file))
+        {
+            WARN("Report the timeline deliverable failed, file: %.", file);
+        }
+    }
     return DeliverableConsumer::Instance().Ok();
 }
 
-std::vector<std::string> TimelineManager::GetAssemblerList(const std::vector<JsonProcess>& jsonProcess)
+void TimelineManager::GetTopologyRoots(const std::vector<std::string>& jsonKeys, std::vector<TopoNodeId>& roots)
 {
-    std::vector<std::string> assemblerList;
-    std::set<std::string> assemblerSet;
-    for (const auto& jsonEnum : jsonProcess)
+    for (const auto& jsonKey : jsonKeys)
     {
-        const auto& assemblerName = JSON_TO_ASSEMBLER_TABLE.at(jsonEnum);
-        if (assemblerSet.insert(assemblerName).second)
+        const std::string nodeKey = GetTimelineNodeKey(jsonKey);
+        if (nodeKey.empty())
         {
-            assemblerList.push_back(assemblerName);
+            ERROR("Timeline report key % is not supported, skip it.", jsonKey);
+            continue;
         }
-    }
-    return assemblerList;
-}
-
-bool TimelineManager::GetTopologyRoots(const std::vector<JsonProcess>& jsonProcesses, std::vector<TopoNodeId>& roots)
-{
-    const size_t rootsSize = roots.size();
-    for (const auto& name : GetAssemblerList(jsonProcesses))
-    {
-        const TopoNodeId id{TopoNodeStage::TIMELINE_EXPORT, name};
+        const TopoNodeId id{TopoNodeStage::TIMELINE_EXPORT, nodeKey};
         if (TopoNodeRegistry::Find(id) == nullptr)
         {
-            ERROR("Timeline execution list node % has no static topology registration.", name);
-            roots.resize(rootsSize);
-            return false;
+            ERROR("Timeline execution list node % has no static topology registration, skip it.", nodeKey);
+            continue;
         }
         roots.push_back(id);
     }
     const TopoNodeId postDump{TopoNodeStage::FLOW_CONTROL, TIMELINE_POST_DUMP};
-    if (TopoNodeRegistry::Find(postDump) == nullptr)
-    {
-        ERROR("Timeline post dump node has no static topology registration.");
-        roots.resize(rootsSize);
-        return false;
-    }
     roots.push_back(postDump);
-    return true;
 }
 
 TopoNodeCreatorFactory TimelineManager::CreateTimelineAssembler(const std::string& name)
@@ -153,22 +98,16 @@ TopoNodeCreatorFactory TimelineManager::CreateTimelineAssembler(const std::strin
 
 TopoNodeCreatorFactory TimelineManager::CreateTimelinePreDump()
 {
-    return [](const TopoBuildContext& context) -> Infra::ProcessCreator
+    return [](const TopoBuildContext&) -> Infra::ProcessCreator
     {
-        const auto session = context.timelineSession;
-        const std::vector<JsonProcess> processes = context.timelineProcesses;
-        if (session == nullptr)
-        {
-            return Infra::ProcessCreator();
-        }
-        return [session, processes]() -> std::unique_ptr<Infra::Process>
+        return []() -> std::unique_ptr<Infra::Process>
         {
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
-                [session, processes](DataInventory& dataInventory) -> bool
+                [](DataInventory&) -> bool
                 {
                     INFO("Start exporting timeline!");
                     PRINT_INFO("Start exporting the timeline!");
-                    return session->PreDumpJson(processes, dataInventory);
+                    return TimelineManager::PreDumpJson();
                 }));
         };
     };
@@ -176,19 +115,14 @@ TopoNodeCreatorFactory TimelineManager::CreateTimelinePreDump()
 
 TopoNodeCreatorFactory TimelineManager::CreateTimelinePostDump()
 {
-    return [](const TopoBuildContext& context) -> Infra::ProcessCreator
+    return [](const TopoBuildContext&) -> Infra::ProcessCreator
     {
-        const auto session = context.timelineSession;
-        if (session == nullptr)
-        {
-            return Infra::ProcessCreator();
-        }
-        return [session]() -> std::unique_ptr<Infra::Process>
+        return []() -> std::unique_ptr<Infra::Process>
         {
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
-                [session](DataInventory&) -> bool
+                [](DataInventory&) -> bool
                 {
-                    if (!session->PostDumpJson())
+                    if (!TimelineManager::PostDumpJson())
                     {
                         ERROR("Export timeline deliverable failed.");
                         return false;
@@ -216,13 +150,18 @@ std::vector<TopoNodeId> TimelineManager::ResolveSelectedTimelineNodes(const Topo
 }
 
 std::vector<TopoNodeId> TimelineManager::ResolveTimelinePreDumpDependencies(const TopoBuildContext& context,
-                                                                            const std::vector<TopoNodeId>&)
+                                                                            const std::vector<TopoNodeId>& roots)
 {
     std::vector<TopoNodeId> dependencies;
-    if (std::find(context.timelineProcesses.begin(), context.timelineProcesses.end(), JsonProcess::MSPROFTX) !=
-        context.timelineProcesses.end())
+    const auto& selectedRoots = context.selectedExportRoots.empty() ? roots : context.selectedExportRoots;
+    // Select roots carry their own scope, so only stage and name are meaningful here.
+    for (const auto& root : selectedRoots)
     {
-        dependencies.push_back(TopoNodeId{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_MSTX});
+        if (root.stage == TopoNodeStage::TIMELINE_EXPORT && root.name == PROCESS_MSPROFTX)
+        {
+            dependencies.push_back(TopoNodeId{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_MSTX});
+            break;
+        }
     }
     return dependencies;
 }

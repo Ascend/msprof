@@ -30,6 +30,7 @@
 #include "analysis/csrc/application/timeline/json_constant.h"
 #include "analysis/csrc/application/timeline/timeline_factory.h"
 #include "analysis/csrc/application/timeline/timeline_manager.h"
+#include "analysis/csrc/application/include/report_map.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/msprof_tx_host_data.h"
 #include "analysis/csrc/infrastructure/context/include/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
@@ -44,7 +45,6 @@ using namespace Analysis::Infra;
 namespace
 {
 const std::string PROF_PATH = "./timeline_test/PROF_0";
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 
 class TopologyRegistryGuard
 {
@@ -59,9 +59,9 @@ class TopologyRegistryGuard
 
 TEST(TimelineManagerUTest, ShouldBuildSelectedNodesWithPreAndPostDump)
 {
-    const std::vector<JsonProcess> selection{JsonProcess::NPU_MEM};
+    const std::vector<std::string> selection{"npu_mem"};
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots(selection, roots));
+    TimelineManager::GetTopologyRoots(selection, roots);
     ASSERT_EQ(roots.size(), 2UL);
     EXPECT_EQ(roots[0], (TopoNodeId{TopoNodeStage::TIMELINE_EXPORT, PROCESS_NPU_MEM}));
     EXPECT_EQ(roots[1], (TopoNodeId{TopoNodeStage::FLOW_CONTROL, "TIMELINE:POST_DUMP"}));
@@ -70,9 +70,6 @@ TEST(TimelineManagerUTest, ShouldBuildSelectedNodesWithPreAndPostDump)
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
-    context.outputPath = RESULT_PATH;
-    context.timelineProcesses = selection;
-    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, RESULT_PATH);
     RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));
@@ -116,7 +113,7 @@ TEST(TimelineManagerUTest, ShouldBuildSelectedNodesWithPreAndPostDump)
 TEST(TimelineManagerUTest, ShouldBuildOnlySelectedReports)
 {
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots({JsonProcess::ASCEND}, roots));
+    TimelineManager::GetTopologyRoots({"ascend"}, roots);
     ASSERT_EQ(roots.size(), 2UL);
     EXPECT_EQ(roots.front(), (TopoNodeId{TopoNodeStage::TIMELINE_EXPORT, PROCESS_TASK}));
 }
@@ -126,12 +123,12 @@ TEST(TimelineManagerUTest, PreDumpShouldOnlyWaitForMsprofTxHostData)
     TopoBuildContext context;
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
-    context.timelineProcesses = {JsonProcess::NPU_MEM};
-    EXPECT_TRUE(TimelineManager::ResolveTimelinePreDumpDependencies(context, {}).empty());
+    const std::vector<TopoNodeId> npuMemRoots{{TopoNodeStage::TIMELINE_EXPORT, PROCESS_NPU_MEM}};
+    EXPECT_TRUE(TimelineManager::ResolveTimelinePreDumpDependencies(context, npuMemRoots).empty());
 
-    context.timelineProcesses = {JsonProcess::MSPROFTX};
+    const std::vector<TopoNodeId> msprofTxRoots{{TopoNodeStage::TIMELINE_EXPORT, PROCESS_MSPROFTX}};
     const std::vector<TopoNodeId> dependencies =
-        TimelineManager::ResolveTimelinePreDumpDependencies(context, {});
+        TimelineManager::ResolveTimelinePreDumpDependencies(context, msprofTxRoots);
     ASSERT_EQ(dependencies.size(), 1UL);
     EXPECT_EQ(dependencies.front(), (TopoNodeId{TopoNodeStage::DATA_PROCESSING, PROCESSOR_NAME_MSTX}));
 }
@@ -179,13 +176,10 @@ TEST(TimelineManagerUTest, FailedMsprofTxProcessorDoesNotBlockOtherLayersOrJsonF
     // Keep the real NPU memory assembler: it contributes no events without input data.
     TopoBuildContext context;
     context.profPath = PROF_PATH;
-    context.outputPath = output;
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
-    context.timelineProcesses = {JsonProcess::MSPROFTX, JsonProcess::NPU_MEM};
-    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, output);
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots(context.timelineProcesses, roots));
+    TimelineManager::GetTopologyRoots({"msproftx", "npu_mem"}, roots);
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, graph));
@@ -217,15 +211,14 @@ TEST(TimelineManagerUTest, PostDumpRunsAfterPreDumpFailureWithoutCreatingEmptyFi
     TopologyRegistryGuard registryGuard;
     auto& definitions = TopoNodeRegistry::MutableDefinitions();
     const TopoNodeId pre{TopoNodeStage::FLOW_CONTROL, "TIMELINE:PRE_DUMP"};
-    definitions.at(pre).creatorFactory = [](const TopoBuildContext& context)
+    definitions.at(pre).creatorFactory = [](const TopoBuildContext&)
     {
-        const auto session = context.timelineSession;
-        return [session]() -> std::unique_ptr<Process>
+        return []() -> std::unique_ptr<Process>
         {
-            return std::unique_ptr<Process>(new TopoCallbackProcess([session](DataInventory& inventory)
+            return std::unique_ptr<Process>(new TopoCallbackProcess([](DataInventory&)
             {
                 // Simulate initialization failing before any assembler contributes events.
-                EXPECT_TRUE(session->PreDumpJson({}, inventory));
+                EXPECT_TRUE(TimelineManager::PreDumpJson());
                 return false;
             }));
         };
@@ -235,13 +228,10 @@ TEST(TimelineManagerUTest, PostDumpRunsAfterPreDumpFailureWithoutCreatingEmptyFi
     definitions.at(layer).inputDataTypes.clear();
     TopoBuildContext context;
     context.profPath = PROF_PATH;
-    context.outputPath = output;
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
-    context.timelineProcesses = {JsonProcess::NPU_MEM};
-    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, output);
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots(context.timelineProcesses, roots));
+    TimelineManager::GetTopologyRoots({"npu_mem"}, roots);
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, graph));
@@ -260,7 +250,7 @@ TEST(TimelineManagerUTest, PostDumpRunsAfterPreDumpFailureWithoutCreatingEmptyFi
 TEST(TimelineManagerUTest, ShouldBuildAllRegisteredReports)
 {
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots(allProcesses, roots));
+    TimelineManager::GetTopologyRoots(GetAllTimelineJsonKeys(), roots);
     ASSERT_FALSE(roots.empty());
     EXPECT_EQ(roots.back(), (TopoNodeId{TopoNodeStage::FLOW_CONTROL, "TIMELINE:POST_DUMP"}));
     for (std::vector<TopoNodeId>::const_iterator it = roots.begin(); it != roots.end() - 1; ++it)
@@ -270,22 +260,14 @@ TEST(TimelineManagerUTest, ShouldBuildAllRegisteredReports)
     }
 }
 
-TEST(TimelineManagerUTest, ShouldRejectExecutionListNodeWithoutRegistration)
+TEST(TimelineManagerUTest, ShouldSkipExecutionListNodeWithoutRegistration)
 {
     TopologyRegistryGuard guard;
     TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::TIMELINE_EXPORT, PROCESS_NPU_MEM});
     std::vector<TopoNodeId> roots;
-    EXPECT_FALSE(TimelineManager::GetTopologyRoots({JsonProcess::NPU_MEM}, roots));
-    EXPECT_TRUE(roots.empty());
-}
-
-TEST(TimelineManagerUTest, ShouldDeduplicateSelectedReports)
-{
-    std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(TimelineManager::GetTopologyRoots({JsonProcess::ASCEND, JsonProcess::ASCEND, JsonProcess::CANN}, roots));
-    ASSERT_EQ(roots.size(), 3UL);
-    EXPECT_EQ(roots[0], (TopoNodeId{TopoNodeStage::TIMELINE_EXPORT, PROCESS_TASK}));
-    EXPECT_EQ(roots[1], (TopoNodeId{TopoNodeStage::TIMELINE_EXPORT, PROCESS_API}));
+    TimelineManager::GetTopologyRoots({"npu_mem"}, roots);
+    ASSERT_EQ(roots.size(), 1UL);
+    EXPECT_EQ(roots.front(), (TopoNodeId{TopoNodeStage::FLOW_CONTROL, "TIMELINE:POST_DUMP"}));
 }
 
 TEST(TimelineManagerUTest, ShouldNotCreateJsonWhenNoAssemblerWritesEvents)
@@ -301,10 +283,8 @@ TEST(TimelineManagerUTest, ShouldNotCreateJsonWhenNoAssemblerWritesEvents)
     ASSERT_TRUE(File::CreateDir(profPath));
     ASSERT_TRUE(File::CreateDir(outputPath));
 
-    TimelineManager manager(profPath, outputPath);
-    DataInventory dataInventory;
-    ASSERT_TRUE(manager.PreDumpJson({}, dataInventory));
-    ASSERT_TRUE(manager.PostDumpJson());
+    ASSERT_TRUE(TimelineManager::PreDumpJson());
+    ASSERT_TRUE(TimelineManager::PostDumpJson());
 
     const std::vector<std::string> files = File::GetOriginData(outputPath, {MSPROF_JSON_FILE}, {});
     EXPECT_TRUE(files.empty());
@@ -319,12 +299,10 @@ TEST(TimelineManagerUTest, ShouldReportUnwritableOutputWhenFirstEventsArrive)
     { FileWriter file(output); file.WriteText("file blocks output directory"); }
     auto& consumer = DeliverableConsumer::Instance();
     consumer.ResetOk();
-    TimelineManager manager(profPath, output);
-    DataInventory inventory;
-    EXPECT_TRUE(manager.PreDumpJson({}, inventory));
+    EXPECT_TRUE(TimelineManager::PreDumpJson());
     consumer.AcceptJson({MSPROF_JSON_FILE}, profPath,
                         {std::make_shared<DurationEvent>(1, 1, 1.5, "1.0", "op")});
-    EXPECT_FALSE(manager.PostDumpJson());
+    EXPECT_FALSE(TimelineManager::PostDumpJson());
     consumer.ResetOk();
     EXPECT_TRUE(File::RemoveDir(profPath, 0));
 }
@@ -338,12 +316,10 @@ TEST(TimelineManagerUTest, ShouldReportAsyncWriterFailureAtPostDump)
     auto& consumer = DeliverableConsumer::Instance();
     consumer.ResetOk();
     consumer.SetBeforeWriteForTest([] { throw std::runtime_error("injected write failure"); });
-    TimelineManager manager(profPath, output);
-    DataInventory inventory;
-    EXPECT_TRUE(manager.PreDumpJson({}, inventory));
+    EXPECT_TRUE(TimelineManager::PreDumpJson());
     consumer.AcceptJson({MSPROF_JSON_FILE}, profPath,
                         {std::make_shared<DurationEvent>(1, 1, 1.5, "1.0", "op")});
-    EXPECT_FALSE(manager.PostDumpJson());
+    EXPECT_FALSE(TimelineManager::PostDumpJson());
     consumer.SetBeforeWriteForTest({});
     consumer.ResetOk();
     EXPECT_TRUE(File::RemoveDir(profPath, 0));

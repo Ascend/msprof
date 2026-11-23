@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -28,6 +29,8 @@
 
 #include "analysis/csrc/application/credential/id_pool.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/include/finish_done_writer.h"
+#include "analysis/csrc/application/include/report_map.h"
 #include "analysis/csrc/domain/data_process/data_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
@@ -1859,8 +1862,6 @@ bool SaveFtraceGenericEventData(DataInventory& dataInventory, DBInfo& msprofDB, 
     return dataInventory.Inject(std::make_shared<FtraceTablesSaved>());
 }
 
-const std::string DB_PREFIX = "DB:";
-const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
 const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_API, SaveApiData},
     {PROCESSOR_NAME_COMMUNICATION, SaveCommunicationData},
@@ -1906,9 +1907,39 @@ const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
 };
 
-std::string GetDBPath(const std::string& outputDir)
+// Savers every DB export includes regardless of the selected reports, so a report never misses the
+// tables that describe the run itself.
+const std::vector<std::string> DEFAULT_DATA_SAVER = {
+    PROCESSOR_NAME_SESSION_TIME_INFO,
+    PROCESSOR_NAME_META_DATA,
+    PROCESSOR_NAME_HOST_INFO,
+    PROCESSOR_NAME_NPU_INFO,
+};
+
+// The msprof DB schema is immutable, so every saver shares one instance instead of building it per node.
+std::shared_ptr<Database> GetMsprofSchema()
 {
-    return Utils::File::PathJoin({outputDir, DB_NAME_MSPROF_DB + "_" + Analysis::Utils::GetFormatLocalTime() + ".db"});
+    static const std::shared_ptr<Database> schema = []() -> std::shared_ptr<Database>
+    {
+        std::shared_ptr<Database> database;
+        MAKE_SHARED0_NO_OPERATION(database, MsprofDB);
+        return database;
+    }();
+    return schema;
+}
+
+// A DB saver only needs the shared schema and the planned DB file path.
+DBInfo MakeMsprofDBInfo(const std::string& dbPath)
+{
+    DBInfo msprofDB;
+    msprofDB.database = GetMsprofSchema();
+    // ConstructDBRunner takes a mutable path, so build the runner through it on a copy of the planned path.
+    std::string path = dbPath;
+    if (!msprofDB.ConstructDBRunner(path))
+    {
+        ERROR("Create the msprof db runner failed, the path is %.", dbPath);
+    }
+    return msprofDB;
 }
 
 }  // namespace
@@ -1922,19 +1953,22 @@ TopoNodeCreatorFactory DBAssembler::CreateSaver(const std::string& name)
         {
             return Infra::ProcessCreator();
         }
-        const auto session = context.dbSession;
-        if (session == nullptr)
+        if (context.dbPath.empty())
         {
+            ERROR("The DB export path is not prepared, saver % is skipped.", name);
             return Infra::ProcessCreator();
         }
         const DBSaveDataFunc saver = saverIter->second;
-        return [name, saver, session]() -> std::unique_ptr<Infra::Process>
+        const std::string dbPath = context.dbPath;
+        const std::string profPath = context.profPath;
+        return [name, saver, dbPath, profPath]() -> std::unique_ptr<Infra::Process>
         {
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
-                [name, saver, session](DataInventory& dataInventory) -> bool
+                [name, saver, dbPath, profPath](DataInventory& dataInventory) -> bool
                 {
                     INFO("Begin to save % data.", name);
-                    const bool result = saver(dataInventory, session->msprofDB_, session->profPath_);
+                    DBInfo msprofDB = MakeMsprofDBInfo(dbPath);
+                    const bool result = saver(dataInventory, msprofDB, profPath);
                     if (!result)
                     {
                         ERROR("Save % data failed.", name);
@@ -1949,60 +1983,69 @@ TopoNodeCreatorFactory DBAssembler::CreateStringIdsSaver()
 {
     return [](const TopoBuildContext& context) -> Infra::ProcessCreator
     {
-        const auto session = context.dbSession;
-        if (session == nullptr)
+        if (context.dbPath.empty())
         {
+            ERROR("The DB export path is not prepared, the StringIds saver is skipped.");
             return Infra::ProcessCreator();
         }
-        return [session]() -> std::unique_ptr<Infra::Process>
+        const std::string dbPath = context.dbPath;
+        const std::string profPath = context.profPath;
+        return [dbPath, profPath]() -> std::unique_ptr<Infra::Process>
         {
             return std::unique_ptr<Infra::Process>(new (std::nothrow) TopoCallbackProcess(
-                [session](DataInventory& dataInventory) -> bool
+                [dbPath, profPath](DataInventory& dataInventory) -> bool
                 {
-                    const bool stringsSaved = SaveStringIdsData(dataInventory, session->msprofDB_, session->profPath_);
-                    const bool result =
-                        stringsSaved && (dataInventory.GetPtr<FtraceTablesSaved>() == nullptr ||
-                                         SaveFtraceMarker(FTRACE_META_COMPLETE_KEY, session->msprofDB_));
+                    DBInfo msprofDB = MakeMsprofDBInfo(dbPath);
+                    const bool stringsSaved = SaveStringIdsData(dataInventory, msprofDB, profPath);
+                    const bool result = stringsSaved && (dataInventory.GetPtr<FtraceTablesSaved>() == nullptr ||
+                                                         SaveFtraceMarker(FTRACE_META_COMPLETE_KEY, msprofDB));
                     PRINT_INFO("End exporting db output_file. The file is stored in the PROF file.");
+                    if (result && !FinishDoneWriter::Append(dbPath))
+                    {
+                        WARN("Report the DB deliverable failed, file: %.", dbPath);
+                    }
                     return result;
                 }));
         };
     };
 }
 
-DBAssembler::~DBAssembler() {}
-
-DBAssembler::DBAssembler(const std::string& profPath, const std::string& outputPath) : profPath_(profPath)
+std::string DBAssembler::MakeDBPath(const std::string& outputDir)
 {
-    // 当前 outputPath 依然传递 PROF 路径，即 db 落盘路径依然是 PROF 目录下
-    MAKE_SHARED0_NO_OPERATION(msprofDB_.database, MsprofDB);
-    auto msprofDBPath = GetDBPath(outputPath);
-    msprofDB_.ConstructDBRunner(msprofDBPath);
+    return Utils::File::PathJoin({outputDir, DB_NAME_MSPROF_DB + "_" + Analysis::Utils::GetFormatLocalTime() + ".db"});
 }
 
-bool DBAssembler::GetTopologyRoots(std::vector<TopoNodeId>& roots)
+void DBAssembler::GetTopologyRoots(const std::vector<std::string>& jsonKeys, std::vector<TopoNodeId>& roots)
 {
-    const size_t rootsSize = roots.size();
-    for (const auto& saver : DATA_SAVER)
+    auto addSaver = [&roots](const std::string& saverName)
     {
-        const TopoNodeId id{TopoNodeStage::DATABASE_PERSISTENCE, DB_PREFIX + saver.first};
+        const TopoNodeId id{TopoNodeStage::DATABASE_PERSISTENCE, DB_PREFIX + saverName};
         if (TopoNodeRegistry::Find(id) == nullptr)
         {
-            ERROR("DB execution list node % has no static topology registration.", id.name);
-            roots.resize(rootsSize);
-            return false;
+            ERROR("DB execution list node % has no static topology registration, skip it.", id.name);
+            return;
         }
         roots.push_back(id);
+    };
+    for (const auto& jsonKey : jsonKeys)
+    {
+        const std::vector<std::string> saverNames = GetDBSaverNames(jsonKey);
+        if (saverNames.empty())
+        {
+            ERROR("DB report key % is not supported, skip it.", jsonKey);
+            continue;
+        }
+        for (const auto& saverName : saverNames)
+        {
+            addSaver(saverName);
+        }
+    }
+    for (const auto& saverName : DEFAULT_DATA_SAVER)
+    {
+        addSaver(saverName);
     }
     const TopoNodeId stringIds{TopoNodeStage::FLOW_CONTROL, DB_STRING_IDS};
-    if (TopoNodeRegistry::Find(stringIds) == nullptr)
-    {
-        ERROR("DB StringIds node has no static topology registration.");
-        roots.resize(rootsSize);
-        return false;
-    }
     roots.push_back(stringIds);
-    return true;
 }
 
 std::vector<TopoNodeId> DBAssembler::ResolveSelectedDBSavers(const TopoBuildContext& context,

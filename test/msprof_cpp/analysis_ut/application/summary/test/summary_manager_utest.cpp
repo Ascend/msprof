@@ -38,7 +38,6 @@ using namespace Analysis::Utils;
 namespace
 {
 const std::string PROF_PATH = "./summary_test/PROF_0";
-const std::string RESULT_PATH = File::PathJoin({PROF_PATH, Analysis::Common::OUTPUT_PATH});
 
 class TopologyRegistryGuard
 {
@@ -62,7 +61,6 @@ TEST(SummaryManagerUTest, ShouldBuildOnlySelectedDeliverable)
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF_PATH;
-    context.outputPath = RESULT_PATH;
     RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));

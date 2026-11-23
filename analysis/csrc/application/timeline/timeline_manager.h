@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/data_inventory/include/data_inventory.h"
 #include "analysis/csrc/infrastructure/dump_tools/include/dump_tool.h"
 #include "analysis/csrc/infrastructure/process/include/topo_graph.h"
@@ -36,8 +35,7 @@ using namespace Analysis::Infra;
 class TimelineManager
 {
    public:
-    explicit TimelineManager(const std::string &, const std::string &outputPath) : outputPath_(outputPath) {};
-    static bool GetTopologyRoots(const std::vector<JsonProcess> &jsonProcesses, std::vector<TopoNodeId> &roots);
+    static void GetTopologyRoots(const std::vector<std::string> &jsonKeys, std::vector<TopoNodeId> &roots);
     static TopoNodeCreatorFactory CreateTimelineAssembler(const std::string &name);
     static TopoNodeCreatorFactory CreateTimelinePreDump();
     static TopoNodeCreatorFactory CreateTimelinePostDump();
@@ -45,14 +43,8 @@ class TimelineManager
                                                                 const std::vector<TopoNodeId> &roots);
     static std::vector<TopoNodeId> ResolveTimelinePreDumpDependencies(const TopoBuildContext &context,
                                                                       const std::vector<TopoNodeId> &roots);
-    bool PreDumpJson(const std::vector<JsonProcess> &jsonProcess, DataInventory &dataInventory);
-    bool PostDumpJson();
-
-   private:
-    static std::vector<std::string> GetAssemblerList(const std::vector<JsonProcess> &jsonProcess);
-
-   private:
-    std::string outputPath_;
+    static bool PreDumpJson();
+    static bool PostDumpJson();
 };
 }  // namespace Application
 }  // namespace Analysis

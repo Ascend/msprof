@@ -44,18 +44,13 @@ struct FtraceTablesSaved
 class DBAssembler
 {
    public:
-    DBAssembler() = default;
-    DBAssembler(const std::string &profPath, const std::string &outputPath);
-    virtual ~DBAssembler();
-    static bool GetTopologyRoots(std::vector<TopoNodeId> &roots);
+    // The DB path is generated once during planning because the file name carries a timestamp.
+    static std::string MakeDBPath(const std::string &outputDir);
+    static void GetTopologyRoots(const std::vector<std::string> &jsonKeys, std::vector<TopoNodeId> &roots);
     static std::vector<TopoNodeId> ResolveSelectedDBSavers(const TopoBuildContext &context,
                                                            const std::vector<TopoNodeId> &roots);
     static TopoNodeCreatorFactory CreateSaver(const std::string &name);
     static TopoNodeCreatorFactory CreateStringIdsSaver();
-
-   private:
-    std::string profPath_;
-    DBInfo msprofDB_;
 };
 
 template <typename... Args>

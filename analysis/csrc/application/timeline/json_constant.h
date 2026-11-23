@@ -54,6 +54,11 @@ const std::string MSPROF_TX_FILE = "msprof_tx";
 const std::string RECORD_EVENT = "aclrtRecordEvent";
 const std::string MEMCPY_ASYNC = "MEMCPY_ASYNC";
 
+// Topology node names of the timeline export, the pre dump opens the JSON files and the post dump closes them.
+const std::string TIMELINE_PREFIX = "TIMELINE:";
+const std::string TIMELINE_PRE_DUMP = TIMELINE_PREFIX + "PRE_DUMP";
+const std::string TIMELINE_POST_DUMP = TIMELINE_PREFIX + "POST_DUMP";
+
 /*
  * host侧api与device侧task之间连线的类别。连线名统一为 HostToDevice，非默认类别追加
  * 首字母大写的括号后缀（如 HostToDevice(Graph)）。新增类别时在这里补枚举值与常量即可。

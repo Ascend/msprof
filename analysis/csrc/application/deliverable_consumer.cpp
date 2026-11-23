@@ -28,6 +28,7 @@
 #include <unordered_set>
 #include <utility>
 
+#include "analysis/csrc/application/include/finish_done_writer.h"
 #include "analysis/csrc/application/json_event_sink.h"
 #include "analysis/csrc/application/summary/summary_constant.h"
 #include "analysis/csrc/application/timeline/json_constant.h"
@@ -479,7 +480,7 @@ void DeliverableConsumer::AcceptJson(const std::vector<std::string> &prefixes, c
     AcceptSerialized(prefixes, profPath, SerializeEvents(events));
 }
 
-void DeliverableConsumer::FinishTimeline()
+std::vector<std::string> DeliverableConsumer::FinishTimeline()
 {
     std::vector<std::shared_ptr<ByteStream>> streams;
     {
@@ -494,12 +495,15 @@ void DeliverableConsumer::FinishTimeline()
             }
         }
     }
+    std::vector<std::string> written;
     for (const auto &stream : streams)
     {
         bool writeSuffix = false;
+        std::string path;
         {
             std::lock_guard<std::mutex> lock(stream->mu);
             writeSuffix = stream->opened;
+            path = stream->path;
         }
         if (writeSuffix)
         {
@@ -511,10 +515,16 @@ void DeliverableConsumer::FinishTimeline()
             Enqueue(stream, std::move(op));
         }
         Wait(*stream);
+        // A stream that never accepted an event leaves no file behind, so it is not a deliverable.
+        if (writeSuffix)
+        {
+            written.emplace_back(path);
+        }
     }
     std::lock_guard<std::mutex> lock(impl_->mapMu);
     impl_->jsonStreams.clear();
     impl_->jsonOrder.clear();
+    return written;
 }
 
 std::shared_ptr<DeliverableConsumer::CsvStream> DeliverableConsumer::GetCsvStream(const std::string &basePath)
@@ -662,6 +672,7 @@ void DeliverableConsumer::FinishCsv(const std::string &basePath)
     }
     uint64_t generation = 0;
     uint64_t rows = 0;
+    std::vector<std::string> finished;
     {
         std::lock_guard<std::mutex> session(stream->sessionMu);
         generation = stream->generation;
@@ -677,10 +688,19 @@ void DeliverableConsumer::FinishCsv(const std::string &basePath)
             Enqueue(io, std::move(op));
         }
         Wait(stream->io);
+        finished.assign(stream->preparedPaths.begin(), stream->preparedPaths.end());
+        std::sort(finished.begin(), finished.end());
     }
     // Report the real row count: the caller's Ok() check is about the bytes, this line is about how
     // much data the file actually holds.
     INFO("Generate %.csv finished, % rows, timestamp is %.", basePath, rows, stream->timestamp);
+    for (const auto &file : finished)
+    {
+        if (!FinishDoneWriter::Append(file))
+        {
+            WARN("Report the csv deliverable failed, file: %.", file);
+        }
+    }
     std::lock_guard<std::mutex> lock(impl_->mapMu);
     std::lock_guard<std::mutex> session(stream->sessionMu);
     auto it = impl_->csvStreams.find(basePath);

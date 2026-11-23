@@ -55,13 +55,6 @@ namespace Application
 {
 using namespace Analysis::Domain;
 
-namespace
-{
-const std::string DB_PREFIX = "DB:";
-const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
-
-}  // namespace
-
 #define REGISTER_DB_SAVER(Name, Dependencies)                                                          \
     REGISTER_TOPO_NODE_SEQUENCE(typeid(void), TOPO_NODE(DATABASE_PERSISTENCE, DB_PREFIX + Name), true, \
                                 DBAssembler::CreateSaver(DB_PREFIX + Name), Dependencies, nullptr)

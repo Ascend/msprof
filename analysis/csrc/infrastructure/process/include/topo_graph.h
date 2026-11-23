@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "analysis/csrc/application/include/export_mode_enum.h"
-#include "analysis/csrc/application/timeline/json_process_enum.h"
 #include "analysis/csrc/infrastructure/process/include/process.h"
 #include "analysis/csrc/infrastructure/process/include/process_struct.h"
 #include "analysis/csrc/infrastructure/process/include/topo_stage.h"
@@ -28,8 +27,6 @@ namespace Analysis
 {
 namespace Application
 {
-class DBAssembler;
-class TimelineManager;
 
 enum class TopoScopeKind
 {
@@ -63,10 +60,8 @@ struct TopoNodeIdHash
 struct TopoBuildContext
 {
     std::string profPath;
-    std::string outputPath;
-    std::vector<JsonProcess> timelineProcesses;
-    std::shared_ptr<TimelineManager> timelineSession;
-    std::shared_ptr<DBAssembler> dbSession;
+    // The DB file of this export, it is generated once by the planning so every DB saver writes the same file.
+    std::string dbPath;
     std::string currentScope;
     // Init nodes may initialize these owned contexts before business processes receive const bindings.
     std::unordered_map<std::string, std::shared_ptr<Infra::Context>> scopeContexts;

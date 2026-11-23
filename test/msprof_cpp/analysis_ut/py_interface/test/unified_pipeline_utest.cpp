@@ -373,7 +373,8 @@ TEST_F(UnifiedPipelinePlanUTest, SinglePipelineRootPreservesSelectedExportDepend
         auto request = StepTraceRequest();
         request.flags = flags;
         FileWriter(request.reportsJson).WriteText(
-            "{\"summary_process\":{\"step_trace\":true},\"json_process\":{\"llc\":true}}");
+            "{\"summary_process\":{\"step_trace\":true},\"json_process\":{\"llc\":true},"
+            "\"db_process\":{\"ddr\":true}}");
         TopoBuildContext context;
         TopoNodeCollection definitions;
         std::vector<TopoNodeId> roots;
@@ -674,6 +675,32 @@ TEST_F(UnifiedPipelinePlanUTest, DbOnlyExportWritesDatabaseWithoutFileOutputDire
     }
 }
 
+TEST_F(UnifiedPipelinePlanUTest, DisabledSummaryDoesNotSelectSummaryNodesInUnifiedPipeline)
+{
+    for (const int flags : {PIPELINE_SUMMARY, PIPELINE_TIMELINE | PIPELINE_SUMMARY,
+                           PIPELINE_DB | PIPELINE_TIMELINE | PIPELINE_SUMMARY})
+    {
+        auto request = Request(flags);
+        request.reportsJson = File::PathJoin({root, "reports.json"});
+        FileWriter(request.reportsJson).WriteText(
+            "{\"json_process\":{\"cann\":true},\"summary_process\":{\"op_summary\":false},"
+            "\"db_process\":{\"ddr\":true}}");
+        RuntimeProcessCollection graph;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(request, graph));
+        bool timeline = false;
+        bool database = false;
+        for (const auto &entry : builder.GetRuntimeNodeKeys())
+        {
+            EXPECT_NE(entry.first.stage, TopoNodeStage::SUMMARY_GENERATION);
+            timeline = timeline || entry.first.stage == TopoNodeStage::TIMELINE_EXPORT;
+            database = database || entry.first.stage == TopoNodeStage::DATABASE_PERSISTENCE;
+        }
+        EXPECT_EQ(timeline, (flags & PIPELINE_TIMELINE) != 0);
+        EXPECT_EQ(database, (flags & PIPELINE_DB) != 0);
+    }
+}
+
 TEST_F(UnifiedPipelinePlanUTest, TimelineAndSummaryInitializationStillCreatesFileOutputDirectory)
 {
     for (const int flags : {PIPELINE_TIMELINE, PIPELINE_SUMMARY, PIPELINE_DB | PIPELINE_TIMELINE,
@@ -715,26 +742,27 @@ TEST_F(UnifiedPipelinePlanUTest, DbOnlyInitializationPreservesExistingFileOutput
     EXPECT_EQ(content, (std::vector<std::string>{"value", "7"}));
 }
 
-TEST_F(UnifiedPipelinePlanUTest, DatabaseSelectionDoesNotDependOnReportPath)
+TEST_F(UnifiedPipelinePlanUTest, DatabaseSelectionFollowsReportsJsonInsteadOfDefaults)
 {
     auto request = Request(0x07);
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
-    ASSERT_TRUE(builder.Build(request, graph));
-    std::map<std::string, std::set<std::string>> withoutReports;
-    for (const auto& node : graph)
+    const auto countSavers = [&builder]()
     {
-        withoutReports[node.second.scope].insert(node.second.processName);
-    }
-    // DB roots are complete and do not consume a Timeline/Summary report configuration.
-    request.reportsJson = root + "/unused_reports.json";
+        size_t savers = 0;
+        for (const auto& node : builder.GetRuntimeNodeKeys())
+        {
+            savers += node.first.stage == TopoNodeStage::DATABASE_PERSISTENCE;
+        }
+        return savers;
+    };
+    // Without a report config every DB deliverable is kept, the same as the Timeline and Summary defaults.
     ASSERT_TRUE(builder.Build(request, graph));
-    std::map<std::string, std::set<std::string>> withReports;
-    for (const auto& node : graph)
-    {
-        withReports[node.second.scope].insert(node.second.processName);
-    }
-    EXPECT_EQ(withReports, withoutReports);
+    EXPECT_GT(countSavers(), 1U);
+    request.reportsJson = root + "/reports.json";
+    FileWriter(request.reportsJson).WriteText("{\"db_process\":{\"ddr\":true}}");
+    ASSERT_TRUE(builder.Build(request, graph));
+    EXPECT_EQ(countSavers(), 5U);
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite"));
 }
 
@@ -746,7 +774,7 @@ TEST_F(UnifiedPipelinePlanUTest, SummaryWithoutReportsIncludesDevicePersistenceW
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(Build(Request(0x13), context, definitions, roots, graph, builder));
-    EXPECT_EQ(context.dbSession, nullptr);
+    EXPECT_TRUE(context.dbPath.empty());
     for (const auto& node : builder.GetRuntimeNodeKeys())
     {
         EXPECT_NE(node.first.stage, TopoNodeStage::DATABASE_PERSISTENCE);
@@ -770,8 +798,8 @@ TEST_F(UnifiedPipelinePlanUTest, PlanPreparesSessionsWithoutFilesystemWritesOrEx
     TopoBuildContext context;
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(manager.Plan({ExportMode::DB, ExportMode::SUMMARY}, context, roots));
-    EXPECT_NE(context.dbSession, nullptr);
-    EXPECT_EQ(context.timelineSession, nullptr);
+    // The report selects no db table, so the DB deliverable is skipped while planning and prepares no output path.
+    EXPECT_TRUE(context.dbPath.empty());
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
     EXPECT_TRUE(File::GetFilesWithPrefix(root, "msprof_").empty());
     EXPECT_FALSE(File::Exist(root + "/host/sqlite"));
@@ -785,10 +813,11 @@ TEST_F(UnifiedPipelinePlanUTest, PlanRejectsInvalidReportsBeforePreparingSession
     FileWriter(request.reportsJson).WriteText("{\"summary_process\":{\"unknown_deliverable\":true}}");
     ExportManager manager(root, request.reportsJson);
     TopoBuildContext context;
+    // A report config given on the command line is validated strictly, so an unknown deliverable aborts the planning.
+    context.strictSelection = true;
     std::vector<TopoNodeId> roots;
     EXPECT_FALSE(manager.Plan({ExportMode::DB, ExportMode::SUMMARY}, context, roots));
-    EXPECT_EQ(context.dbSession, nullptr);
-    EXPECT_EQ(context.timelineSession, nullptr);
+    EXPECT_TRUE(context.dbPath.empty());
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
     EXPECT_FALSE(File::Exist(root + "/host/sqlite"));
     EXPECT_FALSE(File::Exist(root + "/device_0/sqlite"));
@@ -1096,8 +1125,8 @@ TEST_F(UnifiedPipelinePlanUTest, IndependentExportNodesPrepareConcurrentlyAndFin
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(Build(Request(PIPELINE_DB | PIPELINE_TIMELINE), context, definitions, roots, graph, builder));
-    ASSERT_NE(context.dbSession, nullptr);
-    const auto dbPath = context.dbSession->msprofDB_.dbRunner->GetPath();
+    ASSERT_FALSE(context.dbPath.empty());
+    const auto& dbPath = context.dbPath;
     std::map<RuntimeProcessKey, uint32_t> targets;
     size_t savers = 0;
     size_t assemblers = 0;
@@ -1263,16 +1292,14 @@ TEST_F(UnifiedPipelinePlanUTest, TimelineControlNodesRunAfterInjectedExportIniti
     EXPECT_FALSE(File::Exist(root + "/.unified.complete"));
 }
 
-TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndSessions)
+TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndDbPath)
 {
     MOCKER_CPP(&Domain::Environment::Context::Load).expects(never());
     ASSERT_TRUE(File::RemoveDir(root + "/host", 0));
     TopoBuildContext context;
     context.profPath = root;
-    context.outputPath = root + "/mindstudio_profiler_output";
     context.environmentLoaded = true;
-    context.dbSession = std::make_shared<DBAssembler>(root, root);
-    context.timelineSession = std::make_shared<TimelineManager>(root, context.outputPath);
+    context.dbPath = DBAssembler::MakeDBPath(root);
     struct RegistryGuard
     {
         TopoNodeCollection original = TopoNodeRegistry::GetDefinitions();
@@ -1284,17 +1311,14 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndSessions
         TopoNodeDefinition definition;
         definition.id = {stage, "PreparedSession"};
         definition.mandatory = true;
-        const auto database = context.dbSession;
-        const auto timeline = context.timelineSession;
-        definition.creatorFactory = [database, timeline](const TopoBuildContext& bindings) -> ProcessCreator
+        const auto dbPath = context.dbPath;
+        definition.creatorFactory = [dbPath](const TopoBuildContext& bindings) -> ProcessCreator
         {
-            const auto boundDatabase = bindings.dbSession;
-            const auto boundTimeline = bindings.timelineSession;
-            return [database, timeline, boundDatabase, boundTimeline]() -> std::unique_ptr<Process>
+            const auto boundDbPath = bindings.dbPath;
+            return [dbPath, boundDbPath]() -> std::unique_ptr<Process>
             {
                 return std::unique_ptr<Process>(new TopoCallbackProcess(
-                    [database, timeline, boundDatabase, boundTimeline](DataInventory&)
-                    { return boundDatabase == database && boundTimeline == timeline; }));
+                    [dbPath, boundDbPath](DataInventory&) { return boundDbPath == dbPath; }));
             };
         };
         roots.push_back(definition.id);
@@ -1303,7 +1327,7 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildReusesPreparedEnvironmentAndSessions
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.BuildExport(context, roots, graph));
-    EXPECT_FALSE(File::Exist(context.outputPath));
+    EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
     // Export also drives the complete device persistence chain; this case only judges the prepared
     // environment and sessions, so let device work succeed without real device raw data.
     for (auto& node : graph)
@@ -1492,6 +1516,30 @@ TEST_F(UnifiedPipelinePlanUTest, ExportBuildRejectsInvalidProfileAndClearsPrevio
     EXPECT_TRUE(graph.empty());
     EXPECT_TRUE(builder.GetRuntimeNodeKeys().empty());
     EXPECT_FALSE(File::Exist(root + "/host/sqlite"));
+}
+
+TEST_F(UnifiedPipelinePlanUTest, EmptyExportSelectionSkipsManagerRunWhileBuilderValidatesExistingDatabase)
+{
+    MOCKER(&ExecuteTopoGraph).expects(never());
+    FileWriter(root + "/msprof_123.db").WriteText("not a SQLite database");
+    const auto reportsPath = root + "/reports.json";
+    FileWriter(reportsPath).WriteText("{\"summary_process\":{\"op_summary\":false}}");
+    RuntimeProcessCollection graph;
+    TopoGraphBuilder builder;
+    EXPECT_FALSE(builder.Build(root, {ExportMode::DB, ExportMode::SUMMARY}, reportsPath, graph));
+    EXPECT_TRUE(graph.empty());
+    MOCKER_CPP(&Domain::Environment::Context::Load).expects(once()).will(returnValue(true));
+    ExportManager manager(root, reportsPath);
+    TopoBuildContext context;
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(manager.Plan({ExportMode::DB, ExportMode::SUMMARY}, context, roots));
+    ASSERT_TRUE(roots.empty());
+    // Run skips an empty plan; the builder entry above validates the existing DB even without export roots.
+    EXPECT_TRUE(manager.Run({ExportMode::DB, ExportMode::SUMMARY}));
+    EXPECT_FALSE(File::Exist(root + "/host/sqlite"));
+    EXPECT_FALSE(File::Exist(root + "/device_0/sqlite"));
+    EXPECT_FALSE(File::Exist(root + "/device_1/sqlite"));
+    ExpectNoUnifiedMarkers();
 }
 
 TEST_F(UnifiedPipelinePlanUTest, ExportBuildKeepsExistingDatabaseSkipWithoutAddingExportRoots)
@@ -1700,13 +1748,15 @@ TEST_F(UnifiedPipelinePlanUTest, ExplicitFullDBKeepsAllSaverDependencies)
 {
     auto request = StepTraceRequest();
     request.flags |= 4;
+    // Only a request without a report config keeps every saver; a report config narrows the DB deliverable.
+    request.reportsJson.clear();
     TopoBuildContext context;
     TopoNodeCollection definitions;
     std::vector<TopoNodeId> roots;
     RuntimeProcessCollection graph;
     TopoGraphBuilder builder;
     ASSERT_TRUE(Build(request, context, definitions, roots, graph, builder));
-    ASSERT_NE(context.dbSession, nullptr);
+    ASSERT_FALSE(context.dbPath.empty());
     EXPECT_TRUE(File::GetFilesWithPrefix(root, "msprof_").empty());
     EXPECT_FALSE(File::Exist(root + "/mindstudio_profiler_output"));
     size_t savers = 0;
@@ -2640,7 +2690,7 @@ TEST_F(UnifiedPipelinePlanUTest, StringIdsPersistAfterSaverFailureButDoNotRunAft
         context.profPath = directory;
         context.scopeContexts["export"] = std::make_shared<Infra::Context>();
         context.scopeInventories["export"] = std::make_shared<DataInventory>();
-        context.dbSession = std::make_shared<DBAssembler>(directory, directory);
+        context.dbPath = DBAssembler::MakeDBPath(directory);
         const TopoNodeId good{TopoNodeStage::DATABASE_PERSISTENCE, "DB:TestSuccess"};
         const TopoNodeId failed{TopoNodeStage::DATABASE_PERSISTENCE, "DB:TestFailure"};
         const TopoNodeId blocked{TopoNodeStage::DATABASE_PERSISTENCE, "DB:TestBlocked"};

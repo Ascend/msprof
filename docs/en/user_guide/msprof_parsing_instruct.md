@@ -157,7 +157,7 @@ Replace `${INSTALL_DIR}` with the CANN software installation directory. If the T
 
 > [!NOTE]
 >
->- The `--reports` option specifies the `reports_sample_config.json` file. This option must be used in combination with `--export` and supports only `--type=text`. It controls only the timeline data in JSON files. Summary data in CSV files is always fully exported.
+>- The `--reports` option specifies the `reports_sample_config.json` file. This option must be used in combination with `--export` and supports only `--type=text`. `json_process`, `summary_process`, and `db_process` control the timeline data in JSON files, the summary data in CSV files, and the database deliverables in DB files respectively. A section that is not configured means that the corresponding deliverables are not exported, and enabling all three sections exports the full profile data.
 >- Soft links are not supported. The maximum file size threshold is 64 MB, and the maximum length threshold of the file path plus the file name is 1024 characters.
 
 By default, the `reports_sample_config.json` file is stored in the `${INSTALL_DIR}/tools/profiler/profiler_tool/analysis/msconfig/` directory. The file content is as follows:
@@ -197,16 +197,112 @@ By default, the `reports_sample_config.json` file is stored in the `${INSTALL_DI
         "biu_perf": true,
         "ub": true,
         "block_detail": true
+    },
+    "summary_process": {
+        "op_summary": true,
+        "comm_statistic": true,
+        "op_statistic": true,
+        "npu_memory": true,
+        "npu_module_memory": true,
+        "api_statistic": true,
+        "fusion_op": true,
+        "task_time": true,
+        "step_trace": true,
+        "page_fault": true,
+        "aicpu": true,
+        "dp": true,
+        "aicpu_mi": true
+    },
+    "db_process": {
+        "ascend_hardware": true,
+        "cann_api": true,
+        "osrt_api": true,
+        "hccl": true,
+        "ccu": true,
+        "dpu": true,
+        "overlap_analysis": true,
+        "ddr": true,
+        "hbm": true,
+        "llc": true,
+        "npu_mem": true,
+        "sio": true,
+        "hccs": true,
+        "pcie": true,
+        "nic": true,
+        "roce": true,
+        "netdev_stats": true,
+        "qos": true,
+        "ub": true,
+        "soc": true,
+        "acc_pmu": true,
+        "aicore_freq": true,
+        "sample_pmu": true,
+        "cpu_usage": true,
+        "cpu_freq": true,
+        "disk_usage": true,
+        "network_usage": true,
+        "mem_usage": true,
+        "host_info": true,
+        "npu_info": true,
+        "session_time_info": true,
+        "host_platform": true,
+        "msproftx": true,
+        "ftrace": true,
+        "meta_data": true
     }
 }
 ```
 
-The above are the switches for controlling the corresponding performance data, which can be configured as enabled (`true`) or disabled (`false` or by deleting the field). The controlled performance data includes the timeline data levels of the `msprof_*.json` file (including CANN, Ascend Hardware, AI Core Freq, on-chip memory, Communication, Overlap Analysis, `NPU_MEM` levels, etc.).
+The above are the switches for controlling the corresponding performance data, which can be configured as enabled (`true`) or disabled (`false` or by deleting the field). The controlled performance data includes the timeline data levels of the `msprof_*.json` file (including CANN, Ascend Hardware, AI Core Freq, on-chip memory, Communication, Overlap Analysis, `NPU_MEM` levels, etc.), the summary deliverables of `msprof_*.csv` files, and the deliverable of each data table in the `msprof_*.db` file.
+
+Each key of `summary_process` corresponds to one CSV deliverable: `op_summary`, `comm_statistic`, `op_statistic`, `npu_memory`, `npu_module_memory`, `api_statistic`, `fusion_op`, `task_time`, `step_trace`, `page_fault`, `aicpu`, `dp`, `aicpu_mi`, `hbm`, `ub`, and `llc_read_write`; the `aicpu`, `dp`, and `aicpu_mi` switches are exported by the same AI CPU module. The example file does not configure the `hbm`, `ub`, and `llc_read_write` keys; add them manually if these three deliverables are required.
+
+Each key of `db_process` corresponds to one data domain, and selecting it exports every database deliverable of that domain, as listed in the following table. A domain may contain several deliverables: `ascend_hardware`, for example, exports the Task, accelerator task, memory copy, and Task PMU tables, because the records of these tables all reference the task through `TASK.globalTaskId`, and exporting only one of them leaves task IDs that cannot be joined. A domain whose tables use an enumerated column also exports the enumeration tables. Every `db_process` key always exports the StringIds table, which restores the string IDs used in the tables.
+
+| Key | Data domain | Included database deliverables |
+| --- | --- | --- |
+| ascend_hardware | Ascend Hardware execution | Task information, accelerator task information, memory copy information, Task PMU metrics, enumeration tables |
+| cann_api | CANN API | CANN API, enumeration tables |
+| osrt_api | OSRT API | OS Runtime API |
+| hccl | HCCL communication | Communication information, enumeration tables |
+| ccu | CCU | CCU mission |
+| dpu | DPU | DPU bandwidth |
+| overlap_analysis | Overlap analysis | Overlap analysis, enumeration tables |
+| ddr | DDR | DDR bandwidth |
+| hbm | HBM | HBM bandwidth |
+| llc | LLC | LLC bandwidth |
+| npu_mem | NPU memory | NPU memory, operator memory, module memory |
+| sio | SIO | SIO bandwidth |
+| hccs | HCCS | HCCS bandwidth |
+| pcie | PCIe | PCIe bandwidth |
+| nic | NIC | NIC bandwidth |
+| roce | RoCE | RoCE bandwidth |
+| netdev_stats | NIC statistics | NIC statistics |
+| qos | QoS | QoS |
+| ub | UB | UB bandwidth |
+| soc | SOC | SOC bandwidth |
+| acc_pmu | Accelerator PMU | Accelerator PMU |
+| aicore_freq | AI Core frequency | AI Core frequency |
+| sample_pmu | Sampled PMU | Sampled PMU (timeline), sampled PMU (summary) |
+| cpu_usage | CPU usage | CPU usage |
+| cpu_freq | CPU frequency | CPU frequency |
+| disk_usage | Disk usage | Disk usage |
+| network_usage | Network usage | Network usage |
+| mem_usage | Memory usage | Memory usage |
+| host_info | Host information | Host information |
+| npu_info | NPU information | NPU information |
+| session_time_info | Session time information | Session time information |
+| host_platform | Host platform information | Host platform information (CPU metrics, NUMA levels, etc.) |
+| msproftx | msproftx events | msproftx events, enumeration tables |
+| ftrace | Generic ftrace event | Generic ftrace event, enumeration tables |
+| meta_data | Metadata tables | Metadata tables |
 
 > [!NOTE]
 >
 >1. Exporting the preceding data requires that the corresponding data already exists in the raw profile data (that is, the data has been collected).
->2. Ensure the `reports_sample_config.json` file is correctly formatted. Otherwise, incorrect content (such as misspellings) may cause the `--reports` option to become invalid and export all profile data. Furthermore, file read failures caused by missing files or permission issues will terminate the export process and return an error.
+>2. Ensure the `reports_sample_config.json` file is correctly formatted. Otherwise, incorrect content (such as misspellings) may cause the `--reports` option to become invalid or the export to fail. Furthermore, file read failures caused by missing files or permission issues will terminate the export process and return an error.
+>3. `meta_data`, `host_info`, `npu_info`, and `session_time_info` are basic database information deliverables and are usually kept enabled.
+>4. In older configurations, `task`, `compute_task_info`, `memcpy_info`, and `task_pmu_info` are merged into `ascend_hardware`; `api` becomes `cann_api`, `os_runtime_api` becomes `osrt_api`, `communication` becomes `hccl`, `ccu_mission` becomes `ccu`, `sample_pmu_timeline` and `sample_pmu_summary` are merged into `sample_pmu`, `npu_op_mem` and `npu_module_mem` are merged into `npu_mem`, `ftrace_generic_event` becomes `ftrace`, `enum` is folded into the relevant domains, and the other key names are unchanged.
 
 **Output Description**
 

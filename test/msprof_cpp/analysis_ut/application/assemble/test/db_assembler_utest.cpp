@@ -16,12 +16,14 @@
  * -------------------------------------------------------------------------
  */
 
+#include <set>
 #include <typeindex>
 
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "analysis/csrc/application/database/db_assembler.h"
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/include/report_map.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
 #include "analysis/csrc/infrastructure/process/include/process_control.h"
@@ -72,21 +74,46 @@ const int DEPTH = 0;
 const std::string DATA_DIR = "./db_assembler";
 const std::string PROF = File::PathJoin(std::vector<std::string>{DATA_DIR, "PROF"});
 
+// One report key may expand to a saver another selected key already covers, so only the distinct roots matter here.
+size_t CountUniqueRoots(const std::vector<TopoNodeId>& roots)
+{
+    std::set<std::string> names;
+    for (const auto& root : roots)
+    {
+        names.insert(root.name);
+    }
+    return names.size();
+}
+
+// Restores the global registry when the test leaves its scope, so a fatal assertion cannot leak an erased
+// definition into the cases that run after it.
+class TopoDefinitionSnapshot
+{
+   public:
+    TopoDefinitionSnapshot() : saved_(TopoNodeRegistry::GetDefinitions()) {}
+    ~TopoDefinitionSnapshot()
+    {
+        TopoNodeRegistry::MutableDefinitions() = saved_;
+    }
+    TopoDefinitionSnapshot(const TopoDefinitionSnapshot &other) = delete;
+    TopoDefinitionSnapshot &operator=(const TopoDefinitionSnapshot &other) = delete;
+
+   private:
+    TopoNodeCollection saved_;
+};
+
 class DBAssemblerTestAdapter : public Analysis::Application::DBAssembler {
 public:
     DBAssemblerTestAdapter() = default;
     DBAssemblerTestAdapter(const std::string& profPath, const std::string& outputPath)
-        : Analysis::Application::DBAssembler(profPath, outputPath)
+        : profPath_(profPath), dbPath_(Analysis::Application::DBAssembler::MakeDBPath(outputPath))
     {
     }
 
     bool Run(DataInventory& dataInventory)
     {
         std::vector<TopoNodeId> roots;
-        if (!Analysis::Application::DBAssembler::GetTopologyRoots(roots))
-        {
-            return false;
-        }
+        Analysis::Application::DBAssembler::GetTopologyRoots(Analysis::Application::GetAllDBJsonKeys(), roots);
         return RunRoots(roots, dataInventory);
     }
 
@@ -107,10 +134,8 @@ private:
         TopoBuildContext context;
         context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
         context.scopeInventories["export"] = std::shared_ptr<DataInventory>(&dataInventory, [](DataInventory*) {});
-        context.profPath = PROF;
-        context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
-        context.dbSession =
-            std::shared_ptr<Analysis::Application::DBAssembler>(this, [](Analysis::Application::DBAssembler*) {});
+        context.profPath = profPath_;
+        context.dbPath = dbPath_;
         RuntimeProcessCollection processes;
         TopoGraphBuilder builder;
         TopoNodeCollection definitions = TopoNodeRegistry::GetDefinitions();
@@ -131,6 +156,9 @@ private:
         ProcessControl processControl(processes);
         return processControl.ExecuteProcess();
     }
+
+    std::string profPath_;
+    std::string dbPath_;
 };
 }
 
@@ -2398,15 +2426,14 @@ TEST_F(DBAssemblerUTest, TestRunSaveCCUDataShouldReturnTrueWhenRunSuccess)
 TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
 {
     std::vector<TopoNodeId> roots;
-    ASSERT_TRUE(DBAssembler::GetTopologyRoots(roots));
+    DBAssembler::GetTopologyRoots(GetAllDBJsonKeys(), roots);
     ASSERT_FALSE(roots.empty());
 
     TopoBuildContext context;
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<DataInventory>();
     context.profPath = PROF;
-    context.outputPath = File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH});
-    context.dbSession = std::make_shared<DBAssembler>(context.profPath, context.outputPath);
+    context.dbPath = DBAssembler::MakeDBPath(context.profPath);
     RuntimeProcessCollection processes;
     TopoGraphBuilder builder;
     ASSERT_TRUE(builder.Build(context, roots, processes));
@@ -2441,7 +2468,7 @@ TEST_F(DBAssemblerUTest, ShouldBuildAllSaverNodesAndMakeStringIdsRunLast)
         }
     }
 
-    EXPECT_EQ(dbNodeCount + 1, roots.size());
+    EXPECT_EQ(dbNodeCount + 1, CountUniqueRoots(roots));
     ASSERT_NE(apiSaver, nullptr);
     EXPECT_EQ(apiSaver->processDependence.size(), 1UL);
     EXPECT_EQ(apiSaver->paramTypes.size(), 1UL);
@@ -2567,14 +2594,89 @@ TEST_F(DBAssemblerUTest, ShouldSaveHostPlatformDataFromDataInventory)
     EXPECT_EQ(std::get<0>(titlesNames[0]), "ns");
 }
 
-TEST_F(DBAssemblerUTest, ShouldRejectExecutionListNodeWithoutRegistration)
+TEST_F(DBAssemblerUTest, ShouldSkipExecutionListNodeWithoutRegistration)
 {
-    const auto definitions = TopoNodeRegistry::GetDefinitions();
+    const TopoDefinitionSnapshot snapshot;
     TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + PROCESSOR_NAME_API});
     std::vector<TopoNodeId> roots;
-    EXPECT_FALSE(DBAssembler::GetTopologyRoots(roots));
-    EXPECT_TRUE(roots.empty());
-    TopoNodeRegistry::MutableDefinitions() = definitions;
+    DBAssembler::GetTopologyRoots(GetAllDBJsonKeys(), roots);
+    // 37 distinct savers across every report key, plus the 4 shared savers every DB export carries, plus the
+    // StringIds node, minus the erased API saver.
+    ASSERT_EQ(CountUniqueRoots(roots), 41UL);
+    EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
+    bool apiFound = false;
+    for (const auto& root : roots)
+    {
+        apiFound = apiFound || (root.name == "DB:" + PROCESSOR_NAME_API);
+    }
+    EXPECT_FALSE(apiFound);
+}
+
+TEST_F(DBAssemblerUTest, ShouldBuildSelectedSaverNodesAndKeepStringIdsLast)
+{
+    std::vector<TopoNodeId> roots;
+    DBAssembler::GetTopologyRoots({"ddr", "hbm"}, roots);
+    // The two selected savers, the 4 shared savers every DB export carries, and the StringIds node.
+    ASSERT_EQ(roots.size(), 7UL);
+    EXPECT_EQ(roots[0].stage, TopoNodeStage::DATABASE_PERSISTENCE);
+    EXPECT_EQ(roots[0].name, "DB:" + PROCESSOR_NAME_DDR);
+    EXPECT_EQ(roots[1].stage, TopoNodeStage::DATABASE_PERSISTENCE);
+    EXPECT_EQ(roots[1].name, "DB:" + PROCESSOR_NAME_HBM);
+    EXPECT_EQ(roots.back().stage, TopoNodeStage::FLOW_CONTROL);
+    EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
+}
+
+TEST_F(DBAssemblerUTest, ShouldPlanEverySaverOfASelectedDomain)
+{
+    std::vector<TopoNodeId> roots;
+    DBAssembler::GetTopologyRoots({"ascend_hardware"}, roots);
+    // 5 savers of the domain, 4 shared savers, and the StringIds node.
+    ASSERT_EQ(roots.size(), 10UL);
+    EXPECT_EQ(roots[0].name, "DB:" + PROCESSOR_NAME_TASK);
+    EXPECT_EQ(roots[1].name, "DB:" + PROCESSOR_NAME_COMPUTE_TASK_INFO);
+    EXPECT_EQ(roots[2].name, "DB:" + PROCESSOR_NAME_MEMCPY_INFO);
+    EXPECT_EQ(roots[3].name, "DB:" + PROCESSOR_NAME_TASK_PMU_INFO);
+    EXPECT_EQ(roots[4].name, "DB:" + PROCESSOR_NAME_ENUM);
+    EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
+
+    // A domain covers every table that belongs to it.
+    roots.clear();
+    DBAssembler::GetTopologyRoots({"npu_mem"}, roots);
+    ASSERT_EQ(roots.size(), 8UL);
+    EXPECT_EQ(roots[0].name, "DB:" + PROCESSOR_NAME_NPU_MEM);
+    EXPECT_EQ(roots[1].name, "DB:" + PROCESSOR_NAME_NPU_OP_MEM);
+    EXPECT_EQ(roots[2].name, "DB:" + PROCESSOR_NAME_NPU_MODULE_MEM);
+    EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
+
+    // Domains are planned independently here, so their shared enum savers repeat until the plan merges them.
+    roots.clear();
+    DBAssembler::GetTopologyRoots({"ascend_hardware", "cann_api"}, roots);
+    ASSERT_EQ(roots.size(), 12UL);
+    EXPECT_EQ(CountUniqueRoots(roots), 11UL);
+}
+
+TEST_F(DBAssemblerUTest, ShouldRegisterEverySaverOfEveryReportKey)
+{
+    for (const auto& jsonKey : GetAllDBJsonKeys())
+    {
+        const auto saverNames = GetDBSaverNames(jsonKey);
+        ASSERT_FALSE(saverNames.empty()) << jsonKey;
+        for (const auto& saverName : saverNames)
+        {
+            const TopoNodeId id{TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + saverName};
+            EXPECT_NE(TopoNodeRegistry::Find(id), nullptr) << jsonKey << " -> " << saverName;
+        }
+    }
+}
+
+TEST_F(DBAssemblerUTest, ShouldSkipUnsupportedDBReportKey)
+{
+    std::vector<TopoNodeId> roots;
+    DBAssembler::GetTopologyRoots({"ddr", "invalid_process"}, roots);
+    // The valid key keeps its saver, the shared savers are added, and the unsupported key is skipped.
+    ASSERT_EQ(roots.size(), 6UL);
+    EXPECT_EQ(roots[0].name, "DB:" + PROCESSOR_NAME_DDR);
+    EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
 }
 
 // CloseAllDb drops every writer. Destroying one DBAssembler must leave the writer
@@ -2730,4 +2832,16 @@ TEST_F(DBAssemblerUTest, FtraceSaverLeavesNoMarkersWithoutArtifacts)
     std::vector<std::tuple<std::string>> markers;
     ASSERT_TRUE(db.QueryData("SELECT name FROM META_DATA WHERE name IN ('ftrace', 'ftrace_events_complete')", markers));
     EXPECT_TRUE(markers.empty());
+}
+
+TEST_F(DBAssemblerUTest, ShouldGenerateTimestampedDbPathUnderOutputDirectory)
+{
+    const std::string outputDir = File::PathJoin({PROF, OUTPUT_PATH});
+    const std::string dbPath = DBAssembler::MakeDBPath(outputDir);
+    EXPECT_EQ(File::ParentPath(dbPath), outputDir);
+    const std::string fileName = File::BaseName(dbPath);
+    EXPECT_EQ(fileName.rfind(DB_NAME_MSPROF_DB + "_", 0), 0UL);
+    const size_t suffix = fileName.rfind(".db");
+    ASSERT_NE(suffix, std::string::npos);
+    EXPECT_EQ(fileName.size() - suffix, 3UL);
 }

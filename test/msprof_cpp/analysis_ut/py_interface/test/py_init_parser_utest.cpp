@@ -261,6 +261,10 @@ TEST_F(PyInitParserUtest, TestRunPipelinePropagatesUnifiedFailure)
 TEST_F(PyInitParserUtest, LegacyExportInterfacesUseExportManagerAndBuildCompleteGraph)
 {
     using namespace Analysis::Interface;
+    // Every legacy interface owns one deliverable, so the report config enables all of them for its own mode.
+    FileWriter(REPORTS_JSON_PATH)
+        .WriteText("{\"json_process\":{\"ascend\":true},\"summary_process\":{\"step_trace\":true},"
+                   "\"db_process\":{\"ascend_hardware\":true}}");
     const std::vector<std::pair<PyCFunction, int>> exports{{WrapExportUnifiedDB, PIPELINE_DB},
                                                            {WrapExportTimeline, PIPELINE_TIMELINE | PIPELINE_DB},
                                                            {WrapExportSummary, PIPELINE_SUMMARY | PIPELINE_DB}};
@@ -288,7 +292,8 @@ TEST_F(PyInitParserUtest, LegacyExportInterfacesUseExportManagerAndBuildComplete
 TEST_F(PyInitParserUtest, ExportManagerRunPreservesRequestedModesAndReportPath)
 {
     FileWriter(REPORTS_JSON_PATH)
-        .WriteText("{\"json_process\":{\"ascend\":true},\"summary_process\":{\"step_trace\":true}}");
+        .WriteText("{\"json_process\":{\"ascend\":true},\"summary_process\":{\"step_trace\":true},"
+                   "\"db_process\":{\"ascend_hardware\":true}}");
     ExportManager manager(PROF_PATH, REPORTS_JSON_PATH);
     const std::vector<std::pair<std::set<ExportMode>, int>> selections{
         {{ExportMode::DB}, PIPELINE_DB},
@@ -304,6 +309,11 @@ TEST_F(PyInitParserUtest, ExportManagerRunPreservesRequestedModesAndReportPath)
         EXPECT_EQ(HasExportStage(TopoNodeStage::DATABASE_PERSISTENCE), (selection.second & PIPELINE_DB) != 0);
         EXPECT_EQ(HasExportStage(TopoNodeStage::TIMELINE_EXPORT), (selection.second & PIPELINE_TIMELINE) != 0);
         EXPECT_EQ(HasExportStage(TopoNodeStage::SUMMARY_GENERATION), (selection.second & PIPELINE_SUMMARY) != 0);
+        if ((selection.second & PIPELINE_DB) != 0)
+        {
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::DATABASE_PERSISTENCE, "DB:TASK", "export"}), 1U);
+            EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::DATABASE_PERSISTENCE, "DB:DDR", "export"}), 0U);
+        }
         if ((selection.second & PIPELINE_TIMELINE) != 0)
         {
             EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::TIMELINE_EXPORT, "Task Scheduler", "export"}), 1U);
@@ -315,6 +325,108 @@ TEST_F(PyInitParserUtest, ExportManagerRunPreservesRequestedModesAndReportPath)
             EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::SUMMARY_GENERATION, "NPU_MEM", "export"}), 0U);
         }
     }
+}
+
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceUsesReportsSelection)
+{
+    FileWriter(REPORTS_JSON_PATH).WriteText("{\"summary_process\":{\"step_trace\":true,\"op_summary\":false}}");
+    PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str());
+    PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+    Py_DECREF(args);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_OK);
+    Py_DECREF(result);
+    using Analysis::Application::TopoNodeStage;
+    EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::SUMMARY_GENERATION, "STEP_TRACE", "export"}), 1U);
+    EXPECT_EQ(capturedExportNodes.count({TopoNodeStage::SUMMARY_GENERATION, "OP_SUMMARY", "export"}), 0U);
+}
+
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceSkipsAllDisabledDeliverables)
+{
+    FileWriter(REPORTS_JSON_PATH)
+        .WriteText("{\"summary_process\":{\"op_summary\":false},\"db_process\":{\"ascend_hardware\":true}}");
+    PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str());
+    PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+    Py_DECREF(args);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_OK);
+    Py_DECREF(result);
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::SUMMARY_GENERATION));
+    EXPECT_TRUE(HasExportStage(Analysis::Application::TopoNodeStage::DATABASE_PERSISTENCE));
+}
+
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceSkipsDatabaseWhenSectionIsAbsent)
+{
+    FileWriter(REPORTS_JSON_PATH).WriteText("{\"summary_process\":{\"step_trace\":true}}");
+    PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str());
+    PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+    Py_DECREF(args);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_OK);
+    Py_DECREF(result);
+    EXPECT_TRUE(HasExportStage(Analysis::Application::TopoNodeStage::SUMMARY_GENERATION));
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::DATABASE_PERSISTENCE));
+}
+
+// A DB export whose whole selection is disabled has nothing to dump, so the run skips it instead of failing on a plan
+// that holds only the StringIds finalizer.
+TEST_F(PyInitParserUtest, ExportManagerRunSkipsDatabaseSelectionWithoutSavers)
+{
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).reset();
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).expects(never());
+    FileWriter(REPORTS_JSON_PATH).WriteText("{\"db_process\":{\"ascend_hardware\":false}}");
+    ExportManager manager(PROF_PATH, REPORTS_JSON_PATH);
+    Analysis::Application::TopoBuildContext context;
+    std::vector<Analysis::Application::TopoNodeId> roots;
+    ASSERT_TRUE(manager.Plan({ExportMode::DB}, context, roots));
+    EXPECT_TRUE(roots.empty());
+    EXPECT_TRUE(manager.Run({ExportMode::DB}));
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::DATABASE_PERSISTENCE));
+}
+
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceRejectsMissingReportsFile)
+{
+    PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), "./not_exist_reports.json");
+    PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+    Py_DECREF(args);
+    EXPECT_EQ(result, nullptr);
+    EXPECT_TRUE(PyErr_Occurred());
+    PyErr_Clear();
+}
+
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceRejectsMalformedReportsBeforeExport)
+{
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).reset();
+    MOCKER(&Analysis::Application::ExecuteTopoGraph).expects(never());
+    for (const auto &config : std::vector<std::string>{"{", "[]", "{\"summary_process\":[]}",
+             "{\"summary_process\":{\"op_summary\":\"true\"}}",
+             "{\"summary_process\":{\"unknown\":true}}"})
+    {
+        FileWriter(REPORTS_JSON_PATH).WriteText(config);
+        PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str());
+        PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+        Py_DECREF(args);
+        ASSERT_NE(result, nullptr);
+        EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_ERROR);
+        EXPECT_EQ(PyErr_Occurred(), nullptr);
+        Py_DECREF(result);
+    }
+}
+
+// A deliverable that is switched off exports nothing, so an unsupported name is only ignored instead of aborting the
+// whole export; a misconfigured but enabled deliverable is still rejected above.
+TEST_F(PyInitParserUtest, LegacySummaryInterfaceIgnoresDisabledUnsupportedDeliverable)
+{
+    FileWriter(REPORTS_JSON_PATH).WriteText("{\"summary_process\":{\"unknown\":false}}");
+    PyObject *args = Py_BuildValue("(ss)", PROF_PATH.c_str(), REPORTS_JSON_PATH.c_str());
+    PyObject *result = Analysis::Interface::WrapExportSummary(nullptr, args);
+    Py_DECREF(args);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(PyLong_AsLong(result), Analysis::ANALYSIS_OK);
+    EXPECT_EQ(PyErr_Occurred(), nullptr);
+    Py_DECREF(result);
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::SUMMARY_GENERATION));
+    EXPECT_FALSE(HasExportStage(Analysis::Application::TopoNodeStage::DATABASE_PERSISTENCE));
 }
 
 TEST_F(PyInitParserUtest, ExportManagerRunRejectsInvalidModesBeforeDispatch)

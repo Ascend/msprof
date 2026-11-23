@@ -54,7 +54,7 @@ class DeliverableConsumer
                     const std::vector<std::shared_ptr<Domain::TraceEvent>> &events);
     // Wait only for the files these prefixes resolve to.
     void SyncJson(const std::vector<std::string> &prefixes, const std::string &profPath);
-    void FinishTimeline();
+    std::vector<std::string> FinishTimeline();
 
     void WriteCsv(const std::string &basePath, const std::vector<std::string> &headers,
                   const std::vector<std::vector<std::string>> &rows, const std::set<int> &mask,

@@ -356,10 +356,10 @@ std::vector<nlohmann::json> ExpectedJson()
     return events;
 }
 
-bool RunDbSaver(const std::shared_ptr<DBAssembler> &session, DataInventory &inventory, const std::string &processor)
+bool RunDbSaver(const std::string &dbPath, DataInventory &inventory, const std::string &processor)
 {
     TopoBuildContext context;
-    context.dbSession = session;
+    context.dbPath = dbPath;
     context.profPath = PROF_PATH;
     const TopoNodeCreatorFactory factory = DBAssembler::CreateSaver(kDbPrefix + processor);
     const Analysis::Infra::ProcessCreator creator = factory(context);
@@ -430,9 +430,7 @@ TEST_F(ConcurrentAssemblerUTest, ShouldKeepDeliverableContentWhenAssemblersRunTo
     inventory.Inject(apiData);
     inventory.Inject(moduleData);
 
-    auto session = std::make_shared<DBAssembler>(PROF_PATH, DB_DIR);
-    ASSERT_NE(session->msprofDB_.dbRunner, nullptr);
-    const std::string dbPath = session->msprofDB_.dbRunner->GetPath();
+    const std::string dbPath = DBAssembler::MakeDBPath(DB_DIR);
 
     std::mutex failureMu;
     std::vector<std::string> failures;
@@ -467,17 +465,16 @@ TEST_F(ConcurrentAssemblerUTest, ShouldKeepDeliverableContentWhenAssemblersRunTo
                NpuModuleMemAssembler assembler(PROCESSOR_NAME_NPU_MODULE_MEM, PROF_PATH);
                return assembler.Run(inventory);
            });
-    Launch(threads, failureMu, failures, "db_ddr", [session, &inventory]()
-           { return RunDbSaver(session, inventory, PROCESSOR_NAME_DDR); });
-    Launch(threads, failureMu, failures, "db_npu_module_mem", [session, &inventory]()
-           { return RunDbSaver(session, inventory, PROCESSOR_NAME_NPU_MODULE_MEM); });
+    Launch(threads, failureMu, failures, "db_ddr", [dbPath, &inventory]()
+           { return RunDbSaver(dbPath, inventory, PROCESSOR_NAME_DDR); });
+    Launch(threads, failureMu, failures, "db_npu_module_mem", [dbPath, &inventory]()
+           { return RunDbSaver(dbPath, inventory, PROCESSOR_NAME_NPU_MODULE_MEM); });
     for (size_t i = 0; i < threads.size(); ++i)
     {
         threads[i].join();
     }
     // The closing bracket is written when the timeline finishes, after every assembler has returned.
     DeliverableConsumer::Instance().FinishTimeline();
-    session.reset();
 
     std::string failureText;
     for (size_t i = 0; i < failures.size(); ++i)

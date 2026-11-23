@@ -190,7 +190,6 @@ TEST_F(ChipTransV6AssemblerUTest, ShouldExportTimelineFromV6PcieData)
     TopoBuildContext context;
     context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
     context.scopeInventories["export"] = std::make_shared<Analysis::Infra::DataInventory>();
-    context.timelineSession = std::make_shared<TimelineManager>(PROF_PATH, RESULT_PATH);
     std::vector<TopoNodeId> roots;
     Analysis::Infra::RuntimeProcessCollection graph;
     TopoGraphBuilder builder;

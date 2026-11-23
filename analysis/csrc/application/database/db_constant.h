@@ -44,6 +44,11 @@ const std::string PROCESSOR_NAME_STEP_TRACE = "STEP_TRACE";
 const std::string PROCESSOR_NAME_STRING_IDS = "STRING_IDS";
 const std::string TABLE_NAME_STRING_IDS = "STRING_IDS";
 
+// The node name of a DB saver is its registration key with this prefix, the StringIds saver is the post step.
+// It must stay after TABLE_NAME_STRING_IDS, the declaration order inside a translation unit is the initialization
+const std::string DB_PREFIX = "DB:";
+const std::string DB_STRING_IDS = DB_PREFIX + TABLE_NAME_STRING_IDS;
+
 // ftrace generic event model
 const std::string TABLE_NAME_GENERIC_EVENT_SOURCES = "GENERIC_EVENT_SOURCES";
 const std::string TABLE_NAME_GENERIC_EVENT_TYPES = "GENERIC_EVENT_TYPES";
