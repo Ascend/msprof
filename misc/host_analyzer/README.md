@@ -1,14 +1,14 @@
-# Host 诊断调优工具
+# Host诊断调优工具
 
 ## 简介
 
-当前 AI 训练、推理业务场景中，Host侧（CPU）的任务下发（如算子调度、内存分配）与Device侧（NPU）的任务执行是异步进行的。当Host侧任务下发耗时超过Device侧任务执行耗时时，Device会因等待新任务而处于空闲状态，形成性能瓶颈，即HostBound问题。
+当前AI训练、推理业务场景中，Host侧（CPU）的任务下发（如算子调度、内存分配）与Device侧（NPU）的任务执行是异步进行的。当Host侧任务下发耗时超过Device侧任务执行耗时时，Device会因等待新任务而处于空闲状态，形成性能瓶颈，即HostBound问题。
 
 针对以上问题，我们设计了Host侧的诊断调优工具，提供简单、易用的绑核能力，通过将进程和线程分别绑定在不同CPU上执行以减少互相之间的干扰与资源竞争。
 
 ## 使用前准备
 
-1. 获取仓库中提供的参数解析、绑核脚本：[entrance.py](./entrance.py)，[cpu_binder.py](./cpu_binder.py)
+1. 获取仓库中提供的参数解析、绑核脚本：[entrance.py](./entrance.py)、[cpu_binder.py](./cpu_binder.py)
 
 ## 功能介绍
 
@@ -16,9 +16,9 @@
 
 #### 功能说明
 
-提供自定义绑核能力，根据用户输入json中的配置方案完成进程/线程级绑核；缺省输入时以经验最优方案进行绑核：
+提供自定义绑核能力，根据用户输入JSON中的配置方案完成进程/线程级绑核；缺省输入时以经验最优方案进行绑核：
 
-为每张卡的关键线程 acl_thread/release_thread 单独分配一个 CPU 核，dev[i]_sq_task 单独分配一个 CPU 核（宿主机可绑，未查询到时跳过），算子相关中断 sq_send_trigger_irq 和 cq_update_irq 各单独分配一个 CPU 核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到 6 个 CPU 核上，即每张 NPU 卡绑定到 11 个 CPU 核（分配 CPU 时考虑 NPU 亲和性及跨 NUMA 内存访问时延）。
+为每张卡的关键线程acl_thread/release_thread单独分配一个CPU核，dev[i]_sq_task单独分配一个CPU核（宿主机可绑，未查询到时跳过），算子相关中断sq_send_trigger_irq和cq_update_irq各单独分配一个CPU核（需要拥有/proc目录写权限，权限不足时跳过），其余推理线程共同分配到6个CPU核上，即每张NPU卡绑定到11个CPU核（分配CPU时考虑NPU亲和性及跨NUMA内存访问时延）。
 
 #### 命令格式
 
@@ -104,13 +104,13 @@ python3 entrance.py bind [-l] [-c <config_path>]
     6. 分别绑定中断 "3008","3009","3264","3265","2496","2497","2752","2753"到CPU "15", "16", "27", "28", "64", "65", "76", "77"
 - 使用示例2
 
-  ```python
+  ```bash
   python3 entrance.py bind
   ```
   
     1. 结合NPU亲和性以及可访问CPU数量，为每张NPU卡分配对应的CPU区间（每张卡分配的CPU区间都会在一个NUMA节点内）
     2. 绑定每张NPU卡对应的sq_send_trigger_irq和cq_update_irq（算子下发硬件中断）到其CPU区间的前两个CPU核，需要有/proc/irq/\<irq_id\>/smp_affinity文件的写权限，否则会执行失败
-    3. 绑定每张NPU卡对应的dev[i]_sq_task（NPU驱动进程）到其CPU区间的第三个CPU核，需要在宿主机才能查询到此进程，否则会执行失败
+    3. 绑定每张NPU卡对应的dev[i]_sq_task（NPU驱动进程）到其CPU区间的第三个CPU核，需要在宿主机上才能查询到此进程，否则会执行失败
     4. 绑定每张NPU卡对应的主进程和所有子线程到其CPU区间的第四到第九个CPU核
     5. 绑定每张NPU卡对应的acl_thread（算子下发线程）到其CPU区间的第十个CPU核
     6. 绑定每张NPU卡对应的release_thread（资源释放线程）到其CPU区间的第十一个CPU核

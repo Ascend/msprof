@@ -1,10 +1,12 @@
 # 内存泄漏
 
+本文档介绍内存泄漏问题的定位方法，通过对比两个版本单step的profiling内存数据、验证跨step泄漏累积趋势并结合调用栈定位到算子引用计数错误根因，适用于排查版本升级引入的OOM与内存泄漏问题的用户。
+
 ## 1. 问题背景
 
 问题来源：CANN 包版本升级（A版本 → B版本），推理场景。
 
-问题现象：稳定复现。B版本运行约 12 小时后，在第 471 个 step 出现 OOM。该问题在 A 版本上未复现，且在 GPU 上同样未出现，仅在 NPU B 版本上复现。已确认开启了虚拟内存。
+问题现象：稳定复现。B版本运行约 12 小时后，在第 471 个 step 出现 OOM。该问题在A版本上未复现，且在GPU上同样未出现，仅在NPU B版本上复现。已确认开启了虚拟内存。
 
 ## 2. 定位过程
 
@@ -12,7 +14,7 @@
 
 **时间**：4.10（耗时约 1 天）
 
-**当前现状和分析**：B版本在第 471 个 step 后 OOM，已获取两个版本 step 2 的 profiling 数据，需要对比分析单 step 的内存行为差异。
+**现状和分析**：B版本在第 471 个 step 后 OOM，已获取两个版本 step 2 的 profiling 数据，需要对比分析单 step 的内存行为差异。
 
 **采集配置**
 
@@ -49,7 +51,7 @@ with torch_npu.profiler.profile(
 
 分析结论：
 
-- A版本单 step 的 `allocated` 增量仅 0.09MB，属于正常的微小波动，step 结束后基本完全释放。
+- A版本单 step 的 `allocated` 增量仅 90KB，属于正常的微小波动，step 结束后基本完全释放。
 - B版本单 step 的 `allocated` 净增约 47MB，说明单个 step 内存在未释放的内存，这是**典型的内存泄漏特征**。
 - 若每个 step 泄漏约 47MB，运行 471 个 step 后将累积约 22GB，足以导致 OOM。
 
@@ -57,7 +59,7 @@ with torch_npu.profiler.profile(
 
 **时间**：4.10（与第一步同步完成）
 
-**当前现状和分析**：单 step 已发现 ~47MB 的泄漏，需要确认泄漏是否跨 step 线性累积。
+**现状和分析**：单 step 已发现 ~47MB 的泄漏，需要确认泄漏是否跨 step 线性累积。
 
 **操作动作**：扩大 profiling 的 `active` 覆盖范围，连续采集 20 个 step，观察 `allocated` 的跨 step 变化趋势。
 
@@ -77,13 +79,13 @@ with torch_npu.profiler.profile(
 筛选 `operator_memory.csv` 后发现：
 
 - `aten::empty` 算子申请了约 47MB 内存但全程未记录到对应的释放操作。
-- 调用栈显示该 `aten::empty` 来自 `custom_attention_forward` 算子内部的中间 tensor 分配。
+- 调用栈显示该 `aten::empty` 来自 `custom_attention_forward` 算子内部的中间 Tensor 分配。
 
 进一步代码审查发现，B版本中 `custom_attention_forward` 的 KV-cache 实现存在引用计数问题：中间 tensor 被 cache 内部引用后，Python 侧引用计数未正确递减，导致 step 结束后 tensor 不会被 GC 回收，累积在内存池中。
 
 ## 3. 问题根因
 
-B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数错误，导致每 step 产生的中间 tensor（约 47MB）无法被垃圾回收，持续累积在显存中。经过 471 个 step 后，累积泄漏量达到 ~22GB，触发 OOM。
+B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数错误，导致每 step 产生的中间 tensor（约 47MB）无法被垃圾回收，持续累积在内存中。经过 471 个 step 后，累积泄漏量达到 ~22GB，触发 OOM。
 
 该问题属于算子 bug：KV-cache 内部对中间 tensor 的引用管理不当。该故障模式需补充至故障模式库。
 
@@ -98,6 +100,6 @@ B版本 `custom_attention_forward` 算子的 KV-cache 实现存在引用计数�
 
 ## 5. 对工具的改进建议
 
-- `operator_memory.csv` 目前需要手动对比申请和释放记录来识别泄漏算子，建议增加"未释放算子"的自动标注能力。
+- `operator_memory.csv` 目前需要手动对比申请和释放记录来识别泄漏算子，建议增加“未释放算子”的自动标注能力。
 - profiling 工具可增加跨 step 的 `allocated` 趋势图自动生成，降低泄漏累积的识别门槛。
 - 建议在 profiler 中增加算子级内存生命周期跟踪，自动关联申请与释放，直接标记异常。

@@ -1,4 +1,4 @@
-# msProf 典型案例
+# msProf典型案例
 
 本章节通过性能调优的典型场景提供对应的性能调优案例，包含如下案例：
 
@@ -15,7 +15,7 @@
   - [同步接口频繁调用](sync_api_frequent_call.md)
 - 系统调度类
   - [CPU Cache Miss资源冲突与受限](cpu_cache_miss_conflict.md)
-  - [CPU 线程频繁切换](cpu_thread_frequent_switching.md)
+  - [CPU线程频繁切换](cpu_thread_frequent_switching.md)
   - [GIL锁抢占问题分析](gil_lock_preemption.md)
   - [IRQ中断问题分析](irq_interruption.md)
   - [内核进程频繁切换](kernel_thread_switching.md)

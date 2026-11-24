@@ -1,5 +1,7 @@
 # GIL Tracer
 
+本文档介绍GIL Tracer工具的GIL锁检测能力，涵盖GIL数据采集、数据后处理和可视化展示，适用于需要分析Python多线程程序GIL锁使用情况的开发人员。
+
 ## 简介
 
 当前 AI 训练、推理业务场景中，广泛使用 Python 多线程执行算子下发、内存搬运等任务。然而，由于 Python 的全局解释器锁（GIL）的存在，导致在多线程环境下，Python 解释器只能同时执行一个线程，无法实现真正的并行计算，各线程需竞争 GIL 锁，导致锁抢占频繁、线程调度不均，引发模型运行效率下降。
@@ -9,7 +11,7 @@
 **使用流程**
 
   1. 通过命令行或 API 接口两种方式采集 Python GIL 数据。
-  2. 将采集的 Python GIL 数据进行后处理，转换为Chrome Trace Json格式。
+  2. 将采集的 Python GIL 数据进行后处理，转换为Chrome Trace JSON格式。
   3. 联合 Profiler 数据导入[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)，进行可视化展示，Profiler 数据采集可参见 [msProf性能数据采集](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/README.md)。
 
 ## 使用前准备
@@ -22,9 +24,9 @@
       ```
 
   3. 配置 sysTrace 相关环境变量，包括：
-      1. 运行时依赖，参见 《[sysTrace 使用指南](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/introduction.md)》。
+      1. 运行时依赖，参见《[sysTrace 使用指南](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/introduction.md)》。
       2. 日志、数据目录配置，参见 《[sysTrace 采集使用指南](https://gitcode.com/openeuler/sysTrace/blob/master/docs/zh/data_collection.md)》。
-  4. 获取仓库中提供的采集、转换脚本 [gil_trace_record.py](./gil_trace_record.py)，[gil_trace_convert.py](./gil_trace_convert.py)，以及文件操作相关脚本（[file_manager.py](./file_manager.py)），推荐 Profiler 和 GIL 数据同步采集。
+  4. 获取仓库中提供的采集、转换脚本 [gil_trace_record.py](./gil_trace_record.py)、[gil_trace_convert.py](./gil_trace_convert.py)，以及文件操作相关脚本（[file_manager.py](./file_manager.py)），推荐 Profiler 和 GIL 数据同步采集。
 
 ## GIL 数据采集
 
@@ -53,7 +55,7 @@ python gil_trace_record.py [--pid <PID>] [--duration <duration>]
 
 在 NPU 上启动模型 Python 进程，获取其 PID，假设为 12345，新创建一个终端窗口，用于运行 gil_trace_record.py 脚本（需要 root 权限）。
 
-- 示例1：采集指定 PID 为 12345 的进程的 GIL 数据，持续时间为10秒。
+- 示例1：采集指定 PID 为 12345 的进程的 GIL 数据，持续时间为10s。
 
   ```bash
   python gil_trace_record.py --pid 12345 --duration 10
@@ -129,7 +131,7 @@ def train():
 
 **功能说明**
 
-gil_trace_convert.py 脚本用于将采集的 GIL 数据进行加工处理，转换为 Chrome Trace Json 格式，以便导入 MindStudio Insight 可视化工具联合展示与分析。
+gil_trace_convert.py 脚本用于将采集的 GIL 数据进行加工处理，转换为 Chrome Trace JSON 格式，以便导入 MindStudio Insight 可视化工具联合展示与分析。
 
 **命令格式**
 

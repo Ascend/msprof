@@ -1,8 +1,10 @@
 # Pthread线程锁等待
 
+本文档介绍Pthread线程锁等待问题，梳理问题现象与使用perf、strace、MSOSRT工具的定位过程及锁粒度设计、锁类型配置不当的根因，适用于遇到线程锁竞争导致训练性能下降的开发者。
+
 ## 1. 问题背景
 
-在 PyTorch 大模型分布式训练场景中，[DataLoader、pin_memory](https://docs.pytorch.org/docs/2.12/data.html#torch.utils.data.DataLoader) 模块采用多线程生产者 - 消费者模型，使用 pthread 互斥锁（pthread_mutex_t）保护共享队列的并发访问。
+在 PyTorch 大模型分布式训练场景中，[DataLoader、pin_memory](https://docs.pytorch.org/docs/2.12/data.html#torch.utils.data.DataLoader) 模块采用多线程生产者-消费者模型，使用 pthread 互斥锁（pthread_mutex_t）保护共享队列的并发访问。
 
 训练运行在多卡 NPU 服务器上，数据加载线程池配置为 16 个 worker 线程，主线程负责从队列中取数据喂给 NPU 计算。随着 batch size 增大和数据预处理逻辑复杂化，训练性能出现下降。
 
@@ -22,15 +24,15 @@
 2. 系统层面表现：
 
    - CPU 利用率整体不高，但存在明显的锁等待特征
-   - pidstat -w显示线程上下文切换频率高
+   - `pidstat -w` 显示线程上下文切换频率高
 
 3. 应用层面表现：
 
    - 日志显示数据预处理逻辑实际耗时仅占线程运行时间的 40%，其余为等待时间
-   - 增大 worker 线程数至 32 后，性能不仅没有提升反而有恶化
+   - 增大 worker 线程数至 32 后，性能不仅没有提升反而恶化
 
 如下图所示：
-
+ 
 ![线程锁等待](../figures/profiler_case_pthread_trace.png)
 
 ## 4. 定位过程
@@ -46,7 +48,7 @@
    - 执行 `strace -tt -T -e futex -p <pid>` 追踪 `futex` 系统调用。
    - 观察到大量 `futex(FUTEX_WAIT)` 调用，单次等待时间超过 10ms。
 
-3. MSOSRT 工具采集系统库函数耗时。
+3. 使用 MSOSRT 工具做系统库函数耗时采集。
 
    OSRT 全称为 OS Runtime Libraries Trace（操作系统运行时库追踪），其核心能力是基于 Linux 系统运行时库，对用户态各类库函数 API 的调用行为进行采集和追踪。
 
@@ -54,11 +56,11 @@
 
    仓库地址：[MSOSRT](https://gitcode.com/Ascend/mstt/tree/poc/profiler/msprof_analyze/osrt_trace)
 
-   **使用方法:**
+   **使用方法：**
 
     1. 编译 MSOSRT 工具。
 
-        将代码仓下载到本地，执行`bash build.sh`，生成 `libmsosrt_trace.so` 库文件。
+        将代码仓库下载到本地，执行`bash build.sh`，生成 `libmsosrt_trace.so` 库文件。
 
     2. 执行`export LD_PRELOAD=./libmsosrt_trace.so:$LD_PRELOAD`，将libmsosrt_trace.so加入到LD_PRELOAD环境变量中。
 
@@ -95,7 +97,7 @@
        | 2328177 | 2328440 | ioctl | 1725398319218640000 | 512040720 |
        | 2328177 | 2328177 | free | 1725398330504550000 | 56386880 |
 
-       可以从检测结果中观察到，`pthread_cond_wait` 函数占比较高，这是锁等待的主要原因。同时，`read`、`ioctl` 等函数也占比较高，这是数据预处理逻辑耗时的主要原因。根据这些信息，我们可以定位到数据预处理逻辑的性能瓶颈。
+       可以从检测结果中观察到，`pthread_cond_wait` 函数占比较高，说明 worker 线程存在条件变量等待；结合火焰图中 `pthread_mutex_lock` 的高占比，判断锁竞争和临界区过长是主要原因。同时，`read`、`ioctl` 等函数也占比较高，这是数据预处理逻辑耗时的主要原因。根据这些信息，我们可以定位到数据预处理逻辑的性能瓶颈。
 
 ## 5. 问题根因
 
@@ -115,12 +117,12 @@
 
 1. 先使用 `perf` 锁分析能力：
 
-   - 执行 `perf record`，快速确认是否存在锁竞争以及竞争最激烈的锁对象。
-   - 生成火焰图观察 `pthread_mutex_lock/pthread_cond_wait` 的 CPU 占比，占比较大时即可判定存在线程锁问题。
+   - 执行 `perf lock record/report` 或采集 lock 事件，快速确认是否存在锁竞争以及竞争最激烈的锁对象；`perf record` 火焰图仅用于观察锁函数 CPU 热点。
+   - 生成火焰图观察 `pthread_mutex_lock` 等锁函数的 CPU 占比，占比较大时初步判断存在锁竞争；`pthread_cond_wait` 属于阻塞等待，需结合 off-CPU 分析或锁事件定位等待原因。
 
 2. 使用 `MSOSRT` 工具进行详细分析：
 
-   - 从 `MSOSRT` 检测结果中，定位到 `pthread_cond_wait` 函数占比较高，这是锁等待的主要原因。
+   - 从 `MSOSRT` 检测结果中观察到 `pthread_cond_wait` 占比较高，说明 worker 线程长时间阻塞在条件变量上；需结合 `perf lock` 事件或 off-CPU 数据确认是锁竞争、临界区过长还是队列空/满导致。
    - 分析 `read`、`ioctl` 等函数占比较高，这是数据预处理逻辑耗时的主要原因。
 
 ## 7. 对工具的改进建议
@@ -133,4 +135,4 @@
 2. 新增锁竞争可视化工具：
 
    - 提供实时的锁等待队列长度监控。
-   - 锁持有者与等待者的依赖关系图。
+   - 提供锁持有者与等待者的依赖关系图。

@@ -52,7 +52,7 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 
 若命令执行后输出 `[PASS]`，则表示执行成功；若输出 `[FAIL]`，可能原因如下：
 
-1. 硬件不在本教程支持范围内：本学习环境仅支持Atlas推理系列产品、Atlas A2系列产品、Atlas A3系列产品及Ascend 950PR&950DT系列产品，请切换至兼容的硬件环境后重试；
+1. 硬件不在本教程支持范围内：本学习环境仅支持Atlas推理系列产品、Atlas A2系列产品、Atlas A3系列产品及Ascend 950PR&950DT系列产品，请切换至兼容的硬件环境后重试。
 2. 底层环境异常：未安装 `lspci`，或当前用户无法通过 `lspci -n -D` 查询 NPU PCI ID，请联系环境管理员确认底层环境。
 
 #### 2.1.3 宿主机：拉取镜像
@@ -73,7 +73,7 @@ docker pull ${MY_STUDY_VAR_CANN_IMAGE}
 cd ~ && curl -fLO --retry 3 https://inst.obs.cn-north-4.myhuaweicloud.com/env/ctr_in.py && chmod +x ctr_in.py
 ```
 
-若因网络限制无法下载，请参考 [3.2 节](#32-传输容器启动脚本) 的解决方案。
+若因网络限制无法下载，请参考 [第 3.2 节](#32-传输容器启动脚本) 的解决方案。
 
 #### 2.1.5 宿主机：启动容器
 
@@ -164,13 +164,13 @@ if __name__ == "__main__":
 EOF
 ```
 
-> [!CAUTION]注意
+> [!CAUTION]
 >
 > 上述脚本会自动查找空闲 NPU 并在该设备上执行。如需指定 NPU，请将最后一行代码中的 `find_idle_npu()` 替换为实际的 NPU 设备编号，例如 `0`。
 
 #### 2.2.2 启动训练和采集
 
-容器内执行以下命令，使用 msProf 启动训练脚本并采集性能数据：
+在容器内执行以下命令，使用 msProf 启动训练脚本并采集性能数据：
 
 ```bash
 msprof --application="python3 ${HOME}/train.py" --output=${HOME}/prof_output
@@ -248,7 +248,7 @@ PROF_XXX
 
 > [!NOTE]
 >
-> 本教程仅介绍基础分析方法。如需了解上述输出文件及各字段的完整定义，请参见 《[性能数据文件参考](../user_guide/profile_data_file_references.md)》。
+> 本教程仅介绍基础分析方法。如需了解上述输出文件及各字段的完整定义，请参见《[性能数据文件参考](../user_guide/profile_data_file_references.md)》。
 
 ### 2.3 可视化性能分析（可选）
 

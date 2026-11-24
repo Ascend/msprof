@@ -47,8 +47,8 @@ msprof --output="./prof_data" --task-time=l1 python3 resnet50_infer.py
 
 | 参数 | 说明 |
 |------|------|
-| `--output` | 性能数据的存放路径，默认为AI任务文件所在目录。 |
-| `--task-time` | 采集数据级别，默认为l0级别。 |
+| --output | 性能数据的存放路径，默认为AI任务文件所在目录。 |
+| --task-time | 采集数据级别，默认为l0级别。 |
 
 命令执行打印信息如下：
 
@@ -78,7 +78,7 @@ msprof --output=/home/projects/output /home/projects/MyApp/out/sample_run.sh par
 msprof --export=on --output="./prof_data"
 ```
 
-解析后会在`--output`指定的目录下生成`PROF_XXX`目录（或`OPPROF`目录，取决于采集模式），存放自动解析后的性能数据。
+解析后会在--output指定的目录下生成PROF_XXX目录，存放自动解析后的性能数据。
 
 ### 2.3 查看性能数据
 
@@ -95,5 +95,3 @@ msprof --export=on --output="./prof_data"
 2. 使用MindStudio Insight可视化分析。
 
     进入`PROF_XXX/mindstudio_profiler_output`目录，将性能数据导入MindStudio Insight工具进行可视化分析。MindStudio Insight提供了多种数据呈现形式，包括时间线视图、通信分析、计算耗时等可视化呈现，帮助用户快速定位性能瓶颈。
-
-    具体操作请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》。

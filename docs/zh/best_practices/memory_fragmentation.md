@@ -1,5 +1,7 @@
 # 内存碎片
 
+本文档介绍显存缓慢增长中的内存碎片问题，基于torch_npu.profiler数据总结从现象观测到碎片定位的排查过程，适用于服务化推理场景中排查显存缓慢增长的开发与运维人员。
+
 ## 1. 问题背景
 
 服务化推理场景中，显存往往不是瞬时暴涨，而是长时间缓慢增长。这类问题既可能是代码层面的内存泄漏，也可能是框架侧或 GE 侧碎片累积导致的显存持续上涨。
@@ -7,11 +9,10 @@
 本案例基于 `torch_npu.profiler` 数据，总结“显存缓慢增长”问题的定位过程。
 
 <div align="center"><img src="../figures/profiler_case_frag_overview.png" /></div>
-<div align="center"><b>图1：显存缓慢增长定位流程总览</b></div>
 
 ## 2. 问题现象
 
-`qwen cosyvoice2` 推理过程中，经过几次图推后显存开始缓慢增长，每次上涨十几 MB，最终约 10h 后 OOM。该问题在 GPU 上未复现，仅在 NPU 上出现。
+`qwen cosyvoice2` 推理过程中，经过几次图推理后显存开始缓慢增长，每次上涨十几 MB，最终约 10h 后 OOM。该问题在 GPU 上未复现，仅在 NPU 上出现。
 
 从现象看更接近长时间运行后的显存泄漏，但用户反馈即使开启 `empty_cache`，显存仍持续上涨。
 
@@ -44,8 +45,8 @@ with torch_npu.profiler.profile(
 
 分析多个 step 的 profiling 后发现：
 
-- `operators allocated` 基本没有增长
-- `reserved` 持续上涨
+- `operators allocated` 基本没有增长。
+- `reserved` 持续上涨。
 
 <div align="center"><img src="../figures/profiler_case_frag_trend.png" /></div>
 <div align="center"><b>图2：allocated 与 reserved 多 step 变化趋势</b></div>

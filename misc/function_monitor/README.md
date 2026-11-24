@@ -1,8 +1,10 @@
 # Function Monitor
 
+本文档介绍Function Monitor工具，说明在PyTorch框架下通过装饰器或with语句采集Host侧函数执行时间与CPU PMU指标、将采集日志转换为Chrome Trace Json格式并导入MindStudio Insight可视化展示的完整流程，适用于需要识别Host侧性能问题并进行优化的用户。
+
 ## 简介
 
-在大模型训练或推理场景中，Host 侧性能抖动是影响模型运行效率的典型问题之一，可能造成 PyTorch 等 AI 框架的算子下发延迟，进而拖慢模型运行速度。这类问题根源在于 Host 侧复杂的软件栈交互（如 Python解释器、AI 框架、CANN 软件栈），难以精确定位。
+在大模型训练或推理场景中，Host 侧性能抖动是影响模型运行效率的典型问题之一，可能造成 PyTorch 等 AI 框架的算子下发延迟，进而拖慢模型运行速度。这类问题根源在于 Host 侧复杂的软件栈交互（如 Python 解释器、AI 框架、CANN 软件栈），难以精确定位。
 
 为了解决这一问题，通过集成 openEuler [libkperf](https://gitcode.com/openeuler/libkperf) 轻量级 Linux 性能采集能力，我们开发了 Function Monitor 工具，用于监控 Host 侧函数的执行时间，低开销地采集指定函数执行过程中的 CPU PMU 指标（如 Cache Miss、Page Faults），并可与 Ftrace、MindStudio Profiler 数据联合分析，帮助用户更高效地识别 Host 性能问题并进行优化。
 
@@ -20,8 +22,8 @@
 
 ## 使用前准备
 
-1. 编译安装 libkperf python whl 包，参考 《[libkperf 编译指南](https://gitcode.com/openeuler/libkperf#%E7%BC%96%E8%AF%91)》。
-2. 获取仓库中提供的采集、转换脚本 [function_monitor.py](./function_monitor.py)，[log2trace.py](./log2trace.py)，以及文件操作相关脚本（[file_manager.py](./file_manager.py)）。
+1. 编译安装 libkperf Python whl 包，参考《[libkperf 编译指南](https://gitcode.com/openeuler/libkperf#%E7%BC%96%E8%AF%91)》。
+2. 获取仓库中提供的采集、转换脚本 [function_monitor.py](./function_monitor.py)、[log2trace.py](./log2trace.py)，以及文件操作相关脚本（[file_manager.py](./file_manager.py)）。
 
 ## 数据采集
 
@@ -33,9 +35,9 @@
 | ENABLE_LIBKPERF | 可选 | 指定是否使用 libkperf 采集 CPU PMU 指标，支持设置为 True 或 False，默认值为 False，表示不开启。 |
 | FUNCTION_MONITOR_LOG_PATH | 可选 | 指定函数监控采集日志文件的存储路径，若未指定，则默认存储在当前用户主目录下的 function_monitor_log 目录（如 /home/user/function_monitor_log）。 |
 
-当设置 **ENABLE_LIBKPERF** 环境变量为 True 时，采集 CPU PMU 指标时，用户可在 `function_monitor.py` 中 `PerformanceMonitor` 类的 `evt_list` 参数中指定要采集的 perf event 列表，默认值为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
+当设置 **ENABLE_LIBKPERF** 环境变量为True，采集CPU PMU指标时，用户可在 `function_monitor.py` 中 `PerformanceMonitor` 类的 `evt_list` 参数中指定要采集的 perf event 列表，默认值为 **['cycles', 'instructions', 'LLC-load-misses', 'LLC-loads', 'page-faults']**。
 
-当前系统支持的 perf event 列表可通过 `perf list` 命令查看，详细说明可参考 [perf event 官方文档](https://man7.org/linux/man-pages/man1/perf-list.1.html)，用户可根据实际需求选择要采集的 perf event。
+当前系统支持的 perf event 列表可通过 `perf list` 命令查看，详细说明可参考 [perf event官方文档](https://man7.org/linux/man-pages/man1/perf-list.1.html)，用户可根据实际需求选择要采集的 perf event。
 
 ![Perf Event](./figures/perf_event.png "Perf Event")
 
@@ -47,9 +49,9 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
 
 | 参数 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| func_name | 可选 | 设置要采集数据的函数名称，若未指定，则默认为当前被装饰的函数名称 |
-| process_name | 可选 | 设置采集数据的进程名称，若未指定，则默认为当前进程名称 |
-| threshold_ms | 可选 | 设置采集数据的耗时阈值，只有函数执行耗时大于该阈值，才会记录到日志文件中，单位为 ms，若未指定，则默认为 1 |
+| func_name | 可选 | 设置要采集数据的函数名称，若未指定，则默认为当前被装饰的函数名称。 |
+| process_name | 可选 | 设置采集数据的进程名称，若未指定，则默认为当前进程名称。 |
+| threshold_ms | 可选 | 设置采集数据的耗时阈值，只有函数执行耗时大于该阈值，才会记录到日志文件中，单位为ms，若未指定，则默认为1。 |
 
 **使用示例**
 

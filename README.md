@@ -16,11 +16,11 @@
 
 ## ✨ 最新消息
 
-🔹 [2025.12.30]：MindStudio Profiler项目首次上线
+🔹 [2025.12.30]：MindStudio Profiler项目首次上线。
 
 ## ℹ️ 简介
 
-MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析工具，支持采集与解析 CANN 层和昇腾 AI 处理器 NPU 硬件层的软硬件性能数据，帮助定位模型训练或推理过程中的性能问题。`msProf` 也是其他 Profiling 采集接口的基础能力，许多上层性能采集与分析能力最终都依赖 `msProf` 完成底层数据采集。若希望了解昇腾性能调优工具的完整全景，可进一步参考[MindStudio Profiler 文档总览](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/)。
+MindStudio Profiler（msProf）是面向AI训练与推理场景的性能分析工具，支持采集与解析 CANN 层和昇腾 AI 处理器 NPU 硬件层的软硬件性能数据，帮助定位模型训练或推理过程中的性能问题。`msProf` 也是其他性能分析采集接口的基础能力，许多上层性能采集与分析能力最终都依赖 `msProf` 完成底层数据采集。若希望了解昇腾性能调优工具的全景，可进一步参考[MindStudio Profiler 文档总览](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/)。
 
 <div align="center">
   <img src="./docs/zh/figures/msprof.png" alt="架构图" width="700">
@@ -30,13 +30,13 @@ MindStudio Profiler（msProf）是面向 AI 训练与推理场景的性能分析
 
 | 功能名称      | 功能简介 |                                                                文档                                                                |  源码仓库 |
 |------------| --- |:----------------------------------------------------------------------------------------------------------------------------------:|-----------|
-| **性能数据采集** | 通过 `msProf` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/README.md) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
+| **性能数据采集** | 通过 `msprof` 命令采集 CANN 平台及昇腾 AI 处理器的软硬件性能数据。 | [性能数据采集](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/README.md) | [msprof](https://gitcode.com/cann/runtime/tree/master/src/dfx/msprof) |
 | **性能数据解析** | 使用 `msProf` 工具对采集到的性能数据进行解析，生成可读的分析结果。 |                                       [性能数据解析](docs/zh/user_guide/msprof_parsing_instruct.md)                              | [analysis](https://gitcode.com/Ascend/msprof/tree/master/analysis) |
 
 ## 🚀 快速入门
 
 **10分钟实战体验**
-以 ResNet50 训练为例，覆盖**数据采集、解析导出与性能分析**全流程。点击立即开始：《[msProf 快速入门](docs/zh/quick_start/msprof_quick_start.md)》。
+以ResNet50训练为例，覆盖**数据采集、解析导出与性能分析**全流程。点击立即开始：《[msProf 快速入门](docs/zh/quick_start/msprof_quick_start.md)》。
 
 **极简命令行速查**
 若已熟悉操作流程，可直接执行采集命令。通用格式为 `msprof --output=<输出目录> --application="<启动命令>"`，示例如下：
@@ -58,7 +58,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 ## 💡 典型案例
 
-通过典型问题场景帮助用户理解并掌握工具使用，请参见《[msProf 典型案例](docs/zh/best_practices/README.md)》。
+通过典型问题场景帮助用户理解并掌握工具的使用，请参见《[msProf 典型案例](docs/zh/best_practices/README.md)》。
 
 ## ❓ FAQ
 
@@ -76,7 +76,7 @@ msprof --output=./output --application="./run_standalone_train.sh"
 
 欢迎参与项目贡献，请参见《[贡献指南](docs/zh/contributing/contributing_guide.md)》。
 
-使用 AI 代理参与开发时，请先阅读《[AI Native 开发指南](docs/zh/development_guide/msprof_ai_native_development_guide.md)》。
+使用AI代理参与开发时，请先阅读《[AI Native 开发指南](docs/zh/development_guide/msprof_ai_native_development_guide.md)》。
 
 ## ⚖️ 相关说明
 

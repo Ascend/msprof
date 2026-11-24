@@ -146,7 +146,7 @@ bash scripts/generate_coverage_cpp.sh analysis diff
 
 > [!NOTE]
 >
-> 每次运行会清除上次的cpp_coverage目录和*.gcda，再重新编译、执行C++单元测试（UT）并采集。
+> 每次运行会清除上次的cpp_coverage目录和*.gcda，重新编译、执行C++单元测试（UT）并采集。
 
 #### Python单元测试（UT）
 

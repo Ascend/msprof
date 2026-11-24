@@ -1,8 +1,10 @@
 # 通信地址不对齐导致性能下降
 
+本文档介绍通信地址不对齐导致分布式训练性能下降的问题定位与解决方法，给出HCCL通信库的128字节对齐约束、timeline中额外memcpy的识别特征及未对齐tensor的调用栈追溯步骤，适用于需要排查大模型训练通信瓶颈的开发者。
+
 ## 1. 问题背景
 
-某大模型训练场景中，使用 8 卡 Atlas A2系列产品进行分布式训练，模型参数量约 70B。训练过程中发现单 step 耗时远超预期，怀疑存在通信瓶颈，需通过 profiling 工具定位具体原因。
+某大模型训练场景中，使用 8 卡 Atlas A2训练系列产品进行分布式训练，模型参数量约 70B。训练过程中发现单 step 耗时远超预期，怀疑存在通信瓶颈，需通过 profiling 工具定位具体原因。
 
 ## 2. 问题现象
 
@@ -35,7 +37,7 @@ with torch_npu.profiler.profile(
 各参数说明：
 
 - `profile_level`：指定为 `ProfilerLevel.Level1` 才能采集到 HCCL 通信算子的完整数据，包括通信耗时、通信量及算子内部子任务（如 memcpy）等细粒度信息。默认 `Level0` 仅采集计算算子，不含通信详情。
-- `with_stack=True`：记录调用栈，便于回溯未对齐 tensor 的上游来源。
+- `with_stack=True`：记录调用栈，便于回溯未对齐 Tensor 的上游来源。
 - `schedule`：需保证 `active` 覆盖足够的 step（本案例需覆盖多个 step 以对比正常与异常的 AllReduce 耗时）。
 
 **分析结果**：
@@ -56,7 +58,7 @@ with torch_npu.profiler.profile(
 
 ### 3.3 追溯未对齐 tensor 的来源
 
-确认地址不对齐后，需追溯产生未对齐 tensor 的上游算子。步骤 1 的采集配置中已开启 `with_stack=True`，timeline 中每个算子事件均记录了调用栈。在 chrome://tracing 中点击模式 B 的 AllReduce 算子，可查看其完整调用链：
+确认地址不对齐后，需追溯产生未对齐 tensor 的上游算子。3.1 节的采集配置中已开启 `with_stack=True`，timeline 中每个算子事件均记录了调用栈。在 chrome://tracing 中点击模式 B 的 AllReduce 算子，可查看其完整调用链：
 
 ```text
 AllReduce (hccl)
