@@ -246,3 +246,52 @@ TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutTaskInf
         "\"tid\":0,\"ph\":\"M\",\"args\":{\"sort_index\":35}},";
     EXPECT_EQ(std::string("[") + expectStr.substr(0, expectStr.size() - 1), res.back());
 }
+
+static std::vector<BlockDetailData> GenerateBlockDetailDataWithFakeEndTime()
+{
+    std::vector<BlockDetailData> res;
+    BlockDetailData data;
+    data.coreId = 31;
+    data.streamId = 1;
+    data.taskId = 10;
+    data.subtaskId = 4294967295;
+    data.batchId = 0;
+    data.coreType = 0;
+    data.duration = 450.60;
+    data.timestamp = 1717575960208020759;
+    data.fakeEndTime = 1717575960208021200;
+    res.push_back(data);
+
+    data.coreId = 32;
+    data.streamId = 1;
+    data.taskId = 10;
+    data.subtaskId = 4294967295;
+    data.batchId = 0;
+    data.coreType = 1;
+    data.duration = 250.26;
+    data.timestamp = 1717575960208020759;
+    data.fakeEndTime = 1717575960208021300;
+    res.push_back(data);
+    return res;
+}
+
+TEST_F(BlockDetailAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithBlockDetailDataAndFakeEndTime)
+{
+    BlockDetailAssembler assembler;
+    std::shared_ptr<std::vector<AscendTaskData>> taskS;
+    std::shared_ptr<std::vector<TaskInfoData>> infoS;
+    std::shared_ptr<std::vector<BlockDetailData>> blockDataS;
+    auto task = GenerateAscendTaskData();
+    auto info = GenerateTaskInfoData();
+    auto blockData = GenerateBlockDetailDataWithFakeEndTime();
+    MAKE_SHARED_NO_OPERATION(taskS, std::vector<AscendTaskData>, task);
+    MAKE_SHARED_NO_OPERATION(infoS, std::vector<TaskInfoData>, info);
+    MAKE_SHARED_NO_OPERATION(blockDataS, std::vector<BlockDetailData>, blockData);
+    dataInventory_.Inject(taskS);
+    dataInventory_.Inject(infoS);
+    dataInventory_.Inject(blockDataS);
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(2328086));
+    EXPECT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    EXPECT_EQ(1ul, files.size());
+}

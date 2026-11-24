@@ -14,7 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 from collections import defaultdict
-
 from common_func.db_name_constant import DBNameConstant
 from common_func.info_conf_reader import InfoConfReader
 from common_func.ms_constant.str_constant import StrConstant
@@ -23,6 +22,7 @@ from common_func.trace_view_manager import TraceViewManager
 from msmodel.stars.ffts_pmu_model import V6PmuViewModel
 from msmodel.stars.op_summary_model import OpSummaryModel
 from msmodel.task_time.ascend_task_model import AscendTaskModel
+from profiling_bean.db_dto.pmu_block_dto import PmuBlockDto
 from viewer.interface.base_viewer import BaseViewer
 
 
@@ -31,10 +31,7 @@ class BlockDetailViewer(BaseViewer):
     class for get block detail data
     """
 
-    AIC_EARLIEST_INDEX = 1
-    AIC_LATEST_INDEX = 2
-    AIV_EARLIEST_INDEX = 3
-    AIV_LATEST_INDEX = 4
+    TRACE_HEADER = [("AIC Earliest", 1), ("AIC Latest", 2), ("AIV Earliest", 3), ("AIV Latest", 4)]
 
     def __init__(self: any, configs: dict, params: dict) -> None:
         super().__init__(configs, params)
@@ -46,16 +43,11 @@ class BlockDetailViewer(BaseViewer):
         thread_name = "thread_name"
         thread_sort_index = "thread_sort_index"
         header = [
-            ["process_name", pid, InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_BLOCK_DETAIL],
-            [thread_name, pid, BlockDetailViewer.AIC_EARLIEST_INDEX, "AIC Earliest"],
-            [thread_name, pid, BlockDetailViewer.AIC_LATEST_INDEX, "AIC Latest"],
-            [thread_name, pid, BlockDetailViewer.AIV_EARLIEST_INDEX, "AIV Earliest"],
-            [thread_name, pid, BlockDetailViewer.AIV_LATEST_INDEX, "AIV Latest"],
-            [thread_sort_index, pid, BlockDetailViewer.AIC_EARLIEST_INDEX, 1],
-            [thread_sort_index, pid, BlockDetailViewer.AIC_LATEST_INDEX, 2],
-            [thread_sort_index, pid, BlockDetailViewer.AIV_EARLIEST_INDEX, 3],
-            [thread_sort_index, pid, BlockDetailViewer.AIV_LATEST_INDEX, 4],
+            ["process_name", pid, InfoConfReader().get_json_tid_data(), TraceViewHeaderConstant.PROCESS_BLOCK_DETAIL]
         ]
+        for idx, (label, sort_val) in enumerate(BlockDetailViewer.TRACE_HEADER, start=1):
+            header.append([thread_name, pid, idx, label])
+            header.append([thread_sort_index, pid, idx, sort_val])
         return TraceViewManager.metadata_event(header)
 
     @staticmethod
@@ -67,14 +59,14 @@ class BlockDetailViewer(BaseViewer):
         # 获取最早和最晚的数据，如果为空则返回空列表
         aic_earliest, aic_latest = (aic_datas[0], aic_datas[-1]) if aic_datas else (None, None)
         aiv_earliest, aiv_latest = (aiv_datas[0], aiv_datas[-1]) if aiv_datas else (None, None)
-        for i, data in enumerate([aic_earliest, aic_latest, aiv_earliest, aiv_latest]):
+        for i, data in enumerate([aic_earliest, aic_latest, aiv_earliest, aiv_latest], start=1):
             if not data:
                 continue
             block_pmu_timeline_data.append(
                 [
                     f"Stream {data.stream_id} {name}",
                     pid,
-                    i + 1,  # thread_index
+                    i,
                     InfoConfReader().trans_into_local_time(data.start_time),
                     data.duration,
                     {
@@ -89,7 +81,7 @@ class BlockDetailViewer(BaseViewer):
 
     def get_data_from_db(self: any) -> list:
         with V6PmuViewModel(self.project_dir) as _model:
-            block_pmu_data = _model.get_timeline_data()
+            block_pmu_data = _model.get_all_data(DBNameConstant.TABLE_V6_BLOCK_PMU, PmuBlockDto)
         return block_pmu_data
 
     def get_trace_timeline(self: any, data_list: list) -> list:

@@ -15,9 +15,9 @@
 # -------------------------------------------------------------------------
 import os
 import logging
+from bisect import bisect_left
 from typing import Dict
 from typing import List
-
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
@@ -32,11 +32,13 @@ from common_func.trace_view_header_constant import TraceViewHeaderConstant
 from common_func.trace_view_manager import TraceViewManager
 from mscalculate.ascend_task.ascend_task import TopDownTask
 from msmodel.sqe_type_map import SqeType
+from msmodel.stars.ffts_pmu_model import V6PmuViewModel
 from msmodel.stars.op_summary_model import OpSummaryModel
 from msmodel.stars.sub_task_model import SubTaskTimeModel
 from msmodel.task_time.ascend_task_model import AscendTaskModel
 from msmodel.add_info.kfc_info_model import KfcInfoViewModel
 from msmodel.add_info.kfc_info_model import KfcTurnData
+from profiling_bean.db_dto.pmu_block_dto import PmuBlockDto
 from profiling_bean.db_dto.task_time_dto import TaskTimeDto
 from profiling_bean.prof_enum.chip_model import ChipModel
 from profiling_bean.prof_enum.export_data_type import ExportDataType
@@ -127,6 +129,21 @@ class TaskTimeViewer(BaseViewer):
                 task_data['subtask_data_list'].append(TopDownTask(*data))
         return task_data
 
+    def get_block_pmu_data(self: any) -> Dict:
+        pmu_data_map = {}
+        block_pmu_data = None
+        with V6PmuViewModel(self.project_dir) as _model:
+            block_pmu_data = _model.get_all_data(DBNameConstant.TABLE_V6_BLOCK_PMU, PmuBlockDto)
+        if block_pmu_data:
+            for data in block_pmu_data:
+                group_key = (data.stream_id, data.task_id, data.batch_id or 0, data.subtask_id, data.core_type)
+                pmu_data_map.setdefault(group_key, []).append(data)
+        result = {}
+        for key, blocks in pmu_data_map.items():
+            blocks.sort(key=lambda block: block.start_time)
+            result[key] = ([block.start_time for block in blocks], blocks)
+        return result
+
     def get_kfc_turn_data(self: any) -> dict:
         if not os.path.exists(PathManager.get_db_path(self.project_dir, DBNameConstant.DB_KFC_INFO)):
             return {}
@@ -215,7 +232,6 @@ class TaskTimeViewer(BaseViewer):
         memory_copy_viewer = MemoryCopyViewer(result_dir)
         trace_data_memcpy = memory_copy_viewer.get_memory_copy_timeline()
         result.extend(trace_data_memcpy)
-
         timeline_data = self.get_ascend_task_data()
         trace_tasks = self.get_trace_timeline(timeline_data)
         result.extend(trace_tasks)
@@ -238,10 +254,12 @@ class TaskTimeViewer(BaseViewer):
         if not data_list or not any(data_list.values()):
             return []
         self.add_node_name_and_type(data_list)
+        # get pmu fake end data
+        pmu_block_data = self.get_block_pmu_data() if ChipManager().is_chip_v6_2_0() else {}
         if self.params.get("data_type") == ExportDataType.FFTS_SUB_TASK_TIME.name.lower():
             self.add_thread_id(data_list)
             return self.format_ffts_sub_task_data(data_list)
-        return self.format_task_scheduler(data_list)
+        return self.format_task_scheduler(data_list, pmu_block_data)
 
     def format_task_type_data(self, data_list):
         result_list = []
@@ -259,6 +277,7 @@ class TaskTimeViewer(BaseViewer):
                         'Batch Id': data.batch_id,
                         "Subtask Id": data.context_id,
                         "connection_id": data.connection_id,
+                        "Write Latency(ns)": data.write_latency,
                     },
                 ]
             )
@@ -289,6 +308,7 @@ class TaskTimeViewer(BaseViewer):
                         "Subtask Id": data.context_id,
                         "Subtask Type": data.task_type,
                         "connection_id": data.connection_id,
+                        "Write Latency(ns)": data.write_latency,
                     },
                 ]
             )
@@ -301,11 +321,43 @@ class TaskTimeViewer(BaseViewer):
         result.extend(_trace)
         return result
 
-    def format_task_scheduler(self, data_list):
+    def format_task_pmu_data(self, args, task_data, pmu_block_data):
+        task_id = task_data.task_id
+        block_mapping = {0: "AIC", 1: "AIV"}
+        for block_id, prefix in block_mapping.items():
+            key = (task_data.stream_id, task_id, task_data.batch_id or 0, task_data.context_id, block_id)
+            if key not in pmu_block_data:
+                continue
+            starts, blocks = pmu_block_data[key]
+            index = bisect_left(starts, task_data.start_time)
+            task_end = task_data.start_time + task_data.duration
+            if index == len(blocks) or starts[index] > task_end:
+                continue
+            # Preserve the earliest block within this execution, even if its fake end is missing.
+            fake_end_time = blocks[index].fake_end_time
+            if not fake_end_time or not task_data.start_time < fake_end_time <= task_end:
+                continue
+            preprocessing_stage = fake_end_time - task_data.start_time
+            args[f"{prefix} Preprocessing Stage(ns)"] = str(round(preprocessing_stage, 3))
+            args[f"{prefix} ComputeExecution Stage(ns)"] = str(round(task_data.duration - preprocessing_stage, 3))
+
+    def format_task_scheduler(self, data_list, pmu_block_data=None):
+        pmu_block_data = pmu_block_data or {}
         result_list = []
         keys = ["subtask_data_list", "task_data_list"]
         for key in keys:
             for data in data_list.get(key, []):
+                args = {
+                    "Model Id": data.model_id,
+                    "Task Type": data.task_type,
+                    "Physic Stream Id": data.stream_id,
+                    "Task Id": data.task_id,
+                    'Batch Id': data.batch_id,
+                    "Subtask Id": data.context_id,
+                    "connection_id": data.connection_id,
+                    "Write Latency(ns)": data.write_latency,
+                }
+                self.format_task_pmu_data(args, data, pmu_block_data)
                 result_list.append(
                     [
                         data.op_name,
@@ -313,15 +365,7 @@ class TaskTimeViewer(BaseViewer):
                         GeLogicStreamSingleton().get_logic_stream_id(data.stream_id),
                         InfoConfReader().trans_into_local_time(data.start_time),
                         data.duration / DBManager.NSTOUS if data.duration > 0 else 0,
-                        {
-                            "Model Id": data.model_id,
-                            "Task Type": data.task_type,
-                            "Physic Stream Id": data.stream_id,
-                            "Task Id": data.task_id,
-                            'Batch Id': data.batch_id,
-                            "Subtask Id": data.context_id,
-                            "connection_id": data.connection_id,
-                        },
+                        args,
                     ]
                 )
         if not result_list:

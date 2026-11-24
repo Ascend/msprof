@@ -110,6 +110,7 @@ class AscendTaskGenerator:
             ht.task_type,
             dt.task_type,
             ht.connection_id,
+            dt.write_latency,
         )
 
     def _gen_top_down_task_by_device_task(self, dt: DeviceTask) -> TopDownTask:
@@ -125,6 +126,7 @@ class AscendTaskGenerator:
             Constant.TASK_TYPE_UNKNOWN,
             dt.task_type,
             Constant.DEFAULT_INVALID_VALUE,
+            dt.write_latency,
         )
 
     def _gen_top_down_task_by_host_task(self, ht: HostTask, task_type_map=None) -> TopDownTask:

@@ -18,12 +18,16 @@
 #define ANALYSIS_DOMAIN_ASCENDTASK_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 const std::string TASK_TYPE_MSTX = "MsTx";
-struct AscendTaskData : public BasicData {
+struct AscendTaskData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
     uint32_t modelId = UINT32_MAX;
     int32_t indexId = INT32_MAX;
@@ -34,12 +38,14 @@ struct AscendTaskData : public BasicData {
     uint64_t connectionId = UINT64_MAX;
     uint64_t end = UINT64_MAX;
     double duration = 0.0;
+    double writeLatency = 0.0;
     std::string hostType;
     std::string deviceType;
     std::string taskType;
 };
 
-struct MsprofTxDeviceData : public BasicData {
+struct MsprofTxDeviceData : public BasicData
+{
     uint16_t deviceId = UINT16_MAX;
     uint32_t modelId = UINT32_MAX;
     uint32_t indexId = UINT32_MAX;
@@ -51,6 +57,6 @@ struct MsprofTxDeviceData : public BasicData {
     double duration = 0.0;
     std::string taskType = TASK_TYPE_MSTX;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_ASCENDTASK_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_ASCENDTASK_DATA_H

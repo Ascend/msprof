@@ -108,10 +108,16 @@ void MergeByHostAndDeviceTask(std::vector<TopDownTask>& res, HostTask& hostTask,
     {
         auto start = GetTimeFromSyscnt(task.taskStart, params);
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
+        double writeLatency = 0;
+        if (task.sysEndLogTime > task.taskEnd)
+        {
+            writeLatency = GetDurTimeFromSyscnt(task.sysEndLogTime - task.taskEnd, params).Double();
+        }
         // 有多个deviceTask且是第一个算子，标记记为true
         res.emplace_back((count == 0 && deviceTask.size() > 1), hostTask.taskId, hostTask.batchId, hostTask.streamId,
                          hostTask.contextId, hostTask.requestId, GetDeviceTaskTypeStr(task, isChipV6),
-                         hostTask.taskTypeStr, hostTask.modelId, hostTask.connectionId, start.Double(), end.Double());
+                         hostTask.taskTypeStr, hostTask.modelId, hostTask.connectionId, start.Double(), end.Double(),
+                         writeLatency);
         count++;
     }
 }
@@ -142,9 +148,14 @@ void MergeByOnlyDeviceTask(std::vector<TopDownTask>& res, std::vector<DeviceTask
     {
         auto start = GetTimeFromSyscnt(task.taskStart, params);
         auto end = GetTimeFromSyscnt(task.taskEnd, params);
+        double writeLatency = 0;
+        if (task.sysEndLogTime > task.taskEnd)
+        {
+            writeLatency = GetDurTimeFromSyscnt(task.sysEndLogTime - task.taskEnd, params).Double();
+        }
         res.emplace_back(false, key.taskId, key.batchId, streamId, key.contextId, DEFAULT_INDEX_ID,
                          GetDeviceTaskTypeStr(task, isChipV6), UNKNOWN, DEFAULT_MODEL_ID, DEFAULT_CONNECTION_ID,
-                         start.Double(), end.Double());
+                         start.Double(), end.Double(), writeLatency);
     }
 }
 

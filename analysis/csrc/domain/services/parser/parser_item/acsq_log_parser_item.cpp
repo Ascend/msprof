@@ -33,6 +33,10 @@ namespace
 {
 // Stream ID used when the V6 record has no stream information.
 constexpr uint16_t DEFAULT_STREAM_ID = UINT16_MAX;
+constexpr uint32_t HIGH_INDEX = 2;
+constexpr uint32_t LOW_INDEX = 1;
+constexpr uint32_t HIGH_32BIT_SHIFT = 32;
+constexpr uint32_t MASK_32BIT = 0xFFFFFFFF;
 }  // namespace
 
 int AcsqLogParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halUniData, uint16_t expandStatus)
@@ -55,6 +59,7 @@ int AcsqLogParseItem(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *halU
     unionData->hd.timestamp = log->timestamp;
     unionData->acsq.taskType = log->taskType;
     unionData->acsq.timestamp = log->timestamp;
+    unionData->acsq.sysEndLogTime = 0;
     return log->cnt;
 }
 
@@ -78,6 +83,8 @@ int AcsqLogParseItem_V6(uint8_t *binaryData, uint32_t binaryDataSize, uint8_t *h
     unionData->hd.timestamp = log->timestamp;
     unionData->acsq.taskType = log->taskType;
     unionData->acsq.timestamp = log->timestamp;
+    unionData->acsq.sysEndLogTime = (static_cast<uint64_t>(log->resv6[HIGH_INDEX]) << HIGH_32BIT_SHIFT) |
+                                    (static_cast<uint64_t>(log->resv6[LOW_INDEX]) & MASK_32BIT);
     return log->cnt;
 }
 

@@ -22,6 +22,7 @@
 #include "analysis/csrc/domain/services/device_context/device_context.h"
 #include "analysis/csrc/domain/entities/hal/include/top_down_task.h"
 #include "analysis/csrc/infrastructure/dfx/error_code.h"
+#include "analysis/csrc/infrastructure/db/include/db_runner.h"
 
 using namespace testing;
 using namespace Analysis::Infra;
@@ -82,6 +83,24 @@ TEST_F(AscendTaskPersistenceUTest, TestRunShouldReturnErrorWhenDataIsNull)
     DeviceContext context;
     context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
     ASSERT_EQ(ANALYSIS_ERROR, taskPersistence.Run(dataInventory_, context));
+}
+
+TEST_F(AscendTaskPersistenceUTest, ShouldPreserveFractionalWriteLatency)
+{
+    AscendTaskPersistence taskPersistence;
+    DeviceContext context;
+    context.deviceContextInfo.deviceFilePath = DEVICE_PATH;
+    auto tasks = dataInventory_.GetPtr<std::vector<TopDownTask>>();
+    *tasks = GenerateTopDownTask();
+    tasks->front().writeLatency = 12.5;
+    tasks->back().writeLatency = 0;
+    ASSERT_EQ(ANALYSIS_OK, taskPersistence.Run(dataInventory_, context));
+    DBRunner runner(File::PathJoin({DEVICE_PATH, "sqlite", "ascend_task.db"}));
+    std::vector<std::tuple<double>> rows;
+    ASSERT_TRUE(runner.QueryData("SELECT write_latency FROM AscendTask ORDER BY rowid", rows));
+    ASSERT_EQ(2ul, rows.size());
+    EXPECT_DOUBLE_EQ(12.5, std::get<0>(rows[0]));
+    EXPECT_DOUBLE_EQ(0, std::get<0>(rows[1]));
 }
 
 TEST_F(AscendTaskPersistenceUTest, TestShouldReturnOKWhenDataIsEmpty)

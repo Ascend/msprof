@@ -29,8 +29,8 @@ class TestAscendTaskModel(TestDirCRBaseModel):
 
     def test_get_ascend_task_data_without_unknown_should_return_all_data(self):
         data = [
-            [0, 1, 27, 2, 4294967295, 0, 38140478706523, 1510560, "KERNEL_AICPU", "AI_CPU", 0],
-            [0, 1, 36, 2, 47, 0, 38140480645103, 12400, "FFTS_PLUS", "AIV", 1],
+            [0, 1, 27, 2, 4294967295, 0, 38140478706523, 1510560, "KERNEL_AICPU", "AI_CPU", 0, 0.0],
+            [0, 1, 36, 2, 47, 0, 38140480645103, 12400, "FFTS_PLUS", "AIV", 1, 0.0],
         ]
         with AscendTaskModel(self.PROF_HOST_DIR, [DBNameConstant.TABLE_ASCEND_TASK]) as model:
             model.create_table()

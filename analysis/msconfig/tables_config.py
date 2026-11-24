@@ -606,6 +606,7 @@ class TablesConfig(MetaConfig):
             ('start_time', 'INTEGER,null'),
             ('end_time', 'INTEGER,null'),
             ('task_time', 'INTEGER,null'),
+            ('write_latency', 'INTEGER,null'),
         ],
         'FusionTaskMap': [
             ('stream_id', 'INTEGER,null'),
@@ -1389,6 +1390,7 @@ class TablesConfig(MetaConfig):
             ('host_task_type', 'TEXT,null'),
             ('device_task_type', 'TEXT,null'),
             ('connection_id', 'INTEGER,null'),
+            ('write_latency', 'INTEGER,null'),
         ],
         'NpuOpMemRawMap': [
             ('operator', 'TEXT,null'),
@@ -1791,4 +1793,15 @@ class TablesConfig(MetaConfig):
             ('voltage', 'INTEGER,null'),
         ],
         'StreamExpandSpecMap': [('expand_status', 'NUMERIC,null')],
+        'V6BlockPmuMap': [
+            ('stream_id', 'NUMERIC,null'),
+            ('task_id', 'NUMERIC,null'),
+            ('subtask_id', 'INTEGER,null'),
+            ('batch_id', 'INTEGER,null'),
+            ('start_time', 'INTEGER,null'),
+            ('duration', 'INTEGER,null'),
+            ('core_type', 'INTEGER,null'),
+            ('core_id', 'NUMERIC,null'),
+            ('fake_end_time', 'NUMERIC,null'),
+        ],
     }

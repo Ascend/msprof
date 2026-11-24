@@ -3747,3 +3747,15 @@ metrics.csv文件内容如下：
 | ts     | 时间戳。         |
 | value  | 带宽值。         |
 | name   | 事件的指标名称。 |
+
+## V6.2 任务 Timeline 字段补充
+
+以下参数适用于采集元数据识别为 V6.2 且包含相应原始记录的设备。
+
+任务 Timeline 新增以下参数，单位均为 ns：
+
+- `Write Latency(ns)`：由任务结束日志计数与任务结束计数之差换算得到。非 V6.2 设备、缺少结束日志计数或历史数据库缺列时为 0；此时 0 不代表测得的写入延迟。
+- `AIC Preprocessing Stage(ns)`、`AIV Preprocessing Stage(ns)`：同一设备、stream、task、batch/context 和 core type 下，最早 PMU block 的 `fake_end_time` 与任务开始时间之差。
+- `AIC ComputeExecution Stage(ns)`、`AIV ComputeExecution Stage(ns)`：任务持续时间减去对应的预处理阶段时间。
+
+没有匹配 PMU block、最早 block 没有有效 `fake_end_time`，或该时间不晚于任务开始、晚于任务结束时，不输出对应核类型的阶段参数。解析中间表中的 `write_latency` 和 `fake_end_time` 用于传递上述字段；历史表缺少新列时兼容读取，不凭缺失数据推算阶段时间。

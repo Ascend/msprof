@@ -91,6 +91,7 @@ class StructDecoder:
         "AcsqTaskV6": StructFmt.ACSQ_TASK_V6_FMT,
         "BlockLogBean": StructFmt.BLOCK_LOG_FMT,
         "PmuBeanV6": StructFmt.PMU_BLOCK_FMT,
+        "PmuBeanV6_2_0": StructFmt.PMU_BLOCK_V6_2_0_FMT,
         "StarsQosBean": StructFmt.STARS_QOS_FMT,
         "AicoreSampleV6": StructFmt.AICORE_SAMPLE_V6_FMT,
         "BiuPerfInstructionBean": StructFmt.BIU_PERF_FMT,

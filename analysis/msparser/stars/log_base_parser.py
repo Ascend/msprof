@@ -111,6 +111,7 @@ class LogBaseParser(IStarsParser):
                             start_task.sys_cnt,
                             end_task.sys_cnt,
                             end_task.sys_cnt - start_task.sys_cnt,
+                            end_task.write_latency,
                         ]
                     matched_result.append(res)
                 else:

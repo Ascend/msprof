@@ -101,10 +101,14 @@ OriAscendTaskData TaskProcessor::LoadData(const DBInfo &ascendTaskDB, const std:
         ERROR("Create % connection failed.", dbPath);
         return oriData;
     }
+    auto columns = ascendTaskDB.dbRunner->GetTableColumns(ascendTaskDB.tableName);
+    const bool hasWriteLatency = std::any_of(columns.begin(), columns.end(), [](const Infra::TableColumn &column)
+                                             { return column.name == "write_latency"; });
+    const std::string writeLatency = hasWriteLatency ? "a.write_latency" : "0";
     std::string sql{
         "SELECT a.start_time, a.duration, a.model_id, a.index_id, a.stream_id, a.task_id, a.context_id,"
-        "a.batch_id, a.connection_id, a.host_task_type, a.device_task_type FROM " +
-        ascendTaskDB.tableName + " a WHERE a.device_task_type != 'UNKNOWN'"};
+        "a.batch_id, a.connection_id, a.host_task_type, a.device_task_type, " +
+        writeLatency + " FROM " + ascendTaskDB.tableName + " a WHERE a.device_task_type != 'UNKNOWN'"};
     if (!ascendTaskDB.dbRunner->QueryData(sql, oriData))
     {
         ERROR("Failed to obtain data from the % table.", ascendTaskDB.tableName);
@@ -128,7 +132,7 @@ std::vector<AscendTaskData> TaskProcessor::FormatData(const OriAscendTaskData &o
     for (const auto &row : oriData)
     {
         std::tie(tmpStart, data.duration, data.modelId, data.indexId, data.streamId, data.taskId, data.contextId,
-                 data.batchId, data.connectionId, data.hostType, data.deviceType) = row;
+                 data.batchId, data.connectionId, data.hostType, data.deviceType, data.writeLatency) = row;
         HPFloat start{tmpStart};
         HPFloat end = start + HPFloat(data.duration);
         data.timestamp = GetLocalTime(start, timeRecord).Uint64();

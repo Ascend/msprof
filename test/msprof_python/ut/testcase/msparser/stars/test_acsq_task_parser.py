@@ -54,8 +54,8 @@ class TestAcsqTaskParser(unittest.TestCase):
         ret = key.get_task_time()
         expect_ret = (
             [
-                [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0],
-                [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0]
+                [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0, 0.0],
+                [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0, 0.0]
             ],
             []
         )
@@ -79,8 +79,8 @@ class TestAcsqTaskParser(unittest.TestCase):
         ret = key.get_task_time()
         expect_ret = (
             [
-                [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0],
-                [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0]
+                [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0, 0.0],
+                [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0, 0.0]
             ],
             []
         )
@@ -103,8 +103,8 @@ class TestAcsqTaskParser(unittest.TestCase):
         ]
         ret = key.get_task_time()
         expect_ret = [
-            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0],
-            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0]
+            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0, 0.0],
+            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0, 0.0]
         ]
         self.assertEqual(ret[0], expect_ret)
         self.assertEqual(len(ret[1]), 1)
@@ -128,8 +128,8 @@ class TestAcsqTaskParser(unittest.TestCase):
         ]
         ret = key.get_task_time()
         expect_ret = [
-            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0],
-            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0]
+            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0, 0.0],
+            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0, 0.0]
         ]
         self.assertEqual(ret[0], expect_ret)
         self.assertEqual(len(ret[1]), 1)
@@ -154,8 +154,8 @@ class TestAcsqTaskParser(unittest.TestCase):
         ]
         ret = key.get_task_time()
         expect_ret = [
-            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0],
-            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0]
+            [3, 4, 25, 'AI_CORE', 1120.0, 1160.0, 40.0, 0.0],
+            [67, 7, 8, 'AI_CORE', 1780.0, 1820.0, 40.0, 0.0]
         ]
         self.assertEqual(ret[0], expect_ret)
         self.assertEqual(len(ret[1]), 1)
@@ -181,7 +181,7 @@ class TestAcsqTaskParser(unittest.TestCase):
         ]
         ret = key.get_task_time()
         expect_ret = [
-            [67, 7, 8, 'AI_CORE', 1820.0, 1860.0, 40.0]  # s3<->e1
+            [67, 7, 8, 'AI_CORE', 1820.0, 1860.0, 40.0, 0.0]  # s3<->e1
         ]
         self.assertEqual(ret[0], expect_ret)
         self.assertEqual(len(ret[1]), 0)

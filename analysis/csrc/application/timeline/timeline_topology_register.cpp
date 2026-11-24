@@ -82,9 +82,10 @@ REGISTER_TIMELINE_NODE_WITH_DATA(
     TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP), TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_TASK),
               TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_KFC_TASK),
               TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_COMPUTE_TASK_INFO),
-              TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API), TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_MEMCPY_INFO)),
+              TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_API), TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_MEMCPY_INFO),
+              TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_BLOCK_DETAIL)),
     false, std::unordered_map<uint32_t, uint32_t>, std::vector<TaskInfoData>, std::vector<ApiData>,
-    std::vector<MemcpyInfoData>, std::vector<AscendTaskData>, std::vector<KfcTurnData>);
+    std::vector<MemcpyInfoData>, std::vector<AscendTaskData>, std::vector<KfcTurnData>, std::vector<BlockDetailData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_ACC_PMU,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_ACC_PMU)),

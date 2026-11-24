@@ -89,3 +89,11 @@ class AcsqTask(StructDecoder):
         :return: acc_id
         """
         return self._acc_id
+
+    @property
+    def write_latency(self: any) -> float:
+        """
+        get end log sys cnt
+        :return: end log sys cnt
+        """
+        return 0.0

@@ -198,6 +198,9 @@ class ChipManager:
         """
         return self.chip_id in (ChipModel.CHIP_V6_1_0, ChipModel.CHIP_V6_1_1, ChipModel.CHIP_V6_2_0)
 
+    def is_chip_v6_2_0(self) -> bool:
+        return self.chip_id == ChipModel.CHIP_V6_2_0
+
     def is_chip_v6_1(self: any) -> bool:
         """
         check the scene of chip.v6_1

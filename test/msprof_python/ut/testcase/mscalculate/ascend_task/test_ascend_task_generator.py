@@ -39,9 +39,9 @@ class TestAscendTaskGenerator(unittest.TestCase):
 
     def test__sep_device_task_by_stream_should_return_3_stream(self):
         device_tasks = [
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 3, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(2, 2, 0, 1000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 3, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(2, 2, 0, 1000, 1000, "AI_CORE", 0.0),
         ]
         generator = AscendTaskGenerator("")
         tasks = generator._sep_task_by_stream_task_ctx(device_tasks)
@@ -59,9 +59,9 @@ class TestAscendTaskGenerator(unittest.TestCase):
 
     def test__match_host_device_task_should_return_3_matched_1_host_mismatch(self):
         device_tasks = [
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
         ]
         host_tasks = [
             HostTask(1, 1, 1, 2, 4294967295, 0, "AI_CORE", 'aclnn', 0, 1000, 0),
@@ -77,10 +77,10 @@ class TestAscendTaskGenerator(unittest.TestCase):
 
     def test__match_host_device_task_should_return_3_matched_1_device_mismatch(self):
         device_tasks = [
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0),
         ]
         host_tasks = [
             HostTask(1, 1, 1, 2, 4294967295, 0, "AI_CORE", 'aclnn', 0, 1000, 0),
@@ -118,11 +118,11 @@ class TestAscendTaskGenerator(unittest.TestCase):
         task_type: str
         """
         device_tasks = [
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE"),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE"),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 0.0),
         ]
 
         generator = AscendTaskGenerator("")
@@ -142,16 +142,16 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
 
         device_tasks = [
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE"),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE"),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE"),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE"),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE"),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE"),
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE"),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0),
         ]
 
         generator = AscendTaskGenerator("")
@@ -171,16 +171,16 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
 
         device_tasks = [
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE"),
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE"),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE"),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE"),
-            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE"),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE"),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE"),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE"),
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE"),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE"),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0),
         ]
 
         generator = AscendTaskGenerator("")
@@ -212,22 +212,22 @@ class TestAscendTaskGenerator(unittest.TestCase):
     def test_run_graph_scene(self):
         generator = AscendTaskGenerator("")
         with mock.patch(NAMESPACE + ".AscendTaskGenerator._get_ascend_tasks_within_iter",
-                        return_value=[TopDownTask(1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0)]):
+                        return_value=[TopDownTask(1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0, 0.0)]):
             tasks = generator.run(10, 1, 4)
             self.assertEqual(len(tasks), 4)
 
     def test_run_operate_scene(self):
         generator = AscendTaskGenerator("")
         with mock.patch(NAMESPACE + ".AscendTaskGenerator._get_all_ascend_tasks",
-                        return_value=[TopDownTask(1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0)]):
+                        return_value=[TopDownTask(1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0, 0.0)]):
             tasks = generator.run(4294967295, 1, 4)
             self.assertEqual(len(tasks), 1)
 
     def test__sep_task_by_stream_task_ctx_batch_should_return_3_stream(self):
         device_tasks = [
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 3, 0, 1000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 1),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 3, 0, 1000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 2, 0, 1000, 1000, "AI_CORE", 0.0, 1),
         ]
         generator = AscendTaskGenerator("")
         tasks = generator._sep_task_by_stream_task_ctx_batch(device_tasks)
@@ -249,17 +249,17 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
         device_tasks = [
             # match with host
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0, 0),
             # not match with host
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0, 0),
         ]
         generator = AscendTaskGenerator("")
         top_down_tasks = generator._generate_top_down_tasks_by_batch_id(host_tasks, device_tasks)
@@ -282,17 +282,17 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
         device_tasks = [
             # not unique
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0, 0),
             # match with host
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0, 0),
             # not match with host
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0, 0),
         ]
         generator = AscendTaskGenerator("")
         top_down_tasks = generator._generate_top_down_tasks_by_batch_id(host_tasks, device_tasks)
@@ -314,19 +314,19 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
         device_tasks = [
             # 3 device tasks with static mode
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 2, 4294967295, 1001, 1000, "AI_CORE", 0),
-            DeviceTask(1, 2, 4294967295, 1002, 1000, "AI_CORE", 0),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 2, 4294967295, 1001, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 2, 4294967295, 1002, 1000, "AI_CORE", 0.0, 0),
             # match with host
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0, 0),
             # not match with host
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0, 0),
         ]
         generator = AscendTaskGenerator("")
         top_down_tasks = generator._generate_top_down_tasks_by_batch_id(host_tasks, device_tasks)
@@ -406,17 +406,17 @@ class TestAscendTaskGenerator(unittest.TestCase):
         ]
         device_tasks = [
             # match with host
-            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 1),
-            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0),
-            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 2, 4294967295, 1000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 2, 4294967295, 9000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 3, 4294967295, 3000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 4, 4294967295, 7000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 11000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 6, 4294967295, 19000, 1000, "AI_CORE", 0.0, 1),
+            DeviceTask(1, 7, 4294967295, 13000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(1, 8, 4294967295, 15000, 1000, "AI_CORE", 0.0, 0),
             # not match with host
-            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0),
-            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0),
+            DeviceTask(1, 9, 4294967295, 17000, 1000, "AI_CORE", 0.0, 0),
+            DeviceTask(2, 2, 4294967295, 5000, 1000, "AI_CORE", 0.0, 0),
         ]
         InfoConfReader()._info_json = {"devices": "0", "drvVersion": InfoConfReader().ALL_EXPORT_VERSION}
         generator = AscendTaskGenerator("")

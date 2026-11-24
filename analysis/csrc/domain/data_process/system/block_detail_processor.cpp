@@ -107,10 +107,12 @@ OriBlockDetailDataFormat BlockDetailProcessor::LoadData(const std::string& dbPat
         ERROR("Create % connection failed.", dbPath);
         return oriData;
     }
-    std::string sql =
-        "SELECT stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id"
-        " FROM " +
-        blockDetailDB.tableName;
+    auto columns = blockDetailDB.dbRunner->GetTableColumns(blockDetailDB.tableName);
+    const bool hasFakeEndTime = std::any_of(columns.begin(), columns.end(), [](const Infra::TableColumn& column)
+                                            { return column.name == "fake_end_time"; });
+    const std::string fakeEndTime = hasFakeEndTime ? "fake_end_time" : "0";
+    std::string sql = "SELECT stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id, " +
+                      fakeEndTime + " FROM " + blockDetailDB.tableName;
     if (!blockDetailDB.dbRunner->QueryData(sql, oriData))
     {
         ERROR("Query block detail data failed, db path is %.", dbPath);
@@ -130,13 +132,18 @@ std::vector<BlockDetailData> BlockDetailProcessor::FormatData(const OriBlockDeta
         return formatData;
     }
     BlockDetailData tempData;
+    tempData.deviceId = localtimeContext.deviceId;
     double oriTimestamp;
+    uint64_t oriFakeEndTime;
     for (const auto& row : oriData)
     {
         std::tie(tempData.streamId, tempData.taskId, tempData.subtaskId, tempData.batchId, oriTimestamp,
-                 tempData.duration, tempData.coreType, tempData.coreId) = row;
+                 tempData.duration, tempData.coreType, tempData.coreId, oriFakeEndTime) = row;
         HPFloat timestamp{oriTimestamp};
+        HPFloat fakeEndTime{oriFakeEndTime};
         tempData.timestamp = GetLocalTime(timestamp, localtimeContext.timeRecord).Uint64();
+        tempData.fakeEndTime =
+            oriFakeEndTime == 0 ? 0 : GetLocalTime(fakeEndTime, localtimeContext.timeRecord).Uint64();
         formatData.push_back(tempData);
     }
     return formatData;

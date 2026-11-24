@@ -26,7 +26,6 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.msvp_common import path_check
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
-from msmodel.stars.ffts_pmu_model import V6PmuViewModel
 
 
 class AiStackDataCheckManager(DataCheckManager):
@@ -427,9 +426,10 @@ class AiStackDataCheckManager(DataCheckManager):
         if not ChipManager().is_chip_v6():
             return False
 
-        with V6PmuViewModel(result_dir) as _model:
-            if _model.check_table():
-                return True
+        if DBManager.check_tables_in_db(
+            PathManager.get_db_path(result_dir, DBNameConstant.DB_METRICS_SUMMARY), DBNameConstant.TABLE_V6_BLOCK_PMU
+        ):
+            return True
 
         return cls._check_output(result_dir, device_id) and DBManager.check_tables_in_db(
             PathManager.get_db_path(result_dir, DBNameConstant.DB_SOC_LOG), DBNameConstant.TABLE_BLOCK_LOG

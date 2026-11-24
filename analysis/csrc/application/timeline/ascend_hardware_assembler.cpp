@@ -18,10 +18,14 @@
 
 #include "analysis/csrc/application/timeline/ascend_hardware_assembler.h"
 
+#include <algorithm>
+#include <array>
+
 #include "analysis/csrc/application//credential/id_pool.h"
 #include "analysis/csrc/application/timeline/connection_id_pool.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/memcpy_info_data.h"
+#include "analysis/csrc/infrastructure/utils/hp_float.h"
 
 namespace Analysis
 {
@@ -66,6 +70,24 @@ void TaskTraceEvent::ProcessArgs(JsonWriter &ostream)
     ostream["Batch Id"] << batchId_;
     ostream["Subtask Id"] << contextId_;
     ostream["connection_id"] << connectionId_;
+    ostream["Write Latency(ns)"] << writeLatency_;
+    const std::pair<std::string, uint64_t> stages[] = {{"AIC", aicPreprocessingStage_},
+                                                       {"AIV", aivPreprocessingStage_}};
+    for (const auto &stage : stages)
+    {
+        if (stage.second == 0)
+        {
+            continue;
+        }
+        HPFloat durationNs{dur_ * NS_TO_US};
+        HPFloat preprocessingStage{stage.second};
+        if (preprocessingStage <= durationNs)
+        {
+            ostream[(stage.first + " Preprocessing Stage(ns)").c_str()] << stage.second;
+            ostream[(stage.first + " ComputeExecution Stage(ns)").c_str()]
+                << (durationNs - preprocessingStage).Uint64();
+        }
+    }
 }
 
 void MemcpyAsyncEvent::ProcessArgs(JsonWriter &ostream)
@@ -170,7 +192,61 @@ uint32_t AscendHardwareAssembler::GetPhysicStreamId(const uint32_t streamId)
     return streamId;
 }
 
+namespace
+{
+using BlockDetailsMap = std::unordered_map<TaskId, std::array<std::vector<const BlockDetailData *>, 2>, IDHasher>;
+
+BlockDetailsMap BuildBlockDetailsMap(const std::vector<BlockDetailData> &blockDetailsData)
+{
+    BlockDetailsMap result;
+    for (const auto &data : blockDetailsData)
+    {
+        if (data.coreType >= 2)
+        {
+            continue;
+        }
+        TaskId key{data.streamId, data.batchId, data.taskId, data.subtaskId, data.deviceId};
+        result[key][data.coreType].push_back(&data);
+    }
+    for (auto &entry : result)
+    {
+        for (auto &blocks : entry.second)
+        {
+            std::stable_sort(blocks.begin(), blocks.end(), [](const BlockDetailData *left, const BlockDetailData *right)
+                             { return left->timestamp < right->timestamp; });
+        }
+    }
+    return result;
+}
+
+uint64_t GetPreprocessingStage(const BlockDetailsMap &blocks, const AscendTaskData &task, size_t coreType)
+{
+    TaskId key{task.streamId, task.batchId, task.taskId, task.contextId, task.deviceId};
+    const auto it = blocks.find(key);
+    if (it == blocks.end())
+    {
+        return 0;
+    }
+    // A task identity may be reused by later executions. Select within this execution only.
+    const auto &candidates = it->second[coreType];
+    const auto block =
+        std::lower_bound(candidates.begin(), candidates.end(), task.timestamp,
+                         [](const BlockDetailData *data, uint64_t timestamp) { return data->timestamp < timestamp; });
+    if (block == candidates.end() || static_cast<double>((*block)->timestamp - task.timestamp) > task.duration)
+    {
+        return 0;
+    }
+    const auto fakeEnd = (*block)->fakeEndTime;
+    if (fakeEnd <= task.timestamp || static_cast<double>(fakeEnd - task.timestamp) > task.duration)
+    {
+        return 0;
+    }
+    return fakeEnd - task.timestamp;
+}
+}  // namespace
+
 void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData> &taskData,
+                                                const std::vector<BlockDetailData> &blockDetailsData,
                                                 const std::string &profPath, const LayerInfo &layer,
                                                 std::unordered_map<uint16_t, uint32_t> &pidMap)
 {
@@ -178,6 +254,7 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
     std::string traceName;
     std::string taskTypeName;
     TaskId id;
+    auto blockDetailsMap = BuildBlockDetailsMap(blockDetailsData);
     for (const auto &data : taskData)
     {
         if (data.hostType == MEMCPY_ASYNC)
@@ -196,6 +273,8 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
         formatPid = GetDevicePid(pidMap, data.deviceId, profPath, layer.sortIndex);
         uint32_t tid = GetPhysicStreamId(data.streamId);
         pidTidSet_.insert({formatPid, tid});
+        const uint64_t aicPreprocessingStage = GetPreprocessingStage(blockDetailsMap, data, 0);
+        const uint64_t aivPreprocessingStage = GetPreprocessingStage(blockDetailsMap, data, 1);
         if (data.taskType == Analysis::Common::KERNEL_SIMT_TASK_TYPE)
         {
             std::string gridDim = NA;
@@ -210,16 +289,18 @@ void AscendHardwareAssembler::GenerateTaskTrace(const std::vector<AscendTaskData
             MAKE_SHARED_RETURN_VOID(
                 event, SimtTaskEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                 DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
-                data.batchId, data.contextId, data.connectionId, taskTypeName, gridDim, blockDim);
+                data.batchId, data.contextId, data.connectionId, taskTypeName, gridDim, blockDim, data.writeLatency,
+                aicPreprocessingStage, aivPreprocessingStage);
             events_.push_back(event);
         }
         else
         {
             std::shared_ptr<TaskTraceEvent> event;
-            MAKE_SHARED_RETURN_VOID(
-                event, TaskTraceEvent, formatPid, tid, static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
-                DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId, data.streamId, data.taskId,
-                data.batchId, data.contextId, data.connectionId, taskTypeName);
+            MAKE_SHARED_RETURN_VOID(event, TaskTraceEvent, formatPid, tid,
+                                    static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                                    DivideByPowersOfTenWithPrecision(data.timestamp), traceName, data.modelId,
+                                    data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
+                                    taskTypeName, data.writeLatency, aicPreprocessingStage, aivPreprocessingStage);
             events_.push_back(event);
         }
         GenerateTaskConnectionTrace(data, formatPid, id, category);
@@ -299,7 +380,7 @@ void AscendHardwareAssembler::GenerateMemcpyAsyncTrace(DataInventory &dataInvent
                                 static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
                                 DivideByPowersOfTenWithPrecision(data.timestamp), data.hostType, data.modelId,
                                 data.streamId, data.taskId, data.batchId, data.contextId, data.connectionId,
-                                data.deviceType, dataSize, bandwidth, memcpyDirection, showFlag);
+                                data.deviceType, dataSize, bandwidth, memcpyDirection, showFlag, data.writeLatency);
         events_.push_back(event);
         GenerateMemcpyAsyncConnectionTrace(data, formatPid);
     }
@@ -343,6 +424,7 @@ uint8_t AscendHardwareAssembler::AssembleData(DataInventory &dataInventory, cons
 {
     auto taskData = dataInventory.GetPtr<std::vector<AscendTaskData>>();
     auto kfcTurnData = dataInventory.GetPtr<std::vector<KfcTurnData>>();
+    auto blockDetailData = dataInventory.GetPtr<std::vector<BlockDetailData>>();
     if (taskData == nullptr && kfcTurnData == nullptr)
     {
         WARN("Can't get task data from dataInventory");
@@ -353,7 +435,9 @@ uint8_t AscendHardwareAssembler::AssembleData(DataInventory &dataInventory, cons
     if (taskData != nullptr)
     {
         InitData(dataInventory, *taskData);
-        GenerateTaskTrace(*taskData, profPath, layer, devicePid);
+        const std::vector<BlockDetailData> emptyBlockDetails;
+        GenerateTaskTrace(*taskData, blockDetailData == nullptr ? emptyBlockDetails : *blockDetailData, profPath, layer,
+                          devicePid);
         if (!memcpyAsyncDeviceTasks_.empty())
         {
             GenerateMemcpyAsyncTrace(dataInventory, profPath, layer, devicePid);

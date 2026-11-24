@@ -17,6 +17,8 @@
 # pylint: disable=duplicate-code
 
 from common_func.info_conf_reader import InfoConfReader
+from common_func.ms_constant.number_constant import NumberConstant
+from common_func.platform.chip_manager import ChipManager
 from common_func.utils import Utils
 from profiling_bean.stars.stars_common import StarsCommon
 from profiling_bean.struct_info.struct_decoder import StructDecoder
@@ -43,6 +45,7 @@ class AcsqTaskV6(StructDecoder):
         self._acc_id = args[6] & 63
         # acsq_id is higher 10 bit where only lower 7 bit is valid
         self._acsq_id = (args[6] >> 6) & 127
+        self._sys_end_log_time = (args[9] << 32) | (args[8] & 0xFFFFFFFF)
 
     @property
     def func_type(self: any) -> str:
@@ -98,3 +101,18 @@ class AcsqTaskV6(StructDecoder):
         :return: acc_id
         """
         return self._acc_id
+
+    @property
+    def write_latency(self: any) -> float:
+        """
+        get write profiling sys cnt
+        :return: write profiling sys cnt
+        """
+        if ChipManager().is_chip_v6_2_0() and self._sys_end_log_time > self._sys_cnt:
+            return round(
+                InfoConfReader().duration_from_syscnt(
+                    self._sys_end_log_time - self._sys_cnt, NumberConstant.NANO_SECOND
+                ),
+                3,
+            )
+        return 0.0

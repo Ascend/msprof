@@ -159,6 +159,26 @@ TEST_F(LogModelingUTest, ShouldGetRepeatedDeviceTaskData)
     CheckRepeatedDeviceTaskData(dataInventory_);
 }
 
+TEST_F(LogModelingUTest, ShouldKeepEndLogTimestampOnlyForV62)
+{
+    for (const auto chip : {CHIP_V6_1_0, CHIP_V6_1_1, CHIP_V6_2_0}) {
+        SCOPED_TRACE(chip);
+        auto logs = dataInventory_.GetPtr<std::vector<HalLogData>>();
+        *logs = GetRepeatedDeviceTaskData();
+        logs->resize(2);
+        logs->back().acsq.sysEndLogTime = 250;
+        auto tasks = dataInventory_.GetPtr<std::map<TaskId, std::vector<Domain::DeviceTask>>>();
+        tasks->clear();
+        DeviceContext context;
+        context.deviceContextInfo.deviceInfo.chipID = chip;
+        Domain::LogModeling modeling;
+        ASSERT_EQ(Analysis::ANALYSIS_OK, modeling.Run(dataInventory_, context));
+        ASSERT_EQ(1ul, tasks->size());
+        ASSERT_EQ(1ul, tasks->begin()->second.size());
+        EXPECT_EQ(chip == CHIP_V6_2_0 ? 250ul : 0ul, tasks->begin()->second.front().sysEndLogTime);
+    }
+}
+
 static std::vector<HalLogData> GetRightDeviceTaskData()
 {
     std::vector<HalLogData> logData{};

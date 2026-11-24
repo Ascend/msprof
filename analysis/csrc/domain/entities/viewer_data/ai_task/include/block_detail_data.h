@@ -18,20 +18,26 @@
 #define ANALYSIS_DOMAIN_BLOCK_DETAIL_DATA_H
 
 #include <string>
+
 #include "analysis/csrc/domain/entities/viewer_data/basic_data.h"
 
-namespace Analysis {
-namespace Domain {
+namespace Analysis
+{
+namespace Domain
+{
 
-struct BlockDetailData : public BasicData {
+struct BlockDetailData : public BasicData
+{
+    uint16_t deviceId = UINT16_MAX;
     uint16_t coreId = UINT16_MAX;
     uint32_t streamId = UINT32_MAX;
     uint32_t taskId = UINT32_MAX;
     uint32_t subtaskId = UINT32_MAX;
     uint32_t batchId = UINT32_MAX;
     uint64_t coreType = UINT64_MAX;
+    uint64_t fakeEndTime = 0;
     double duration = 0.0;
 };
-}
-}
-#endif // ANALYSIS_DOMAIN_BLOCK_DETAIL_DATA_H
+}  // namespace Domain
+}  // namespace Analysis
+#endif  // ANALYSIS_DOMAIN_BLOCK_DETAIL_DATA_H

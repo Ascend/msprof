@@ -37,12 +37,12 @@ class TestBlockDetailViewer(unittest.TestCase):
         expect_header = [
             ["process_name", pid, 0, "Block Detail"],
             [thread_name, pid, 1, "AIC Earliest"],
-            [thread_name, pid, 2, "AIC Latest"],
-            [thread_name, pid, 3, "AIV Earliest"],
-            [thread_name, pid, 4, "AIV Latest"],
             [thread_sort_index, pid, 1, 1],
+            [thread_name, pid, 2, "AIC Latest"],
             [thread_sort_index, pid, 2, 2],
+            [thread_name, pid, 3, "AIV Earliest"],
             [thread_sort_index, pid, 3, 3],
+            [thread_name, pid, 4, "AIV Latest"],
             [thread_sort_index, pid, 4, 4]
         ]
         self.assertEqual(9, len(header))
@@ -88,14 +88,15 @@ class TestBlockDetailViewer(unittest.TestCase):
         task_data_list = [
             TopDownTask(model_id=1, index_id=-1, stream_id=3, task_id=0, context_id=0, batch_id=0,
                         start_time=43997733221060, duration=450, host_task_type='KERNEL_AIVEC',
-                        device_task_type='AIV_SQE', connection_id=948)
+                        device_task_type='AIV_SQE', connection_id=948, write_latency=0.0)
         ]
         configs, params = {}, {"project": "", "data_type": "v6_block_pmu", "export_type": "timeline"}
 
         InfoConfReader()._info_json = {"pid": "0"}
-        with mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.get_timeline_data',
+        with mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.get_all_data',
                         return_value=pmu_time_line_data), \
                 mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.check_db', return_value=True), \
+                mock.patch('common_func.config_mgr.ConfigMgr.read_sample_config', return_value={}), \
                 mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.check_table', return_value=True), \
                 mock.patch('msmodel.stars.op_summary_model.OpSummaryModel.get_op_name_from_ge_by_id',
                            return_value=ge_data), \
@@ -130,9 +131,10 @@ class TestBlockDetailViewer(unittest.TestCase):
         }
         configs, params = {}, {"project": "", "data_type": "v6_block_pmu", "export_type": "timeline"}
         InfoConfReader()._info_json = {"pid": "0"}
-        with mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.get_timeline_data',
+        with mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.get_all_data',
                         return_value=pmu_time_line_data), \
                 mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.check_db', return_value=True), \
+                mock.patch('common_func.config_mgr.ConfigMgr.read_sample_config', return_value={}), \
                 mock.patch('msmodel.stars.ffts_pmu_model.V6PmuViewModel.check_table', return_value=True), \
                 mock.patch('msmodel.stars.op_summary_model.OpSummaryModel.get_op_name_from_ge_by_id',
                            return_value=ge_data), \

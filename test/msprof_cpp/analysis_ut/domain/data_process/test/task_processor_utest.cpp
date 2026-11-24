@@ -21,6 +21,7 @@
 
 #include "analysis/csrc/application/database/db_constant.h"
 #include "analysis/csrc/domain/data_process/ai_task/task_processor.h"
+#include "analysis/csrc/domain/data_process/system/block_detail_processor.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/services/environment/context.h"
 #include "gtest/gtest.h"
@@ -42,17 +43,16 @@ const std::string PROF_PATH_B = File::PathJoin({TASK_PATH, "./PROF_000001_202311
 const std::string TABLE_NAME = "AscendTask";
 
 using DbDataType = std::vector<std::tuple<uint32_t, int32_t, int32_t, uint32_t, uint32_t, uint32_t, double, double,
-                                          std::string, std::string, uint32_t>>;
+        std::string, std::string, uint32_t, double>>;
 
-DbDataType DATA_A{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, "UNKNOWN", "MIX_AIC", 1},
-                  {4294967295, -1, 37, 2, 5, 0, 8719911184665.1, 680.013671875, "FFTS_PLUS", "Write Value", 2},
-                  {4294967295, -1, 37, 3, 5, 0, 8719911182265.1, 680.013671875, "UNKNOWN", "11", 3},
-                  {4294967295, -1, 37, 4, 5, 0, 8719911184665.1, 680.013671875, "UNKNOWN", "88", 4},
-                  {4294967295, -1, 37, 5, 7, 0, 8719911184965.1, 680.013671875, "KERNEL_AICORE", "AI_CORE", 5}};
-
+DbDataType DATA_A{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, "UNKNOWN", "MIX_AIC", 1, 0},
+                  {4294967295, -1, 37, 2, 5, 0, 8719911184665.1, 680.013671875, "FFTS_PLUS", "Write Value", 2, 0},
+                  {4294967295, -1, 37, 3, 5, 0, 8719911182265.1, 680.013671875, "UNKNOWN", "11", 3, 125},
+                  {4294967295, -1, 37, 4, 5, 0, 8719911184665.1, 680.013671875, "UNKNOWN", "88", 4, 281},
+                  {4294967295, -1, 37, 5, 7, 0, 8719911184965.1, 680.013671875, "KERNEL_AICORE", "AI_CORE", 5, 378}};
 // device_task_type 全为 UNKNOWN，会被 LoadData 中 "device_task_type != 'UNKNOWN'" 的条件过滤掉
-DbDataType DATA_B{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, "KERNEL_AICORE", "UNKNOWN", 1},
-                  {4294967295, -1, 37, 2, 5, 0, 8719911182265.1, 680.013671875, "FFTS_PLUS", "UNKNOWN", 2}};
+DbDataType DATA_B{{4294967295, -1, 37, 1, 3, 0, 8719911184665.1, 680.013671875, "KERNEL_AICORE", "UNKNOWN", 1, 0},
+                  {4294967295, -1, 37, 2, 5, 0, 8719911182265.1, 680.013671875, "FFTS_PLUS", "UNKNOWN", 2, 0}};
 }  // namespace
 
 class TaskProcessorUTest : public testing::Test
@@ -107,6 +107,47 @@ TEST_F(TaskProcessorUTest, ShouldSelectSqeTypesByChip)
     }
     EXPECT_EQ("AI_CPU", processor.GetTaskType("UNKNOWN", "1", static_cast<uint16_t>(Chip::CHIP_V4_1_0)));
     EXPECT_EQ("SDMA_SQE", processor.GetTaskType("UNKNOWN", "9", static_cast<uint16_t>(Chip::CHIP_V3_1_0)));
+}
+
+TEST_F(TaskProcessorUTest, ShouldReadLegacyTaskTableWithoutWriteLatency)
+{
+    auto path = File::PathJoin({TASK_PATH, "legacy_task.db"});
+    DBInfo info("legacy_task.db", "AscendTask");
+    ASSERT_TRUE(info.ConstructDBRunner(path));
+    AscendTaskDB schema;
+    auto columns = schema.GetTableCols("AscendTask");
+    columns.erase(std::remove_if(columns.begin(), columns.end(),
+                                [](const Analysis::Infra::TableColumn &c) { return c.name == "write_latency"; }),
+                  columns.end());
+    ASSERT_TRUE(info.dbRunner->CreateTable("AscendTask", columns));
+    using LegacyRows = std::vector<std::tuple<uint32_t, int32_t, int32_t, uint32_t, uint32_t, uint32_t,
+                                             double, double, std::string, std::string, uint32_t>>;
+    LegacyRows input{{0, -1, 37, 1, 3, 0, 1000, 200, "KERNEL_AICORE", "AI_CORE", 1}};
+    ASSERT_TRUE(info.dbRunner->InsertData("AscendTask", input));
+    const auto rows = TaskProcessor(PROF_PATH_A).LoadData(info, path);
+    ASSERT_EQ(1ul, rows.size());
+    EXPECT_DOUBLE_EQ(1000, std::get<0>(rows.front()));
+    EXPECT_DOUBLE_EQ(0, std::get<11>(rows.front()));
+}
+
+TEST_F(TaskProcessorUTest, ShouldReadLegacyPmuTableWithoutFakeEndTime)
+{
+    auto path = File::PathJoin({TASK_PATH, "legacy_pmu.db"});
+    DBInfo info("legacy_pmu.db", "V6BlockPmu");
+    ASSERT_TRUE(info.ConstructDBRunner(path));
+    std::vector<Analysis::Infra::TableColumn> columns;
+    for (const auto &name : {"stream_id", "task_id", "subtask_id", "batch_id", "start_time", "duration",
+                             "core_type", "core_id"})
+    {
+        columns.emplace_back(name, "INTEGER");
+    }
+    ASSERT_TRUE(info.dbRunner->CreateTable(info.tableName, columns));
+    std::vector<std::tuple<int, int, int, int, int, int, int, int>> input{{7, 42, 5, 3, 1000, 200, 0, 1}};
+    ASSERT_TRUE(info.dbRunner->InsertData(info.tableName, input));
+    const auto rows = BlockDetailProcessor(PROF_PATH_A).LoadData(path, info);
+    ASSERT_EQ(1ul, rows.size());
+    EXPECT_EQ(1000ul, std::get<4>(rows.front()));
+    EXPECT_EQ(0ul, std::get<8>(rows.front()));
 }
 
 TEST_F(TaskProcessorUTest, TestRunShouldReturnTrueWhenProcessorRunSuccess)

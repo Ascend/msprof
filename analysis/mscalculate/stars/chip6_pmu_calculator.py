@@ -24,7 +24,6 @@ import sqlite3
 import struct
 from collections import deque
 from collections import namedtuple
-
 from common_func.config_mgr import ConfigMgr
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
@@ -38,6 +37,7 @@ from common_func.ms_multi_process import MsMultiProcess
 from common_func.msprof_exception import ProfException
 from common_func.msprof_object import CustomizedNamedtupleFactory
 from common_func.path_manager import PathManager
+from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ProfilingScene
 from common_func.utils import Utils
 from framework.offset_calculator import FileCalculator
@@ -53,6 +53,7 @@ from msmodel.stars.low_power_model import LowPowerViewModel
 from msparser.data_struct_size_constant import StructFmt
 from profiling_bean.prof_enum.data_tag import DataTag
 from profiling_bean.stars.pmu_bean_v6 import PmuBeanV6
+from profiling_bean.stars.pmu_bean_v6_2_0 import PmuBeanV6_2_0
 from viewer.calculate_rts_data import get_metrics_from_sample_config
 from viewer.calculate_rts_data import judge_custom_pmu_scene
 
@@ -289,11 +290,28 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
         aiv_total_cycle = data.total_cycle if not data.is_aic_data() else 0
         return aic_pmu_value, aiv_pmu_value, aic_total_cycle, aiv_total_cycle
 
+    @staticmethod
+    def get_fake_end_time(block_data):
+        fake_end_time = getattr(block_data, "fake_end_time", None)
+        if not fake_end_time:
+            return 0
+        return InfoConfReader().time_from_syscnt(fake_end_time)
+
     def get_block_pmu_data(self: any) -> None:
         block_pmu_data_type = CustomizedNamedtupleFactory.enhance_namedtuple(
             namedtuple(
                 "PmuBlockData",
-                ["stream_id", "task_id", "subtask_id", "batch_id", "start_time", "duration", "core_type", "core_id"],
+                [
+                    "stream_id",
+                    "task_id",
+                    "subtask_id",
+                    "batch_id",
+                    "start_time",
+                    "duration",
+                    "core_type",
+                    "core_id",
+                    "fake_end_time",
+                ],
             ),
             {},
         )
@@ -307,6 +325,7 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
                 InfoConfReader().duration_from_syscnt(data.end_time - data.start_time),
                 data.core_type,  # aic还是aiv看self.AIC_CORE_TYPE
                 data.core_id,
+                self.get_fake_end_time(data),
             )
             for data in self._data_list_dict.get(StrConstant.BLOCK_PMU_TYPE, [])
         ]
@@ -362,10 +381,18 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
             raise ProfException(ProfException.PROF_INVALID_DATA_ERROR) from err
         self._get_pmu_decode_data_list(bin_data, func_type)
 
+    def _decode_pmu_bean(self, bin_data):
+        """
+        decode pmu data
+        """
+        if ChipManager().is_chip_v6_2_0():
+            return PmuBeanV6_2_0.decode(bin_data)
+        return PmuBeanV6.decode(bin_data)
+
     def _get_pmu_decode_data_list(self, bin_data, func_type):
         func_type_str = Utils.get_func_type(func_type)
         if func_type_str == StarsConstant.PMU_TAG_V6:
-            context_pmu = PmuBeanV6.decode(bin_data)
+            context_pmu = self._decode_pmu_bean(bin_data)
             # 仅处理context级别数据 block数据不受ov影响
             if context_pmu.ov_flag:
                 self._first_ov_task = (
@@ -375,7 +402,8 @@ class Chip6PmuCalculator(PmuCalculator, MsMultiProcess):
                 return
             self._data_list_dict.setdefault(StrConstant.CONTEXT_PMU_TYPE, []).append(context_pmu)
         elif func_type_str == StarsConstant.FFTS_BLOCK_PMU_TAG:
-            self._data_list_dict.setdefault(StrConstant.BLOCK_PMU_TYPE, []).append(PmuBeanV6.decode(bin_data))
+            block_pmu = self._decode_pmu_bean(bin_data)
+            self._data_list_dict.setdefault(StrConstant.BLOCK_PMU_TYPE, []).append(block_pmu)
         else:
             self._wrong_func_type_count += 1
             # 同类型报错只触发一次

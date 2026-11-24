@@ -22,6 +22,7 @@
 
 #include "analysis/csrc/application/timeline/json_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/ascend_task_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/ai_task/include/block_detail_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/kfc_turn_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/task_info_data.h"
 #include "analysis/csrc/domain/valueobject/include/task_id.h"
@@ -36,7 +37,8 @@ class TaskTraceEvent : public DurationEvent
    public:
     TaskTraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                    uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
-                   uint64_t connectionId, const std::string taskType)
+                   uint64_t connectionId, const std::string taskType, double writeLatency = 0,
+                   uint64_t aicPreprocessingStage = 0, uint64_t aivPreprocessingStage = 0)
         : DurationEvent(pid, tid, dur, ts, name),
           modelId_(modelId),
           streamId_(streamId),
@@ -44,7 +46,10 @@ class TaskTraceEvent : public DurationEvent
           batchId_(batchId),
           contextId_(contextId),
           connectionId_(connectionId),
-          taskType_(taskType)
+          taskType_(taskType),
+          writeLatency_(writeLatency),
+          aicPreprocessingStage_(aicPreprocessingStage),
+          aivPreprocessingStage_(aivPreprocessingStage)
     {
     }
 
@@ -59,6 +64,9 @@ class TaskTraceEvent : public DurationEvent
     uint32_t contextId_;
     uint64_t connectionId_;
     std::string taskType_;
+    double writeLatency_;
+    uint64_t aicPreprocessingStage_;
+    uint64_t aivPreprocessingStage_;
 };
 
 class MemcpyAsyncEvent : public TaskTraceEvent
@@ -67,9 +75,9 @@ class MemcpyAsyncEvent : public TaskTraceEvent
     MemcpyAsyncEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                      uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
                      uint64_t connectionId, const std::string taskType, uint64_t dataSize, double bandwidth,
-                     std::string memcpyDirection, bool showFlag)
-        : TaskTraceEvent(pid, tid, dur, ts, name, modelId, streamId, taskId, batchId, contextId, connectionId,
-                         taskType),
+                     std::string memcpyDirection, bool showFlag, double writeLatency = 0)
+        : TaskTraceEvent(pid, tid, dur, ts, name, modelId, streamId, taskId, batchId, contextId, connectionId, taskType,
+                         writeLatency),
           dataSize_(dataSize),
           bandwidth_(bandwidth),
           memcpyDirection_(memcpyDirection),
@@ -92,9 +100,10 @@ class SimtTaskEvent : public TaskTraceEvent
    public:
     SimtTaskEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const std::string &name,
                   uint32_t modelId, uint32_t streamId, uint32_t taskId, uint32_t batchId, uint32_t contextId,
-                  uint64_t connectionId, const std::string taskType, std::string gridDim, std::string blockDim)
-        : TaskTraceEvent(pid, tid, dur, ts, name, modelId, streamId, taskId, batchId, contextId, connectionId,
-                         taskType),
+                  uint64_t connectionId, const std::string taskType, std::string gridDim, std::string blockDim,
+                  double writeLatency = 0, uint64_t aicPreprocessingStage = 0, uint64_t aivPreprocessingStage = 0)
+        : TaskTraceEvent(pid, tid, dur, ts, name, modelId, streamId, taskId, batchId, contextId, connectionId, taskType,
+                         writeLatency, aicPreprocessingStage, aivPreprocessingStage),
           gridDim_(std::move(gridDim)),
           blockDim_(std::move(blockDim))
     {
@@ -132,7 +141,8 @@ class AscendHardwareAssembler : public JsonAssembler
 
    private:
     uint8_t AssembleData(DataInventory &dataInventory, const std::string &profPath) override;
-    void GenerateTaskTrace(const std::vector<AscendTaskData> &taskData, const std::string &profPath,
+    void GenerateTaskTrace(const std::vector<AscendTaskData> &taskData,
+                           const std::vector<BlockDetailData> &blockDetailsData, const std::string &profPath,
                            const LayerInfo &layer, std::unordered_map<uint16_t, uint32_t> &pidMap);
     void InitData(DataInventory &dataInventory, std::vector<AscendTaskData> &taskData);
     std::string GetOpName(const AscendTaskData &data);

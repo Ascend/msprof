@@ -28,3 +28,4 @@ class PmuBlockDto(metaclass=InstanceCheckMeta):
     duration: int = None
     core_type: int = None
     core_id: int = None
+    fake_end_time: int = 0

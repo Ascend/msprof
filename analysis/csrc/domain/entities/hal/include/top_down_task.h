@@ -36,11 +36,12 @@ struct TopDownTask
     int64_t connectionId = -1;  // -1 表示该任务没有 connection id(设备侧独立任务)，0 是合法值
     double startTime = 0;
     double endTime = 0;
+    double writeLatency = 0;
 
     TopDownTask() = default;
     TopDownTask(bool isFirst, uint32_t taskId, uint32_t batchId, uint32_t streamId, uint32_t contextId, int32_t indexId,
                 std::string deviceType, std::string hostType, uint64_t modelId, int64_t connectionId, double startTime,
-                double endTime)
+                double endTime, double writeLatency = 0)
         : taskId(taskId),
           batchId(batchId),
           streamId(streamId),
@@ -52,6 +53,7 @@ struct TopDownTask
           connectionId(connectionId),
           startTime(startTime),
           endTime(endTime),
+          writeLatency(writeLatency),
           isFirst(isFirst)
     {
     }

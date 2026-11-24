@@ -48,7 +48,9 @@ class AcsqTaskModel(ParserModel):
             return []
         sql = (
             "select 'N/A' as op_name, task_type, stream_id, task_id, task_time/{NS_TO_US} as task_time, "
-            "start_time, end_time from {}".format(DBNameConstant.TABLE_ACSQ_TASK, NS_TO_US=NumberConstant.NS_TO_US)
+            "start_time, end_time, write_latency from {}".format(
+                DBNameConstant.TABLE_ACSQ_TASK, NS_TO_US=NumberConstant.NS_TO_US
+            )
         )
         task_time_data = DBManager.fetch_all_data(self.cur, sql, dto_class=TaskTimeDto)
         return task_time_data
@@ -78,7 +80,7 @@ class AcsqTaskModel(ParserModel):
         # acsq task subtask_id is always 0xffffffff
         sql = (
             "select {1}.stream_id, {1}.task_id, {0} as context_id, {1}.start_time as timestamp, "
-            "task_time as duration,  {1}.task_type from {1} "
+            "task_time as duration,  {1}.task_type, {1}.write_latency from {1} "
             "{2}".format(
                 NumberConstant.DEFAULT_GE_CONTEXT_ID,
                 DBNameConstant.TABLE_ACSQ_TASK,

@@ -44,6 +44,7 @@ class FftsPmuModel(ParserModel):
         create aic and aiv table by sample.json
         :return:
         """
+        super().create_table()
         # aic metrics table
         column_list = []
         self.profiling_events['aiv'] = get_metrics_from_sample_config(
@@ -98,12 +99,8 @@ class V6PmuModel(FftsPmuModel):
         self, result_dir: str, db_name: str = DBNameConstant.DB_METRICS_SUMMARY, table_list: List = None
     ) -> None:
         if table_list is None:
-            table_list = []
+            table_list = [DBNameConstant.TABLE_V6_BLOCK_PMU]
         super().__init__(result_dir, db_name, table_list)
-
-    def create_table(self: Any) -> None:
-        super().create_table()
-        self._create_block_pmu_time_table(DBNameConstant.TABLE_V6_BLOCK_PMU)
 
     def block_flush(self: Any, data_list: List) -> None:
         if not data_list:
@@ -114,7 +111,7 @@ class V6PmuModel(FftsPmuModel):
     def _create_block_pmu_time_table(self: Any, table_name: str) -> None:
         sql = (
             f'CREATE TABLE IF NOT EXISTS {table_name} (stream_id INT, task_id INT, '
-            f'subtask_id INT, batch_id INT, start_time INT, duration INT, core_type INT, core_id INT)'
+            f'subtask_id INT, batch_id INT, start_time INT, duration INT, core_type INT, core_id INT, fake_end_time INT)'
         )
         try:
             DBManager.execute_sql(self.conn, sql)
@@ -127,8 +124,5 @@ class V6PmuViewModel(ViewModel):
         super().__init__(result_dir, DBNameConstant.DB_METRICS_SUMMARY, [DBNameConstant.TABLE_V6_BLOCK_PMU])
 
     def get_timeline_data(self: Any) -> list:
-        sql = (
-            f"SELECT stream_id, task_id, subtask_id, batch_id, start_time, duration, core_type, core_id "
-            f"FROM {DBNameConstant.TABLE_V6_BLOCK_PMU}"
-        )
+        sql = f"SELECT * FROM {DBNameConstant.TABLE_V6_BLOCK_PMU}"
         return DBManager.fetch_all_data(self.cur, sql, dto_class=PmuBlockDto)

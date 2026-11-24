@@ -17,6 +17,7 @@
  */
 
 #include "analysis/csrc/application/database/db_constant.h"
+#include "analysis/csrc/application/deliverable_consumer.h"
 #include "analysis/csrc/application/timeline/ascend_hardware_assembler.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/api_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/memcpy_info_data.h"
@@ -239,6 +240,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
     std::shared_ptr<std::vector<MemcpyInfoData>> memcpyS;
     auto api = GenerateApiData();
     auto task = GenerateTaskData();
+    task.front().writeLatency = 7.5;
     auto info = GenerateTaskInfoData();
     auto kfcData = GenerateKfcTurnData();
     auto memcpyInfoData = GenerateMemcpyInfoData();
@@ -263,37 +265,42 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleSuccess)
         "{\"name\":\"MatMulV3\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208020.758\",\"dur\""
         ":0.45077999999999996,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\""
         "AI_VECTOR_CORE\",\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":1,\"Subtask Id\":1,"
-        "\"connection_id\":2345}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\""
+        "\"connection_id\":2345,\"Write "
+        "Latency(ns)\":7.5}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\""
         "tid\":1,\"ph\":\"f\",\"cat\":\"HostToDevice\",\"id\":\"10071698309120\",\"ts\":\""
         "1717575960208020.758\",\"bp\":\"e\"},{\"name\":\"EVENT_RECORD\",\"pid\":10328512,\"tid\""
         ":1,\"ts\":\"1717575960208020.758\",\"dur\":0.45077999999999996,\"ph\":\"X\",\"args\":{\""
         "Model Id\":4294967295,\"Task Type\":\"EVENT_RECORD_SQE\",\"Physic Stream Id\":1,\""
-        "Task Id\":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234}},{\"name\""
+        "Task Id\":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234,\"Write "
+        "Latency(ns)\":0.0}},{\"name\""
         ":\"HostToDevice5299989643264\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"5299989643264\",\"ts\":\"1717575960208020.758\",\"bp\":\"e\"},{\""
         "name\":\"EVENT_WAIT\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208021.200\",\"dur\""
         ":0.05,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\"EVENT_WAIT_SQE\","
         "\"Physic Stream Id\":1,\"Task Id\":21,\"Batch Id\":1,\"Subtask Id\":4294967295,\""
-        "connection_id\":1235}},{\"name\":\"HostToDevice5304284610560\",\"pid\":10328512,\""
+        "connection_id\":1235,\"Write Latency(ns)\":0.0}},{\"name\":\"HostToDevice5304284610560\",\"pid\":10328512,\""
         "tid\":1,\"ph\":\"f\",\"cat\":\"HostToDevice\",\"id\":\"5304284610560\",\"ts\":\""
         "1717575960208021.200\",\"bp\":\"e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\""
         "tid\":1,\"ts\":\"1717575960208021.758\",\"dur\":4241.26,\"ph\":\"X\",\"args\":{\""
         "Model Id\":4294967295,\"Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\""
-        ":0,\"Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":181,\"size(B)\":67108864,"
+        ":0,\"Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":181,\"Write "
+        "Latency(ns)\":0.0,\"size(B)\":67108864,"
         "\"bandwidth(GB/s)\":14.736186887858798,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960208021.758\",\"bp\":\""
         "e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
         "1717575960213021.758\",\"dur\":1202.5,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":1,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":181,\"size(B)\":16777216,\"bandwidth(GB/s)\""
+        "Subtask Id\":4294967295,\"connection_id\":181,\"Write "
+        "Latency(ns)\":0.0,\"size(B)\":16777216,\"bandwidth(GB/s)\""
         ":12.993762993762992,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960213021.758\",\"bp\":\""
         "e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
         "1717575960215021.758\",\"dur\":3036.9,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":2,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":189,\"size(B)\":35651584,\"bandwidth(GB/s)\""
+        "Subtask Id\":4294967295,\"connection_id\":189,\"Write "
+        "Latency(ns)\":0.0,\"size(B)\":35651584,\"bandwidth(GB/s)\""
         ":10.9332296091409,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice811748818944\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"811748818944\",\"ts\":\"1717575960215021.758\",\"bp\":\"e\""
@@ -355,31 +362,34 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithoutApi)
         "{\"name\":\"MatMulV3\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208020.758\",\"dur\""
         ":0.45077999999999996,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\""
         "AI_VECTOR_CORE\",\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":1,\"Subtask Id\":1,"
-        "\"connection_id\":2345}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\""
+        "\"connection_id\":2345,\"Write "
+        "Latency(ns)\":0.0}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\""
         "tid\":1,\"ph\":\"f\",\"cat\":\"HostToDevice\",\"id\":\"10071698309120\",\"ts\":\""
         "1717575960208020.758\",\"bp\":\"e\"},{\"name\":\"EVENT_RECORD\",\"pid\":10328512,\"tid\""
         ":1,\"ts\":\"1717575960208020.758\",\"dur\":0.45077999999999996,\"ph\":\"X\",\"args\":{\""
         "Model Id\":4294967295,\"Task Type\":\"EVENT_RECORD_SQE\",\"Physic Stream Id\":1,\""
-        "Task Id\":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234}},{\"name\""
+        "Task Id\":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234,\"Write "
+        "Latency(ns)\":0.0}},{\"name\""
         ":\"EVENT_WAIT\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208021.200\",\"dur\":0.05,"
         "\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\"EVENT_WAIT_SQE\",\""
         "Physic Stream Id\":1,\"Task Id\":21,\"Batch Id\":1,\"Subtask Id\":4294967295,\""
-        "connection_id\":1235}},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
+        "connection_id\":1235,\"Write "
+        "Latency(ns)\":0.0}},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
         "1717575960208021.758\",\"dur\":4241.26,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":0,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":181}},{\"name\":\""
+        "Subtask Id\":4294967295,\"connection_id\":181,\"Write Latency(ns)\":0.0}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960208021.758\",\"bp\":\""
         "e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
         "1717575960213021.758\",\"dur\":1202.5,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":1,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":181}},{\"name\":\""
+        "Subtask Id\":4294967295,\"connection_id\":181,\"Write Latency(ns)\":0.0}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960213021.758\",\"bp\":\""
         "e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1,\"ts\":\""
         "1717575960215021.758\",\"dur\":3036.9,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":2,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":189}},{\"name\":\""
+        "Subtask Id\":4294967295,\"connection_id\":189,\"Write Latency(ns)\":0.0}},{\"name\":\""
         "HostToDevice811748818944\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"811748818944\",\"ts\":\"1717575960215021.758\",\"bp\":\""
         "e\"},{\"name\":\"WaitExecute\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208020.758\""
@@ -432,37 +442,41 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithLogicSt
         "{\"name\":\"MatMulV3\",\"pid\":10328512,\"tid\":1337,\"ts\":\"1717575960208020.758\",\"dur\""
         ":0.45077999999999996,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\""
         "AI_VECTOR_CORE\",\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":1,\"Subtask Id\":1,\""
-        "connection_id\":2345}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\"tid\""
+        "connection_id\":2345,\"Write "
+        "Latency(ns)\":0.0}},{\"name\":\"HostToDevice10071698309120\",\"pid\":10328512,\"tid\""
         ":1337,\"ph\":\"f\",\"cat\":\"HostToDevice\",\"id\":\"10071698309120\",\"ts\":\""
         "1717575960208020.758\",\"bp\":\"e\"},{\"name\":\"EVENT_RECORD\",\"pid\":10328512,\"tid\""
         ":1337,\"ts\":\"1717575960208020.758\",\"dur\":0.45077999999999996,\"ph\":\"X\",\"args\":{\""
         "Model Id\":4294967295,\"Task Type\":\"EVENT_RECORD_SQE\",\"Physic Stream Id\":1,\"Task Id\""
-        ":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234}},{\"name\":\""
+        ":11,\"Batch Id\":1,\"Subtask Id\":4294967295,\"connection_id\":1234,\"Write Latency(ns)\":0.0}},{\"name\":\""
         "HostToDevice5299989643264\",\"pid\":10328512,\"tid\":1337,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"5299989643264\",\"ts\":\"1717575960208020.758\",\"bp\":\"e\"},{\""
         "name\":\"EVENT_WAIT\",\"pid\":10328512,\"tid\":1337,\"ts\":\"1717575960208021.200\",\"dur\""
         ":0.05,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\"EVENT_WAIT_SQE\",\""
         "Physic Stream Id\":1,\"Task Id\":21,\"Batch Id\":1,\"Subtask Id\":4294967295,\""
-        "connection_id\":1235}},{\"name\":\"HostToDevice5304284610560\",\"pid\":10328512,\"tid\""
+        "connection_id\":1235,\"Write "
+        "Latency(ns)\":0.0}},{\"name\":\"HostToDevice5304284610560\",\"pid\":10328512,\"tid\""
         ":1337,\"ph\":\"f\",\"cat\":\"HostToDevice\",\"id\":\"5304284610560\",\"ts\":\""
         "1717575960208021.200\",\"bp\":\"e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\""
         ":1337,\"ts\":\"1717575960208021.758\",\"dur\":4241.26,\"ph\":\"X\",\"args\":{\"Model Id\""
         ":4294967295,\"Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":0,\""
-        "Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":181,\"size(B)\":67108864,\""
+        "Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":181,\"Write Latency(ns)\":0.0,\"size(B)\":67108864,\""
         "bandwidth(GB/s)\":14.736186887858798,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1337,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960208021.758\",\"bp\":\""
         "e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1337,\"ts\":\""
         "1717575960213021.758\",\"dur\":1202.5,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":1,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":181,\"size(B)\":16777216,\"bandwidth(GB/s)\""
+        "Subtask Id\":4294967295,\"connection_id\":181,\"Write "
+        "Latency(ns)\":0.0,\"size(B)\":16777216,\"bandwidth(GB/s)\""
         ":12.993762993762992,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice777389080576\",\"pid\":10328512,\"tid\":1337,\"ph\":\"f\",\"cat\""
         ":\"HostToDevice\",\"id\":\"777389080576\",\"ts\":\"1717575960213021.758\",\"bp\""
         ":\"e\"},{\"name\":\"MEMCPY_ASYNC\",\"pid\":10328512,\"tid\":1337,\"ts\":\""
         "1717575960215021.758\",\"dur\":3036.9,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\""
         "Task Type\":\"PCIE_DMA_SQE\",\"Physic Stream Id\":1,\"Task Id\":2,\"Batch Id\":0,\""
-        "Subtask Id\":4294967295,\"connection_id\":189,\"size(B)\":35651584,\"bandwidth(GB/s)\""
+        "Subtask Id\":4294967295,\"connection_id\":189,\"Write "
+        "Latency(ns)\":0.0,\"size(B)\":35651584,\"bandwidth(GB/s)\""
         ":10.9332296091409,\"operation\":\"host to device\"}},{\"name\":\""
         "HostToDevice811748818944\",\"pid\":10328512,\"tid\":1337,\"ph\":\"f\",\"cat\""
         ":\"HostToDevice\",\"id\":\"811748818944\",\"ts\":\"1717575960215021.758\",\"bp\""
@@ -500,7 +514,7 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldReturnTrueWhenDataAssembleWithSimtTas
         "{\"name\":\"MatMulV3\",\"pid\":10328512,\"tid\":1,\"ts\":\"1717575960208020.758\",\"dur\""
         ":0.45077999999999996,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\""
         "KERNEL_SIMT\",\"Physic Stream Id\":1,\"Task Id\":10,\"Batch Id\":1,\"Subtask Id\":1,\""
-        "connection_id\":2345,\"Grid Dim\":\"2,3,4\",\"Block Dim\":\"5,6,7\"}},{\"name\":\""
+        "connection_id\":2345,\"Write Latency(ns)\":0.0,\"Grid Dim\":\"2,3,4\",\"Block Dim\":\"5,6,7\"}},{\"name\":\""
         "HostToDevice10071698309120\",\"pid\":10328512,\"tid\":1,\"ph\":\"f\",\"cat\":\""
         "HostToDevice\",\"id\":\"10071698309120\",\"ts\":\"1717575960208020.758\",\"bp\":\""
         "e\"},{\"name\":\"process_name\",\"pid\":10328512,\"tid\":0,\"ph\":\"M\",\"args\":{\"name\""
@@ -549,7 +563,8 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldGenerateModelExecuteFlowWhenTaskTypeI
     std::string taskStr =
         "{\"name\":\"MODEL_EXECUTE\",\"pid\":10328512,\"tid\":46,\"ts\":\"1717575960208020.758\",\"dur\""
         ":0.00328,\"ph\":\"X\",\"args\":{\"Model Id\":4294967295,\"Task Type\":\"MODEL_EXECUTE\",\"Physic "
-        "Stream Id\":46,\"Task Id\":33024,\"Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":251178}}";
+        "Stream Id\":46,\"Task Id\":33024,\"Batch Id\":0,\"Subtask Id\":4294967295,\"connection_id\":251178,"
+        "\"Write Latency(ns)\":0.0}}";
     std::string flowStr =
         "{\"name\":\"HostToDevice(Graph)1078801295474688\",\"pid\":10328512,\"tid\":46,\"ph\":\"f\",\"cat\":"
         "\"HostToDevice(Graph)\",\"id\":\"1078801295474688\",\"ts\":\"1717575960208020.758\",\"bp\":\"e\"}";
@@ -577,4 +592,225 @@ TEST_F(AscendHardwareAssemblerUTest, ShouldNotGenerateModelExecuteFlowWhenConnec
     // task 事件本身仍输出，但不允许出现 ModelExecute 的 flow 终点
     EXPECT_NE(std::string::npos, content.find("\"Task Type\":\"MODEL_EXECUTE\""));
     EXPECT_EQ(std::string::npos, content.find("\"cat\":\"HostToDevice(Graph)\""));
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldMatchPmuStagesByDeviceAndTaskIdentityWithinTaskDuration)
+{
+    auto tasks = GenerateTaskData();
+    tasks.resize(1);
+    tasks.front().writeLatency = 12.5;
+    auto taskData = std::make_shared<std::vector<AscendTaskData>>(tasks);
+    BlockDetailData block;
+    block.deviceId = tasks.front().deviceId;
+    block.streamId = tasks.front().streamId;
+    block.taskId = tasks.front().taskId;
+    block.batchId = tasks.front().batchId;
+    block.subtaskId = tasks.front().contextId;
+    block.coreType = 0;
+    block.timestamp = tasks.front().timestamp + 10;
+    block.fakeEndTime = tasks.front().timestamp + 125;
+    std::vector<BlockDetailData> blocks{block};
+    auto other = block;
+    other.timestamp--;
+    other.fakeEndTime = tasks.front().timestamp + 400;
+    other.deviceId++;
+    blocks.push_back(other);
+    other = block;
+    other.streamId++;
+    blocks.push_back(other);
+    other = block;
+    other.batchId++;
+    blocks.push_back(other);
+    other = block;
+    other.subtaskId++;
+    blocks.push_back(other);
+    other = block;
+    other.coreType = 1;
+    other.fakeEndTime = tasks.front().timestamp + 1000;
+    blocks.push_back(other);
+    dataInventory_.Inject(taskData);
+    dataInventory_.Inject(std::make_shared<std::vector<BlockDetailData>>(blocks));
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));
+    AscendHardwareAssembler assembler;
+    ASSERT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    const auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.front());
+    std::vector<std::string> lines;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(lines));
+    ASSERT_FALSE(lines.empty());
+    EXPECT_NE(std::string::npos, lines.back().find("\"AIC Preprocessing Stage(ns)\":125"));
+    EXPECT_NE(std::string::npos, lines.back().find("\"Write Latency(ns)\":12.5"));
+    EXPECT_EQ(std::string::npos, lines.back().find("AIV Preprocessing Stage(ns)"));
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldNotReplaceEarliestBlockWithMissingFakeEndTime)
+{
+    auto tasks = GenerateTaskData();
+    tasks.resize(1);
+    BlockDetailData block;
+    block.deviceId = tasks.front().deviceId;
+    block.streamId = tasks.front().streamId;
+    block.taskId = tasks.front().taskId;
+    block.batchId = tasks.front().batchId;
+    block.subtaskId = tasks.front().contextId;
+    block.coreType = 0;
+    block.timestamp = tasks.front().timestamp + 10;
+    block.fakeEndTime = tasks.front().timestamp + 125;
+    std::vector<BlockDetailData> blocks{block};
+    block.timestamp--;
+    block.fakeEndTime = 0;
+    blocks.push_back(block);
+    dataInventory_.Inject(std::make_shared<std::vector<AscendTaskData>>(tasks));
+    dataInventory_.Inject(std::make_shared<std::vector<BlockDetailData>>(blocks));
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));
+    AscendHardwareAssembler assembler;
+    ASSERT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    const auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.front());
+    std::vector<std::string> lines;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(lines));
+    ASSERT_FALSE(lines.empty());
+    EXPECT_EQ(std::string::npos, lines.back().find("AIC Preprocessing Stage(ns)"));
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldMatchRepeatedExecutionsToTheirOwnPmuBlocks)
+{
+    auto prototype = GenerateTaskData().front();
+    prototype.timestamp = 1000;
+    prototype.duration = 500;
+    std::vector<AscendTaskData> tasks;
+    std::vector<BlockDetailData> blocks;
+    for (uint64_t round = 0; round < 33; ++round)
+    {
+        auto task = prototype;
+        task.timestamp += round * 1000;
+        tasks.insert(tasks.begin(), task);  // Task input need not be chronological.
+        for (uint64_t coreType = 0; coreType < 2; ++coreType)
+        {
+            BlockDetailData block;
+            block.deviceId = task.deviceId;
+            block.streamId = task.streamId;
+            block.taskId = task.taskId;
+            block.batchId = task.batchId;
+            block.subtaskId = task.contextId;
+            block.coreType = coreType;
+            block.timestamp = task.timestamp;
+            block.fakeEndTime = task.timestamp + 100 + round + coreType;
+            blocks.insert(blocks.begin(), block);
+            block.timestamp += 10;
+            block.fakeEndTime = task.timestamp + 400;
+            blocks.insert(blocks.begin(), block);  // A later core must not replace the first block.
+        }
+    }
+    // An old block must not match merely because its fake end overlaps the first task.
+    auto stale = blocks.back();
+    stale.timestamp = prototype.timestamp - 1;
+    stale.fakeEndTime = prototype.timestamp + 499;
+    blocks.push_back(stale);
+    auto missing = prototype;
+    missing.timestamp = 50000;  // No block in this execution's time window.
+    tasks.push_back(missing);
+    dataInventory_.Inject(std::make_shared<std::vector<AscendTaskData>>(tasks));
+    dataInventory_.Inject(std::make_shared<std::vector<BlockDetailData>>(blocks));
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));
+    AscendHardwareAssembler assembler;
+    ASSERT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    DeliverableConsumer::Instance().FinishTimeline();
+    const auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.front());
+    std::vector<std::string> lines;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(lines));
+    ASSERT_FALSE(lines.empty());
+    const auto events = nlohmann::json::parse(lines.back());
+    size_t taskCount = 0;
+    size_t stageCount = 0;
+    for (const auto &event : events)
+    {
+        if (!event.contains("args") || !event["args"].contains("Task Id"))
+        {
+            continue;
+        }
+        ASSERT_LT(taskCount, tasks.size());
+        const auto &args = event["args"];
+        for (const std::string core : {"AIC", "AIV"})
+        {
+            const auto field = core + " Preprocessing Stage(ns)";
+            if (tasks[taskCount].timestamp == missing.timestamp)
+            {
+                EXPECT_FALSE(args.contains(field));
+                continue;
+            }
+            ASSERT_TRUE(args.contains(field));
+            const auto expected = 100 + (tasks[taskCount].timestamp - prototype.timestamp) / 1000 + (core == "AIV");
+            EXPECT_EQ(expected, args[field].get<uint64_t>());
+            EXPECT_EQ(500 - expected, args[core + " ComputeExecution Stage(ns)"].get<uint64_t>());
+            ++stageCount;
+        }
+        ++taskCount;
+    }
+    EXPECT_EQ(34ul, taskCount);
+    EXPECT_EQ(66ul, stageCount);
+}
+
+TEST_F(AscendHardwareAssemblerUTest, ShouldValidatePmuStagesBeforeUnsignedConversion)
+{
+    const double durations[] = {0, 500, 500.25, 9007199254740992.0};
+    const uint64_t stages[] = {1, 500, 125, 9007199254740993ULL};
+    std::vector<AscendTaskData> tasks;
+    std::vector<BlockDetailData> blocks;
+    for (size_t i = 0; i < 4; ++i)
+    {
+        auto task = GenerateTaskData().front();
+        task.taskId = i;
+        task.timestamp = 1000;
+        task.duration = durations[i];
+        tasks.push_back(task);
+        BlockDetailData block;
+        block.deviceId = task.deviceId;
+        block.streamId = task.streamId;
+        block.taskId = task.taskId;
+        block.batchId = task.batchId;
+        block.subtaskId = task.contextId;
+        block.coreType = 0;
+        block.timestamp = task.timestamp;
+        block.fakeEndTime = task.timestamp + stages[i];
+        blocks.push_back(block);
+    }
+    dataInventory_.Inject(std::make_shared<std::vector<AscendTaskData>>(tasks));
+    dataInventory_.Inject(std::make_shared<std::vector<BlockDetailData>>(blocks));
+    MOCKER_CPP(&Context::GetPidFromInfoJson).stubs().will(returnValue(10086));
+    AscendHardwareAssembler assembler;
+    ASSERT_TRUE(assembler.Run(dataInventory_, PROF_PATH));
+    DeliverableConsumer::Instance().FinishTimeline();
+    const auto files = File::GetOriginData(RESULT_PATH, {"msprof"}, {});
+    ASSERT_EQ(1ul, files.size());
+    FileReader reader(files.front());
+    std::vector<std::string> lines;
+    ASSERT_EQ(Analysis::ANALYSIS_OK, reader.ReadText(lines));
+    ASSERT_FALSE(lines.empty());
+    size_t count = 0;
+    for (const auto &event : nlohmann::json::parse(lines.back()))
+    {
+        if (!event.contains("args") || !event["args"].contains("Task Id"))
+        {
+            continue;
+        }
+        const auto &args = event["args"];
+        const auto id = args["Task Id"].get<uint32_t>();
+        if (id == 0 || id == 3)
+        {
+            EXPECT_FALSE(args.contains("AIC Preprocessing Stage(ns)"));
+            EXPECT_FALSE(args.contains("AIC ComputeExecution Stage(ns)"));
+        }
+        else
+        {
+            EXPECT_EQ(stages[id], args["AIC Preprocessing Stage(ns)"].get<uint64_t>());
+            EXPECT_EQ(id == 1 ? 0ul : 375ul, args["AIC ComputeExecution Stage(ns)"].get<uint64_t>());
+        }
+        ++count;
+    }
+    EXPECT_EQ(4ul, count);
 }

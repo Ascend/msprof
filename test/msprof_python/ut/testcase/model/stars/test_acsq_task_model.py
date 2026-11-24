@@ -51,9 +51,9 @@ class TestAcsqTaskModel(TestDirCRBaseModel):
 
     def test_get_acsq_data_within_time_range_by_different_time_staggered_situation(self):
         acsq_data = [
-            [2, 23, 0, "AI_CORE", 1000, 2000, 1000],
-            [2, 24, 0, "AI_CORE", 3000, 4000, 1000],
-            [2, 25, 0, "AI_CORE", 5000, 6000, 1000],
+            [2, 23, 0, "AI_CORE", 1000, 2000, 1000, 0],
+            [2, 24, 0, "AI_CORE", 3000, 4000, 1000, 0],
+            [2, 25, 0, "AI_CORE", 5000, 6000, 1000, 0],
         ]
         model = AcsqTaskModel(self.PROF_DEVICE_DIR, DBNameConstant.DB_SOC_LOG, [DBNameConstant.TABLE_ACSQ_TASK])
         model.init()

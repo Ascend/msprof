@@ -66,8 +66,10 @@ class DurationEvent : public TraceEvent
     void ToJson(JsonWriter &ostream) override;
     virtual void ProcessArgs(JsonWriter &ostream) {};
 
-   private:
+   protected:
     double dur_;
+
+   private:
     std::string ts_;
     std::string ph_ = "X";
     std::string cat_;

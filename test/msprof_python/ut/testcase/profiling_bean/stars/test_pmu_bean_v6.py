@@ -17,12 +17,23 @@
 import unittest
 
 from profiling_bean.stars.pmu_bean_v6 import PmuBeanV6
+from profiling_bean.stars.pmu_bean_v6_2_0 import PmuBeanV6_2_0
 
 
 class TestPmuBeanV6(unittest.TestCase):
     """
      唯一ID合并stream id和task id, PMU仅上报task id
     """
+
+    def test_v6_2_flags_are_decoded_independently(self):
+        for flags in range(16):
+            with self.subTest(flags=flags):
+                fields = [0] * 24
+                fields[6] = flags
+                bean = PmuBeanV6_2_0(fields)
+                self.assertEqual(bool(flags & 1), bean.is_mst_data())
+                self.assertEqual(bool(flags & 2), bean.is_mix_data())
+                self.assertEqual(bool(flags & 4), bean.ov_flag)
 
     def test_instance_of_v6_bean_and_is_aic_data(self):
         args = (

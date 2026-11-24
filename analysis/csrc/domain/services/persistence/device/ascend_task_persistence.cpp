@@ -30,9 +30,9 @@ namespace Domain
 {
 using namespace Analysis::Application;
 // model_id, index_id, stream_id, task_id, context_id, batch_id, start_time, duration, host_task_type,
-// device_task_type, connection_id
+// device_task_type, connection_id, write_latency
 using ProcessedDataFormat = std::vector<std::tuple<uint64_t, int32_t, uint32_t, uint32_t, uint32_t, uint32_t, double,
-                                                   double, std::string, std::string, int64_t>>;
+                                                   double, std::string, std::string, int64_t, double>>;
 
 ProcessedDataFormat GenerateAscendTaskData(std::vector<TopDownTask>& ascendTask, bool dynamicFlag)
 {
@@ -62,7 +62,8 @@ ProcessedDataFormat GenerateAscendTaskData(std::vector<TopDownTask>& ascendTask,
             duration = task.endTime - start_time;
         }
         processedData.emplace_back(task.modelId, task.indexId, task.streamId, task.taskId, task.contextId, task.batchId,
-                                   start_time, duration, task.hostTaskType, task.deviceTaskType, task.connectionId);
+                                   start_time, duration, task.hostTaskType, task.deviceTaskType, task.connectionId,
+                                   task.writeLatency);
     }
     return processedData;
 }

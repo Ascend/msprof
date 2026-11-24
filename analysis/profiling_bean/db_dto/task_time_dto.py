@@ -36,3 +36,4 @@ class TaskTimeDto(metaclass=InstanceCheckMeta):
     task_time: float = None
     task_type: str = None
     thread_id: int = None
+    write_latency: float = 0.0

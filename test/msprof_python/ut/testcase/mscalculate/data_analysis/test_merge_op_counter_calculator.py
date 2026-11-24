@@ -190,7 +190,7 @@ class TestMergeOpCounterCalculator(unittest.TestCase):
         with mock.patch(NAMESPACE + '.DBManager.check_tables_in_db', return_value=True):
             check._create_task()
             with mock.patch(NAMESPACE + '.AscendTaskModel.get_all_data',
-                            return_value=[[1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0]]):
+                            return_value=[[1, 1, 1, 1, 1, 1, 1000, 1000, 'AI_CORE', 'AI_CORE', 0, 0.0]]):
                 check._create_task()
 
     def test_create_report(self):

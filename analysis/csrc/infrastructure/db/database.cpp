@@ -177,10 +177,10 @@ const TableColumns RuntimeOpInfo = {{"level", SQL_TEXT_TYPE},
                                     {"output_shapes", SQL_TEXT_TYPE}};
 
 const TableColumns AscendTask = {
-    {"model_id", SQL_INTEGER_TYPE},      {"index_id", SQL_INTEGER_TYPE},     {"stream_id", SQL_INTEGER_TYPE},
-    {"task_id", SQL_INTEGER_TYPE},       {"context_id", SQL_INTEGER_TYPE},   {"batch_id", SQL_INTEGER_TYPE},
-    {"start_time", SQL_NUMERIC_TYPE},    {"duration", SQL_NUMERIC_TYPE},     {"host_task_type", SQL_TEXT_TYPE},
-    {"device_task_type", SQL_TEXT_TYPE}, {"connection_id", SQL_INTEGER_TYPE}};
+    {"model_id", SQL_INTEGER_TYPE},      {"index_id", SQL_INTEGER_TYPE},      {"stream_id", SQL_INTEGER_TYPE},
+    {"task_id", SQL_INTEGER_TYPE},       {"context_id", SQL_INTEGER_TYPE},    {"batch_id", SQL_INTEGER_TYPE},
+    {"start_time", SQL_NUMERIC_TYPE},    {"duration", SQL_NUMERIC_TYPE},      {"host_task_type", SQL_TEXT_TYPE},
+    {"device_task_type", SQL_TEXT_TYPE}, {"connection_id", SQL_INTEGER_TYPE}, {"write_latency", SQL_NUMERIC_TYPE}};
 
 const TableColumns HcclOpReport = {
     {"op_type", SQL_TEXT_TYPE}, {"occurrences", SQL_TEXT_TYPE}, {"total_time", SQL_NUMERIC_TYPE},

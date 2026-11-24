@@ -49,6 +49,7 @@ class DeviceTask:
     timestamp: int
     duration: int
     task_type: str
+    write_latency: float = 0.0
     batch_id: int = NumberConstant.DEFAULT_BATCH_ID
 
 
@@ -72,6 +73,7 @@ class TopDownTask:
     host_task_type: str
     device_task_type: str
     connection_id: int
+    write_latency: float = 0.0
 
 
 @dataclass

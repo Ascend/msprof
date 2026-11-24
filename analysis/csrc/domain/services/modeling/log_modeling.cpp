@@ -225,7 +225,7 @@ void LogModeling::AddToDeviceTask(
     }
 }
 
-uint32_t LogModeling::ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context&)
+uint32_t LogModeling::ProcessEntry(Infra::DataInventory& dataInventory, const Infra::Context& context)
 {
     auto logData = dataInventory.GetPtr<std::vector<HalLogData>>();
     auto flipTrack = dataInventory.GetPtr<std::vector<HalTrackData>>();
@@ -243,18 +243,19 @@ uint32_t LogModeling::ProcessEntry(Infra::DataInventory& dataInventory, const In
     size_t deviceTaskNum = GetDeviceTaskNodeSize(*deviceTaskMap);
     Utils::TimeLogger t{"LogModeling::AddToDeviceTask "};
     AddToDeviceTask(acsqStart_, acsqEnd_, flipData_, *deviceTaskMap,
-                    [](Domain::DeviceTask& oneTask, const HalLogData& startLog, const HalLogData& endLog)
+                    [&context](Domain::DeviceTask& oneTask, const HalLogData& startLog, const HalLogData& endLog)
                     {
                         oneTask.taskType = startLog.acsq.taskType;
                         oneTask.taskStart = startLog.acsq.timestamp;
                         oneTask.taskEnd = endLog.acsq.timestamp;
+                        oneTask.sysEndLogTime = context.GetChipID() == CHIP_V6_2_0 ? endLog.acsq.sysEndLogTime : 0;
                         oneTask.logType = HalLogType::ACSQ_LOG;
                     });
     size_t acsqMatchedCount = GetDeviceTaskNodeSize(*deviceTaskMap) - deviceTaskNum;
     INFO("ACSQ matched count:%", acsqMatchedCount);
 
     AddToDeviceTask(fftsStart_, fftsEnd_, flipData_, *deviceTaskMap,
-                    [](Domain::DeviceTask& oneTask, const HalLogData& startLog, const HalLogData& endLog)
+                    [&context](Domain::DeviceTask& oneTask, const HalLogData& startLog, const HalLogData& endLog)
                     {
                         oneTask.taskType = startLog.ffts.subTaskType;
                         oneTask.taskStart = startLog.ffts.timestamp;

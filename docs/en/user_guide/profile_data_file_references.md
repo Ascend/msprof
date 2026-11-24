@@ -3746,3 +3746,15 @@ The following shows the file content of `metrics.csv`.
 | ts     | Timestamp        |
 | value  | Bandwidth        |
 | name   | Metric name of the event|
+
+## V6.2 Task Timeline Fields
+
+The following arguments apply to devices identified as V6.2 and require the corresponding raw records.
+
+Task Timeline events add the following arguments, all in ns:
+
+- `Write Latency(ns)`: the converted difference between the end-log counter and the task-end counter. It is 0 for non-V6.2 devices, missing end-log counters, or historical databases without this column. In these cases, 0 does not represent a measured write latency.
+- `AIC Preprocessing Stage(ns)` and `AIV Preprocessing Stage(ns)`: the earliest PMU block's `fake_end_time` minus the task start time, matched by device, stream, task, batch/context, and core type.
+- `AIC ComputeExecution Stage(ns)` and `AIV ComputeExecution Stage(ns)`: the task duration minus the corresponding preprocessing stage duration.
+
+Stage arguments for a core type are omitted if no PMU block matches, the earliest block lacks a valid `fake_end_time`, or this timestamp is at or before the task start or after the task end. The intermediate database fields `write_latency` and `fake_end_time` carry these values. Historical tables without these columns remain readable; missing data is not used to infer stage durations.

@@ -86,6 +86,7 @@ struct HalAcsqLog
 {
     bool isEndTimestamp = true;
     uint64_t timestamp = 0;
+    uint64_t sysEndLogTime = 0;
     uint16_t taskType = 0;
 };
 
