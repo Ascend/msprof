@@ -43,6 +43,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_op_mem_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/overlap_analysis_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/pcie_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/pmu_counter_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/qos_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/sio_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/soc_bandwidth_data.h"
@@ -160,6 +161,9 @@ REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_QOS, TOPO_DEPS(TOPO_NODE(DATA_PROCESS
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_FTRACE_GENERIC_EVENT,
                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_FTRACE_GENERIC_EVENT)),
                             std::vector<GenericEventBundle>);
+REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_HOST_PMU_COUNTER,
+                            TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HOST_PMU_COUNTER)),
+                            std::vector<PmuCounterBundle>);
 REGISTER_DB_SAVER_WITH_DATA(PROCESSOR_NAME_CCU_MISSION,
                             TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION)),
                             std::vector<CCUMissionTimelineData>);

@@ -51,6 +51,7 @@
 #include "analysis/csrc/domain/data_process/system/hbm_processor.h"
 #include "analysis/csrc/domain/data_process/system/hccs_processor.h"
 #include "analysis/csrc/domain/data_process/system/host_platform_processor.h"
+#include "analysis/csrc/domain/data_process/system/host_pmu_counter_processor.h"
 #include "analysis/csrc/domain/data_process/system/host_usage_processor.h"
 #include "analysis/csrc/domain/data_process/system/llc_processor.h"
 #include "analysis/csrc/domain/data_process/system/low_power_processor.h"
@@ -182,6 +183,7 @@ REGISTER_PROCESSOR(MetricProcessor, PROCESSOR_PMU, true,
 
 REGISTER_PROCESSOR(MemcpyInfoProcessor, PROCESSOR_NAME_MEMCPY_INFO, true, TOPO_DEPS());
 REGISTER_PROCESSOR(FtraceGenericEventProcessor, PROCESSOR_NAME_FTRACE_GENERIC_EVENT, true, TOPO_DEPS());
+REGISTER_PROCESSOR(HostPmuCounterProcessor, PROCESSOR_NAME_HOST_PMU_COUNTER, true, TOPO_DEPS());
 
 REGISTER_PROCESSOR_WITH_DATA(NpuOpMemProcessor, PROCESSOR_NAME_NPU_OP_MEM, true,
                              TOPO_DEPS(TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HASH)), GeHashMap);

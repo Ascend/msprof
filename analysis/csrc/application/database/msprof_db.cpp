@@ -335,6 +335,23 @@ const TableColumns GenericEventDataCols = {{"genericEventId", SQL_INTEGER_TYPE},
                                            {"intVal", SQL_NUMERIC_TYPE},         {"uintVal", SQL_NUMERIC_TYPE},
                                            {"floatVal", SQL_NUMERIC_TYPE},       {"doubleVal", SQL_NUMERIC_TYPE},
                                            {"strId", SQL_INTEGER_TYPE}};
+
+const TableColumns PmuEvents = {{"eventId", SQL_INTEGER_TYPE, true},
+                                {"name", SQL_TEXT_TYPE},
+                                {"source", SQL_INTEGER_TYPE},
+                                {"unit", SQL_TEXT_TYPE}};
+
+const TableColumns PmuCounters = {{"counterId", SQL_INTEGER_TYPE, true},
+                                  {"eventId", SQL_INTEGER_TYPE},
+                                  {"pid", SQL_INTEGER_TYPE},
+                                  {"cpu", SQL_INTEGER_TYPE},
+                                  {"intervalNs", SQL_NUMERIC_TYPE}};
+
+const TableColumns PmuCounterSamples = {{"counterId", SQL_INTEGER_TYPE},  {"timestamp", SQL_NUMERIC_TYPE},
+                                        {"countValue", SQL_REAL_TYPE},    {"valid", SQL_INTEGER_TYPE},
+                                        {"rawValue", SQL_INTEGER_TYPE},   {"timeEnabled", SQL_INTEGER_TYPE},
+                                        {"timeRunning", SQL_INTEGER_TYPE}};
+
 MsprofDB::MsprofDB()
 {
     dbName_ = "msprof.db";
@@ -394,6 +411,9 @@ MsprofDB::MsprofDB()
                       {TABLE_NAME_GENERIC_EVENT_TYPE_FIELDS, GenericEventTypeFields},
                       {TABLE_NAME_GENERIC_EVENTS, GenericEvents},
                       {TABLE_NAME_GENERIC_EVENT_DATA, GenericEventDataCols},
+                      {TABLE_NAME_HOST_PMU_EVENTS, PmuEvents},
+                      {TABLE_NAME_HOST_PMU_COUNTER_INFO, PmuCounters},
+                      {TABLE_NAME_HOST_PMU_COUNTER_DATA, PmuCounterSamples},
                       // ENUM
                       {TABLE_NAME_ENUM_API_TYPE, ENUM_TABLE_COLS},
                       {TABLE_NAME_ENUM_MODULE, ENUM_TABLE_COLS},

@@ -118,6 +118,17 @@ std::string Rstrip(const std::string &str1, const std::string &str2)
     return (end == std::string::npos) ? "" : str1.substr(0, end + 1);
 }
 
+std::string Trim(const std::string &text)
+{
+    const size_t begin = text.find_first_not_of(" \t\r\n");
+    if (begin == std::string::npos)
+    {
+        return "";
+    }
+    const size_t end = text.find_last_not_of(" \t\r\n");
+    return text.substr(begin, end - begin + 1);
+}
+
 int StrToU16(uint16_t &dest, const std::string &numStr)
 {
     return StrToNumImpl(__func__, dest, numStr, [](const std::string &s, size_t *pos) { return std::stoi(s, pos); });
@@ -131,6 +142,11 @@ int StrToU32(uint32_t &dest, const std::string &numStr)
 int StrToU64(uint64_t &dest, const std::string &numStr)
 {
     return StrToNumImpl(__func__, dest, numStr, [](const std::string &s, size_t *pos) { return std::stoull(s, pos); });
+}
+
+int StrToInt32(int32_t &dest, const std::string &numStr)
+{
+    return StrToNumImpl(__func__, dest, numStr, [](const std::string &s, size_t *pos) { return std::stoi(s, pos); });
 }
 
 int StrToInt64(int64_t &dest, const std::string &numStr)

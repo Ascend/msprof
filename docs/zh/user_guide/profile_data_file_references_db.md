@@ -683,6 +683,67 @@ sample-based的PMU数据，用于summary类的数据呈现。
 |coreId|INTEGER|coreId|
 |coreType|INTEGER|core类型(AIC或AIV)，STRING_IDS(coreType)|
 
+## HOST\_PMU\_EVENTS
+
+host侧PMU计数器的事件字典。同一个事件在多个CPU上采集时只记录一行，避免事件名随CPU重复存储。
+
+数据来源：采集侧生成的host PMU计数文件（`host/data/pmu/host_pmu_*.data`及其`.timing`旁路文件）。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|eventId|INTEGER|事件ID，主键|
+|name|TEXT|事件名，如cycles、instructions、page-faults|
+|source|INTEGER|事件来源，取值见**表 2**|
+|unit|TEXT|数值单位，`count`为计数，`ns`为纳秒|
+
+**表 2**  source取值
+
+|取值|来源|含义|
+|--|--|--|
+|0|UNKNOWN|来源未知，旧版本采集器只写事件名、不写来源|
+|1|SYSFS|经`/sys/bus/event_source/devices`下的PMU设备采集|
+|2|GENERIC|perf通用硬件事件（PERF\_TYPE\_HARDWARE）|
+|3|RAW|perf原始事件（PERF\_TYPE\_RAW），需结合事件编码解释|
+|4|SOFTWARE|perf软件事件，如page-faults、task-clock|
+
+## HOST\_PMU\_COUNTER\_INFO
+
+每个事件在每组（进程，CPU）上的采集配置，一行对应一个计数器实例。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|counterId|INTEGER|计数器ID，主键|
+|eventId|INTEGER|关联HOST\_PMU\_EVENTS.eventId|
+|pid|INTEGER|被采集进程ID，-1表示全部进程|
+|cpu|INTEGER|采集所在CPU，-1表示不绑定CPU|
+|intervalNs|NUMERIC|采样间隔，单位ns|
+
+## HOST\_PMU\_COUNTER\_DATA
+
+计数器在各采样时刻的取值。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|counterId|INTEGER|关联HOST\_PMU\_COUNTER\_INFO.counterId|
+|timestamp|NUMERIC|采样时刻，epoch时间，单位ns|
+|countValue|REAL|缩放后的计数值，可直接用于展示|
+|valid|INTEGER|1表示本次采样有效，0表示不可用|
+|rawValue|INTEGER|内核读到的原始计数值|
+|timeEnabled|INTEGER|事件被使能的时长|
+|timeRunning|INTEGER|事件实际运行的时长|
+
+说明：
+
+- `valid`为0时`countValue`记为0，表示“读不到”而非“读到了0”；采样值为nan时按此方式记录。
+- 多个事件复用同一个硬件计数器时`timeRunning`小于`timeEnabled`。`countValue`是已缩放的展示值，`rawValue`保留未缩放的原始计数；正常情况下满足`countValue = rawValue * timeEnabled / timeRunning`，可用这三个字段复算并校验。
+- 索引`HostPmuCounterDataTsIndex`建立在`(counterId, timestamp)`上，用于按计数器查询时间序列。
+
 ## NPU\_MEM
 
 NPU内存占用数据。

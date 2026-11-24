@@ -108,18 +108,16 @@ bool ReadInteger(const Json &object, const char *key, int64_t &value)
     {
         return false;
     }
-    const auto &text = item->get_ref<const std::string &>();
-    const auto start = text.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos)
+    const std::string text = Utils::Trim(item->get_ref<const std::string &>());
+    if (text.empty())
     {
         return false;
     }
-    const char *begin = text.c_str() + start;
     char *end = nullptr;
     errno = 0;
-    const auto number = std::strtoll(begin, &end, 10);
-    if (end == begin || errno == ERANGE ||
-        text.find_first_not_of(" \t\r\n", static_cast<size_t>(end - text.c_str())) != std::string::npos)
+    const auto number = std::strtoll(text.c_str(), &end, 10);
+    // strtoll stops at the first non-digit, so anything left over means the string was not a number.
+    if (errno == ERANGE || end != text.c_str() + text.size())
     {
         return false;
     }

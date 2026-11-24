@@ -39,9 +39,12 @@ constexpr double NS_TO_S = 1000.0 * 1000.0 * 1000.0;  // 1s = 10^9ns
 std::string Join(const std::vector<std::string> &str, const std::string &delimiter);
 std::vector<std::string> Split(const std::string &str, const std::string &delimiter, const int &splitPosition = -1);
 std::string Rstrip(const std::string &str1, const std::string &str2);
+// Removes leading and trailing space, tab, CR and LF.
+std::string Trim(const std::string &text);
 int StrToU16(uint16_t &dest, const std::string &numStr);
 int StrToU32(uint32_t &dest, const std::string &numStr);
 int StrToU64(uint64_t &dest, const std::string &numStr);
+int StrToInt32(int32_t &dest, const std::string &numStr);
 int StrToInt64(int64_t &dest, const std::string &numStr);
 int StrToDouble(double &dest, const std::string &numStr);
 // 根据所给的device路径获取对应的deviceId {local_path}/PROF_xxx/device_{id} 返回id对应的数值

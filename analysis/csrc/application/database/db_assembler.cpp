@@ -19,7 +19,10 @@
 #include "analysis/csrc/application/database/db_assembler.h"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
+#include <limits>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -57,6 +60,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/system/include/npu_op_mem_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/overlap_analysis_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/pcie_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/pmu_counter_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/qos_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/sio_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/soc_bandwidth_data.h"
@@ -1862,6 +1866,91 @@ bool SaveFtraceGenericEventData(DataInventory& dataInventory, DBInfo& msprofDB, 
     return dataInventory.Inject(std::make_shared<FtraceTablesSaved>());
 }
 
+// Host CPU PMU counters: an event dictionary, one row per counter per file, and the samples.
+bool SaveHostPmuCounterData(DataInventory& dataInventory, DBInfo& msprofDB, const std::string& profPath)
+{
+    (void)profPath;
+    auto bundles = dataInventory.GetPtr<std::vector<PmuCounterBundle>>();
+    if (msprofDB.dbRunner == nullptr || msprofDB.database == nullptr)
+    {
+        ERROR("Host PMU saver got an uninitialised database.");
+        return false;
+    }
+    if (bundles == nullptr || bundles->empty())
+    {
+        return true;
+    }
+
+    std::vector<std::tuple<uint64_t, std::string, uint64_t, std::string>> events;
+    std::map<std::pair<std::string, uint64_t>, uint64_t> eventIds;
+    std::vector<std::tuple<uint64_t, uint64_t, int64_t, int64_t, uint64_t>> counters;
+    std::vector<std::tuple<uint64_t, uint64_t, double, uint64_t, uint64_t, uint64_t, uint64_t>> samples;
+    size_t totalCounters = 0;
+    size_t totalSamples = 0;
+    for (const auto& bundle : *bundles)
+    {
+        totalCounters += bundle.counters.size();
+        totalSamples += bundle.counters.size() * bundle.samples.size();
+    }
+    counters.reserve(totalCounters);
+    samples.reserve(totalSamples);
+    uint64_t counterId = 0;
+    for (const auto& bundle : *bundles)
+    {
+        for (size_t i = 0; i < bundle.counters.size(); ++i)
+        {
+            ++counterId;
+            const auto& def = bundle.counters[i];
+            // Deduplicate by (name, source): the same event appears once per core, and two events
+            // with the same name but a different source are genuinely different counters.
+            const auto key = std::make_pair(def.name, static_cast<uint64_t>(def.source));
+            auto eventIt = eventIds.find(key);
+            if (eventIt == eventIds.end())
+            {
+                const uint64_t eventId = static_cast<uint64_t>(events.size()) + 1;
+                events.emplace_back(eventId, def.name, static_cast<uint64_t>(def.source), def.unit);
+                eventIt = eventIds.emplace(key, eventId).first;
+            }
+            counters.emplace_back(counterId, eventIt->second, bundle.pid, bundle.cpu, bundle.intervalNs);
+            for (const auto& sample : bundle.samples)
+            {
+                // A counter missing from this row (short vector) is unknown, same as nan.
+                const bool present = i < sample.values.size();
+                const double value = present ? sample.values[i] : std::numeric_limits<double>::quiet_NaN();
+                const bool valid = present && std::isfinite(value);
+                const bool hasRaw = i < sample.rawValues.size();
+                const uint64_t rawValue = hasRaw ? sample.rawValues[i] : static_cast<uint64_t>(valid ? value : 0.0);
+                const uint64_t timeEnabled = (i < sample.timeEnabled.size()) ? sample.timeEnabled[i] : 0;
+                const uint64_t timeRunning = (i < sample.timeRunning.size()) ? sample.timeRunning[i] : 0;
+                samples.emplace_back(counterId, sample.timestampNs, valid ? value : 0.0, valid ? 1ULL : 0ULL,
+                                     valid ? rawValue : 0ULL, valid ? timeEnabled : 0ULL, valid ? timeRunning : 0ULL);
+            }
+        }
+    }
+
+    if (!SaveData(events, TABLE_NAME_HOST_PMU_EVENTS, msprofDB))
+    {
+        ERROR("Save host PMU events failed.");
+        return false;
+    }
+    if (!SaveData(counters, TABLE_NAME_HOST_PMU_COUNTER_INFO, msprofDB))
+    {
+        ERROR("Save host PMU counters failed.");
+        return false;
+    }
+    if (!samples.empty() && !SaveData(samples, TABLE_NAME_HOST_PMU_COUNTER_DATA, msprofDB))
+    {
+        ERROR("Save host PMU counter samples failed.");
+        return false;
+    }
+    if (!CreateTableIndex(TABLE_NAME_HOST_PMU_COUNTER_DATA, "HostPmuCounterDataTsIndex", msprofDB,
+                          {"counterId", "timestamp"}))
+    {
+        return false;
+    }
+    return true;
+}
+
 const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_API, SaveApiData},
     {PROCESSOR_NAME_COMMUNICATION, SaveCommunicationData},
@@ -1904,6 +1993,7 @@ const std::unordered_map<std::string, DBSaveDataFunc> DATA_SAVER = {
     {PROCESSOR_NAME_OVERLAP_ANALYSIS, SaveOverlapAnalysisData},
     {PROCESSOR_NAME_QOS, SaveQosData},
     {PROCESSOR_NAME_FTRACE_GENERIC_EVENT, SaveFtraceGenericEventData},
+    {PROCESSOR_NAME_HOST_PMU_COUNTER, SaveHostPmuCounterData},
     {PROCESSOR_NAME_CCU_MISSION, SaveCCUData},
 };
 

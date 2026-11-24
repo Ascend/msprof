@@ -683,6 +683,67 @@ Control options:
 |coreId|INTEGER|Core ID|
 |coreType|INTEGER|Core type (AIC or AIV), which maps to `STRING_IDS(coreType)`|
 
+## `HOST_PMU_EVENTS`
+
+Event dictionary for host-side PMU counters. An event collected on several CPUs is stored once, so the event name is not repeated per CPU.
+
+Source: the host PMU count files written during collection (`host/data/pmu/host_pmu_*.data` and the `.timing` sidecar files).
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|eventId|INTEGER|Event ID (primary key)|
+|name|TEXT|Event name, for example cycles, instructions, or page-faults|
+|source|INTEGER|Event source, see **Table 2**|
+|unit|TEXT|Value unit: `count` for a plain count, `ns` for nanoseconds|
+
+**Table 2** `source` values
+
+|Value|Source|Description|
+|--|--|--|
+|0|UNKNOWN|Unknown source; older collectors wrote only the event name|
+|1|SYSFS|Collected through a PMU device under `/sys/bus/event_source/devices`|
+|2|GENERIC|perf generic hardware event (PERF\_TYPE\_HARDWARE)|
+|3|RAW|perf raw event (PERF\_TYPE\_RAW); the event code is needed to interpret it|
+|4|SOFTWARE|perf software event, for example page-faults or task-clock|
+
+## `HOST_PMU_COUNTER_INFO`
+
+Collection settings of an event for one (process, CPU) pair. One row corresponds to one counter instance.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|counterId|INTEGER|Counter ID (primary key)|
+|eventId|INTEGER|References `HOST_PMU_EVENTS.eventId`|
+|pid|INTEGER|Sampled process ID; -1 means all processes|
+|cpu|INTEGER|CPU the counter was read from; -1 means not bound to a CPU|
+|intervalNs|NUMERIC|Sampling interval in ns|
+
+## `HOST_PMU_COUNTER_DATA`
+
+Counter values at each sampling point.
+
+**Table 1** Format
+
+|Field|Type|Description|
+|--|--|--|
+|counterId|INTEGER|References `HOST_PMU_COUNTER_INFO.counterId`|
+|timestamp|NUMERIC|Sampling time, epoch time in ns|
+|countValue|REAL|Scaled count, ready to be displayed|
+|valid|INTEGER|1 if this sample is usable, 0 if it is not|
+|rawValue|INTEGER|Raw count read from the kernel|
+|timeEnabled|INTEGER|Time the event was enabled|
+|timeRunning|INTEGER|Time the event actually ran|
+
+Notes:
+
+- When `valid` is 0, `countValue` is stored as 0. This means "could not be read", not "read as zero"; a nan sample is recorded this way.
+- When several events share one hardware counter, `timeRunning` is smaller than `timeEnabled`. `countValue` is the scaled value to display and `rawValue` keeps the unscaled count; under normal conditions `countValue = rawValue * timeEnabled / timeRunning`, so the three fields can be used to recompute and verify it.
+- The `HostPmuCounterDataTsIndex` index covers `(counterId, timestamp)` and serves time-series queries per counter.
+
 ## `NPU_MEM`
 
 Stores NPU memory usage data.

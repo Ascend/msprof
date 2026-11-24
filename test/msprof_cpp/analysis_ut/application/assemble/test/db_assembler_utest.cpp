@@ -16,6 +16,7 @@
  * -------------------------------------------------------------------------
  */
 
+#include <limits>
 #include <set>
 #include <typeindex>
 
@@ -41,6 +42,7 @@
 #include "analysis/csrc/domain/entities/viewer_data/ai_task/include/unified_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/acc_pmu_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/low_power_data.h"
+#include "analysis/csrc/domain/entities/viewer_data/system/include/pmu_counter_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ddr_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/hbm_data.h"
 #include "analysis/csrc/domain/entities/viewer_data/system/include/ftrace_generic_event_data.h"
@@ -1703,6 +1705,214 @@ TEST_F(DBAssemblerUTest, TestRunSaveComputeTaskInfoShouldReturnTrueWhenRunSucces
     dataInventory.Inject<std::vector<TaskInfoData>>(dataS);
     dataInventory.Inject(kfcStreamS);
     EXPECT_TRUE(assembler.Run(dataInventory));
+}
+
+// Host PMU data is stored as three tables: an event dictionary (one row per name/source pair), one
+// row per (event, core), and one row per sample. The same event counted on several cores must yield a
+// single dictionary row -- repeating the name per core is exactly what the split exists to avoid.
+// The dictionary also records what one unit of the value means, because "count" and "ns" cannot be
+// added together and the sample table has no room to say which is which.
+TEST_F(DBAssemblerUTest, TestRunSaveHostPmuCounterDataKeepsSoftwareProvenance)
+{
+    auto makeBundle = [](int32_t cpu) {
+        Analysis::Domain::PmuCounterBundle bundle;
+        bundle.pid = -1;
+        bundle.cpu = cpu;
+        bundle.intervalNs = 10000000;
+        bundle.anchorMonoNs = 1000;
+        bundle.anchorEpochNs = 2000;
+        bundle.counters.resize(3);
+        bundle.counters[0].name = "page-faults";
+        bundle.counters[0].source = Analysis::Domain::PmuCounterSource::SOFTWARE;
+        bundle.counters[0].unit = "count";
+        bundle.counters[1].name = "cycles";
+        bundle.counters[1].source = Analysis::Domain::PmuCounterSource::GENERIC;
+        bundle.counters[1].unit = "count";
+        // task-clock is a kernel counter that reports nanoseconds, so its unit must not be "count".
+        bundle.counters[2].name = "task-clock";
+        bundle.counters[2].source = Analysis::Domain::PmuCounterSource::SOFTWARE;
+        bundle.counters[2].unit = "ns";
+
+        Analysis::Domain::PmuCounterSample row0;
+        row0.timestampNs = 200;
+        row0.values = {7.0, 1000.0, 5000.0};
+        // cycles was multiplexed: the kernel counted 500 of a 1000-slot window, so the value above is
+        // the scaled 1000 and these fields keep the raw total and the ratio.
+        row0.rawValues = {7, 500, 5000};
+        row0.timeEnabled = {1000, 1000, 1000};
+        row0.timeRunning = {1000, 500, 1000};
+        Analysis::Domain::PmuCounterSample row1;
+        row1.timestampNs = 400;
+        // A nan means "could not be read", which must survive as valid=0 rather than a real 0.
+        row1.values = {std::numeric_limits<double>::quiet_NaN(), 2000.0, 6000.0};
+        row1.rawValues = {0, 1000, 6000};
+        row1.timeEnabled = {1000, 1000, 1000};
+        row1.timeRunning = {1000, 500, 1000};
+        bundle.samples = {row0, row1};
+        return bundle;
+    };
+
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
+    auto dataInventory = DataInventory();
+    std::shared_ptr<std::vector<Analysis::Domain::PmuCounterBundle>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<Analysis::Domain::PmuCounterBundle>,
+                              std::vector<Analysis::Domain::PmuCounterBundle>{makeBundle(0), makeBundle(1)});
+    dataInventory.Inject<std::vector<Analysis::Domain::PmuCounterBundle>>(dataS);
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_HOST_PMU_COUNTER, dataInventory));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(dbRunner, nullptr);
+
+    // Two cores share the same three events, so the dictionary must hold exactly three rows.
+    using EventFormat = std::vector<std::tuple<uint64_t, std::string, uint64_t, std::string>>;
+    EventFormat eventRows;
+    EXPECT_TRUE(dbRunner->QueryData(
+        "SELECT eventId, name, source, unit FROM " + TABLE_NAME_HOST_PMU_EVENTS + " ORDER BY eventId", eventRows));
+    ASSERT_EQ(3, eventRows.size());
+    constexpr size_t EVENTS_NAME_INDEX = 1;
+    constexpr size_t EVENTS_SOURCE_INDEX = 2;
+    constexpr size_t EVENTS_UNIT_INDEX = 3;
+    const uint64_t SOFTWARE_SOURCE = static_cast<uint64_t>(Analysis::Domain::PmuCounterSource::SOFTWARE);
+    const uint64_t GENERIC_SOURCE = static_cast<uint64_t>(Analysis::Domain::PmuCounterSource::GENERIC);
+    EXPECT_EQ("page-faults", std::get<EVENTS_NAME_INDEX>(eventRows[0]));
+    EXPECT_EQ(SOFTWARE_SOURCE, std::get<EVENTS_SOURCE_INDEX>(eventRows[0]));
+    EXPECT_EQ("count", std::get<EVENTS_UNIT_INDEX>(eventRows[0]));
+    EXPECT_EQ("cycles", std::get<EVENTS_NAME_INDEX>(eventRows[1]));
+    EXPECT_EQ(GENERIC_SOURCE, std::get<EVENTS_SOURCE_INDEX>(eventRows[1]));
+    EXPECT_EQ("count", std::get<EVENTS_UNIT_INDEX>(eventRows[1]));
+    EXPECT_EQ("task-clock", std::get<EVENTS_NAME_INDEX>(eventRows[2]));
+    EXPECT_EQ(SOFTWARE_SOURCE, std::get<EVENTS_SOURCE_INDEX>(eventRows[2]));
+    EXPECT_EQ("ns", std::get<EVENTS_UNIT_INDEX>(eventRows[2])) << "a time-based counter must not be a count";
+
+    // One row per (event, core): six rows, all pointing at the three dictionary rows.
+    using CounterFormat = std::vector<std::tuple<uint64_t, uint64_t, int64_t, int64_t, uint64_t>>;
+    CounterFormat counterRows;
+    EXPECT_TRUE(dbRunner->QueryData(
+        "SELECT counterId, eventId, pid, cpu, intervalNs FROM " + TABLE_NAME_HOST_PMU_COUNTER_INFO + " ORDER BY counterId",
+        counterRows));
+    ASSERT_EQ(6, counterRows.size());
+    constexpr size_t COUNTER_EVENT_ID_INDEX = 1;
+    constexpr size_t COUNTER_PID_INDEX = 2;
+    constexpr size_t COUNTER_CPU_INDEX = 3;
+    constexpr size_t COUNTER_INTERVAL_INDEX = 4;
+    constexpr size_t EVENTS_PER_CORE = 3;
+    for (size_t i = 0; i < counterRows.size(); ++i)
+    {
+        // cpu 0 owns counters 1-3, cpu 1 owns 4-6; each triple points at events 1, 2 then 3.
+        EXPECT_EQ((i % EVENTS_PER_CORE) + 1, std::get<COUNTER_EVENT_ID_INDEX>(counterRows[i])) << "counter " << i;
+        // The -1 sentinels must be stored as -1, not as their unsigned wraparound.
+        EXPECT_EQ(-1, std::get<COUNTER_PID_INDEX>(counterRows[i]));
+        EXPECT_EQ(static_cast<int64_t>(i / EVENTS_PER_CORE), std::get<COUNTER_CPU_INDEX>(counterRows[i]));
+        EXPECT_EQ(10000000, std::get<COUNTER_INTERVAL_INDEX>(counterRows[i]));
+    }
+
+    // Six counters x two samples, with the nan row flagged invalid only where the nan was written.
+    using SampleFormat = std::vector<std::tuple<uint64_t, uint64_t, double, uint64_t, uint64_t, uint64_t, uint64_t>>;
+    SampleFormat sampleRows;
+    EXPECT_TRUE(dbRunner->QueryData(
+        "SELECT counterId, timestamp, countValue, valid, rawValue, timeEnabled, timeRunning FROM " +
+            TABLE_NAME_HOST_PMU_COUNTER_DATA + " ORDER BY counterId, timestamp",
+        sampleRows));
+    ASSERT_EQ(12, sampleRows.size());
+    constexpr size_t SAMPLE_COUNTER_ID_INDEX = 0;
+    constexpr size_t SAMPLE_VALID_INDEX = 3;
+    for (size_t i = 0; i < sampleRows.size(); i += 2)
+    {
+        const uint64_t counterId = std::get<SAMPLE_COUNTER_ID_INDEX>(sampleRows[i]);
+        // Only the page-faults column carried a nan, and page-faults is the first counter of each
+        // bundle, so the first of every three counters has an invalid second row.
+        const uint64_t expectedSecondRow = (counterId % EVENTS_PER_CORE == 1) ? 0 : 1;
+        EXPECT_EQ(1, std::get<SAMPLE_VALID_INDEX>(sampleRows[i])) << "counter " << counterId;
+        EXPECT_EQ(expectedSecondRow, std::get<SAMPLE_VALID_INDEX>(sampleRows[i + 1])) << "counter " << counterId;
+    }
+
+    // Every valid sample must carry the raw total and both time fields; the raw value is stored as an
+    // integer so a counter above 2^53 keeps every digit.
+    constexpr size_t SAMPLE_COUNT_VALUE_INDEX = 2;
+    constexpr size_t SAMPLE_RAW_VALUE_INDEX = 4;
+    constexpr size_t SAMPLE_TIME_ENABLED_INDEX = 5;
+    constexpr size_t SAMPLE_TIME_RUNNING_INDEX = 6;
+    for (const auto &row : sampleRows)
+    {
+        const uint64_t counterId = std::get<SAMPLE_COUNTER_ID_INDEX>(row);
+        if (std::get<SAMPLE_VALID_INDEX>(row) != 1)
+        {
+            continue;
+        }
+        const uint64_t raw = std::get<SAMPLE_RAW_VALUE_INDEX>(row);
+        const uint64_t enabled = std::get<SAMPLE_TIME_ENABLED_INDEX>(row);
+        const uint64_t running = std::get<SAMPLE_TIME_RUNNING_INDEX>(row);
+        EXPECT_NE(0ULL, enabled) << "counter " << counterId;
+        EXPECT_NE(0ULL, running) << "counter " << counterId;
+        const bool multiplexed = (counterId % EVENTS_PER_CORE == 2);  // cycles is the second of each triple
+        if (multiplexed)
+        {
+            EXPECT_EQ(500ULL, running) << "counter " << counterId;
+            EXPECT_GE(raw, 500ULL) << "counter " << counterId;
+        }
+        const double scaled = std::get<SAMPLE_COUNT_VALUE_INDEX>(row);
+        EXPECT_NEAR(scaled, static_cast<double>(raw) * enabled / running, 1e-6) << "counter " << counterId;
+    }
+}
+
+// A counter that has been enabled but has not accumulated anything yet reports a raw total of 0.
+// That is a reading, not a missing one: substituting the scaled value would make
+// rawValue * timeEnabled / timeRunning stop matching countValue, the one invariant this table keeps.
+TEST_F(DBAssemblerUTest, TestRunSaveHostPmuCounterDataKeepsZeroRawValue)
+{
+    auto makeBundle = []() {
+        Analysis::Domain::PmuCounterBundle bundle;
+        bundle.pid = -1;
+        bundle.cpu = 0;
+        bundle.intervalNs = 10000000;
+        bundle.anchorMonoNs = 1000;
+        bundle.anchorEpochNs = 2000;
+        bundle.counters.resize(1);
+        bundle.counters[0].name = "cycles";
+        bundle.counters[0].source = Analysis::Domain::PmuCounterSource::GENERIC;
+        bundle.counters[0].unit = "count";
+        Analysis::Domain::PmuCounterSample row;
+        // A timestamp no other case in this file writes, so the query below sees only this row.
+        row.timestampNs = 777777;
+        row.values = {50.0};
+        row.rawValues = {0};
+        row.timeEnabled = {500};
+        row.timeRunning = {1000};
+        bundle.samples = {row};
+        return bundle;
+    };
+
+    auto assembler = DBAssembler(PROF, File::PathJoin(std::vector<std::string>{PROF, OUTPUT_PATH}));
+    auto dataInventory = DataInventory();
+    std::shared_ptr<std::vector<Analysis::Domain::PmuCounterBundle>> dataS;
+    MAKE_SHARED0_NO_OPERATION(dataS, std::vector<Analysis::Domain::PmuCounterBundle>,
+                              std::vector<Analysis::Domain::PmuCounterBundle>{makeBundle()});
+    dataInventory.Inject<std::vector<Analysis::Domain::PmuCounterBundle>>(dataS);
+    EXPECT_TRUE(assembler.RunSaver(PROCESSOR_NAME_HOST_PMU_COUNTER, dataInventory));
+
+    std::shared_ptr<DBRunner> dbRunner;
+    MAKE_SHARED0_NO_OPERATION(dbRunner, DBRunner, GetMsprofDbPath());
+    ASSERT_NE(dbRunner, nullptr);
+
+    using SampleFormat = std::vector<std::tuple<uint64_t, uint64_t, double, uint64_t, uint64_t, uint64_t, uint64_t>>;
+    SampleFormat sampleRows;
+    EXPECT_TRUE(dbRunner->QueryData(
+        "SELECT counterId, timestamp, countValue, valid, rawValue, timeEnabled, timeRunning FROM " +
+            TABLE_NAME_HOST_PMU_COUNTER_DATA + " WHERE timestamp = 777777",
+        sampleRows));
+    ASSERT_EQ(1, sampleRows.size());
+    constexpr size_t COUNT_VALUE_INDEX = 2;
+    constexpr size_t VALID_INDEX = 3;
+    constexpr size_t RAW_VALUE_INDEX = 4;
+    constexpr size_t TIME_ENABLED_INDEX = 5;
+    constexpr size_t TIME_RUNNING_INDEX = 6;
+    EXPECT_EQ(1ULL, std::get<VALID_INDEX>(sampleRows[0]));
+    EXPECT_DOUBLE_EQ(50.0, std::get<COUNT_VALUE_INDEX>(sampleRows[0]));
+    EXPECT_EQ(0ULL, std::get<RAW_VALUE_INDEX>(sampleRows[0]))
+        << "a raw total of 0 must stay 0 instead of falling back to the scaled value";
+    EXPECT_EQ(500ULL, std::get<TIME_ENABLED_INDEX>(sampleRows[0]));
+    EXPECT_EQ(1000ULL, std::get<TIME_RUNNING_INDEX>(sampleRows[0]));
 }
 
 TEST_F(DBAssemblerUTest, TestRunSaveMemcpyInfoDataShouldReturnTrueWhenRunSuccess)

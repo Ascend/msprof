@@ -6,6 +6,8 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/ai_task SOURCE
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/data_process/system SOURCES)
 # host ftrace parser: system/ftrace_generic_event_processor.cpp links against it
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/ftrace SOURCES)
+# host PMU parser: system/host_pmu_counter_processor.cpp links against it
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/host_pmu SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/utils SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/infrastructure/dfx SOURCES)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/environment SOURCES)
