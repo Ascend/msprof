@@ -50,7 +50,7 @@ class NpuMemRecViewer:
             return MsvpConstant.MSVP_EMPTY_DATA
         origin_summary_data = self._model.get_table_data(self._table)
         if not origin_summary_data:
-            logging.error("get %s summary data failed in npu memory record viewer, please check.", self._table)
+            logging.warning("get %s summary data failed in npu memory record viewer, please check.", self._table)
             return MsvpConstant.MSVP_EMPTY_DATA
         for datum in origin_summary_data:
             self._data.append(
