@@ -125,7 +125,7 @@ V4_HOST_TAGS = frozenset(
         DataTag.CCU_TASK.name,
         DataTag.CCU_WAIT_SIGNAL.name,
         DataTag.CCU_GROUP.name,
-        DataTag.MEMORY_OP.name,
+        # DataTag.MEMORY_OP.name, memory_op summary尚未实现 C++ 导出，回退混合流程
     }
 )
 
@@ -172,7 +172,7 @@ V6_HOST_TAGS = frozenset(
         DataTag.CCU_TASK.name,
         DataTag.CCU_WAIT_SIGNAL.name,
         DataTag.CCU_GROUP.name,
-        DataTag.MEMORY_OP.name,
+        # DataTag.MEMORY_OP.name, memory_op summary尚未实现 C++ 导出，回退混合流程
     }
 )
 
