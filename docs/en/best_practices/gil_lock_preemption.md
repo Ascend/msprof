@@ -2,12 +2,12 @@
 
 ## 1. Background
 
-Python uses a core mechanism called the Global Interpreter Lock (GIL) that restricts Python bytecode execution to a single thread at any given time, preventing multithreaded applications from achieving true parallel execution of computational tasks.  
+Python uses a core mechanism called the Global Interpreter Lock (GIL) that restricts Python bytecode execution to a single thread at any given time, preventing multithreaded applications from achieving true parallel execution of computational tasks.\
 The customer's business model in this case is developed based on Python, and the business logic extensively adopts a multithreaded architecture to execute high-frequency operations such as operator dispatch, memory data transfer, and task scheduling in parallel. In multithreaded concurrent scenarios, multiple business threads continuously compete for the single GIL, frequently triggering behaviors such as lock preemption, thread blocking, and context switching. In particular, when abnormal scenarios occur in which a thread holds the GIL for a long time without releasing it in a timely manner, the problems of uneven thread scheduling and reduced effective computing resource utilization are further aggravated, ultimately leading to overall performance degradation of the model.
 
 ## 2. Symptoms
 
-After the customer's existing Python model was migrated to and deployed on the Ascend platform, its overall performance failed to meet the expected targets, with long execution durations and insufficient task throughput.  
+After the customer's existing Python model was migrated to and deployed on the Ascend platform, its overall performance failed to meet the expected targets, with long execution durations and insufficient task throughput.\
 Preliminary investigation confirmed that the customer's service had no operator errors, data anomalies, or hardware resource bottlenecks. Further investigation based on the characteristics of the service code revealed extensive multithreaded concurrent operations in the core service path. This indicated a performance bottleneck caused by abnormal GIL contention in Python multithreading.
 
 ## 3. Troubleshooting Process
@@ -15,13 +15,13 @@ Preliminary investigation confirmed that the customer's service had no operator 
 To accurately locate abnormal code paths and thread behavior related to GIL lock preemption, holding, and release, the self-developed gil_tracer tool was used for dedicated data analysis. The complete troubleshooting process is as follows:
 
 1. **Data collection:** Use the [gil_tracer](../../../misc/gil_tracer/README_EN.md) tool to continuously capture data from the customer's business process, recording comprehensive behavior data for all business threads, including GIL lock preemption, holding, active release, passive switching, and blocking waits, and export standardized `gil_trace` log data.
-2. **Joint data analysis:** Cross-reference and correlate the GIL behavior data in `gil_trace` with the service Profiler's profile data to determine the relationships among thread execution duration, CPU utilization, task blocking periods, and GIL status.  
+2. **Joint data analysis:** Cross-reference and correlate the GIL behavior data in `gil_trace` with the service Profiler's profile data to determine the relationships among thread execution duration, CPU utilization, task blocking periods, and GIL status.\
 3. **Abnormal code path identification:** Through data analysis, abnormal behaviors were accurately identified: in the execution logic of some business threads, the GIL lock was held for a long time without active release, causing the remaining ready threads to remain in a lock-waiting blocked state and unable to be scheduled for normal execution, forming a severe thread scheduling bottleneck. The core code logic causing the performance issue was ultimately located.
 
 ## 4. Root Causes
 
-1. **Inherent mechanism-level bottleneck:** The fact that only one thread can execute Python bytecode under the GIL at a time prevents pure Python multithreading from utilizing multicore compute resources in parallel. Lock contention overhead is therefore inherent in highly concurrent multithreaded scenarios.  
-2. **Service code implementation defect (core root cause):** The customer's multithreaded service logic was not designed appropriately. Some worker threads held the GIL for an extended period while executing time-consuming logic without voluntarily releasing it, and no appropriate lock release or thread-yielding mechanism was provided.  
+1. **Inherent mechanism-level bottleneck:** The fact that only one thread can execute Python bytecode under the GIL at a time prevents pure Python multithreading from utilizing multicore compute resources in parallel. Lock contention overhead is therefore inherent in highly concurrent multithreaded scenarios.\
+2. **Service code implementation defect (core root cause):** The customer's multithreaded service logic was not designed appropriately. Some worker threads held the GIL for an extended period while executing time-consuming logic without voluntarily releasing it, and no appropriate lock release or thread-yielding mechanism was provided.\
 3. **Cascading performance impact:** Abnormal GIL holding causes other service threads to continuously contend for the GIL and remain blocked while waiting. This results in imbalanced thread scheduling and frequent context switching, with substantial compute resources wasted on lock contention and thread waiting. Consequently, overall model execution efficiency is significantly reduced, causing the migrated model to fail to meet its performance targets.
 
 ## 5. Methodology Summary

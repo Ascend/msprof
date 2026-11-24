@@ -68,7 +68,7 @@ uint64_t Parser::GetFilesSize(const std::vector<std::string> &paths)
     return fileSize;
 }
 
-uint32_t Parser::ReadData(const std::vector<std::string> &files, size_t firstFileOffset)
+uint32_t Parser::ReadData(const std::vector<std::string> &files, uint64_t firstFileOffset)
 {
     uint64_t binaryDataOffset = 0;
 
@@ -83,23 +83,49 @@ uint32_t Parser::ReadData(const std::vector<std::string> &files, size_t firstFil
             return PARSER_FOPEN_ERROR;
         }
 
+        uint64_t bytesToRead = fileSize;
         if (loop == *files.begin())
         {
-            fseek(file, firstFileOffset, SEEK_SET);
-            fileSize -= firstFileOffset;
+            if (firstFileOffset > fileSize)
+            {
+                ERROR("first file offset % exceeds first file size %", firstFileOffset, fileSize);
+                fclose(file);
+                return ANALYSIS_ERROR;
+            }
+            if (fseek(file, static_cast<long>(firstFileOffset), SEEK_SET) != 0)
+            {
+                ERROR("fseek error! path: %, offset: %", loop, firstFileOffset);
+                fclose(file);
+                return ANALYSIS_ERROR;
+            }
+            bytesToRead = static_cast<uint64_t>(fileSize) - firstFileOffset;
         }
 
-        auto code = fread(this->binaryData.get() + binaryDataOffset, sizeof(uint8_t), fileSize, file);
-        if (code != fileSize)
+        if (binaryDataOffset > this->binaryDataSize || bytesToRead > this->binaryDataSize - binaryDataOffset)
         {
-            ERROR("fread error! code = %, fileSize = %, error: %", code, fileSize, ferror(file));
+            ERROR("read length exceeds remaining binary capacity, offset: %, length: %, capacity: %", binaryDataOffset,
+                  bytesToRead, this->binaryDataSize);
+            fclose(file);
+            return ANALYSIS_ERROR;
+        }
+
+        auto code =
+            fread(this->binaryData.get() + binaryDataOffset, sizeof(uint8_t), static_cast<size_t>(bytesToRead), file);
+        if (code != bytesToRead)
+        {
+            ERROR("fread error! code = %, fileSize = %, error: %", code, bytesToRead, ferror(file));
             fclose(file);
             return Analysis::PARSER_FREAD_ERROR;
         }
 
         fclose(file);
 
-        binaryDataOffset += fileSize;
+        binaryDataOffset += bytesToRead;
+    }
+    if (binaryDataOffset != this->binaryDataSize)
+    {
+        ERROR("read size % does not match binary data size %", binaryDataOffset, this->binaryDataSize);
+        return ANALYSIS_ERROR;
     }
     INFO("Data has been read to the memory successfully!");
     return Analysis::ANALYSIS_OK;
@@ -154,28 +180,46 @@ uint32_t Parser::ReadDataEntry(const DeviceContext &deviceContext)
 
     // 读取每个处理块大小
     auto trunkSize = this->GetTrunkSize();
+    if (trunkSize == 0)
+    {
+        ERROR("trunk size is 0, cannot read records");
+        return ANALYSIS_ERROR;
+    }
 
     // 读取所有文件大小
     auto fileSize = this->GetFilesSize(files);
-    // 计算处理块个数
-    size_t structCount = fileSize / trunkSize;
-    size_t firstFileOffset = fileSize % trunkSize;
+    const uint64_t firstFileOffset = this->GetReadOffset(fileSize, trunkSize);
+    if (firstFileOffset > fileSize)
+    {
+        ERROR("read offset % exceeds file size %", firstFileOffset, fileSize);
+        return ANALYSIS_ERROR;
+    }
     if (firstFileOffset != 0)
     {
         // 如果有余，从开始offset偏移获取！
         INFO("offset: %", firstFileOffset);
     }
 
-    this->binaryData.reset(new (std::nothrow) uint8_t[structCount * trunkSize]);
+    const uint64_t payloadSize = fileSize - firstFileOffset;
+    this->binaryData.reset(new (std::nothrow) uint8_t[payloadSize]);
     if (this->binaryData == nullptr)
     {
         ERROR("new binary data error!");
         return Analysis::PARSER_NEW_BINARY_DATA_ERROR;
     }
-    this->binaryDataSize = structCount * trunkSize;
+    this->binaryDataSize = payloadSize;
     INFO("Parse filePrefix is: %, the number of files is: %, and the total size of all files is: %",
-         Analysis::Utils::Join(filePrefix, ","), files.size(), structCount * trunkSize);
+         Analysis::Utils::Join(filePrefix, ","), files.size(), payloadSize);
     return this->ReadData(files, firstFileOffset);
+}
+
+uint64_t Parser::GetReadOffset(uint64_t fileSize, uint32_t trunkSize) const
+{
+    if (trunkSize == 0)
+    {
+        return 0;
+    }
+    return fileSize % trunkSize;
 }
 
 uint32_t Parser::ProcessEntry(DataInventory &dataInventory, const Infra::Context &context)

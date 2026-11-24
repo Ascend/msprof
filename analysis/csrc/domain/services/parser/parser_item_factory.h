@@ -43,7 +43,8 @@ enum ParserType
     UB_PARSER,
     NPU_MEM_PARSER,
     NPU_MODULE_MEM_PARSER,
-    HBM_PARSER
+    HBM_PARSER,
+    L2_CACHE_PARSER
 };
 const int MIN_COUNT = 2;
 const int VALID_CNT = 15;

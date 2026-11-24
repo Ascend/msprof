@@ -565,6 +565,17 @@ const TableColumns QosBwData = {
     {"bw8", SQL_NUMERIC_TYPE},       {"bw9", SQL_NUMERIC_TYPE},    {"bw10", SQL_NUMERIC_TYPE},
 };
 
+const TableColumns L2CacheParse = {{"task_type", SQL_INTEGER_TYPE},
+                                   {"stream_id", SQL_INTEGER_TYPE},
+                                   {"task_id", SQL_INTEGER_TYPE},
+                                   {"event_lists", SQL_TEXT_TYPE}};
+
+const TableColumns L2CacheSummary = {{"task_type", SQL_INTEGER_TYPE},
+                                     {"stream_id", SQL_INTEGER_TYPE},
+                                     {"task_id", SQL_INTEGER_TYPE},
+                                     {"hit_rate", SQL_REAL_TYPE},
+                                     {"victim_rate", SQL_REAL_TYPE}};
+
 const TableColumns MemcpyInfo = {
     {"stream_id", SQL_NUMERIC_TYPE},        {"batch_id", SQL_NUMERIC_TYPE},  {"task_id", SQL_NUMERIC_TYPE},
     {"context_id", SQL_NUMERIC_TYPE},       {"device_id", SQL_NUMERIC_TYPE}, {"data_size", SQL_NUMERIC_TYPE},
@@ -1129,6 +1140,13 @@ BiuPerfDB::BiuPerfDB()
 {
     dbName_ = "biu_perf.db";
     tableColNames_["BiuInstrStatus"] = BiuInstrStatus;
+}
+
+L2CacheDB::L2CacheDB()
+{
+    dbName_ = "l2cache.db";
+    tableColNames_["L2CacheParse"] = L2CacheParse;
+    tableColNames_["L2CacheSummary"] = L2CacheSummary;
 }
 LowPowerDB::LowPowerDB()
 {

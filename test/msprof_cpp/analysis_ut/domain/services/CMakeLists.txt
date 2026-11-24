@@ -19,6 +19,9 @@ aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/freq DEVICE
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/llc DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/pcie DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/qos DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/l2_cache DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/calculator/l2_cache DEVICE_PARSER_SOURCE)
+aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/l2_cache DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/ub DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/npu_mem DEVICE_PARSER_SOURCE)
 aux_source_directory(${TOP_DIR}/analysis/csrc/domain/services/parser/npu_module_mem DEVICE_PARSER_SOURCE)
@@ -41,6 +44,7 @@ list(APPEND DEVICE_PARSER_SOURCE
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/netdev_stats_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/npu_mem_persistence.cpp
     ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/npu_module_mem_persistence.cpp
+    ${TOP_DIR}/analysis/csrc/domain/services/persistence/device/l2_cache_persistence.cpp
 )
 
 

@@ -160,6 +160,7 @@ struct adl_serializer<SampleInfo>
         std::string dynamicStr = jsonData.value("dynamic", "off");
         infoData.dynamic = (dynamicStr == "on");
         infoData.llcProfiling = jsonData.value("llc_profiling", "");
+        infoData.l2CacheTaskProfilingEventsStr = jsonData.value("l2CacheTaskProfilingEvents", "");
 
         std::string profLevel = jsonData.value("profLevel", "l0");
         std::string profLevelHisi = jsonData.value("prof_level", "level0");

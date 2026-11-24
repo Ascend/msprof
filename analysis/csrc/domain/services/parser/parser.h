@@ -47,7 +47,7 @@ class Parser : public Infra::Process
 
     uint64_t GetFilesSize(const std::vector<std::string> &paths);
 
-    uint32_t ReadData(const std::vector<std::string> &files, size_t firstFileOffset);
+    uint32_t ReadData(const std::vector<std::string> &files, uint64_t firstFileOffset);
 
     uint32_t ReadDataEntry(const DeviceContext &deviceContext);
 
@@ -57,6 +57,8 @@ class Parser : public Infra::Process
     virtual std::vector<std::string> GetFilePattern() = 0;
 
     virtual uint32_t GetTrunkSize() = 0;
+
+    virtual uint64_t GetReadOffset(uint64_t fileSize, uint32_t trunkSize) const;
 
     virtual uint32_t ParseData(Infra::DataInventory &dataInventory, const Infra::Context &context) = 0;
 };

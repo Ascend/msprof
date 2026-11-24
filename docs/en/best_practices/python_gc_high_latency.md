@@ -28,7 +28,7 @@ The issue can be reproduced consistently. Long-running analysis shows that the t
        data_simplification=False,
        gc_detect_threshold=1,    # Enable the GC detection option and set the GC detection threshold to 1 ms.
    )
-   
+
    # Add the basic profiling configuration parameters. For details, see the parameter descriptions below.
    with torch_npu.profiler.profile(
        activities=[
@@ -38,7 +38,7 @@ The issue can be reproduced consistently. Long-running analysis shows that the t
        schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),    # Used together with prof.step()
        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
        experimental_config=experimental_config) as prof:
-   
+
        # Start profile data collection.
        for step in range(steps):    # Training iterations
            train_one_step()         # Training function

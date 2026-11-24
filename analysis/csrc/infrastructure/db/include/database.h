@@ -397,6 +397,12 @@ class BiuPerfDB : public Database
     BiuPerfDB();
 };
 
+class L2CacheDB : public Database
+{
+   public:
+    L2CacheDB();
+};
+
 }  // namespace Infra
 }  // namespace Analysis
 #endif  // ANALYSIS_VIEWER_DATABASE_DATABASE_H

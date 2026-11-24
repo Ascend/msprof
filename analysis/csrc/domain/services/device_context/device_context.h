@@ -138,6 +138,9 @@ struct SampleInfo
     // llc
     std::string llcProfiling;
 
+    // l2 cache task profiling events
+    std::string l2CacheTaskProfilingEventsStr;
+
     // hbm sample info
     std::string hbmProfilingEvents;
 
