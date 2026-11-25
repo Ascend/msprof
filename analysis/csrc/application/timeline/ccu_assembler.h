@@ -42,6 +42,20 @@ class CCUMissionTraceEvent : public DurationEvent
     CCUMissionTimelineData data_;
 };
 
+class CCUV62TraceEvent : public DurationEvent
+{
+   public:
+    CCUV62TraceEvent(uint32_t pid, uint32_t tid, double dur, const std::string &ts, const CCUV62TimelineData &data)
+        : DurationEvent(pid, tid, dur, ts, GetEventName(data)), data_(data)
+    {
+    }
+
+   private:
+    static std::string GetEventName(const CCUV62TimelineData &data);
+    void ProcessArgs(JsonWriter &ostream) override;
+    CCUV62TimelineData data_;
+};
+
 class CCUAssembler : public JsonAssembler
 {
    public:

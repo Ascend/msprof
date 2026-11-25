@@ -14,12 +14,18 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import logging
+import sqlite3
+
+from common_func.constant import Constant
 from common_func.db_manager import DBManager
 from common_func.db_name_constant import DBNameConstant
 from msmodel.ccu_model import insert_ccu_data_to_db
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
 from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginMissionDto
+from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginSetCKBV62Dto
+from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginLoopGroupV62Dto
 
 
 class CCUMissionModel(ParserModel):
@@ -34,6 +40,26 @@ class CCUMissionModel(ParserModel):
         :return: whether the insert transaction was committed
         """
         return insert_ccu_data_to_db(self.conn, table_name, data_list)
+
+    def flush_v62(self: any, setckb_rows: list, loopgroup_rows: list, source_rows: list) -> bool:
+        if not self.conn:
+            return False
+        try:
+            with self.conn:
+                self.conn.execute("BEGIN IMMEDIATE")
+                for table, rows, columns in (
+                    (DBNameConstant.TABLE_CCU_SETCKB_V62, setckb_rows, 11),
+                    (DBNameConstant.TABLE_CCU_LOOPGROUP_V62, loopgroup_rows, 5),
+                    (DBNameConstant.TABLE_CCU_MISSION_SOURCE_V62, source_rows, 3),
+                ):
+                    if self.conn.execute("SELECT 1 FROM {} LIMIT 1".format(table)).fetchone():
+                        raise ValueError("CCU table {} already contains data".format(table))
+                    placeholders = ", ".join(["?"] * columns)
+                    self.conn.executemany("INSERT INTO {} VALUES ({})".format(table, placeholders), rows)
+            return True
+        except (sqlite3.Error, ValueError, OverflowError) as error:
+            logging.error("Failed to persist CCU v6.2 mission data: %s", error, exc_info=Constant.TRACE_BACK_SWITCH)
+            return False
 
 
 class CCUViewerMissionModel(ViewModel):
@@ -70,3 +96,22 @@ class CCUViewerMissionModel(ViewModel):
             )
         )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=OriginMissionDto)
+
+
+class CCUViewerMissionV62Model(ViewModel):
+    """
+    ccu viewer mission model class for chip v6_2
+    """
+
+    def __init__(self: any, result_dir: str, *args, **kwargs) -> None:
+        super().__init__(
+            result_dir,
+            DBNameConstant.DB_CCU,
+            [DBNameConstant.TABLE_CCU_SETCKB_V62, DBNameConstant.TABLE_CCU_LOOPGROUP_V62],
+        )
+
+    def get_setckb_summary_data(self: any) -> list:
+        return self.get_all_data(DBNameConstant.TABLE_CCU_SETCKB_V62, dto_class=OriginSetCKBV62Dto)
+
+    def get_loopgroup_summary_data(self: any) -> list:
+        return self.get_all_data(DBNameConstant.TABLE_CCU_LOOPGROUP_V62, dto_class=OriginLoopGroupV62Dto)

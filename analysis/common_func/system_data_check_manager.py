@@ -20,6 +20,10 @@ from common_func.data_check_manager import DataCheckManager
 from common_func.db_name_constant import DBNameConstant
 from common_func.msvp_common import path_check
 from common_func.path_manager import PathManager
+from common_func.platform.chip_manager import ChipManager
+from common_func.db_manager import DBManager
+from profiling_bean.hardware.ccu_profile import CCU_V6_1_PROFILE
+from profiling_bean.hardware.ccu_profile import CCU_V6_2_PROFILE
 
 
 class SystemDataCheckManager(DataCheckManager):
@@ -191,11 +195,25 @@ class SystemDataCheckManager(DataCheckManager):
         ) and path_check(PathManager.get_db_path(result_dir, DBNameConstant.DB_QOS))
 
     @classmethod
-    def contain_ccu_channel_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+    def contain_ccu_channel_v61_data(cls: any, result_dir: str, device_id: any = None) -> bool:
         """
-        The data path contain ccu channel data or not
+        The data path contain chip v6_1 ccu channel data or not
         """
-        return cls.check_data_exist(result_dir, file_name_manager.get_ccu_channel_compiles(), device_id=device_id)
+        return ChipManager().chip_id in CCU_V6_1_PROFILE.supported_chip_models and cls.check_data_exist(
+            result_dir, file_name_manager.get_ccu_channel_compiles(), device_id=device_id
+        )
+
+    @classmethod
+    def contain_ccu_channel_v62_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        """
+        The data path contain chip v6_2 ccu channel data or not
+        """
+        return (
+            ChipManager().chip_id in CCU_V6_2_PROFILE.supported_chip_models
+            and DBManager.check_no_empty_tables_in_db(
+                PathManager.get_db_path(result_dir, DBNameConstant.DB_CCU), DBNameConstant.TABLE_CCU_CHANNEL_V62
+            )
+        )
 
     @classmethod
     def contain_soc_pmu_data(cls: any, result_dir: str, device_id: any = None) -> bool:

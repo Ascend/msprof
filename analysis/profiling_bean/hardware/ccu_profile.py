@@ -149,9 +149,45 @@ CCU_V6_1_PROFILE = CcuHardwareProfile(
 )
 
 
+CCU_V6_2_PROFILE = CcuHardwareProfile(
+    profile_id="ccu_v6_2",
+    supported_chip_models=(ChipModel.CHIP_V6_2_0,),
+    die_count=2,
+    channel_count=32,
+    relative_time_scale=4,
+    metrics=(
+        CcuMetricProfile(
+            metric_id="channel_delay",
+            data_kind=CcuDataKind.CHANNEL,
+            kind=CcuMetricKind.DELAY,
+            unit=CcuMetricUnit.UNKNOWN,
+        ),
+    ),
+    formats=(
+        (
+            CcuDataKind.MISSION,
+            CcuFormatProfile(
+                version=0,
+                record_size=StructFmt.CCU_MISSION_V62_FMT_SIZE,
+                decoder_id="ccu_v6_2_mission",
+                source_pattern=FileNameManagerConstant.CCU_MISSION_PATTERN,
+            ),
+        ),
+        (
+            CcuDataKind.CHANNEL,
+            CcuFormatProfile(
+                version=0,
+                record_size=StructFmt.CCU_CHANNEL_V62_FMT_SIZE,
+                decoder_id="ccu_v6_2_channel",
+                source_pattern=FileNameManagerConstant.CCU_CHANNEL_PATTERN,
+            ),
+        ),
+    ),
+)
+
+
 class CcuHardwareProfileRegistry:
-    # CHIP_V6_2_0 and later profiles are registered only after their decoders land here.
-    PROFILES = (CCU_V6_1_PROFILE,)
+    PROFILES = (CCU_V6_1_PROFILE, CCU_V6_2_PROFILE)
 
     @classmethod
     def get_profile(cls, chip_model: Any) -> Optional[CcuHardwareProfile]:

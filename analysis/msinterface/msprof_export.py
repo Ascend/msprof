@@ -237,8 +237,23 @@ class ExportCommand:
                 'handler': AiStackDataCheckManager.contain_static_op_mem_data,
             },
             {'export_type': ExportDataType.UB, 'handler': AiStackDataCheckManager.contain_ub_summary_data},
-            {'export_type': ExportDataType.CCU_MISSION, 'handler': AiStackDataCheckManager.contain_ccu_mission_data},
-            {'export_type': ExportDataType.CCU_CHANNEL, 'handler': SystemDataCheckManager.contain_ccu_channel_data},
+            {
+                'export_type': ExportDataType.CCU_MISSION,
+                'handler': AiStackDataCheckManager.contain_ccu_mission_v61_data,
+            },
+            {'export_type': ExportDataType.CCU_CHANNEL, 'handler': SystemDataCheckManager.contain_ccu_channel_v61_data},
+            {
+                'export_type': ExportDataType.CCU_MISSION_LOOPGROUP,
+                'handler': AiStackDataCheckManager.contain_ccu_mission_loopgroup_data,
+            },
+            {
+                'export_type': ExportDataType.CCU_MISSION_SETCKB,
+                'handler': AiStackDataCheckManager.contain_ccu_mission_setckb_data,
+            },
+            {
+                'export_type': ExportDataType.CCU_CHANNEL_V62,
+                'handler': SystemDataCheckManager.contain_ccu_channel_v62_data,
+            },
             {'export_type': ExportDataType.SOC_PMU, 'handler': SystemDataCheckManager.contain_soc_pmu_data},
         ],
     }

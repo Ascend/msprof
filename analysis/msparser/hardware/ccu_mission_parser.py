@@ -37,6 +37,9 @@ from msparser.ccu_source_calculator import CcuSourceCalculator
 from msparser.ccu_source_calculator import ccu_table_exists
 from msparser.ccu_source_calculator import mark_ccu_files_complete
 from profiling_bean.prof_enum.data_tag import DataTag
+from profiling_bean.hardware.ccu_mission_v62_bean import CCULoopGroupV62Bean
+from profiling_bean.hardware.ccu_mission_v62_bean import CCUSetCKBV62Bean
+from profiling_bean.hardware.ccu_profile import CCU_V6_2_PROFILE
 from profiling_bean.hardware.ccu_profile import CcuDataKind
 from profiling_bean.hardware.ccu_profile import CcuHardwareProfileRegistry
 
@@ -58,10 +61,24 @@ class CCUMissionParser(MsMultiProcess):
         self._source_calculator = CcuSourceCalculator(
             self._file_list, self._profile, CcuDataKind.MISSION, self._decoder.record_size, self._project_path
         )
-        self._model = CCUMissionModel(self._project_path, DBNameConstant.DB_CCU, [DBNameConstant.TABLE_CCU_MISSION])
+        self._is_v62 = self._profile == CCU_V6_2_PROFILE
+        self._tables = (
+            [
+                DBNameConstant.TABLE_CCU_SETCKB_V62,
+                DBNameConstant.TABLE_CCU_LOOPGROUP_V62,
+                DBNameConstant.TABLE_CCU_MISSION_SOURCE_V62,
+            ]
+            if self._is_v62
+            else [DBNameConstant.TABLE_CCU_MISSION]
+        )
+        self._model = CCUMissionModel(self._project_path, DBNameConstant.DB_CCU, self._tables)
+        self.setckb_v62_data = []
+        self.loopgroup_v62_data = []
         self.mission_data = []
         self._pending_complete_files = []
         self._parse_failed = False
+        self._v62_sources = []
+        self._v62_committed = False
 
     @staticmethod
     def get_single_mission_data(dev_id, end_time, single_bean):
@@ -89,7 +106,7 @@ class CCUMissionParser(MsMultiProcess):
             logging.error("CCU mission data file is empty, please check the file.")
             return NumberConstant.ERROR
         try:
-            self._profile.get_source_scope(CcuDataKind.MISSION, file_name)
+            die_id, _ = self._profile.get_source_scope(CcuDataKind.MISSION, file_name)
         except ValueError as error:
             logging.error(str(error))
             return NumberConstant.ERROR
@@ -100,7 +117,15 @@ class CCUMissionParser(MsMultiProcess):
                 single_bean = self._decoder.decode(
                     mission_bin[i * self._decoder.record_size : (i + 1) * self._decoder.record_size]
                 )
-                self.get_mission_data(single_bean)
+                if not self._is_v62:
+                    self.get_mission_data(single_bean)
+                elif isinstance(single_bean, CCUSetCKBV62Bean):
+                    self.setckb_v62_data.append(self._build_setckb_v62_row(single_bean, die_id))
+                elif isinstance(single_bean, CCULoopGroupV62Bean):
+                    self.loopgroup_v62_data.append(self._build_loopgroup_v62_row(single_bean, die_id))
+                else:
+                    logging.error("Invalid CCU v6.2 mission record %d in %s", i, file_name)
+                    return NumberConstant.ERROR
         return NumberConstant.SUCCESS
 
     def get_mission_data(self, single_bean):
@@ -117,11 +142,33 @@ class CCUMissionParser(MsMultiProcess):
         parsing data file
         """
         logging.info("Start parsing CCU mission data file.")
-        for file_name in self._file_list:
-            if is_valid_original_data(file_name, self._project_path):
-                self._handle_original_data(file_name)
+        pending_files = [
+            name for name in self._source_calculator.source_files if is_valid_original_data(name, self._project_path)
+        ]
+        # Completed files rely on their markers. The batch record is needed when a marker is missing.
+        if self._is_v62 and pending_files:
+            self._v62_sources = self._snapshot_v62_sources()
+            try:
+                committed_sources = (
+                    self._model.get_all_data(DBNameConstant.TABLE_CCU_MISSION_SOURCE_V62)
+                    if self._model.check_db()
+                    else []
+                )
+            finally:
+                self._model.finalize()
+            if committed_sources:
+                if self._v62_sources != sorted(committed_sources):
+                    raise ValueError(
+                        "CCU mission sources differ from the persisted batch; clear parsed output and reimport"
+                    )
+                self._v62_committed = True
+                self._pending_complete_files = pending_files
+                return
+        for file_name in pending_files:
+            self._handle_original_data(file_name)
         self._source_calculator.validate()
-        self._set_stream_id_by_host()
+        if not self._is_v62:
+            self._set_stream_id_by_host()
         logging.info("Parse CCU mission data finished!")
 
     def save(self: any) -> bool:
@@ -131,13 +178,23 @@ class CCUMissionParser(MsMultiProcess):
         """
         if self._parse_failed:
             return False
-        if self._source_calculator.has_completed_files and not ccu_table_exists(
-            self._project_path, DBNameConstant.DB_CCU, DBNameConstant.TABLE_CCU_MISSION
+        if self._v62_sources and self._v62_sources != self._snapshot_v62_sources():
+            logging.error("CCU mission sources changed while parsing.")
+            return False
+        if (self._v62_committed or self._source_calculator.has_completed_files) and not ccu_table_exists(
+            self._project_path, DBNameConstant.DB_CCU, *self._tables
         ):
             logging.error("Completed CCU mission source has no persisted table; clear markers and reimport")
             return False
         save_success = True
-        if self._pending_complete_files or self.mission_data:
+        if self._is_v62:
+            if not self._v62_committed and (
+                self._pending_complete_files or self.setckb_v62_data or self.loopgroup_v62_data
+            ):
+                with self._model as model:
+                    save_success = model.flush_v62(self.setckb_v62_data, self.loopgroup_v62_data, self._v62_sources)
+                self._v62_committed = save_success
+        elif self._pending_complete_files or self.mission_data:
             time_fields = (3, 4, 6, 8)
             if any(any(row[index] > NumberConstant.INT64_MAX for index in time_fields) for row in self.mission_data):
                 logging.error("CCU mission timestamp exceeds the SQLite integer range")
@@ -151,6 +208,13 @@ class CCUMissionParser(MsMultiProcess):
         if save_success:
             self._pending_complete_files.clear()
         return save_success
+
+    def _snapshot_v62_sources(self: any) -> list:
+        sources = []
+        for name in sorted(set(self._source_calculator.source_files)):
+            info = os.stat(PathManager.get_data_file_path(self._project_path, name))
+            sources.append((name, info.st_size, info.st_mtime_ns))
+        return sources
 
     def ms_run(self: any) -> None:
         """
@@ -215,3 +279,29 @@ class CCUMissionParser(MsMultiProcess):
                 continue
             stream_by_task[task_id] = stream_id
         return stream_by_task
+
+    @staticmethod
+    def _build_setckb_v62_row(single_bean: any, die_id: int) -> list:
+        return [
+            single_bean.task_id,
+            single_bean.setckb_instr_id,
+            single_bean.loop_id,
+            single_bean.loop_cnt,
+            single_bean.setckb_ckbinfo,
+            single_bean.setckb_syscnt,
+            str(single_bean.udf_profiling_data),
+            single_bean.udf_flag,
+            single_bean.syscnt_type,
+            single_bean.lp_flg,
+            die_id,
+        ]
+
+    @staticmethod
+    def _build_loopgroup_v62_row(single_bean: any, die_id: int) -> list:
+        return [
+            single_bean.task_id,
+            single_bean.loopgroup_instr_id,
+            single_bean.loopgroup_start_syscnt,
+            single_bean.loopgroup_stop_syscnt,
+            die_id,
+        ]

@@ -229,6 +229,7 @@ const std::string PROCESSOR_NAME_FUSION_OP = "FUSION_OP";
 const std::string PROCESSOR_NAME_FUSION_TASK = "FUSION_TASK";
 const std::string PROCESSOR_NAME_MODEL_NAME = "MODEL_NAME";
 const std::string PROCESSOR_NAME_CCU_MISSION = "CCU_MISSION";
+const std::string PROCESSOR_NAME_CCU_MISSION_V62 = "CCU_MISSION_V62";
 const std::string TABLE_NAME_CCU = "CCU";
 
 const std::string PROCESSOR_TASK_TIME_SUMMARY = "TASK_TIME_SUMMARY";
@@ -416,7 +417,8 @@ const std::unordered_map<std::string, std::string> META_DATA = {{NAME_STR(SCHEMA
                                                                 {NAME_STR(SCHEMA_VERSION_MICRO), SCHEMA_VERSION_MICRO}};
 
 const std::unordered_map<uint16_t, std::string> CHIP_TABLE = {
-    {0, "Ascend310"}, {1, "Ascend910A"}, {4, "Ascend310P"}, {5, "Ascend910B"}, {7, "Ascend310B"}, {15, "Ascend950"},
+    {0, "Ascend310"},  {1, "Ascend910A"}, {4, "Ascend310P"}, {5, "Ascend910B"},
+    {7, "Ascend310B"}, {15, "Ascend950"}, {16, "Ascend960"},
 };
 }  // namespace Application
 }  // namespace Analysis

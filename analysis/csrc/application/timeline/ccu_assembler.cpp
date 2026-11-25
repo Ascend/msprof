@@ -18,6 +18,8 @@
 
 #include "analysis/csrc/application/timeline/ccu_assembler.h"
 
+#include <bitset>
+
 #include "analysis/csrc/infrastructure/utils/utils.h"
 
 namespace Analysis
@@ -25,6 +27,40 @@ namespace Analysis
 namespace Application
 {
 using namespace Analysis::Utils;
+
+namespace
+{
+void WriteInstructionArgs(JsonWriter &ostream, const Domain::CCUInstructionArgs &data)
+{
+    if (data.hasDieId)
+    {
+        ostream["Die Id"] << data.dieId;
+    }
+    if (data.hasDataSize)
+    {
+        ostream["Data Size"] << data.dataSize;
+    }
+    if (data.hasBandwidth)
+    {
+        ostream["Bandwidth (MB/s)"] << data.bandwidth;
+    }
+    if (data.hasReduceInfo)
+    {
+        ostream["Reduce Op Type"] << data.reduceOpType;
+        ostream["Input Data Type"] << data.inputDataType;
+        ostream["Output Data Type"] << data.outputDataType;
+    }
+    if (data.hasMask)
+    {
+        ostream["Mask"] << data.mask;
+    }
+    if (data.hasDelayChannel)
+    {
+        ostream["Maximum Delay Channel"] << data.maxDelayChannel;
+        ostream["Maximum Channel Delay"] << data.maxChannelDelay;
+    }
+}
+}  // namespace
 
 void CCUMissionTraceEvent::ProcessArgs(JsonWriter &ostream)
 {
@@ -39,32 +75,42 @@ void CCUMissionTraceEvent::ProcessArgs(JsonWriter &ostream)
     {
         ostream["Instruction ID"] << data_.instructionId;
     }
-    if (data_.hasDieId)
+    WriteInstructionArgs(ostream, data_);
+}
+
+std::string CCUV62TraceEvent::GetEventName(const CCUV62TimelineData &data)
+{
+    if (data.timeType == CCU_TIME_TYPE_SETCKB)
     {
-        ostream["Die Id"] << data_.dieId;
+        return data.lpFlg == 1 ? "SetCKB Loop" : "SetCKB Mission";
     }
-    if (data_.hasDataSize)
+    return data.timeType;
+}
+
+void CCUV62TraceEvent::ProcessArgs(JsonWriter &ostream)
+{
+    ostream["Task Id"] << data_.taskId;
+    ostream["Instruction ID"] << data_.instructionId;
+    WriteInstructionArgs(ostream, data_);
+    if (data_.timeType != CCU_TIME_TYPE_SETCKB)
     {
-        ostream["Data Size"] << data_.dataSize;
+        return;
     }
-    if (data_.hasBandwidth)
+    ostream["Notify Instruction ID"] << data_.instructionId;
+    if (data_.lpFlg == 0)
     {
-        ostream["Bandwidth (MB/s)"] << data_.bandwidth;
+        ostream["CKB Info"] << std::bitset<16>(static_cast<uint16_t>(data_.setckbCkbinfo)).to_string();
+        if (data_.hasUdf)
+        {
+            ostream["UDF Profiling Data"] << data_.udfProfilingData;
+        }
     }
-    if (data_.hasReduceInfo)
+    else if (data_.lpFlg == 1)
     {
-        ostream["Reduce Op Type"] << data_.reduceOpType;
-        ostream["Input Data Type"] << data_.inputDataType;
-        ostream["Output Data Type"] << data_.outputDataType;
-    }
-    if (data_.hasMask)
-    {
-        ostream["Mask"] << data_.mask;
-    }
-    if (data_.hasDelayChannel)
-    {
-        ostream["Maximum Delay Channel"] << data_.maxDelayChannel;
-        ostream["Maximum Channel Delay"] << data_.maxChannelDelay;
+        ostream["Earliest Loop Id"] << data_.earliestLoopId;
+        ostream["Latest Loop Id"] << data_.latestLoopId;
+        ostream["Longest Duration Loop Id"] << data_.longestLoopId;
+        ostream["Longest Duration(us)"] << data_.longestDuration / Analysis::Common::NS_TO_US;
     }
 }
 
@@ -101,21 +147,37 @@ void CCUAssembler::GenerateMetaData(std::unordered_map<uint16_t, uint32_t> &pidM
 uint8_t CCUAssembler::AssembleData(DataInventory &dataInventory, const std::string &profPath)
 {
     auto ccuData = dataInventory.GetPtr<std::vector<CCUMissionTimelineData>>();
-    if (ccuData == nullptr)
+    auto ccuDataV62 = dataInventory.GetPtr<std::vector<CCUV62TimelineData>>();
+    if (ccuData == nullptr && ccuDataV62 == nullptr)
     {
         WARN("Can't get ccu mission data from dataInventory");
         return DATA_NOT_EXIST;
     }
     std::unordered_map<uint16_t, uint32_t> devicePid;
     auto layer = GetLayerInfo(PROCESS_CCU);
-    for (const auto &data : *ccuData)
+    if (ccuData != nullptr)
     {
-        auto pid = GetDevicePid(devicePid, data.deviceId, profPath, layer.sortIndex);
-        std::shared_ptr<CCUMissionTraceEvent> event;
-        MAKE_SHARED_RETURN_VALUE(event, CCUMissionTraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
-                                 static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
-                                 DivideByPowersOfTenWithPrecision(data.timestamp), data);
-        events_.emplace_back(std::move(event));
+        for (const auto &data : *ccuData)
+        {
+            auto pid = GetDevicePid(devicePid, data.deviceId, profPath, layer.sortIndex);
+            std::shared_ptr<CCUMissionTraceEvent> event;
+            MAKE_SHARED_RETURN_VALUE(event, CCUMissionTraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
+                                     static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                                     DivideByPowersOfTenWithPrecision(data.timestamp), data);
+            events_.emplace_back(std::move(event));
+        }
+    }
+    if (ccuDataV62 != nullptr)
+    {
+        for (const auto &data : *ccuDataV62)
+        {
+            auto pid = GetDevicePid(devicePid, data.deviceId, profPath, layer.sortIndex);
+            std::shared_ptr<CCUV62TraceEvent> event;
+            MAKE_SHARED_RETURN_VALUE(event, CCUV62TraceEvent, ASSEMBLE_FAILED, pid, DEFAULT_TID,
+                                     static_cast<double>(data.duration) / Analysis::Common::NS_TO_US,
+                                     DivideByPowersOfTenWithPrecision(data.timestamp), data);
+            events_.emplace_back(std::move(event));
+        }
     }
     if (events_.empty())
     {

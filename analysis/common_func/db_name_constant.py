@@ -315,6 +315,10 @@ class DBNameConstant(metaclass=ABCMeta):
     # ccu
     TABLE_CCU_MISSION = "OriginMission"
     TABLE_CCU_CHANNEL = "OriginChannel"
+    TABLE_CCU_CHANNEL_V62 = "OriginChannelV62"
+    TABLE_CCU_SETCKB_V62 = "OriginSetCKBV62"
+    TABLE_CCU_LOOPGROUP_V62 = "OriginLoopGroupV62"
+    TABLE_CCU_MISSION_SOURCE_V62 = "CcuMissionSourceV62"
     TABLE_CCU_TASK_INFO = "CCUTaskInfo"
     TABLE_CCU_WAIT_SIGNAL_INFO = "CCUWaitSignalInfo"
     TABLE_CCU_GROUP_INFO = "CCUGroupInfo"

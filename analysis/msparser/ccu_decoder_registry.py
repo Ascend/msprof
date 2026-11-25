@@ -21,6 +21,8 @@ from typing import Iterable
 from typing import Tuple
 from typing import Type
 
+from profiling_bean.hardware.ccu_channel_v62_bean import CCUChannelV62Bean
+from profiling_bean.hardware.ccu_mission_v62_bean import CCUMissionV62Bean
 from profiling_bean.hardware.ccu_bean import CCUChannelBean
 from profiling_bean.hardware.ccu_bean import CCUMissionBean
 from profiling_bean.hardware.ccu_profile import CcuDataKind
@@ -49,6 +51,8 @@ class CcuDecoderRegistry:
     DECODER_CLASSES: Dict[str, Type[Any]] = {
         "ccu_v6_1_mission": CCUMissionBean,
         "ccu_v6_1_channel": CCUChannelBean,
+        "ccu_v6_2_mission": CCUMissionV62Bean,
+        "ccu_v6_2_channel": CCUChannelV62Bean,
     }
 
     @classmethod
@@ -70,7 +74,8 @@ class CcuDecoderRegistry:
         if data_kind == CcuDataKind.MISSION:
             if not isinstance(profile, CcuHardwareProfile):
                 raise ValueError("CCU mission decoder requires a hardware profile")
-            decoder_options = (("relative_time_scale", profile.relative_time_scale),)
+            if decoder_class is CCUMissionBean:
+                decoder_options = (("relative_time_scale", profile.relative_time_scale),)
         return CcuRecordDecoder(format_profile, decoder_class, decoder_options)
 
     @classmethod

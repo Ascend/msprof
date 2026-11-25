@@ -20,6 +20,7 @@ from msmodel.ccu_model import insert_ccu_data_to_db
 from msmodel.interface.parser_model import ParserModel
 from msmodel.interface.view_model import ViewModel
 from profiling_bean.db_dto.ccu.ccu_channel_dto import OriginChannelDto
+from profiling_bean.db_dto.ccu.ccu_channel_dto import OriginChannelV62Dto
 
 
 class CcuChannelModel(ParserModel):
@@ -63,3 +64,25 @@ class CCUViewerChannelModel(ViewModel):
             DBNameConstant.TABLE_CCU_CHANNEL
         )
         return DBManager.fetch_all_data(self.cur, sql, dto_class=OriginChannelDto)
+
+
+class CCUViewerChannelV62Model(ViewModel):
+    """
+    ccu viewer channel model class for chip v6_2
+    """
+
+    def __init__(self: any, result_dir: str, *args, **kwargs) -> None:
+        super().__init__(result_dir, DBNameConstant.DB_CCU, [DBNameConstant.TABLE_CCU_CHANNEL_V62])
+
+    def get_summary_data(self: any) -> list:
+        """
+        get chip v6_2 ccu channel summary data
+        :return: list
+        """
+        table = DBNameConstant.TABLE_CCU_CHANNEL_V62
+        if not DBManager.judge_table_exist(self.cur, table):
+            return []
+        sql = "SELECT channel_id, timestamp AS syscnt, max_delay, avg_delay, die_id FROM {} WHERE timestamp <> '0'".format(
+            table
+        )
+        return self.get_sql_data(sql, dto_class=OriginChannelV62Dto)

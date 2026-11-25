@@ -117,8 +117,9 @@ REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HCCL,
                                  std::vector<KfcTaskData>, std::vector<KfcOpData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_CCU,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
-                                           TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION)),
-                                 false, std::vector<CCUMissionTimelineData>);
+                                           TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION),
+                                           TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_CCU_MISSION_V62)),
+                                 false, std::vector<CCUMissionTimelineData>, std::vector<CCUV62TimelineData>);
 REGISTER_TIMELINE_NODE_WITH_DATA(PROCESS_HCCS,
                                  TOPO_DEPS(TOPO_NODE(FLOW_CONTROL, TIMELINE_PRE_DUMP),
                                            TOPO_NODE(DATA_PROCESSING, PROCESSOR_NAME_HCCS)),

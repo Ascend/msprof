@@ -41,15 +41,15 @@ class TestCcuHardwareProfile(unittest.TestCase):
         self.assertTrue(profile.supports_metric_kind(CcuMetricKind.DELAY))
         self.assertEqual(CcuMetricKind.DELAY, profile.get_metric("channel_delay").kind)
 
-    def test_v6_2_should_remain_unregistered_until_its_decoder_lands(self):
-        self.assertIsNone(CcuHardwareProfileRegistry.get_profile(ChipModel.CHIP_V6_2_0))
-        with self.assertRaises(ValueError):
-            CcuHardwareProfileRegistry.require_profile(ChipModel.CHIP_V6_2_0)
+    def test_v6_2_profile_should_select_its_wire_formats(self):
+        profile = CcuHardwareProfileRegistry.require_profile(ChipModel.CHIP_V6_2_0)
+        self.assertEqual(32, profile.get_format(CcuDataKind.MISSION).record_size)
+        self.assertEqual(384, profile.get_format(CcuDataKind.CHANNEL).record_size)
 
     def test_numeric_chip_model_should_resolve_without_global_state(self):
         self.assertIs(CCU_V6_1_PROFILE, CcuHardwareProfileRegistry.require_profile("15"))
         with self.assertRaises(ValueError):
-            CcuHardwareProfileRegistry.require_profile(16)
+            CcuHardwareProfileRegistry.require_profile(-1)
 
     def test_unknown_chip_model_should_be_rejected(self):
         with self.assertRaises(ValueError):
@@ -79,7 +79,7 @@ class TestCcuHardwareProfile(unittest.TestCase):
 
     def test_parser_config_should_use_profile_supported_chips(self):
         supported_chips = CcuHardwareProfileRegistry.supported_chip_models_csv()
-        self.assertEqual("15,19", supported_chips)
+        self.assertEqual("15,16,19", supported_chips)
         for parser_name in ("CCUMissionParser", "CCUChannelParser"):
             parser_config = dict(DataParsersConfig.DATA[parser_name])
             self.assertEqual(supported_chips, parser_config["chip_model"])

@@ -16,6 +16,7 @@
 
 import os
 from collections import defaultdict
+from typing import Tuple
 
 from common_func.constant import Constant
 from common_func.db_manager import DBManager
@@ -23,6 +24,10 @@ from common_func.file_manager import FileManager
 from common_func.path_manager import PathManager
 
 from framework.offset_calculator import OffsetCalculator
+
+
+def _is_ccu_source_file(file_name: str) -> bool:
+    return not file_name.endswith((Constant.COMPLETE_TAG, Constant.DONE_TAG, Constant.ZIP_TAG))
 
 
 def mark_ccu_files_complete(project_path, file_names, marker_writer=FileManager.add_complete_file):
@@ -34,9 +39,9 @@ def mark_ccu_files_complete(project_path, file_names, marker_writer=FileManager.
     return True
 
 
-def ccu_table_exists(project_path, db_name, table_name):
+def ccu_table_exists(project_path, db_name, *table_names):
     db_path = PathManager.get_db_path(project_path, db_name)
-    return DBManager.check_tables_in_db(db_path, table_name)
+    return DBManager.check_tables_in_db(db_path, *table_names)
 
 
 class CcuOffsetCalculator(OffsetCalculator):
@@ -44,7 +49,7 @@ class CcuOffsetCalculator(OffsetCalculator):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.file_list = [name for name in self.file_list if not name.endswith((".complete", ".done", ".zip"))]
+        self.file_list = [name for name in self.file_list if _is_ccu_source_file(name)]
         self.last_cache = bytes()
         self._remaining_offset = 0
 
@@ -87,10 +92,9 @@ class CcuSourceCalculator:
         self._data_kind = data_kind
         self._record_size = record_size
         self._project_path = project_path
+        self._source_files = tuple(name for name in file_list if _is_ccu_source_file(name))
         files_by_source = defaultdict(list)
-        for file_name in file_list:
-            if file_name.endswith((".complete", ".done", ".zip")):
-                continue
+        for file_name in self._source_files:
             try:
                 files_by_source[self._get_source_key(file_name)].append(file_name)
             except ValueError:
@@ -100,6 +104,10 @@ class CcuSourceCalculator:
             source_key: CcuOffsetCalculator(source_files, record_size, project_path)
             for source_key, source_files in files_by_source.items()
         }
+
+    @property
+    def source_files(self) -> Tuple[str, ...]:
+        return self._source_files
 
     @property
     def has_completed_files(self):

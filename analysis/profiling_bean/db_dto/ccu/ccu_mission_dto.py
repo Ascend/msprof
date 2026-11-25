@@ -36,3 +36,35 @@ class OriginMissionDto(metaclass=InstanceCheckMeta):
     lp_end_time: float = None
     setckebit_start_time: float = None
     rel_end_time: float = None
+
+
+@dataclass
+class OriginSetCKBV62Dto(metaclass=InstanceCheckMeta):
+    """
+    Dto for chip v6_2 SetCKB mission data
+    """
+
+    task_id: int = None
+    setckb_instr_id: int = None
+    loop_id: int = None
+    loop_cnt: int = None
+    setckb_ckbinfo: int = None
+    setckb_syscnt: int = None
+    udf_profiling_data: str = None
+    udf_flag: int = None
+    syscnt_type: int = None
+    lp_flg: int = None
+    die_id: int = None
+
+
+@dataclass
+class OriginLoopGroupV62Dto(metaclass=InstanceCheckMeta):
+    """
+    Dto for chip v6_2 LoopGroup mission data
+    """
+
+    task_id: int = None
+    loopgroup_instr_id: int = None
+    loopgroup_start_syscnt: int = None
+    loopgroup_stop_syscnt: int = None
+    die_id: int = None

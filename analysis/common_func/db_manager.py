@@ -387,13 +387,10 @@ class DBManager:
         conn, curs = cls.check_connect_db_path(db_path)
         if not (conn and curs):
             return False
-        res = True
-        for table in tables:
-            if not cls.judge_row_exist(curs, table):
-                res = False
-                break
-        cls.destroy_db_connect(conn, curs)
-        return res
+        try:
+            return all(cls.judge_table_exist(curs, table) and cls.judge_row_exist(curs, table) for table in tables)
+        finally:
+            cls.destroy_db_connect(conn, curs)
 
     @classmethod
     def get_table_info(cls: any, curs: any, table_name: str) -> dict:

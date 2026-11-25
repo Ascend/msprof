@@ -27,20 +27,14 @@ namespace Domain
 {
 const std::string CCU_TIME_TYPE_LOOP_GROUP = "LoopGroup";
 const std::string CCU_TIME_TYPE_WAIT = "Wait";
+const std::string CCU_TIME_TYPE_SETCKB = "SetCKB";
 
-struct CCUMissionTimelineData
+struct CCUInstructionArgs
 {
-    uint64_t timestamp = 0;
     uint64_t dataSize = 0;
     uint64_t maxChannelDelay = 0;
-    double duration = 0.0;  // ns
     double bandwidth = 0.0;
-    uint32_t taskId = UINT32_MAX;
-    uint32_t notifyRankId = UINT32_MAX;
     uint32_t mask = UINT32_MAX;
-    uint16_t deviceId = UINT16_MAX;
-    uint32_t streamId = UINT32_MAX;
-    uint16_t instructionId = UINT16_MAX;
     uint16_t maxDelayChannel = UINT16_MAX;
     uint16_t dieId = UINT16_MAX;
     bool hasDieId = false;
@@ -50,10 +44,40 @@ struct CCUMissionTimelineData
     bool hasMask = false;
     bool hasDelayChannel = false;
 
-    std::string timeType;
     std::string reduceOpType;
     std::string inputDataType;
     std::string outputDataType;
+};
+
+struct CCUMissionTimelineData : public CCUInstructionArgs
+{
+    uint64_t timestamp = 0;
+    double duration = 0.0;  // ns
+    uint32_t taskId = UINT32_MAX;
+    uint32_t notifyRankId = UINT32_MAX;
+    uint16_t deviceId = UINT16_MAX;
+    uint32_t streamId = UINT32_MAX;
+    uint16_t instructionId = UINT16_MAX;
+    std::string timeType;
+};
+
+struct CCUV62TimelineData : public CCUInstructionArgs
+{
+    uint64_t timestamp = 0;
+    uint64_t waitEndSyscnt = 0;
+    double duration = 0.0;
+    int64_t setckbCkbinfo = 0;
+    double longestDuration = 0.0;
+    uint32_t taskId = UINT32_MAX;
+    uint16_t deviceId = UINT16_MAX;
+    uint16_t instructionId = UINT16_MAX;
+    uint16_t earliestLoopId = UINT16_MAX;
+    uint16_t latestLoopId = UINT16_MAX;
+    uint16_t longestLoopId = UINT16_MAX;
+    uint8_t lpFlg = UINT8_MAX;
+    bool hasUdf = false;
+    std::string timeType;
+    std::string udfProfilingData;
 };
 }  // namespace Domain
 }  // namespace Analysis

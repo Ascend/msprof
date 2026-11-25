@@ -18,6 +18,10 @@ import os
 import unittest
 import shutil
 from unittest import mock
+from common_func.platform.chip_manager import ChipManager
+from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginSetCKBV62Dto
+from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginLoopGroupV62Dto
+from msmodel.hardware.ccu_mission_model import CCUViewerMissionV62Model
 
 from common_func.info_conf_reader import InfoConfReader
 from profiling_bean.db_dto.ccu.ccu_mission_dto import OriginMissionDto
@@ -315,3 +319,350 @@ class TestCCUMissionViewer(unittest.TestCase):
         self.assertEqual(0, result[0][4])
         self.assertIn('Data Size', result[0][5])
         self.assertNotIn('Bandwidth (MB/s)', result[0][5])
+
+    def test_format_v62_summary_data_should_return_formatted_data(self):
+        chip_id = ChipManager().chip_id
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        try:
+            InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+            loopgroup_data = [
+                OriginLoopGroupV62Dto(task_id=2, loopgroup_instr_id=3,
+                                      loopgroup_start_syscnt=100, loopgroup_stop_syscnt=200)
+            ]
+            setckb_data = [
+                OriginSetCKBV62Dto(task_id=2, setckb_instr_id=8, loop_id=9, loop_cnt=10,
+                                   setckb_ckbinfo=11,
+                                   setckb_syscnt=150, udf_profiling_data='hash_value', udf_flag=1,
+                                   syscnt_type=2, lp_flg=0)
+            ]
+            check = CCUMissionViewer({}, {})
+            loopgroup_ret = check.format_loopgroup_v62_summary_data(loopgroup_data)
+            setckb_ret = check.format_setckb_v62_summary_data(setckb_data)
+            self.assertEqual(1, len(loopgroup_ret))
+            self.assertEqual((2, 3), loopgroup_ret[0][:2])
+            self.assertEqual("4.000	", loopgroup_ret[0][2])
+            self.assertEqual("4.0	", loopgroup_ret[0][3])
+            self.assertEqual(1, len(setckb_ret))
+            self.assertEqual((2, 8, 9, 10), setckb_ret[0][:4])
+            self.assertEqual('0000000000001011', setckb_ret[0][4])
+            self.assertEqual("6.000	", setckb_ret[0][5])
+            self.assertEqual('hash_value', setckb_ret[0][6])
+        finally:
+            ChipManager().chip_id = chip_id
+
+    def test_get_v62_summary_methods_should_return_tuple(self):
+        chip_id = ChipManager().chip_id
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        try:
+            loop_config_headers = ["Task Id", "Instruction ID", "Configured Start", "Duration"]
+            set_config_headers = [
+                "Task Id", "Instruction ID", "Loop Id", "Loop Cnt", "CKB Info", "Configured Time",
+                "UDF Profiling Data", "UDF Flag", "Syscnt Type", "LP Flag",
+            ]
+            check = CCUMissionViewer({'headers': loop_config_headers}, {'project': self.DEVICE_PATH})
+            with mock.patch.object(CCUViewerMissionV62Model, 'get_loopgroup_summary_data',
+                                   return_value=[OriginLoopGroupV62Dto(task_id=2,
+                                                                       loopgroup_instr_id=3,
+                                                                       loopgroup_start_syscnt=100,
+                                                                       loopgroup_stop_syscnt=200)]), \
+                    mock.patch.object(CCUViewerMissionV62Model, 'get_setckb_summary_data',
+                                      return_value=[OriginSetCKBV62Dto(task_id=2, setckb_instr_id=8,
+                                                                       loop_id=9, loop_cnt=10, setckb_ckbinfo=11,
+                                                                       setckb_syscnt=150,
+                                                                       udf_profiling_data='hash_value',
+                                                                       udf_flag=1, syscnt_type=2, lp_flg=0)]):
+                loop_headers, loop_data, loop_cnt = check.get_loopgroup_v62_summary_data()
+                check.configs['headers'] = set_config_headers
+                set_headers, set_data, set_cnt = check.get_setckb_v62_summary_data()
+            self.assertEqual(loop_config_headers, loop_headers)
+            self.assertEqual(1, loop_cnt)
+            self.assertEqual((2, 3), loop_data[0][:2])
+            self.assertEqual(set_config_headers, set_headers)
+            self.assertEqual(1, set_cnt)
+            self.assertEqual((2, 8, 9, 10), set_data[0][:4])
+        finally:
+            ChipManager().chip_id = chip_id
+
+    # ==================== v6_2 timeline unit tests ====================
+
+    def test_resolve_setckb_time_syscnt_type_1_should_return_zero_duration(self):
+        records = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xFF, setckb_syscnt=1000,
+                               udf_profiling_data='udf_val', udf_flag=1,
+                               syscnt_type=1, lp_flg=0)
+        ]
+        result = CCUMissionViewer._resolve_setckb_time(records)
+        self.assertIsNotNone(result)
+        start_syscnt, end_syscnt, ckbinfo, udf_flag, udf_data = result
+        self.assertEqual(1000, start_syscnt)
+        self.assertEqual(1000, end_syscnt)
+        self.assertEqual(0xFF, ckbinfo)
+        self.assertEqual(1, udf_flag)
+        self.assertEqual('udf_val', udf_data)
+
+    def test_resolve_setckb_time_type_0_and_2_should_return_start_end(self):
+        records = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xAA, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xBB, setckb_syscnt=500,
+                               udf_profiling_data='end_udf', udf_flag=1,
+                               syscnt_type=2, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xCC, setckb_syscnt=300,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=3, lp_flg=0),
+        ]
+        result = CCUMissionViewer._resolve_setckb_time(records)
+        self.assertIsNotNone(result)
+        start_syscnt, end_syscnt, ckbinfo, udf_flag, udf_data = result
+        self.assertEqual(100, start_syscnt)
+        self.assertEqual(500, end_syscnt)
+        self.assertEqual(0xBB, ckbinfo)  # from end record
+        self.assertEqual(1, udf_flag)     # from end record
+        self.assertEqual('end_udf', udf_data)
+
+    def test_resolve_setckb_time_no_valid_records_should_return_none(self):
+        records = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=3, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=200,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=0),
+        ]
+        result = CCUMissionViewer._resolve_setckb_time(records)
+        self.assertIsNone(result)
+
+        reversed_records = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=200, udf_profiling_data='',
+                               udf_flag=0, syscnt_type=0, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=100, udf_profiling_data='',
+                               udf_flag=0, syscnt_type=2, lp_flg=0),
+        ]
+        self.assertIsNone(CCUMissionViewer._resolve_setckb_time(reversed_records))
+
+    def test_resolve_setckb_time_type_1_takes_priority_over_0_and_2(self):
+        records = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0x11, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0x22, setckb_syscnt=200,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=2, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0x33, setckb_syscnt=50,
+                               udf_profiling_data='immediate', udf_flag=0,
+                               syscnt_type=1, lp_flg=0),
+        ]
+        result = CCUMissionViewer._resolve_setckb_time(records)
+        self.assertIsNotNone(result)
+        start_syscnt, end_syscnt, ckbinfo, udf_flag, udf_data = result
+        self.assertEqual(50, start_syscnt)
+        self.assertEqual(50, end_syscnt)
+        self.assertEqual(0x33, ckbinfo)  # from type-1 record
+        self.assertEqual('immediate', udf_data)
+
+    def test_format_mission_setckb_should_group_by_task_and_instr_id(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        mission_data = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xAA, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xBB, setckb_syscnt=500,
+                               udf_profiling_data='udf_data', udf_flag=1,
+                               syscnt_type=2, lp_flg=0),
+            OriginSetCKBV62Dto(task_id=2, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xCC, setckb_syscnt=1000,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=1, lp_flg=0),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        reader = InfoConfReader()
+        result = viewer._format_mission_setckb(mission_data, reader)
+        self.assertEqual(2, len(result))
+        # instr_id=10: type 0→2
+        self.assertIn("SetCKB", result[0][0])
+        self.assertEqual("4.000", result[0][3])
+        self.assertEqual(16.0, result[0][4])
+        self.assertEqual(1, result[0][5]["Task Id"])
+        self.assertEqual(10, result[0][5]["Instruction ID"])
+        self.assertIn("CKB Info", result[0][5])
+        self.assertEqual('udf_data', result[0][5]["UDF Profiling Data"])
+        # same instr_id under task_id=2: type 1 → zero-duration
+        self.assertIn("SetCKB", result[1][0])
+        self.assertEqual("40.000", result[1][3])
+        self.assertEqual(0, result[1][4])  # duration=0
+        self.assertEqual(2, result[1][5]["Task Id"])
+        self.assertEqual(10, result[1][5]["Instruction ID"])
+
+    def test_format_mission_setckb_should_skip_incomplete_records(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        mission_data = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=0),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        reader = InfoConfReader()
+        result = viewer._format_mission_setckb(mission_data, reader)
+        self.assertEqual(0, len(result))
+
+    def test_format_loop_setckb_should_aggregate_by_instr_id(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        loop_data = [
+            # instr_id=10, loop_cnt=0: type 0→2
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=5, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=1),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=5, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=300,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=2, lp_flg=1),
+            # instr_id=10, loop_cnt=1: type 0→2, shorter duration
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=3, loop_cnt=1,
+                               setckb_ckbinfo=0, setckb_syscnt=200,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=1),
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=3, loop_cnt=1,
+                               setckb_ckbinfo=0, setckb_syscnt=250,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=2, lp_flg=1),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        reader = InfoConfReader()
+        result = viewer._format_loop_setckb(loop_data, reader)
+        self.assertEqual(1, len(result))  # one instr_id
+        self.assertIn("SetCKB", result[0][0])
+        args = result[0][5]
+        self.assertEqual(1, args["Task Id"])
+        self.assertEqual(10, args["Instruction ID"])
+        self.assertEqual(5, args["Earliest Loop Id"])
+        self.assertEqual(5, args["Latest Loop Id"])
+        self.assertEqual(5, args["Longest Duration Loop Id"])
+        self.assertEqual("4.000", result[0][3])
+        self.assertEqual(8.0, result[0][4])
+        self.assertEqual(8.0, args["Longest Duration(us)"])
+
+    def test_format_loop_setckb_same_instr_id_across_tasks(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        loop_data = [
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=1, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=1, lp_flg=1),
+            OriginSetCKBV62Dto(task_id=2, setckb_instr_id=10, loop_id=2, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=500,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=0, lp_flg=1),
+            OriginSetCKBV62Dto(task_id=2, setckb_instr_id=10, loop_id=2, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=700,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=2, lp_flg=1),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        reader = InfoConfReader()
+        result = viewer._format_loop_setckb(loop_data, reader)
+        self.assertEqual(2, len(result))
+        # instr 10: type 1, zero-duration
+        self.assertEqual(0, result[0][4])
+        self.assertEqual(10, result[0][5]["Instruction ID"])
+        # task 2 reuses instr 10: type 0→2
+        self.assertEqual(10, result[1][5]["Instruction ID"])
+        self.assertEqual("20.000", result[1][3])
+        self.assertEqual(8.0, result[1][4])
+
+    def test_format_setckb_v62_timeline_should_split_mission_and_loop(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        setckb_data = [
+            # mission
+            OriginSetCKBV62Dto(task_id=1, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                               setckb_ckbinfo=0xFF, setckb_syscnt=100,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=1, lp_flg=0),
+            # loop
+            OriginSetCKBV62Dto(task_id=2, setckb_instr_id=20, loop_id=1, loop_cnt=0,
+                               setckb_ckbinfo=0, setckb_syscnt=200,
+                               udf_profiling_data='', udf_flag=0,
+                               syscnt_type=1, lp_flg=1),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        result = viewer._format_setckb_v62_timeline(setckb_data)
+        self.assertEqual(2, len(result))
+        # mission: Task Id = 1
+        self.assertEqual(1, result[0][5]["Task Id"])
+        self.assertIn("CKB Info", result[0][5])
+        # loop: Task Id = 2
+        self.assertEqual(2, result[1][5]["Task Id"])
+
+    def test_format_loopgroup_v62_timeline_should_return_correct_trace(self):
+        InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+        loopgroup_data = [
+            OriginLoopGroupV62Dto(task_id=1, loopgroup_instr_id=100,
+                                  loopgroup_start_syscnt=1000, loopgroup_stop_syscnt=5000),
+        ]
+        viewer = CCUMissionViewer({}, {})
+        result = viewer._format_loopgroup_v62_timeline(loopgroup_data)
+        self.assertEqual(1, len(result))
+        self.assertEqual("LoopGroup", result[0][0])
+        self.assertEqual(1, result[0][5]["Task Id"])
+        self.assertEqual(100, result[0][5]["Instruction ID"])
+        self.assertEqual("40.000", result[0][3])
+        self.assertEqual(160.0, result[0][4])
+
+    def test_get_v62_timeline_data_should_merge_loopgroup_and_setckb(self):
+        chip_id = ChipManager().chip_id
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        try:
+            InfoConfReader()._info_json = {"pid": 1, "tid": 1, "DeviceInfo": [{"hwts_frequency": "25"}]}
+            with mock.patch.object(CCUViewerMissionV62Model, 'get_loopgroup_summary_data',
+                                   return_value=[
+                                       OriginLoopGroupV62Dto(task_id=1, loopgroup_instr_id=100,
+                                                             loopgroup_start_syscnt=1000,
+                                                             loopgroup_stop_syscnt=3000)
+                                   ]), \
+                    mock.patch.object(CCUViewerMissionV62Model, 'get_setckb_summary_data',
+                                      return_value=[
+                                          OriginSetCKBV62Dto(task_id=2, setckb_instr_id=10, loop_id=0, loop_cnt=0,
+                                                             setckb_ckbinfo=0xF, setckb_syscnt=500,
+                                                             udf_profiling_data='', udf_flag=0,
+                                                             syscnt_type=1, lp_flg=0)
+                                      ]):
+                viewer = CCUMissionViewer({}, {'project': self.DEVICE_PATH})
+                result = viewer._get_v62_timeline_data()
+            # header (2 meta events) + loopgroup (1) + setckb (1) = 4 entries before time_graph_trace
+            self.assertGreater(len(result), 0)
+            # Find LoopGroup event
+            loop_events = [e for e in result if isinstance(e, dict) and e.get('name') == 'LoopGroup']
+            setckb_events = [e for e in result if isinstance(e, dict) and 'SetCKB' in str(e.get('name', ''))]
+            self.assertEqual(1, len(loop_events))
+            self.assertEqual(1, len(setckb_events))
+        finally:
+            ChipManager().chip_id = chip_id
+
+    def test_get_v62_timeline_data_empty_should_return_empty_list(self):
+        chip_id = ChipManager().chip_id
+        ChipManager().chip_id = ChipModel.CHIP_V6_2_0
+        try:
+            with mock.patch.object(CCUViewerMissionV62Model, 'get_loopgroup_summary_data',
+                                   return_value=[]), \
+                    mock.patch.object(CCUViewerMissionV62Model, 'get_setckb_summary_data',
+                                      return_value=[]):
+                viewer = CCUMissionViewer({}, {'project': self.DEVICE_PATH})
+                result = viewer._get_v62_timeline_data()
+            self.assertEqual([], result)
+        finally:
+            ChipManager().chip_id = chip_id

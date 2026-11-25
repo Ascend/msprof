@@ -680,8 +680,20 @@ class MsProfExportDataUtils:
         return CCUMissionViewer(configs, params).get_summary_data()
 
     @staticmethod
+    def _get_ccu_mission_loopgroup_v62_data(configs: dict, params: dict) -> any:
+        return CCUMissionViewer(configs, params).get_loopgroup_v62_summary_data()
+
+    @staticmethod
+    def _get_ccu_mission_setckb_v62_data(configs: dict, params: dict) -> any:
+        return CCUMissionViewer(configs, params).get_setckb_v62_summary_data()
+
+    @staticmethod
     def _get_ccu_channel_data(configs: dict, params: dict) -> any:
         return CCUChannelViewer(configs, params).get_summary_data()
+
+    @staticmethod
+    def _get_ccu_channel_v62_data(configs: dict, params: dict) -> any:
+        return CCUChannelViewer(configs, params).get_v62_summary_data()
 
     @classmethod
     def export_data(cls: any, params: dict) -> str:

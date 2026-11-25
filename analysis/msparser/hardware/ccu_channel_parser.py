@@ -34,6 +34,7 @@ from msparser.ccu_decoder_registry import CcuDecoderRegistry
 from msparser.ccu_source_calculator import CcuSourceCalculator
 from msparser.ccu_source_calculator import ccu_table_exists
 from msparser.ccu_source_calculator import mark_ccu_files_complete
+from profiling_bean.hardware.ccu_profile import CCU_V6_2_PROFILE
 from profiling_bean.hardware.ccu_profile import CcuDataKind
 from profiling_bean.hardware.ccu_profile import CcuHardwareProfileRegistry
 from profiling_bean.prof_enum.data_tag import DataTag
@@ -53,10 +54,12 @@ class CCUChannelParser(MsMultiProcess):
             sample_config.get(StrConstant.SAMPLE_CONFIG_CHIP_MODEL)
         )
         self._decoder = CcuDecoderRegistry.get_decoder(self._profile, CcuDataKind.CHANNEL)
+        self._is_v62 = self._profile == CCU_V6_2_PROFILE
         self._source_calculator = CcuSourceCalculator(
             self._file_list, self._profile, CcuDataKind.CHANNEL, self._decoder.record_size, self._project_path
         )
-        self._model = CcuChannelModel(self._project_path, DBNameConstant.DB_CCU, [DBNameConstant.TABLE_CCU_CHANNEL])
+        self._table = DBNameConstant.TABLE_CCU_CHANNEL_V62 if self._is_v62 else DBNameConstant.TABLE_CCU_CHANNEL
+        self._model = CcuChannelModel(self._project_path, DBNameConstant.DB_CCU, [self._table])
         self.channel_data = []
         self._pending_complete_files = []
         self._parse_failed = False
@@ -73,19 +76,34 @@ class CCUChannelParser(MsMultiProcess):
             logging.error("CCU channel data file is empty, please check the file.")
             return NumberConstant.ERROR
         try:
-            self._profile.get_source_scope(CcuDataKind.CHANNEL, file_name)
+            die_id, _ = self._profile.get_source_scope(CcuDataKind.CHANNEL, file_name)
         except ValueError as error:
             logging.error(str(error))
             return NumberConstant.ERROR
         with FileOpen(files, "rb") as f:
             channel_bin = self._source_calculator.pre_process(file_name, f.file_reader, _file_size)
             struct_nums = len(channel_bin) // self._decoder.record_size
+            filtered_count = 0
             for i in range(struct_nums):
                 single_bean = self._decoder.decode(
                     channel_bin[i * self._decoder.record_size : (i + 1) * self._decoder.record_size]
                 )
-                if single_bean and len(single_bean.channels_bw_data) == self._profile.channel_count:
+                if not single_bean:
+                    if self._is_v62:
+                        return NumberConstant.ERROR
+                    continue
+                if self._is_v62:
+                    rows = single_bean.channels_delay_data
+                    filtered = single_bean.filtered_channel_count
+                    filtered_count += filtered
+                    if len(rows) + filtered == self._profile.channel_count:
+                        self.channel_data.extend([*row, die_id] for row in rows)
+                elif len(single_bean.channels_bw_data) == self._profile.channel_count:
                     self.channel_data.extend(single_bean.channels_bw_data)
+            if filtered_count:
+                logging.info(
+                    "Filtered %d invalid CCU channel v6_2 rows from %s by channel_vid mask.", filtered_count, file_name
+                )
         return NumberConstant.SUCCESS
 
     def parse(self: any) -> None:
@@ -107,17 +125,17 @@ class CCUChannelParser(MsMultiProcess):
         if self._parse_failed:
             return False
         if self._source_calculator.has_completed_files and not ccu_table_exists(
-            self._project_path, DBNameConstant.DB_CCU, DBNameConstant.TABLE_CCU_CHANNEL
+            self._project_path, DBNameConstant.DB_CCU, self._table
         ):
             logging.error("Completed CCU channel source has no persisted table; clear markers and reimport")
             return False
         save_success = True
         if self._pending_complete_files or self.channel_data:
-            if any(row[1] > NumberConstant.INT64_MAX for row in self.channel_data):
+            if not self._is_v62 and any(row[1] > NumberConstant.INT64_MAX for row in self.channel_data):
                 logging.error("CCU channel timestamp exceeds the SQLite integer range")
                 return False
             with self._model as model:
-                save_success = model.flush(self.channel_data, DBNameConstant.TABLE_CCU_CHANNEL)
+                save_success = model.flush(self.channel_data, self._table)
         if save_success:
             save_success = mark_ccu_files_complete(
                 self._project_path, self._pending_complete_files, FileManager.add_complete_file

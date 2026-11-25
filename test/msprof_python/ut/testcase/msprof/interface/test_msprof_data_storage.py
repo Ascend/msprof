@@ -59,9 +59,9 @@ def create_msprof_json_data(path: str):
         file.write(content)
 
 
+@mock.patch.object(MsprofDataStorage, 'SETTING', None)
 class TestMsprofDataStorage(unittest.TestCase):
 
-    @mock.patch.object(MsprofDataStorage, 'SETTING', None)
     def test_slice_data_list(self):
         data_list = [
             {'name': 'process_name', 'pid': 21532, 'tid': 0, 'args': {'name': 'AscendCL'}, 'ph': 'M'},

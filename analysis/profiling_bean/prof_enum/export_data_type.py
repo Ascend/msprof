@@ -96,4 +96,7 @@ class ExportDataType(Enum):
     VOLTAGE = 77
     DPU = 78
     FUSION_TASK = 79
+    CCU_MISSION_LOOPGROUP = 80
+    CCU_MISSION_SETCKB = 81
+    CCU_CHANNEL_V62 = 82
     MSPROF = 100

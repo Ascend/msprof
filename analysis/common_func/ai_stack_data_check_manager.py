@@ -26,6 +26,8 @@ from common_func.ms_constant.number_constant import NumberConstant
 from common_func.msvp_common import path_check
 from common_func.path_manager import PathManager
 from common_func.platform.chip_manager import ChipManager
+from profiling_bean.hardware.ccu_profile import CCU_V6_1_PROFILE
+from profiling_bean.hardware.ccu_profile import CCU_V6_2_PROFILE
 
 
 class AiStackDataCheckManager(DataCheckManager):
@@ -458,7 +460,41 @@ class AiStackDataCheckManager(DataCheckManager):
         """
         The data path contain ccu mission data or not
         """
-        return cls.check_data_exist(result_dir, file_name_manager.get_ccu_mission_compiles(), device_id=device_id)
+        return (
+            cls.contain_ccu_mission_v61_data(result_dir, device_id)
+            or cls.contain_ccu_mission_loopgroup_data(result_dir, device_id)
+            or cls.contain_ccu_mission_setckb_data(result_dir, device_id)
+        )
+
+    @classmethod
+    def contain_ccu_mission_v61_data(cls, result_dir: str, device_id=None) -> bool:
+        return ChipManager().chip_id in CCU_V6_1_PROFILE.supported_chip_models and cls.check_data_exist(
+            result_dir, file_name_manager.get_ccu_mission_compiles(), device_id=device_id
+        )
+
+    @classmethod
+    def contain_ccu_mission_loopgroup_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        """
+        The data path contain chip v6_2 LoopGroup ccu mission data or not
+        """
+        return (
+            ChipManager().chip_id in CCU_V6_2_PROFILE.supported_chip_models
+            and DBManager.check_no_empty_tables_in_db(
+                PathManager.get_db_path(result_dir, DBNameConstant.DB_CCU), DBNameConstant.TABLE_CCU_LOOPGROUP_V62
+            )
+        )
+
+    @classmethod
+    def contain_ccu_mission_setckb_data(cls: any, result_dir: str, device_id: any = None) -> bool:
+        """
+        The data path contain chip v6_2 SetCKB ccu mission data or not
+        """
+        return (
+            ChipManager().chip_id in CCU_V6_2_PROFILE.supported_chip_models
+            and DBManager.check_no_empty_tables_in_db(
+                PathManager.get_db_path(result_dir, DBNameConstant.DB_CCU), DBNameConstant.TABLE_CCU_SETCKB_V62
+            )
+        )
 
     @classmethod
     def _contain_stars_profiler_data(cls: any, result_dir: str, device_id: int = None) -> bool:

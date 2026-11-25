@@ -66,8 +66,13 @@ class StructFmt:
     UB_FMT_SIZE = 128
     CCU_MISSION_FMT = "16HQHQQ3H"
     CCU_MISSION_FMT_SIZE = 64
+    CCU_MISSION_V62_FMT = "8I"
+    CCU_MISSION_V62_FMT_SIZE = 32
     CCU_CHANNEL_FMT = "704I"
     CCU_CHANNEL_FMT_SIZE = 2816
+    # for ccu channel v62, the data struct is 312B, but it occupied 384B.
+    CCU_CHANNEL_V62_FMT = "96I"
+    CCU_CHANNEL_V62_FMT_SIZE = 384
     # ccu_add_info, three ccu host info struct lens all is 256, Initial "6I" is header, and the sequent 232B is data.
     # 256B is not fully occupied by reasonable data, so use n * B to occupy it.
     # this data struct is weird, for the "I" after "6I4B" make no sense, but it existed, so occupied with "I".

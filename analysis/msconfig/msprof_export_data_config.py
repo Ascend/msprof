@@ -321,6 +321,28 @@ class MsProfExportDataConfig(MetaConfig):
             ('table', DBNameConstant.TABLE_CCU_CHANNEL),
             ('headers', 'Channel Id,Timestamp(us),Max Bandwidth(MB/s),Min Bandwidth(MB/s),Avg Bandwidth(MB/s)'),
         ],
+        'ccu_mission_loopgroup': [
+            ('handler', '_get_ccu_mission_loopgroup_v62_data'),
+            ('db', DBNameConstant.DB_CCU),
+            ('table', DBNameConstant.TABLE_CCU_LOOPGROUP_V62),
+            ('headers', 'Task Id,Instruction ID,Start Time(us),Duration(us)'),
+        ],
+        'ccu_mission_setckb': [
+            ('handler', '_get_ccu_mission_setckb_v62_data'),
+            ('db', DBNameConstant.DB_CCU),
+            ('table', DBNameConstant.TABLE_CCU_SETCKB_V62),
+            (
+                'headers',
+                'Task Id,Instruction ID,Loop Id,Loop Cnt,CKB Info,Time(us),'
+                'UDF Profiling Data,UDF Flag,Syscnt Type,LP Flag',
+            ),
+        ],
+        'ccu_channel_v62': [
+            ('handler', '_get_ccu_channel_v62_data'),
+            ('db', DBNameConstant.DB_CCU),
+            ('table', DBNameConstant.TABLE_CCU_CHANNEL_V62),
+            ('headers', 'Channel Id,Die Id,Timestamp(us),Avg Delay,Max Delay'),
+        ],
         'soc_pmu': [
             ('handler', '_get_soc_pmu_data'),
             ('db', DBNameConstant.DB_SOC_PMU),

@@ -19,6 +19,8 @@
 #include "analysis/csrc/domain/data_process/ai_task/ccu_mission_processor.h"
 
 #include <algorithm>
+#include <map>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -97,7 +99,7 @@ std::string MakeCCUKey(uint64_t streamId, uint64_t taskId, uint64_t instrId)
     return std::to_string(streamId) + "_" + std::to_string(taskId) + "_" + std::to_string(instrId);
 }
 
-CCUDelayChannel GetMaxDelayChannel(const std::vector<CCUWaitSignalInfo> &hostData, const CCUMissionInfo &missionData,
+CCUDelayChannel GetMaxDelayChannel(const std::vector<CCUWaitSignalInfo> &hostData, uint64_t endSyscnt,
                                    const CCUChannelIndex &channelIndex)
 {
     if (channelIndex.empty())
@@ -120,7 +122,7 @@ CCUDelayChannel GetMaxDelayChannel(const std::vector<CCUWaitSignalInfo> &hostDat
             continue;
         }
         const auto &channelRecords = channelIter->second;
-        auto recordIter = std::lower_bound(channelRecords.begin(), channelRecords.end(), missionData.endTime,
+        auto recordIter = std::lower_bound(channelRecords.begin(), channelRecords.end(), endSyscnt,
                                            [](const CCUChannelPrefixInfo &record, uint64_t endTime)
                                            { return record.timestamp < endTime; });
         if (recordIter == channelRecords.begin())
@@ -248,6 +250,44 @@ void ConvertChannelData(const OriCCUChannelData &oriData, std::vector<CCUChannel
     }
 }
 
+void SetGroupArgs(CCUInstructionArgs &args, const CCUGroupInfo &hostData, double durationNs)
+{
+    args.hasDieId = true;
+    args.dieId = hostData.dieId;
+    args.hasDataSize = true;
+    args.dataSize = hostData.dataSize;
+    const double durationUs = durationNs / NS_TO_US;
+    if (durationUs > 0)
+    {
+        args.hasBandwidth = true;
+        args.bandwidth = static_cast<double>(hostData.dataSize) / durationUs;
+    }
+    if (hostData.reduceOpType != "RESERVED")
+    {
+        args.hasReduceInfo = true;
+        args.reduceOpType = hostData.reduceOpType;
+        args.inputDataType = hostData.inputDataType;
+        args.outputDataType = hostData.outputDataType;
+    }
+}
+
+void SetWaitArgs(CCUInstructionArgs &args, const std::vector<CCUWaitSignalInfo> &hostRows, uint64_t endSyscnt,
+                 const CCUChannelIndex &channelIndex)
+{
+    const auto &hostData = hostRows.front();
+    args.hasDieId = true;
+    args.dieId = hostData.dieId;
+    args.hasMask = true;
+    args.mask = hostData.mask;
+    auto maxDelay = GetMaxDelayChannel(hostRows, endSyscnt, channelIndex);
+    if (maxDelay.channelId != UINT16_MAX && maxDelay.channelDelay != 0)
+    {
+        args.hasDelayChannel = true;
+        args.maxDelayChannel = maxDelay.channelId;
+        args.maxChannelDelay = maxDelay.channelDelay;
+    }
+}
+
 void FormatLoopTimelineData(const std::vector<CCUMissionInfo> &loopData, const std::vector<CCUGroupInfo> &groupData,
                             std::vector<CCUMissionTimelineData> &result, uint16_t deviceId,
                             const Utils::SyscntConversionParams &params, const Utils::ProfTimeRecord &record)
@@ -284,28 +324,7 @@ void FormatLoopTimelineData(const std::vector<CCUMissionInfo> &loopData, const s
         auto hostDataIter = groupedGroupData.find(item.first);
         if (hostDataIter != groupedGroupData.end() && !hostDataIter->second.empty())
         {
-            const auto &hostData = hostDataIter->second.front();
-            traceData.hasDieId = true;
-            traceData.dieId = hostData.dieId;
-            traceData.hasDataSize = true;
-            traceData.dataSize = hostData.dataSize;
-            if (traceData.duration > 0)
-            {
-                traceData.hasBandwidth = true;
-                double durationUs = static_cast<double>(traceData.duration) / NS_TO_US;
-                // 通信类：dataSize 为字节，按 1000 换算得 MB/s
-                traceData.bandwidth = durationUs > 0
-                                          ? static_cast<double>(hostData.dataSize) / (durationUs / MICRO_SECOND) /
-                                                static_cast<double>(Common::COMM_BYTES_PER_MB)
-                                          : 0.0;
-            }
-            if (hostData.reduceOpType != "RESERVED")
-            {
-                traceData.hasReduceInfo = true;
-                traceData.reduceOpType = hostData.reduceOpType;
-                traceData.inputDataType = hostData.inputDataType;
-                traceData.outputDataType = hostData.outputDataType;
-            }
+            SetGroupArgs(traceData, hostDataIter->second.front(), traceData.duration);
         }
         result.push_back(traceData);
     }
@@ -359,25 +378,107 @@ void FormatWaitTimelineData(const std::vector<CCUMissionInfo> &waitData,
         auto hostDataIter = groupedWaitSignalData.find(item.first);
         if (hostDataIter != groupedWaitSignalData.end() && !hostDataIter->second.empty())
         {
-            const auto &hostData = hostDataIter->second.front();
-            traceData.hasDieId = true;
-            traceData.dieId = hostData.dieId;
-            traceData.hasMask = true;
-            traceData.mask = hostData.mask;
-            auto maxDelay = GetMaxDelayChannel(hostDataIter->second, data, channelIndex);
-            if (maxDelay.channelId != UINT16_MAX && maxDelay.channelDelay != 0)
-            {
-                traceData.hasDelayChannel = true;
-                traceData.maxDelayChannel = maxDelay.channelId;
-                traceData.maxChannelDelay = maxDelay.channelDelay;
-            }
+            SetWaitArgs(traceData, hostDataIter->second, data.endTime, channelIndex);
         }
         result.push_back(traceData);
     }
 }
+
+using SetCKBRows = std::vector<const OriCCUSetCKBV62Row *>;
+
+bool ResolveSetCKBInterval(const SetCKBRows &records, uint64_t &startSyscnt, const OriCCUSetCKBV62Row *&endRow)
+{
+    const OriCCUSetCKBV62Row *startRow = nullptr;
+    for (const auto *row : records)
+    {
+        switch (std::get<8>(*row))
+        {
+            case 1:  // A single timestamp takes precedence over paired timestamps.
+                startSyscnt = std::get<5>(*row);
+                endRow = row;
+                return true;
+            case 0:
+                startRow = row;
+                break;
+            case 2:
+                endRow = row;
+                break;
+            default:
+                break;
+        }
+    }
+    if (!startRow || !endRow)
+    {
+        return false;
+    }
+    startSyscnt = std::get<5>(*startRow);
+    return startSyscnt <= std::get<5>(*endRow);
+}
+
+using CCUInstructionKey = std::tuple<uint32_t, uint16_t, uint16_t>;
+using CCUGroupsByInstruction = std::map<CCUInstructionKey, std::vector<CCUGroupInfo>>;
+using CCUWaitsByInstruction = std::map<CCUInstructionKey, std::vector<CCUWaitSignalInfo>>;
+using CCUChannelIndices = std::unordered_map<uint16_t, CCUChannelIndex>;
+
+CCUChannelIndices BuildV62ChannelIndices(const OriCCUChannelV62Data &rows)
+{
+    std::unordered_map<uint16_t, std::vector<CCUChannelInfo>> samplesByDie;
+    for (const auto &row : rows)
+    {
+        CCUChannelInfo sample;
+        uint16_t dieId;
+        std::tie(sample.channelId, sample.timestamp, sample.avgDelay, dieId) = row;
+        samplesByDie[dieId].push_back(sample);
+    }
+    CCUChannelIndices indices;
+    for (const auto &item : samplesByDie)
+    {
+        indices.emplace(item.first, BuildChannelIndex(item.second));
+    }
+    return indices;
+}
+
+void ApplyV62GroupArgs(CCUV62TimelineData &event, const CCUGroupsByInstruction &groups)
+{
+    const auto it = groups.find({event.taskId, event.instructionId, event.dieId});
+    if (it == groups.end())
+    {
+        return;
+    }
+    const auto &first = it->second.front();
+    const auto metadata =
+        std::tie(first.dieId, first.dataSize, first.reduceOpType, first.inputDataType, first.outputDataType);
+    if (std::all_of(it->second.begin(), it->second.end(),
+                    [&metadata](const CCUGroupInfo &row) {
+                        return std::tie(row.dieId, row.dataSize, row.reduceOpType, row.inputDataType,
+                                        row.outputDataType) == metadata;
+                    }))
+    {
+        SetGroupArgs(event, first, event.duration);
+    }
+}
+
+void ApplyV62WaitArgs(CCUV62TimelineData &event, const CCUWaitsByInstruction &waits, const CCUChannelIndices &indices)
+{
+    const auto it = waits.find({event.taskId, event.instructionId, event.dieId});
+    if (it == waits.end())
+    {
+        return;
+    }
+    const auto &first = it->second.front();
+    if (std::any_of(it->second.begin(), it->second.end(), [&first](const CCUWaitSignalInfo &row)
+                    { return row.dieId != first.dieId || row.mask != first.mask; }))
+    {
+        return;
+    }
+    const auto index = indices.find(first.dieId);
+    static const CCUChannelIndex emptyIndex;
+    SetWaitArgs(event, it->second, event.waitEndSyscnt, index == indices.end() ? emptyIndex : index->second);
+}
+
 }  // namespace
 
-CCUMissionProcessor::CCUMissionProcessor(const std::string &profPath) : DataProcessor(profPath) {}
+CCUMissionProcessor::CCUMissionProcessor(const std::string &profPath) : CCUDataProcessor(profPath) {}
 
 bool CCUMissionProcessor::Process(DataInventory &dataInventory)
 {
@@ -468,7 +569,7 @@ bool CCUMissionProcessor::LoadMissionAndChannel(const std::string &devicePath, O
     return true;
 }
 
-bool CCUMissionProcessor::LoadHostAddInfo(OriCCUWaitSignalData &waitSignalData, OriCCUGroupData &groupData)
+bool CCUDataProcessor::LoadHostAddInfo(OriCCUWaitSignalData &waitSignalData, OriCCUGroupData &groupData)
 {
     DBInfo waitSignalDB("ccu_add_info.db", "CCUWaitSignalInfo");
     DBInfo groupDB("ccu_add_info.db", "CCUGroupInfo");
@@ -560,6 +661,320 @@ std::vector<CCUMissionTimelineData> CCUMissionProcessor::FormatTimelineData(
     FormatLoopTimelineData(loopData, groupInfo, result, deviceId, params, record);
     FormatWaitTimelineData(waitData, waitSignalInfo, channelInfo, result, deviceId, params, record);
     return result;
+}
+// -------------------- v6_2 implementation --------------------
+
+CCUMissionV62Processor::CCUMissionV62Processor(const std::string &profPath) : CCUDataProcessor(profPath) {}
+
+bool CCUMissionV62Processor::Process(DataInventory &dataInventory)
+{
+    auto deviceList = Utils::File::GetFilesWithPrefix(profPath_, DEVICE_PREFIX);
+    std::vector<CCUV62TimelineData> result;
+    bool flag = true;
+    CCUGroupsByInstruction groups;
+    CCUWaitsByInstruction waits;
+    bool hostLoaded = false;
+    for (const auto &devicePath : deviceList)
+    {
+        OriCCULoopGroupV62Data loopgroupData;
+        OriCCUSetCKBV62Data setckbData;
+        if (!LoadV62Data(devicePath, loopgroupData, setckbData))
+        {
+            ERROR("Load v6_2 ccu data failed, device path is %.", devicePath);
+            flag = false;
+            continue;
+        }
+        if (loopgroupData.empty() && setckbData.empty())
+        {
+            continue;
+        }
+        if (!hostLoaded)
+        {
+            hostLoaded = true;
+            OriCCUGroupData groupRows;
+            OriCCUWaitSignalData waitRows;
+            if (!LoadHostAddInfo(waitRows, groupRows))
+            {
+                flag = false;
+            }
+            std::vector<CCUGroupInfo> groupData;
+            std::vector<CCUWaitSignalInfo> waitData;
+            ConvertGroupData(groupRows, groupData);
+            ConvertWaitSignalData(waitRows, waitData);
+            for (auto &row : groupData)
+            {
+                groups[{row.taskId, row.instrId, row.dieId}].push_back(std::move(row));
+            }
+            for (auto &row : waitData)
+            {
+                waits[{row.taskId, row.instrId, row.dieId}].push_back(std::move(row));
+            }
+        }
+        uint16_t deviceId = GetDeviceIdByDevicePath(devicePath);
+        SyscntConversionParams params;
+        if (!Context::GetInstance().GetSyscntConversionParams(params, deviceId, profPath_))
+        {
+            ERROR("GetSyscntConversionParams failed, profPath is %, device id is %.", profPath_, deviceId);
+            flag = false;
+            continue;
+        }
+        ProfTimeRecord record;
+        if (!Context::GetInstance().GetProfTimeRecordInfo(record, profPath_, deviceId))
+        {
+            ERROR("GetProfTimeRecordInfo failed, profPath is %, device id is %.", profPath_, deviceId);
+            flag = false;
+            continue;
+        }
+        std::vector<CCUV62TimelineData> oneDeviceData;
+        FormatLoopGroupV62Timeline(loopgroupData, oneDeviceData, deviceId, params, record);
+        FormatSetCKBV62Timeline(setckbData, oneDeviceData, deviceId, params, record);
+        if (!oneDeviceData.empty())
+        {
+            FilterDataByStartTime(oneDeviceData, record.startTimeNs, PROCESSOR_NAME_CCU_MISSION_V62);
+            OriCCUChannelV62Data channelData;
+            if (!setckbData.empty() && !waits.empty() && !LoadChannelData(devicePath, channelData))
+            {
+                flag = false;
+            }
+            const auto indices = BuildV62ChannelIndices(channelData);
+            for (auto &event : oneDeviceData)
+            {
+                if (event.timeType == CCU_TIME_TYPE_LOOP_GROUP)
+                {
+                    ApplyV62GroupArgs(event, groups);
+                }
+                else
+                {
+                    ApplyV62WaitArgs(event, waits, indices);
+                }
+            }
+            result.insert(result.end(), oneDeviceData.begin(), oneDeviceData.end());
+        }
+    }
+    if (result.empty())
+    {
+        if (flag)
+        {
+            WARN("No v6_2 ccu mission timeline data generated.");
+        }
+        return flag;
+    }
+    if (!SaveToDataInventory<CCUV62TimelineData>(std::move(result), dataInventory, PROCESSOR_NAME_CCU_MISSION_V62))
+    {
+        ERROR("Save v6_2 ccu data failed, %.", PROCESSOR_NAME_CCU_MISSION_V62);
+        return false;
+    }
+    return flag;
+}
+
+bool CCUMissionV62Processor::LoadV62Data(const std::string &devicePath, OriCCULoopGroupV62Data &loopgroupData,
+                                         OriCCUSetCKBV62Data &setckbData)
+{
+    DBInfo loopgroupDB("ccu.db", "OriginLoopGroupV62");
+    DBInfo setckbDB("ccu.db", "OriginSetCKBV62");
+    std::string dbPath = Utils::File::PathJoin({devicePath, SQLITE, loopgroupDB.dbName});
+    if (!loopgroupDB.ConstructDBRunner(dbPath) || !setckbDB.ConstructDBRunner(dbPath))
+    {
+        ERROR("Construct v6_2 ccu db runner failed.");
+        return false;
+    }
+    auto status = CheckPathAndTable(dbPath, loopgroupDB, false);
+    if (status == CHECK_FAILED)
+    {
+        return false;
+    }
+    if (status == CHECK_SUCCESS)
+    {
+        std::string sql =
+            "SELECT task_id, loopgroup_instr_id, loopgroup_start_syscnt, "
+            "loopgroup_stop_syscnt, die_id FROM " +
+            loopgroupDB.tableName + ";";
+        if (!loopgroupDB.dbRunner->QueryData(sql, loopgroupData))
+        {
+            ERROR("Query v6_2 loopgroup data failed, db path is %.", dbPath);
+            return false;
+        }
+    }
+    status = CheckPathAndTable(dbPath, setckbDB, false);
+    if (status == CHECK_FAILED)
+    {
+        return false;
+    }
+    if (status == CHECK_SUCCESS)
+    {
+        std::string sql =
+            "SELECT task_id, setckb_instr_id, loop_id, loop_cnt, setckb_ckbinfo, "
+            "setckb_syscnt, udf_profiling_data, udf_flag, syscnt_type, lp_flg, die_id FROM " +
+            setckbDB.tableName + ";";
+        if (!setckbDB.dbRunner->QueryData(sql, setckbData))
+        {
+            ERROR("Query v6_2 setckb data failed, db path is %.", dbPath);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CCUMissionV62Processor::LoadChannelData(const std::string &devicePath, OriCCUChannelV62Data &channelData)
+{
+    DBInfo channelDB("ccu.db", "OriginChannelV62");
+    auto dbPath = Utils::File::PathJoin({devicePath, SQLITE, channelDB.dbName});
+    if (!channelDB.ConstructDBRunner(dbPath))
+    {
+        return false;
+    }
+    const auto status = CheckPathAndTable(dbPath, channelDB, false);
+    if (status != CHECK_SUCCESS)
+    {
+        return status == NOT_EXIST;
+    }
+    const std::string sql =
+        "SELECT channel_id, timestamp, avg_delay, die_id FROM " + channelDB.tableName + " WHERE timestamp <> '0';";
+    if (!channelDB.dbRunner->QueryData(sql, channelData))
+    {
+        ERROR("Query v6_2 ccu channel data failed, db path is %.", dbPath);
+        return false;
+    }
+    return true;
+}
+
+void CCUMissionV62Processor::FormatLoopGroupV62Timeline(const OriCCULoopGroupV62Data &loopgroupData,
+                                                        std::vector<CCUV62TimelineData> &result, uint16_t deviceId,
+                                                        const Utils::SyscntConversionParams &params,
+                                                        const Utils::ProfTimeRecord &record)
+{
+    if (loopgroupData.empty())
+    {
+        return;
+    }
+    if (!Reserve(result, result.size() + loopgroupData.size()))
+    {
+        ERROR("Reserve v6_2 loopgroup timeline data failed.");
+        return;
+    }
+    for (const auto &row : loopgroupData)
+    {
+        CCUV62TimelineData traceData;
+        uint64_t startSyscnt = 0;
+        uint64_t stopSyscnt = 0;
+        std::tie(traceData.taskId, traceData.instructionId, startSyscnt, stopSyscnt, traceData.dieId) = row;
+
+        traceData.deviceId = deviceId;
+        traceData.hasDieId = true;
+        traceData.timeType = CCU_TIME_TYPE_LOOP_GROUP;
+        HPFloat start = GetTimeFromSyscnt(startSyscnt, params);
+        traceData.timestamp = GetLocalTime(start, record).Uint64();
+        traceData.duration =
+            stopSyscnt > startSyscnt ? GetDurTimeFromSyscnt(stopSyscnt - startSyscnt, params).Double() : 0.0;
+        result.push_back(traceData);
+    }
+}
+
+void CCUMissionV62Processor::FormatSetCKBV62Timeline(const OriCCUSetCKBV62Data &setckbData,
+                                                     std::vector<CCUV62TimelineData> &result, uint16_t deviceId,
+                                                     const Utils::SyscntConversionParams &params,
+                                                     const Utils::ProfTimeRecord &record)
+{
+    using LoopKey = std::tuple<CCUInstructionKey, uint16_t, uint16_t>;
+    std::map<CCUInstructionKey, SetCKBRows> missionGroups;
+    std::map<LoopKey, SetCKBRows> loopGroups;
+    for (const auto &row : setckbData)
+    {
+        const CCUInstructionKey key{std::get<0>(row), std::get<1>(row), std::get<10>(row)};
+        const auto lpFlg = std::get<9>(row);
+        if (lpFlg == 0)
+        {
+            missionGroups[key].push_back(&row);
+        }
+        else if (lpFlg == 1)
+        {
+            loopGroups[{key, std::get<3>(row), std::get<2>(row)}].push_back(&row);
+        }
+    }
+
+    for (const auto &entry : missionGroups)
+    {
+        uint64_t startSyscnt = 0;
+        const OriCCUSetCKBV62Row *endRow = nullptr;
+        if (!ResolveSetCKBInterval(entry.second, startSyscnt, endRow))
+        {
+            continue;
+        }
+        const uint64_t endSyscnt = std::get<5>(*endRow);
+        CCUV62TimelineData traceData;
+        std::tie(traceData.taskId, traceData.instructionId, traceData.dieId) = entry.first;
+        traceData.deviceId = deviceId;
+        traceData.hasDieId = true;
+        traceData.timeType = CCU_TIME_TYPE_SETCKB;
+        traceData.setckbCkbinfo = std::get<4>(*endRow);
+        traceData.hasUdf = std::get<7>(*endRow) == 1;
+        traceData.udfProfilingData = std::get<6>(*endRow);
+        traceData.waitEndSyscnt = std::get<8>(*endRow) == 2 ? endSyscnt : 0;
+        traceData.lpFlg = 0;
+        HPFloat start = GetTimeFromSyscnt(startSyscnt, params);
+        traceData.timestamp = GetLocalTime(start, record).Uint64();
+        traceData.duration =
+            endSyscnt > startSyscnt ? GetDurTimeFromSyscnt(endSyscnt - startSyscnt, params).Double() : 0.0;
+        result.push_back(std::move(traceData));
+    }
+
+    struct LoopTimeInfo
+    {
+        uint64_t startSyscnt;
+        uint64_t endSyscnt;
+        uint16_t loopId;
+        bool hasWaitEnd;
+    };
+    std::map<CCUInstructionKey, std::vector<LoopTimeInfo>> instrLoops;
+    for (const auto &entry : loopGroups)
+    {
+        uint64_t startSyscnt = 0;
+        const OriCCUSetCKBV62Row *endRow = nullptr;
+        if (!ResolveSetCKBInterval(entry.second, startSyscnt, endRow))
+        {
+            continue;
+        }
+        const uint64_t endSyscnt = std::get<5>(*endRow);
+        instrLoops[std::get<0>(entry.first)].push_back(
+            {startSyscnt, endSyscnt, std::get<2>(entry.first), std::get<8>(*endRow) == 2});
+    }
+
+    // Loop groups are ordered by loop count and then loop ID, so the first tie wins.
+    for (const auto &entry : instrLoops)
+    {
+        const auto &loops = entry.second;
+        const auto earliest =
+            std::min_element(loops.begin(), loops.end(), [](const LoopTimeInfo &a, const LoopTimeInfo &b)
+                             { return a.startSyscnt < b.startSyscnt; });
+        const auto latest =
+            std::max_element(loops.begin(), loops.end(),
+                             [](const LoopTimeInfo &a, const LoopTimeInfo &b) { return a.endSyscnt < b.endSyscnt; });
+        const auto longest =
+            std::max_element(loops.begin(), loops.end(), [](const LoopTimeInfo &a, const LoopTimeInfo &b)
+                             { return a.endSyscnt - a.startSyscnt < b.endSyscnt - b.startSyscnt; });
+
+        CCUV62TimelineData traceData;
+        std::tie(traceData.taskId, traceData.instructionId, traceData.dieId) = entry.first;
+        traceData.deviceId = deviceId;
+        traceData.hasDieId = true;
+        traceData.timeType = CCU_TIME_TYPE_SETCKB;
+        traceData.lpFlg = 1;
+        if (std::any_of(loops.begin(), loops.end(), [&latest](const LoopTimeInfo &loop)
+                        { return loop.endSyscnt == latest->endSyscnt && loop.hasWaitEnd; }))
+        {
+            traceData.waitEndSyscnt = latest->endSyscnt;
+        }
+        traceData.earliestLoopId = earliest->loopId;
+        traceData.latestLoopId = latest->loopId;
+        traceData.longestLoopId = longest->loopId;
+        traceData.longestDuration = GetDurTimeFromSyscnt(longest->endSyscnt - longest->startSyscnt, params).Double();
+        HPFloat start = GetTimeFromSyscnt(earliest->startSyscnt, params);
+        traceData.timestamp = GetLocalTime(start, record).Uint64();
+        traceData.duration = latest->endSyscnt > earliest->startSyscnt
+                                 ? GetDurTimeFromSyscnt(latest->endSyscnt - earliest->startSyscnt, params).Double()
+                                 : 0.0;
+        result.push_back(std::move(traceData));
+    }
 }
 }  // namespace Domain
 }  // namespace Analysis

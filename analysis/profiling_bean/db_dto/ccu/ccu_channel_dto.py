@@ -29,3 +29,16 @@ class OriginChannelDto(metaclass=InstanceCheckMeta):
     max_bw: int = None
     min_bw: int = None
     avg_bw: int = None
+
+
+@dataclass
+class OriginChannelV62Dto(metaclass=InstanceCheckMeta):
+    """
+    Dto for chip v6_2 ccu Channel data
+    """
+
+    channel_id: int = None
+    syscnt: str = None
+    max_delay: int = None
+    avg_delay: int = None
+    die_id: int = None
