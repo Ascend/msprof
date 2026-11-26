@@ -134,7 +134,7 @@ protected:
         dbRunner->InsertData(tableName, data);
         return true;
     }
-    static void CreateReportsJson(nlohmann::json &reports)
+    static void CreateReportsJson(const nlohmann::json &reports)
     {
         FileWriter reportsWriter(File::PathJoin({BASE_PATH, REPORTS_JSON}));
         reportsWriter.WriteText(reports.dump());
@@ -293,9 +293,16 @@ TEST_F(ExportManagerUTest, ShouldKeepAllDatabaseDeliverablesWhenInvalidSelection
     std::vector<TopoNodeId> roots;
     ASSERT_TRUE(manager.Plan({ExportMode::DB}, context, roots));
     EXPECT_FALSE(context.dbPath.empty());
-    // 37 distinct savers across every report key, the 4 shared savers every DB export carries, and the
-    // StringIds node that closes the export.
-    EXPECT_EQ(roots.size(), 42UL);
+    ExportManager defaultManager(PROF_PATH);
+    TopoBuildContext defaultContext;
+    std::vector<TopoNodeId> defaultRoots;
+    ASSERT_TRUE(defaultManager.Plan({ExportMode::DB}, defaultContext, defaultRoots));
+    ASSERT_FALSE(defaultRoots.empty());
+    const std::unordered_set<TopoNodeId, TopoNodeIdHash> actualRoots(roots.begin(), roots.end());
+    const std::unordered_set<TopoNodeId, TopoNodeIdHash> expectedRoots(defaultRoots.begin(), defaultRoots.end());
+    // A non-strict invalid selection must keep exactly the default deliverables, including newly added domains.
+    EXPECT_EQ(actualRoots, expectedRoots);
+    EXPECT_EQ(roots.size(), defaultRoots.size());
 }
 
 TEST_F(ExportManagerUTest, ShouldPlanSelectedTimelineRoots)
@@ -399,6 +406,50 @@ TEST_F(ExportManagerUTest, ShouldRemoveDuplicateRootsFromDefaultSelection)
     }
     EXPECT_EQ(aicpuRootCount, 1UL);
     EXPECT_EQ(uniqueRoots.size(), roots.size());
+}
+
+TEST_F(ExportManagerUTest, ShouldPlanHostPmuProcessorForDefaultAndSelectedDbExport)
+{
+    CreateReportsJson(nlohmann::json{{"db_process", {{"host_pmu", true}}}});
+    for (const bool useReports : {false, true})
+    {
+        ExportManager manager(PROF_PATH, useReports ? File::PathJoin({BASE_PATH, REPORTS_JSON}) : std::string());
+        TopoBuildContext context;
+        context.scopeContexts["export"] = std::make_shared<Analysis::Infra::Context>();
+        context.scopeInventories["export"] = std::make_shared<DataInventory>();
+        std::vector<TopoNodeId> roots;
+        ASSERT_TRUE(manager.Plan({ExportMode::DB}, context, roots));
+        const TopoNodeId pmuSaver{TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + PROCESSOR_NAME_HOST_PMU_COUNTER};
+        EXPECT_NE(std::find(roots.begin(), roots.end(), pmuSaver), roots.end());
+
+        Analysis::Infra::RuntimeProcessCollection processes;
+        TopoGraphBuilder builder;
+        ASSERT_TRUE(builder.Build(context, roots, processes));
+        bool processorFound = false;
+        bool saverFound = false;
+        for (const auto &process : processes)
+        {
+            processorFound = processorFound || process.second.processName == PROCESSOR_NAME_HOST_PMU_COUNTER;
+            saverFound = saverFound || process.second.processName == "DB:" + PROCESSOR_NAME_HOST_PMU_COUNTER;
+        }
+        EXPECT_TRUE(processorFound);
+        EXPECT_TRUE(saverFound);
+    }
+}
+
+TEST_F(ExportManagerUTest, ShouldExcludeHostPmuWhenDisabledInReports)
+{
+    CreateReportsJson(nlohmann::json{{"db_process", {{"host_pmu", false}, {"cpu_usage", true}}}});
+    ExportManager manager(PROF_PATH, File::PathJoin({BASE_PATH, REPORTS_JSON}));
+    ExportSelection selection;
+    ASSERT_TRUE(manager.GetExportSelection({ExportMode::DB}, selection, true));
+    EXPECT_EQ(selection.dbProcesses, std::vector<std::string>{"cpu_usage"});
+
+    TopoBuildContext context;
+    std::vector<TopoNodeId> roots;
+    ASSERT_TRUE(manager.Plan({ExportMode::DB}, context, roots));
+    const TopoNodeId pmuSaver{TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + PROCESSOR_NAME_HOST_PMU_COUNTER};
+    EXPECT_EQ(std::find(roots.begin(), roots.end(), pmuSaver), roots.end());
 }
 
 TEST_F(ExportManagerUTest, ShouldRejectProcessorNameUsedAsReportKey)

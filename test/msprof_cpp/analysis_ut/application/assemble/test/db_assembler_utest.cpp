@@ -2807,19 +2807,26 @@ TEST_F(DBAssemblerUTest, ShouldSaveHostPlatformDataFromDataInventory)
 TEST_F(DBAssemblerUTest, ShouldSkipExecutionListNodeWithoutRegistration)
 {
     const TopoDefinitionSnapshot snapshot;
+    std::vector<TopoNodeId> defaultRoots;
+    DBAssembler::GetTopologyRoots(GetAllDBJsonKeys(), defaultRoots);
+    std::set<std::string> expectedNames;
+    for (const auto& root : defaultRoots)
+    {
+        expectedNames.insert(root.name);
+    }
+    ASSERT_EQ(expectedNames.erase("DB:" + PROCESSOR_NAME_API), 1UL);
     TopoNodeRegistry::MutableDefinitions().erase({TopoNodeStage::DATABASE_PERSISTENCE, "DB:" + PROCESSOR_NAME_API});
     std::vector<TopoNodeId> roots;
     DBAssembler::GetTopologyRoots(GetAllDBJsonKeys(), roots);
-    // 37 distinct savers across every report key, plus the 4 shared savers every DB export carries, plus the
-    // StringIds node, minus the erased API saver.
-    ASSERT_EQ(CountUniqueRoots(roots), 41UL);
+    ASSERT_FALSE(roots.empty());
     EXPECT_EQ(roots.back().name, "DB:" + TABLE_NAME_STRING_IDS);
-    bool apiFound = false;
+    std::set<std::string> actualNames;
     for (const auto& root : roots)
     {
-        apiFound = apiFound || (root.name == "DB:" + PROCESSOR_NAME_API);
+        actualNames.insert(root.name);
     }
-    EXPECT_FALSE(apiFound);
+    // Only the unregistered saver is removed; every other default root must remain.
+    EXPECT_EQ(actualNames, expectedNames);
 }
 
 TEST_F(DBAssemblerUTest, ShouldBuildSelectedSaverNodesAndKeepStringIdsLast)

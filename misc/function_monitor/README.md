@@ -87,18 +87,18 @@ function_monitor.py 中提供函数装饰器 `@function_monitor`，用户可以�
     import os
     import torch
     from function_monitor import function_monitor
-    
+
     @function_monitor(func_name='model_run', threshold_ms=1)
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-    
+
         for i in range(10):
             C = torch.matmul(A, B)
             D = torch.nn.functional.relu(C)
             E = torch.nn.functional.layer_norm(D, D.size()[1:])
-    
+
     if __name__ == '__main__':
         for i in range(10):
             model_run()
@@ -154,18 +154,18 @@ function_monitor.py 中还提供了上下文管理器 `FunctionMonitorContext`�
     import os
     import torch
     from function_monitor import FunctionMonitorContext
-    
+
     def model_run():
         size = 1024
         A = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
         B = torch.rand(size, size, dtype=torch.float32, requires_grad=False).npu()
-    
+
         with FunctionMonitorContext(func_name='torch_operator_run', threshold_ms=1):
             for i in range(10):
                 C = torch.matmul(A, B)
                 D = torch.nn.functional.relu(C)
                 E = torch.nn.functional.layer_norm(D, D.size()[1:])
-    
+
     if __name__ == '__main__':
         for i in range(10):
             model_run()

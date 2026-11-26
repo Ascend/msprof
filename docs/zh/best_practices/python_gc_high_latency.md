@@ -30,7 +30,7 @@
        data_simplification=False,
        gc_detect_threshold=1,    # 打开 GC 检测选项，并设置 GC 检测阈值为 1ms
    )
-   
+
    # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
    with torch_npu.profiler.profile(
        activities=[
@@ -40,7 +40,7 @@
        schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),    # 与prof.step()配套使用
        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
        experimental_config=experimental_config) as prof:
-   
+
        # 启动性能数据采集
        for step in range(steps):    # 训练迭代
            train_one_step()         # 训练函数

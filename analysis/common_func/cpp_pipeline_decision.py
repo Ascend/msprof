@@ -40,6 +40,7 @@ from common_func.platform.chip_manager import ChipManager
 from common_func.profiling_scene import ExportMode
 from framework.file_dispatch import FileDispatch
 from msconfig.cpp_pipeline_capability_config import HOST_FTRACE_TAG
+from msconfig.cpp_pipeline_capability_config import HOST_PMU_TAG
 from msconfig.cpp_pipeline_capability_config import CapabilityRegistry
 from msconfig.cpp_pipeline_capability_config import CommandCapability
 from msconfig.cpp_pipeline_capability_config import DataPosition
@@ -393,6 +394,10 @@ class CollectionFactsCollector:
             if position == DataPosition.HOST and name == "ftrace" and os.path.isdir(path):
                 if self._is_nonempty(path):
                     raw_tags.add(HOST_FTRACE_TAG)
+                continue
+            if position == DataPosition.HOST and name == "pmu" and os.path.isdir(path):
+                if self._is_nonempty(path):
+                    raw_tags.add(HOST_PMU_TAG)
                 continue
             matched_tags = {
                 data_tag.name

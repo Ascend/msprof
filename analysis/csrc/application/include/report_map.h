@@ -117,6 +117,7 @@ const std::vector<std::pair<std::string, std::vector<std::string>>> DB_JSON_NODE
     {"sample_pmu", {PROCESSOR_NAME_SAMPLE_PMU_TIMELINE, PROCESSOR_NAME_SAMPLE_PMU_SUMMARY}},
     {"cpu_usage", {PROCESSOR_NAME_CPU_USAGE}},
     {"cpu_freq", {PROCESSOR_NAME_CPU_FREQ}},
+    {"host_pmu", {PROCESSOR_NAME_HOST_PMU_COUNTER}},
     {"disk_usage", {PROCESSOR_NAME_DISK_USAGE}},
     {"network_usage", {PROCESSOR_NAME_NETWORK_USAGE}},
     {"mem_usage", {PROCESSOR_NAME_MEM_USAGE}},

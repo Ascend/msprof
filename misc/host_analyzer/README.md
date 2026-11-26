@@ -94,7 +94,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
   ```bash
   python3 entrance.py bind -c ./bind_design.json
   ```
-  
+
   按照[json配置文件](#json配置文件示例)中的方案进行绑核，假设当前仅NPU4,5,6,7在运行，则：
     1. 以进程名"VLLM::Worker_TP"匹配NPU4,5,6,7中的该进程，并分别绑定到CPU "4-10","16-22","52-58","64-70"，绑定时会同时绑定该进程下的所有子线程
     2. 以线程名"acl_thread"匹配NPU4,5,6,7中的该线程，并分别绑定到CPU "11","23","59","71"
@@ -107,7 +107,7 @@ python3 entrance.py bind [-l] [-c <config_path>]
   ```bash
   python3 entrance.py bind
   ```
-  
+
     1. 结合NPU亲和性以及可访问CPU数量，为每张NPU卡分配对应的CPU区间（每张卡分配的CPU区间都会在一个NUMA节点内）
     2. 绑定每张NPU卡对应的sq_send_trigger_irq和cq_update_irq（算子下发硬件中断）到其CPU区间的前两个CPU核，需要有/proc/irq/\<irq_id\>/smp_affinity文件的写权限，否则会执行失败
     3. 绑定每张NPU卡对应的dev[i]_sq_task（NPU驱动进程）到其CPU区间的第三个CPU核，需要在宿主机上才能查询到此进程，否则会执行失败

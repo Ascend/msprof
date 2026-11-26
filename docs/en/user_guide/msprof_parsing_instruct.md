@@ -239,6 +239,7 @@ By default, the `reports_sample_config.json` file is stored in the `${INSTALL_DI
         "sample_pmu": true,
         "cpu_usage": true,
         "cpu_freq": true,
+        "host_pmu": true,
         "disk_usage": true,
         "network_usage": true,
         "mem_usage": true,
@@ -286,6 +287,7 @@ Each key of `db_process` corresponds to one data domain, and selecting it export
 | sample_pmu | Sampled PMU | Sampled PMU (timeline), sampled PMU (summary) |
 | cpu_usage | CPU usage | CPU usage |
 | cpu_freq | CPU frequency | CPU frequency |
+| host_pmu | Host PMU counters | HOST_PMU_EVENTS, HOST_PMU_COUNTER_INFO, HOST_PMU_COUNTER_DATA |
 | disk_usage | Disk usage | Disk usage |
 | network_usage | Network usage | Network usage |
 | mem_usage | Memory usage | Memory usage |

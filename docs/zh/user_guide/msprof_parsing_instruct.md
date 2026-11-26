@@ -239,6 +239,7 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
         "sample_pmu": true,
         "cpu_usage": true,
         "cpu_freq": true,
+        "host_pmu": true,
         "disk_usage": true,
         "network_usage": true,
         "mem_usage": true,
@@ -286,6 +287,7 @@ reports\_sample\_config.json文件默认保存在`${INSTALL_DIR}/tools/profiler/
 | sample_pmu | 采样PMU | 采样PMU（timeline）、采样PMU（summary） |
 | cpu_usage | CPU使用率 | CPU使用率 |
 | cpu_freq | CPU频率 | CPU频率 |
+| host_pmu | Host PMU计数器 | HOST_PMU_EVENTS、HOST_PMU_COUNTER_INFO、HOST_PMU_COUNTER_DATA |
 | disk_usage | 磁盘使用率 | 磁盘使用率 |
 | network_usage | 网络使用率 | 网络使用率 |
 | mem_usage | 内存使用率 | 内存使用率 |

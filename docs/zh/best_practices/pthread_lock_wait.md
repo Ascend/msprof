@@ -32,7 +32,7 @@
    - 增大 worker 线程数至 32 后，性能不仅没有提升反而恶化
 
 如下图所示：
- 
+
 ![线程锁等待](../figures/profiler_case_pthread_trace.png)
 
 ## 4. 定位过程

@@ -470,6 +470,40 @@ class TestCollectionFactsCollector(unittest.TestCase):
         result = decider.decide(request)
         self.assertIn("UNKNOWN_RAW_DATA", {issue.reason_code for issue in result.issues})
 
+    def test_nonempty_host_pmu_directory_is_admitted_for_db_export(self):
+        os.mkdir(os.path.join(self.data_path, "pmu"))
+        self._write_raw("pmu/host_pmu_all.data")
+        self._write_raw("pmu/host_pmu_all.data.timing")
+        request = replace(self._request(command_type="db"), host_path=self.result_path, device_paths=())
+        facts = self.collector.collect(request)
+        self.assertEqual(facts.result_paths[0].raw_tags, frozenset({"HOST_PMU"}))
+        self.assertEqual(facts.result_paths[0].unknown_raw_files, ())
+        for chip in (ChipModel.CHIP_V4_1_0, ChipModel.CHIP_V6_1_0):
+            with self.subTest(chip=chip):
+                path_facts = replace(facts.result_paths[0], chip_model=chip)
+                decider = CppPipelineDecider(
+                    collector=StubCollector(replace(facts, result_paths=(path_facts,))),
+                    runtime_probe=StubRuntimeProbe(),
+                )
+                result = decider.decide(request)
+                self.assertTrue(result.can_run_in_cpp, result.issues)
+
+    def test_empty_host_pmu_directory_does_not_add_raw_tags(self):
+        os.mkdir(os.path.join(self.data_path, "pmu"))
+        request = replace(self._request(command_type="db"), host_path=self.result_path, device_paths=())
+        facts = self.collector.collect(request)
+        self.assertEqual(facts.result_paths[0].raw_tags, frozenset())
+        self.assertEqual(facts.result_paths[0].unknown_raw_files, ())
+
+    def test_pmu_directory_is_not_admitted_for_device_data(self):
+        os.mkdir(os.path.join(self.data_path, "pmu"))
+        self._write_raw("pmu/host_pmu_all.data")
+        result = CppPipelineDecider(collector=self.collector, runtime_probe=StubRuntimeProbe()).decide(
+            self._request(command_type="db")
+        )
+        self.assertFalse(result.can_run_in_cpp)
+        self.assertIn("UNKNOWN_RAW_DATA", {issue.reason_code for issue in result.issues})
+
     def test_unknown_data_and_invalid_metadata_are_reported(self):
         self._write_raw("unknown.raw")
         self._write_raw("empty.raw", b"")

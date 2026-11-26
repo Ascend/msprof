@@ -99,10 +99,12 @@ COMMAND_CAPABILITIES = {
 # Match enabled TreeBuildEventTypes/LookupEventTypes and HostTraceWorker dumpers.
 # STATIC_OP_MEM remains disabled in both native entry points.
 HOST_FTRACE_TAG = "HOST_FTRACE"
+HOST_PMU_TAG = "HOST_PMU"
 
 V4_HOST_TAGS = frozenset(
     {
         HOST_FTRACE_TAG,
+        HOST_PMU_TAG,
         DataTag.API_EVENT.name,
         DataTag.HASH_DICT.name,
         DataTag.TASK_TRACK.name,
@@ -150,6 +152,7 @@ V4_DEVICE_TAGS = frozenset(
 V6_HOST_TAGS = frozenset(
     {
         HOST_FTRACE_TAG,
+        HOST_PMU_TAG,
         DataTag.API_EVENT.name,
         DataTag.HASH_DICT.name,
         DataTag.TASK_TRACK.name,
