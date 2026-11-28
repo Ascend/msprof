@@ -299,6 +299,73 @@ msprof命令执行完成后，会生成一个汇总所有性能数据的msprof\_
 |3|FREE|
 |65535|RESERVED|
 
+## ENUM\_GENERIC\_EVENT\_SOURCE
+
+通用事件时钟来源枚举表。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|id|INTEGER|主键，时钟来源编号|
+|name|TEXT|时钟来源名称|
+|label|TEXT|时钟来源显示标签|
+
+**表 2**  内容
+
+|id|name|label|
+|--|--|--|
+|0|NotSpecified|Not Specified|
+|1|ClockMonotonicRaw|Clock Monotonic Raw|
+|2|CntVct|Counter-Timer Virtual Count Register|
+|3|SessionNs|Session Nanoseconds|
+
+## ENUM\_GENERIC\_EVENT\_GROUP
+
+通用事件来源组枚举表。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|id|INTEGER|主键，来源组编号|
+|name|TEXT|来源组名称|
+|label|TEXT|来源组显示标签|
+
+**表 2**  内容
+
+|id|name|label|
+|--|--|--|
+|0|Unknown|Unknown|
+|1|FTrace|FTrace|
+
+## ENUM\_GENERIC\_EVENT\_FIELD\_TYPE
+
+通用事件字段类型枚举表。字符串以GENERIC_EVENT_DATA表中的非零strId识别。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|id|INTEGER|主键，字段类型编号|
+|name|TEXT|字段类型名称|
+|label|TEXT|字段类型显示标签|
+
+**表 2**  内容
+
+|id|name|label|
+|--|--|--|
+|0|Signed|Signed integer|
+|1|Unsigned|Unsigned integer|
+|2|Float|Float|
+|3|Double|Double|
+
 ## STRING_IDS
 
 映射表，用于存储ID和字符串映射关系。
@@ -970,7 +1037,7 @@ PCIe带宽数据。
 
 ## META\_DATA
 
-基础数据，当前仅保存版本号信息。
+基础数据，保存版本号和ftrace导出标记信息。
 
 无对应开关，导出msprof\_\{时间戳\}.db文件时默认生成。
 
@@ -989,25 +1056,97 @@ PCIe带宽数据。
 |SCHEMA_VERSION_MAJOR|大版本号，如1，仅当数据库格式存在重写或重构时更改|
 |SCHEMA_VERSION_MINOR|中版本号，如0，当更改列或类型时更改，存在兼容性问题|
 |SCHEMA_VERSION_MICRO|小版本号，如2，当更新表时都会更改，不具有兼容性问题|
+|ftrace|值为1时表示发现ftrace采集产物，无ftrace产物时不写入该标记|
+|ftrace_events_complete|值为1时表示通用事件表、索引及关联字符串已写入，无ftrace产物时不写入该标记；采集完整性通过GENERIC_EVENTS表的flags字段判断|
 
-## ftrace通用事件表
+## GENERIC\_EVENT\_SOURCES
 
-支持 ftrace 的解析版本可在 DB 导出中生成以下表：表按采集内容生成。
+ftrace通用事件来源信息，每个ftrace子系统一行。
 
-| 表名 | 字段与含义 |
-|--|--|
-| GENERIC_EVENT_SOURCES | `sourceId` 为主键，`nameId` 引用 STRING_IDS，`timeSourceId` 和 `sourceGroupId` 分别引用时钟来源和来源组枚举，`data` 为 JSON 文本。每个 ftrace 子系统一行。 |
-| GENERIC_EVENT_TYPES | `typeId` 为主键，`sourceId` 引用来源表，`nameId` 引用 STRING_IDS，`ftraceFormat` 为 tracefs 格式原文，`data` 为含 `kernelId` 和 `formatHash` 的 JSON 文本。 |
-| GENERIC_EVENT_TYPE_FIELDS | `(typeId, fieldIdx)` 标识类型中的字段。索引从 0 起，`fieldNameId` 引用 STRING_IDS，`offset`、`size` 的单位为字节，`type` 引用字段类型枚举，`ftracePrefix`、`ftraceSuffix` 为显示文本。 |
-| GENERIC_EVENTS | `genericEventId` 为主键，`rawTimestamp` 为 Host CLOCK_MONOTONIC_RAW 时间，`timestamp` 为通过同一次采集 Host 锚点换算的 Unix epoch 时间，两者单位均为 ns。`typeId` 引用类型表，`globalTid` 高 32 位为 TGID、低 32 位为 TID，`cpuId` 为 CPU 编号。 |
-| GENERIC_EVENT_DATA | `(genericEventId, fieldIdx)` 标识事件的字段。`intVal`、`uintVal`、`floatVal`、`doubleVal` 分别存储有符号整数、无符号整数、单精度及双精度值，只有对应类型的列有效。`strId` 非 0 时引用 STRING_IDS，含空字符串。数值字段的 `strId` 为 0。 |
-| ENUM_GENERIC_EVENT_SOURCE | `id`、`name`、`label` 分别为时钟来源编号、名称和显示标签。 |
-| ENUM_GENERIC_EVENT_GROUP | `id`、`name`、`label` 分别为来源组编号、名称和显示标签。FTrace 的编号为 1，0 为 Unknown。 |
-| ENUM_GENERIC_EVENT_FIELD_TYPE | `id`、`name`、`label` 分别为字段类型编号、名称和显示标签。数值类型编号为 0（有符号）、1（无符号）、2（单精度）、3（双精度）。字符串以非零 `strId` 识别。 |
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
 
-- `GENERIC_EVENTS.flags` 的bit0表示该CPU文件不完整，保留行可供分析。bit1 表示至少一个字段解码失败。原始 `common_flags` 作为普通字段写入 `GENERIC_EVENT_DATA`。
-- `genericEventId` 按 `(timestamp, cpuId)` 稳定排序后分配。查询结果需使用 `ORDER BY` 指定顺序。
-- `META_DATA` 中 `ftrace=1` 表示发现ftrace产物，`ftrace_events_complete=1` 表示事件表、索引及关联字符串已写入。采集完整性通过事件标志判断。无ftrace产物时不写这两个标记。
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|sourceId|INTEGER|主键，事件来源ID|
+|nameId|INTEGER|ftrace子系统名称，STRING_IDS(nameId)|
+|timeSourceId|INTEGER|时钟来源，ENUM_GENERIC_EVENT_SOURCE(timeSourceId)|
+|sourceGroupId|INTEGER|来源组，ENUM_GENERIC_EVENT_GROUP(sourceGroupId)|
+|data|TEXT|来源扩展信息，以JSON文本形式保存|
+
+## GENERIC\_EVENT\_TYPES
+
+ftrace通用事件类型信息。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|typeId|INTEGER|主键，事件类型ID|
+|sourceId|INTEGER|事件来源ID，用于关联GENERIC_EVENT_SOURCES表|
+|nameId|INTEGER|事件类型名称，STRING_IDS(nameId)|
+|ftraceFormat|TEXT|tracefs格式原文|
+|data|TEXT|类型扩展信息，以包含kernelId和formatHash的JSON文本形式保存|
+
+## GENERIC\_EVENT\_TYPE\_FIELDS
+
+ftrace通用事件类型的字段定义，typeId和fieldIdx共同标识一个字段。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|typeId|INTEGER|事件类型ID，用于关联GENERIC_EVENT_TYPES表|
+|fieldIdx|INTEGER|类型内的字段索引，从0开始|
+|fieldNameId|INTEGER|字段名称，STRING_IDS(fieldNameId)|
+|offset|INTEGER|字段偏移量，单位Byte|
+|size|INTEGER|字段大小，单位Byte|
+|type|INTEGER|字段类型，ENUM_GENERIC_EVENT_FIELD_TYPE(type)|
+|ftracePrefix|TEXT|字段显示前缀|
+|ftraceSuffix|TEXT|字段显示后缀|
+
+## GENERIC\_EVENTS
+
+ftrace通用事件记录。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|genericEventId|INTEGER|主键，通用事件ID，按(timestamp, cpuId)稳定排序后分配|
+|rawTimestamp|NUMERIC|Host侧CLOCK_MONOTONIC_RAW原始时间，单位ns|
+|timestamp|NUMERIC|通过同一次采集的Host时间锚点换算的Unix时间，单位ns|
+|typeId|INTEGER|事件类型ID，用于关联GENERIC_EVENT_TYPES表|
+|globalTid|INTEGER|全局线程ID，高32位为TGID，低32位为TID|
+|cpuId|INTEGER|CPU编号|
+|flags|INTEGER|事件标志位：<br>bit0：该CPU文件不完整，已成功解码的记录仍可供分析<br>bit1：至少一个字段解码失败|
+
+查询结果需使用ORDER BY指定顺序。原始common_flags作为普通字段写入GENERIC_EVENT_DATA表。
+
+## GENERIC\_EVENT\_DATA
+
+ftrace通用事件字段值，genericEventId和fieldIdx共同标识一个事件字段。数值字段只有对应类型的值列有效。
+
+无对应开关，导出msprof\_\{时间戳\}.db文件时按ftrace采集内容生成。
+
+**表 1**  格式
+
+|字段名|类型|含义|
+|--|--|--|
+|genericEventId|INTEGER|通用事件ID，用于关联GENERIC_EVENTS表|
+|fieldIdx|INTEGER|事件类型内的字段索引，与typeId共同关联GENERIC_EVENT_TYPE_FIELDS表|
+|intVal|NUMERIC|有符号整数值|
+|uintVal|NUMERIC|无符号整数值|
+|floatVal|NUMERIC|单精度浮点数值|
+|doubleVal|NUMERIC|双精度浮点数值|
+|strId|INTEGER|字符串值，非0时引用STRING_IDS(strId)，包括空字符串；数值字段取值为0|
 
 ## MSTX\_EVENTS
 
